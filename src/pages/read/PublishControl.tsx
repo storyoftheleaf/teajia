@@ -73,7 +73,7 @@ const PublishControl: React.FC = () => {
       ) : (
         <>
           <p className="tj-publish-line" role="status">Draft. Only Teajia&rsquo;s editors can see this story.</p>
-          <button type="button" className="tj-publish-button cta-solid" onClick={() => press('live')} disabled={busy} data-testid="read-publish-button">
+          <button type="button" className="btn-primary tj-publish-button" onClick={() => press('live')} disabled={busy} data-testid="read-publish-button">
             {busy ? 'Publishing' : 'Publish'}
           </button>
         </>

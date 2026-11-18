@@ -43,11 +43,11 @@ export function LibraryQuoteWeight({ title, weight, packWeight, form, readOnly, 
           {suggestion != null && unit !== 'Jin' && !presets.includes(suggestion) && <button type="button" disabled={busy} onClick={() => setDraft(String(suggestion))}>Recorded · {suggestion.toLocaleString()}g</button>}
         </div>
         <label className="block text-ui-13 text-tea-text-sec">Total approximate grams covered by the quote
-          <input aria-label="Approximate quoted grams" placeholder="Enter grams" inputMode="decimal" value={draft} onChange={event => setDraft(event.target.value)} disabled={busy} className="input-field w-full min-h-11 px-3 text-ui-16" />
+          <input aria-label="Approximate quoted grams" placeholder="Enter grams" inputMode="decimal" value={draft} onChange={event => setDraft(event.target.value)} disabled={busy} className="input-field w-full min-h-tap px-3 text-ui-16" />
         </label>
         <p className="text-ui-12 text-tea-text-dim">{unit === 'Jin' ? 'Choose 500g or 600g to match the supplier’s jin.' : unit === 'Grams' ? 'Type a total, or tap a weight above.' : `Choose the approximate weight of the ${unit.toLowerCase()}. For multiple pieces, enter their combined weight.`} Used for pricing, not received stock.</p>
         {error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
-        <div className="flex gap-2"><button type="button" className="tap-target min-h-11 flex-1 rounded-md border border-tea-border" disabled={busy} onClick={() => setOpen(false)}>Cancel</button><button type="submit" disabled={busy} className="tap-target min-h-11 flex-1 rounded-md cta-solid">{busy ? 'Saving…' : 'Confirm weight'}</button></div>
+        <div className="flex gap-2"><button type="button" className="tap-target min-h-tap flex-1 rounded-md border border-tea-border" disabled={busy} onClick={() => setOpen(false)}>Cancel</button><button type="submit" disabled={busy} className="btn-primary tap-target flex-1">{busy ? 'Saving…' : 'Confirm weight'}</button></div>
       </form>
     </BottomSheet>
   </>;

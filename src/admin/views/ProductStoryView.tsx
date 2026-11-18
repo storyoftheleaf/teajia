@@ -636,7 +636,7 @@ export const ProductStoryView: React.FC = () => {
                 onClick={() => {
                   openPurchaseOrder();
                 }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 cta-solid text-ui-12 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40"
+                className="btn-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40"
               >
                 <ShoppingBag size={13} />
                 Add to invoice

@@ -9,7 +9,7 @@ import { Icons } from '../components/Icons';
 import { useTheme } from '../context/ThemeContext';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
-const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 min-h-11 py-2 text-ui-16 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
+const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 min-h-tap py-2 text-ui-16 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
 const helperClass = "text-ui-12 text-tea-text-dim mt-1";
 
@@ -28,7 +28,7 @@ function PrimarySubmit({ label, loading, disabled = false }: { label: string; lo
     <button
       type="submit"
       disabled={loading || disabled}
-      className="tap-target inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      className="btn-primary tap-target"
     >
       {loading ? <Loader2 size={13} className="animate-spin" /> : null}
       {label}
@@ -169,7 +169,7 @@ export default function AccountSettingsPage() {
           <p className="text-ui-13 text-tea-text-sec mb-4">You need to be signed in to access account settings.</p>
           <button
             onClick={() => navigate(authPagePath('signin', '/account/settings'))}
-            className="tap-target inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-md cta-solid text-xs font-semibold transition-colors"
+            className="btn-primary tap-target"
           >
             Sign in
           </button>
@@ -180,7 +180,7 @@ export default function AccountSettingsPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-6 pt-4 pb-nav-gap">
-      <button onClick={() => navigate(-1)} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Back">
+      <button onClick={() => navigate(-1)} className="tap-target inline-flex min-h-tap items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Back">
         <ArrowLeft size={14} /> Back
       </button>
       <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -188,7 +188,7 @@ export default function AccountSettingsPage() {
           <h1 className={TYPOGRAPHY_CLASSES.h2}>Account settings</h1>
           <p className="mt-1 text-ui-13 text-tea-text-dim">Your details, sign-in methods and preferences.</p>
         </div>
-        {hasPublicIdentity && <a href="/account/profile" className="tap-target inline-flex min-h-11 items-center text-ui-13 text-tea-gold hover:text-tea-gold-lt">Public profile and payment ↗</a>}
+        {hasPublicIdentity && <a href="/account/profile" className="tap-target inline-flex min-h-tap items-center text-ui-13 text-tea-gold hover:text-tea-gold-lt">Public profile and payment ↗</a>}
       </header>
 
       <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
@@ -232,9 +232,9 @@ export default function AccountSettingsPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 py-2.5"><dt className="text-tea-text-sec">Password</dt><dd className="text-tea-text">{hasPassword === null ? unknownStatus : hasPassword ? 'Set' : 'Not set'}</dd></div>
             </dl>
             {securityQuery.isPending && <p role="status" className="mt-2 text-ui-12 text-tea-text-dim">Checking sign-in methods…</p>}
-            {securityQuery.isError && <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec"><span>Could not check sign-in methods.</span><button type="button" className="tap-target min-h-11 text-tea-gold" onClick={() => void securityQuery.refetch()}>Try again</button></div>}
+            {securityQuery.isError && <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec"><span>Could not check sign-in methods.</span><button type="button" className="tap-target min-h-tap text-tea-gold" onClick={() => void securityQuery.refetch()}>Try again</button></div>}
             <details className="mt-2 border-t border-tea-border">
-              <summary className="min-h-11 cursor-pointer py-3 text-ui-13 text-tea-text hover:text-tea-gold focus-visible:outline-tea-gold">{hasPassword === false ? 'Set a password' : 'Change password'}</summary>
+              <summary className="min-h-tap cursor-pointer py-3 text-ui-13 text-tea-text hover:text-tea-gold focus-visible:outline-tea-gold">{hasPassword === false ? 'Set a password' : 'Change password'}</summary>
               <form onSubmit={handleChangePassword} className="space-y-3 pb-1">
                 <p className="text-ui-12 text-tea-text-dim">{hasPassword === false ? 'Add a password to sign in with your email as well.' : 'Use at least 6 characters for your new password.'}</p>
                 {hasPassword !== false && <div><label htmlFor="current-password" className={labelClass}>Current password</label><input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={inputClass} required /></div>}
@@ -249,7 +249,7 @@ export default function AccountSettingsPage() {
           <section aria-labelledby="appearance-heading" className="border border-tea-border rounded-md bg-tea-surface p-4 md:p-5">
             <h2 id="appearance-heading" className={TYPOGRAPHY_CLASSES.h3}>Appearance</h2>
             <div role="radiogroup" aria-label="Theme" className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-tea-border p-1">
-              {(['light', 'dark'] as const).map(option => <button key={option} type="button" role="radio" aria-checked={theme === option} onClick={e => { if (theme !== option) toggleTheme(e); }} className={`min-h-11 flex items-center justify-center gap-2 rounded text-ui-13 transition-colors ${theme === option ? 'cta-solid' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'}`}>
+              {(['light', 'dark'] as const).map(option => <button key={option} type="button" role="radio" aria-checked={theme === option} onClick={e => { if (theme !== option) toggleTheme(e); }} className={`min-h-tap flex items-center justify-center gap-2 rounded text-ui-13 transition-colors ${theme === option ? 'cta-solid' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'}`}>
                 {option === 'light' ? <Icons.Sun className="h-4 w-4" /> : <Icons.Moon className="h-4 w-4" />}{option === 'light' ? 'Light' : 'Dark'}
               </button>)}
             </div>
@@ -259,14 +259,14 @@ export default function AccountSettingsPage() {
       </div>
 
       <details className="mt-5 border-t border-tea-border">
-        <summary className="min-h-11 cursor-pointer py-3 text-ui-13 text-tea-text-dim hover:text-tea-text focus-visible:outline-tea-gold">Delete account</summary>
+        <summary className="min-h-tap cursor-pointer py-3 text-ui-13 text-tea-text-dim hover:text-tea-text focus-visible:outline-tea-gold">Delete account</summary>
         <form onSubmit={handleDeleteAccount} className="max-w-md space-y-3 pb-4">
           <p className="text-ui-13 text-tea-text-sec">Permanently remove your profile, order history and tasting journal. This cannot be undone.</p>
           {hasPassword === false && <p className="text-ui-12 text-tea-text-sec">A password is required to delete your account. Set one in Sign-in &amp; security first.</p>}
           <div><label htmlFor="delete-confirm" className={labelClass}>Type DELETE to confirm</label><input id="delete-confirm" type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} className={inputClass} autoComplete="off" /></div>
           <div><label htmlFor="delete-password" className={labelClass}>Your password</label><input id="delete-password" type="password" autoComplete="current-password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} className={inputClass} required /></div>
           <FormError error={deleteError} />
-          <button type="submit" disabled={deleteLoading || deleteConfirmText !== 'DELETE' || hasPassword !== true} className="min-h-11 inline-flex items-center gap-2 rounded-md border border-tea-border px-4 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub disabled:opacity-40 disabled:cursor-not-allowed">{deleteLoading && <Loader2 size={14} className="animate-spin" />}Permanently delete account</button>
+          <button type="submit" disabled={deleteLoading || deleteConfirmText !== 'DELETE' || hasPassword !== true} className="min-h-tap inline-flex items-center gap-2 rounded-md border border-tea-border px-4 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub disabled:opacity-40 disabled:cursor-not-allowed">{deleteLoading && <Loader2 size={14} className="animate-spin" />}Permanently delete account</button>
         </form>
       </details>
     </div>

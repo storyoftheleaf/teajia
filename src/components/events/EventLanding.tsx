@@ -297,7 +297,7 @@ const EventLanding: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+            className="btn-primary"
           >
             Return home
           </button>
@@ -397,7 +397,7 @@ const EventLanding: React.FC = () => {
         {isAdmin && (
           <button
             onClick={() => navigate(`/admin/events/${event.id}`)}
-            className="absolute top-3 right-4 z-dropdown inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold cta-solid transition-colors backdrop-blur-md"
+            className="btn-primary absolute top-3 right-4 z-dropdown backdrop-blur-md"
           >
             <Edit3 size={13} /> Edit
           </button>
@@ -569,7 +569,7 @@ const EventLanding: React.FC = () => {
               <div className="space-y-2.5">
                 <button
                   onClick={() => setShowRSVP(true)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
+                  className="btn-primary btn-primary-lg w-full"
                 >
                   {isInstantConfirm ? 'Reserve my seat' : 'Request your seat'}
                 </button>

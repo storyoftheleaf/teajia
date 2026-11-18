@@ -10,7 +10,7 @@ export function LibraryCurrencyPicker({ preference, onChange }: { preference: Li
   const code = preference.currency === 'source' ? null : isoCurrencyCode(preference.currency);
   const symbol = code ? new Intl.NumberFormat('en-US', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find(part => part.type === 'currency')?.value ?? code : '¤';
   return <>
-    <button type="button" className="flex h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-tea-border bg-tea-surface px-2 text-ui-17 text-tea-text hover:bg-tea-elevated" aria-label="Price display settings" title={`Display currency: ${code ?? 'Original currency'}`} onClick={() => setOpen(true)}>{symbol}</button>
+    <button type="button" className="flex h-11 min-w-tap shrink-0 items-center justify-center rounded-md border border-tea-border bg-tea-surface px-2 text-ui-17 text-tea-text hover:bg-tea-elevated" aria-label="Price display settings" title={`Display currency: ${code ?? 'Original currency'}`} onClick={() => setOpen(true)}>{symbol}</button>
     <BottomSheet open={open} onOpenChange={setOpen} title="Price display" description="Source quotes stay unchanged in each record.">
       <div className="grid grid-cols-2 gap-1 pb-4" aria-label="Price display currency">
         {['source', ...SHOP_CURRENCY_KEYS.filter(currency => currency !== 'UNK')].map(currency => <SheetOption key={currency}

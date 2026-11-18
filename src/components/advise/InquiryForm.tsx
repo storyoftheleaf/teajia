@@ -285,7 +285,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
         <div className="sticky top-0 z-10 flex justify-end p-4 pb-0 bg-tea-bg">
           <button
             onClick={handleClose}
-            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-tea-surface transition-colors"
+            className="p-2 min-w-tap min-h-tap flex items-center justify-center rounded-full hover:bg-tea-surface transition-colors"
             aria-label="Close inquiry form"
           >
             <Icons.Close className="w-5 h-5 text-tea-text-sec" />
@@ -334,7 +334,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                             type="button"
                             aria-pressed={guidanceAnswers[question.id] === option}
                             onClick={() => setGuidanceAnswers(prev => ({ ...prev, [question.id]: option }))}
-                            className={`min-h-[44px] rounded-md border px-3 py-2 text-left text-ui-14 leading-snug transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold ${guidanceAnswers[question.id] === option ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:bg-tea-accent-sub'}`}
+                            className={`min-h-tap rounded-md border px-3 py-2 text-left text-ui-14 leading-snug transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold ${guidanceAnswers[question.id] === option ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:bg-tea-accent-sub'}`}
                           >
                             {option}
                           </button>
@@ -421,7 +421,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                         {INQUIRY_OPTIONS.map(option => (
                           <label
                             key={option}
-                            className="flex items-center gap-3 cursor-pointer group min-h-[44px]"
+                            className="flex items-center gap-3 cursor-pointer group min-h-tap"
                           >
                             <span
                               className={`

@@ -103,7 +103,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
               <button
                 type="button"
                 onClick={() => onManagingChange(!managing)}
-                className="tap-target min-h-11 rounded-md px-3 text-ui-12 text-tea-gold transition-colors hover:bg-tea-accent-sub"
+                className="tap-target min-h-tap rounded-md px-3 text-ui-12 text-tea-gold transition-colors hover:bg-tea-accent-sub"
               >
                 {managing ? 'Back to Sample list' : 'View Sample batches'}
               </button>

@@ -751,7 +751,7 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
       </p>
 
       <button type="submit" disabled={busy || !form.name || !form.slug || !form.invoice_prefix}
-        className="w-full py-3 cta-solid text-ui-11 font-semibold uppercase tracking-[0.08em] rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 transition-colors">
+        className="btn-primary btn-primary-lg w-full flex">
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
         Create Account
       </button>

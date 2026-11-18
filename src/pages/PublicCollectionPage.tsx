@@ -504,7 +504,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
                   <button
                     onClick={handleContactSubmit}
                     disabled={confirmState === 'sending'}
-                    className="inline-flex items-center gap-2 px-4 py-2 cta-solid rounded-md text-ui-12 font-medium tracking-[0.3px] disabled:opacity-60 transition-colors"
+                    className="btn-primary"
                   >
                     {confirmState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                     {confirmState === 'sending' ? 'Sending…' : 'Send picks'}
@@ -533,7 +533,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
                 </button>
                 <button
                   onClick={handleConfirmClick}
-                  className="inline-flex items-center gap-2 px-4 py-2 cta-solid rounded-md text-ui-12 font-medium tracking-[0.3px] transition-colors"
+                  className="btn-primary"
                 >
                   <Check size={13} />
                   Confirm my picks
@@ -831,7 +831,7 @@ const ItemControls: React.FC<{
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={toggle}
-            className="tap-target inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-ui-12 font-medium tracking-[0.3px] cta-solid transition-colors"
+            className="btn-primary tap-target"
           >
             <Plus size={13} /> Add
           </button>
@@ -1319,7 +1319,7 @@ const BasketReview: React.FC<{
           <button
             onClick={onConfirm}
             disabled={selectedIds.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2.5 cta-solid rounded-md text-ui-12 font-medium tracking-[0.3px] disabled:opacity-50 transition-colors"
+            className="btn-primary"
           >
             <Check size={13} /> Confirm picks
           </button>

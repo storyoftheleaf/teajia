@@ -20,7 +20,7 @@ interface RFMData { top10: Customer[]; lapsed: Customer[]; new_this_month: Custo
 const ACTION: Record<AttentionItem['kind'], string> = {
   request: 'Reply to request', unpriced: 'Set the price', claim: 'Review payment', unsent: 'Prepare to send', refund: 'Review refund',
 };
-const rowClass = 'flex min-h-11 items-center justify-between gap-4 border-b border-tea-border py-3 text-left transition-colors hover:text-tea-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-tea-gold';
+const rowClass = 'flex min-h-tap items-center justify-between gap-4 border-b border-tea-border py-3 text-left transition-colors hover:text-tea-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-tea-gold';
 
 function ReadState({ failed, loading, retry }: { failed: boolean; loading: boolean; retry: () => void }) {
   if (failed) return <div className="flex flex-wrap items-center gap-3 py-4 text-tea-text-sec"><p className={T.bodyLight}>This part of the dashboard couldn’t load.</p><button onClick={retry} className={`tap-target underline underline-offset-4 ${T.link}`}>Try again</button></div>;
@@ -34,7 +34,7 @@ function StockGroup({ title, products, note }: { title: string; products: Produc
     {products.length === 0 ? <p className={`${T.bodyLight} mt-3 text-tea-text-dim`}>Nothing to review here.</p> : products.slice(0, 4).map(p => <Link key={p.id} to={`/admin/stock?panel=${encodeURIComponent(p.id)}`} className={rowClass}>
       <span className="min-w-0"><span className={`${T.link} block break-words`}>{p.givenName || p.productName}</span><span className={`${T.accountMeta} mt-1 block text-tea-text-dim`}>{note(p)}</span></span><ArrowUpRight size={15} className="shrink-0" aria-hidden="true" />
     </Link>)}
-    {products.length > 4 && <details className="mt-3"><summary className={`min-h-11 cursor-pointer py-3 ${T.link}`}>Show {products.length - 4} more</summary>{products.slice(4).map(p => <Link key={p.id} to={`/admin/stock?panel=${encodeURIComponent(p.id)}`} className={rowClass}><span className={`${T.link} break-words`}>{p.givenName || p.productName}</span><ArrowUpRight size={15} className="shrink-0" aria-hidden="true" /></Link>)}</details>}
+    {products.length > 4 && <details className="mt-3"><summary className={`min-h-tap cursor-pointer py-3 ${T.link}`}>Show {products.length - 4} more</summary>{products.slice(4).map(p => <Link key={p.id} to={`/admin/stock?panel=${encodeURIComponent(p.id)}`} className={rowClass}><span className={`${T.link} break-words`}>{p.givenName || p.productName}</span><ArrowUpRight size={15} className="shrink-0" aria-hidden="true" /></Link>)}</details>}
   </div>;
 }
 

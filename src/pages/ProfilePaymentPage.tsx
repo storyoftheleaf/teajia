@@ -240,7 +240,7 @@ function Sheet({ portrait, closeHref, children, testId }: { portrait: string | n
         {portrait && <img src={portrait} alt="" className="h-full w-full object-cover opacity-35" />}
       </div>
       <section className="relative mt-[220px] border-t bg-tea-surface px-6 pb-8 pt-3" style={GOLD_LINE_STYLE}>
-        <div className="flex min-h-[44px] items-center">
+        <div className="flex min-h-tap items-center">
           <a href={closeHref} aria-label="Close" className="tap-target inline-flex h-11 w-11 items-center justify-start font-sans text-[22px] text-tea-text-sec hover:text-tea-text">×</a>
         </div>
         {children}

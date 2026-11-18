@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, test, type Page, tapFloor } from './fixtures';
 
 function token() {
   const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -335,7 +335,7 @@ test('custom-view deletion is keyboard-operable, protects defaults and persists'
   const removeSelling = page.getByRole('button', { name: 'Delete My selling list view', exact: true });
   await expect(removeSelling).toBeVisible();
   const deleteBounds = await removeSelling.boundingBox();
-  expect(deleteBounds?.height).toBeGreaterThanOrEqual(44);
+  expect(deleteBounds?.height).toBeGreaterThanOrEqual(tapFloor());
   await expect(removeSelling.locator('button')).toHaveCount(0);
   await removeSelling.focus();
   await page.keyboard.press('Enter');

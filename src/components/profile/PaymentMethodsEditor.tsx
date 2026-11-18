@@ -110,7 +110,7 @@ export function PaymentMethodsEditor({ contributorName, associations, methods, o
           <PaymentFields value={draft} associations={associations} onChange={patch => setDraft(current => ({ ...current, ...patch }))} />
           <div className="mt-5 flex justify-between">
             <button type="button" onClick={() => { setCreating(false); setDraft(emptyMethod(contributorName)); }} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
-            <button type="button" onClick={create} disabled={busy === 'new' || !draft.label.trim() || !draft.recipient_name.trim()} className="cta-solid tap-target rounded-md px-5 py-2.5 text-ui-13 font-medium active:scale-[0.98] disabled:opacity-50">Create method</button>
+            <button type="button" onClick={create} disabled={busy === 'new' || !draft.label.trim() || !draft.recipient_name.trim()} className="btn-primary tap-target active:scale-[0.98]">Create method</button>
           </div>
         </div>
       )}
@@ -147,7 +147,7 @@ function PaymentMethodForm({ value, associations, busy, onChange, onSave, onDele
       <PaymentFields value={value} associations={associations} onChange={onChange} />
       <div className="mt-5 flex justify-between">
         <span className="text-ui-12 text-tea-text-dim">{value.is_published ? 'Visible on the public payment page' : 'Private draft'}</span>
-        <button type="button" onClick={onSave} disabled={busy} className="cta-solid tap-target rounded-md px-5 py-2.5 text-ui-13 font-medium active:scale-[0.98] disabled:opacity-50">{busy ? 'Saving…' : 'Save method'}</button>
+        <button type="button" onClick={onSave} disabled={busy} className="btn-primary tap-target active:scale-[0.98]">{busy ? 'Saving…' : 'Save method'}</button>
       </div>
     </article>
   );

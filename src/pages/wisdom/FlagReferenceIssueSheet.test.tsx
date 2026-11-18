@@ -127,7 +127,7 @@ describe('Tea Reference revision flag visibility', () => {
     expect(html).toContain('The hierarchy needs another look.');
     expect(html).toContain('Could not flag this section. Try again.');
     expect(html).toContain('required=""');
-    expect(html).toContain('min-h-11');
+    expect(html).toContain('min-h-tap');
     expect(html).not.toMatch(/replacement prose|regeneration prompt/i);
   });
 

@@ -50,7 +50,7 @@ export const ShopCurrencyPicker: React.FC<{ className?: string }> = ({ className
           }
         }}
         aria-label="Currency for every price on this page"
-        className="shop-currency-select absolute left-1/2 top-1/2 h-[44px] min-w-[44px] -translate-x-1/2 -translate-y-1/2 cursor-pointer appearance-none border-0 bg-transparent p-0 text-ui-10 opacity-0 outline-none"
+        className="shop-currency-select absolute left-1/2 top-1/2 h-[44px] min-w-tap -translate-x-1/2 -translate-y-1/2 cursor-pointer appearance-none border-0 bg-transparent p-0 text-ui-10 opacity-0 outline-none"
         style={{ width: '100%' }}
       >
         {codes.map(code => (

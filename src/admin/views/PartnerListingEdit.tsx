@@ -646,7 +646,7 @@ export const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, 
       {saveMsg && (
         <div role={retrySave ? 'alert' : 'status'} className="flex flex-wrap items-center gap-3 text-tea-text-dim italic text-ui-12 transition-opacity">
           <span>{saveMsg}</span>
-          {retrySave && <button type="button" onClick={retrySave} className="min-h-11 text-tea-gold hover:text-tea-gold-lt not-italic">Retry save</button>}
+          {retrySave && <button type="button" onClick={retrySave} className="min-h-tap text-tea-gold hover:text-tea-gold-lt not-italic">Retry save</button>}
         </div>
       )}
     </div>

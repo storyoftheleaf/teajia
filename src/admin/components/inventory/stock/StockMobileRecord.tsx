@@ -70,7 +70,7 @@ export function StockMobileRecord({product,name,lowStock,fields,editing,draftIde
     {!editing && draftNameLabel ? (
       <div className="stock-source-label flex min-w-0 items-center">
         {!canEditDraftName ? <span className="min-w-0 flex-1 truncate text-left" title={draftNameLabel}>{draftNameLabel}</span>
-          : <button type="button" className={`tap-target min-h-11 min-w-0 flex-1 justify-start text-left ${!draftNames?.chosen ? 'italic' : ''}`} aria-label={`${draftNames?.chosen ? 'Edit chosen name' : DRAFT_NAME_ACTION} (${cardTitle})`} title={draftNameLabel} onClick={open('givenName')}><span className="min-w-0 truncate">{draftNameLabel}</span></button>}
+          : <button type="button" className={`tap-target min-h-tap min-w-0 flex-1 justify-start text-left ${!draftNames?.chosen ? 'italic' : ''}`} aria-label={`${draftNames?.chosen ? 'Edit chosen name' : DRAFT_NAME_ACTION} (${cardTitle})`} title={draftNameLabel} onClick={open('givenName')}><span className="min-w-0 truncate">{draftNameLabel}</span></button>}
         <button type="button" className="tap-target flex h-11 w-11 shrink-0 items-center justify-center" aria-label={`Source for ${name}: ${sourceLabel}`} title={sourceLabel} onClick={open('more')}><MapPin size={13} aria-hidden="true" /></button>
       </div>
     ) : <button type="button" className="tap-target stock-inline-edit stock-source-label" aria-label={`Source for ${name}: ${sourceLabel}`} title={sourceLabel} onClick={open('more')}><span>{sourceLabel}</span></button>}

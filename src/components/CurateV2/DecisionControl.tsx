@@ -30,7 +30,7 @@ export const DecisionControl: React.FC<{
         aria-checked={value === option.value}
         key={option.value}
         onClick={() => onChange(value === option.value ? null : option.value)}
-        className={`min-h-11 min-w-0 px-1 font-mono text-ui-11 uppercase tracking-[0.12em] transition-colors ${i ? 'border-l border-tea-border' : ''} ${
+        className={`min-h-tap min-w-0 px-1 font-mono text-ui-11 uppercase tracking-[0.12em] transition-colors ${i ? 'border-l border-tea-border' : ''} ${
           value === option.value ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
         }`}
         data-curate-action

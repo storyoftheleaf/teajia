@@ -799,7 +799,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           onClick={() => { void save(); }}
           aria-label="Save"
           disabled={saveState === 'saving' || publishing || !title.trim()}
-          className="flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40 shrink-0"
+          className="btn-primary flex shrink-0"
         >
           {saveState === 'saving' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
           <span className="hidden sm:inline">Save</span>
@@ -1059,7 +1059,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                         <button
                           onClick={handleParse}
                           disabled={!pasteText.trim()}
-                          className="w-full py-2 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40"
+                          className="btn-primary btn-primary-lg w-full"
                         >
                           Parse into blocks
                         </button>
@@ -1187,7 +1187,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                 ))}
               </div>
             )}
-            <button onClick={handleParse} disabled={!pasteText.trim()} className="w-full py-2 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40">
+            <button onClick={handleParse} disabled={!pasteText.trim()} className="btn-primary btn-primary-lg w-full">
               Parse into blocks
             </button>
           </div>

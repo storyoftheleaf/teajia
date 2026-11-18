@@ -6,7 +6,7 @@
  * the payload — it never verifies the signature — so any three-part token works.
  */
 
-import { test, expect, type Page } from './fixtures';
+import { test, expect, type Page, tapFloor } from './fixtures';
 import { primaryNav } from './helpers/navigation';
 import { findScreenEdgeOverruns } from './helpers/screenEdge';
 import * as fs from 'fs';
@@ -688,7 +688,7 @@ test.describe('Member sample continuation', () => {
     await expect(page.getByRole('link', { name: 'Taste Wuyi Oolong and add to Journal' })).toHaveAttribute('href', '/s/received-1?taste=1');
     await expect(page.getByRole('link', { name: 'View Old Tree Red tasting' })).toHaveAttribute('href', '/s/tasted-1');
     const tasteBox = await page.getByRole('link', { name: 'Taste Wuyi Oolong and add to Journal' }).boundingBox();
-    expect(tasteBox?.height).toBeGreaterThanOrEqual(44);
+    expect(tasteBox?.height).toBeGreaterThanOrEqual(tapFloor());
 
     await page.getByRole('link', { name: 'Taste Wuyi Oolong and add to Journal' }).click();
     await expect(page).toHaveURL(/\/s\/received-1$/);

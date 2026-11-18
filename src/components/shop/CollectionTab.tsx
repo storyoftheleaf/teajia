@@ -179,7 +179,7 @@ const ItemCard: React.FC<{
                   }
                 }}
                 disabled={isSoldOut}
-                className={`${LABEL} min-h-[44px] rounded-md px-4 py-2 font-medium transition-all ${
+                className={`${LABEL} min-h-tap rounded-md px-4 py-2 font-medium transition-all ${
                   isSoldOut
                     ? 'cursor-not-allowed bg-tea-accent-sub text-tea-text-sec'
                     : 'cta-solid active:scale-95'

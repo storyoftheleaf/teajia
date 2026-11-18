@@ -35,8 +35,8 @@ const SITE_LINKS: SiteLink[] = [
   { id: 'wisdom', label: 'Tea Wisdom', path: '/wisdom' },
 ];
 
-const ROW_CLASS = 'flex items-center justify-between w-full min-h-[44px] px-5 font-display text-ui-17 lowercase tracking-[0.03em] transition-colors duration-200';
-const CHILD_ROW_CLASS = 'flex items-center w-full min-h-[44px] pl-10 pr-5 font-display text-ui-15 lowercase tracking-[0.03em] transition-colors duration-200';
+const ROW_CLASS = 'flex items-center justify-between w-full min-h-tap px-5 font-display text-ui-17 lowercase tracking-[0.03em] transition-colors duration-200';
+const CHILD_ROW_CLASS = 'flex items-center w-full min-h-tap pl-10 pr-5 font-display text-ui-15 lowercase tracking-[0.03em] transition-colors duration-200';
 const ROW_IDLE = 'text-tea-text-sec hover:text-tea-text';
 const ROW_ACTIVE = 'text-tea-gold';
 const ACTIVE_GLOW: React.CSSProperties = {
@@ -96,7 +96,7 @@ export const SiteMenu: React.FC<SiteMenuProps> = ({ isOpen, onClose, onSearchCli
               <button
                 type="button"
                 onClick={() => { onClose(); onSearchClick(); }}
-                className="mx-4 my-2 flex items-center gap-3 w-[calc(100%-2rem)] min-h-[44px] px-4 border border-tea-border rounded-md text-tea-text-sec hover:text-tea-text transition-colors duration-200"
+                className="mx-4 my-2 flex items-center gap-3 w-[calc(100%-2rem)] min-h-tap px-4 border border-tea-border rounded-md text-tea-text-sec hover:text-tea-text transition-colors duration-200"
                 aria-label="Search"
               >
                 <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] shrink-0" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

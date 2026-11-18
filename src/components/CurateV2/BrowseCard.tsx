@@ -415,7 +415,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     type="button"
                     onClick={() => photoInputRef.current?.click()}
                     disabled={photoUploading}
-                    className="tap-target shrink-0 flex min-h-11 items-center gap-1 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors px-2"
+                    className="tap-target shrink-0 flex min-h-tap items-center gap-1 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors px-2"
                   >
                     {photoUploading
                       ? <Loader2 size={11} className="animate-spin" />
@@ -467,7 +467,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                           type="button"
                           onClick={() => setVerdict(chip.value)}
                           aria-pressed={active}
-                          className={`tap-target flex-1 min-h-11 inline-flex items-center justify-center gap-1.5 rounded-md border text-ui-12 font-medium transition-colors ${
+                          className={`tap-target flex-1 min-h-tap inline-flex items-center justify-center gap-1.5 rounded-md border text-ui-12 font-medium transition-colors ${
                             active
                               ? chip.activeCls
                               : 'border-tea-border bg-tea-bg text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -539,7 +539,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             type="button"
             data-library-action
             onClick={() => updateEntry(entry.id, { status: isWishlisted ? 'noted' : 'want' })}
-            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+            className={`tap-target flex min-h-tap items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
               isWishlisted
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -555,7 +555,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             data-library-action
             onClick={() => { if (isBought) handleUnbuy(); else if (!acquisitionPending) onAcquire?.(entry.id); }}
             disabled={acquisitionPending || (!isBought && !onAcquire)}
-            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+            className={`tap-target flex min-h-tap items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
               isBought
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : acquisitionPending
@@ -575,7 +575,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             type="button"
             data-library-action
             onClick={() => { useSampleUse.getState().begin(entry.id); setTastingOpen(true); }}
-            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+            className={`tap-target flex min-h-tap items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
               hasTasting
                 ? 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -597,7 +597,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               data-library-action
               onClick={() => onAcquire?.(entry.id)}
               disabled={!onAcquire}
-              className="tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
+              className="tap-target flex min-h-tap items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
               title="Add to ledger to reorder"
             >
               <RefreshCw size={12} />
@@ -613,7 +613,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               onClick={() => updateEntry(entry.id, {
                 tasteOrder: entry.tasteOrder ? undefined : Date.now(),
               })}
-              className={`tap-target flex min-h-11 items-center gap-1 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+              className={`tap-target flex min-h-tap items-center gap-1 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
                 entry.tasteOrder
                   ? 'bg-tea-gold/10 text-tea-gold'
                   : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -637,7 +637,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 compassEntryId: entry.id,
               }}
               size={12}
-              className="tap-target min-h-11 px-2.5 text-ui-12"
+              className="tap-target min-h-tap px-2.5 text-ui-12"
             />
           )}
 
@@ -649,7 +649,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             type="button"
             data-library-action
             onClick={() => onEdit(entry.id)}
-            className="tap-target flex min-h-11 min-w-11 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
+            className="tap-target flex min-h-tap min-w-tap items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
             title="Edit in Capture"
             aria-label="Edit entry"
           >
@@ -662,7 +662,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               type="button"
               data-library-action
               onClick={() => { removeEntry(entry.id); setConfirmDelete(false); }}
-              className="tap-target flex min-h-11 items-center gap-1 px-2 rounded-md text-ui-12 font-medium bg-tea-error/10 text-tea-error hover:bg-tea-error/20 transition-colors ml-1"
+              className="tap-target flex min-h-tap items-center gap-1 px-2 rounded-md text-ui-12 font-medium bg-tea-error/10 text-tea-error hover:bg-tea-error/20 transition-colors ml-1"
             >
               <AlertTriangle size={11} />
               Delete?
@@ -672,7 +672,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               type="button"
               data-library-action
               onClick={() => setConfirmDelete(true)}
-              className="tap-target flex min-h-11 min-w-11 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-error hover:bg-tea-elevated transition-colors ml-1"
+              className="tap-target flex min-h-tap min-w-tap items-center justify-center rounded-md text-tea-text-sec hover:text-tea-error hover:bg-tea-elevated transition-colors ml-1"
               title="Delete"
               aria-label="Delete entry"
             >

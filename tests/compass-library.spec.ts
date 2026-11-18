@@ -1,4 +1,4 @@
-import { test, expect, type Page } from './fixtures';
+import { test, expect, type Page, tapFloor } from './fixtures';
 import { compassRequestCount, expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 import { closeRecord, openRecordSection } from './helpers/teaRecord';
 import { openViewAndSort, showRejected, showTransferred, toggleLibraryPhotos } from './helpers/libraryView';
@@ -237,13 +237,13 @@ test.describe('Curate Library decisions and retrieval', () => {
     // 44px floor, so assert the floor itself: which class delivers it is an
     // implementation detail, and the reason this assertion exists is the
     // target size.
-    await expect.poll(async () => (await createAction.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await createAction.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     await createAction.click();
     await expect(page.getByRole('button', { name: /View in Inventory/ })).toBeVisible();
     // Same as above: .pill carries the same 44px floor, so measure the floor.
     await expect
       .poll(async () => (await page.getByRole('button', { name: /View in Inventory/ }).boundingBox())?.height ?? 0)
-      .toBeGreaterThanOrEqual(44);
+      .toBeGreaterThanOrEqual(tapFloor());
     expect(promotions).toBe(1);
     await page.getByRole('button', { name: /View in Inventory/ }).click();
     await expect(page).toHaveURL(/\/admin\/stock\?panel=inventory-river/);
@@ -314,7 +314,7 @@ test.describe('Curate Library decisions and retrieval', () => {
     await page.getByRole('radio', { name: 'Passed on' }).click();
     await expect(page.getByRole('radio', { name: 'Passed on' })).toHaveAttribute('aria-checked', 'true');
     for (const control of await page.getByRole('radiogroup', { name: 'Sourcing decision' }).getByRole('radio').all()) {
-      expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+      expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(tapFloor());
     }
     await page.getByRole('radio', { name: 'Passed on' }).click();
     await expect(page.getByRole('radio', { name: 'Considering' })).toHaveAttribute('aria-checked', 'false');
@@ -491,7 +491,7 @@ test.describe('Curate Library decisions and retrieval', () => {
     expect(legacyWant).toMatchObject({ browseFilter: 'all', entries: [{ sampleState: 'requested' }] });
     for (const button of await page.locator('[data-testid="library-controls"] button').all()) {
       const box = await button.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
     }
   });
 

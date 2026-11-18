@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Icons } from './Icons';
 import { CURATED_LISTS, FORMAT_COLORS, FORMAT_ICONS, type CuratedList, type MediaFormat } from '../data/readingListening';
 
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-tap rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Book: <Icons.Book className="w-4 h-4" />,

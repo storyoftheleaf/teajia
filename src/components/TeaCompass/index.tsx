@@ -816,7 +816,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             <button
               type="button"
               onClick={() => handleNewCapture()}
-              className="hidden min-h-11 items-center gap-1 self-center shrink-0 rounded-md border border-tea-gold/40 bg-tea-gold/10 px-3 text-ui-12 text-tea-text sm:flex"
+              className="hidden min-h-tap items-center gap-1 self-center shrink-0 rounded-md border border-tea-gold/40 bg-tea-gold/10 px-3 text-ui-12 text-tea-text sm:flex"
             >
               <Plus size={11} />
               New
@@ -826,11 +826,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         </div>
 
         {mode === 'buying' && (
-          <div className="flex min-h-11 items-center justify-end border-b border-tea-border px-2 sm:hidden">
+          <div className="flex min-h-tap items-center justify-end border-b border-tea-border px-2 sm:hidden">
             <button
               type="button"
               onClick={() => handleNewCapture()}
-              className="tap-target flex min-h-11 items-center gap-1 rounded-md border border-tea-gold/40 bg-tea-gold/10 px-3 text-ui-12 text-tea-text"
+              className="tap-target flex min-h-tap items-center gap-1 rounded-md border border-tea-gold/40 bg-tea-gold/10 px-3 text-ui-12 text-tea-text"
             >
               <Plus size={12} />
               New entry
@@ -960,7 +960,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search Library'
                       : 'Search transactions…'
                   }
-                  className={`w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 ${tabSearchQuery ? 'pr-10' : 'pr-3'} py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors`}
+                  className={`w-full min-h-tap bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 ${tabSearchQuery ? 'pr-10' : 'pr-3'} py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors`}
                 />
                 {tabSearchQuery && (
                   <button
@@ -1017,7 +1017,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
                             <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
                           </div>
-                          <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
+                          <button type="button" onClick={startInventoryDevelopment} className="min-h-tap px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
                             Start development
                           </button>
                         </div>
@@ -1324,7 +1324,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     : mode === 'library' ? 'Search Library'
                     : 'Search transactions…'
                   }
-                  className={`w-full min-h-11 bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 ${tabSearchQuery ? 'pr-10' : 'pr-3'} py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors`}
+                  className={`w-full min-h-tap bg-tea-surface border border-tea-border text-tea-text text-ui-16 rounded-md pl-9 ${tabSearchQuery ? 'pr-10' : 'pr-3'} py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors`}
                 />
                 {tabSearchQuery && (
                   <button
@@ -1378,7 +1378,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     {activeEntry && (
                       <div
                         data-testid="curate-active-draft"
-                        className="flex min-h-11 items-center gap-2 rounded-md border border-tea-border bg-tea-accent-sub px-3 text-left"
+                        className="flex min-h-tap items-center gap-2 rounded-md border border-tea-border bg-tea-accent-sub px-3 text-left"
                         aria-current="true"
                       >
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-tea-gold" aria-hidden />
@@ -1682,7 +1682,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
                           <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
                         </div>
-                        <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
+                        <button type="button" onClick={startInventoryDevelopment} className="min-h-tap px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
                           Start development
                         </button>
                       </div>

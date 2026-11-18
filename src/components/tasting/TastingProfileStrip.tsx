@@ -115,7 +115,7 @@ const TERM_TINT = 'bg-tea-surface text-tea-text-sec';
  * that is only being read.
  */
 const TERM_SHELL = `${BODY} group inline-flex shrink-0 items-center rounded-full transition-colors`;
-const TERM_CONTROL = 'flex min-h-11 items-center gap-1.5 rounded-full px-3 transition-colors hover:bg-tea-gold/10';
+const TERM_CONTROL = 'flex min-h-tap items-center gap-1.5 rounded-full px-3 transition-colors hover:bg-tea-gold/10';
 const TERM_STATIC = 'gap-1.5 px-3 py-1';
 
 /** Maximum visible terms before collapsing */
@@ -185,7 +185,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                 type="button"
                 title={label}
                 onClick={() => onRemove?.('liquor-color', termId)}
-                className={line ? undefined : 'tap-target group inline-flex min-h-11 items-center gap-1.5 px-2 py-1 rounded-full text-ui-12 text-tea-text-dim hover:text-tea-text transition-colors'}
+                className={line ? undefined : 'tap-target group inline-flex min-h-tap items-center gap-1.5 px-2 py-1 rounded-full text-ui-12 text-tea-text-dim hover:text-tea-text transition-colors'}
                 aria-label={onRemove ? `Remove ${label}` : label}
                 // No border. A visible outline on a badge is banned everywhere
                 // else in the app, and the swatch dot inside already carries a
@@ -264,7 +264,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
           onClick={() => setExpanded(false)}
           aria-expanded={true}
           aria-label="Show fewer tasting notes"
-          className={`${BODY} flex items-center gap-1 text-tea-text-dim hover:text-tea-text-sec transition-colors ml-0.5 min-h-[44px]`}
+          className={`${BODY} flex items-center gap-1 text-tea-text-dim hover:text-tea-text-sec transition-colors ml-0.5 min-h-tap`}
         >
           <ChevronDown size={10} className="rotate-180" />
           <span>Show less</span>
@@ -328,7 +328,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                       type="button"
                       onClick={() => onRemove(group.categoryId, termId)}
                       aria-label={`Remove ${termLabel}`}
-                      className="group ml-1 flex min-h-11 items-center gap-1"
+                      className="group ml-1 flex min-h-tap items-center gap-1"
                     >
                       {value}
                     </button>
@@ -467,7 +467,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
           onClick={() => setExpanded(true)}
           aria-expanded={false}
           aria-label={`Show ${totalTerms - COLLAPSED_SHOW} more tasting notes`}
-          className={`${BODY} flex items-center gap-1 text-tea-text-dim hover:text-tea-text-sec transition-colors mt-1 ml-0.5 min-h-[44px]`}
+          className={`${BODY} flex items-center gap-1 text-tea-text-dim hover:text-tea-text-sec transition-colors mt-1 ml-0.5 min-h-tap`}
         >
           <span>{expandHint}</span>
           <ChevronDown size={10} />

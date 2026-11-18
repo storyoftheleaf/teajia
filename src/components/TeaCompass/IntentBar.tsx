@@ -116,14 +116,14 @@ export const IntentBar: React.FC<IntentBarProps> = ({ entry, onApply }) => {
             <button
               type="button"
               onClick={() => handleApply(intent)}
-              className="tap-target min-h-11 px-1 text-ui-12 text-tea-gold/80 hover:text-tea-gold underline underline-offset-2 decoration-dashed transition-colors"
+              className="tap-target min-h-tap px-1 text-ui-12 text-tea-gold/80 hover:text-tea-gold underline underline-offset-2 decoration-dashed transition-colors"
             >
               {intent.label}
             </button>
             <button
               type="button"
               onClick={() => handleDismiss(intent)}
-              className="tap-target min-h-11 min-w-11 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              className="tap-target min-h-tap min-w-tap text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
               aria-label={`Dismiss detected ${intent.label}`}
             >
               <X size={8} />

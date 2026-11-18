@@ -253,7 +253,7 @@ export const CurateRecordRow: React.FC<{
       onClick={onOpen}
       disabled={busy}
       aria-label={openLabel}
-      className="flex min-h-11 min-w-0 flex-1 flex-col items-start text-left disabled:cursor-not-allowed"
+      className="flex min-h-tap min-w-0 flex-1 flex-col items-start text-left disabled:cursor-not-allowed"
       data-curate-action
     >
       <span className="curate-v2-name whitespace-normal text-tea-text">{title}</span>
@@ -268,7 +268,7 @@ export const CurateRecordRow: React.FC<{
         onClick={onDelete}
         disabled={busy}
         aria-label={deleteLabel}
-        className="tap-target min-h-11 shrink-0 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text disabled:cursor-not-allowed"
+        className="tap-target min-h-tap shrink-0 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text disabled:cursor-not-allowed"
         data-curate-action
       >
         Delete

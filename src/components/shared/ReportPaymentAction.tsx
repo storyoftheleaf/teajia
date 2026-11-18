@@ -201,7 +201,7 @@ export const ReportPaymentAction: React.FC<ReportPaymentActionProps> = ({
                 inputMode="decimal"
                 value={amount}
                 onChange={e => { setAmount(e.target.value); setError(null); }}
-                className={`${fieldClass} min-h-11 text-right font-mono`}
+                className={`${fieldClass} min-h-tap text-right font-mono`}
               />
             </div>
             <p className="text-ui-12 text-tea-text-dim mt-1.5">
@@ -219,7 +219,7 @@ export const ReportPaymentAction: React.FC<ReportPaymentActionProps> = ({
                 data-testid="order-payment-claim-method"
                 value={method}
                 onChange={e => setMethod(e.target.value)}
-                className={`${fieldClass} min-h-11`}
+                className={`${fieldClass} min-h-tap`}
               >
                 {methods.map(m => (
                   <option key={m.id} value={m.label}>{m.label}</option>
@@ -234,7 +234,7 @@ export const ReportPaymentAction: React.FC<ReportPaymentActionProps> = ({
                 value={method}
                 onChange={e => setMethod(e.target.value)}
                 placeholder="Bank transfer, Wise, and so on"
-                className={`${fieldClass} min-h-11`}
+                className={`${fieldClass} min-h-tap`}
               />
             )}
           </div>
@@ -249,7 +249,7 @@ export const ReportPaymentAction: React.FC<ReportPaymentActionProps> = ({
               type="text"
               value={reference}
               onChange={e => setReference(e.target.value)}
-              className={`${fieldClass} min-h-11`}
+              className={`${fieldClass} min-h-tap`}
             />
           </div>
 
@@ -276,7 +276,7 @@ export const ReportPaymentAction: React.FC<ReportPaymentActionProps> = ({
               type="submit"
               data-testid="order-payment-claim-send"
               disabled={sending}
-              className="inline-flex min-h-11 items-center justify-center px-4 py-2 rounded-md cta-solid text-ui-13 font-semibold transition-colors disabled:opacity-60"
+              className="btn-primary"
             >
               {sending ? 'Sending' : recipient ? `Let ${recipient} know` : 'Let the tea house know'}
             </button>

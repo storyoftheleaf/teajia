@@ -170,12 +170,12 @@ export const OrderPayLink: React.FC<OrderPayLinkProps> = ({
               href={payLinkWhatsAppHref(payUrl, invoiceNumber, customerWhatsapp)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center text-ui-13 text-tea-text hover:text-tea-gold"
+              className="inline-flex min-h-tap items-center text-ui-13 text-tea-text hover:text-tea-gold"
               data-testid="pay-link-whatsapp"
             >
               Send on WhatsApp
             </a>
-            <button type="button" onClick={copy} className="inline-flex min-h-11 items-center gap-1.5 text-ui-13 text-tea-text hover:text-tea-gold">
+            <button type="button" onClick={copy} className="inline-flex min-h-tap items-center gap-1.5 text-ui-13 text-tea-text hover:text-tea-gold">
               {copied ? <Check size={14} aria-hidden="true" /> : <Link2 size={14} aria-hidden="true" />}
               {copied ? 'Copied' : 'Copy link'}
             </button>

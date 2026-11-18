@@ -31,7 +31,7 @@ const TeawareCard: React.FC<{
               <TeaIllustration type={product.type} />
           </div>
       )}
-      <button onClick={() => onAdd(product)} className="absolute bottom-4 right-4 cta-solid p-3 rounded-full shadow-lg opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300" title="Add to Invoice">
+      <button onClick={() => onAdd(product)} className="btn-primary absolute bottom-4 right-4 shadow-lg opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0" title="Add to Invoice">
         <Plus size={20} />
       </button>
     </div>

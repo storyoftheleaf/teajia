@@ -101,9 +101,9 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
     });
   };
 
-  const inputCls = 'min-h-11 w-full min-w-0 rounded-md border border-tea-border bg-tea-bg px-2.5 py-2 text-ui-13 text-tea-text outline-none focus-visible:border-tea-gold placeholder:text-tea-text-dim';
+  const inputCls = 'min-h-tap w-full min-w-0 rounded-md border border-tea-border bg-tea-bg px-2.5 py-2 text-ui-13 text-tea-text outline-none focus-visible:border-tea-gold placeholder:text-tea-text-dim';
   const stockControl = 'tea-card-control min-w-0 rounded-md border border-tea-border bg-tea-bg px-2.5 text-ui-13 text-tea-text outline-none focus-visible:border-tea-gold';
-  const itemAction = 'tap-target inline-flex min-h-11 items-center gap-1.5 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
+  const itemAction = 'tap-target inline-flex min-h-tap items-center gap-1.5 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 
   return (
     <motion.div
@@ -168,7 +168,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
                           value={item.product_name}
                           onChange={e => updateItem(idx, { product_name: e.target.value })}
                           placeholder="Item name"
-                          className="min-h-11 w-full bg-transparent text-tea-text outline-none placeholder:text-tea-text-dim"
+                          className="min-h-tap w-full bg-transparent text-tea-text outline-none placeholder:text-tea-text-dim"
                           required
                         />
                       </div>
@@ -254,13 +254,13 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
           </div>
 
           <div className="shrink-0 border-t border-tea-border bg-tea-surface px-4 pt-3 pb-nav-gap flex flex-wrap justify-between items-center gap-3">
-            <button type="button" onClick={onClose} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">
+            <button type="button" onClick={onClose} className="tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !vendorName.trim() || readyItems.length !== items.length}
-              className="flex min-h-11 items-center gap-2 px-4 cta-solid text-ui-13 font-semibold rounded-md transition-colors disabled:opacity-50"
+              className="btn-primary flex"
             >
               {submitting ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
               Save purchase draft
@@ -304,7 +304,7 @@ const MatchPurchaseLines: React.FC<{po:PurchaseOrder;onClose:()=>void;onPrepared
   return <div className="fixed inset-0 z-popover flex items-center justify-center bg-tea-bg/80 p-3"><section role="dialog" aria-modal="true" aria-label="Match purchase lines" className="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-xl border border-tea-border bg-tea-surface p-4 pb-nav-gap space-y-3">
     <h2 className="h2">{legacyIntake?'Link recorded stock':'Match purchase items'} · {po.vendor_name}</h2><p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>
     {lines.map((line,index)=><div key={index} className="space-y-2 border-b border-tea-border py-2"><p className="text-ui-13 text-tea-text">{line.product_name}</p><div className="flex flex-wrap gap-2"><select aria-label={`Holding for line ${index+1}`} disabled={saving} value={line.product_id} onChange={event=>{const product=products.find(item=>item.id===event.target.value);update(index,{product_id:event.target.value,product_name:product?.givenName||product?.productName||line.product_name,unit:product?.type==='Teaware'?'unit':'g',source_movement_id:undefined})}} className="admin-input min-w-0 flex-1"><option value="">Choose holding</option>{products.map(product=><option key={product.id} value={product.id}>{product.givenName||product.productName}</option>)}</select><label className="text-ui-12 text-tea-text-sec"><input aria-label={`Quantity for line ${index+1}`} disabled={saving} type="number" min="0" step={line.unit==='unit'?1:'any'} value={line.quantity} onChange={event=>update(index,{quantity:event.target.value,source_movement_id:undefined})} className="admin-input w-24"/>{line.unit==='unit'?' units':' g'}</label></div>{legacyIntake&&<OriginalStockMovement productId={line.product_id} quantity={Number(line.quantity)} value={line.source_movement_id || ''} onChange={id=>update(index,{source_movement_id:id})}/>}</div>)}
-    <div className="flex flex-wrap justify-end gap-2"><button type="button" disabled={saving} onClick={onClose} className="tap-target px-3 text-ui-13 text-tea-text-sec">Cancel</button><button type="button" disabled={saving||!valid} onClick={()=>void prepare()} className="tap-target rounded-md cta-solid px-4 py-2 text-ui-13 disabled:opacity-50">{saving?'Preparing…':legacyIntake?'Link recorded stock':'Save matches'}</button></div>
+    <div className="flex flex-wrap justify-end gap-2"><button type="button" disabled={saving} onClick={onClose} className="tap-target px-3 text-ui-13 text-tea-text-sec">Cancel</button><button type="button" disabled={saving||!valid} onClick={()=>void prepare()} className="btn-primary tap-target">{saving?'Preparing…':legacyIntake?'Link recorded stock':'Save matches'}</button></div>
   </section></div>;
 };
 
@@ -370,7 +370,7 @@ export const LegacyPurchaseOrdersPage: React.FC = () => {
         <h1 className="h2 flex-1">Purchases</h1>
         <button
           onClick={() => setIsNewFormOpen(true)}
-          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+          className="btn-primary"
         >
           <Plus size={13} />
           New PO
@@ -427,7 +427,7 @@ export const LegacyPurchaseOrdersPage: React.FC = () => {
 
                     {/* Status selector */}
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      {order.status !== 'received' && order.status !== 'cancelled' && <button type="button" disabled={Boolean(preparingId)} onClick={()=>void prepareReceipt(order)} className="tap-target rounded-md cta-solid px-3 py-1 text-ui-12 disabled:opacity-50">{preparingId===order.id?'Preparing…':'Receive'}</button>}
+                      {order.status !== 'received' && order.status !== 'cancelled' && <button type="button" disabled={Boolean(preparingId)} onClick={()=>void prepareReceipt(order)} className="btn-primary tap-target">{preparingId===order.id?'Preparing…':'Receive'}</button>}
                       <div className="relative">
                       <select
                         value={order.status}

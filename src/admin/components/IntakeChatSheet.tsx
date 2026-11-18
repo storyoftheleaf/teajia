@@ -232,7 +232,7 @@ export const IntakeChatSheet: React.FC<Props> = ({ importId, itemId, itemLabel, 
               <button
                 type="submit"
                 disabled={busy || !text.trim()}
-                className="cta-solid text-ui-12 px-3 py-2 rounded-md inline-flex items-center gap-1.5 disabled:opacity-50"
+                className="btn-primary"
                 aria-label="Send answer"
               >
                 {busy ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}

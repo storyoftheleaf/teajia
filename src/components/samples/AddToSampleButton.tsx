@@ -33,7 +33,7 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
       <button
         type="button"
         onClick={handleClick}
-        className={`tap-target min-h-11 px-3 rounded-md text-ui-12 font-medium transition-colors ${
+        className={`tap-target min-h-tap px-3 rounded-md text-ui-12 font-medium transition-colors ${
           inCart
             ? 'bg-tea-gold/15 text-tea-gold'
             : 'bg-tea-surface text-tea-text-sec hover:bg-tea-gold/10 hover:text-tea-gold'
@@ -49,7 +49,7 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
     <button
       type="button"
       onClick={handleClick}
-      className={`tap-target min-h-11 text-ui-12 transition-colors ${
+      className={`tap-target min-h-tap text-ui-12 transition-colors ${
         inCart
           ? 'text-tea-gold'
           : 'text-tea-text-sec hover:text-tea-gold'

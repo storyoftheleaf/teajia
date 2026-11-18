@@ -175,8 +175,8 @@ const LineItemRow: React.FC<{
         className="tea-order-line"
         teaType={item.type}
         title={<TeaCardTitle>
-          {!readOnly && openTea ? <button type="button" className="tap-target min-h-11 text-left hover:text-tea-gold" onClick={openTea}>{name}</button>
-            : !readOnly && stockHref ? <Link className="tap-target min-h-11 hover:text-tea-gold" to={stockHref}>{name}</Link> : name}
+          {!readOnly && openTea ? <button type="button" className="tap-target min-h-tap text-left hover:text-tea-gold" onClick={openTea}>{name}</button>
+            : !readOnly && stockHref ? <Link className="tap-target min-h-tap hover:text-tea-gold" to={stockHref}>{name}</Link> : name}
         </TeaCardTitle>}
         meta={<TeaCardMeta primary={[tx?.counterpartyName, item.form].filter(Boolean).join(' · ')} type={item.type} trailing={progress} />}
         metricsLeading={entryLinks}
@@ -185,7 +185,7 @@ const LineItemRow: React.FC<{
           <TeaCardMetric label={readOnly ? 'Ordered' : 'Quantity'}>
             {readOnly
               ? purchaseQty == null ? 'Unknown' : `${purchaseQty.toLocaleString()} ${unitLabel}`
-              : <div className="flex min-h-11 min-w-0 items-center justify-center gap-1">
+              : <div className="flex min-h-tap min-w-0 items-center justify-center gap-1">
                 <Button variant="plain" type="button" aria-label={`Decrease quantity for ${name}`} className="tap-target flex size-7 shrink-0 items-center justify-center text-tea-text-sec" onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}><Minus size={12} /></Button>
                 <input
                   type="number"
@@ -216,7 +216,7 @@ const LineItemRow: React.FC<{
           </div>
           {!readOnly && <Button variant="plain" type="button" onClick={onRemove} className="tap-target" aria-label={`Remove ${name}`}>Remove item</Button>}
           {readOnly && canReceive && quantityToReceive > 0 && routedArrival && (
-            <Link className="tap-target inline-flex min-h-11 items-center cta-solid px-3 text-ui-12 font-semibold" to={routedArrival.href}>{routedArrival.label}</Link>
+            <Link className="btn-primary tap-target" to={routedArrival.href}>{routedArrival.label}</Link>
           )}
           {readOnly && canReceiveDirectly && quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="tap-target text-tea-text font-medium disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
         </>}
@@ -251,7 +251,7 @@ const LineItemRow: React.FC<{
             </p>
           )}
           {readOnly && receiptText && <p className="mt-1 text-ui-11 text-tea-text-sec">{receiptText}</p>}
-          {canReceiveDirectly && quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="mt-1 min-h-11 text-left text-ui-12 text-tea-gold disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
+          {canReceiveDirectly && quantityToReceive > 0 && <button type="button" disabled={receiving} onClick={() => void receive()} className="mt-1 min-h-tap text-left text-ui-12 text-tea-gold disabled:opacity-50">{receiving ? 'Recording arrival…' : `Receive ${quantityToReceive.toLocaleString()}${unitToReceive === 'g' ? 'g' : ' pieces'}`}</button>}
           {receiveError && <p role="alert" className="mt-1 text-ui-12 text-tea-text-sec">{receiveError}</p>}
           {(item.type || item.form || item.year) && (
             <p className="text-tea-text-dim text-ui-10 num mt-0.5">
@@ -524,7 +524,7 @@ const TransactionCard: React.FC<{
 
   const isPurchase = tx.direction === 'purchase';
   const isDraft = tx.status === 'draft';
-  const purchaseAction = 'tap-target inline-flex min-h-11 items-center gap-1 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
+  const purchaseAction = 'tap-target inline-flex min-h-tap items-center gap-1 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 
   // Only the vendor having been told counts as sent, not the order being recorded.
   const [markedSent, setMarkedSent] = useState(false);
@@ -595,7 +595,7 @@ const TransactionCard: React.FC<{
         <div className="min-w-0 flex flex-wrap items-center justify-between gap-x-2">
           <h2 className="library-supplier-name min-w-0 break-words">{tx.counterpartyName || 'Unnamed supplier'}</h2>
           {!isDraft && tx.purchaseOrderId
-            ? <Link className="tap-target inline-flex min-h-11 items-center gap-1 px-2 text-ui-12 font-medium text-tea-text hover:text-tea-gold" to={`/admin/purchase-orders?purchaseId=${encodeURIComponent(tx.purchaseOrderId)}`}>Open supplier order <ArrowUpRight size={12} aria-hidden="true" /></Link>
+            ? <Link className="tap-target inline-flex min-h-tap items-center gap-1 px-2 text-ui-12 font-medium text-tea-text hover:text-tea-gold" to={`/admin/purchase-orders?purchaseId=${encodeURIComponent(tx.purchaseOrderId)}`}>Open supplier order <ArrowUpRight size={12} aria-hidden="true" /></Link>
             : <span className="text-ui-12 text-tea-text-sec">{isDraft ? 'Draft' : 'Confirmed'}</span>}
         </div>
         <div className="tea-order-summary text-ui-12 text-tea-text-sec">
@@ -707,7 +707,7 @@ const TransactionCard: React.FC<{
                         onClick={handleConfirm}
                         disabled={recordBusy}
                         whileTap={{ scale: 0.98 }}
-                        className="py-1.5 px-3 rounded-md cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-all"
+                        className="btn-primary"
                       >
                         {recordBusy ? 'Recording…' : tx.confirmationPending ? 'Retry saving order' : isPurchase ? 'Save supplier order' : 'Sale'}
                       </motion.button>
@@ -715,7 +715,7 @@ const TransactionCard: React.FC<{
                   </AnimatePresence>
                 )}
 
-                {isPurchase && tx.recordFailed && !isDraft && <button type="button" disabled={recordBusy} onClick={handleConfirm} className="min-h-11 px-3 text-ui-12 text-tea-gold">{recordBusy ? 'Recording…' : 'Retry recording purchase'}</button>}
+                {isPurchase && tx.recordFailed && !isDraft && <button type="button" disabled={recordBusy} onClick={handleConfirm} className="min-h-tap px-3 text-ui-12 text-tea-gold">{recordBusy ? 'Recording…' : 'Retry recording purchase'}</button>}
                 {!isPurchase && <>
                   <button type="button" onClick={handleSharePdf} disabled={pdfLoading || tx.items.length === 0}
                     className="pill flex items-center gap-1 disabled:opacity-30" aria-label="Share as PDF">
@@ -866,7 +866,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         <div className="flex flex-col gap-2 w-full max-w-xs">
           <button
             onClick={() => openPurchaseOrder()}
-            className="w-full px-5 py-3 cta-solid text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
+            className="btn-primary btn-primary-lg w-full flex"
           >
             <ShoppingBag size={14} />
             Purchase Order Builder
@@ -964,7 +964,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         </div>
         <button
           onClick={() => openPurchaseOrder()}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl cta-solid text-ui-11 font-semibold uppercase tracking-[0.08em] transition-colors"
+          className="btn-primary btn-primary-lg w-full flex"
         >
           <ShoppingBag size={14} />
           Full Purchase Order Builder

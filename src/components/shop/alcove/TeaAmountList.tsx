@@ -223,7 +223,7 @@ export function AmountCellList({
             cell.onSelect();
           }}
           className={`tap-target flex w-full items-baseline border-t border-tea-border text-left transition-colors ${
-            isRail ? 'min-h-[40px] gap-2 px-3.5' : 'min-h-[44px] gap-3 px-3.5'
+            isRail ? 'min-h-[40px] gap-2 px-3.5' : 'min-h-tap gap-3 px-3.5'
           } ${cell.active ? 'bg-tea-gold/8 shadow-[inset_0_0_0_1px_rgb(var(--tea-gold-rgb)/0.5)]' : 'hover:bg-tea-gold/6'}`}
         >
           <span className="min-w-0 flex-1 text-left">

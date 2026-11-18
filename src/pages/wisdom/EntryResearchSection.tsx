@@ -101,7 +101,7 @@ export const EntryResearchSection: React.FC<EntryResearchSectionProps> = ({
                     {source.url ? (
                       <a
                         href={source.url}
-                        className={`${QUIET_LINK} inline-flex min-h-[44px] items-center`}
+                        className={`${QUIET_LINK} inline-flex min-h-tap items-center`}
                         target="_blank"
                         rel="noreferrer"
                       >

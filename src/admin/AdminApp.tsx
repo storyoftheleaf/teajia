@@ -445,7 +445,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                 <p>2. Find <span className="text-tea-gold">VITE_API_URL</span></p>
                 <p>3. Set it to your Worker API URL</p>
             </div>
-            <button onClick={() => window.location.reload()} className="cta-solid px-6 py-3 rounded-xl text-sm font-medium transition-colors w-full">
+            <button onClick={() => window.location.reload()} className="btn-primary btn-primary-lg w-full">
                 I've Updated It, Reload App
             </button>
         </div>

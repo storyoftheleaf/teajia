@@ -130,7 +130,7 @@ const ProducerPage: React.FC = () => {
             {markNames.map(name => {
               const held = heldByName.get(name);
               return (
-                <li key={name} className="py-1.5 min-h-[44px] flex items-center">
+                <li key={name} className="py-1.5 min-h-tap flex items-center">
                   {held ? (
                     <Link to={`/wisdom/mark/${held.id}`} className={`${FACT_CLASS} ${QUIET_LINK}`}>
                       {name}

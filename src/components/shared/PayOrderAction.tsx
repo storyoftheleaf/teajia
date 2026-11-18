@@ -75,7 +75,7 @@ export const PayOrderAction: React.FC<PayOrderActionProps> = ({ payment, referen
         href={payUrl}
         onClick={() => rememberPayOrderToken(handoffReference, trackingToken)}
         data-testid="order-pay-link"
-        className="inline-flex min-h-11 items-center justify-center px-4 py-2 rounded-md cta-solid text-ui-13 font-semibold transition-colors"
+        className="btn-primary"
       >
         {label}
       </a>

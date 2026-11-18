@@ -144,7 +144,7 @@ export function TastingControlRoom() {
               type="button"
               disabled={completeMutation.isPending}
               onClick={() => completeMutation.mutate()}
-              className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md cta-solid text-ui-12 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="btn-primary tap-target"
             >
               {completeMutation.isPending ? 'Ending…' : 'End session'}
             </button>

@@ -176,7 +176,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
                 <button
                   type="button"
                   onClick={() => onAdopt(suggestion.level, suggestion.threadIds)}
-                  className="rounded-xl cta-solid px-4 py-2 font-sans text-ui-13 font-medium transition-all"
+                  className="btn-primary"
                 >
                   Adopt this
                 </button>

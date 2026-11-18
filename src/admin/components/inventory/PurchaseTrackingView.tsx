@@ -331,7 +331,7 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
           actions={(canAssignRoute || attention.length > 0 || (expanded && (canReceive || canMatch))) && <>
             {canAssignRoute && <Button variant="plain" type="button" className="tap-target library-tea-primary"
               disabled={busy} onClick={() => setRouteTarget({ accountId, purchaseId: purchase.id })}>Assign inbound route</Button>}
-            {row.invoice_draft && attention.length > 0 && <Link className="tap-target inline-flex min-h-11 items-center px-2 text-tea-text-sec" to={`/admin/intake?importId=${encodeURIComponent(row.invoice_draft.id)}`}>Review invoice</Link>}
+            {row.invoice_draft && attention.length > 0 && <Link className="tap-target inline-flex min-h-tap items-center px-2 text-tea-text-sec" to={`/admin/intake?importId=${encodeURIComponent(row.invoice_draft.id)}`}>Review invoice</Link>}
             {expanded && canReceive && (
               <Button variant="plain" type="button" className="tap-target library-tea-primary" aria-label="Record arrival / manage delivery" onClick={() => setManualReceipt(receipt.id)}>{stage === 'coming' ? 'Record arrival' : 'Manage delivery'}</Button>
             )}
@@ -349,7 +349,7 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
           {stage !== 'attention' && items.length > 0 && !expanded && <p className="py-1 text-tea-text-sec">{items.slice(0, 2).map(line => line.product_name).join(' · ')}{items.length > 2 ? ` + ${items.length - 2} more` : ''}</p>}
           {stage !== 'attention' && tracking && <p className="py-1 text-tea-text-sec">{routeSummary ? 'Supplier tracking' : 'Delivery'} · {tracking}</p>}
           {stage !== 'attention' && logisticsOrder?.tracking_update && <LogisticsTrackingUpdate update={logisticsOrder.tracking_update} />}
-          {attention.length > 0 && <p className="py-1 text-tea-text-sec">{attention.map(item => item.message).join(' ')}</p>}
+          {attention.length > 0 && <p className="px-3 py-1 text-tea-text-sec">{attention.map(item => item.message).join(' ')}</p>}
         </TeaCard>
         {expanded && <>
           <div className="grid gap-2">
@@ -360,7 +360,7 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
                 meta={stockPurpose[line.intended_purpose] && <TeaCardMeta primary={stockPurpose[line.intended_purpose]} />}
                 metricsLeading={
                   <div className="library-quick-actions">
-                    <Link className="tap-target inline-flex min-h-11 w-11 items-center justify-center text-tea-text-sec" aria-label={`Open Stock for ${line.product_name}`} to={`/admin/stock?panel=${encodeURIComponent(line.product_id)}`}><Archive size={17} aria-hidden="true" /></Link>
+                    <Link className="tap-target inline-flex min-h-tap w-11 items-center justify-center text-tea-text-sec" aria-label={`Open Stock for ${line.product_name}`} to={`/admin/stock?panel=${encodeURIComponent(line.product_id)}`}><Archive size={17} aria-hidden="true" /></Link>
                   </div>
                 }
                 metricsLabel="Studio receipt quantities"

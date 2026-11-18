@@ -260,7 +260,7 @@ export default function SessionPage() {
           <button
             type="button"
             onClick={handleSendPicks}
-            className="w-full rounded-full cta-solid py-3 text-ui-15 tracking-wide flex items-center justify-center gap-2"
+            className="btn-primary btn-primary-lg w-full flex"
           >
             <Send className="w-4 h-4" />
             Send my picks

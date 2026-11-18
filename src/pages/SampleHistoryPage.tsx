@@ -76,7 +76,7 @@ export function SampleHistorySection({ embedded = false }: { embedded?: boolean 
                       <Link
                         to={`/s/${encodeURIComponent(sample.id)}`}
                         aria-label={`Open ${sample.tea_name} sample`}
-                        className="tap-target inline-flex min-h-11 items-center text-ui-16 text-tea-text font-medium underline decoration-tea-border underline-offset-4 hover:decoration-tea-gold"
+                        className="tap-target inline-flex min-h-tap items-center text-ui-16 text-tea-text font-medium underline decoration-tea-border underline-offset-4 hover:decoration-tea-gold"
                       >
                         {sample.tea_name}
                       </Link>
@@ -92,7 +92,7 @@ export function SampleHistorySection({ embedded = false }: { embedded?: boolean 
                       <Link
                         to={`/s/${encodeURIComponent(sample.id)}?taste=1`}
                         aria-label={`Taste ${sample.tea_name} and add to Journal`}
-                        className="tap-target mt-2 inline-flex min-h-11 items-center text-ui-12 text-tea-gold hover:text-tea-gold-lt"
+                        className="tap-target mt-2 inline-flex min-h-tap items-center text-ui-12 text-tea-gold hover:text-tea-gold-lt"
                       >
                         Taste and add to Journal
                       </Link>
@@ -101,7 +101,7 @@ export function SampleHistorySection({ embedded = false }: { embedded?: boolean 
                       <Link
                         to={`/s/${encodeURIComponent(sample.id)}`}
                         aria-label={`View ${sample.tea_name} tasting`}
-                        className="tap-target mt-2 inline-flex min-h-11 items-center text-ui-12 text-tea-text-sec hover:text-tea-text"
+                        className="tap-target mt-2 inline-flex min-h-tap items-center text-ui-12 text-tea-text-sec hover:text-tea-text"
                       >
                         View tasting record
                       </Link>
@@ -133,7 +133,7 @@ export default function SampleHistoryPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-nav-gap-lg animate-[fadeIn_0.5s_ease-out]">
       <button
         onClick={() => navigate(-1)}
-        className="flex min-h-[44px] items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
+        className="flex min-h-tap items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
       >
         <Icons.Back className="w-4 h-4" />
         <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>

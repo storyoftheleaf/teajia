@@ -233,7 +233,7 @@ export const ViewSwitch = <T extends string>({
           type="button"
           aria-pressed={active}
           onClick={() => onChange(option.id)}
-          className={`relative inline-flex items-center min-h-[44px] ${LABEL_CLASS} transition-colors ${switchMark(active)}`}
+          className={`relative inline-flex items-center min-h-tap ${LABEL_CLASS} transition-colors ${switchMark(active)}`}
         >
           {option.label}
         </button>
@@ -388,7 +388,7 @@ export const GroupJump: React.FC<{
            controls on this line are one kind of thing and now look like it,
            and a browser that draws its popup from the select's own background
            still gets an opaque colour to draw the options on. */
-        className={`${CELL_CLASS} appearance-none w-full min-h-[44px] min-w-0 bg-tea-elevated text-tea-text-sec hover:text-tea-text cursor-pointer rounded-md pl-3 pr-7 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+        className={`${CELL_CLASS} appearance-none w-full min-h-tap min-w-0 bg-tea-elevated text-tea-text-sec hover:text-tea-text cursor-pointer rounded-md pl-3 pr-7 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
       >
         {/* The placeholder is the label. A separate micro-caps "Jump to" beside
             it said the same word twice and cost 60px of a 358px line. */}
@@ -631,7 +631,7 @@ export const HoldingRow: React.FC<{
        lives on the li so the border draws at the full width, and the padding
        lives on the row so the content still starts on the axis. */
     <li className={`${ROW_RULE} -mx-3`}>
-      <div className={`group relative ${ROW_AXIS} ${ROW_HOVER} min-h-[44px] py-2.5 px-3 transition-colors`}>
+      <div className={`group relative ${ROW_AXIS} ${ROW_HOVER} min-h-tap py-2.5 px-3 transition-colors`}>
         <span className="min-w-0 block">
           {/* gap-3, not gap-2. Two scripts set side by side need more air
               between them than two words of one script do, and this pair had

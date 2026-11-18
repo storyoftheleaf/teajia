@@ -338,7 +338,7 @@ export default function BriefingPage() {
                   {!notBuilt && (
                     <button
                       onClick={() => startWalk(wt.id, wt.title, wt.steps.map((s) => ({ text: s.text, to: s.to, goLabel: s.goLabel })))}
-                      className="mt-3 inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium cta-solid rounded-full px-3.5 py-1.5 tap-target"
+                      className="btn-primary mt-3 tap-target"
                     >
                       {activeWalkId === wt.id ? 'Walking…' : 'Walk it with me'}
                       <ArrowRight className="w-3.5 h-3.5" weight="bold" />

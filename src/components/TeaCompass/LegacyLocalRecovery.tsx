@@ -110,7 +110,7 @@ export function LegacyLocalRecovery() {
   };
 
   return <>
-    <button type="button" onClick={() => setOpen(true)} className="min-h-11 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:text-tea-text">
+    <button type="button" onClick={() => setOpen(true)} className="min-h-tap rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:text-tea-text">
       Recover older local work
     </button>
     {open && <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg p-4 pb-nav-gap" role="dialog" aria-modal="true" aria-label="Older local work recovery">
@@ -118,7 +118,7 @@ export function LegacyLocalRecovery() {
         <button type="button" onClick={() => setOpen(false)} aria-label="Close recovery" className="tap-target text-tea-text-sec hover:text-tea-text"><X size={20} /></button>
         <h2 className="mt-4 font-display text-ui-26">Older local work</h2>
         <p className="mt-3 text-ui-14 text-tea-text-sec">This browser holds older Curate work without a reliable author. Download a local recovery file for review. Raw backups may include work from multiple shops. Nothing here is assigned to a person, uploaded or deleted.</p>
-        <div className="mt-5 flex justify-end"><button type="button" onClick={download} className="cta-solid min-h-11 rounded-md px-4 text-ui-14">Download recovery file</button></div>
+        <div className="mt-5 flex justify-end"><button type="button" onClick={download} className="btn-primary btn-primary-lg">Download recovery file</button></div>
       </div>
     </div>}
   </>;

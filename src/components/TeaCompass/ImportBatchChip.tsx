@@ -49,7 +49,7 @@ export const ImportBatchChip: React.FC<ImportBatchChipProps> = ({ detail, onOpen
           </p>
           {error && <p role="alert" className="text-ui-12 text-tea-text">{error}</p>}
           <div className="flex flex-wrap justify-between gap-3">
-            <button ref={cancelRef} type="button" disabled={busy} onClick={closeConfirmation} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">
+            <button ref={cancelRef} type="button" disabled={busy} onClick={closeConfirmation} className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">
               Cancel
             </button>
             <button
@@ -57,7 +57,7 @@ export const ImportBatchChip: React.FC<ImportBatchChipProps> = ({ detail, onOpen
               disabled={busy}
               aria-label={error ? `Retry delete ${title}` : undefined}
               onClick={() => void onDelete()}
-              className="tap-target min-h-11 text-ui-12 text-tea-gold hover:text-tea-gold-lt disabled:opacity-50"
+              className="tap-target min-h-tap text-ui-12 text-tea-gold hover:text-tea-gold-lt disabled:opacity-50"
             >
               {busy ? 'Deleting…' : error ? 'Retry delete' : 'Delete import'}
             </button>
@@ -68,7 +68,7 @@ export const ImportBatchChip: React.FC<ImportBatchChipProps> = ({ detail, onOpen
       {error && !confirming && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-2 px-2 text-ui-12 text-tea-text">
           <span>{error}</span>
-          <button type="button" disabled={busy} aria-label={`Retry delete ${title}`} onClick={() => void onDelete()} className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt disabled:opacity-50">
+          <button type="button" disabled={busy} aria-label={`Retry delete ${title}`} onClick={() => void onDelete()} className="tap-target min-h-tap text-tea-gold hover:text-tea-gold-lt disabled:opacity-50">
             {busy ? 'Deleting…' : 'Retry delete'}
           </button>
         </div>

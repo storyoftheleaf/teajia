@@ -210,7 +210,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                   type="button"
                   disabled={!isContactValid || requestMutation.isPending}
                   onClick={() => requestMutation.mutate()}
-                  className="inline-flex items-center justify-center px-4 py-3 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[140px]"
+                  className="btn-primary btn-primary-lg min-w-[140px]"
                 >
                   {requestMutation.isPending ? (
                     <span className="w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
@@ -281,7 +281,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                       requestMutation.reset();
                       setStep('contact');
                     }}
-                    className="mt-3 min-h-11 px-3 text-ui-13 font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+                    className="mt-3 min-h-tap px-3 text-ui-13 font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
                   >
                     Try another email
                   </button>
@@ -301,7 +301,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                   type="button"
                   disabled={!isCodeComplete || confirmMutation.isPending}
                   onClick={() => confirmMutation.mutate(undefined)}
-                  className="inline-flex items-center justify-center px-4 py-3 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[140px]"
+                  className="btn-primary btn-primary-lg min-w-[140px]"
                 >
                   {confirmMutation.isPending ? (
                     <span className="w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />

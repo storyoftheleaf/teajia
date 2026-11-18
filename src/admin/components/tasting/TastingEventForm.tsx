@@ -97,7 +97,7 @@ export function TastingEventForm() {
           <button
             type="submit"
             disabled={submitting || picked.length === 0}
-            className="tap-target rounded-full cta-solid px-6 py-2 text-ui-13 tracking-wide disabled:opacity-40"
+            className="btn-primary tap-target"
           >
             {submitting ? 'Creating…' : 'Create group tasting'}
           </button>

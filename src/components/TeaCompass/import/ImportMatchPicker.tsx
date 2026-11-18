@@ -15,7 +15,7 @@ interface Props<T extends ImportMatchOption> {
   onSelect: (id: string) => void;
 }
 
-const inputClass = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold lg:text-ui-13';
+const inputClass = 'min-h-tap w-full rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold lg:text-ui-13';
 
 export const ImportMatchPicker = <T extends ImportMatchOption>({ label, lookup, selectedId, proposedId, proposedName, placeholder, newOptionLabel, disabled, onRetry, onSelect }: Props<T>) => {
   const id = useId();
@@ -57,11 +57,11 @@ export const ImportMatchPicker = <T extends ImportMatchOption>({ label, lookup, 
         onKeyDown={onKeyDown}
         className={inputClass}
       />
-      {lookup.status === 'error' && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 text-ui-11 text-tea-text-sec"><span>{lookup.error || `Could not load ${label.toLocaleLowerCase()}.`}</span><button type="button" disabled={disabled} onClick={onRetry} className="tap-target min-h-11 text-tea-gold disabled:opacity-50">Retry</button></div>}
+      {lookup.status === 'error' && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 text-ui-11 text-tea-text-sec"><span>{lookup.error || `Could not load ${label.toLocaleLowerCase()}.`}</span><button type="button" disabled={disabled} onClick={onRetry} className="tap-target min-h-tap text-tea-gold disabled:opacity-50">Retry</button></div>}
       {lookup.status === 'empty' && <p className="text-ui-11 text-tea-text-sec">No existing records yet.</p>}
       {open && lookup.status !== 'loading' && lookup.status !== 'error' && (
         <ul id={listId} role="listbox" aria-label={`${label} matches`} className="max-h-52 overflow-y-auto rounded-md border border-tea-border bg-tea-surface p-1">
-          {choices.map((option, index) => <li key={option.id} id={`${id}-option-${index}`} role="option" aria-selected={option.id === selectedId} onMouseDown={event => event.preventDefault()} onClick={() => { if (!disabled) choose(option); }} className={`tap-target min-h-11 w-full cursor-pointer rounded px-3 py-2 text-left ${index === active ? 'bg-tea-accent-sub' : ''} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}>
+          {choices.map((option, index) => <li key={option.id} id={`${id}-option-${index}`} role="option" aria-selected={option.id === selectedId} onMouseDown={event => event.preventDefault()} onClick={() => { if (!disabled) choose(option); }} className={`tap-target min-h-tap w-full cursor-pointer rounded px-3 py-2 text-left ${index === active ? 'bg-tea-accent-sub' : ''} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}>
             <span className="block break-words text-ui-13 text-tea-text">{option.name}</span>
             {(option.matchReason || option.subtitle || option.id === proposedId) && <span className="block text-ui-10 text-tea-text-sec">{option.id === proposedId ? 'AI proposed match' : option.matchReason || option.subtitle}</span>}
           </li>)}

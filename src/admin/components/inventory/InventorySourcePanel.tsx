@@ -140,9 +140,9 @@ export function InventorySourcePanel({ product, products, onClose, onOpenTea, on
             ))}
           </dl>
           <div className="grid grid-cols-2 gap-2 mt-3">
-            {onSelectAll && <button type="button" onClick={() => { onSelectAll(suppliedProducts.map(p => p.id)); onClose(); }} disabled={suppliedProducts.length === 0} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text disabled:opacity-40">Select all {suppliedProducts.length}</button>}
-            {onOpenIncoming && <button type="button" onClick={() => { onOpenIncoming(); onClose(); }} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text">Deliveries coming</button>}
-            <button type="button" onClick={() => { if (onEditSupplier) { onEditSupplier(); return; } navigate(`/admin/people?tab=sources&search=${encodeURIComponent(sourceName)}`); }} className="min-h-11 rounded-md border border-tea-border text-ui-13 text-tea-text">Edit supplier</button>
+            {onSelectAll && <button type="button" onClick={() => { onSelectAll(suppliedProducts.map(p => p.id)); onClose(); }} disabled={suppliedProducts.length === 0} className="min-h-tap rounded-md border border-tea-border text-ui-13 text-tea-text disabled:opacity-40">Select all {suppliedProducts.length}</button>}
+            {onOpenIncoming && <button type="button" onClick={() => { onOpenIncoming(); onClose(); }} className="min-h-tap rounded-md border border-tea-border text-ui-13 text-tea-text">Deliveries coming</button>}
+            <button type="button" onClick={() => { if (onEditSupplier) { onEditSupplier(); return; } navigate(`/admin/people?tab=sources&search=${encodeURIComponent(sourceName)}`); }} className="min-h-tap rounded-md border border-tea-border text-ui-13 text-tea-text">Edit supplier</button>
           </div>
         </section>
 
@@ -159,7 +159,7 @@ export function InventorySourcePanel({ product, products, onClose, onOpenTea, on
                 onClick={() => onOpenTea?.(suppliedProduct)}
                 disabled={!onOpenTea}
                 aria-label={`Open ${suppliedProduct.productName || suppliedProduct.givenName}`}
-                className="w-full min-h-11 py-3 flex items-baseline justify-between gap-3 text-left disabled:cursor-default"
+                className="w-full min-h-tap py-3 flex items-baseline justify-between gap-3 text-left disabled:cursor-default"
               >
                 <span className="min-w-0 truncate text-ui-13 text-tea-text">
                   {suppliedProduct.productName || suppliedProduct.givenName}

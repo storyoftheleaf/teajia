@@ -212,7 +212,7 @@ export function personPageParts(props: Props): { card: React.ReactNode; sheets: 
                 {CONTRIBUTOR_LINK_PLATFORMS.map(platform => {
                   const on = link.platform === platform;
                   return (
-                    <label key={platform} className={`tap-target inline-flex min-h-11 cursor-pointer items-center border-b font-display text-ui-17 transition-colors ${on ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}>
+                    <label key={platform} className={`tap-target inline-flex min-h-tap cursor-pointer items-center border-b font-display text-ui-17 transition-colors ${on ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}>
                       <input type="radio" className="sr-only" name={`link-${index}-platform`} value={platform} checked={on} onChange={() => updateLink(index, { platform })} />
                       {platformWord(platform)}
                     </label>

@@ -93,7 +93,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
         </div>
         <div className="relative px-4 pb-2">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search teas" aria-label="Search teas"
-            className="min-h-11 w-full rounded-[3px] border border-tea-border bg-transparent py-2 pl-3 pr-3 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold" />
+            className="min-h-tap w-full rounded-[3px] border border-tea-border bg-transparent py-2 pl-3 pr-3 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold" />
         </div>
         {shown.slice(0, 80).map((t) => {
           const on = chosen.includes(t.id);
@@ -140,7 +140,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ chosen, onChosenChange
           return (
             <article key={entry.id} className="overflow-hidden rounded-md border border-tea-border bg-tea-surface/40">
               <div className="flex items-center gap-2 border-b border-tea-border pl-3 pr-1">
-                <button type="button" onClick={() => onOpenTea(entry.id)} className="grid min-h-11 min-w-0 flex-1 py-1.5 text-left">
+                <button type="button" onClick={() => onOpenTea(entry.id)} className="grid min-h-tap min-w-0 flex-1 py-1.5 text-left">
                   <span className="curate-v2-name">{listName(entry.name)}</span>
                   <span className="text-ui-12 text-tea-text-sec tabular-nums">{[entry.vendorName, entry.year, unit && `per ${unit}`].filter(Boolean).join(' · ')}</span>
                 </button>

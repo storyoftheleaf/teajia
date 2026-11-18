@@ -3,7 +3,7 @@
  * Every step says what is on screen, which tab is lit, and where Back lands.
  * Phone size only: this is what Adrian holds at the vendor's table.
  */
-import { test, expect, type Page } from './fixtures';
+import { test, expect, type Page, tapFloor } from './fixtures';
 import {
   compassCreatedCustomers,
   compassRequestCount,
@@ -1056,8 +1056,8 @@ test.describe('Curate v2 journeys (phone)', () => {
     const eight = sheet.getByRole('group', { name: 'How good' }).getByRole('button', { name: '8', exact: true });
     await eight.click();
     const box = await eight.evaluate((el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return { w: r.width, h: r.height, bg: cs.backgroundColor }; });
-    expect(box.w).toBeGreaterThanOrEqual(44);
-    expect(box.h).toBeGreaterThanOrEqual(44);
+    expect(box.w).toBeGreaterThanOrEqual(tapFloor());
+    expect(box.h).toBeGreaterThanOrEqual(tapFloor());
     expect(isClear(box.bg)).toBe(true);
     await shot(page, 'review3-fast-sheet');
   });

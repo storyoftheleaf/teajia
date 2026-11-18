@@ -60,7 +60,7 @@ export const DriveLine: React.FC = () => {
 
   return (
     <div className="border-b border-tea-border px-4 py-3" data-testid="curate-drive-line">
-      <div className="flex min-h-11 items-center gap-3">
+      <div className="flex min-h-tap items-center gap-3">
         <span className="min-w-0 flex-1">
           <span className="block font-display text-ui-17 text-tea-text">
             {!s.connected ? 'Save photos to Google Drive' : s.needs_reconnect ? 'Google Drive needs connecting again' : 'Photos are saved to Google Drive'}
@@ -75,12 +75,12 @@ export const DriveLine: React.FC = () => {
           </button>
         )}
         {s.connected && !s.needs_reconnect && s.folder_url && (
-          <a href={s.folder_url} target="_blank" rel="noreferrer" className="curate-v2-word min-h-11 content-center">
+          <a href={s.folder_url} target="_blank" rel="noreferrer" className="curate-v2-word min-h-tap content-center">
             Open folder
           </a>
         )}
         {s.connected && !s.needs_reconnect && !s.folder_url && (
-          <button type="button" onClick={() => saveNow.mutate()} disabled={saveNow.isPending} className="curate-v2-word min-h-11">
+          <button type="button" onClick={() => saveNow.mutate()} disabled={saveNow.isPending} className="curate-v2-word min-h-tap">
             {saveNow.isPending ? 'Copying…' : 'Copy photos now'}
           </button>
         )}

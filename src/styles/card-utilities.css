@@ -286,6 +286,32 @@
   background: var(--tea-gold-solid-hover);
 }
 
+/* The one primary button. Solid bronze, sans 12px semibold, title case, 4px
+   corners, 32px with a mouse (44px on touch via --tap-min). `.btn-primary-lg`
+   (36px, 13px) is for the single page-level action: Sign in, Begin, Add to
+   order. Same as <Button variant="primary">; use either, never hand-roll. */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--control-h);
+  min-height: var(--tap-min);
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  background: var(--tea-gold-solid);
+  color: var(--tea-bg);
+  transition: background-color 150ms ease;
+}
+.btn-primary:hover:not(:disabled) { background: var(--tea-gold-solid-hover); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary-lg { height: var(--control-h-lg); padding: 0 16px; font-size: 13px; }
+
 /* Outline button that fills on hover. Same measured pair, applied on hover
    only, so an outline CTA does not have to spell the fill and the text out and
    reintroduce the 4.10:1 light-mode pairing at the exact moment the pointer is
@@ -954,7 +980,7 @@ input[type="number"]::-webkit-outer-spin-button {
    A pill is 11px type with 4px of padding, which stands 23px tall. Every one of
    them therefore needed the caller to remember `tap-target`, and round five
    found eleven shop controls where the caller had not: a floor that depends on
-   memory is not a floor. `.tap-target` sets the same `min-height: 44px`, so a
+   memory is not a floor. `.tap-target` sets the same `min-height: var(--tap-min)`, so a
    pill that still carries it is unchanged, and a pill that never did now clears
    WCAG 2.5.5 without its author having to know the rule exists.
 
@@ -965,10 +991,10 @@ input[type="number"]::-webkit-outer-spin-button {
 */
 /* The floor is stated here, once.
 
-   Round six put `min-height: 44px` on this class and, separately, `tap-target
+   Round six put `min-height: var(--tap-min)` on this class and, separately, `tap-target
    min-h-11` on twenty-four call sites, so the same rule was written twice for
    the same button and neither copy knew about the other. That is not merely
-   redundant: `tap-target` also carries `min-width: 44px` and centres its
+   redundant: `tap-target` also carries `min-width: var(--tap-min)` and centres its
    contents, and it loads after Tailwind, so a pill inside a `justify-between`
    row was silently pulled to the middle of it and a two-character filter chip
    was inflated to a 44px square it did not need to be. The width floor belongs
@@ -985,8 +1011,8 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   border-radius: 6px;
   border: none;
   font-size: 11px;
@@ -1094,8 +1120,8 @@ input[type="number"]::-webkit-outer-spin-button {
   /* Declares the shape from scratch rather than extending .pill, so the floor
      has to be stated twice. Same 44px, same reason, and the same width floor,
      without it the call sites had to reach for `tap-target` to get one. */
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   border-radius: 6px;
   border: none;
   /* Matches the Curate support tier (text-ui-12 uppercase tracking-[1.2px])
@@ -1195,7 +1221,7 @@ input[type="number"]::-webkit-outer-spin-button {
 /* Curate's editable tasting cloud follows the compact 16/12 interface scale
    while preserving a full mobile touch target. */
 .tag.curate-tasting-tag {
-  min-height: 44px;
+  min-height: var(--tap-min);
   font-size: 12px;
 }
 
@@ -2094,7 +2120,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 @media (max-width: 767px) {
   .tag-selectable {
-    min-height: 44px;
+    min-height: var(--tap-min);
     padding: 8px 10px;
   }
 }
@@ -2234,7 +2260,7 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   justify-content: center;
   width: 44px;
-  min-height: 44px;
+  min-height: var(--tap-min);
   flex-shrink: 0;
   border: none;
   background: transparent;
@@ -2303,8 +2329,8 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   background: none;
   border: none;
   padding: 12px 9px;
@@ -2554,7 +2580,7 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   gap: 10px;
   width: 100%;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 9px 0;
   background: none;
   border: none;
@@ -2638,7 +2664,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-order-btn {
   flex: 1;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 0 14px;
   display: flex;
   align-items: center;
@@ -2659,12 +2685,12 @@ input[type="number"]::-webkit-outer-spin-button {
      clipping mid-glyph. */
   container-type: inline-size;
 }
+/* Title case, no tracking: an action, not an eyebrow (DESIGN_SYSTEM.md §7). */
 .alcove-order-verb {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.18em;
-  text-indent: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   color: #18130e;
   white-space: nowrap;
 }
@@ -2749,7 +2775,7 @@ input[type="number"]::-webkit-outer-spin-button {
   flex: 1 1 100px;
   max-width: 120px;
   aspect-ratio: 1 / 1;
-  min-height: 44px;
+  min-height: var(--tap-min);
   transition: opacity 200ms ease;
 }
 .alcove-thumb-btn:hover img { opacity: 1; }
@@ -2799,7 +2825,7 @@ input[type="number"]::-webkit-outer-spin-button {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 6px;
-  min-height: 44px;
+  min-height: var(--tap-min);
   transition: opacity 200ms ease;
 }
 .alcove-source-link:hover { opacity: 1; }
@@ -3010,7 +3036,7 @@ input[type="number"]::-webkit-outer-spin-button {
   display: flex;
   align-items: center;
   gap: 5px;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 2px 6px;
   border: none;
   border-radius: 4px;
@@ -3036,7 +3062,7 @@ input[type="number"]::-webkit-outer-spin-button {
   justify-content: center;
   gap: 6px;
   flex-shrink: 0;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 0 8px;
   border: 1px solid var(--tea-border);
   border-radius: 3px;
@@ -3065,8 +3091,8 @@ input[type="number"]::-webkit-outer-spin-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   border: none;
   background: none;
   color: var(--tea-text-sec);
@@ -3135,8 +3161,8 @@ input[type="number"]::-webkit-outer-spin-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   border: none;
   background: none;
   padding: 0;
@@ -3185,7 +3211,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-size-btn {
   flex: 1;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 8px 4px;
   border-radius: 4px;
   border: 1px solid var(--tea-border);
@@ -3226,7 +3252,7 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 0 20px;
   border: none;
   border-radius: 4px;
@@ -3239,7 +3265,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-modal-primary:disabled { opacity: 0.7; cursor: not-allowed; }
 .alcove-modal-cancel {
   flex: 1;
-  min-height: 44px;
+  min-height: var(--tap-min);
   border-radius: 4px;
   border: 1px solid var(--tea-border);
   background: none;
@@ -3258,7 +3284,7 @@ input[type="number"]::-webkit-outer-spin-button {
   justify-content: center;
   gap: 1px;
   min-width: 58px;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 4px 10px;
   border: 1px solid var(--tea-border);
   border-radius: 4px;
@@ -3316,13 +3342,14 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text);
 }
 
-/* ==============================   Tap target floor: 44×44 minimum per WCAG 2.5.5 / Apple HIG / Material Design.
+/* ==============================   Tap target floor: 44×44 on touch screens per WCAG 2.5.5 / Apple HIG /
+   Material Design, 28px with a mouse (--tap-min in tailwind.css).
    Apply to any interactive button or icon-only control. Doesn't change visual
    size of the element's content; just adds invisible padding around the click area.
    ============================================ */
 .tap-target {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   display: inline-flex;
   align-items: center;
 }
@@ -4086,8 +4113,8 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
    can hit. The outer target stays at the 44px accessibility floor while the
    painted chrome is a quieter 32px object. */
 .curate-compact-target {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4105,7 +4132,7 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
 }
 
 .curate-field {
-  min-height: 44px;
+  min-height: var(--tap-min);
   border: 1px solid var(--tea-border);
   border-radius: 6px;
   background: var(--tea-surface);
@@ -4148,7 +4175,7 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
 }
 
 .curate-action {
-  min-height: 44px;
+  min-height: var(--tap-min);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4258,7 +4285,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
 }
 
 .curate-profile-entry {
-  min-height: 44px;
+  min-height: var(--tap-min);
 }
 
 /* Source is a working canvas, not an atmospheric display panel. Keep a trace
@@ -4853,7 +4880,7 @@ body.cart-panel-open .commerce-dock {
 .checkout-input {
   width: 100%;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--tap-min);
   border: 0;
   background: var(--tea-surface);
   color: var(--tea-text);
@@ -4878,13 +4905,13 @@ body.cart-panel-open .commerce-dock {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  min-height: 44px;
+  min-height: var(--tap-min);
   color: var(--tea-text);
 }
 .checkout-text-action {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--tap-min);
   font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
   font-variant-numeric: lining-nums;
   color: var(--tea-text-sec);
@@ -4913,7 +4940,7 @@ body.cart-panel-open .commerce-dock {
 /* The next step after a saved WhatsApp order stays within reach on mobile. */
 .checkout-whatsapp-action {
   display: block;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 0.75rem;
   border-radius: 0.375rem;
   text-align: center;
@@ -5043,8 +5070,8 @@ body.cart-panel-open .commerce-dock {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   height: 34px;
   padding: 0 10px;
   border: 1px solid var(--tea-border);
@@ -5102,8 +5129,8 @@ body.cart-panel-open .commerce-dock {
 .curate-v2-field {
   flex: 1 1 0;
   width: 100%;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -5133,8 +5160,8 @@ body.cart-panel-open .commerce-dock {
   border: 0;
   outline: 0;
   padding: 0;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 15px;
@@ -5281,7 +5308,7 @@ body.cart-panel-open .commerce-dock {
   margin-bottom: 8px;
   border-bottom: 1px solid var(--tea-border);
 }
-.curate-v2 .tasting-scroll button[aria-label^='Clear'] { min-height: 44px; min-width: 44px; justify-content: center; color: var(--tea-text-sec); }
+.curate-v2 .tasting-scroll button[aria-label^='Clear'] { min-height: var(--tap-min); min-width: var(--tap-min); justify-content: center; color: var(--tea-text-sec); }
 /* A small label: Lora capitals. */
 .curate-v2 .tasting-scroll .uppercase.text-ui-10,
 .curate-v2 .tasting-scroll .uppercase.text-ui-11 {
@@ -5301,7 +5328,7 @@ body.cart-panel-open .commerce-dock {
   box-shadow: none !important;
   border: 1px solid var(--tea-border) !important;
   border-radius: 3px !important;
-  min-height: 44px;
+  min-height: var(--tap-min);
   font-family: var(--font-mono) !important;
   font-size: 14px !important;
   font-weight: 400 !important;
@@ -5335,7 +5362,7 @@ body.cart-panel-open .commerce-dock {
 .curate-v2 .tasting-segment-toggle:has(> :nth-child(10)) { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .curate-v2 .tasting-segment-toggle > button { min-height: 48px; }
 /* Flavour: the family list is plain words, the chosen one gold. */
-.curate-v2 .tasting-scroll button[role='option'] { background: transparent !important; border-radius: 0 !important; min-height: 44px; font-size: 18px !important; }
+.curate-v2 .tasting-scroll button[role='option'] { background: transparent !important; border-radius: 0 !important; min-height: var(--tap-min); font-size: 18px !important; }
 .curate-v2 .tasting-scroll button[role='option'] > span.rounded-full {
   background: transparent !important;
   color: var(--curate-gold-text, var(--tea-gold)) !important;
@@ -5351,7 +5378,7 @@ body.cart-panel-open .commerce-dock {
 /* Fields in the tasting (vessel, temperature, time, notes). */
 .curate-v2 .tasting-scroll input,
 .curate-v2 .tasting-scroll textarea {
-  min-height: 44px;
+  min-height: var(--tap-min);
   background: transparent;
   border-radius: 3px;
   border-color: var(--tea-border);
@@ -5540,7 +5567,7 @@ body.cart-panel-open .commerce-dock {
 .library-supplier-group { min-width: 0; padding: 5px; border: 1px solid var(--tea-border); border-radius: 11px; background: linear-gradient(120deg,var(--tea-elevated),var(--tea-surface)); }
 .library-supplier-group[data-tone='1'] { background: linear-gradient(120deg,var(--tea-surface),color-mix(in srgb,var(--tea-elevated) 65%,var(--tea-bg))); }
 .library-supplier-header { display: flex; align-items: center; gap: 8px; padding: 0 6px 4px; }
-.library-supplier-heading { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 44px; text-align: left; color: var(--tea-text); }
+.library-supplier-heading { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: var(--tap-min); text-align: left; color: var(--tea-text); }
 .library-supplier-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; line-height: 1.15; }
 .library-supplier-count { flex-shrink: 0; color: var(--tea-text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
 .library-supplier-heading > svg { flex-shrink: 0; color: var(--tea-text-dim); }
@@ -5558,7 +5585,7 @@ body.cart-panel-open .commerce-dock {
 .library-inline-value > button { width: 100%; justify-content: flex-start; text-align: left; padding: 0; font: inherit; color: inherit; overflow-wrap: anywhere; }
 .library-inline-value > button:hover { color: var(--tea-gold-lt); }
 .library-card-year > button { justify-content: flex-end; text-align: right; }
-.library-inline-value input { width: 100%; min-width: 0; min-height: 44px; padding: 2px 4px; border: 1px solid var(--tea-border); border-radius: 4px; color: var(--tea-text); background: var(--tea-bg); font-size: 16px; }
+.library-inline-value input { width: 100%; min-width: 0; min-height: var(--tap-min); padding: 2px 4px; border: 1px solid var(--tea-border); border-radius: 4px; color: var(--tea-text); background: var(--tea-bg); font-size: 16px; }
 .library-inline-value input:focus { outline: 1px solid var(--tea-gold); }
 .library-inline-hint { display: block; font-weight: 400; }
 .library-ribbon-prices { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-inline: -10px; border-block: 1px solid var(--tea-border); background: linear-gradient(100deg,var(--tea-elevated),color-mix(in srgb,var(--tea-elevated) 80%,var(--tea-surface))); }
@@ -5571,7 +5598,7 @@ body.cart-panel-open .commerce-dock {
 .library-ribbon-metric strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .library-ribbon-metric .library-inline-value:has(input) { padding-top: 14px; }
 .library-order-ribbon { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: calc(100% + 20px); margin-inline: -10px; text-align: left; background: var(--tea-bg); box-shadow: inset 0 -1px var(--tea-border); }
-.library-order-ribbon > span { min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 10px; }
+.library-order-ribbon > span { min-width: 0; min-height: var(--tap-min); display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 10px; }
 .library-order-ribbon > span + span { border-left: 1px solid var(--tea-border); }
 .library-order-ribbon > span:last-child { background: var(--tea-accent-sub); }
 .library-order-ribbon strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
@@ -5601,17 +5628,17 @@ body.cart-panel-open .commerce-dock {
 
 /* Library label: full-width name, editable year below, equal pricing fields. */
 .library-card-title-row { display: block; }
-.library-card-name > button { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 44px; }
+.library-card-name > button { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: var(--tap-min); }
 .library-card-subrow > .library-card-year { flex: 0 0 68px; }
-.library-detail-link { flex: 0 0 44px; font-size: 11px; min-height: 44px; text-align: center; }
+.library-detail-link { flex: 0 0 44px; font-size: 11px; min-height: var(--tap-min); text-align: center; }
 .library-ribbon-prices { background: linear-gradient(110deg,color-mix(in srgb,var(--tea-surface) 58%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 35%,var(--tea-bg))); }
 .library-ribbon-metric { min-height: 66px; padding: 4px 10px; gap: 0; justify-content: flex-start; }
 .library-ribbon-metric > span:first-child { position: static; font-size: 12px; min-height: 16px; line-height: 16px; }
-.library-ribbon-metric > strong { padding: 0; min-height: 44px; display: flex; align-items: center; font-size: 16px; }
+.library-ribbon-metric > strong { padding: 0; min-height: var(--tap-min); display: flex; align-items: center; font-size: 16px; }
 .library-ribbon-metric .library-inline-value > button { align-items: center; padding: 0; }
 .library-ribbon-metric .library-inline-value:has(input) { padding-top: 0; }
 .library-tea-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 0; min-height: 54px; padding: 5px 0; background: transparent; }
-.library-tea-actions > :is(button,span) { margin-inline: 3px; min-height: 44px; justify-content: center; text-align: center; padding-inline: 2px; white-space: nowrap; }
+.library-tea-actions > :is(button,span) { margin-inline: 3px; min-height: var(--tap-min); justify-content: center; text-align: center; padding-inline: 2px; white-space: nowrap; }
 .library-tea-primary { min-width: 0; background: linear-gradient(120deg,var(--tea-surface),color-mix(in srgb,var(--tea-elevated) 45%,var(--tea-bg))); }
 .library-order-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border: 1px solid var(--tea-border); border-radius: 6px; background: var(--tea-surface); }
 .library-order-metrics > div { display: flex; flex-direction: column; gap: 4px; padding: 10px; }
@@ -5654,7 +5681,7 @@ body.cart-panel-open .commerce-dock {
 .library-tea-card .library-card-year > button { min-height: 32px; height: 32px; position: relative; padding-top: 0; }
 .library-tea-card .library-given-name > button::after,
 .library-tea-card .library-card-year > button::after { content: ''; position: absolute; inset: -6px 0; }
-.library-tea-card .library-card-subrow:has(input) { height: auto; min-height: 44px; }
+.library-tea-card .library-card-subrow:has(input) { height: auto; min-height: var(--tap-min); }
 
 /* Selected Library finish: fine outlines over restrained tea-type shading. */
 .library-tea-card { background: color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 24%, var(--tea-bg)); }
@@ -5699,7 +5726,7 @@ body.cart-panel-open .commerce-dock {
 
 .library-weight-options { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; }
 .library-weight-presets { display: flex; flex-wrap: wrap; gap: 6px; }
-.library-weight-options button, .library-weight-presets button { min-height: 44px; padding: 0 8px; border: 1px solid var(--tea-border); border-radius: 5px; font-size: 13px; color: var(--tea-text-sec); background: var(--tea-surface); }
+.library-weight-options button, .library-weight-presets button { min-height: var(--tap-min); padding: 0 8px; border: 1px solid var(--tea-border); border-radius: 5px; font-size: 13px; color: var(--tea-text-sec); background: var(--tea-surface); }
 .library-weight-options button[aria-pressed='true'], .library-weight-presets button[aria-pressed='true'] { border-color: var(--tea-gold); background: var(--tea-accent-sub); color: var(--tea-text); }
 .library-weight-options button:focus-visible, .library-weight-presets button:focus-visible { outline: 2px solid var(--tea-gold); }
 
@@ -5709,7 +5736,7 @@ body.cart-panel-open .commerce-dock {
 .library-controls .library-segments > button { min-width: 0; padding: 0 3px; gap: 4px; justify-content: center; white-space: nowrap; border-radius: 3px; }
 .library-controls .library-segments > button[aria-pressed='true'] { background: var(--tea-elevated); box-shadow: none; color: var(--tea-text); }
 .library-controls .library-tools { width: 100%; display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: flex-start; padding: 0 3px; }
-.library-controls .library-tools > button { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0 5px; }
+.library-controls .library-tools > button { display: inline-flex; align-items: center; gap: 5px; min-height: var(--tap-min); padding: 0 5px; }
 .library-controls .library-tools .library-review-action { margin-left: auto; }
 
 /* Library uses Stock's Fine metalwork finish with its existing edit controls. */
@@ -5732,7 +5759,7 @@ body.cart-panel-open .commerce-dock {
 }
 .library-tea-card .library-card-title-row { padding:0 10px; }
 .library-tea-card .library-card-name { font-size:22px; line-height:1.15; font-weight:400; }
-.library-tea-card .library-card-name > button { min-height:44px; padding:5px 0; }
+.library-tea-card .library-card-name > button { min-height:var(--tap-min); padding:5px 0; }
 .library-tea-card .library-card-subrow {
   height:auto; min-height:34px; padding:0 10px; gap:8px; align-items:center;
   background:linear-gradient(180deg,
@@ -5752,8 +5779,8 @@ body.cart-panel-open .commerce-dock {
 .library-tea-card .library-ribbon-metric > strong { min-height:24px; }
 .library-tea-card .library-ribbon-metric .library-inline-value > button { min-height:24px; height:24px; padding:0; justify-content:center; align-items:center; }
 .library-tea-card .library-ribbon-metric .library-inline-value > button::after { inset:-4px 0 -16px; }
-.library-tea-card .library-tea-actions { margin:0; padding:0 4px 3px; min-height:44px; border-top:1px solid var(--tea-border); background:transparent; gap:2px; }
-.library-tea-card .library-tea-actions > button { border:0; border-radius:3px; margin:0; background:transparent; min-height:44px; font-size:12px; }
+.library-tea-card .library-tea-actions { margin:0; padding:0 4px 3px; min-height:var(--tap-min); border-top:1px solid var(--tea-border); background:transparent; gap:2px; }
+.library-tea-card .library-tea-actions > button { border:0; border-radius:3px; margin:0; background:transparent; min-height:var(--tap-min); font-size:12px; }
 .library-tea-card .library-tea-actions .library-tea-primary { box-shadow:inset 0 -1px var(--library-accent); font-weight:600; color:var(--tea-text); }
 .library-tea-card .library-tea-actions .library-choose[aria-pressed='true'] { background:var(--tea-accent-sub); color:var(--tea-text); box-shadow:inset 0 -2px var(--tea-gold); }
 .light .library-tea-card { --library-metal-l:.83!important; }
@@ -5761,7 +5788,7 @@ body.cart-panel-open .commerce-dock {
 
 /* Identical tasting/menu affordances across the two tea workspaces. */
 .library-tea-card .library-card-title-row { display:flex; align-items:center; gap:4px; }
-.library-more-action { flex:0 0 36px; min-height:44px; display:flex; align-items:center; justify-content:center; color:var(--tea-text-sec); }
+.library-more-action { flex:0 0 36px; min-height:var(--tap-min); display:flex; align-items:center; justify-content:center; color:var(--tea-text-sec); }
 .library-tea-card .library-tea-actions { grid-template-columns:minmax(0,1fr) minmax(0,1fr) 48px; }
 .library-tea-card .library-tea-actions .library-tea-primary { display:flex; align-items:center; justify-content:center; box-shadow:none; color:var(--tea-text); }
 .library-tea-card .library-tea-actions .library-tea-primary.is-tasted { color:var(--library-accent); background:var(--tea-accent-sub); }
@@ -5776,7 +5803,7 @@ body.cart-panel-open .commerce-dock {
 .library-tea-card .library-given-name > button, .library-tea-card .library-card-year > button { height:32px; min-height:32px; }
 .library-workbar { display:grid; grid-template-columns:76px minmax(0,1fr); align-items:center; }
 .library-quick-actions { display:flex; align-items:center; }
-.library-quick-actions > button { width:38px; min-height:44px; display:flex; align-items:center; justify-content:center; color:var(--tea-text-sec); background:transparent; border:0; padding:0; }
+.library-quick-actions > button { width:38px; min-height:var(--tap-min); display:flex; align-items:center; justify-content:center; color:var(--tea-text-sec); background:transparent; border:0; padding:0; }
 .library-quick-actions .library-tea-primary.is-tasted { color:var(--library-accent); }
 .library-tea-card .library-ribbon-metric { min-height:48px; padding:2px 3px 4px; }
 .library-tea-card .library-tea-actions { grid-template-columns:1fr 1fr 1.4fr; min-height:36px; padding:0 4px; }
@@ -5792,7 +5819,7 @@ body.cart-panel-open .commerce-dock {
 .library-title-editor::selection { background:var(--tea-accent-sub); color:var(--tea-text); }
 .library-title-editor:focus { outline:1px solid var(--tea-gold); }
 .library-title-editor-actions { display:flex; justify-content:flex-end; gap:8px; }
-.library-title-editor-actions > button { min-height:44px; padding:0 12px; font-family:var(--font-sans); font-size:12px; color:var(--tea-text); }
+.library-title-editor-actions > button { min-height:var(--tap-min); padding:0 12px; font-family:var(--font-sans); font-size:12px; color:var(--tea-text); }
 .library-title-editor-actions > button:last-child { font-weight:600; }
 .library-details-sheet { height:88dvh; max-width:48rem; margin-inline:auto; }
 .library-details-sheet .tea-record-panel { height:auto; }
@@ -5801,12 +5828,12 @@ body.cart-panel-open .commerce-dock {
 /* Type remains an editable slot even before classification. */
 .library-card-subrow > button.library-card-type { flex:0 0 auto; min-height:32px; padding:0 0 0 8px; font-size:11px; }
 .library-type-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding-bottom:12px; }
-.library-type-options > button { min-height:44px; padding:8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
+.library-type-options > button { min-height:var(--tap-min); padding:8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
 .library-type-options > button[aria-pressed='true'] { border-color:var(--tea-gold); background:var(--tea-accent-sub); }
 .library-type-options > button:focus-visible { outline:2px solid var(--tea-gold); }
 
 .library-supplier-heading { grid-template-columns:minmax(0,1fr); }
-.library-supplier-edit { display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; padding:0; border:0; background:transparent; }
+.library-supplier-edit { display:inline-flex; align-items:center; justify-content:center; min-width:var(--tap-min); min-height:var(--tap-min); padding:0; border:0; background:transparent; }
 
 /* Editable tea fields keep readable text when the browser selects their value. */
 .library-inline-value :is(input,textarea)::selection,
@@ -5820,7 +5847,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-capsule { position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));height:52px;display:flex;align-items:center;isolation:isolate;z-index:2;padding:0 4px; }
 .tasting-capsule-surface { pointer-events:none;position:absolute;inset:0;z-index:-1;border-radius:9999px;border:1px solid var(--tea-keyline);background:rgb(var(--tea-bg-rgb) / .92);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);clip-path:inset(-40px round 26px);animation:tasting-seal-arrive .42s step-end both,tasting-surface-open .5s cubic-bezier(.65,0,.2,1) .42s backwards; }
 .tasting-capsule-wing { flex:1;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(44px,1fr));animation:tasting-capsule-words .18s ease-out .92s backwards;transition:opacity .16s,transform .48s cubic-bezier(.65,0,.2,1); }
-.tasting-capsule-choice { height:48px;min-width:44px;white-space:nowrap;font-family:var(--font-display);font-size:clamp(12.5px,4vw,15px);font-weight:400;text-transform:lowercase;color:var(--tea-text-sec);background:transparent;transition:color .45s,font-weight .45s,filter .45s; }
+.tasting-capsule-choice { height:48px;min-width:var(--tap-min);white-space:nowrap;font-family:var(--font-display);font-size:clamp(12.5px,4vw,15px);font-weight:400;text-transform:lowercase;color:var(--tea-text-sec);background:transparent;transition:color .45s,font-weight .45s,filter .45s; }
 .tasting-capsule-choice[aria-pressed=true] { color:var(--tea-gold);font-weight:600;filter:drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / .75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / .32)); }
 .tasting-capsule-seal { flex:0 0 56px;width:56px;height:56px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--tea-keyline);background:rgb(var(--tea-bg-rgb) / .92);backdrop-filter:blur(20px) saturate(180%);color:var(--tea-text-sec);isolation:isolate; }
 .tasting-capsule-seal { animation:tasting-seal-arrive .42s step-end both; }
@@ -5828,7 +5855,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-capsule-seal svg { display:block;width:42px;height:42px;shape-rendering:geometricPrecision; }
 .tasting-capsule-seal svg path { stroke:var(--tea-text);stroke-width:11;stroke-linejoin:round; }
 .tasting-capsule button:focus-visible { outline:2px solid var(--tea-gold);outline-offset:2px; }
-.tasting-mobile-note>button { min-width:44px;min-height:44px;padding:0 6px!important;letter-spacing:0!important;color:var(--tea-text-sec)!important; }
+.tasting-mobile-note>button { min-width:var(--tap-min);min-height:var(--tap-min);padding:0 6px!important;letter-spacing:0!important;color:var(--tea-text-sec)!important; }
 @media(min-width:375px){.tasting-capsule{left:16px;right:16px;}}
 @media(max-width:1023px){.tasting-mobile-content .tasting-scroll>div{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));}}
 @keyframes tasting-capsule-open { from{transform:scale(1.077);clip-path:inset(0 calc(50% - 26px) round 26px)}to{transform:scale(1);clip-path:inset(0 0 round 26px)} }
@@ -5869,7 +5896,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--tea-text-dim); }
 .tasting-impression-heading h3 { margin: 0; }
 .tasting-impression-numbers { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); margin-top: 10px; }
-.tasting-impression-numbers button { min-width: 0; min-height: 44px; padding: 0; border-radius: 4px; font-variant-numeric: lining-nums tabular-nums; }
+.tasting-impression-numbers button { min-width: 0; min-height: var(--tap-min); padding: 0; border-radius: 4px; font-variant-numeric: lining-nums tabular-nums; }
 .tasting-impression-notes label { display: block; color: var(--tea-text-dim); margin-bottom: 10px; }
 .tasting-impression-notes textarea { display: block; width: 100%; min-height: 116px; resize: vertical; padding: 12px; border: 1px solid var(--tea-border); border-radius: 4px; background: var(--tea-surface); color: var(--tea-text); }
 .tasting-impression-notes textarea::placeholder { color: var(--tea-text-dim); }
@@ -5878,16 +5905,16 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-recap { margin-top: 12px; border-top: 1px solid var(--tea-border); padding-top: 8px; }
 .tasting-impression-recap > h3 { margin: 0 0 4px; color: var(--tea-text-dim); }
 .tasting-impression-recap-group { display:grid; grid-template-columns:72px minmax(0,1fr); align-items:start; gap:12px; padding:0; }
-.tasting-impression-group-link { display: flex; align-items: center; justify-content: flex-start; gap:4px; width: 100%; min-height: 44px; font-family: var(--font-body); font-size:12px; color:var(--tea-text-dim); text-align: left; }
+.tasting-impression-group-link { display: flex; align-items: center; justify-content: flex-start; gap:4px; width: 100%; min-height: var(--tap-min); font-family: var(--font-body); font-size:12px; color:var(--tea-text-dim); text-align: left; }
 .tasting-impression-group-link > span:last-child { display:none; }
 .tasting-impression-words { display: flex; flex-wrap: wrap; gap: 0 12px; min-width:0; }
-.tasting-impression-words button { min-height: 44px; font-size: 14px; text-align: left; text-decoration: none; overflow-wrap: anywhere; }
+.tasting-impression-words button { min-height: var(--tap-min); font-size: 14px; text-align: left; text-decoration: none; overflow-wrap: anywhere; }
 
 .connected-sensation-family { min-width: 0; border-top: 1px solid var(--tea-border); padding: 9px 0 14px; scroll-margin-top: 12px; }
 .connected-sensation-family:first-of-type { border-top: 0; padding-top: 0; }
 .connected-sensation-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .connected-sensation-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.connected-sensation-choice { min-width: 0; min-height: 44px; padding: 10px 8px; border: 1px solid var(--tea-border); border-radius: 12px; background: var(--tea-surface); color: var(--tea-text-sec); transition: background .15s, color .15s; }
+.connected-sensation-choice { min-width: 0; min-height: var(--tap-min); padding: 10px 8px; border: 1px solid var(--tea-border); border-radius: 12px; background: var(--tea-surface); color: var(--tea-text-sec); transition: background .15s, color .15s; }
 .connected-sensation-choice[aria-pressed="true"] { background: var(--tea-elevated); color: var(--tea-text); }
 .connected-sensation-choice:focus-visible { outline: 2px solid var(--tea-gold); outline-offset: 2px; }
 .connected-sensation-single { gap:0; border:1px solid var(--tea-border); border-radius:8px; overflow:hidden; background:var(--tea-surface); }
@@ -5905,7 +5932,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-heading-mic { position:absolute; right:20px; top:max(16px, calc(env(safe-area-inset-top) + 6px)); display:grid; place-items:center; width:44px; height:44px; border-radius:50%; color:var(--tea-text-sec); background:var(--tea-bg); }
 .tasting-heading-mic[aria-pressed="true"] { color:var(--tea-gold); }
 .tasting-heading-tools { display:flex; justify-content:flex-end; align-items:center; gap:8px; height:44px; color:var(--tea-text-sec); font-size:12px; }
-.tasting-heading-tools button { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; }
+.tasting-heading-tools button { display:flex; align-items:center; justify-content:center; min-width:var(--tap-min); min-height:var(--tap-min); }
 .tasting-heading-tools button:disabled { opacity:.45; }
 
 
@@ -5916,7 +5943,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-numbers button[aria-pressed="true"] { background:var(--tea-elevated); color:var(--tea-text); font-weight:600; }
 .tasting-notes-save-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px; }
 .tasting-notes-save-row > span { color:var(--tea-text-dim); }
-.tasting-impression .tasting-notes-save { flex-shrink:0; min-height:44px; padding:0 14px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-family:var(--font-body); font-size:13px; }
+.tasting-impression .tasting-notes-save { flex-shrink:0; min-height:var(--tap-min); padding:0 14px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-family:var(--font-body); font-size:13px; }
 .tasting-notes-save:disabled { opacity:.45; cursor:default; }
 
 /* Effect follows the earlier softly grouped vocabulary cards. */
@@ -5972,7 +5999,8 @@ body.cart-panel-open .commerce-dock {
 .stock-view [data-testid=inventory-scroll]>.relative>div{border:0;background:transparent;border-radius:0;overflow:visible}
 .stock-view table.inv-tight,.stock-view table.inv-tight tbody{display:block}
 .stock-view table.inv-tight :is(colgroup,thead){display:none}
-.stock-view [data-stock-group]{margin-bottom:9px;border:1px solid var(--stock-keyline);border-radius:6px;background:var(--stock-shell);overflow:hidden;padding:0 5px 5px}
+/* No frame around a group: the heading rule groups it, the tea cards are the only boxes (UI audit #7, no cards inside cards). */
+.stock-view [data-stock-group]{margin-bottom:9px;border:0;border-radius:0;background:transparent;overflow:hidden;padding:0 5px 5px}
 .stock-view .stock-group-toggle{width:calc(100% + 10px);margin-left:-5px;border:0;border-bottom:1px solid var(--stock-keyline)}
 .stock-view .stock-group-toggle>.stock-group-head{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;padding:8px 10px;min-height:52px}
 .stock-group-name{display:flex;justify-content:space-between;font-size:20px;overflow-wrap:anywhere}
@@ -5983,7 +6011,7 @@ body.cart-panel-open .commerce-dock {
 .stock-identity{min-width:0;padding:7px 9px 0}
 .stock-title{width:100%;min-width:0}
 .stock-title>button,.stock-title>input{display:block;width:100%;max-width:100%;min-height:24px;font-family:'Cormorant Garamond','Noto Serif SC',Georgia,serif!important;font-size:20px!important;font-weight:500!important;line-height:1.12!important;letter-spacing:.005em!important;text-align:left;white-space:normal;overflow-wrap:anywhere}
-.stock-subtitle{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;min-height:44px;font-size:12px;line-height:1.25;color:var(--tea-text-sec)}
+.stock-subtitle{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;min-height:var(--tap-min);font-size:12px;line-height:1.25;color:var(--tea-text-sec)}
 .stock-inline-edit{font-size:12px;color:var(--tea-text-sec);border-bottom:1px dotted var(--tea-border);white-space:normal;text-align:left}
 .stock-given-name{min-width:60px}
 .stock-confidence{margin-left:auto;font-size:10px;color:var(--tea-gold-lt)}
@@ -5997,13 +6025,13 @@ body.cart-panel-open .commerce-dock {
 .stock-detail .stock-field,.stock-detail [data-field=vendor] button{font-size:11px!important}
 .stock-workbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px;min-height:46px;margin:0 6px 4px}
 .stock-figures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:0;border-radius:3px;overflow:hidden;margin:0;background:transparent;min-width:0}
-.stock-figure{position:relative;min-height:44px;font-variant-numeric:lining-nums tabular-nums}
+.stock-figure{position:relative;min-height:var(--tap-min);font-variant-numeric:lining-nums tabular-nums}
 .stock-figure dt{position:absolute;top:3px;left:0;right:0;pointer-events:none;text-align:center;font-family:'Plus Jakarta Sans',system-ui,sans-serif!important;font-size:10px!important;font-weight:400!important;line-height:1.2!important;letter-spacing:0!important;text-transform:none!important;color:var(--tea-text-dim)}
 .stock-figure dd{position:absolute;bottom:3px;left:0;right:0;display:flex;justify-content:center;font-family:Lora,Georgia,serif;font-size:15px;line-height:1.3;font-weight:400;text-align:center}
-.stock-figure dd button{position:absolute;bottom:-3px;left:0;width:100%;height:44px;min-height:44px!important;display:flex;align-items:flex-end!important;justify-content:center;padding:0 2px 3px!important;font:inherit}
+.stock-figure dd button{position:absolute;bottom:-3px;left:0;width:100%;height:44px;min-height:var(--tap-min)!important;display:flex;align-items:flex-end!important;justify-content:center;padding:0 2px 3px!important;font:inherit}
 .stock-year-figure{display:none}
 .stock-quick-actions{display:grid;grid-template-columns:44px 74px 44px;align-items:center;min-width:0}
-.stock-quick-actions>button{display:flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;gap:4px;color:var(--tea-text-sec);font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:11px;line-height:1.2;text-align:center}
+.stock-quick-actions>button{display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);min-width:var(--tap-min);gap:4px;color:var(--tea-text-sec);font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:11px;line-height:1.2;text-align:center}
 .stock-quick-actions>button:hover,.stock-inline-edit:hover{color:var(--tea-text);background:var(--tea-accent-sub)}
 .stock-camera-action svg,.stock-tasting-icon{stroke-width:1.5}
 .stock-tasting-icon{display:none}
@@ -6042,7 +6070,7 @@ body.cart-panel-open .commerce-dock {
 .stock-view .inv-detail-panel td:first-child>div>div{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .stock-view .inv-detail-panel td:first-child>div>div:first-child{justify-content:space-between}
 .stock-view .inv-detail-panel td:first-child p{font-size:11px;line-height:1.4}
-.stock-view .inv-detail-panel td>span,.stock-view .inv-detail-panel td>button{min-height:44px;justify-content:center}
+.stock-view .inv-detail-panel td>span,.stock-view .inv-detail-panel td>button{min-height:var(--tap-min);justify-content:center}
 .stock-view .inv-detail-panel input{font-size:16px}
 }
 
@@ -6096,11 +6124,11 @@ body.cart-panel-open .commerce-dock {
 .stock-view-select { display:block; width:100%; min-width:0; height:44px; margin-top:6px; padding:0 10px; border:1px solid var(--tea-border); border-radius:6px; background:var(--tea-surface); color:var(--tea-text); font-size:16px; }
 .stock-view-select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 .stock-view-segments { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:6px; }
-.stock-view-segments button { min-height:44px; border:1px solid var(--tea-border); border-radius:6px; background:var(--tea-surface); color:var(--tea-text-sec); font-size:14px; }
+.stock-view-segments button { min-height:var(--tap-min); border:1px solid var(--tea-border); border-radius:6px; background:var(--tea-surface); color:var(--tea-text-sec); font-size:14px; }
 .stock-view-segments button[aria-pressed=true] { border-color:var(--tea-gold); color:var(--tea-gold); }
 .stock-view-details { border-top:1px solid var(--tea-border); }
 .stock-view-details summary { display:list-item; padding:14px 0; cursor:pointer; font-size:14px; color:var(--tea-text-sec); }
-.stock-show-choice { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; width:100%; padding:8px 10px; border-radius:6px; text-align:left; font-size:16px; }
+.stock-show-choice { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:var(--tap-min); width:100%; padding:8px 10px; border-radius:6px; text-align:left; font-size:16px; }
 .stock-show-choice[aria-pressed=true] { background:var(--tea-surface); color:var(--tea-gold); }
 @media(max-width:767px) {
   .stock-view-bar { padding:0 12px; gap:12px; }
@@ -6110,12 +6138,12 @@ body.cart-panel-open .commerce-dock {
 
 /* Development-only Stock heading comparison. Records use the ordinary Stock view. */
 .stock-heading-study { border-bottom:1px solid var(--tea-border); color:var(--tea-text); font-size:12px; }
-.stock-heading-study button,.stock-heading-study select { min-height:44px; }
+.stock-heading-study button,.stock-heading-study select { min-height:var(--tap-min); }
 .stock-heading-study select { width:100%; min-width:0; background:transparent; border:0; color:var(--tea-text); font-size:13px; }
 .heading-study-fields { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; padding:8px 12px 0; }
 .heading-study-fields label { display:block; min-width:0; color:var(--tea-text-dim); font-size:10px; }
 .heading-study-order { display:flex; min-width:0; }
-.heading-study-order button { min-width:44px; }
+.heading-study-order button { min-width:var(--tap-min); }
 .heading-study-tabs { display:flex; gap:4px; padding:0 12px; }
 .heading-study-tabs button { flex:1; min-width:0; padding:0 6px; color:var(--tea-text-sec); border-bottom:2px solid transparent; }
 .heading-study-tabs button[aria-pressed=true] { border-color:var(--tea-gold); color:var(--tea-text); }
@@ -6130,26 +6158,26 @@ body.cart-panel-open .commerce-dock {
 .heading-study-sheet { display:grid; gap:8px; max-width:560px; margin:auto; }
 .heading-study-sheet label { display:block; color:var(--tea-text-dim); }
 .heading-study-sheet select { display:block; width:100%; height:44px; background:var(--tea-surface); border:1px solid var(--tea-border); border-radius:5px; font-size:16px; color:var(--tea-text); padding:0 10px; margin-top:6px; }
-.heading-study-sheet button { min-height:44px; text-align:left; }
+.heading-study-sheet button { min-height:var(--tap-min); text-align:left; }
 .heading-study-options-host { display:contents; }
 .heading-study-options-host>button { display:none!important; }
 
 .stock-current-view { min-width:0; flex:1; }
-.stock-current-view select { width:100%; max-width:220px; min-height:44px; padding:0 4px; background:transparent; color:var(--tea-text); border:0; font-size:13px; }
-.stock-arrangement-button { display:flex; align-items:center; gap:8px; min-height:44px; max-width:64%; min-width:0; padding:0 10px; border:1px solid var(--tea-border); border-radius:5px; color:var(--tea-text-sec); font-size:12px; }
+.stock-current-view select { width:100%; max-width:220px; min-height:var(--tap-min); padding:0 4px; background:transparent; color:var(--tea-text); border:0; font-size:13px; }
+.stock-arrangement-button { display:flex; align-items:center; gap:8px; min-height:var(--tap-min); max-width:64%; min-width:0; padding:0 10px; border:1px solid var(--tea-border); border-radius:5px; color:var(--tea-text-sec); font-size:12px; }
 .stock-arrangement-button span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .stock-arrangement-button svg { flex-shrink:0; }
 .stock-arrangement-button:hover { background:var(--tea-surface); }
 .stock-arrangement-button:focus-visible,.stock-current-view select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 
 .stock-view [data-stock-group]>.stock-group-menu-head { grid-template-columns:minmax(0,1fr) 44px; gap:0; padding:2px 6px 7px; }
-.stock-group-main-toggle { display:flex; flex-direction:column; gap:4px; width:100%; min-width:0; min-height:44px; padding:4px; background:transparent; border:0; text-align:left; }
+.stock-group-main-toggle { display:flex; flex-direction:column; gap:4px; width:100%; min-width:0; min-height:var(--tap-min); padding:4px; background:transparent; border:0; text-align:left; }
 .stock-group-main-toggle .stock-group-name { min-height:32px; align-items:center; }
 .stock-view .stock-group-main-toggle .stock-group-summary { display:grid; grid-template-columns:1fr auto auto; width:calc(100% + 44px); padding:0; }
 .stock-group-menu-head .stock-group-actions { align-self:start; }
 .stock-view [data-stock-group][data-collapsed=true] { padding-bottom:0; }
 .stock-view [data-stock-group][data-collapsed=true]>.stock-group-menu-head { border-bottom:0; }
-.stock-supplier-edit-option { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding:8px 12px; font-size:13px; text-align:left; color:var(--tea-text-sec); }
+.stock-supplier-edit-option { display:flex; align-items:center; gap:8px; width:100%; min-height:var(--tap-min); padding:8px 12px; font-size:13px; text-align:left; color:var(--tea-text-sec); }
 .stock-supplier-edit-option:hover { background:var(--tea-surface); color:var(--tea-text); }
 .stock-group-main-toggle:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; border-radius:4px; }
 
@@ -6170,9 +6198,9 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-subtitle>[data-field=type]>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap!important; text-align:right; }
   .stock-view .stock-inline-edit:hover,.stock-view .stock-inline-edit:active { background:transparent; text-decoration:underline; text-decoration-color:var(--tea-border); text-underline-offset:4px; }
   .stock-view .stock-inline-edit:focus-visible { outline:1px solid var(--tea-gold); outline-offset:-2px; border-radius:3px; }
-  .stock-view .stock-workbar { margin:0 8px 3px; min-height:44px; }
+  .stock-view .stock-workbar { margin:0 8px 3px; min-height:var(--tap-min); }
   .stock-view .stock-figures { background:transparent; border:0; border-radius:0; overflow:visible; }
-  .stock-view .stock-figure { display:grid; grid-template-rows:14px 28px; min-height:44px; }
+  .stock-view .stock-figure { display:grid; grid-template-rows:14px 28px; min-height:var(--tap-min); }
   .stock-view .stock-figure dt { position:static; padding-top:2px; font-size:10px!important; }
   .stock-view .stock-figure dd { position:static; margin:0; display:flex; align-items:center; justify-content:center; line-height:1.2; }
   .stock-view .stock-figure dd button { inset:0; height:44px; padding:0 2px 3px!important; align-items:flex-end!important; white-space:nowrap!important; }
@@ -6202,7 +6230,7 @@ body.cart-panel-open .commerce-dock {
 /* Stock uses the approved Type strip structure; local studies retain alternative finishes. */
 @media(max-width:767px) {
   .stock-view .stock-record[data-card-study] .stock-workbar { gap:6px; margin-bottom:0; }
-  .stock-view .stock-record[data-card-study] .stock-figure { display:block; min-height:44px; }
+  .stock-view .stock-record[data-card-study] .stock-figure { display:block; min-height:var(--tap-min); }
   .stock-view .stock-record[data-card-study] .stock-figure dt { position:absolute; top:5px; padding:0; line-height:12px!important; }
   .stock-view .stock-record[data-card-study] .stock-figure dd { position:static; line-height:1.1; }
   .stock-view .stock-record[data-card-study] .stock-figure dd button { align-items:center!important; padding:10px 2px 0!important; }
@@ -6218,14 +6246,14 @@ body.cart-panel-open .commerce-dock {
     --stock-strip-l: .32;
     background:linear-gradient(155deg,color-mix(in srgb,var(--stock-tea-hue) 6%,var(--tea-bg)),var(--tea-bg) 78%);
   }
-  .stock-view .stock-record[data-card-study="2"] .stock-title-line { display:flex; align-items:center; gap:4px; min-height:44px; }
+  .stock-view .stock-record[data-card-study="2"] .stock-title-line { display:flex; align-items:center; gap:4px; min-height:var(--tap-min); }
   .stock-view .stock-record[data-card-study="2"] .stock-title { flex:1; min-width:0; width:auto; margin:0; padding:7.5px 0; background:transparent; }
-  .stock-view .stock-record[data-card-study="2"] .stock-more-action { position:static; flex:0 0 44px; width:44px; height:44px; min-height:44px; display:flex; align-items:center; justify-content:center; border:0; border-radius:5px; background:transparent; }
+  .stock-view .stock-record[data-card-study="2"] .stock-more-action { position:static; flex:0 0 44px; width:44px; height:44px; min-height:var(--tap-min); display:flex; align-items:center; justify-content:center; border:0; border-radius:5px; background:transparent; }
   .stock-view .stock-record[data-card-study="2"] .stock-more-action:hover { color:var(--tea-gold); background:transparent; }
   .stock-view .stock-record[data-card-study="2"] .stock-more-action:focus-visible { outline:1px solid var(--tea-gold); outline-offset:-3px; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle { position:relative; isolation:isolate; min-height:38px; background:transparent; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle .stock-inline-edit { min-height:38px; }
-  .stock-view .stock-record[data-card-study="2"] .stock-subtitle .stock-source-label { min-height:44px; }
+  .stock-view .stock-record[data-card-study="2"] .stock-subtitle .stock-source-label { min-height:var(--tap-min); }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle::before {
     content:"";
     position:absolute;
@@ -6359,7 +6387,14 @@ body.cart-panel-open .commerce-dock {
 .stock-browse-bar select optgroup { background-color: Canvas; color: CanvasText; }
 .stock-browse-bar select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; }
 .stock-browse-teaware { grid-template-columns:repeat(2,minmax(0,1fr)); }
-@media(min-width:768px) { .stock-browse-bar { max-width:920px; gap:24px; } .stock-browse-bar select { font-size:14px; } }
+/* Desktop: one slim row of inline "Label value" filters sized to their
+   content, instead of four 225px columns with stacked labels (UI audit #5). */
+@media(min-width:768px) {
+  .stock-browse-bar { display:flex; flex-wrap:wrap; align-items:center; gap:4px 24px; max-width:none; }
+  .stock-browse-bar>label { display:inline-flex; align-items:center; gap:6px; }
+  .stock-browse-bar>label>span { position:static; font-size:11px; line-height:1; }
+  .stock-browse-bar select { width:auto; max-width:220px; min-height:var(--tap-min); height:var(--control-h); padding:0 18px 0 0; font-size:13px; }
+}
 
 /* Spreadsheet refinement: phone/card geometry stays unchanged. */
 @media(min-width:768px) {
@@ -6406,7 +6441,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-heading-summary svg { flex-shrink:0; color:var(--tea-text-sec); }
 .tasting-header-controls .tasting-heading-close,
 .tasting-header-controls .tasting-heading-mic { position:static; display:grid; place-items:center; flex:0 0 44px; width:44px; height:44px; background:transparent; color:var(--tea-text-sec); }
-.tasting-heading-save { display:flex; align-items:center; justify-content:center; gap:4px; flex-shrink:0; min-width:44px; min-height:48px; padding:0 4px; border:0; border-radius:8px; background:transparent; color:var(--tea-text); font-size:13px; font-weight:600; }
+.tasting-heading-save { display:flex; align-items:center; justify-content:center; gap:4px; flex-shrink:0; min-width:var(--tap-min); min-height:48px; padding:0 4px; border:0; border-radius:8px; background:transparent; color:var(--tea-text); font-size:13px; font-weight:600; }
 .tasting-heading-save:hover:not(:disabled) { border-color:var(--tea-gold); }
 .tasting-heading-save:disabled { opacity:.65; }
 .tasting-header-controls button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
@@ -6415,7 +6450,7 @@ body.cart-panel-open .commerce-dock {
 /* The tasting shell stays usable while its wheel loads separately. */
 .tasting-loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:24px; color:var(--tea-text-sec); font-size:13px; }
 .tasting-wheel-loading { flex-direction:column; width:100%; aspect-ratio:1; border:1px solid var(--tea-border); border-radius:50%; background:radial-gradient(circle,var(--tea-surface),var(--tea-bg) 70%); }
-.tasting-wheel-loading button { min-height:44px; padding:0 16px; border:1px solid var(--tea-border); border-radius:8px; }
+.tasting-wheel-loading button { min-height:var(--tap-min); padding:0 16px; border:1px solid var(--tea-border); border-radius:8px; }
 
 /* Carry only the tasting emblem across the handoff while the site bar opens. */
 .tasting-return-emblem { position:absolute;left:50%;top:50%;width:42px;height:42px;transform:translate(-50%,-50%);pointer-events:none;animation:tasting-emblem-depart .55s ease-out both; }
@@ -6429,12 +6464,12 @@ body.cart-panel-open .commerce-dock {
 .approved-taste-wheel .tasting-sense-row { display:flex; align-items:center; gap:16px; min-width:0; }
 .approved-taste-wheel .tasting-sense-label { flex:0 0 44px; font:12px/1.5 var(--font-body); color:var(--tea-text-dim); }
 .approved-taste-wheel .tasting-sense-words { display:flex; flex-wrap:wrap; align-items:center; gap:0 12px; min-width:0; }
-.approved-taste-wheel .tasting-sense-words button { min-height:44px; padding:6px 0; border:0; background:transparent; color:var(--tea-text); font:13px/1.5 var(--font-body); overflow-wrap:anywhere; text-align:left; }
+.approved-taste-wheel .tasting-sense-words button { min-height:var(--tap-min); padding:6px 0; border:0; background:transparent; color:var(--tea-text); font:13px/1.5 var(--font-body); overflow-wrap:anywhere; text-align:left; }
 .approved-taste-wheel .tasting-sense-words button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 .tasting-taste-qualities { display:flex; flex-direction:column; gap:8px; padding-top:8px; border-top:1px solid var(--tea-border); color:var(--tea-text); }
 .tasting-taste-qualities section>p { margin:4px 0 8px; }
 .tasting-basic-tastes { display:flex; flex-wrap:wrap; gap:6px; }
-.tasting-basic-tastes button { flex:1 0 auto; min-height:44px; padding:8px 10px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-surface); color:var(--tea-text-sec); }
+.tasting-basic-tastes button { flex:1 0 auto; min-height:var(--tap-min); padding:8px 10px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-surface); color:var(--tea-text-sec); }
 .tasting-basic-tastes button[aria-pressed=true] { background:var(--tea-elevated); color:var(--tea-text); border-color:var(--tea-text-dim); }
 .tasting-basic-tastes button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 .tasting-huigan-labels { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); text-align:center; gap:2px; padding:3px 0 0; font:11px/1.5 var(--font-body); color:var(--tea-text-dim); }
@@ -6446,7 +6481,7 @@ body.cart-panel-open .commerce-dock {
 .connected-sensation-choices .observation-choice { position:relative; min-width:0; border-radius:12px; }
 .connected-sensation-choices .observation-choice>.connected-sensation-choice { flex:1; min-width:0; }
 .connected-sensation-choices .observation-choice[data-selected=true] { background:var(--tea-elevated); }
-.observation-intensity-trigger { min-width:44px; }
+.observation-intensity-trigger { min-width:var(--tap-min); }
 .observation-intensity-popover button[aria-pressed=true] { background:var(--tea-surface); }
 
 /* Keep the compact tasting additions aligned with the phone content inset. */
@@ -6455,11 +6490,11 @@ body.cart-panel-open .commerce-dock {
 
 /* Compact sip qualities: small labels, full touch targets, no explanatory stack. */
 .tasting-quality-label { color:var(--tea-text-dim); text-transform:none; letter-spacing:0; margin:0 0 6px; }
-.tasting-huigan-heading { display:flex; align-items:center; justify-content:space-between; min-height:44px; gap:8px; }
+.tasting-huigan-heading { display:flex; align-items:center; justify-content:space-between; min-height:var(--tap-min); gap:8px; }
 .tasting-huigan-heading .tasting-quality-label { margin:0; }
 /* The title's whole padded area belongs to its editor, not the parent row. */
 .stock-view .stock-record[data-card-study="2"] .stock-title { padding-block:0; }
-.stock-view .stock-record[data-card-study="2"] .stock-title>button { min-height:44px; padding-block:7.5px; }
+.stock-view .stock-record[data-card-study="2"] .stock-title>button { min-height:var(--tap-min); padding-block:7.5px; }
 
 /* Purchases: a compact tracking surface shared by the owner and agent records. */
 .purchase-tracking { max-width:1000px; width:100%; min-width:0; margin-inline:auto; overflow:auto; }
@@ -6472,9 +6507,11 @@ body.cart-panel-open .commerce-dock {
 .purchase-tracking-button { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; gap:5px; min-height:32px; padding:0 9px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-bg); color:var(--tea-text-sec); text-decoration:none; cursor:pointer; }
 .purchase-tracking-button:hover { background:var(--tea-elevated); color:var(--tea-text); }
 .purchase-tracking-filters { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:0 12px 10px; padding:4px; border:1px solid var(--tea-border); border-radius:5px; background:var(--tea-surface); }
-.purchase-tracking-tabs { display:flex; flex-wrap:wrap; align-items:center; gap:2px; flex:1; }
-.purchase-tracking-tabs button { display:flex; align-items:center; justify-content:center; gap:6px; min-height:36px; padding:0 9px; color:var(--tea-text-sec); border:1px solid transparent; border-radius:4px; }
-.purchase-tracking-tabs button[aria-pressed=true] { background:var(--tea-bg); border-color:var(--tea-border); color:var(--tea-text); }
+/* Underline tabs, same as Stock (DESIGN_SYSTEM.md §6). */
+.purchase-tracking-tabs { display:flex; flex-wrap:wrap; align-items:center; gap:16px; flex:1; }
+.purchase-tracking-tabs button { display:flex; align-items:center; justify-content:center; gap:6px; min-height:var(--tap-min); height:var(--control-h); padding:0 2px; color:var(--tea-text-sec); border:0; border-bottom:1px solid transparent; border-radius:0; }
+.purchase-tracking-tabs button:hover { color:var(--tea-text); }
+.purchase-tracking-tabs button[aria-pressed=true] { color:var(--tea-text); border-bottom-color:var(--tea-gold); }
 .purchase-tracking-supplier { min-width:0; }
 .purchase-tracking-supplier select { min-height:36px; max-width:220px; padding:0 24px 0 8px; background:var(--tea-bg); border:1px solid var(--tea-border); border-radius:4px; color:var(--tea-text-sec); }
 .purchase-tracking-notice { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px; padding:12px; border:1px solid var(--tea-border); border-radius:5px; background:var(--tea-surface); }
@@ -6544,7 +6581,7 @@ body.cart-panel-open .commerce-dock {
  .purchase-tracking-identity { display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 16px; }
  .purchase-tracking-meta { margin-top:0; }
  .purchase-tracking-item { display:grid; grid-template-columns:minmax(240px,38%) minmax(0,1fr); }
- .purchase-tracking-item-title { min-height:44px; }
+ .purchase-tracking-item-title { min-height:var(--tap-min); }
  .purchase-tracking-quantities { border-top:0; border-left:1px solid var(--tea-border); }
  .purchase-tracking-quantities>span { justify-content:flex-start; gap:8px; }
  .purchase-tracking-item-note,.purchase-receiving-arrival,.purchase-receiving-item-details { grid-column:1 / -1; }
@@ -6554,7 +6591,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-family-record { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 12px; margin:0 16px 8px; }
 .tasting-family-record p { margin:0; }
 .tasting-family-record>div { flex:1 1 180px; min-width:0; }
-.tasting-family-record>button { min-height:44px; padding:8px 12px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-surface); color:var(--tea-text); }
+.tasting-family-record>button { min-height:var(--tap-min); padding:8px 12px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-surface); color:var(--tea-text); }
 .tasting-family-record>button[aria-pressed=true] { background:var(--tea-elevated); border-color:var(--tea-text-dim); }
 .tasting-family-record>button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 .tasting-basic-tastes button[data-priority=secondary]:not([aria-pressed=true]) { background:transparent; color:var(--tea-text-dim); }
@@ -6632,7 +6669,7 @@ body.cart-panel-open .commerce-dock {
 }
 .observation-strength-clear {
   display: block;
-  min-height: 44px;
+  min-height: var(--tap-min);
   width: 100%;
   font-size: 11px;
   color: var(--tea-text-sec);
@@ -6739,7 +6776,7 @@ body.cart-panel-open .commerce-dock {
  .logistics-line-summary>span { white-space:nowrap; }
  .logistics-line-summary>span:first-of-type { white-space:normal; }
 }
-.logistics-selection>.logistics-arrival-choice,.logistics-selection>.logistics-ready-choice { min-height:44px; padding:4px; cursor:pointer; }
+.logistics-selection>.logistics-arrival-choice,.logistics-selection>.logistics-ready-choice { min-height:var(--tap-min); padding:4px; cursor:pointer; }
 .logistics-arrival-choice input[type=checkbox],.logistics-ready-choice input[type=checkbox] { flex:0 0 16px; width:16px; }
 .logistics-arrival-choice>span:nth-child(2),.logistics-ready-choice>span:nth-child(2) { flex:1; min-width:0; overflow-wrap:anywhere; }
 .logistics-arrival-choice>span:last-child { white-space:nowrap; }
@@ -7007,7 +7044,7 @@ body.cart-panel-open .commerce-dock {
 .stock-view .stock-record[data-card-study="2"] .stock-title-line { gap:6px; min-height:42px; }
 .stock-view .stock-record[data-card-study="2"] .stock-title>button,
 .stock-view .stock-record[data-card-study="2"] .stock-title>input { font-family:'Lora',Georgia,serif!important; font-size:16px!important; line-height:1.3!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.stock-view .stock-title-line>.stock-given-name { flex:0 1 auto; max-width:35%; min-width:0; min-height:44px; border:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; font-size:12px; color:var(--tea-text-dim); }
+.stock-view .stock-title-line>.stock-given-name { flex:0 1 auto; max-width:35%; min-width:0; min-height:var(--tap-min); border:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; font-size:12px; color:var(--tea-text-dim); }
 .stock-view .stock-record[data-card-study="2"] .stock-more-action { flex-basis:28px; width:28px; justify-content:flex-end; color:var(--tea-text-dim); }
 .stock-view .stock-subtitle>.stock-source-label { grid-column:1; grid-row:1; min-width:0; max-width:none; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:0; font-size:11px; }
 .stock-view .stock-subtitle>.stock-source-label>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -7069,25 +7106,25 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .curate-flow-row:first-child { border-top: 0; }
 
 /* The name row: the name straight on the card, gold underline only while typing. */
-[data-form-layout='flow'] .curate-flow-name { min-height: 44px; }
+[data-form-layout='flow'] .curate-flow-name { min-height: var(--tap-min); }
 [data-form-layout='flow'] .curate-flow-name input { padding-left: 0; border-bottom-color: transparent; font-family: var(--font-display); font-size: 20px; }
 [data-form-layout='flow'] .curate-flow-name input:focus { border-bottom-color: var(--tea-gold); }
 
 /* Keep the type tint on the Source band and give the three fields room to breathe. */
 [data-form-layout='flow'] .curate-flow-card .curate-flow-band {
-  min-height: 44px; padding: 0 10px; gap: 0; align-items: stretch;
+  min-height: var(--tap-min); padding: 0 10px; gap: 0; align-items: stretch;
   background: color-mix(in srgb, var(--library-accent) 10%, var(--tea-surface));
   border-top-color: var(--tea-border);
 }
 [data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) { display: flex; min-width: 0; }
-[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * { min-height: 44px; }
+[data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * { min-height: var(--tap-min); }
 [data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * + * { padding-left: 10px; }
 [data-form-layout='flow'] .curate-flow-cells > * + * { border-left: 1px solid var(--tea-border); }
 [data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > :not(:last-child) { padding-right: 10px; }
 [data-form-layout='flow'] .curate-flow-cell { color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; background: transparent; }
 [data-form-layout='flow'] .curate-flow-value { font-size: 16px; }
 [data-form-layout='flow'] .curate-flow-input {
-  min-height: 44px; padding: 0; border: 0; border-radius: 0; background: transparent;
+  min-height: var(--tap-min); padding: 0; border: 0; border-radius: 0; background: transparent;
   color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45;
 }
 [data-form-layout='flow'] .curate-flow-input::placeholder { color: var(--tea-text-dim); }
@@ -7129,7 +7166,7 @@ body.cart-panel-open .commerce-dock {
 
 /* Quality 1 to 10: one slim row, the label inline at the left. The strip shows
    30px; each number keeps a 44px touch height. */
-[data-form-layout='flow'] .curate-flow-quality { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+[data-form-layout='flow'] .curate-flow-quality { display: flex; align-items: center; gap: 10px; min-height: var(--tap-min); }
 [data-form-layout='flow'] .curate-flow-quality-scale {
   flex: 1; min-width: 0; height: 30px; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr));
   align-items: center; border: 1px solid var(--tea-border); border-radius: 6px;
@@ -7171,7 +7208,7 @@ body.cart-panel-open .commerce-dock {
   font-size: 11px; font-weight: 500; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase;
 }
 [data-form-layout='flow'] .library-supplier-header { padding: 0 2px 2px 11px; }
-[data-form-layout='flow'] .library-supplier-heading { min-height: 44px; padding-block: 0; }
+[data-form-layout='flow'] .library-supplier-heading { min-height: var(--tap-min); padding-block: 0; }
 /* The where header, one line: the vendor holds Run and Journey / visit, the plus at the end. */
 [data-form-layout='flow'] .curate-flow-where { gap: 4px; min-width: 0; padding-bottom: 0; }
 [data-form-layout='flow'] .curate-flow-where > .library-supplier-heading { display: flex; flex: 1 1 auto; width: auto; min-width: 0; }
@@ -7199,7 +7236,7 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .curate-flow-buy .text-tea-text-dim { color: var(--tea-text-sec); }
 [data-form-layout='flow'] .curate-flow-buy-body > * { padding-inline: 10px; }
 [data-form-layout='flow'] .curate-flow-buy-body > * + * { border-top: 1px solid var(--tea-border); }
-[data-form-layout='flow'] .curate-flow-buy-body > :first-child { min-height: 44px; flex-wrap: wrap; column-gap: 12px; padding-block: 2px; }
+[data-form-layout='flow'] .curate-flow-buy-body > :first-child { min-height: var(--tap-min); flex-wrap: wrap; column-gap: 12px; padding-block: 2px; }
 [data-form-layout='flow'] .curate-flow-buy-word { color: var(--tea-text-sec); padding-right: 4px; }
 [data-form-layout='flow'] .curate-flow-buy :is(button[aria-label$='buying quantity'], button[aria-pressed]) {
   position: relative; isolation: isolate; background: transparent; border-radius: 0; color: var(--tea-text-sec);
@@ -7286,7 +7323,7 @@ body.cart-panel-open .commerce-dock {
 .tea-card-action-row > :is(a, button) {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--tap-min);
 }
 .tea-panel-metrics {
   border-block: 1px solid var(--tea-border);
@@ -7305,7 +7342,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-session-quick .tasting-impression-notes label { margin-bottom:5px; }
 .tasting-session-quick .tasting-impression-notes textarea { min-height:74px; }
 .tasting-quick-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
-.tasting-quick-actions button { min-height:44px; padding:6px; border:1px solid var(--tea-border); border-radius:8px; font-size:13px; }
+.tasting-quick-actions button { min-height:var(--tap-min); padding:6px; border:1px solid var(--tea-border); border-radius:8px; font-size:13px; }
 .tasting-quick-actions button:disabled { opacity:.45; }
 .tea-card-control-row {
   display: grid;
@@ -7347,7 +7384,7 @@ body.cart-panel-open .commerce-dock {
   align-items: center;
   justify-content: space-between;
   gap: 0 8px;
-  min-height: 44px;
+  min-height: var(--tap-min);
   padding: 0 10px;
   margin: 0;
 }
@@ -7359,7 +7396,7 @@ body.cart-panel-open .commerce-dock {
   white-space: normal;
 }
 .tea-order-line .library-tea-actions > button {
-  min-height: 44px;
+  min-height: var(--tap-min);
   margin-left: auto;
 }
 .tea-order-line .tea-card-action-row > button {
@@ -7373,7 +7410,7 @@ body.cart-panel-open .commerce-dock {
 .tea-order-record-links > :is(a,button) {
   min-width: 36px;
   width: 38px;
-  min-height: 44px;
+  min-height: var(--tap-min);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -7388,7 +7425,7 @@ body.cart-panel-open .commerce-dock {
 
 
 .tasting-session-tools { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 8px; }
-.tasting-session-tools button { flex:1; min-height:44px; padding:4px 8px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
+.tasting-session-tools button { flex:1; min-height:var(--tap-min); padding:4px 8px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
 .tasting-session-tools button[aria-pressed="true"] { background:var(--tea-elevated); font-weight:600; }
 .tasting-session-tools button:disabled { opacity:.45; }
 
@@ -7470,9 +7507,11 @@ body.cart-panel-open .commerce-dock {
 }
 /* Stock browse shares Curate's tea card, with stage as a section rather than a fold. */
 .stock-layout-switch { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border-bottom:1px solid var(--tea-border); }
-.stock-layout-actions { display:flex; align-items:center; gap:2px; padding:2px; border:1px solid var(--tea-border); border-radius:5px; background:var(--tea-surface); }
-.stock-layout-actions button { min-height:44px; padding:0 12px; border-radius:3px; color:var(--tea-text-sec); font-size:12px; }
-.stock-layout-actions button[aria-pressed='true'] { background:var(--tea-elevated); color:var(--tea-text); box-shadow:inset 0 -2px var(--tea-gold); }
+/* Underline tabs, not a segmented box (DESIGN_SYSTEM.md §6 bans the macOS pill). */
+.stock-layout-actions { display:flex; align-items:center; gap:16px; }
+.stock-layout-actions button { min-height:var(--tap-min); height:var(--control-h); padding:0 2px; border-bottom:1px solid transparent; color:var(--tea-text-sec); font-size:12px; transition:color 150ms ease; }
+.stock-layout-actions button:hover { color:var(--tea-text); }
+.stock-layout-actions button[aria-pressed='true'] { color:var(--tea-text); border-bottom-color:var(--tea-gold); }
 .stock-layout-actions button:focus-visible, .stock-tea-open:focus-visible { outline:1px solid var(--tea-gold); outline-offset:2px; }
 .stock-card-sections { display:grid; gap:16px; padding:8px 12px 28px; }
 .stock-card-section-heading { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; padding:3px 2px 6px; border-bottom:1px solid var(--tea-border); }
@@ -7480,10 +7519,10 @@ body.cart-panel-open .commerce-dock {
 .stock-card-section-heading span { color:var(--tea-text-sec); font-size:11px; font-variant-numeric:tabular-nums; }
 .stock-card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); gap:8px; padding-top:7px; }
 .stock-tea-card .library-card-name { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; font-size:18px; }
-.stock-tea-card .library-card-title-row { min-height:44px; }
+.stock-tea-card .library-card-title-row { min-height:var(--tap-min); }
 .stock-card-year { flex:none; padding-left:6px; color:var(--tea-text-sec); font-size:12px; font-variant-numeric:tabular-nums; }
 .stock-tea-card .library-card-subrow { min-width:0; }
 .stock-tea-card .library-card-meta-primary { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .stock-tea-card .tea-card-action-row { justify-content:flex-end; padding:0 6px; }
-.stock-tea-open { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:44px; padding:0 6px; color:var(--tea-text-sec); font-size:12px; }
+.stock-tea-open { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:var(--tap-min); padding:0 6px; color:var(--tea-text-sec); font-size:12px; }
 .stock-tea-open:hover { color:var(--tea-gold-lt); }

@@ -163,7 +163,7 @@ export const TeaDiscoveryFlow: React.FC<TeaDiscoveryFlowProps> = ({
             type="button"
             onClick={handleContinue}
             disabled={!answered}
-            className="w-full rounded-xl cta-solid py-3 font-sans text-ui-15 font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-primary btn-primary-lg w-full"
           >
             {isLast ? 'See my profile' : 'Continue'}
           </button>

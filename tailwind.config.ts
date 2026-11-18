@@ -15,6 +15,12 @@ const config: Config = {
       // nothing at all: the sidebar had no hover or active background for as
       // long as they have been written.
       opacity: { 6: '0.06', 8: '0.08' },
+      // Touch floor: 44px on a touch screen, 28px with a mouse. Defined once in
+      // tailwind.css (--tap-min); never write min-h-[44px] again.
+      minHeight: { tap: 'var(--tap-min)', control: 'var(--control-h)' },
+      minWidth: { tap: 'var(--tap-min)' },
+      height: { control: 'var(--control-h)', 'control-sm': 'var(--control-h-sm)', 'control-lg': 'var(--control-h-lg)' },
+      width: { control: 'var(--control-h)', 'control-sm': 'var(--control-h-sm)', 'control-lg': 'var(--control-h-lg)' },
       colors: {
         // CSS variable-driven tokens (switch with dark/light mode)
         'tea-bg': 'rgb(var(--tea-bg-rgb) / <alpha-value>)',

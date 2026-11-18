@@ -234,7 +234,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
               type="button"
               onClick={clear}
               disabled={operationLocked}
-              className="tap-target inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors disabled:opacity-40"
+              className="tap-target inline-flex min-h-tap min-w-tap items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors disabled:opacity-40"
               aria-label="Clear all"
               title={operationLocked ? 'Finish the pending batch before clearing this list' : 'Clear all'}
             >
@@ -245,7 +245,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
             <button
               type="button"
               onClick={onClose}
-              className="tap-target inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text transition-colors"
+              className="tap-target inline-flex min-h-tap min-w-tap items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label="Close"
             >
               <X size={15} />
@@ -270,8 +270,8 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
             </p>
             {(onCaptureTea || onBrowseLibrary) && (
               <div className="mt-5 flex flex-wrap justify-center gap-2">
-                {onCaptureTea && <button type="button" onClick={onCaptureTea} className="tap-target min-h-11 rounded-md bg-tea-accent-sub px-4 text-ui-12 text-tea-gold">Capture tea</button>}
-                {onBrowseLibrary && <button type="button" onClick={onBrowseLibrary} className="tap-target min-h-11 rounded-md px-4 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text">Browse Library</button>}
+                {onCaptureTea && <button type="button" onClick={onCaptureTea} className="tap-target min-h-tap rounded-md bg-tea-accent-sub px-4 text-ui-12 text-tea-gold">Capture tea</button>}
+                {onBrowseLibrary && <button type="button" onClick={onBrowseLibrary} className="tap-target min-h-tap rounded-md px-4 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text">Browse Library</button>}
               </div>
             )}
           </div>
@@ -301,7 +301,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                           type="button"
                           onClick={() => removeSample(item.id, item.compassEntryId)}
                           disabled={operationLocked}
-                          className="tap-target shrink-0 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors disabled:opacity-40"
+                          className="tap-target shrink-0 inline-flex min-h-tap min-w-tap items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors disabled:opacity-40"
                           aria-label={`Remove ${item.name || 'sample'} from Sample list`}
                         >
                           <X size={12} />
@@ -316,7 +316,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                             type="button"
                             onClick={() => updateGrams(item.id, g)}
                             disabled={operationLocked}
-                            className={`tap-target min-h-11 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
+                            className={`tap-target min-h-tap px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
                               item.grams === g
                                 ? 'bg-tea-gold/15 text-tea-gold'
                                 : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
@@ -357,7 +357,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                     type="button"
                     onClick={handleDiscardDraft}
                     disabled={saving || discarding}
-                    className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50"
+                    className="tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50"
                   >
                     {discarding ? 'Discarding…' : 'Discard saved draft'}
                   </button>
@@ -366,7 +366,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                   type="button"
                   onClick={handleSaveAsSet}
                   disabled={saving || discarding}
-                  className="tap-target min-h-11 flex-1 flex items-center justify-center gap-2 rounded-md bg-tea-accent-sub text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/10 transition-colors disabled:opacity-50"
+                  className="tap-target min-h-tap flex-1 flex items-center justify-center gap-2 rounded-md bg-tea-accent-sub text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/10 transition-colors disabled:opacity-50"
                 >
                   <BookOpen size={13} />
                   {saving ? 'Saving sample batch…' : saveError ? 'Retry saving sample batch' : operationLocked ? 'Retry saved batch' : 'Save as sample batch'}
@@ -379,7 +379,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
               type="button"
               onClick={handlePrint}
               aria-label="Print sample list"
-              className="tap-target min-h-11 flex-1 flex items-center justify-center gap-1.5 rounded-md border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
+              className="tap-target min-h-tap flex-1 flex items-center justify-center gap-1.5 rounded-md border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
             >
               <Printer size={13} />
               Print
@@ -388,7 +388,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
               type="button"
               onClick={handleWhatsApp}
               aria-label="Share sample list on WhatsApp"
-              className="tap-target min-h-11 flex-1 flex items-center justify-center gap-1.5 rounded-md border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
+              className="tap-target min-h-tap flex-1 flex items-center justify-center gap-1.5 rounded-md border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
             >
               <MessageCircle size={13} />
               WhatsApp

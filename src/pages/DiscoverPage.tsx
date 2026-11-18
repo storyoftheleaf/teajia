@@ -106,7 +106,7 @@ const Intro: React.FC<{ onBegin: () => void }> = ({ onBegin }) => (
     <button
       type="button"
       onClick={onBegin}
-      className="mt-8 rounded-xl cta-solid px-8 py-3 font-sans text-ui-15 font-medium transition-all"
+      className="btn-primary btn-primary-lg mt-8"
     >
       Begin
     </button>

@@ -975,7 +975,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         <CardHeading title="Buy" />
         {isInLedger && (
           <div className="flex justify-end px-4 pt-1">
-            <button type="button" onClick={onSwitchToLedger} className="curate-v2-word tap-target min-h-11">
+            <button type="button" onClick={onSwitchToLedger} className="curate-v2-word tap-target min-h-tap">
               View purchases in ledger
             </button>
           </div>
@@ -1100,7 +1100,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   <p className="font-mono">Review receipt: {receiptProposal.quantity}{receiptProposal.unit === 'g' ? 'g' : ` ${receiptProposal.quantity === 1 ? 'unit' : 'units'}`} · {receiptProposal.purpose} · {receiptProposal.acquisition_kind.replace('_', ' ')}</p>
                   <p className="font-body italic">Inventory changes only after you accept this receipt.</p>
                   <div className="flex items-center justify-between gap-3 border-t border-tea-border pt-2">
-                    <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('reject')} className="curate-v2-word tap-target min-h-11 text-tea-text-sec">Reject</button>
+                    <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('reject')} className="curate-v2-word tap-target min-h-tap text-tea-text-sec">Reject</button>
                     <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="curate-v2-frame is-on is-tall tap-target">Accept into Inventory</button>
                   </div>
                 </div>
@@ -1108,7 +1108,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               {receiptError && (
                 <div role="alert" className="mt-2 flex items-center justify-between gap-3 text-ui-13 text-tea-text-sec">
                   <span>{receiptError}</span>
-                  {!receiptProposal && <button type="button" disabled={receiptBusy} onClick={handleAddToLedger} className="curate-v2-word tap-target min-h-11">Retry receipt</button>}
+                  {!receiptProposal && <button type="button" disabled={receiptBusy} onClick={handleAddToLedger} className="curate-v2-word tap-target min-h-tap">Retry receipt</button>}
                 </div>
               )}
             </motion.div>
@@ -1428,7 +1428,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined });
                       setClaySheetOpen(false);
                     }}
-                    className="curate-v2-word tap-target min-h-11 w-full text-tea-text-sec"
+                    className="curate-v2-word tap-target min-h-tap w-full text-tea-text-sec"
                   >
                     Clear clay subtype
                   </button>
@@ -1495,7 +1495,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     <div className={mobileShellClass} data-visual-layout="continuous-sheet">
       {/* ← Library back link, shown when navigated from Library */}
       {onReturnToLibrary && (
-        <button type="button" onClick={onReturnToLibrary} className="curate-v2-word tap-target flex min-h-11 items-center px-4 text-tea-text-sec hover:text-tea-text">
+        <button type="button" onClick={onReturnToLibrary} className="curate-v2-word tap-target flex min-h-tap items-center px-4 text-tea-text-sec hover:text-tea-text">
           ← Library
         </button>
       )}

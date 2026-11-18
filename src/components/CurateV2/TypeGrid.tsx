@@ -17,7 +17,7 @@ export const TypeGrid: React.FC<TypeGridProps> = ({ selected, onSelect }) => {
             key={type}
             type="button"
             onClick={() => onSelect(type)}
-            className={`min-h-[44px] rounded-md border px-3 py-2 text-left text-ui-13 transition-colors ${
+            className={`min-h-tap rounded-md border px-3 py-2 text-left text-ui-13 transition-colors ${
               active
                 ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                 : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'

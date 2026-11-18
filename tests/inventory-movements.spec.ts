@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, test, type Page, tapFloor } from './fixtures';
 
 function token() {
   const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -209,8 +209,8 @@ test('the usable stock button opens adjustment while cell padding selects the ro
   // Visible numbers and usable hit targets have different bounds. Keep the
   // existing 44px target inside the cell content, leaving padding for row selection.
   await expect(stockLink).toHaveText('100');
-  expect(linkBox!.width).toBeGreaterThanOrEqual(44);
-  expect(linkBox!.height).toBeGreaterThanOrEqual(44);
+  expect(linkBox!.width).toBeGreaterThanOrEqual(tapFloor());
+  expect(linkBox!.height).toBeGreaterThanOrEqual(tapFloor());
   expect(geometry.inkWidth).toBeGreaterThan(0);
   expect(geometry.inkLeft).toBeGreaterThanOrEqual(linkBox!.x);
   expect(geometry.inkRight).toBeLessThanOrEqual(linkBox!.x + linkBox!.width);

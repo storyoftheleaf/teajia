@@ -76,7 +76,7 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
           <button
             type="button"
             onClick={onDismiss}
-            className="tap-target ml-0.5 min-h-11 min-w-11 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="tap-target ml-0.5 min-h-tap min-w-tap text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
             aria-label="Dismiss duplicate warning"
           >
             <X size={12} />

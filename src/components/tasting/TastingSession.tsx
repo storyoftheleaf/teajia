@@ -817,7 +817,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 <button
                   type="button"
                   onClick={() => navigate(`/signup?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
-                  className="tap-target cta-solid mt-3 inline-flex items-center rounded-md px-4 py-2 text-ui-12 font-medium"
+                  className="btn-primary tap-target mt-3"
                 >
                   Create an account
                 </button>
@@ -992,7 +992,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {onCreatePO && (verdict === 'love' || verdict === 'like') && (
                 <button
                   onClick={() => { onCreatePO(); onClose(); }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold cta-solid hover:opacity-90 active:scale-[0.98] transition-all"
+                  className="btn-primary btn-primary-lg w-full flex hover:opacity-90 active:scale-[0.98]"
                 >
                   <ShoppingCart size={16} />
                   Create Purchase Order
@@ -1001,7 +1001,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {onOrderTea && (
                 <button
                   onClick={() => { onOrderTea(item); onClose(); }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold cta-solid hover:opacity-90 active:scale-[0.98] transition-all"
+                  className="btn-primary btn-primary-lg w-full flex hover:opacity-90 active:scale-[0.98]"
                 >
                   <ShoppingCart size={16} />
                   Order This Tea
@@ -1069,7 +1069,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 <button
                   type="button"
                   onClick={() => setClosePrompt(false)}
-                  className="tap-target min-h-11 px-1 text-ui-13 font-medium text-tea-text-sec transition-colors hover:text-tea-text"
+                  className="tap-target min-h-tap px-1 text-ui-13 font-medium text-tea-text-sec transition-colors hover:text-tea-text"
                 >
                   Cancel
                 </button>
@@ -1077,7 +1077,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   <button
                     type="button"
                     onClick={() => { setClosePrompt(false); onClose(); }}
-                    className="tap-target min-h-11 px-3 text-ui-13 font-medium text-tea-text-sec transition-colors hover:text-tea-text"
+                    className="tap-target min-h-tap px-3 text-ui-13 font-medium text-tea-text-sec transition-colors hover:text-tea-text"
                   >
                     Discard
                   </button>
@@ -1091,7 +1091,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     // name of its own, a person (and an exact-name locator)
                     // cannot tell the two apart while both are on screen.
                     aria-label={saveState === 'saving' ? 'Saving and closing' : 'Save and close'}
-                    className="tap-target min-h-11 rounded-xl cta-solid px-5 text-ui-13 font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="btn-primary tap-target hover:opacity-90"
                   >
                     {saveState === 'saving' ? 'Saving\u2026' : 'Save'}
                   </button>

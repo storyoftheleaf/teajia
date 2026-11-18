@@ -200,7 +200,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mb-6 max-w-md`}>
           We could not load this product right now. Please try again.
         </p>
-        <button type="button" onClick={() => { void refetchInventory(); if (routeKey) void linkedProduct.refetch(); }} className="cta-solid tap-target rounded-xl px-6 py-3 text-ui-12 uppercase tracking-caps">
+        <button type="button" onClick={() => { void refetchInventory(); if (routeKey) void linkedProduct.refetch(); }} className="btn-primary btn-primary-lg tap-target">
           Try again
         </button>
       </div>
@@ -216,7 +216,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         </p>
         <Link
           to={shopHref}
-          className="cta-solid px-8 py-3 text-xs uppercase tracking-[0.2em] transition-colors"
+          className="btn-primary btn-primary-lg"
         >
           Back to Shop
         </Link>

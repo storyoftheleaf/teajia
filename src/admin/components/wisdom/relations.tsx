@@ -179,7 +179,7 @@ export const WisdomRelationsPanelView: React.FC<ViewProps> = ({
             aria-label="Editorial status"
             value={override?.editorial_status ?? 'draft'}
             onChange={event => onOverrideChange({ editorial_status: event.target.value as WisdomNodeOverride['editorial_status'] })}
-            className="min-h-[44px] min-w-0 flex-1 rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none"
+            className="min-h-tap min-w-0 flex-1 rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none"
           >
             <option value="draft">Draft</option>
             <option value="review">Review</option>
@@ -192,7 +192,7 @@ export const WisdomRelationsPanelView: React.FC<ViewProps> = ({
             aria-label="Public state"
             value={override?.public_state ?? 'inherit'}
             onChange={event => onOverrideChange({ public_state: event.target.value as WisdomNodeOverride['public_state'] })}
-            className="min-h-[44px] min-w-0 flex-1 rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none"
+            className="min-h-tap min-w-0 flex-1 rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none"
           >
             <option value="inherit">Inherit</option>
             <option value="public">Public</option>
@@ -276,7 +276,7 @@ const RelationEditor: React.FC<EditorProps> = ({ identity, onCancel, onSave, pen
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1 text-ui-11 text-tea-text-dim">
           <span>Target type</span>
-          <select value={targetType} onChange={event => changeTargetType(event.target.value as WisdomTargetType)} className="min-h-[44px] w-full rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none">
+          <select value={targetType} onChange={event => changeTargetType(event.target.value as WisdomTargetType)} className="min-h-tap w-full rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none">
             <option value="article">Writing</option>
             <option value="tea_profile">Tea profile</option>
             <option value="wisdom_node">Wisdom node</option>
@@ -286,14 +286,14 @@ const RelationEditor: React.FC<EditorProps> = ({ identity, onCancel, onSave, pen
         </label>
         <label className="space-y-1 text-ui-11 text-tea-text-dim">
           <span>Relationship</span>
-          <select value={kind} onChange={event => setKind(event.target.value as WisdomRelationshipKind)} className="min-h-[44px] w-full rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none">
+          <select value={kind} onChange={event => setKind(event.target.value as WisdomRelationshipKind)} className="min-h-tap w-full rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none">
             {kinds.map(value => <option key={value} value={value}>{value.replace(/_/g, ' ')}</option>)}
           </select>
         </label>
         {targetType === 'wisdom_node' && (
           <label className="space-y-1 text-ui-11 text-tea-text-dim">
             <span>Node type</span>
-            <select value={targetSubtype} onChange={event => { setTargetSubtype(event.target.value as WisdomNodeType); setTargetId(''); setTargetQuery(''); }} className="min-h-[44px] w-full rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none">
+            <select value={targetSubtype} onChange={event => { setTargetSubtype(event.target.value as WisdomNodeType); setTargetId(''); setTargetQuery(''); }} className="min-h-tap w-full rounded-md border border-tea-border bg-tea-bg px-2 text-ui-12 text-tea-text focus:border-tea-gold focus:outline-none">
               {Object.values(HOLDING_NODE_TYPES).map(nodeType => <option key={nodeType} value={nodeType}>{nodeType.replace(/_/g, ' ')}</option>)}
             </select>
           </label>
@@ -301,7 +301,7 @@ const RelationEditor: React.FC<EditorProps> = ({ identity, onCancel, onSave, pen
         {options.length > 0 ? (
           <div className="space-y-1 text-ui-11 text-tea-text-dim sm:col-span-2">
             <label htmlFor="wisdom-target-search">Find target by name</label>
-            <input id="wisdom-target-search" value={targetQuery} onChange={event => { setTargetQuery(event.target.value); setTargetId(''); }} placeholder={`Search ${targetLabel(targetType).toLowerCase()}s`} className="min-h-[44px] w-full rounded-md border border-tea-border bg-tea-bg px-3 text-ui-12 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none" />
+            <input id="wisdom-target-search" value={targetQuery} onChange={event => { setTargetQuery(event.target.value); setTargetId(''); }} placeholder={`Search ${targetLabel(targetType).toLowerCase()}s`} className="min-h-tap w-full rounded-md border border-tea-border bg-tea-bg px-3 text-ui-12 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none" />
             {selectedOption ? (
               <p className="pt-1 text-ui-11 text-tea-text-sec">Selected: <span className="text-tea-text">{selectedOption.label}</span></p>
             ) : targetQuery.trim() && (
@@ -321,7 +321,7 @@ const RelationEditor: React.FC<EditorProps> = ({ identity, onCancel, onSave, pen
         ) : (
           <label className="space-y-1 text-ui-11 text-tea-text-dim">
             <span>Stable target ID</span>
-            <input value={targetId} onChange={event => setTargetId(event.target.value)} placeholder="Stable target ID" className="min-h-[44px] w-full rounded-md border border-tea-border bg-tea-bg px-3 text-ui-12 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none" />
+            <input value={targetId} onChange={event => setTargetId(event.target.value)} placeholder="Stable target ID" className="min-h-tap w-full rounded-md border border-tea-border bg-tea-bg px-3 text-ui-12 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none" />
             <span className="block text-ui-10">{relationTargetGuidance(targetType)}</span>
             {targetType === 'tea_profile' && <a href="/admin/catalog" className="tap-target inline-block pt-1 text-ui-11 text-tea-gold hover:text-tea-gold-lt">Open Catalog</a>}
           </label>
@@ -330,7 +330,7 @@ const RelationEditor: React.FC<EditorProps> = ({ identity, onCancel, onSave, pen
       <p className="mt-3 text-ui-11 text-tea-text-dim">New links from {identity.nodeType}:{identity.nodeId} enter review before they can appear publicly.</p>
       <div className="mt-3 flex justify-between gap-3">
         <button type="button" onClick={onCancel} disabled={pending} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
-        <button type="button" onClick={() => onSave({ target_type: targetType, target_id: targetId.trim(), target_subtype: targetType === 'wisdom_node' ? targetSubtype : null, relationship_kind: kind })} disabled={pending || !targetId.trim()} className="tap-target rounded-md cta-solid px-3 py-2 text-ui-12 disabled:opacity-50">Propose relation</button>
+        <button type="button" onClick={() => onSave({ target_type: targetType, target_id: targetId.trim(), target_subtype: targetType === 'wisdom_node' ? targetSubtype : null, relationship_kind: kind })} disabled={pending || !targetId.trim()} className="btn-primary tap-target">Propose relation</button>
       </div>
     </div>
   );

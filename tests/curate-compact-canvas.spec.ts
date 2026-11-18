@@ -1,6 +1,6 @@
 // These checks hold the classic Source form to its contract, so they open it
 // with `?form=classic`. The default form is the 'flow' one (src/components/curate/).
-import { test, expect, type Page } from './fixtures';
+import { test, expect, type Page, tapFloor } from './fixtures';
 import {
   expectNoUnhandledCompassApi,
   installCompassHarness,
@@ -77,7 +77,7 @@ test.describe('Curate compact sourcing canvas', () => {
     expect((await decisionChrome.boundingBox())!.height).toBeLessThanOrEqual(36);
     const decisionTargets = canvas.getByRole('radio');
     for (const target of await decisionTargets.all()) {
-      expect((await target.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      expect((await target.boundingBox())!.height).toBeGreaterThanOrEqual(tapFloor());
     }
   });
 
@@ -129,7 +129,7 @@ test.describe('Curate compact sourcing canvas', () => {
       scrollHeight: element.scrollHeight,
       overflowY: getComputedStyle(element).overflowY,
     }));
-    expect(initial.height).toBeGreaterThanOrEqual(44);
+    expect(initial.height).toBeGreaterThanOrEqual(tapFloor());
     expect(initial.scrollHeight).toBeLessThanOrEqual(initial.clientHeight + 1);
     expect(initial.overflowY).toBe('hidden');
 
@@ -152,7 +152,7 @@ test.describe('Curate compact sourcing canvas', () => {
     const footer = taste.getByTestId('capture-action-footer');
     const notes = taste.getByTestId('curate-notes-band');
 
-    expect((await profile.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    expect((await profile.boundingBox())!.height).toBeGreaterThanOrEqual(tapFloor());
     await expect(footer).toBeVisible();
     await expect(notes).toBeVisible();
     const [footerBox, notesBox] = await Promise.all([footer.boundingBox(), notes.boundingBox()]);
@@ -214,7 +214,7 @@ test.describe('Curate compact sourcing canvas', () => {
     const targetHeights = await touchTargets.evaluateAll((elements) =>
       elements.map((element) => Math.round(element.getBoundingClientRect().height)),
     );
-    expect(Math.min(...targetHeights)).toBeGreaterThanOrEqual(44);
+    expect(Math.min(...targetHeights)).toBeGreaterThanOrEqual(tapFloor());
   });
 
   test('balances Type with Year and keeps actions inside their visual clusters', async ({ page }) => {
@@ -354,7 +354,7 @@ test.describe('Curate compact sourcing canvas', () => {
 
     const capacity = canvas.getByRole('spinbutton', { name: 'Capacity (ml)' });
     await expect(capacity).toBeVisible();
-    expect((await capacity.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    expect((await capacity.boundingBox())!.height).toBeGreaterThanOrEqual(tapFloor());
     expect(parseFloat(await capacity.evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
   });
 
@@ -429,8 +429,8 @@ test.describe('Curate compact sourcing canvas', () => {
     const discard = runRail.getByRole('button', { name: 'Discard First draft' });
     await expect(otherDraft).toBeVisible();
     await expect(discard).toBeVisible();
-    expect((await otherDraft.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    expect((await discard.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    expect((await otherDraft.boundingBox())!.height).toBeGreaterThanOrEqual(tapFloor());
+    expect((await discard.boundingBox())!.height).toBeGreaterThanOrEqual(tapFloor());
   });
 
 });

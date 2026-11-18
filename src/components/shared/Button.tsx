@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { LoadingSpinner } from './LoadingSpinner';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'icon' | 'danger' | 'plain';
@@ -33,7 +32,11 @@ export const Button: React.FC<ButtonProps> = ({
     );
   }
 
-  const baseClasses = 'inline-flex items-center justify-center gap-2 font-sans font-medium tracking-wide transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg';
+  // docs/DESIGN_SYSTEM.md §7: sans 12px semibold, title case, no tracking,
+  // 4px corners, no lift on hover. Heights come from the control tokens in
+  // tailwind.css (28 / 32 / 36px with a mouse); --tap-min keeps every size at
+  // 44px on a touch screen.
+  const baseClasses = 'inline-flex items-center justify-center gap-1.5 font-sans font-semibold rounded-control min-w-tap min-h-tap transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg';
 
   // `primary` carries no colour of its own. `.cta-solid` (card-utilities.css) is
   // the one measured solid-bronze treatment: the hand-written `bg-tea-gold
@@ -42,29 +45,26 @@ export const Button: React.FC<ButtonProps> = ({
   // `--tea-gold-solid`, identical to `--tea-gold` on espresso and darkened to
   // #806229 on parchment, which measures 4.91:1 with the same cream.
   const variantClasses = {
-    primary: 'cta-solid rounded-xl min-w-[44px] min-h-[44px]',
-    secondary: 'bg-tea-surface text-tea-text border border-tea-border hover:bg-tea-elevated rounded-xl min-w-[44px] min-h-[44px]',
-    ghost: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-xl min-w-[44px] min-h-[44px]',
-    icon: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-xl min-w-[44px] min-h-[44px]',
-    danger: 'bg-tea-error text-tea-bg hover:bg-tea-error active:bg-tea-error/90 rounded-xl min-w-[44px] min-h-[44px]',
+    primary: 'cta-solid',
+    secondary: 'bg-transparent text-tea-text-sec border border-tea-border hover:text-tea-text hover:bg-tea-accent-sub',
+    ghost: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub',
+    icon: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub',
+    danger: 'bg-tea-error text-tea-bg hover:bg-tea-error/90',
   };
 
   const sizeClasses = {
-    sm: variant === 'icon' ? 'p-2 text-sm' : 'px-3 py-2 text-sm',
-    md: variant === 'icon' ? 'p-2.5 text-base' : 'px-5 py-2.5 text-base',
-    lg: variant === 'icon' ? 'p-3 text-lg' : 'px-6 py-3 text-lg',
+    sm: variant === 'icon' ? 'h-control-sm w-control-sm text-ui-12' : 'h-control-sm px-2.5 text-ui-12',
+    md: variant === 'icon' ? 'h-control w-control text-ui-13' : 'h-control px-3 text-ui-12',
+    lg: variant === 'icon' ? 'h-control-lg w-control-lg text-ui-14' : 'h-control-lg px-4 text-ui-13',
   };
 
   const widthClass = fullWidth ? 'w-full' : '';
 
   return (
-    <motion.button
+    <button
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
       disabled={disabled || loading}
-      whileHover={!disabled ? { y: -1 } : undefined}
-      whileTap={!disabled ? { scale: 0.97 } : undefined}
-      transition={{ duration: 0.15 }}
-      {...(props as any)}
+      {...props}
     >
       {loading ? (
         <LoadingSpinner size="sm" className={variant === 'primary' ? 'border-t-tea-bg' : 'border-t-tea-gold'} />
@@ -74,6 +74,6 @@ export const Button: React.FC<ButtonProps> = ({
           {children && <span>{children}</span>}
         </>
       )}
-    </motion.button>
+    </button>
   );
 };

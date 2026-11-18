@@ -179,7 +179,7 @@ const TastingNotesForm = ({ teaMenu, token, eventId, eventSlug, eventTitle, onCl
     return (
       <div className="text-center py-8">
         <h2 className={TYPOGRAPHY_CLASSES.h2}>Tasting saved</h2>
-        <button type="button" onClick={onClose} className="tap-target cta-solid mt-5 rounded-md px-5">Done</button>
+        <button type="button" onClick={onClose} className="btn-primary tap-target mt-5">Done</button>
       </div>
     );
   }
@@ -217,7 +217,7 @@ const TastingNotesForm = ({ teaMenu, token, eventId, eventSlug, eventTitle, onCl
           value={currentDraft.sharedNote} onChange={sharedNote => updateDraft({ sharedNote })} />
       </fieldset>
       <div className="tasting-quick-actions">
-        <button type="button" className="cta-solid" onClick={() => void handleSave()}
+        <button type="button" className="btn-primary" onClick={() => void handleSave()}
           disabled={saveableTeas.length === 0 || submitMutation.isPending}>
           {submitMutation.isPending ? 'Saving…' : 'Save tasting'}
         </button>

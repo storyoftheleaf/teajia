@@ -551,7 +551,7 @@ export const CollectionEditView: React.FC = () => {
               </div>
               <button
                 onClick={() => setAddOpen(true)}
-                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="btn-primary"
               >
                 <Plus size={13} /> Add products
               </button>
@@ -563,7 +563,7 @@ export const CollectionEditView: React.FC = () => {
                   <p className="text-ui-12 text-tea-text-dim">Add some to make this collection shareable.</p>
                   <button
                     onClick={() => setAddOpen(true)}
-                    className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                    className="btn-primary"
                   >
                     <Plus size={13} /> Add products
                   </button>
@@ -645,7 +645,7 @@ export const CollectionEditView: React.FC = () => {
                   <button
                     onClick={copyShareLink}
                     disabled={copyingLink}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-50 shrink-0"
+                    className="btn-primary shrink-0"
                   >
                     {copyingLink
                       ? <><Loader2 size={13} className="animate-spin" /> …</>
@@ -1038,7 +1038,7 @@ const AddProductsSheet: React.FC<{
           <button
             onClick={submit}
             disabled={selected.size === 0 || submitting}
-            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="btn-primary"
           >
             {submitting ? <><Loader2 size={13} className="animate-spin" /> Adding…</> : <>Add {selected.size || ''}</>}
           </button>
@@ -1332,7 +1332,7 @@ const AddPublicationSheet: React.FC<{
           <button
             onClick={submit}
             disabled={!canSubmit || submitting || disabled}
-            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+            className="btn-primary"
           >
             {submitting
               ? <><Loader2 size={13} className="animate-spin" /> Sending…</>
@@ -1461,7 +1461,7 @@ const PublicationSuccessCard: React.FC<{
         <footer className="flex items-center justify-end gap-3 px-5 py-4 border-t border-tea-border flex-shrink-0">
           <button
             onClick={onDone}
-            className="px-4 py-2 cta-solid rounded-xl text-xs font-semibold tracking-wide transition-colors"
+            className="btn-primary"
           >
             Done
           </button>

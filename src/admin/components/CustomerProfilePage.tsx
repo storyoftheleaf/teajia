@@ -152,7 +152,7 @@ const OwnerPrivateNote: React.FC<{
         <button
           onClick={save}
           disabled={!dirty || saving}
-          className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="btn-primary"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Save
@@ -292,7 +292,7 @@ const SampleOfferModal: React.FC<{
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md cta-solid text-xs font-semibold transition-colors"
+                    className="btn-primary flex-1"
                   >
                     <MessageCircle size={13} />
                     WhatsApp
@@ -511,7 +511,7 @@ export const CustomerProfilePage: React.FC = () => {
             <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-tea-border">
               <button
                 onClick={() => setShowRecommend(true)}
-                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="btn-primary"
               >
                 <Leaf size={13} />
                 <span>Recommend Teas</span>

@@ -40,7 +40,7 @@ export const NoMembershipGate: React.FC<Props> = ({ onLogout }) => {
               <Link
                 key={link.href}
                 to={link.href}
-                className="min-h-[44px] flex items-center justify-center gap-2 border border-tea-border text-ui-13 text-tea-text-sec hover:text-tea-gold hover:bg-tea-accent-sub transition-colors"
+                className="min-h-tap flex items-center justify-center gap-2 border border-tea-border text-ui-13 text-tea-text-sec hover:text-tea-gold hover:bg-tea-accent-sub transition-colors"
               >
                 <span className="text-tea-gold/70" aria-hidden="true">{link.icon}</span>
                 {link.label}

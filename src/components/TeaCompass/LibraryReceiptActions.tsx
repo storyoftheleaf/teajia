@@ -22,7 +22,7 @@ export function LibraryReceiptActions({ productId, receipts, readOnly = false }:
   return <div className="flex flex-wrap items-center gap-2">
     {matching.map((receipt, index) => <button type="button" key={receipt.id}
       onClick={() => setOpenReceiptId(receipt.id)}
-      className="tap-target min-h-11 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text"
+      className="tap-target min-h-tap rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text"
       aria-label={`Manage delivery ${index + 1}${receipt.vendor_name ? ` from ${receipt.vendor_name}` : ''}`}>
       {matching.length > 1 ? `Delivery ${index + 1}` : 'Manage delivery'} · {receipt.state.replace(/_/g, ' ')}
     </button>)}

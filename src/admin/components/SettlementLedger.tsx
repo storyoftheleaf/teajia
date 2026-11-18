@@ -40,7 +40,7 @@ export function SettlementLedgerView({ mode, rows, isOwner, pendingId, error, su
   </div>;
 
   return <>
-    {(error || success) && <div ref={messageRef} tabIndex={-1} role={error ? 'alert' : 'status'} className="mb-3 flex min-h-[44px] items-center justify-between gap-3 border-y border-tea-border py-2 text-ui-12 text-tea-text-sec">
+    {(error || success) && <div ref={messageRef} tabIndex={-1} role={error ? 'alert' : 'status'} className="mb-3 flex min-h-tap items-center justify-between gap-3 border-y border-tea-border py-2 text-ui-12 text-tea-text-sec">
       <span>{error || success}</span><button type="button" onClick={onDismissMessage} className="tap-target shrink-0 text-tea-gold hover:text-tea-gold-lt">Dismiss</button>
     </div>}
     <div className="divide-y divide-tea-border border-y border-tea-border">
@@ -67,7 +67,7 @@ export function SettlementLedgerView({ mode, rows, isOwner, pendingId, error, su
         </dl>
         <div className="col-span-2 flex min-w-0 items-center justify-between gap-3 md:col-span-1 md:flex-col md:items-end">
           <span className="text-ui-11 font-medium uppercase tracking-[0.12em] text-tea-text-sec">{statusLabel(row.status)}</span>
-          {isOwner && row.status === 'owed' && <button type="button" disabled={pendingId === row.id} onClick={event => onRequestPaid(row, event.currentTarget)} className="tap-target min-h-[44px] text-ui-12 font-medium text-tea-gold hover:text-tea-gold-lt disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]">{pendingId === row.id ? 'Updating' : 'Mark paid'}</button>}
+          {isOwner && row.status === 'owed' && <button type="button" disabled={pendingId === row.id} onClick={event => onRequestPaid(row, event.currentTarget)} className="tap-target min-h-tap text-ui-12 font-medium text-tea-gold hover:text-tea-gold-lt disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]">{pendingId === row.id ? 'Updating' : 'Mark paid'}</button>}
         </div>
       </article>)}
     </div>
@@ -174,8 +174,8 @@ export function SettlementLedger() {
         <h3 id="settlement-confirm-title" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Confirm settlement payment</h3>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 text-tea-text-sec`}>Mark {money(confirming.seller_amount)} for {confirming.seller_name || 'this seller'} as paid? This records the settlement only.</p>
         <div className="mt-6 flex justify-between gap-4 border-t border-tea-border pt-4">
-          <button type="button" disabled={mutation.isPending} onClick={closeConfirm} className="tap-target min-h-[44px] text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-60">Cancel</button>
-          <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ row: confirming, requestAccount: accountId })} className="cta-solid tap-target min-h-[44px] px-4 text-ui-13 font-medium disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]">{mutation.isPending ? 'Marking paid' : 'Confirm paid'}</button>
+          <button type="button" disabled={mutation.isPending} onClick={closeConfirm} className="tap-target min-h-tap text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-60">Cancel</button>
+          <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ row: confirming, requestAccount: accountId })} className="btn-primary tap-target active:scale-[0.98]">{mutation.isPending ? 'Marking paid' : 'Confirm paid'}</button>
         </div>
       </div>
     </div>}

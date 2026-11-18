@@ -120,7 +120,7 @@ const GuestManagement: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center justify-center px-4 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
+            className="btn-primary btn-primary-lg"
           >
             Return home
           </button>

@@ -80,7 +80,7 @@ export function InventoryConfirmations({
               <button
                 onClick={onConfirmEnrich}
                 disabled={isEnriching}
-                className="px-4 py-2 cta-solid text-xs font-semibold rounded-md disabled:opacity-40 transition-colors"
+                className="btn-primary"
               >
                 {isEnriching ? 'Generating...' : 'Generate'}
               </button>
@@ -107,7 +107,7 @@ export function InventoryConfirmations({
               <button onClick={onCloseVerificationResetConfirm} className="px-1 py-2 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
               <button
                 onClick={onConfirmVerificationReset}
-                className="px-4 py-2 cta-solid text-xs font-semibold rounded-md transition-colors"
+                className="btn-primary"
               >
                 Reset
               </button>
@@ -226,7 +226,7 @@ export function InventoryConfirmations({
             <div className="p-4 border-t border-tea-border flex justify-end bg-tea-surface">
               <button
                 onClick={onCloseMaintenanceModal}
-                className="px-6 py-2 cta-solid text-xs font-semibold rounded-md transition-colors"
+                className="btn-primary"
               >
                 Close
               </button>

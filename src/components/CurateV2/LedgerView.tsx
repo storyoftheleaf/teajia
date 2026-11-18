@@ -216,7 +216,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
             type="button"
             onClick={handleCapture}
             disabled={uploading}
-            className={`tap-target flex min-h-11 items-center gap-1.5 font-mono text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text ${
+            className={`tap-target flex min-h-tap items-center gap-1.5 font-mono text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text ${
               uploading ? 'animate-pulse' : ''
             }`}
           >
@@ -470,7 +470,7 @@ const TransactionCard: React.FC<{
           words, the total and Message on the right, as drawn. */}
       <div className="flex items-center gap-2 pl-4 pr-2 pt-3">
         {detail ? (
-          <h2 className="flex min-h-11 min-w-0 flex-1 items-center" data-testid="order-vendor">
+          <h2 className="flex min-h-tap min-w-0 flex-1 items-center" data-testid="order-vendor">
             <span className="min-w-0 truncate font-display text-ui-26 leading-none text-tea-text">{tx.counterpartyName || (isPurchase ? 'Vendor' : 'Customer')}</span>
           </h2>
         ) : (
@@ -479,7 +479,7 @@ const TransactionCard: React.FC<{
             onClick={listRow ? () => onOpenOrder!(tx.id) : onToggle}
             aria-expanded={listRow ? undefined : isExpanded}
             aria-label={listRow ? `Open the order with ${tx.counterpartyName || (isPurchase ? 'a vendor' : 'a customer')}` : undefined}
-            className="flex min-h-11 min-w-0 flex-1 items-baseline gap-2 text-left focus-visible:outline-none"
+            className="flex min-h-tap min-w-0 flex-1 items-baseline gap-2 text-left focus-visible:outline-none"
           >
             <span className="min-w-0 truncate font-display text-ui-26 leading-none text-tea-text">{tx.counterpartyName || (isPurchase ? 'Vendor' : 'Customer')}</span>
             {listRow
@@ -575,7 +575,7 @@ const TransactionCard: React.FC<{
                         key="confirmed"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="flex min-h-11 items-center font-mono text-ui-13 uppercase tracking-[0.16em] text-tea-gold"
+                        className="flex min-h-tap items-center font-mono text-ui-13 uppercase tracking-[0.16em] text-tea-gold"
                       >
                         Confirmed
                       </motion.div>
@@ -608,7 +608,7 @@ const TransactionCard: React.FC<{
                   <button
                     type="button"
                     onClick={() => setShowTagSheet(true)}
-                    className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
+                    className="tap-target flex min-h-tap items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
                     aria-label="Print tea tags"
                   >
                     Tags
@@ -620,14 +620,14 @@ const TransactionCard: React.FC<{
                   type="button"
                   onClick={handleSharePdf}
                   disabled={pdfLoading || tx.items.length === 0}
-                  className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-30"
+                  className="tap-target flex min-h-tap items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-30"
                   aria-label="Share as PDF"
                 >
                   {pdfLoading ? '…' : 'PDF'}
                 </button>
 
                 {confirmingDelete ? (
-                  <span className="flex min-h-11 items-center gap-3 font-mono text-ui-13" data-testid="order-delete-confirm">
+                  <span className="flex min-h-tap items-center gap-3 font-mono text-ui-13" data-testid="order-delete-confirm">
                     <span className="text-tea-text-sec">Remove this {isPurchase ? 'purchase' : 'sale'} order?</span>
                     <button type="button" onClick={handleDelete} className="tap-target text-tea-gold hover:text-tea-text">Remove</button>
                     <button type="button" onClick={() => setConfirmingDelete(false)} className="tap-target text-tea-text-sec hover:text-tea-text">Keep</button>
@@ -636,7 +636,7 @@ const TransactionCard: React.FC<{
                   <button
                     type="button"
                     onClick={() => setConfirmingDelete(true)}
-                    className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
+                    className="tap-target flex min-h-tap items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
                     aria-label="Delete transaction"
                   >
                     Delete
@@ -649,7 +649,7 @@ const TransactionCard: React.FC<{
                     type="button"
                     onClick={() => void markSent()}
                     disabled={tx.purchaseOrderSent}
-                    className="tap-target flex min-h-11 items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
+                    className="tap-target flex min-h-tap items-center gap-1 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
                   >
                     {tx.purchaseOrderSent ? 'Marked as sent' : 'Mark as sent'}
                   </button>
@@ -762,7 +762,7 @@ const ShopOrderCard: React.FC<{
           onClick={onToggle}
           aria-expanded={isExpanded}
           aria-label={`The shop's order with ${order.vendorName}`}
-          className="flex min-h-11 min-w-0 flex-1 items-baseline gap-2 text-left focus-visible:outline-none"
+          className="flex min-h-tap min-w-0 flex-1 items-baseline gap-2 text-left focus-visible:outline-none"
         >
           <span className="min-w-0 truncate font-display text-ui-26 leading-none text-tea-text">{order.vendorName}</span>
           <ChevronDown size={14} className={`shrink-0 self-center text-tea-text-dim transition-transform ${isExpanded ? 'rotate-180' : ''}`} />

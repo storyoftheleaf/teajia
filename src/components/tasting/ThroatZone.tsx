@@ -51,7 +51,7 @@ const ChineseConceptToggle: React.FC<ChineseConceptToggleProps> = ({
     whileTap={{ scale: 0.98 }}
     onClick={onToggle}
     aria-pressed={active}
-    className={`flex items-center gap-3 w-full text-left py-2.5 px-3 rounded-xl transition-colors duration-200 min-h-[44px] ${
+    className={`flex items-center gap-3 w-full text-left py-2.5 px-3 rounded-xl transition-colors duration-200 min-h-tap ${
       active ? 'bg-tea-gold/10' : 'bg-tea-surface hover:bg-tea-elevated'
     }`}
   >
@@ -177,7 +177,7 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
                 onClick={() => toggleDuration(d.id)}
                 role="radio"
                 aria-checked={isSel}
-                className={`flex-1 py-2.5 transition-all duration-200 min-h-[44px] relative z-[1] ${
+                className={`flex-1 py-2.5 transition-all duration-200 min-h-tap relative z-[1] ${
                   isSel
                     ? 'text-tea-gold font-semibold text-ui-15'
                     : 'text-tea-text-sec hover:text-tea-text font-medium text-ui-15'

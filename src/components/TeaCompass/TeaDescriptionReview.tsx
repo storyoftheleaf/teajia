@@ -121,25 +121,25 @@ function DescriptionReview({ entry, sources, stagedArSources, onSelection }: Des
   }, [draft, keep, review, visibleConflict, onSelection]);
   return <section aria-label="Draft tea description" className="min-w-0 space-y-3" data-testid="tea-description-review">
     <button type="button" onClick={() => void generate()} disabled={busy || !ready || !sources.length || oversized}
-      className="tap-target min-h-11 inline-flex items-center gap-2 rounded-md border border-tea-border px-3 text-left text-ui-12 text-tea-text disabled:opacity-50">
+      className="tap-target min-h-tap inline-flex items-center gap-2 rounded-md border border-tea-border px-3 text-left text-ui-12 text-tea-text disabled:opacity-50">
       {busy ? <Loader2 size={14} className="shrink-0 animate-spin" /> : <Sparkles size={14} className="shrink-0" />}
       {busy ? 'Drafting description…' : 'Draft description from selected material'}
     </button>
     {oversized && <p className="text-ui-12 text-tea-text-sec">Choose up to 12 sources and 12,000 characters. Full originals stay intact.</p>}
     {review && <div className="space-y-3 rounded-md border border-tea-border bg-tea-surface p-3">
       <p className="text-ui-12 text-tea-text-sec">A proposed description from your material. Review the wording and sources before saving.</p>
-      <details><summary className={`${T.label} min-h-11 cursor-pointer`}>Current description</summary><p className="whitespace-pre-wrap break-words text-ui-13 text-tea-text-sec">{review.proposal.baseDescription || 'No description recorded.'}</p></details>
+      <details><summary className={`${T.label} min-h-tap cursor-pointer`}>Current description</summary><p className="whitespace-pre-wrap break-words text-ui-13 text-tea-text-sec">{review.proposal.baseDescription || 'No description recorded.'}</p></details>
       <label className="block text-ui-12 text-tea-text-sec">Public description draft<textarea aria-label="Proposed description" value={draft} disabled={busy} onChange={event => setDraft(event.target.value)} rows={12} className="input-field mt-1 w-full min-w-0 resize-y px-3 py-2 text-ui-16" /></label>
-      <details><summary className={`${T.label} min-h-11 cursor-pointer`}>Sources used ({review.proposal.citations.length})</summary>
+      <details><summary className={`${T.label} min-h-tap cursor-pointer`}>Sources used ({review.proposal.citations.length})</summary>
         <div className="space-y-3">{review.proposal.citations.map((citation, index) => <blockquote key={`${citation.sourceId}:${index}`} className="border-l border-tea-border pl-3">
           <p className="text-ui-11 text-tea-text-dim">{citation.sourceId === 'tea-record' ? 'Existing tea record' : review.sourceTitles[citation.sourceId] || citation.sourceId}</p>
           <p className="whitespace-pre-wrap break-words text-ui-13 text-tea-text-sec">{citation.quote}</p>
         </blockquote>)}</div>
       </details>
-      <div className="flex flex-wrap items-center gap-3">{onSelection ? <label className="flex min-h-11 items-center gap-3 text-ui-13 text-tea-text"><input type="checkbox" checked={keep} disabled={!!visibleConflict || busy} onChange={event => setKeep(event.target.checked)} className="h-5 w-5 accent-tea-gold" />Save this description</label> : <button type="button" disabled={!draft.trim() || !!visibleConflict || busy} onClick={apply} className="cta-solid min-h-11 rounded-md px-4 text-ui-12 disabled:opacity-50">Use this description</button>}<button type="button" disabled={busy} onClick={() => { setReview(null); setError(''); }} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec">Discard draft</button></div>
+      <div className="flex flex-wrap items-center gap-3">{onSelection ? <label className="flex min-h-tap items-center gap-3 text-ui-13 text-tea-text"><input type="checkbox" checked={keep} disabled={!!visibleConflict || busy} onChange={event => setKeep(event.target.checked)} className="h-5 w-5 accent-tea-gold" />Save this description</label> : <button type="button" disabled={!draft.trim() || !!visibleConflict || busy} onClick={apply} className="btn-primary">Use this description</button>}<button type="button" disabled={busy} onClick={() => { setReview(null); setError(''); }} className="tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec">Discard draft</button></div>
     </div>}
     {(error || visibleConflict) && <p role="alert" className="text-ui-12 text-tea-text-sec">{error || visibleConflict}</p>}
     {message && <p role="status" className="text-ui-12 text-tea-text-sec">{message}</p>}
-    {accepted && <button type="button" onClick={undo} className="tap-target min-h-11 text-ui-12 text-tea-gold">Undo description change</button>}
+    {accepted && <button type="button" onClick={undo} className="tap-target min-h-tap text-ui-12 text-tea-gold">Undo description change</button>}
   </section>;
 }

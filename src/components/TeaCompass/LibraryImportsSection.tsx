@@ -78,7 +78,7 @@ export const LibraryImportsSection: React.FC<LibraryImportsSectionProps> = ({ em
           panel.style.left = `${Math.max(12, Math.min(rect.right - 352, window.innerWidth - 364))}px`;
           panel.style.maxHeight = `${Math.max(100, Math.min(360, window.innerHeight - rect.bottom - 88))}px`;
         }}
-        className="flex min-h-11 items-center gap-1 rounded-md border border-tea-border px-2 text-ui-12 text-tea-text-sec hover:bg-tea-surface hover:text-tea-text"
+        className="flex min-h-tap items-center gap-1 rounded-md border border-tea-border px-2 text-ui-12 text-tea-text-sec hover:bg-tea-surface hover:text-tea-text"
       >
         Imports <span className="tabular-nums">({activeImports.length})</span>
       </button>

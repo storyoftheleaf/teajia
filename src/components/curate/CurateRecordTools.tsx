@@ -93,20 +93,20 @@ function RecordToolsInner({ entityType, entityId, onChanged, flat = false }: Pro
       </div>)}
       <div className="flex flex-wrap gap-3 items-center">
         <label className={`${T.label} min-w-0 flex-1`}>Choose file<input className="block mt-2 w-full min-w-0 text-ui-12" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy||!!pending} onChange={e=>setFile(e.target.files?.[0]||null)} /></label>
-        <label className={T.label}>Role<select aria-label="Attachment role" className="block min-h-11 bg-tea-surface border border-tea-border rounded-md px-2 mt-2" value={role} disabled={busy||!!pending} onChange={e=>setRole(e.target.value)}>{Object.entries(roles).filter(([key])=>key!=='businesscard'||entityType==='vendor').map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label>
-        <button type="button" className="min-h-11 px-3 border border-tea-border rounded-md" disabled={busy||!file||!!pending} onClick={()=>void previewUpload()}>Preview attachment</button>
+        <label className={T.label}>Role<select aria-label="Attachment role" className="block min-h-tap bg-tea-surface border border-tea-border rounded-md px-2 mt-2" value={role} disabled={busy||!!pending} onChange={e=>setRole(e.target.value)}>{Object.entries(roles).filter(([key])=>key!=='businesscard'||entityType==='vendor').map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label>
+        <button type="button" className="min-h-tap px-3 border border-tea-border rounded-md" disabled={busy||!file||!!pending} onClick={()=>void previewUpload()}>Preview attachment</button>
       </div>
     </div>
     {pending && <div ref={confirmationRef} className="bg-tea-elevated border border-tea-border rounded-md p-4 space-y-3" role="region" aria-label="Confirm change">
       <h3 className={T.h3}>{pending.kind==='upload'?'Attach this file?':pending.kind==='undo'?(pending.input.mutation_id?'Undo this change?':'Undo the last shop change?'):'Remove this attachment?'}</h3>
       {pending.kind==='upload' ? <p className={`${T.body} break-all`}>{pending.preview.filename} · {roles[pending.preview.role as keyof typeof roles]} · {Math.ceil(pending.preview.size_bytes/1024)} KB</p> : <CurateChangePreview changes={pending.preview.changes||[]} />}
-      <div className="flex flex-wrap gap-3"><button type="button" className="min-h-11 px-4" disabled={busy} onClick={()=>setPending(null)}>Cancel</button><button type="button" className="cta-solid min-h-11 px-4 rounded-md" disabled={busy} onClick={()=>void confirm()}>Confirm change</button></div>
+      <div className="flex flex-wrap gap-3"><button type="button" className="min-h-tap px-4" disabled={busy} onClick={()=>setPending(null)}>Cancel</button><button type="button" className="btn-primary" disabled={busy} onClick={()=>void confirm()}>Confirm change</button></div>
     </div>}
     {error && <p role="alert" className={`${T.body} text-tea-text`}>{error}</p>}
     <Group className="border-t border-tea-border pt-3">
-      <Heading className={`${T.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-11'}`}>Change history ({history.length})</Heading>
+      <Heading className={`${T.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-tap'}`}>Change history ({history.length})</Heading>
       <p className="text-ui-12 text-tea-text-dim mb-3">Choose a recorded change to review its undo. Later edits to the affected records are protected.</p>
-      <button type="button" className="min-h-11 px-3 border border-tea-border rounded-md mb-4" disabled={busy||!!pending} onClick={()=>void previewUndo()}>Preview undo of last shop change</button>
+      <button type="button" className="min-h-tap px-3 border border-tea-border rounded-md mb-4" disabled={busy||!!pending} onClick={()=>void previewUndo()}>Preview undo of last shop change</button>
       <div className="space-y-4">{history.map(h=><article key={h.id} className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className={T.label}>{h.agent_name||h.actor_user_id} · {new Date(h.confirmed_at).toLocaleString()}</p>{h.undone_by ? <span className={T.label}>Undone</span> : !h.undo_of && !String(h.command_type).endsWith(':with_side_effects') && <button type="button" className="tap-target text-ui-12" disabled={busy||!!pending} onClick={()=>void previewUndo(h.id)}>Preview undo</button>}</div><CurateChangePreview changes={(h.records||[]).map((r:any)=>({entity_type:r.entity_type,entity_id:r.entity_id,before:JSON.parse(r.before_json),after:JSON.parse(r.after_json)}))} /></article>)}</div>
     </Group>
   </section>;

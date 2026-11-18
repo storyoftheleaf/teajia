@@ -239,7 +239,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     {/* One row: close on the left (the panel rule), the name, the currency.
         The close used to sit on a row of its own above this one. */}
     <div className="flex items-center gap-2 pl-2 pr-4 min-h-[52px] shrink-0">
-      <button type="button" onClick={onClose} aria-label="Close cart" className="min-w-[44px] min-h-[44px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
+      <button type="button" onClick={onClose} aria-label="Close cart" className="min-w-tap min-h-tap flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
         <Icons.Close className="w-5 h-5" />
       </button>
       <h2 className="flex-1 min-w-0 font-display text-[22px] leading-none text-tea-text">{placedOrder ? 'Request received' : 'Your order'}</h2>
@@ -353,9 +353,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           print at the top of the scrolling list, which is off screen by the
           time a reader reaches the button, so pressing it looked like nothing. */}
       {checkoutError && <p role="alert" className="font-body text-ui-13 leading-snug text-tea-text bg-tea-elevated px-3 py-2">{checkoutError}</p>}
-      {placedOrder?.paymentDeadline ? <a href={recentOrderRequestPath(placedOrder.request)} onClick={onClose} className="inline-flex w-full items-center justify-center min-h-[44px] px-5 py-2.5 rounded-xl cta-solid font-sans font-medium tracking-wide text-base">View bank transfer instructions</a>
+      {placedOrder?.paymentDeadline ? <a href={recentOrderRequestPath(placedOrder.request)} onClick={onClose} className="btn-primary btn-primary-lg w-full">View bank transfer instructions</a>
         : placedOrder ? channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.paymentDeadline
-        ? <a className="inline-flex w-full items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl cta-solid font-sans font-medium tracking-wide text-base whitespace-nowrap" href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
+        ? <a className="btn-primary btn-primary-lg w-full whitespace-nowrap" href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
         : <Button fullWidth onClick={onClose}>Continue browsing</Button> : cart.length > 0 ? <>
         <div className="flex items-center gap-4">
           <div className="flex flex-col gap-1 shrink-0">

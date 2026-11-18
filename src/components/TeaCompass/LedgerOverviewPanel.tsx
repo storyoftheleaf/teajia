@@ -137,13 +137,13 @@ export const LedgerOverviewPanel: React.FC = () => {
         )}
       </TeaCard>
       <div className="flex flex-wrap gap-x-3">
-        <button type="button" onClick={() => openPurchaseOrder()} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
+        <button type="button" onClick={() => openPurchaseOrder()} className="tap-target inline-flex min-h-tap items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
           <ShoppingBag size={13} aria-hidden="true" /> Purchase Order Builder
         </button>
-        <button type="button" onClick={() => createTransaction('purchase', '', 'NT')} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
+        <button type="button" onClick={() => createTransaction('purchase', '', 'NT')} className="tap-target inline-flex min-h-tap items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
           <ArrowDownLeft size={13} aria-hidden="true" /> Quick Note
         </button>
-        <button type="button" onClick={() => createTransaction('sale', '', 'USD')} className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
+        <button type="button" onClick={() => createTransaction('sale', '', 'USD')} className="tap-target inline-flex min-h-tap items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text">
           <ArrowUpRight size={13} aria-hidden="true" /> Quick Sale
         </button>
       </div>

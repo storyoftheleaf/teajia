@@ -21,14 +21,14 @@ export const ActiveFilterSummary: React.FC<{
     return [{ ...field, valueLabel }];
   });
   return (
-    <div className="flex min-h-11 flex-wrap items-center gap-x-3 border-y border-tea-border py-1.5">
+    <div className="flex min-h-tap flex-wrap items-center gap-x-3 border-y border-tea-border py-1.5">
       <span className="text-ui-12 text-tea-text-dim">Showing</span>
       {active.map(({ key, label, valueLabel }) => (
         <button
           key={key}
           type="button"
           onClick={() => onRemove(key)}
-          className="tap-target inline-flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text"
+          className="tap-target inline-flex min-h-tap items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text"
           aria-label={`Remove ${label}: ${valueLabel}`}
         >
           <span>{label}: {valueLabel}</span>
@@ -36,7 +36,7 @@ export const ActiveFilterSummary: React.FC<{
         </button>
       ))}
       <span className="flex-1" />
-      <button type="button" onClick={onClear} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">
+      <button type="button" onClick={onClear} className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text">
         Clear all
       </button>
     </div>

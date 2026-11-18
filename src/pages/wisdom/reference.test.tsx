@@ -1524,7 +1524,7 @@ describe('one row from the next', () => {
     // the rule above it reads as a misprint.
     const html = render('/wisdom/named');
     expect(html).toMatch(/<li class="wisdom-rule -mx-3">/);
-    expect(html).toMatch(/hover:bg-tea-accent-sub min-h-\[44px\] py-2\.5 px-3/);
+    expect(html).toMatch(/hover:bg-tea-accent-sub min-h-tap py-2\.5 px-3/);
   });
 });
 

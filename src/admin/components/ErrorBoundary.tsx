@@ -48,7 +48,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </p>
             <button
               onClick={() => { void recoverAndReload(); }}
-              className="cta-solid px-6 py-3 rounded-xl text-sm font-medium transition-colors"
+              className="btn-primary btn-primary-lg"
             >
               Reload Application
             </button>

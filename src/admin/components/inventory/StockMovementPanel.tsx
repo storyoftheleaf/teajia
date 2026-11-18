@@ -291,7 +291,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
             {error && <div role="alert" className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-12 text-tea-error">{error}</div>}
             <div className="flex justify-between items-center border-t border-tea-border pt-3">
               <button type="button" onClick={onClose} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
-              <button type="submit" disabled={!canSubmit} className="tap-target rounded-md cta-solid px-4 py-2 text-ui-13 disabled:opacity-50 inline-flex items-center gap-2">
+              <button type="submit" disabled={!canSubmit} className="btn-primary tap-target">
                 {saving && <Loader2 size={14} className="animate-spin" />} {pending ? 'Retry original movement' : 'Record movement'}
               </button>
             </div>
