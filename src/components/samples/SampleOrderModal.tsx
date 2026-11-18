@@ -282,7 +282,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                         value={customQty}
                         onChange={(e) => setCustomQty(e.target.value)}
                         placeholder="e.g. 500g"
-                        className="mt-2 w-full px-3 py-2 min-h-[44px] bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
+                        className="mt-2 w-full px-3 py-2 min-h-tap bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
                         style={{ fontFamily: 'var(--font-body)' }}
                         autoFocus
                       />
@@ -299,7 +299,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="your name"
-                      className="w-full px-3 py-2 min-h-[44px] bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
+                      className="w-full px-3 py-2 min-h-tap bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
                       style={{ fontFamily: 'var(--font-body)' }}
                     />
                     <input
@@ -307,7 +307,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
                       placeholder="WhatsApp number (with country code)"
-                      className="w-full px-3 py-2 min-h-[44px] bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
+                      className="w-full px-3 py-2 min-h-tap bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
                       style={{ fontFamily: 'var(--font-body)' }}
                     />
                     <input
@@ -315,7 +315,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       placeholder="Shipping location (optional)"
-                      className="w-full px-3 py-2 min-h-[44px] bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
+                      className="w-full px-3 py-2 min-h-tap bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
                       style={{ fontFamily: 'var(--font-body)' }}
                     />
                   </div>
@@ -337,7 +337,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                       type="button"
                       onClick={handleSubmit}
                       disabled={!canSubmit || submitting}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 cta-solid text-xs uppercase tracking-[0.2em] font-semibold rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                      className="btn-primary btn-primary-lg flex-1 flex"
                     >
                       {submitting ? (
                         <span className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />

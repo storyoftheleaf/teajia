@@ -59,7 +59,7 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
           <button
             type="button"
             onClick={onDismiss}
-            className="curate-v2-word tap-target ml-auto min-h-11 px-1 text-tea-text-sec"
+            className="curate-v2-word tap-target ml-auto min-h-tap px-1 text-tea-text-sec"
             aria-label="Dismiss duplicate warning"
           >
             dismiss

@@ -158,7 +158,7 @@ function NoteRow({ note }: { note: CustomerTastingNote }) {
               type="button"
               onClick={() => promote.mutate()}
               disabled={pending || !text.trim() || !name.trim()}
-              className="tap-target cta-solid inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-ui-12 font-medium disabled:opacity-50"
+              className="btn-primary tap-target"
             >
               {promote.isPending && <Loader2 size={13} className="animate-spin" />}
               Publish on the tea

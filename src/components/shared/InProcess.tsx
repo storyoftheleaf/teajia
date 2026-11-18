@@ -125,7 +125,7 @@ export const InProcess: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [received, setReceived] = useState<string[]>([]);
   return <>
     <div className="flex items-center gap-2 pl-2 pr-4 min-h-[52px] shrink-0 border-b border-tea-border">
-      <button type="button" onClick={onClose} aria-label="Close in process" className="min-w-[44px] min-h-[44px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
+      <button type="button" onClick={onClose} aria-label="Close in process" className="min-w-tap min-h-tap flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
         <Icons.Close className="w-5 h-5" />
       </button>
       <h2 className="font-display text-[22px] leading-none text-tea-text">In process</h2>

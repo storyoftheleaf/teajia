@@ -160,7 +160,7 @@ const ShareCardPage: React.FC = () => {
               type="button"
               disabled={claimMutation.isPending}
               onClick={() => claimMutation.mutate()}
-              className="w-full py-4 cta-solid text-xs uppercase tracking-[0.2em] font-semibold rounded-md disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              className="btn-primary btn-primary-lg w-full flex"
             >
               {claimMutation.isPending ? (
                 <span className="inline-block w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -181,7 +181,7 @@ const ShareCardPage: React.FC = () => {
             </p>
             <Link
               to={`/signin?returnTo=${returnPath}`}
-              className="block w-full py-4 cta-solid text-xs uppercase tracking-[0.2em] font-semibold rounded-md transition-all"
+              className="btn-primary btn-primary-lg block w-full"
             >
               Sign in to save
             </Link>

@@ -6,8 +6,8 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { readQuoteFields, type CurateQuoteFields, type CurateQuoteLine, type RouteQuote } from '../../lib/curateStructuredFields';
 import { StructuredTeaFields } from '../TeaCompass/StructuredTeaFields';
 
-const inputClass = 'input-field min-h-11 min-w-0 px-3 py-2 text-ui-16';
-const buttonClass = 'tap-target min-h-11 px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
+const inputClass = 'input-field min-h-tap min-w-0 px-3 py-2 text-ui-16';
+const buttonClass = 'tap-target min-h-tap px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 type HeaderKey = 'reference' | 'issued_to' | 'quote_date' | 'validity_days' | 'valid_until' | 'minimum_order_amount' | 'currency' | 'payment_terms' | 'discount_percent' | 'discount_condition_type' | 'discount_min_amount' | 'discount_min_currency' | 'discount_min_weight_grams' | 'discount_min_quantity';
 type LineDraft = { id: string; compass_entry_id: string; vendor_item_number: string; price_amount: string; price_currency: string; unitKind: string; price_per_unit_grams: string; discount_percent: string; route_quotes: RouteQuote[] };
 export type QuoteDraft = Record<HeaderKey, string> & { id?: string; requestId?: string; lines: LineDraft[] };
@@ -101,7 +101,7 @@ export function CurateQuotesPanel({ vendorId }: { vendorId: string }) {
     <input className={inputClass} type={type} step={type === 'number' ? 'any' : undefined} value={value} onChange={event => update(event.target.value)} />
   </label>;
   return <details className="border-t border-tea-border pt-3" data-testid="curate-quotes-panel">
-    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-11 text-tea-text-sec`}>Vendor quotes</summary>
+    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-tap text-tea-text-sec`}>Vendor quotes</summary>
     <div className="space-y-4 pb-3">
       {error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
       <div className="flex flex-wrap gap-2">

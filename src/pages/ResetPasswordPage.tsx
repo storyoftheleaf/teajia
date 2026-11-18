@@ -60,7 +60,7 @@ const ResetPasswordPage: React.FC = () => {
         </div>
         <button
           onClick={() => navigate('/')}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+          className="btn-primary btn-primary-lg w-full"
         >
           Go Home
         </button>
@@ -82,7 +82,7 @@ const ResetPasswordPage: React.FC = () => {
         </div>
         <button
           onClick={() => navigate(authPagePath('signin', searchParams.get('returnTo')))}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+          className="btn-primary btn-primary-lg w-full"
         >
           Go to Sign In
         </button>
@@ -132,7 +132,7 @@ const ResetPasswordPage: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-50"
+          className="btn-primary btn-primary-lg w-full"
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />

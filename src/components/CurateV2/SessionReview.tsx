@@ -197,7 +197,7 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
           <div className="shrink-0 border-t border-tea-border bg-tea-bg px-4 pt-3 pb-nav-gap">
             <div className="flex items-center justify-between gap-3">
               <p className="text-ui-12 text-tea-text-sec">Verdict and sourcing decision are separate.</p>
-              <button type="button" onClick={onClose} className="tap-target min-h-11 shrink-0 rounded-md border border-tea-border px-4 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-elevated hover:text-tea-text">Done</button>
+              <button type="button" onClick={onClose} className="tap-target min-h-tap shrink-0 rounded-md border border-tea-border px-4 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-elevated hover:text-tea-text">Done</button>
             </div>
           </div>
         )}

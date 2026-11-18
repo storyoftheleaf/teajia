@@ -433,7 +433,7 @@ export const OrdersView = () => {
   if (showSettlements) return (
     <div className="h-full min-w-0 overflow-auto bg-tea-bg pb-nav">
       <div className="sticky top-0 z-sticky border-b border-tea-border bg-tea-bg/90 px-4 py-2 backdrop-blur-md md:px-6">
-        <div className="mx-auto flex min-h-[44px] w-full max-w-5xl items-center">
+        <div className="mx-auto flex min-h-tap w-full max-w-5xl items-center">
           <button type="button" onClick={() => setShowSettlements(false)} className="tap-target text-ui-12 font-medium text-tea-text-sec hover:text-tea-text active:scale-[0.98]">Back to orders</button>
         </div>
       </div>
@@ -919,7 +919,7 @@ export const OrdersView = () => {
                 {viewingInvoice.stock_exception && viewingInvoice.payment_status === 'paid' && <div role="alert" className="mb-6 rounded-md border border-tea-border bg-tea-surface p-4 space-y-2">
                   <p className="text-ui-14 text-tea-text">Payment is recorded, but stock deduction needs attention. Do not ship yet.</p>
                   <p className="text-ui-12 text-tea-text-sec">{viewingInvoice.stock_exception}</p>
-                  <button type="button" disabled={retryingStock} onClick={() => { void retryStock(viewingInvoice); }} className="min-h-11 px-4 rounded-md cta-solid text-ui-13 disabled:opacity-50">{retryingStock ? 'Retrying stock…' : 'Retry stock deduction'}</button>
+                  <button type="button" disabled={retryingStock} onClick={() => { void retryStock(viewingInvoice); }} className="btn-primary">{retryingStock ? 'Retrying stock…' : 'Retry stock deduction'}</button>
                 </div>}
 
                 {/* Source Event */}
@@ -1057,10 +1057,10 @@ export const OrdersView = () => {
                         <p className="text-ui-11 text-tea-text-sec leading-[1.5]">
                           Review the requested teas, prices and delivery details before accepting. No stock has been reserved yet.
                         </p>
-                        <button type="button" onClick={() => setEditInvoice(viewingInvoice)} className="w-full min-h-11 border border-tea-border rounded-xl text-tea-text-sec hover:text-tea-text flex items-center justify-center gap-2"><Pencil size={16} /> Edit draft invoice</button>
+                        <button type="button" onClick={() => setEditInvoice(viewingInvoice)} className="w-full min-h-tap border border-tea-border rounded-xl text-tea-text-sec hover:text-tea-text flex items-center justify-center gap-2"><Pencil size={16} /> Edit draft invoice</button>
                         <button
                             onClick={() => acceptDraft(viewingInvoice)}
-                            className="w-full py-4 cta-solid font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                            className="btn-primary btn-primary-lg w-full flex"
                         >
                             <Check size={18} /> Accept &amp; Make Order
                         </button>
@@ -1071,14 +1071,14 @@ export const OrdersView = () => {
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
                             onClick={() => { setViewingInvoice(null); openShipConfirm(viewingInvoice); }}
-                            className="w-full py-4 cta-solid font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                            className="btn-primary btn-primary-lg w-full flex"
                         >
                             <PackageCheck size={18} /> Mark Shipped
                         </button>
                      </div>
                 )}
 
-                {canShipNoChargeOrder(viewingInvoice) && <div className="mt-8 pt-6 border-t border-tea-border"><button type="button" onClick={() => { void openNoChargeShipConfirm(viewingInvoice); }} className="w-full py-4 cta-solid font-bold uppercase tracking-[0.2em] text-ui-12 rounded-xl flex items-center justify-center gap-2"><PackageCheck size={18} /> Fulfill no-charge order</button></div>}
+                {canShipNoChargeOrder(viewingInvoice) && <div className="mt-8 pt-6 border-t border-tea-border"><button type="button" onClick={() => { void openNoChargeShipConfirm(viewingInvoice); }} className="btn-primary btn-primary-lg w-full flex"><PackageCheck size={18} /> Fulfill no-charge order</button></div>}
 
                 {/* WhatsApp status notification, available for Pending/Filled orders with phone */}
                 {viewingInvoice.customer_whatsapp && viewingInvoice.status !== 'Void' && (

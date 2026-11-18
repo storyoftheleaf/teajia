@@ -20,12 +20,12 @@ export const ImportDeleteAction: React.FC<ImportDeleteActionProps> = ({ busy, on
     return <div role="group" aria-label="Delete import confirmation" className={`space-y-3 rounded-md border border-tea-border bg-tea-surface ${compact ? 'p-3' : 'p-4'}`}>
       <p className="text-ui-12 text-tea-text">This import will be removed from your incomplete imports. Its saved record is retained for audit and recovery.</p>
       <div className="flex flex-wrap justify-between gap-3">
-        <button ref={cancelRef} type="button" disabled={busy} onClick={() => { setConfirming(false); requestAnimationFrame(() => deleteRef.current?.focus()); }} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
-        <button type="button" disabled={busy} onClick={() => void onDelete()} className="tap-target min-h-11 text-ui-12 text-tea-gold hover:text-tea-gold-lt disabled:opacity-50">Delete import</button>
+        <button ref={cancelRef} type="button" disabled={busy} onClick={() => { setConfirming(false); requestAnimationFrame(() => deleteRef.current?.focus()); }} className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
+        <button type="button" disabled={busy} onClick={() => void onDelete()} className="tap-target min-h-tap text-ui-12 text-tea-gold hover:text-tea-gold-lt disabled:opacity-50">Delete import</button>
       </div>
     </div>;
   }
 
-  const deleteButton = <button ref={deleteRef} type="button" disabled={busy} onClick={() => setConfirming(true)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Delete import</button>;
+  const deleteButton = <button ref={deleteRef} type="button" disabled={busy} onClick={() => setConfirming(true)} className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Delete import</button>;
   return trailingActions ? <div className="flex flex-wrap justify-between gap-2 border-t border-tea-border pt-3">{deleteButton}<div className="flex flex-wrap gap-3">{trailingActions}</div></div> : deleteButton;
 };

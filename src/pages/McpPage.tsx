@@ -77,7 +77,7 @@ export default function McpPage() {
             </code>
             <a
               href="/admin/mcp-tokens"
-              className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-md border border-tea-gold/40 px-4 text-ui-13 text-tea-gold transition-colors hover:bg-tea-gold/10"
+              className="mt-4 inline-flex min-h-tap items-center gap-2 rounded-md border border-tea-gold/40 px-4 text-ui-13 text-tea-gold transition-colors hover:bg-tea-gold/10"
             >
               Open token manager <ArrowRight size={14} />
             </a>

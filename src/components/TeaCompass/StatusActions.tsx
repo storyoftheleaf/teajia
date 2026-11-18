@@ -265,7 +265,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                 <button
                   type="button"
                   onClick={handleConfirmAdd}
-                  className="flex-1 py-2 rounded-xl cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                  className="btn-primary flex-1 active:opacity-80"
                 >
                   Add to Ledger
                 </button>

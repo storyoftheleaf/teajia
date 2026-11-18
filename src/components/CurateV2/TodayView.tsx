@@ -211,7 +211,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
                   type="button"
                   onClick={() => t.compass_entry_id && onOpenTea(t.compass_entry_id)}
                   disabled={!t.compass_entry_id}
-                  className="grid min-h-11 min-w-0 flex-1 content-center gap-0.5 text-left"
+                  className="grid min-h-tap min-w-0 flex-1 content-center gap-0.5 text-left"
                 >
                   <span className="curate-v2-name !whitespace-normal">{subject || t.text}</span>
                   {(subject || t.from_agent) && (
@@ -291,7 +291,7 @@ export const TodayView: React.FC<TodayViewProps> = ({ onStartTable, onAct, onOpe
                   </Detail>
                 </button>
                 <button type="button" onClick={() => arrived.mutate(r)} disabled={arrived.isPending && arrived.variables?.id === r.id} className="tap-target shrink-0 justify-end font-mono text-ui-13 text-tea-gold" aria-label={`Arrived: ${r.tea_name || r.product_name || 'a tea'}`}>Arrived</button>
-              </div><details className="px-4 py-2"><summary className="min-h-11 cursor-pointer font-mono text-ui-13 text-tea-text-sec">Arrival files &amp; history</summary><CurateRecordTools entityType="arrival" entityId={r.id} /></details></div>
+              </div><details className="px-4 py-2"><summary className="min-h-tap cursor-pointer font-mono text-ui-13 text-tea-text-sec">Arrival files &amp; history</summary><CurateRecordTools entityType="arrival" entityId={r.id} /></details></div>
             );
           })}
           {arrived.isError && <p className="px-4 py-2 text-ui-12 text-tea-error">{errorText(arrived.error)}</p>}

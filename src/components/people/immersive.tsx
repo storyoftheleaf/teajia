@@ -57,7 +57,7 @@ export function PeopleNav({ eyebrow, progress, backTo, chevron = true, eyebrowTo
       className="relative flex h-12 items-center justify-between gap-4 border-b border-tea-border px-5"
       style={WASH}
     >
-      <Link to={backTo} className="flex h-full min-w-[44px] items-center gap-2 text-tea-text" aria-label={chevron ? 'Back to all people' : 'Teajia'}>
+      <Link to={backTo} className="flex h-full min-w-tap items-center gap-2 text-tea-text" aria-label={chevron ? 'Back to all people' : 'Teajia'}>
         {chevron && (
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
             <path d="M9.5 3.5L5 7.5l4.5 4" stroke="var(--tea-gold)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -232,7 +232,7 @@ export function Cover({ to, image, imageAlt = '', imageOpacity = 1, imagePositio
 const GOLD_TEXT_BASE = 'border-b bg-transparent font-display leading-none text-tea-readgold transition-colors hover:text-tea-gold-lt disabled:opacity-60';
 export const GOLD_TEXT_ROW = `flex min-h-[52px] w-full items-center justify-start text-left text-[22px] ${GOLD_TEXT_BASE}`;
 export const GOLD_TEXT_ACTION = `inline-flex min-h-[52px] shrink-0 items-center text-[22px] ${GOLD_TEXT_BASE}`;
-export const GOLD_TEXT_INLINE = `inline-flex min-h-[44px] shrink-0 items-center text-ui-17 ${GOLD_TEXT_BASE}`;
+export const GOLD_TEXT_INLINE = `inline-flex min-h-tap shrink-0 items-center text-ui-17 ${GOLD_TEXT_BASE}`;
 export const GOLD_TEXT_STYLE: CSSProperties = { borderColor: GOLD_LINE_HOVER };
 /** The sheet's top edge, and a cover's border: the thin gold line. */
 export const GOLD_LINE_STYLE: CSSProperties = { borderColor: GOLD_LINE };

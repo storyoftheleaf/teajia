@@ -113,7 +113,7 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
                   <p className="mt-1 text-ui-11 text-tea-text-sec">{groupSummary}</p>
                 </div>
                 {receipt?.id ? (
-                  <a href={`/admin/stock?receipt=${encodeURIComponent(receipt.id)}`} className="tap-target inline-flex min-h-11 items-center gap-1 text-ui-11 text-tea-gold">
+                  <a href={`/admin/stock?receipt=${encodeURIComponent(receipt.id)}`} className="tap-target inline-flex min-h-tap items-center gap-1 text-ui-11 text-tea-gold">
                     {transitOnly ? 'Open in-transit receipt' : 'Open receipt'} <ArrowRight size={13} aria-hidden="true" />
                   </a>
                 ) : stockRows.length > 0 ? (
@@ -132,8 +132,8 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
                       <span>{importDisposition(item) === 'library_only' ? 'Library only · no Inventory holding' : importDisposition(item) === 'in_transit' ? `Inventory holding ${holdingDisposition} · awaiting receipt` : `Stock record ${holdingDisposition}`}</span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                      {compassEntryId && <a href={`/admin/compass?tab=library&entry=${encodeURIComponent(compassEntryId)}`} className="tap-target inline-flex min-h-11 items-center gap-1 text-ui-11 text-tea-gold">Open Library identity <ArrowRight size={13} aria-hidden="true" /></a>}
-                      {productId && <a href={`/admin/stock?panel=${encodeURIComponent(productId)}`} className="tap-target inline-flex min-h-11 items-center gap-1 text-ui-11 text-tea-gold">Open Inventory holding <ArrowRight size={13} aria-hidden="true" /></a>}
+                      {compassEntryId && <a href={`/admin/compass?tab=library&entry=${encodeURIComponent(compassEntryId)}`} className="tap-target inline-flex min-h-tap items-center gap-1 text-ui-11 text-tea-gold">Open Library identity <ArrowRight size={13} aria-hidden="true" /></a>}
+                      {productId && <a href={`/admin/stock?panel=${encodeURIComponent(productId)}`} className="tap-target inline-flex min-h-tap items-center gap-1 text-ui-11 text-tea-gold">Open Inventory holding <ArrowRight size={13} aria-hidden="true" /></a>}
                     </div>
                   </div>
                 ))}
@@ -144,8 +144,8 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
       </div>
 
       <div className="flex flex-wrap justify-between gap-3 border-t border-tea-border pt-3">
-        <button type="button" onClick={onClose} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Close summary</button>
-        <button type="button" onClick={onNew} className="tap-target min-h-11 rounded-md cta-solid px-4 text-ui-12 font-medium">Start another import</button>
+        <button type="button" onClick={onClose} className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text">Close summary</button>
+        <button type="button" onClick={onNew} className="btn-primary tap-target">Start another import</button>
       </div>
     </section>
   );

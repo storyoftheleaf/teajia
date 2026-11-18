@@ -123,7 +123,7 @@ export const TeaReferenceIssuesContent: React.FC<TeaReferenceIssuesContentProps>
           type="button"
           onClick={onExport}
           disabled={isExporting || state === 'loading' || state === 'error'}
-          className={`${TYPOGRAPHY_CLASSES.link} inline-flex min-h-11 items-center justify-center gap-2 self-start px-2 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50 sm:self-auto`}
+          className={`${TYPOGRAPHY_CLASSES.link} inline-flex min-h-tap items-center justify-center gap-2 self-start px-2 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50 sm:self-auto`}
         >
           <Download size={16} aria-hidden="true" />
           {isExporting ? 'Preparing brief…' : 'Export regeneration brief'}
@@ -143,7 +143,7 @@ export const TeaReferenceIssuesContent: React.FC<TeaReferenceIssuesContentProps>
       {state === 'error' && (
         <div role="alert" className="py-12">
           <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>Could not load Reference issues.</p>
-          <button type="button" onClick={onRetry} className={`${TYPOGRAPHY_CLASSES.link} mt-3 min-h-11 text-tea-gold hover:text-tea-gold-lt`}>
+          <button type="button" onClick={onRetry} className={`${TYPOGRAPHY_CLASSES.link} mt-3 min-h-tap text-tea-gold hover:text-tea-gold-lt`}>
             Try again
           </button>
         </div>
@@ -169,7 +169,7 @@ export const TeaReferenceIssuesContent: React.FC<TeaReferenceIssuesContentProps>
                 </h2>
                 <a
                   href={group.route}
-                  className={`${TYPOGRAPHY_CLASSES.link} min-h-11 py-3 text-tea-text-sec transition-colors hover:text-tea-text`}
+                  className={`${TYPOGRAPHY_CLASSES.link} min-h-tap py-3 text-tea-text-sec transition-colors hover:text-tea-text`}
                 >
                   View public page
                 </a>
@@ -179,7 +179,7 @@ export const TeaReferenceIssuesContent: React.FC<TeaReferenceIssuesContentProps>
                   const selected = selectedIds.has(issue.id);
                   return (
                     <article key={issue.id} className="grid gap-4 py-5 md:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] md:gap-8">
-                      <label className="flex min-h-11 cursor-pointer items-start gap-3">
+                      <label className="flex min-h-tap cursor-pointer items-start gap-3">
                         <input
                           type="checkbox"
                           checked={selected}
@@ -234,7 +234,7 @@ export const TeaReferenceIssuesContent: React.FC<TeaReferenceIssuesContentProps>
               type="button"
               onClick={onResolve}
               disabled={selectedCount === 0 || isResolving}
-              className="cta-solid min-h-11 px-5 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary"
             >
               {isResolving ? 'Resolving…' : selectedCount > 0 ? `Resolve ${selectedCount} selected` : 'Resolve selected'}
             </button>

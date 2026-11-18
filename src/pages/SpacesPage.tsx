@@ -118,7 +118,7 @@ export const SpacesPage: React.FC = () => {
       <div className="pt-6 pb-2">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-tap"
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           <Icons.ChevronLeft className="w-4 h-4" />
@@ -227,7 +227,7 @@ export const SpacesPage: React.FC = () => {
                   href={buildInquiryUrl(space.name)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+                  className="inline-flex items-center gap-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-tap"
                   style={{ fontFamily: 'var(--font-sans)' }}
                 >
                   <span>Inquire via WhatsApp</span>
@@ -252,7 +252,7 @@ export const SpacesPage: React.FC = () => {
         </p>
         <Link
           to="/for-your-space"
-          className="inline-flex items-center gap-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+          className="inline-flex items-center gap-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-tap"
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           <span>Get in touch</span>

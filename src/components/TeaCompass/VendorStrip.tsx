@@ -419,7 +419,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
           <button
             type="button"
             onClick={() => setContactMenuOpen((o) => !o)}
-            className={`tap-target flex min-h-11 min-w-11 items-center justify-center rounded-md text-ui-12 transition-colors ${
+            className={`tap-target flex min-h-tap min-w-tap items-center justify-center rounded-md text-ui-12 transition-colors ${
               contactMenuOpen || hasDetails ? 'bg-tea-gold/15 text-tea-gold rounded-md' : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
             }`}
             aria-label="Vendor contact options"
@@ -441,7 +441,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     type="button"
                     onClick={() => storefrontRef.current?.click()}
                     disabled={photoUploading != null}
-                    className="tap-target flex min-h-11 items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors disabled:opacity-60"
+                    className="tap-target flex min-h-tap items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors disabled:opacity-60"
                   >
                     <Image size={14} strokeWidth={1.5} />
                     <span>{photoUploading === 'storefrontUrl' ? 'Uploading…' : vendorDetails?.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
@@ -460,7 +460,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   <button
                     type="button"
                     onClick={() => { handleGeoPin(); setContactMenuOpen(false); }}
-                    className="tap-target flex min-h-11 items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
+                    className="tap-target flex min-h-tap items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
                   >
                     <MapPin size={14} strokeWidth={1.5} />
                     <span>{vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}</span>
@@ -470,7 +470,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   <button
                     type="button"
                     onClick={() => { setDetailsOpen((o) => !o); setContactMenuOpen(false); }}
-                    className="tap-target flex min-h-11 items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
+                    className="tap-target flex min-h-tap items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
                   >
                     <Phone size={14} strokeWidth={1.5} />
                     <span>{(vendorDetails?.phone || vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line) ? 'Contact details' : 'Add contact link'}</span>
@@ -488,7 +488,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
           <button
             type="button"
             onClick={() => storefrontRef.current?.click()}
-            className="tap-target min-h-11 min-w-11 shrink-0"
+            className="tap-target min-h-tap min-w-tap shrink-0"
             aria-label="Update storefront photo"
           >
             <img
@@ -504,14 +504,14 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             <button
               type="button"
               onClick={() => setPickerOpen((o) => !o)}
-              className="tap-target min-h-11 truncate text-ui-12 hover:text-tea-gold transition-colors py-1"
+              className="tap-target min-h-tap truncate text-ui-12 hover:text-tea-gold transition-colors py-1"
             >
               {vendorName}
             </button>
             <button
               type="button"
               onClick={onClear}
-              className="tap-target min-h-11 min-w-11 text-tea-text-dim hover:text-tea-text-sec transition-colors flex-shrink-0 p-1"
+              className="tap-target min-h-tap min-w-tap text-tea-text-dim hover:text-tea-text-sec transition-colors flex-shrink-0 p-1"
             >
               <X size={14} />
             </button>
@@ -535,7 +535,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); }
               }}
               placeholder="Select vendor..."
-              className="min-h-11 w-full input-warm text-base rounded-md px-3 py-2.5 outline-none placeholder:text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+              className="min-h-tap w-full input-warm text-base rounded-md px-3 py-2.5 outline-none placeholder:text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
             />
             <AnimatePresence>
               {searchOpen && (
@@ -579,7 +579,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                               setSearchQuery('');
                               setSearchOpen(false);
                             }}
-                            className="tap-target flex min-h-11 items-center justify-between w-full px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
+                            className="tap-target flex min-h-tap items-center justify-between w-full px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
                           >
                             <span>{v.name}</span>
                             {v.isRecent && <span className="text-ui-12 text-tea-text-dim shrink-0 ml-2">recent</span>}
@@ -591,7 +591,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   {customers.isFetching && !customers.data
                     ? <p role="status" className="px-3 py-2 text-ui-12 text-tea-text-sec">Looking up suppliers…</p>
                     : null}
-                  {customers.isError && <Button type="button" variant="plain" className="tap-target min-h-11 px-3 text-left text-ui-12 text-tea-text-sec underline" onClick={() => void customers.refetch()}>
+                  {customers.isError && <Button type="button" variant="plain" className="tap-target min-h-tap px-3 text-left text-ui-12 text-tea-text-sec underline" onClick={() => void customers.refetch()}>
                     Retry supplier lookup
                   </Button>}
                   <button
@@ -606,7 +606,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       }
                       setSearchOpen(false);
                     }}
-                    className="tap-target flex min-h-11 items-center gap-2 w-full px-3 py-2 text-left text-ui-12 text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
+                    className="tap-target flex min-h-tap items-center gap-2 w-full px-3 py-2 text-left text-ui-12 text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
                   >
                     <Plus size={12} strokeWidth={2.5} />
                     {searchQuery.trim() ? `New vendor "${searchQuery.trim()}"` : 'New vendor…'}
@@ -637,20 +637,20 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateVendor()}
                   placeholder="Vendor name"
-                  className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                  className="min-h-tap flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                 />
                 <button
                   type="button"
                   onClick={handleCreateVendor}
                   disabled={!newName.trim()}
-                  className="tap-target min-h-11 cta-solid font-semibold text-ui-12 uppercase tracking-[0.08em] px-4 py-2.5 rounded-md disabled:opacity-40 transition-opacity"
+                  className="btn-primary tap-target"
                 >
                   Add
                 </button>
                 <button
                   type="button"
                   onClick={() => { setCreatingNew(false); setNewName(''); setPickerOpen(false); }}
-                  className="tap-target min-h-11 min-w-11 text-tea-text-dim p-2"
+                  className="tap-target min-h-tap min-w-tap text-tea-text-dim p-2"
                 >
                   <X size={14} />
                 </button>
@@ -673,7 +673,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <Link size={10} className="shrink-0" />
               <a
                 href={`/admin/people/${linkedCustomerId}`}
-                className="tap-target min-h-11 flex flex-1 items-center truncate hover:text-tea-text-sec transition-colors"
+                className="tap-target min-h-tap flex flex-1 items-center truncate hover:text-tea-text-sec transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -682,7 +682,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <button
                 type="button"
                 onClick={() => { onLinkedCustomerChange(undefined); setSuggestDismissed(false); }}
-                className="tap-target min-h-11 min-w-11 hover:text-tea-text-sec transition-colors shrink-0"
+                className="tap-target min-h-tap min-w-tap hover:text-tea-text-sec transition-colors shrink-0"
                 aria-label="Unlink supplier"
               >
                 <X size={10} />
@@ -701,14 +701,14 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <button
                 type="button"
                 onClick={() => { onLinkedCustomerChange(suggestedCustomer.id); setSuggestDismissed(true); setSuggestedCustomer(null); }}
-                className="tap-target min-h-11 text-tea-gold font-medium hover:text-tea-gold/70 transition-colors shrink-0"
+                className="tap-target min-h-tap text-tea-gold font-medium hover:text-tea-gold/70 transition-colors shrink-0"
               >
                 Link
               </button>
               <button
                 type="button"
                 onClick={() => { setSuggestDismissed(true); setSuggestedCustomer(null); }}
-                className="tap-target min-h-11 min-w-11 text-tea-text-sec hover:text-tea-text-sec transition-colors shrink-0"
+                className="tap-target min-h-tap min-w-tap text-tea-text-sec hover:text-tea-text-sec transition-colors shrink-0"
                 aria-label="Dismiss"
               >
                 <X size={10} />
@@ -721,7 +721,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               transition={{ duration: 0.15 }}
               type="button"
               onClick={() => onLinkedCustomerChange(vendorId)}
-              className="tap-target mt-1 flex min-h-11 items-center gap-1 text-ui-12 text-tea-text-dim/50 hover:text-tea-text-dim transition-colors"
+              className="tap-target mt-1 flex min-h-tap items-center gap-1 text-ui-12 text-tea-text-dim/50 hover:text-tea-text-dim transition-colors"
             >
               <Link size={10} />
               Link supplier profile
@@ -761,7 +761,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                         href={`https://www.openstreetmap.org/?mlat=${vendorDetails.lat}&mlon=${vendorDetails.lng}#map=16/${vendorDetails.lat}/${vendorDetails.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="tap-target flex min-h-11 items-center gap-1.5 text-ui-12 text-tea-text-dim hover:text-tea-gold transition-colors"
+                        className="tap-target flex min-h-tap items-center gap-1.5 text-ui-12 text-tea-text-dim hover:text-tea-gold transition-colors"
                       >
                         <MapPin size={12} />
                         <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
@@ -780,7 +780,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       <a
                         href={`https://wa.me/${vendorDetails.whatsapp.replace(/[^\d]/g, '')}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="tap-target inline-flex min-h-11 items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
+                        className="tap-target inline-flex min-h-tap items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
                       >
                         <MessageCircle size={11} /> WhatsApp
                       </a>
@@ -789,7 +789,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       <button
                         type="button"
                         onClick={() => { navigator.clipboard?.writeText(vendorDetails.wechat!); }}
-                        className="tap-target inline-flex min-h-11 items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
+                        className="tap-target inline-flex min-h-tap items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
                         title="Copy WeChat ID"
                       >
                         <MessageCircle size={11} /> WeChat
@@ -799,7 +799,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       <a
                         href={`https://line.me/ti/p/~${vendorDetails.line.replace(/^[@~]/, '')}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="tap-target inline-flex min-h-11 items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
+                        className="tap-target inline-flex min-h-tap items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
                       >
                         <MessageCircle size={11} /> LINE
                       </a>
@@ -807,7 +807,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     {vendorDetails?.phone && (
                       <a
                         href={`tel:${vendorDetails.phone.replace(/[^\d+]/g, '')}`}
-                        className="tap-target inline-flex min-h-11 items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
+                        className="tap-target inline-flex min-h-tap items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-12 hover:bg-tea-gold/[0.14] transition-colors"
                       >
                         <Phone size={11} /> Call
                       </a>
@@ -829,7 +829,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       onBlur={commitLocation}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitLocation(); } }}
                       placeholder="Paste map link or 'lat, lng'"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                      className="min-h-tap flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                   {locError && (
@@ -842,7 +842,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.phone || ''}
                       onChange={(e) => updateDetail('phone', e.target.value || undefined)}
                       placeholder="Phone"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                      className="min-h-tap flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -852,7 +852,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.whatsapp || ''}
                       onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
                       placeholder="WhatsApp"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                      className="min-h-tap flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -862,7 +862,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.wechat || ''}
                       onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
                       placeholder="WeChat"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                      className="min-h-tap flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -872,7 +872,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.line || ''}
                       onChange={(e) => updateDetail('line', e.target.value || undefined)}
                       placeholder="LINE"
-                      className="min-h-11 flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                      className="min-h-tap flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                 </div>

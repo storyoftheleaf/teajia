@@ -1,7 +1,7 @@
 // These checks hold the classic Source form to its contract, so they open it
 // with `?form=classic`. The default form is the 'flow' one (src/components/curate/).
 /** Curate preservation contract: field capture stays one tap away and non-linear. */
-import { test, expect } from './fixtures';
+import { test, expect, tapFloor } from './fixtures';
 import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 test.describe('Curate field capture preservation', () => {
@@ -45,7 +45,7 @@ test.describe('Curate field capture preservation', () => {
 
     for (const action of await page.locator('[data-curate-source] [data-curate-action]').filter({ visible: true }).all()) {
       const box = await action.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
     }
 
     const visibleTextStyles = await page.locator('[data-curate-source]').evaluateAll((sources) => {
@@ -78,7 +78,7 @@ test.describe('Curate field capture preservation', () => {
 
     for (const control of await page.locator('[data-curate-source] button, [data-curate-source] input:not([type="file"]):not([type="range"]), [data-curate-source] select, [data-curate-source] textarea').filter({ visible: true }).all()) {
       const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
     }
   });
 
@@ -87,13 +87,13 @@ test.describe('Curate field capture preservation', () => {
     await page.getByRole('button', { name: 'Vendor', exact: true }).click();
     const vendorPicker = page.getByPlaceholder('Select vendor...');
     await vendorPicker.click();
-    await expect.poll(async () => (await vendorPicker.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await vendorPicker.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     expect(parseFloat(await vendorPicker.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
     for (const option of [
       page.getByRole('button', { name: 'New vendor…' }),
       page.getByRole('button', { name: /Chen Family/ }),
     ]) {
-      await expect.poll(async () => (await option.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await expect.poll(async () => (await option.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
       expect(parseFloat(await option.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
     }
     await page.keyboard.press('Escape');
@@ -108,14 +108,14 @@ test.describe('Curate field capture preservation', () => {
       page.getByRole('button', { name: 'Drop pin' }),
       addContactLink,
     ]) {
-      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
       expect(parseFloat(await control.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
     }
 
     await addContactLink.click();
     for (const placeholder of ["Paste map link or 'lat, lng'", 'Phone', 'WhatsApp', 'WeChat', 'LINE']) {
       const field = page.getByPlaceholder(placeholder);
-      await expect.poll(async () => (await field.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await expect.poll(async () => (await field.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
       expect(parseFloat(await field.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
     }
     const location = page.getByPlaceholder("Paste map link or 'lat, lng'");
@@ -143,7 +143,7 @@ test.describe('Curate field capture preservation', () => {
         page.getByRole('button', { name: label, exact: true }).filter({ visible: true }).first(),
         page.getByRole('button', { name: `Dismiss detected ${label}`, exact: true }).filter({ visible: true }).first(),
       ]) {
-        await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+        await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
         expect(parseFloat(await control.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
       }
     }
@@ -169,7 +169,7 @@ test.describe('Curate field capture preservation', () => {
     }
     for (const term of ['Thick', 'Long', 'Floral']) {
       const chip = page.getByRole('button', { name: `Remove ${term}` }).filter({ visible: true }).first();
-      await expect.poll(async () => (await chip.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await expect.poll(async () => (await chip.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
       expect(parseFloat(await chip.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
     }
   });
@@ -192,7 +192,7 @@ test.describe('Curate field capture preservation', () => {
 
     await page.getByTestId('capture-action-footer').filter({ visible: true }).getByRole('button', { name: 'Buy', exact: true }).click();
     const quantity = page.getByRole('spinbutton', { name: 'Purchase quantity' }).filter({ visible: true }).first();
-    await expect.poll(async () => (await quantity.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await quantity.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     expect(parseFloat(await quantity.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
   });
 
@@ -234,7 +234,7 @@ test.describe('Curate field capture preservation', () => {
     });
     await page.getByRole('button', { name: 'Scan label', exact: true }).filter({ visible: true }).first().click();
     const closeScanner = page.getByRole('button', { name: 'Close label scanner' });
-    await expect.poll(async () => (await closeScanner.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await closeScanner.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     const instruction = page.getByText('Align the tea label within the frame');
     await expect(instruction).toBeVisible();
     expect(parseFloat(await instruction.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
@@ -251,7 +251,7 @@ test.describe('Curate field capture preservation', () => {
     await expect(denied).toBeVisible();
     expect(parseFloat(await denied.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
     const deniedClose = page.getByRole('button', { name: 'Close', exact: true });
-    await expect.poll(async () => (await deniedClose.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await deniedClose.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
   });
 
   test('keeps existing-photo lightbox navigation named and touch-safe', async ({ page }) => {
@@ -278,11 +278,11 @@ test.describe('Curate field capture preservation', () => {
     expect(await viewer.evaluate((element) => element.contains(document.activeElement))).toBe(true);
     for (const name of ['Close photo viewer', 'Next photo', 'View photo 1', 'View photo 2']) {
       const control = page.getByRole('button', { name, exact: true });
-      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     }
     await page.getByRole('button', { name: 'Next photo' }).click();
     const previous = page.getByRole('button', { name: 'Previous photo' });
-    await expect.poll(async () => (await previous.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => (await previous.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     await page.keyboard.press('Escape');
     await expect(viewer).toBeHidden();
     await expect(photoTrigger).toBeFocused();

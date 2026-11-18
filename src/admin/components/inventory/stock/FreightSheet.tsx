@@ -61,7 +61,7 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
           </label>
           {mode === 'custom' && <div className="rounded-xl border border-tea-border bg-tea-surface p-3">
             <label htmlFor="custom-freight" className={`${T.label} block mb-2 text-tea-text-dim`}>USD per kg</label>
-            <input id="custom-freight" type="number" min="0" step="any" inputMode="decimal" value={input} onChange={event => { setInput(event.target.value); setSaveError(null); }} aria-invalid={Boolean(selection.error)} aria-describedby={selection.error ? 'freight-error' : undefined} className="w-full min-h-11 rounded-md border border-tea-border bg-tea-bg px-3 text-ui-16 text-tea-text focus:border-tea-gold focus:outline-none" />
+            <input id="custom-freight" type="number" min="0" step="any" inputMode="decimal" value={input} onChange={event => { setInput(event.target.value); setSaveError(null); }} aria-invalid={Boolean(selection.error)} aria-describedby={selection.error ? 'freight-error' : undefined} className="w-full min-h-tap rounded-md border border-tea-border bg-tea-bg px-3 text-ui-16 text-tea-text focus:border-tea-gold focus:outline-none" />
           </div>}
         </fieldset>
         <div aria-live="polite" className="rounded-xl border border-tea-border bg-tea-accent-sub p-3 space-y-2">
@@ -70,7 +70,7 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
           {!preview && <p className={`${T.link} text-tea-text-sec`}>{product.costAmount == null ? 'Enter the purchase cost to calculate retail.' : conversion === null ? `Retail preview needs an exchange rate for ${product.costCurrency}. You can still follow the shop rate.` : product.quantityPurchased <= 0 ? 'Add the purchased quantity to calculate retail.' : 'Enter a valid rate to see its retail effect.'}</p>}
         </div>
         {(saveError || selection.error) && <p id="freight-error" role="alert" className={`${T.link} text-tea-text-sec`}>{saveError || selection.error}</p>}
-        <button type="button" onClick={save} disabled={saving || Boolean(selection.error)} className={`${T.nav} min-h-11 w-full rounded-md cta-solid px-4 py-3 disabled:opacity-50`}>{saving ? 'Saving…' : 'Save freight'}</button>
+        <button type="button" onClick={save} disabled={saving || Boolean(selection.error)} className={`${T.nav} min-h-tap w-full rounded-md cta-solid px-4 py-3 disabled:opacity-50`}>{saving ? 'Saving…' : 'Save freight'}</button>
       </>}
     </div>
   </BottomSheet>;

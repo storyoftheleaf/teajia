@@ -196,7 +196,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                       type="button"
                       disabled={!accountSlug.trim() || directMutation.isPending}
                       onClick={() => directMutation.mutate()}
-                      className="px-4 py-2 rounded-md cta-solid text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center gap-1.5"
+                      className="btn-primary flex"
                     >
                       {directMutation.isPending ? (
                         <span className="inline-block w-3.5 h-3.5 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -281,7 +281,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                   type="button"
                   disabled={linkMutation.isPending}
                   onClick={() => linkMutation.mutate()}
-                  className="w-full py-3 rounded-md cta-solid text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center justify-center gap-2"
+                  className="btn-primary btn-primary-lg w-full flex"
                 >
                   {linkMutation.isPending ? (
                     <span className="inline-block w-3.5 h-3.5 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -342,7 +342,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                       }
                     } catch { /* ignore */ }
                   }}
-                  className="w-full py-3 rounded-md cta-solid text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center justify-center gap-2"
+                  className="btn-primary btn-primary-lg w-full flex"
                 >
                   <QrCode size={13} />
                   {synced ? 'Generate feedback QR' : 'Sync first to generate'}

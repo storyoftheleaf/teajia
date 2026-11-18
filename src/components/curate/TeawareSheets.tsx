@@ -175,13 +175,13 @@ export function TeawareSheets({
                   if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
                 }}
                 placeholder="e.g. Song Dynasty"
-                className="min-h-11 flex-1 min-w-0 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+                className="min-h-tap flex-1 min-w-0 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
               />
               <button
                 type="button"
                 onClick={commitCustomEra}
                 disabled={!eraInputValue.trim()}
-                className="curate-action shrink-0 rounded-md cta-solid px-3 font-medium disabled:opacity-40"
+                className="btn-primary curate-action shrink-0"
               >
                 Add
               </button>
@@ -305,7 +305,7 @@ export function TeawareSheets({
                 update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined });
                 setClaySheetOpen(false);
               }}
-              className="tap-target min-h-11 w-full text-ui-12 text-tea-text-sec hover:text-tea-text"
+              className="tap-target min-h-tap w-full text-ui-12 text-tea-text-sec hover:text-tea-text"
             >
               Clear clay subtype
             </button>

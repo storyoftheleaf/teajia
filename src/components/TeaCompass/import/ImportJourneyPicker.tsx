@@ -12,7 +12,7 @@ interface Props {
   onCreate: (input: { name: string; season?: string; year?: number }) => Promise<boolean>;
 }
 
-const controlClass = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold lg:text-ui-13';
+const controlClass = 'min-h-tap w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold lg:text-ui-13';
 
 export const ImportJourneyPicker: React.FC<Props> = ({ lookup, journeyId, busy, onRetry, onSelect, onCreate }) => {
   const [expanded, setExpanded] = useState(false);
@@ -31,7 +31,7 @@ export const ImportJourneyPicker: React.FC<Props> = ({ lookup, journeyId, busy, 
   };
   return (
     <div className="space-y-2">
-      <div className="flex min-h-11 items-center justify-between gap-3 border-t border-tea-border pt-2">
+      <div className="flex min-h-tap items-center justify-between gap-3 border-t border-tea-border pt-2">
         <div className="min-w-0"><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Sourcing run · optional</p><p className="truncate text-ui-12 text-tea-text">{selectedLabel}</p></div>
         <button type="button" disabled={busy || lookup.status === 'loading'} aria-expanded={expanded} aria-label={`${journeyId ? 'Change' : 'Add'} sourcing run`} onClick={() => setExpanded(open => !open)} className="tap-target shrink-0 text-ui-10 text-tea-text-sec hover:text-tea-text disabled:opacity-50">{journeyId ? 'Change' : 'Add'}</button>
       </div>
@@ -43,17 +43,17 @@ export const ImportJourneyPicker: React.FC<Props> = ({ lookup, journeyId, busy, 
         <option value="">No sourcing run</option>
         {visible.map(journey => <option key={journey.id} value={journey.id}>{[journey.name, journey.season, journey.year].filter(Boolean).join(' · ')}</option>)}
       </select>
-      {lookup.status === 'error' && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 text-ui-11 text-tea-text-sec"><span>{lookup.error || 'Could not load sourcing runs.'}</span><button type="button" disabled={busy} onClick={onRetry} className="tap-target min-h-11 text-tea-gold disabled:opacity-50">Retry</button></div>}
+      {lookup.status === 'error' && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 text-ui-11 text-tea-text-sec"><span>{lookup.error || 'Could not load sourcing runs.'}</span><button type="button" disabled={busy} onClick={onRetry} className="tap-target min-h-tap text-tea-gold disabled:opacity-50">Retry</button></div>}
       {lookup.status === 'empty' && <p className="text-ui-11 text-tea-text-sec">No existing sourcing runs.</p>}
-      {!creating ? <button type="button" disabled={busy || !lookupReady} onClick={() => setCreating(true)} className="tap-target min-h-11 text-ui-11 text-tea-gold disabled:opacity-50">Create new sourcing run</button> : (
+      {!creating ? <button type="button" disabled={busy || !lookupReady} onClick={() => setCreating(true)} className="tap-target min-h-tap text-ui-11 text-tea-gold disabled:opacity-50">Create new sourcing run</button> : (
         <div className="space-y-2 border-t border-tea-border pt-3">
           <label className="block text-ui-11 text-tea-text-sec">Run name<input aria-label="New sourcing run name" disabled={busy} value={name} onChange={event => setName(event.target.value)} className={`${controlClass} disabled:opacity-50`} /></label>
           <label className="block text-ui-11 text-tea-text-sec">Season<input aria-label="New sourcing run season" disabled={busy} value={season} onChange={event => setSeason(event.target.value)} className={`${controlClass} disabled:opacity-50`} /></label>
           <label className="block text-ui-11 text-tea-text-sec">Year<input aria-label="New sourcing run year" disabled={busy} inputMode="numeric" value={year} onChange={event => setYear(event.target.value)} className={`${controlClass} disabled:opacity-50`} /></label>
-          <div className="flex justify-between gap-3"><button type="button" disabled={busy} onClick={() => setCreating(false)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button><button type="button" disabled={busy || !name.trim()} onClick={() => void create()} className="tap-target min-h-11 rounded-md cta-solid px-4 text-ui-12 font-medium disabled:opacity-50">Create run</button></div>
+          <div className="flex justify-between gap-3"><button type="button" disabled={busy} onClick={() => setCreating(false)} className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button><button type="button" disabled={busy || !name.trim()} onClick={() => void create()} className="btn-primary tap-target">Create run</button></div>
         </div>
       )}
-      <button type="button" disabled={busy} onClick={() => { setCreating(false); setExpanded(false); }} className="tap-target min-h-11 text-ui-11 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel sourcing run change</button>
+      <button type="button" disabled={busy} onClick={() => { setCreating(false); setExpanded(false); }} className="tap-target min-h-tap text-ui-11 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel sourcing run change</button>
       </div>}
     </div>
   );

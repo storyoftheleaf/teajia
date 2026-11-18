@@ -78,7 +78,7 @@ export default function OrderDetailPage() {
             <button
               type="button"
               onClick={() => query.refetch()}
-              className="min-h-11 px-4 py-2 rounded-md cta-solid text-ui-13 font-semibold transition-colors"
+              className="btn-primary"
             >
               Try again
             </button>
@@ -155,7 +155,7 @@ export default function OrderDetailPage() {
               <a
                 data-testid="order-contact-action"
                 href={`https://wa.me/${order.contact.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hello, I have a question about order ${order.invoice_number}.`)}`}
-                className="inline-flex min-h-11 items-center justify-center px-4 py-2 rounded-md cta-solid text-ui-13 font-semibold transition-colors"
+                className="btn-primary"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -165,7 +165,7 @@ export default function OrderDetailPage() {
               <a
                 data-testid="order-contact-action"
                 href={`mailto:${order.contact.email}?subject=${encodeURIComponent(`Question about order ${order.invoice_number}`)}`}
-                className="inline-flex min-h-11 items-center justify-center px-4 py-2 rounded-md cta-solid text-ui-13 font-semibold transition-colors"
+                className="btn-primary"
               >
                 Ask about this order by email
               </a>

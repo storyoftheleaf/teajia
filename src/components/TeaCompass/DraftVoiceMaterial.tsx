@@ -59,13 +59,13 @@ function ScopedDraftVoiceMaterial({ entryId, onTranscript, onBusyChange }: Draft
   return <section aria-label="Voice working material" className="min-w-0 space-y-2">
     <div className="flex flex-wrap items-center gap-3">
       <button type="button" aria-label={label} aria-pressed={voice.state === 'recording'} disabled={!ready || voice.state === 'transcribing' || voice.state === 'error'}
-        onClick={() => { setMessage(''); voice.handlePress(); }} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text disabled:opacity-50">
+        onClick={() => { setMessage(''); voice.handlePress(); }} className="tap-target inline-flex min-h-tap items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text disabled:opacity-50">
         <Mic size={14} aria-hidden="true" />{label}
       </button>
-      {voice.state === 'error' && !voice.pendingRecording && <button type="button" className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec" onClick={() => void voice.discardPending()}>Try recording again</button>}
+      {voice.state === 'error' && !voice.pendingRecording && <button type="button" className="tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec" onClick={() => void voice.discardPending()}>Try recording again</button>}
       {voice.pendingRecording && <>
-        <button type="button" disabled={voice.state === 'transcribing'} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec" onClick={() => void voice.retryPending()}>Retry transcript</button>
-        <button type="button" disabled={voice.state === 'transcribing'} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec" onClick={() => void voice.discardPending()}>Discard recording</button>
+        <button type="button" disabled={voice.state === 'transcribing'} className="tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec" onClick={() => void voice.retryPending()}>Retry transcript</button>
+        <button type="button" disabled={voice.state === 'transcribing'} className="tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec" onClick={() => void voice.discardPending()}>Discard recording</button>
       </>}
     </div>
     <p className="text-ui-11 text-tea-text-dim">Audio is held privately for transcription. Review the transcript here; only Save accepted changes adds it to this tea.</p>

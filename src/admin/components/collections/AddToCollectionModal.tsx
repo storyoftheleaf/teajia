@@ -158,7 +158,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                 type="button"
                 onClick={createAndAdd}
                 disabled={!newTitle.trim() || busy}
-                className="px-4 py-2 cta-solid rounded-md text-ui-12 font-medium transition-colors disabled:opacity-40 shrink-0"
+                className="btn-primary shrink-0"
               >
                 {busy ? <Loader2 size={13} className="animate-spin" /> : 'Create'}
               </button>

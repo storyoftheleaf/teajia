@@ -159,7 +159,7 @@ const SourceModal = ({
         </div>
         <div className="flex justify-between gap-3 p-6 border-t border-tea-border">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-          <button type="submit" disabled={saving || !form.name.trim()} className="px-5 py-2 cta-solid text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
+          <button type="submit" disabled={saving || !form.name.trim()} className="btn-primary btn-primary-lg">
             {saving ? 'Saving...' : isEditing ? 'Update' : 'Add Source'}
           </button>
         </div>
@@ -1102,7 +1102,7 @@ export const SourcesView = () => {
 
               <button
                 onClick={() => { setEditingSource(null); setIsModalOpen(true); }}
-                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="btn-primary"
               >
                 <Plus size={13} />
                 <span>New</span>
@@ -2292,7 +2292,7 @@ export const SourcesView = () => {
               </button>
               <button
                 onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
-                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="btn-primary"
               >
                 <Edit3 size={13} /> <span>Full Edit</span>
               </button>

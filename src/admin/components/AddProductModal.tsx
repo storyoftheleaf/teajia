@@ -1630,7 +1630,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     if (form) form.requestSubmit();
                 }}
                 disabled={loading || uploading}
-                className="px-6 py-2.5 cta-solid text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl"
+                className="btn-primary btn-primary-lg flex"
             >
                 {loading || uploading ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}
                 <span>Save item</span>

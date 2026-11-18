@@ -52,7 +52,7 @@ export const FactGrid: React.FC<{ facts: Fact[] }> = ({ facts }) => {
           <dt className={`${LABEL} ${FIELD_GAP} text-tea-text-dim`}>{fact.label}</dt>
           <dd className={`${BODY} text-tea-text-sec`}>
             {fact.to ? (
-              <Link to={fact.to} className={`${LINK} inline-flex min-h-[44px] items-center`}>
+              <Link to={fact.to} className={`${LINK} inline-flex min-h-tap items-center`}>
                 {fact.value}
               </Link>
             ) : (

@@ -454,13 +454,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       <span className="text-ui-12 text-tea-error">
         {failedPreviews.length === 1 ? 'A photo did not upload.' : `${failedPreviews.length} photos did not upload.`}
       </span>
-      <button type="button" onClick={() => failedPreviews.forEach((p) => void retryUpload(p.localUrl))} className="tap-target min-h-11 text-ui-12 text-tea-text underline decoration-dashed underline-offset-2">
+      <button type="button" onClick={() => failedPreviews.forEach((p) => void retryUpload(p.localUrl))} className="tap-target min-h-tap text-ui-12 text-tea-text underline decoration-dashed underline-offset-2">
         Try again
       </button>
       <button
         type="button"
         onClick={() => { failedPreviews.forEach((p) => URL.revokeObjectURL(p.localUrl)); setPendingPreviews((prev) => prev.filter((p) => !p.failed)); }}
-        className="tap-target min-h-11 text-ui-12 text-tea-text-sec underline decoration-dashed underline-offset-2"
+        className="tap-target min-h-tap text-ui-12 text-tea-text-sec underline decoration-dashed underline-offset-2"
       >
         Clear
       </button>
@@ -565,7 +565,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={closeScanner}
-              className="tap-target mt-2 min-h-11 px-4 py-2 rounded-xl border border-tea-border text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
+              className="tap-target mt-2 min-h-tap px-4 py-2 rounded-xl border border-tea-border text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
             >
               Close
             </button>
@@ -612,7 +612,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleRetake}
-                className="tap-target flex min-h-11 items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 font-medium hover:bg-tea-elevated transition-colors"
+                className="tap-target flex min-h-tap items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 font-medium hover:bg-tea-elevated transition-colors"
               >
                 <RefreshCw size={13} />
                 Retake
@@ -620,7 +620,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleApply}
-                className="tap-target min-h-11 flex-[2] py-3 rounded-xl cta-solid text-ui-12 font-semibold transition-colors"
+                className="btn-primary btn-primary-lg tap-target flex-[2]"
               >
                 Apply to form
               </button>
@@ -631,7 +631,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleUsePhotoOnly}
-                className="tap-target mt-2 min-h-11 w-full text-center text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                className="tap-target mt-2 min-h-tap w-full text-center text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
               >
                 Keep photo only
               </button>
@@ -664,7 +664,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleRetake}
-                className="tap-target flex min-h-11 items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 font-medium hover:bg-tea-elevated transition-colors"
+                className="tap-target flex min-h-tap items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 font-medium hover:bg-tea-elevated transition-colors"
               >
                 <RefreshCw size={13} />
                 {capturedImageUrl ? 'Retake' : 'Try again'}
@@ -675,7 +675,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <button
                   type="button"
                   onClick={handleUsePhotoOnly}
-                  className="tap-target min-h-11 flex-[2] py-3 rounded-xl cta-solid text-ui-12 font-semibold transition-colors"
+                  className="btn-primary btn-primary-lg tap-target flex-[2]"
                 >
                   Use this photo
                 </button>
@@ -791,7 +791,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           type="button"
           onClick={handleRetryScan}
           disabled={retryingScan}
-          className="tap-target min-h-11 text-ui-12 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
+          className="tap-target min-h-tap text-ui-12 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
         >
           {retryingScan ? 'Retrying' : 'Retry'}
         </button>

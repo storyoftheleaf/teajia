@@ -16,7 +16,7 @@ const links: { label: string; to?: string; href?: string }[] = [
   { label: 'Contact', href: 'mailto:hello@teajia.com' },
 ];
 
-const linkClass = `${TYPOGRAPHY_CLASSES.nav} inline-flex min-h-11 items-center text-[var(--tea-footer-ink-dim)] transition-colors duration-200 hover:text-[var(--tea-footer-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tea-footer-band)]`;
+const linkClass = `${TYPOGRAPHY_CLASSES.nav} inline-flex min-h-tap items-center text-[var(--tea-footer-ink-dim)] transition-colors duration-200 hover:text-[var(--tea-footer-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tea-footer-band)]`;
 
 function FooterLink({ label, to, href }: { label: string; to?: string; href?: string }) {
   if (to) {

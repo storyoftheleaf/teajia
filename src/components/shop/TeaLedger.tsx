@@ -109,7 +109,7 @@ export function TeaLedger({
         return (
           <Fragment key={group.type}>
             {activeType === 'All' && specialFilter === 'None' && (
-              <div className="flex items-baseline justify-between gap-4 pt-9 first:pt-2 pb-2.5">
+              <div className="flex items-baseline justify-between gap-4 pt-5 first:pt-2 pb-2">
                 <div className="flex min-w-0 items-baseline gap-3">
                   <h2 className="font-display text-ui-26 font-normal tracking-[0.02em] text-tea-text">
                     {group.type}

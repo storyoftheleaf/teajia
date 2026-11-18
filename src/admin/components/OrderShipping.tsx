@@ -95,7 +95,7 @@ export const OrderShipping: React.FC<{
         </div>
         {error && <p role="alert" className="text-ui-13 text-tea-text">{error}</p>}
         {notice && <p role="status" className="text-ui-13 text-tea-text-sec">{notice}</p>}
-        {!closed && <button type="submit" disabled={saving} className="min-h-11 px-4 rounded-md cta-solid text-ui-13 disabled:opacity-50">{saving ? 'Saving…' : 'Save shipping'}</button>}
+        {!closed && <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Save shipping'}</button>}
       </form>
     </section>
   );

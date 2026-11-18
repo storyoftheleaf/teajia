@@ -45,7 +45,7 @@ export default function OrderHistoryPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-nav-gap-lg animate-[fadeIn_0.5s_ease-out]">
       <button
         onClick={() => navigate(-1)}
-        className="flex min-h-[44px] items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
+        className="flex min-h-tap items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
       >
         <Icons.Back className="w-4 h-4" />
         <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
@@ -94,7 +94,7 @@ export default function OrderHistoryPage() {
               <button
                 type="button"
                 onClick={() => navigate(`/account/orders/${encodeURIComponent(order.id)}`)}
-                className="w-full min-h-11 rounded border border-tea-border bg-tea-surface px-4 py-3 flex items-center justify-between gap-4 text-left hover:border-tea-gold/30 transition-colors"
+                className="w-full min-h-tap rounded border border-tea-border bg-tea-surface px-4 py-3 flex items-center justify-between gap-4 text-left hover:border-tea-gold/30 transition-colors"
                 aria-label={`${order.invoice_number}, ${journey?.label ?? order.status}, ${formatOrderAmount(order.total_amount_usd, order.currency, rates)}`}
               >
                 <div className="min-w-0 flex-1">

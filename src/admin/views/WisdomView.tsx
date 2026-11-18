@@ -135,7 +135,7 @@ export const TeaReferenceWisdomSwitch: React.FC<{
           type="button"
           aria-pressed={surface === 'browse'}
           onClick={() => setSurface('browse')}
-          className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-md border px-3 transition-colors ${
+          className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-md border px-3 transition-colors ${
             surface === 'browse'
               ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
               : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
@@ -148,7 +148,7 @@ export const TeaReferenceWisdomSwitch: React.FC<{
             type="button"
             aria-pressed={surface === 'issues'}
             onClick={() => setSurface('issues')}
-            className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-md border px-3 transition-colors ${
+            className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-md border px-3 transition-colors ${
               surface === 'issues'
                 ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
                 : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
@@ -161,7 +161,7 @@ export const TeaReferenceWisdomSwitch: React.FC<{
           type="button"
           aria-pressed={surface === 'review'}
           onClick={() => setSurface('review')}
-          className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-md border px-3 transition-colors ${
+          className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-md border px-3 transition-colors ${
             surface === 'review'
               ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
               : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
@@ -169,7 +169,7 @@ export const TeaReferenceWisdomSwitch: React.FC<{
         >
           Review incoming
         </button>}
-        {previewEnabled && <span className={`${TYPOGRAPHY_CLASSES.label} flex min-h-11 items-center text-tea-text-dim`}>
+        {previewEnabled && <span className={`${TYPOGRAPHY_CLASSES.label} flex min-h-tap items-center text-tea-text-dim`}>
           Local preview only
         </span>}
       </div>

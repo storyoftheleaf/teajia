@@ -281,8 +281,8 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       aria-controls={amountsId}
       className={
         isDocked
-          ? 'tap-target flex min-h-[44px] flex-1 items-center gap-2.5 px-1 text-left transition-colors'
-          : 'tap-target flex min-h-[44px] w-full items-center justify-between gap-3 border border-tea-border px-3 transition-colors hover:border-tea-gold/40'
+          ? 'tap-target flex min-h-tap flex-1 items-center gap-2.5 px-1 text-left transition-colors'
+          : 'tap-target flex min-h-tap w-full items-center justify-between gap-3 border border-tea-border px-3 transition-colors hover:border-tea-gold/40'
       }
     >
       <span className="flex items-baseline gap-2">
@@ -378,7 +378,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                   target={availabilityContact.opensNewTab ? '_blank' : undefined}
                   rel={availabilityContact.opensNewTab ? 'noopener noreferrer' : undefined}
                   aria-label="Notify me when it’s back in stock"
-                  className="inline-flex min-h-11 min-w-11 items-center whitespace-nowrap rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-tea-gold">
+                  className="inline-flex min-h-tap min-w-tap items-center whitespace-nowrap rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-tea-gold">
                   <span className="inline-flex h-7 items-center rounded border border-tea-border px-2.5 text-ui-11 text-tea-text-sec transition-colors hover:border-tea-gold hover:text-tea-text">Notify me</span>
                 </a>
               )}
@@ -481,7 +481,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             </button>
           </div>
         ) : (
-        <div className="flex min-h-[44px] shrink-0 items-center justify-center border border-tea-border px-1.5">
+        <div className="flex min-h-tap shrink-0 items-center justify-center border border-tea-border px-1.5">
           <button
             type="button"
             className="alcove-icon-btn"

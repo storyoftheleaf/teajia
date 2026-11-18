@@ -233,7 +233,7 @@ function ReviewCard({
                   href={evidence.citation.url}
                   target="_blank"
                   rel="noreferrer"
-                  className={`${TYPOGRAPHY_CLASSES.link} mt-1 inline-flex min-h-11 items-center break-all text-tea-gold hover:text-tea-gold-lt`}
+                  className={`${TYPOGRAPHY_CLASSES.link} mt-1 inline-flex min-h-tap items-center break-all text-tea-gold hover:text-tea-gold-lt`}
                 >
                   Open source
                 </a>
@@ -254,7 +254,7 @@ function ReviewCard({
             type="button"
             aria-pressed={decision === option.id}
             onClick={() => onDecision(option.id)}
-            className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-md border px-3 transition-colors ${
+            className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-md border px-3 transition-colors ${
               decision === option.id
                 ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
                 : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
@@ -377,7 +377,7 @@ export const TeaReferenceReviewView: React.FC<TeaReferenceReviewViewProps> = ({ 
               type="button"
               aria-pressed={filter === option.id}
               onClick={() => setFilter(option.id)}
-              className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-md border px-3 transition-colors ${
+              className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-md border px-3 transition-colors ${
                 filter === option.id
                   ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
                   : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'

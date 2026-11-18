@@ -36,7 +36,7 @@ export default function AccountProfilePage() {
     return (
       <main className="mx-auto w-full max-w-4xl px-4 py-12 pb-nav-gap md:px-6">
         <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec`}>Sign in to prepare your Tea Master profile.</p>
-        <button type="button" onClick={() => navigate(authPagePath('signin', '/account/profile'))} className="cta-solid tap-target mt-5 rounded-md px-5 py-2.5 text-ui-13">Sign in</button>
+        <button type="button" onClick={() => navigate(authPagePath('signin', '/account/profile'))} className="btn-primary tap-target mt-5">Sign in</button>
       </main>
     );
   }
@@ -175,7 +175,7 @@ function NewProfileForm({ name, onCreate }: { name: string; onCreate: (value: Se
       <label className="block"><span className={`${TYPOGRAPHY_CLASSES.label} mb-2 block text-tea-text-sec`}>Profile address</span><div className="flex min-w-0 items-center"><span className="rounded-l-md border border-r-0 border-tea-border bg-tea-surface px-3 py-2.5 text-ui-13 text-tea-text-dim">teajia.com/people/</span><input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={slug} onChange={event => setSlug(event.target.value.toLowerCase())} className={`${field} rounded-l-none`} /></div></label>
       <label className="block"><span className={`${TYPOGRAPHY_CLASSES.label} mb-2 block text-tea-text-sec`}>Short biography</span><textarea required rows={5} value={bio} onChange={event => setBio(event.target.value)} className={field} /></label>
       {error && <p role="alert" className="text-ui-13 text-tea-text">{error}</p>}
-      <div className="flex justify-end"><button type="submit" disabled={saving} className="cta-solid tap-target rounded-md px-5 py-2.5 text-ui-13 disabled:opacity-50">{saving ? 'Creating…' : 'Create draft'}</button></div>
+      <div className="flex justify-end"><button type="submit" disabled={saving} className="btn-primary tap-target">{saving ? 'Creating…' : 'Create draft'}</button></div>
     </form>
   );
 }

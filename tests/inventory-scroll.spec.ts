@@ -18,7 +18,7 @@
  * If this fails, see CLAUDE.md > "InventoryView height chain".
  */
 
-import { test, expect, type Page } from './fixtures';
+import { test, expect, type Page, tapFloor } from './fixtures';
 import { MOCK_PRODUCTS, injectAuth, mockInventoryApi } from './helpers/inventoryMocks';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -253,8 +253,8 @@ test.describe('Inventory page — scroll regression guard', () => {
           expect(box!.x).toBeGreaterThanOrEqual(rowBox!.x - 0.5);
           expect(box!.x + box!.width).toBeLessThanOrEqual(Math.min(rowBox!.x + rowBox!.width + 0.5, 390.5));
           if (controls.includes(control)) {
-            expect(box!.width).toBeGreaterThanOrEqual(44);
-            expect(box!.height).toBeGreaterThanOrEqual(44);
+            expect(box!.width).toBeGreaterThanOrEqual(tapFloor());
+            expect(box!.height).toBeGreaterThanOrEqual(tapFloor());
             boxes.push(box!);
             details.push(await control.evaluate(element => ({
               className: element.getAttribute('class'),

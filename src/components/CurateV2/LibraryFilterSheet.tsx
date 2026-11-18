@@ -41,7 +41,7 @@ export const LibraryFilterSheet: React.FC<{
                 aria-label={field.label}
                 value={(draft[field.key] as string | undefined) ?? ''}
                 onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value || undefined }))}
-                className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
+                className="min-h-tap w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
               >
                 <option value="">Any</option>
                 {(field.options ?? contextOptions[field.key as 'journey' | 'vendor' | 'place']?.map((option) => [option.value, option.label]) ?? []).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -52,15 +52,15 @@ export const LibraryFilterSheet: React.FC<{
                 type={field.key === 'date' ? 'date' : 'text'}
                 value={(draft[field.key] as string | undefined) ?? ''}
                 onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value || undefined }))}
-                className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
+                className="min-h-tap w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
               />
             )}
           </label>
           ))}
         </section>)}
         <div className="flex justify-between border-t border-tea-border pt-3">
-          <button type="button" onClick={() => setDraft({})} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Clear</button>
-          <button type="button" onClick={() => { onApply(draft); onOpenChange(false); }} className="tap-target min-h-11 rounded-md cta-solid px-5 text-ui-12 font-semibold">Apply filters</button>
+          <button type="button" onClick={() => setDraft({})} className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text">Clear</button>
+          <button type="button" onClick={() => { onApply(draft); onOpenChange(false); }} className="btn-primary tap-target">Apply filters</button>
         </div>
       </div>
     </BottomSheet>

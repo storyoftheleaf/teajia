@@ -44,7 +44,7 @@ export const NeedsAttention: React.FC<{ items: AttentionItem[]; className?: stri
         <button
           key={item.id}
           onClick={item.onClick}
-          className="w-full min-h-[44px] flex items-center gap-3 py-3 text-left hover:bg-tea-accent-sub transition-colors px-1"
+          className="w-full min-h-tap flex items-center gap-3 py-3 text-left hover:bg-tea-accent-sub transition-colors px-1"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <span

@@ -16,7 +16,7 @@ interface AlcoveSectionHeadingProps {
 
 /**
  * Centered section word between two hairlines. The quiet card's only
- * section-heading device. Word is tracked uppercase sans in gold-lt.
+ * section-heading device. Word is tracked uppercase sans in text-dim (not gold: one bronze element per screen, PRODUCT.md).
  */
 export const AlcoveSectionHeading: React.FC<AlcoveSectionHeadingProps> = ({
   label,
@@ -30,7 +30,7 @@ export const AlcoveSectionHeading: React.FC<AlcoveSectionHeadingProps> = ({
   >
     <span aria-hidden="true" className="block h-px flex-1 bg-tea-border" />
     <span
-      className={`shrink-0 font-sans uppercase tracking-[0.24em] indent-[0.24em] text-tea-gold-lt ${
+      className={`shrink-0 font-sans uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim ${
         size === 'lg' ? 'text-ui-12 font-medium lg:text-ui-13' : 'text-ui-9'
       }`}
     >

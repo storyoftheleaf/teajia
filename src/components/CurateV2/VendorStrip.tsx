@@ -421,7 +421,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
           <button
             type="button"
             onClick={() => storefrontRef.current?.click()}
-            className="tap-target min-h-11 min-w-11 shrink-0"
+            className="tap-target min-h-tap min-w-tap shrink-0"
             aria-label="Update storefront photo"
           >
             <img
@@ -439,7 +439,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               onClick={() => setPickerOpen((o) => !o)}
               aria-expanded={pickerOpen}
               aria-label={`Vendor: ${vendorName}. Change`}
-              className="curate-v2-name tap-target min-h-11 flex-1 text-left transition-colors hover:text-tea-gold"
+              className="curate-v2-name tap-target min-h-tap flex-1 text-left transition-colors hover:text-tea-gold"
             >
               {vendorName}
             </button>
@@ -447,7 +447,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               type="button"
               onClick={() => { setPickerOpen(false); onClear(); }}
               aria-label="Clear vendor"
-              className="curate-v2-word tap-target min-h-11 shrink-0 px-1 text-tea-text-sec"
+              className="curate-v2-word tap-target min-h-tap shrink-0 px-1 text-tea-text-sec"
             >
               clear
             </button>
@@ -480,7 +480,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <span className="curate-v2-label shrink-0">Supplier</span>
               <a
                 href={`/admin/people/${linkedCustomerId}`}
-                className="tap-target flex min-h-11 flex-1 items-center truncate hover:text-tea-text"
+                className="tap-target flex min-h-tap flex-1 items-center truncate hover:text-tea-text"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -489,7 +489,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <button
                 type="button"
                 onClick={() => { onLinkedCustomerChange(undefined); setSuggestDismissed(false); }}
-                className="curate-v2-word tap-target min-h-11 shrink-0 text-tea-text-sec"
+                className="curate-v2-word tap-target min-h-tap shrink-0 text-tea-text-sec"
                 aria-label="Unlink supplier"
               >
                 unlink
@@ -508,14 +508,14 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <button
                 type="button"
                 onClick={() => { onLinkedCustomerChange(suggestedCustomer.id); setSuggestDismissed(true); setSuggestedCustomer(null); }}
-                className="curate-v2-word tap-target min-h-11 shrink-0"
+                className="curate-v2-word tap-target min-h-tap shrink-0"
               >
                 Link
               </button>
               <button
                 type="button"
                 onClick={() => { setSuggestDismissed(true); setSuggestedCustomer(null); }}
-                className="curate-v2-word tap-target min-h-11 shrink-0 text-tea-text-sec"
+                className="curate-v2-word tap-target min-h-tap shrink-0 text-tea-text-sec"
                 aria-label="Dismiss"
               >
                 skip
@@ -528,7 +528,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               transition={{ duration: 0.15 }}
               type="button"
               onClick={() => onLinkedCustomerChange(vendorId)}
-              className="curate-v2-word tap-target flex min-h-11 items-center text-tea-text-sec"
+              className="curate-v2-word tap-target flex min-h-tap items-center text-tea-text-sec"
             >
               Link supplier profile
             </motion.button>
@@ -565,7 +565,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                         href={`https://www.openstreetmap.org/?mlat=${vendorDetails.lat}&mlon=${vendorDetails.lng}#map=16/${vendorDetails.lat}/${vendorDetails.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="curate-v2-word tap-target flex min-h-11 items-center tabular-nums"
+                        className="curate-v2-word tap-target flex min-h-tap items-center tabular-nums"
                       >
                         {vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}
                       </a>

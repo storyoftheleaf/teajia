@@ -54,10 +54,10 @@ export function StorageZone({ value, onChange }: StorageZoneProps) {
   return (
     <div className="space-y-3" role="group" aria-label="Storage">
       <section aria-label="Storage character">
-        <div className="flex min-h-11 items-center justify-between gap-3">
+        <div className="flex min-h-tap items-center justify-between gap-3">
           <h3 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Character</h3>
           {character !== undefined && (
-            <button type="button" className={`${TYPOGRAPHY_CLASSES.link} min-h-11 min-w-11 text-tea-text-sec rounded-xl focus-visible:ring-2 focus-visible:ring-tea-gold`} aria-label="Clear storage character" onClick={() => { setDraft(null); onChange(withStorageCharacter(value, undefined)); }}>Clear</button>
+            <button type="button" className={`${TYPOGRAPHY_CLASSES.link} min-h-tap min-w-tap text-tea-text-sec rounded-xl focus-visible:ring-2 focus-visible:ring-tea-gold`} aria-label="Clear storage character" onClick={() => { setDraft(null); onChange(withStorageCharacter(value, undefined)); }}>Clear</button>
           )}
         </div>
         <div className="tasting-storage-rail" data-selected={hasCharacter}>
@@ -87,10 +87,10 @@ export function StorageZone({ value, onChange }: StorageZoneProps) {
         <p className={`${TYPOGRAPHY_CLASSES.link} flex h-7 items-center justify-center text-tea-text`} aria-live="polite">{hasCharacter ? STORAGE_CHARACTER_WORDS[nearest] : ''}</p>
       </section>
       <section aria-label="Unwanted notes">
-        <div className="flex min-h-11 items-center justify-between gap-3">
+        <div className="flex min-h-tap items-center justify-between gap-3">
           <h3 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Unwanted notes</h3>
           <details className="relative">
-            <summary className={`${TYPOGRAPHY_CLASSES.link} flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold`} aria-label="Explain unwanted notes">?</summary>
+            <summary className={`${TYPOGRAPHY_CLASSES.link} flex min-h-tap min-w-tap cursor-pointer items-center justify-center rounded-xl text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold`} aria-label="Explain unwanted notes">?</summary>
             <div className="absolute right-0 z-10 max-h-60 overflow-y-auto w-64 max-w-[75vw] rounded-xl border border-tea-border bg-tea-elevated p-3 shadow-lg">
               <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>Unwanted cleanliness notes, not wood, incense or camphor character. These describe what you notice, not proof of how the tea was stored.</p>
               <dl className="mt-2 space-y-2">{STORAGE_NOTES.map(([note, meaning]) => <div key={note}><dt className={`${TYPOGRAPHY_CLASSES.link} text-tea-text`}>{note}</dt><dd className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec`}>{meaning}</dd></div>)}</dl>
@@ -101,7 +101,7 @@ export function StorageZone({ value, onChange }: StorageZoneProps) {
           {[...STORAGE_NOTES.map(([note]) => note as string), ...(value.storageNotes ?? []).filter(note => !STORAGE_NOTES.some(([known]) => known === note))].map(note => {
             const selected = value.storageNotes?.includes(note) ?? false;
             return <div key={note} className={`observation-choice flex min-w-0 items-center rounded-xl ${selected ? 'bg-tea-elevated' : 'bg-tea-surface'}`} data-selected={selected}>
-              <button type="button" aria-pressed={selected} onClick={() => onChange(toggleStorageNote(value, note))} className={`${TYPOGRAPHY_CLASSES.link} min-h-11 rounded-xl px-3 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold ${selected ? 'text-tea-text' : 'text-tea-text-sec hover:bg-tea-elevated'}`}>{note}</button>
+              <button type="button" aria-pressed={selected} onClick={() => onChange(toggleStorageNote(value, note))} className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-xl px-3 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold ${selected ? 'text-tea-text' : 'text-tea-text-sec hover:bg-tea-elevated'}`}>{note}</button>
               {selected && <ObservationIntensity label={note} intensity={value.observationIntensity?.[`storage:${note}`]} onChange={level => onChange(withObservationIntensity(value, `storage:${note}`, level))} />}
             </div>;
           })}

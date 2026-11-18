@@ -90,7 +90,7 @@ function IntroductionReview({ productId, entryId, introduction, live, onApply, o
     <div className="flex flex-wrap items-center justify-between gap-x-2">
       <h3 className="text-ui-13 font-medium text-tea-text">Shop introduction</h3>
       {scope && entryId && <Button type="button" variant="plain"
-        className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text"
+        className="tap-target min-h-tap text-ui-12 text-tea-text-sec hover:text-tea-text"
         disabled={busy} onClick={openReview}>{open ? 'Reload saved wording' : 'Review Curate description'}</Button>}
     </div>
     {!open && <p className="whitespace-pre-wrap break-words text-ui-13 text-tea-text-sec">

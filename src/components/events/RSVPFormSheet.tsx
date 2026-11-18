@@ -290,7 +290,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   queryClient.invalidateQueries({ queryKey: ['event-public', slug] });
                   onClose();
                 }}
-                className="w-full max-w-xs inline-flex items-center justify-center px-4 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
+                className="btn-primary btn-primary-lg w-full max-w-xs"
               >
                 Done
               </button>
@@ -556,7 +556,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 <button
                   type="submit"
                   disabled={!isValid || submitMutation.isPending}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[180px]"
+                  className="btn-primary btn-primary-lg min-w-[180px]"
                 >
                   {submitMutation.isPending ? (
                     <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />

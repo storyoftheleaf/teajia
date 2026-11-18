@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import type { CurateReceiptProposal } from '../../types';
 import { sharedTeaRecordHref } from '../../lib/sharedTeaRecord';
 
-const primary = 'tap-target min-h-11 rounded-md cta-solid px-3 text-ui-12 font-semibold';
+const primary = 'tap-target min-h-tap rounded-md cta-solid px-3 text-ui-12 font-semibold';
 
 function receiptAmount(receipt: CurateReceiptProposal) {
   return `${receipt.quantity.toLocaleString()} ${receipt.unit === 'g' ? 'g' : receipt.quantity === 1 ? 'piece' : 'pieces'}`;
@@ -64,7 +64,7 @@ export function CapturePurchaseResult({ entryId, teaName, teaType, supplierName,
       <p><strong className="text-tea-text">{receiptAmount(receipt)}</strong> · {sample ? 'Private sample' : receipt.purpose === 'working' ? 'Shop stock' : 'Personal stock'} · {receipt.acquisition_kind === 'free_sample' ? 'Free sample' : receipt.acquisition_kind}</p>
       <p>{sample ? 'Confirm only what you received. This sample stays private.' : 'Inventory changes only after you accept this receipt.'}</p>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <button type="button" disabled={busy} onClick={() => onReview('reject')} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Reject</button>
+        <button type="button" disabled={busy} onClick={() => onReview('reject')} className="tap-target min-h-tap text-tea-text-sec hover:text-tea-text">Reject</button>
         <button type="button" disabled={busy} onClick={() => onReview('accept')} className={primary}>
           {busy ? 'Saving…' : sample ? `Record ${receiptAmount(receipt)} as received` : 'Accept into Inventory'}
         </button>
@@ -75,7 +75,7 @@ export function CapturePurchaseResult({ entryId, teaName, teaType, supplierName,
     </div>}
     {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-2">
       <span>{error}</span>
-      {!receipt && <button type="button" disabled={busy} onClick={onRetry} className="tap-target min-h-11 text-tea-text-sec underline">{purchaseDraft ? 'Retry saving draft' : 'Retry receipt'}</button>}
+      {!receipt && <button type="button" disabled={busy} onClick={onRetry} className="tap-target min-h-tap text-tea-text-sec underline">{purchaseDraft ? 'Retry saving draft' : 'Retry receipt'}</button>}
     </div>}
   </div>;
 }

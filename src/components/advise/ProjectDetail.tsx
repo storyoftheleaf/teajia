@@ -58,7 +58,7 @@ const ProjectProvenance: React.FC<{ projectId: string }> = ({ projectId }) => {
 };
 
 const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-md';
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-tap rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 interface ProjectDetailProps {
   project: AdviseProject;
@@ -237,7 +237,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
         <button
           onClick={() => onOpenInquiry(inquiryPreselect)}
-          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] mb-6 ${CTA_FOCUS}`}
+          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-tap mb-6 ${CTA_FOCUS}`}
         >
           Start a conversation
           <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -246,7 +246,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         <div>
           <button
             onClick={onNavigateProjects}
-            className={`text-tea-text-dim hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
+            className={`text-tea-text-dim hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-tap ${CTA_FOCUS}`}
           >
             See more projects
             <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -264,7 +264,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
         <Link
           to="/shop"
-          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium inline-flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
+          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium inline-flex items-center gap-1 transition-colors duration-300 min-h-tap ${CTA_FOCUS}`}
         >
           Browse the Shop
           <Icons.ChevronRight className="w-3.5 h-3.5" />

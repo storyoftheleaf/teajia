@@ -10,7 +10,7 @@ import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 
 const LINK_KEY = ['tea-ar-sources'] as const;
 const CONNECTION_KEY = ['tea-ar-connection'] as const;
-const action = 'tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50';
+const action = 'tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50';
 export function useArTeaSources(entryId: string) {
   const scope = usePrivateQueryScope();
   const query = useQuery({ queryKey: [...LINK_KEY, ...scope.key, entryId], enabled: scope.ready, queryFn: () => arCreateApi.links(entryId), staleTime: 30_000 });
@@ -59,7 +59,7 @@ export function ArCreatePairing() {
       <p className="text-ui-14 text-tea-text">Connect AR Create on your computer to {account?.name || 'your current store'}.</p>
       <p className="text-ui-12 text-tea-text-sec">You choose which talks and passages to link. The originals stay in AR Create.</p>
       {error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
-      <button type="button" className="cta-solid min-h-11 rounded-md px-4 text-ui-14" disabled={busy || !accountId} onClick={async () => {
+      <button type="button" className="btn-primary btn-primary-lg" disabled={busy || !accountId} onClick={async () => {
         setBusy(true); setError('');
         try { await arCreateApi.claim(code); if (useAppStore.getState().activeAccountId !== accountId) return; await queryClient.invalidateQueries({ queryKey: CONNECTION_KEY }); close(); }
         catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not connect. Try again.'); }
@@ -119,18 +119,18 @@ function ArTalkLinksInner({ entryId, entryName, links, onStage, onRemove }: Talk
           </form>
           {busy && <p role="status" className="text-ui-12 text-tea-text-sec">Reading AR Create…</p>}
           {!source && searched && !busy && results.length === 0 && <p className="text-ui-12 text-tea-text-sec">No matching talks. Try a title or a short phrase from the conversation.</p>}
-          {!source && results.map(item => <button key={item.id} type="button" className="min-h-11 w-full border-b border-tea-border py-3 text-left" disabled={busy} onClick={() => void read(item.id)}><span className={`${T.label} block text-tea-text`}>{item.title}</span>{item.snippet && <span className="mt-1 block text-ui-12 text-tea-text-sec line-clamp-3">{item.snippet}</span>}</button>)}
+          {!source && results.map(item => <button key={item.id} type="button" className="min-h-tap w-full border-b border-tea-border py-3 text-left" disabled={busy} onClick={() => void read(item.id)}><span className={`${T.label} block text-tea-text`}>{item.title}</span>{item.snippet && <span className="mt-1 block text-ui-12 text-tea-text-sec line-clamp-3">{item.snippet}</span>}</button>)}
           {source && <section aria-label="Review linked passage" className="space-y-3">
             <h3 className={T.h3}>{source.title}</h3>
             <p className="text-ui-12 text-tea-text-sec">Review the complete transcript. AI will gather material about this tea, including passages later in the conversation.</p>
-            <details><summary className="tap-target min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">Show full talk</summary><textarea aria-label="Full talk" readOnly rows={6} value={source.text} className="input-field w-full min-w-0 px-3 py-2 text-ui-16" /></details>
-            <label className="flex min-h-11 items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={full} onChange={event => setFull(event.target.checked)} className="h-5 w-5 accent-tea-gold" />Use the full transcript · {source.text.length.toLocaleString()} characters</label>
+            <details><summary className="tap-target min-h-tap cursor-pointer text-ui-12 text-tea-text-sec">Show full talk</summary><textarea aria-label="Full talk" readOnly rows={6} value={source.text} className="input-field w-full min-w-0 px-3 py-2 text-ui-16" /></details>
+            <label className="flex min-h-tap items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={full} onChange={event => setFull(event.target.checked)} className="h-5 w-5 accent-tea-gold" />Use the full transcript · {source.text.length.toLocaleString()} characters</label>
             {!full && <><textarea aria-label="Passage to link" className="input-field w-full min-w-0 px-3 py-2 text-ui-16" rows={7} value={excerpt} onChange={event => setExcerpt(event.target.value)} />
             <p className="text-ui-11 text-tea-text-dim">{excerpt.length.toLocaleString()} / 12,000 characters</p>
             {!excerptLocation(source.text, excerpt, preferred) && <p className="text-ui-12 text-tea-text-sec">{excerpt.length > 12000 ? 'Choose a shorter passage.' : 'Keep the words exactly as they appear in the source. Trim from the beginning or end.'}</p>}
             </>}
             {links.some(link => link.sourceId === source.id && link.hash !== source.hash) && <p role="status" className="text-ui-12 text-tea-text-sec">The original has changed. Review this version before updating the linked passage.</p>}
-            <button type="button" className="cta-solid min-h-11 rounded-md px-4 text-ui-12" disabled={busy || (full ? !source.text.trim() || source.text.length > 200000 : !excerptLocation(source.text, excerpt, preferred))} onClick={() => void perform(async () => {
+            <button type="button" className="btn-primary" disabled={busy || (full ? !source.text.trim() || source.text.length > 200000 : !excerptLocation(source.text, excerpt, preferred))} onClick={() => void perform(async () => {
               const range = full ? { start: 0, end: source.text.length } : excerptLocation(source.text, excerpt, preferred); if (!range) throw new Error('Keep an exact continuous passage from this source.');
               if (onStage) {
                 onStage({ requestId, sourceId: source.id, title: source.title, hash: source.hash, text: full ? source.text : excerpt, mode: full ? 'full' : 'excerpt', ...range });
@@ -152,7 +152,7 @@ function ArTalkLinksInner({ entryId, entryName, links, onStage, onRemove }: Talk
       {links.length > 0 && <span className="text-ui-11 text-tea-text-dim">{links.length} linked</span>}
     </div>
     {links.map(link => <details key={link.id} className="min-w-0 border-b border-tea-border pb-2">
-      <summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">{link.title}</summary>
+      <summary className="min-h-tap cursor-pointer text-ui-12 text-tea-text-sec">{link.title}</summary>
       <textarea readOnly aria-label="Saved source transcript" rows={6} value={link.text} className="input-field w-full min-w-0 px-3 py-2 text-ui-16" />
       <p className="mt-2 text-ui-11 text-tea-text-dim">{link.mode === 'full' ? 'Full transcript linked. Opens the latest version when the connected computer is available.' : 'Linked passage from AR Create. Original retained.'}</p>
       <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} className={action} onClick={() => void read(link.sourceId)}>Check original</button>{onStage && onRemove && <button type="button" className={action} disabled={busy} onClick={() => onRemove(link.id)}>Unlink</button>}{!onStage && <button type="button" className={action} disabled={busy} onClick={() => void perform(async () => { await arCreateApi.remove(link.id); if (current()) await queryClient.invalidateQueries({ queryKey: LINK_KEY }); })}>Unlink</button>}</div>

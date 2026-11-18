@@ -6,7 +6,7 @@ import { api, API_URL, ApiError } from '../lib/api';
 import { authPagePath, authReturnTo } from '../lib/authNavigation';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
-const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md min-h-11 px-3 py-2 text-ui-16 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
+const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md min-h-tap px-3 py-2 text-ui-16 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = `${TYPOGRAPHY_CLASSES.label} block text-tea-text-sec mb-1`;
 
 export default function SignInPage() {
@@ -147,7 +147,7 @@ export default function SignInPage() {
 
       <a
         href={`${API_URL}/api/auth/google?return=${encodeURIComponent(authPagePath('signin', destination))}`}
-        className="flex min-h-11 w-full items-center justify-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-14 text-tea-text transition-colors hover:bg-tea-elevated"
+        className="flex min-h-tap w-full items-center justify-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-14 text-tea-text transition-colors hover:bg-tea-elevated"
       >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
               <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4" />
@@ -207,9 +207,9 @@ export default function SignInPage() {
             <p id="signin-code-help" className="mt-2 text-ui-12 text-tea-text-sec" role="status">Sent to {identifier}. Check spam if it hasn’t arrived.</p>
             <div className="flex flex-wrap items-center justify-between gap-x-3">
               <button type="button" onClick={() => { setCodeSent(false); setCode(''); setError(''); }}
-                className="tap-target min-h-11 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">Change email</button>
+                className="tap-target min-h-tap text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">Change email</button>
               <button type="button" onClick={() => { setCode(''); void handleCodeRequest(); }} disabled={loading}
-                className="tap-target min-h-11 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50">Send a new code</button>
+                className="tap-target min-h-tap text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50">Send a new code</button>
             </div>
           </div>
         )}
@@ -221,10 +221,10 @@ export default function SignInPage() {
         )}
         {!passwordMode && error && !codeSent && requestRetryable && (
           <button type="button" onClick={() => void handleCodeRequest()} disabled={loading}
-            className="tap-target min-h-11 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">Try again</button>
+            className="tap-target min-h-tap text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">Try again</button>
         )}
         <button type="submit" disabled={loading || (!passwordMode && codeSent && code.length !== 6)}
-          className="cta-solid flex min-h-11 w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-ui-14 font-medium transition-colors disabled:opacity-50">
+          className="btn-primary btn-primary-lg flex w-full">
           {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-tea-border border-t-current" aria-hidden="true" />}
           {loading ? (passwordMode || codeSent ? 'Signing in…' : 'Sending code…') : (passwordMode || codeSent ? 'Sign in' : 'Email me a code')}
         </button>
@@ -233,14 +233,14 @@ export default function SignInPage() {
       <div className="flex flex-wrap items-center justify-between gap-x-3">
         <button type="button" onClick={() => {
           setPasswordMode(value => !value); setCodeSent(false); setCode(''); setError(''); setForgotOpen(false);
-        }} className="tap-target min-h-11 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">
+        }} className="tap-target min-h-tap text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">
           {passwordMode ? 'Use email code instead' : 'Use password instead'}
         </button>
         {passwordMode && (
           <button type="button" aria-expanded={forgotOpen} aria-controls="password-recovery" onClick={() => {
             setForgotOpen(v => !v); setForgotError('');
             if (!forgotOpen && !forgotEmail) setForgotEmail(identifier.includes('@') ? identifier.trim() : '');
-          }} className="tap-target min-h-11 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">Forgot password?</button>
+          }} className="tap-target min-h-tap text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">Forgot password?</button>
         )}
       </div>
 
@@ -262,9 +262,9 @@ export default function SignInPage() {
               {forgotError && <p id="recovery-error" role="alert" className="text-ui-13 text-tea-error">{forgotError}</p>}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <button type="button" onClick={() => { setForgotOpen(false); setForgotError(''); }}
-                  className="tap-target min-h-11 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">Cancel</button>
+                  className="tap-target min-h-tap text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">Cancel</button>
                 <button type="submit" disabled={forgotLoading || !forgotEmail.trim()}
-                  className="cta-solid min-h-11 rounded-md px-4 py-2 text-ui-13 transition-colors disabled:opacity-50">{forgotLoading ? 'Sending…' : 'Send reset link'}</button>
+                  className="btn-primary">{forgotLoading ? 'Sending…' : 'Send reset link'}</button>
               </div>
             </form>
           )}
@@ -272,7 +272,7 @@ export default function SignInPage() {
       )}
       <div className="mt-3 border-t border-tea-border pt-2">
         <button type="button" onClick={() => navigate(authPagePath('signup', destination))}
-          className="min-h-11 w-full text-center text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">
+          className="min-h-tap w-full text-center text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text">
           New to Teajia? <span className="underline decoration-tea-border underline-offset-4">Create an account</span>
         </button>
       </div>

@@ -600,7 +600,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                 <button onClick={onClose} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
                 <button onClick={() => setStage('upload')} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Back</button>
               </div>
-              <button onClick={handleCommit} disabled={!stagingData.some(row => row.isValid)} className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
+              <button onClick={handleCommit} disabled={!stagingData.some(row => row.isValid)} className="btn-primary">
                   Import Ready ({stagingData.filter(row => row.isValid).length})
               </button>
             </div>

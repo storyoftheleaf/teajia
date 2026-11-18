@@ -258,7 +258,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   type="button"
                   onClick={() => handlePromote(confirmNote, selectedVisibility)}
                   disabled={!!promoting}
-                  className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="btn-primary"
                 >
                   {promoting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
                   Publish
@@ -454,7 +454,7 @@ export const EventDetail: React.FC = () => {
             <button type="button" onClick={() => navigate('/admin/events')} className="tap-target rounded-md border border-tea-border px-4 py-2 text-tea-text-sec hover:text-tea-text">
               Back to events
             </button>
-            <button type="button" onClick={() => { void refetchEvent(); }} disabled={isFetching} className="tap-target cta-solid rounded-md px-4 py-2 disabled:opacity-50">
+            <button type="button" onClick={() => { void refetchEvent(); }} disabled={isFetching} className="btn-primary tap-target">
               {isFetching ? 'Trying…' : 'Try again'}
             </button>
           </div>
@@ -847,7 +847,7 @@ export const EventDetail: React.FC = () => {
                   type="button"
                   onClick={handleSaveBriefing}
                   disabled={savingBriefing}
-                  className="tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="btn-primary tap-target"
                 >
                   {savingBriefing ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   Save Briefing Cards
@@ -892,7 +892,7 @@ export const EventDetail: React.FC = () => {
                   type="button"
                   onClick={handleCreateArticleDraft}
                   disabled={drafting}
-                  className="tap-target inline-flex items-center gap-1.5 rounded-md cta-solid px-3 py-2 text-ui-12 font-medium transition-colors disabled:opacity-50"
+                  className="btn-primary tap-target"
                 >
                   {drafting ? <Loader2 size={13} className="animate-spin" /> : <Edit3 size={13} />}
                   {draftExisting
@@ -1129,7 +1129,7 @@ export const EventDetail: React.FC = () => {
                 type="button"
                 onClick={handleSaveVenue}
                 disabled={savingVenue}
-                className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="btn-primary"
               >
                 {savingVenue ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                 Save Venue
@@ -1202,7 +1202,7 @@ export const EventDetail: React.FC = () => {
                     }
                   }}
                   disabled={closingRsvp}
-                  className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="btn-primary"
                 >
                   {closingRsvp ? <Loader2 size={13} className="animate-spin" /> : <Lock size={13} />}
                   Confirm

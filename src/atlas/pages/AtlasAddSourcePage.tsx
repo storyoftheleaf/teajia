@@ -297,7 +297,7 @@ export default function AtlasAddSourcePage() {
             <button
               type="button"
               onClick={onPublish}
-              className="cta-solid text-ui-15 px-5 py-2.5 rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+              className="btn-primary btn-primary-lg focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
             >
               Publish to the Tea Atlas
             </button>

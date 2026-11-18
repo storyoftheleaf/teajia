@@ -151,7 +151,7 @@ export const TeaLineage: React.FC<{ product: TeaLineageProduct }> = ({ product }
       <div className={SUMMARY_ROW}>
         <Link
           to={cultivarPath(cultivar.id)}
-          className="group flex min-h-[44px] min-w-0 flex-1 flex-col justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50"
+          className="group flex min-h-tap min-w-0 flex-1 flex-col justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50"
         >
           {/* Wrapping happens between whole names, never inside one, so the
               Chinese name cannot break against the Latin name at 390px. */}
@@ -173,7 +173,7 @@ export const TeaLineage: React.FC<{ product: TeaLineageProduct }> = ({ product }
 
         {/* Reserved slot: present at the same width whether or not it holds a
             control, so the name never shifts when the story settles. */}
-        <span className="flex min-h-[44px] w-11 flex-shrink-0 items-center justify-center">
+        <span className="flex min-h-tap w-11 flex-shrink-0 items-center justify-center">
           {hasDetail && (
             <button
               type="button"

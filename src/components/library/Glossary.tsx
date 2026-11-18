@@ -2,7 +2,7 @@ import React from 'react';
 import { Icons } from '../Icons';
 import { TeaGlossary } from '../TeaGlossary';
 
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-tap rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 interface GlossaryProps {
   onBack: () => void;

@@ -148,7 +148,7 @@ export function ProfileFavoritesEditor({ favorites, availableTeas = [], onCreate
                 : 'Named, the public teas below become a collection with its own page, and your profile points at it. Unnamed, your profile still lists them.'}
             </span>
           </label>
-          <button type="button" onClick={saveCollection} disabled={busyId === 'collection' || (collectionTitle.trim() === (collection?.title ?? ''))} className="cta-solid tap-target self-start rounded-md px-4 py-2.5 text-ui-13 font-medium transition-transform active:scale-[0.98] disabled:opacity-50 sm:mt-7">
+          <button type="button" onClick={saveCollection} disabled={busyId === 'collection' || (collectionTitle.trim() === (collection?.title ?? ''))} className="btn-primary tap-target self-start active:scale-[0.98] sm:mt-7">
             {busyId === 'collection' ? 'Saving…' : collection && !collectionTitle.trim() ? 'Take down' : 'Save name'}
           </button>
         </div>
@@ -188,7 +188,7 @@ export function ProfileFavoritesEditor({ favorites, availableTeas = [], onCreate
             </ul>
           )}
         </div>
-        <button type="button" onClick={create} disabled={!selectedTeaId || busyId === 'new'} className="cta-solid tap-target self-end rounded-md px-4 py-2.5 text-ui-13 font-medium transition-transform active:scale-[0.98] disabled:opacity-50">
+        <button type="button" onClick={create} disabled={!selectedTeaId || busyId === 'new'} className="btn-primary tap-target self-end active:scale-[0.98]">
           <span className="inline-flex items-center gap-2"><Plus size={17} aria-hidden="true" /> Add</span>
         </button>
       </div>

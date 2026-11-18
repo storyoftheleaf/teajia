@@ -121,7 +121,7 @@ export const IntentBar: React.FC<IntentBarProps> = ({ entry, onApply }) => {
             <button
               type="button"
               onClick={() => handleDismiss(intent)}
-              className="tap-target min-h-11 min-w-11 font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
+              className="tap-target min-h-tap min-w-tap font-mono text-ui-13 text-tea-text-sec hover:text-tea-text"
               aria-label={`Dismiss detected ${intent.label}`}
             >
               ×

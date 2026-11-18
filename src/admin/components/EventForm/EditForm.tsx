@@ -482,7 +482,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed tap-target"
+          className="btn-primary tap-target"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Update Event

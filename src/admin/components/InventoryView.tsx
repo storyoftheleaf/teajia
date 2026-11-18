@@ -2611,7 +2611,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           ] as const).map(([value, label, count]) => (
             <button type="button" key={label} aria-pressed={draftTriage === value}
               onClick={() => setSearchParams(current => withParam(current, 'triage', value || null), { replace: true })}
-              className={`min-h-11 text-ui-12 ${draftTriage === value ? 'font-semibold text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
+              className={`min-h-tap text-ui-12 ${draftTriage === value ? 'font-semibold text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
             >{label} <span className="text-tea-text-dim">{count}</span></button>
           ))}
         </div>
@@ -2719,7 +2719,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleApproveAll}
-                  className="flex items-center gap-1.5 px-3 py-1.5 cta-solid text-ui-10 font-bold uppercase tracking-[0.2em] rounded-xl transition-colors"
+                  className="btn-primary flex"
                 >
                   <Check size={11} /> Approve All
                 </button>
@@ -2831,7 +2831,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <button
                         onClick={() => handleApproveOne(product)}
                         disabled={isApproving}
-                        className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-xl cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="btn-primary"
                       >
                         {isApproving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                         Approve

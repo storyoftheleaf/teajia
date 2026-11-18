@@ -873,7 +873,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               onClick={() => setAddMenuOpen((v) => !v)}
               aria-expanded={addMenuOpen}
               aria-haspopup="menu"
-              className="curate-v2-word tap-target flex min-h-11 items-center gap-1 px-1 text-ui-14"
+              className="curate-v2-word tap-target flex min-h-tap items-center gap-1 px-1 text-ui-14"
             >
               <span aria-hidden>+</span>
               Tea
@@ -975,7 +975,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
                         <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
                       </div>
-                      <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
+                      <button type="button" onClick={startInventoryDevelopment} className="min-h-tap px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
                         Start development
                       </button>
                     </div>
@@ -1017,7 +1017,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search teas'
                       : 'Search orders…'
                   }
-                  className="w-full min-h-11 rounded-[3px] border border-tea-border bg-transparent py-2 pl-3 pr-10 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold transition-colors"
+                  className="w-full min-h-tap rounded-[3px] border border-tea-border bg-transparent py-2 pl-3 pr-10 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -1031,7 +1031,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 )}
               </div>
               {mode === 'library' && compareTeaCount >= 2 && (
-                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="curate-v2-word tap-target min-h-11 shrink-0">
+                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="curate-v2-word tap-target min-h-tap shrink-0">
                   Compare
                 </button>
               )}
@@ -1271,7 +1271,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     mode === 'library' ? 'Search teas'
                     : 'Search orders…'
                   }
-                  className="w-full min-h-11 rounded-[3px] border border-tea-border bg-transparent py-2 pl-9 pr-10 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold transition-colors"
+                  className="w-full min-h-tap rounded-[3px] border border-tea-border bg-transparent py-2 pl-9 pr-10 font-mono text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -1285,7 +1285,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 )}
               </div>
               {mode === 'library' && compareTeaCount >= 2 && (
-                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="curate-v2-word tap-target min-h-11 shrink-0">
+                <button type="button" onClick={() => { setPrevMode('library'); setMode('compare'); }} className="curate-v2-word tap-target min-h-tap shrink-0">
                   Compare
                 </button>
               )}

@@ -18,9 +18,7 @@ export const OrderBar: React.FC<OrderBarProps> = ({ buyingCount, onViewOrder }) 
           exit={{ y: 20, opacity: 0 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
           onClick={onViewOrder}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3
-                     rounded-xl cta-solid font-medium text-sm
-                     shadow-lg transition-transform active:scale-[0.98]"
+          className="btn-primary btn-primary-lg w-full flex shadow-lg active:scale-[0.98]"
         >
           <ShoppingBag size={16} />
           <span>

@@ -86,7 +86,7 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
               onClick={() => toggleSingleSelect(w.id, WEIGHTS)}
               role="radio"
               aria-checked={selectedWeight === w.id}
-              className={`flex-1 py-2.5 transition-all duration-200 min-h-[44px] relative z-[1] ${
+              className={`flex-1 py-2.5 transition-all duration-200 min-h-tap relative z-[1] ${
                 selectedWeight === w.id
                   ? 'text-tea-gold font-semibold text-ui-15'
                   : 'text-tea-text-sec hover:text-tea-text font-medium text-ui-15'

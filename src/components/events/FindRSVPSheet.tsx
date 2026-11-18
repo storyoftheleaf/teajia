@@ -199,7 +199,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               <button
                 type="submit"
                 disabled={!canSubmit || findMutation.isPending}
-                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="btn-primary btn-primary-lg"
               >
                 {findMutation.isPending ? (
                   <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />

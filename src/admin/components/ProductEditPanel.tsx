@@ -1418,12 +1418,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               )}
               {sharedRecordId && <button type="button" data-testid="inventory-open-tea-record" data-compass-entry-id={sharedRecordId}
                 onClick={() => navigate(sharedTeaRecordHref(sharedRecordId))}
-                className="min-h-11 inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text">
+                className="min-h-tap inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text">
                 <BookOpen size={14} />View in Library
               </button>}
               {sharedRecordId && <button type="button" data-testid="inventory-reorder-ledger" disabled={openingOrder}
                 onClick={() => void openReorder()}
-                className="min-h-11 inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text disabled:opacity-50">
+                className="min-h-tap inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text disabled:opacity-50">
                 <Receipt size={14} />{openingOrder ? 'Opening draft…' : 'Reorder in Ledger'}
               </button>}
               {readiness?.state === 'not_ready' && !sharedRecordId && (
@@ -1432,7 +1432,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   onClick={() => navigate(product.sourceCompassEntryId
                     ? `/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`
                     : `/admin/compass?tab=sourcing&developProduct=${encodeURIComponent(product.id)}&developName=${encodeURIComponent(product.givenName || product.productName)}&developType=${encodeURIComponent(product.type)}`)}
-                  className="min-h-11 inline-flex items-center text-ui-12 text-admin-text-sec hover:text-admin-text"
+                  className="min-h-tap inline-flex items-center text-ui-12 text-admin-text-sec hover:text-admin-text"
                 >Develop in Curate</button>
               )}
             </div>

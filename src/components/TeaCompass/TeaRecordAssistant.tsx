@@ -44,7 +44,7 @@ export function TeaRecordAssistant({ entry, compact = false }: { entry: TeaCompa
   const [committing, setCommitting] = useState(false);
   useEffect(() => setOpen(false), [accountId, userId, revision, entry.id]);
   return <section className={`border-t border-tea-border ${compact ? 'py-1' : 'py-4'}`}>
-    <div className="flex flex-wrap items-center justify-between gap-2">{!compact && <h3 className={T.h3}>Build this tea</h3>}<button type="button" className="tap-target min-h-11 rounded-md border border-tea-border px-3 text-ui-13 text-tea-text" onClick={() => setOpen(true)}>Build this tea</button></div>
+    <div className="flex flex-wrap items-center justify-between gap-2">{!compact && <h3 className={T.h3}>Build this tea</h3>}<button type="button" className="tap-target min-h-tap rounded-md border border-tea-border px-3 text-ui-13 text-tea-text" onClick={() => setOpen(true)}>Build this tea</button></div>
     {!compact && <p className="mt-1 text-ui-12 text-tea-text-sec">Bring your sources, reviewed details and description together.</p>}
     <TeaReviewDialog open={open} onClose={() => { if (!committing) setOpen(false); }} title="Build this tea">
       {open && <AssistantReview key={`${accountId}:${userId}:${revision}:${entry.id}`} entry={entry} onClose={() => setOpen(false)} onCommitChange={setCommitting} />}
@@ -227,7 +227,7 @@ export function AssistantReview({ entry, onClose, onCommitChange, initialSource 
   return <section className="flex h-full min-h-0 flex-col bg-tea-bg" aria-label="Tea record assistant" data-testid="tea-record-assistant">
     <header className="flex shrink-0 items-center justify-between gap-3 border-b border-tea-border px-4 py-1 md:px-6">
       <div className="min-w-0"><h2 className={T.h3}>Build this tea</h2><p className="truncate text-ui-12 text-tea-text-sec">{entry.name || entry.chineseName || 'Tea record'}</p></div>
-      <button type="button" onClick={onClose} disabled={saving || voiceBusy} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec">Discard changes</button>
+      <button type="button" onClick={onClose} disabled={saving || voiceBusy} className="tap-target min-h-tap px-2 text-ui-12 text-tea-text-sec">Discard changes</button>
     </header>
     <div inert={saving || undefined} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 lg:overflow-hidden">
       <div className="mx-auto grid w-full max-w-6xl min-w-0 gap-6 lg:h-full lg:grid-cols-2 lg:gap-8">
@@ -239,25 +239,25 @@ export function AssistantReview({ entry, onClose, onCommitChange, initialSource 
             if (sourceId) { setStaged(previous => previous.filter(item => item.sourceId !== sourceId)); setKeepPassages(previous => ({ ...previous, [sourceId]: false })); }
           }} onStage={stage} />
           {fullSources.length > 0 && <div className="space-y-2 rounded-md border border-tea-border bg-tea-surface p-3">
-            {fullSources.map(source => <details key={source.sourceId}><summary className="min-h-11 cursor-pointer break-words text-ui-13 text-tea-text">{source.title} · full transcript</summary><p className="text-ui-11 text-tea-text-dim">{source.text.length.toLocaleString()} characters · original remains in AR Create</p><textarea aria-label="Live full transcript" readOnly rows={7} value={source.text} className="input-field mt-2 w-full min-w-0 px-3 py-2 text-ui-16" /></details>)}
+            {fullSources.map(source => <details key={source.sourceId}><summary className="min-h-tap cursor-pointer break-words text-ui-13 text-tea-text">{source.title} · full transcript</summary><p className="text-ui-11 text-tea-text-dim">{source.text.length.toLocaleString()} characters · original remains in AR Create</p><textarea aria-label="Live full transcript" readOnly rows={7} value={source.text} className="input-field mt-2 w-full min-w-0 px-3 py-2 text-ui-16" /></details>)}
             <p role="status" className="text-ui-11 text-tea-text-sec">{liveSources.checking ? 'Checking the original…' : liveSources.message || 'Full transcript ready for review.'}</p>
-            <button type="button" disabled={liveSources.checking} onClick={liveSources.refresh} className="tap-target min-h-11 text-ui-12 text-tea-text-sec">Refresh originals</button>
+            <button type="button" disabled={liveSources.checking} onClick={liveSources.refresh} className="tap-target min-h-tap text-ui-12 text-tea-text-sec">Refresh originals</button>
           </div>}
           <WorkingMaterialReview result={working} busy={workingBusy} stale={workingStale} selected={workingSelected} onToggle={id => setWorkingSelected(previous => previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id])} onAnalyze={() => void analyze()} canAnalyze={scoped && fullSources.length > 0} error={workingError} />
           <DraftVoiceMaterial entryId={entry.id} onBusyChange={setVoiceBusy} onTranscript={text => { setDraftNotes(previous => [previous, text].filter(Boolean).join('\n\n')); setKeepNotes(false); }} />
           <label className="block text-ui-12 text-tea-text-sec">Your notes and voice transcripts<textarea aria-label="Working notes" value={draftNotes} onChange={event => setDraftNotes(event.target.value)} rows={4} maxLength={12000} className="input-field mt-1 w-full min-w-0 resize-y px-3 py-2 text-ui-16" placeholder="Add what you know about this tea. Voice memos appear here for correction." /></label>
-          <details><summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">Research and references</summary><label className="block text-ui-12 text-tea-text-sec">Confirmed background and source links<textarea aria-label="Research working material" value={research} onChange={event => setResearch(event.target.value)} rows={6} maxLength={12000} className="input-field mt-1 w-full min-w-0 resize-y px-3 py-2 text-ui-16" placeholder="Keep general regional history separate from facts about this particular lot. Include your references." /></label></details>
-          {(draftNotes || research || workingSelected.length > 0) && <label className="flex min-h-11 items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={keepNotes} disabled={workingStale || workingBusy} onChange={event => setKeepNotes(event.target.checked)} className="h-5 w-5 accent-tea-gold" />Keep these working notes in this tea record</label>}
-          {removals.map(id => <div key={id} className="flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec"><span>Link marked for removal · {arSources.links.find(link => link.id === id)?.title}</span><button type="button" className="tap-target min-h-11 px-2" onClick={() => setRemovals(previous => previous.filter(value => value !== id))}>Keep link</button></div>)}
+          <details><summary className="min-h-tap cursor-pointer text-ui-12 text-tea-text-sec">Research and references</summary><label className="block text-ui-12 text-tea-text-sec">Confirmed background and source links<textarea aria-label="Research working material" value={research} onChange={event => setResearch(event.target.value)} rows={6} maxLength={12000} className="input-field mt-1 w-full min-w-0 resize-y px-3 py-2 text-ui-16" placeholder="Keep general regional history separate from facts about this particular lot. Include your references." /></label></details>
+          {(draftNotes || research || workingSelected.length > 0) && <label className="flex min-h-tap items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={keepNotes} disabled={workingStale || workingBusy} onChange={event => setKeepNotes(event.target.checked)} className="h-5 w-5 accent-tea-gold" />Keep these working notes in this tea record</label>}
+          {removals.map(id => <div key={id} className="flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec"><span>Link marked for removal · {arSources.links.find(link => link.id === id)?.title}</span><button type="button" className="tap-target min-h-tap px-2" onClick={() => setRemovals(previous => previous.filter(value => value !== id))}>Keep link</button></div>)}
           {arSources.isError && <p className="text-ui-12 text-tea-text-sec">Linked talks could not refresh. Try again shortly.</p>}
           {!scoped && <p className="text-ui-12 text-tea-text-dim">Open this record in your signed-in shop to review its material.</p>}
           {!evidence.length && !fullSources.length && !draftNotes && <p className="text-ui-12 text-tea-text-dim">No notes or transcripts yet. Choose a talk or add source material to this tea.</p>}
-          {staged.map(passage => <label key={passage.sourceId} className="flex min-h-11 items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={keepPassages[passage.sourceId] !== false} onChange={event => setKeepPassages(previous => ({ ...previous, [passage.sourceId]: event.target.checked }))} className="h-5 w-5 shrink-0 accent-tea-gold" /><span>{passage.mode === 'full' ? 'Keep this full transcript linked' : 'Keep this passage'}<span className="block text-ui-11 text-tea-text-dim">{passage.title} · not saved</span></span></label>)}
+          {staged.map(passage => <label key={passage.sourceId} className="flex min-h-tap items-center gap-3 text-ui-12 text-tea-text"><input type="checkbox" checked={keepPassages[passage.sourceId] !== false} onChange={event => setKeepPassages(previous => ({ ...previous, [passage.sourceId]: event.target.checked }))} className="h-5 w-5 shrink-0 accent-tea-gold" /><span>{passage.mode === 'full' ? 'Keep this full transcript linked' : 'Keep this passage'}<span className="block text-ui-11 text-tea-text-dim">{passage.title} · not saved</span></span></label>)}
     {evidence.length > 0 && <details className="min-w-0" open>
-      <summary className={`${T.label} min-h-11 cursor-pointer text-tea-text-sec`}>Material to review · {selectedEvidence.length} {selectedEvidence.length === 1 ? 'source' : 'sources'}</summary>
+      <summary className={`${T.label} min-h-tap cursor-pointer text-tea-text-sec`}>Material to review · {selectedEvidence.length} {selectedEvidence.length === 1 ? 'source' : 'sources'}</summary>
       <p className="mb-2 text-ui-11 text-tea-text-dim">Choose sources or shorten their excerpts. Up to 4,000 characters and 12 extracted parts per review.</p>
       <div className="space-y-3">{evidence.map(item => <div key={item.id} className="min-w-0 space-y-2">
-        <label className="flex min-h-11 items-center gap-3 text-ui-12 text-tea-text-sec">
+        <label className="flex min-h-tap items-center gap-3 text-ui-12 text-tea-text-sec">
           <input type="checkbox" checked={chosenSources[item.id] !== false} disabled={busy} onChange={event => setChosenSources(previous => ({ ...previous, [item.id]: event.target.checked }))} className="h-5 w-5 shrink-0 accent-tea-gold" />
           <span className="break-words">{item.sources.map(source => source.label).join('; ')}</span>
         </label>
@@ -271,9 +271,9 @@ export function AssistantReview({ entry, onClose, onCommitChange, initialSource 
         </section>
         <section className="min-w-0 space-y-5 lg:overflow-y-auto lg:pr-2" aria-label="Public description">
           <div className="space-y-3"><h3 className={T.h3}>Public description</h3><p className="text-ui-12 text-tea-text-sec">Write for the shop from the material you have reviewed. Supplier claims stay attributed; uncertain details and unrecorded tasting notes stay out.</p><TeaDescriptionReview entry={entry} sources={descriptionSources} stagedArSources={stagedForProposal} onSelection={setDescription} /></div>
-          <details className="border-t border-tea-border pt-3"><summary className="min-h-11 cursor-pointer text-ui-12 text-tea-text-sec">Fill missing record details from notes or a passage</summary>
+          <details className="border-t border-tea-border pt-3"><summary className="min-h-tap cursor-pointer text-ui-12 text-tea-text-sec">Fill missing record details from notes or a passage</summary>
           <div className="space-y-2 border-b border-tea-border pb-3"><h3 className={T.h3}>Suggested details</h3><p className="text-ui-12 text-tea-text-sec">Choose the details to add. Existing answers are kept.</p>
-            <button type="button" onClick={() => void find()} disabled={busy || saving || !scoped || !material.text || alreadyReviewed || oversized} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text disabled:opacity-50">
+            <button type="button" onClick={() => void find()} disabled={busy || saving || !scoped || !material.text || alreadyReviewed || oversized} className="tap-target inline-flex min-h-tap items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text disabled:opacity-50">
               {busy ? <Loader2 size={14} /> : <Sparkles size={14} />}{busy ? 'Finding details…' : alreadyReviewed ? 'Material reviewed' : 'Find tea details'}
             </button>
           </div>
@@ -289,7 +289,7 @@ export function AssistantReview({ entry, onClose, onCommitChange, initialSource 
           <p className={`${T.label} text-tea-text-dim`}>{SAID_LABEL[part.kind]}</p>
           <p className="break-words text-ui-13 text-tea-text">{part.text}</p>
           {Object.keys(part.fields).length > 0 && <dl className="space-y-1 text-ui-12 text-tea-text-sec">{Object.entries(part.fields).filter(([, value]) => detailValue(value) !== null).map(([key, value]) => <div key={key} className="break-words"><dt className="inline capitalize text-tea-text-dim">{key.replace(/_/g, ' ')}: </dt><dd className="inline">{detailValue(value)}</dd></div>)}</dl>}
-          {facts.map(fact => <label key={fact.id} className="flex min-h-11 items-center gap-3 text-ui-12 text-tea-text">
+          {facts.map(fact => <label key={fact.id} className="flex min-h-tap items-center gap-3 text-ui-12 text-tea-text">
             <input type="checkbox" checked={selected.includes(fact.id)} onChange={() => toggle(fact)} className="h-5 w-5 shrink-0 accent-tea-gold" />
             <span className="min-w-0 break-words">{fact.label}</span>
           </label>)}
@@ -305,7 +305,7 @@ export function AssistantReview({ entry, onClose, onCommitChange, initialSource 
     <footer className="shrink-0 border-t border-tea-border bg-tea-bg px-4 pt-2 pb-nav-gap md:px-6">
       {error && <p role="alert" className="mb-2 text-ui-12 text-tea-text-sec">{error}</p>}
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2"><p role="status" className="min-w-0 truncate text-ui-11 text-tea-text-sec">{selectedCount ? `${selectedCount} accepted · same tea record` : 'Nothing saved. Select what to keep.'}</p>
-        <button type="button" disabled={saving || busy || workingBusy || voiceBusy || !selectedCount} onClick={() => void save()} className="cta-solid min-h-11 shrink-0 whitespace-nowrap rounded-md px-4 text-ui-13 disabled:opacity-50">{saving ? 'Saving…' : 'Save accepted changes'}</button>
+        <button type="button" disabled={saving || busy || workingBusy || voiceBusy || !selectedCount} onClick={() => void save()} className="btn-primary shrink-0 whitespace-nowrap">{saving ? 'Saving…' : 'Save accepted changes'}</button>
       </div>
     </footer>
   </section>;

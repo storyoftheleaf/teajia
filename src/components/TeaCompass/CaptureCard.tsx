@@ -780,7 +780,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
   // On a phone the clusters sit closer so the whole form, Notes included, fits above
   // the floating bottom bar. The laptop keeps the cluster's own 10px padding.
   const phoneClusterPad = '!pt-1 !pb-1 lg:!py-2.5';
-  const nameHeadlineClass = 'curate-primary min-h-11 rounded-none border-0 border-b border-tea-border bg-transparent px-1 py-2 font-medium placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
+  const nameHeadlineClass = 'curate-primary min-h-tap rounded-none border-0 border-b border-tea-border bg-transparent px-1 py-2 font-medium placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
 
   // ── Tasting overlay opener, hoisted so actionRef can reference it ──────
   const openTastingOverlay = () => {
@@ -1127,7 +1127,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
           <button
             type="button"
             onClick={onSwitchToLedger}
-            className="curate-support tap-target flex min-h-11 items-center gap-1.5 text-tea-text-sec transition-colors hover:text-tea-text"
+            className="curate-support tap-target flex min-h-tap items-center gap-1.5 text-tea-text-sec transition-colors hover:text-tea-text"
           >
             <BookOpen size={11} />
             View order draft
@@ -1154,7 +1154,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
                   aria-label="Purchase quantity"
                   value={buyingQty}
                   onChange={(event) => setBuyingQty(Math.max(1, Number.parseInt(event.target.value) || 1))}
-                  className="curate-primary min-h-11 w-11 border-none bg-transparent text-center font-normal text-tea-text outline-none"
+                  className="curate-primary min-h-tap w-11 border-none bg-transparent text-center font-normal text-tea-text outline-none"
                 />
                 <span className="curate-support text-tea-text-dim">{buyingQty === 1 ? 'unit' : 'units'}</span>
               </div>
@@ -1209,7 +1209,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
             type="button"
             onClick={handleAddToLedger}
             disabled={receiptBusy}
-            className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
+            className="btn-primary btn-primary-lg curate-action w-full active:opacity-80"
           >
             {saveAcquisitionLabel}
           </button>
@@ -1578,7 +1578,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
         <button
           type="button"
           onClick={onReturnToLibrary}
-          className="curate-support tap-target flex min-h-11 items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors -mt-1 mb-1"
+          className="curate-support tap-target flex min-h-tap items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors -mt-1 mb-1"
         >
           <ArrowLeft size={12} />
           Library
@@ -1835,7 +1835,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
                     onClick={() => handleQualityChange(v)}
                     role="radio"
                     aria-checked={isSelected}
-                    className={flow ? 'curate-support tabular-nums' : `curate-support tabular-nums flex-1 py-2.5 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                    className={flow ? 'curate-support tabular-nums' : `curate-support tabular-nums flex-1 py-2.5 font-medium transition-all duration-150 min-h-tap relative z-[1] ${
                       isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                     }${i < 9 ? ' weight-seg-div' : ''}`}
                     data-curate-action
@@ -1934,7 +1934,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
                 key={st}
                 type="button"
                 onClick={() => { userTapped.current.add('storage'); update({ storage: entry.storage === st ? undefined : st }); }}
-                className={`${entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'} curate-support tap-target min-h-11`}
+                className={`${entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'} curate-support tap-target min-h-tap`}
                 data-curate-action
               >
                 {st}
@@ -1953,7 +1953,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
           <button
             type="button"
             onClick={onSwitchToLedger}
-            className="curate-support tap-target flex min-h-11 items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+            className="curate-support tap-target flex min-h-tap items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <BookOpen size={11} />
             View order draft
@@ -1977,7 +1977,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
                     <span>Received quantity</span>
                     <input type="number" aria-label="Received quantity" min="0" step={measureSampleInGrams ? 'any' : 1} value={Number.isFinite(buyingQty) && buyingQty > 0 ? buyingQty : ''}
                       onChange={event => setBuyingQty(event.currentTarget.valueAsNumber)}
-                      className="curate-field min-h-11 w-24 px-2" />
+                      className="curate-field min-h-tap w-24 px-2" />
                     <span>{measureSampleInGrams ? 'g' : 'pieces'}</span>
                   </label>
                 ) : <>
@@ -1999,7 +1999,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
                         aria-label="Purchase quantity"
                         value={buyingQty}
                         onChange={(e) => setBuyingQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="curate-primary min-h-11 w-11 text-center text-tea-text font-normal bg-transparent border-none outline-none"
+                        className="curate-primary min-h-tap w-11 text-center text-tea-text font-normal bg-transparent border-none outline-none"
                       />
                       <span className="curate-support text-tea-text-dim">
                         {unitBased ? (buyingQty === 1 ? 'unit' : 'units') : 'g'}
@@ -2034,7 +2034,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
                         type="button"
                         onClick={() => setBuyingQty(g)}
                         {...(flowLayout ? { 'aria-pressed': buyingQty === g } : {})}
-                        className={`curate-support tap-target min-h-11 rounded px-2 tabular-nums transition-colors ${
+                        className={`curate-support tap-target min-h-tap rounded px-2 tabular-nums transition-colors ${
                           buyingQty === g ? 'bg-tea-accent-sub text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                         data-curate-action

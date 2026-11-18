@@ -354,7 +354,7 @@ const WisdomStrip: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
           key={section.id}
           to={section.path}
           aria-current={isActive ? 'page' : undefined}
-          className={`relative inline-flex items-center min-h-[44px] ${NAME_CLASS} transition-colors ${switchMark(isActive)}`}
+          className={`relative inline-flex items-center min-h-tap ${NAME_CLASS} transition-colors ${switchMark(isActive)}`}
         >
           {section.label}
         </Link>
@@ -414,7 +414,7 @@ const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active })
         aria-expanded={open}
         aria-controls="wisdom-holdings"
         onClick={() => setOpen(value => !value)}
-        className="w-full min-h-[44px] flex items-center gap-2 text-left"
+        className="w-full min-h-tap flex items-center gap-2 text-left"
       >
         <span className={`${NAME_CLASS} text-tea-gold min-w-0 break-words`}>
           {current?.label ?? 'The wisdom base'}
@@ -443,7 +443,7 @@ const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active })
               <Link
                 to={section.path}
                 onClick={() => setOpen(false)}
-                className={`flex items-center min-h-[44px] px-3 ${NAME_CLASS} text-tea-text-sec hover:text-tea-text transition-colors`}
+                className={`flex items-center min-h-tap px-3 ${NAME_CLASS} text-tea-text-sec hover:text-tea-text transition-colors`}
               >
                 {section.label}
               </Link>

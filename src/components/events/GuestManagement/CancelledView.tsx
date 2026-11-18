@@ -22,7 +22,7 @@ const CancelledView: React.FC<CancelledViewProps> = ({ attendee, event }) => {
         </p>
         <button
           onClick={() => navigate(`/event/${event.slug}`)}
-          className="inline-flex items-center justify-center px-4 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
+          className="btn-primary btn-primary-lg"
         >
           View event
         </button>

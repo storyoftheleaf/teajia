@@ -640,8 +640,8 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
         <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Invoice {savedInvoice.invoiceNumber} was saved</h2>
         <p role={shareError ? 'alert' : 'status'} className="mt-3 text-ui-14 text-tea-text-sec">{shareError || (savedInvoice.share ? 'Ready to share. Retrying will share this invoice without creating another.' : 'Recovered after the page reloaded. You can find it in Orders.')}</p>
         <div className="mt-5 flex flex-wrap justify-end gap-3">
-          <button type="button" onClick={onClose} className="min-h-11 px-4 text-ui-14 text-tea-text-sec hover:text-tea-text">Done</button>
-          {savedInvoice.share && <button type="button" onClick={() => void retryShare()} disabled={saving} className="min-h-11 rounded-xl px-4 text-ui-14 cta-solid disabled:opacity-50">{saving ? 'Sharing…' : 'Retry sharing'}</button>}
+          <button type="button" onClick={onClose} className="min-h-tap px-4 text-ui-14 text-tea-text-sec hover:text-tea-text">Done</button>
+          {savedInvoice.share && <button type="button" onClick={() => void retryShare()} disabled={saving} className="btn-primary btn-primary-lg">{saving ? 'Sharing…' : 'Retry sharing'}</button>}
         </div>
       </div>
     </div>
@@ -1058,8 +1058,8 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                 {pendingPayloadRef.current ? 'The invoice may have saved. Retry this request to recover its original number.' : 'Checking the saved request did not confirm an invoice. Check Orders before starting another.'}
               </p>
               {!pendingPayloadRef.current && <>
-                <button type="button" className="min-h-11 text-ui-14 text-tea-gold" disabled={recoveringCreate} onClick={() => setRecoveryRevision(revision => revision + 1)}>Check again</button>
-                <button type="button" className="min-h-11 text-ui-14 text-tea-text-sec" disabled={recoveringCreate} onClick={() => {
+                <button type="button" className="min-h-tap text-ui-14 text-tea-gold" disabled={recoveringCreate} onClick={() => setRecoveryRevision(revision => revision + 1)}>Check again</button>
+                <button type="button" className="min-h-tap text-ui-14 text-tea-text-sec" disabled={recoveringCreate} onClick={() => {
                   if (activeAccountId) writePendingInvoiceKey(activeAccountId, null);
                   setPendingCreateKey(null);
                   setCreationUnconfirmed(false);
@@ -1078,7 +1078,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
             <button
               onClick={() => handleSave(true)}
               disabled={saving || recoveringCreate || (creationUnconfirmed && !pendingPayloadRef.current)}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm cta-solid active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="btn-primary btn-primary-lg flex-1 active:scale-[0.98] flex"
             >
               {saving ? (
                 <Loader2 size={14} className="animate-spin" />

@@ -245,7 +245,7 @@ const SamplePage: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors mt-6"
+            className="btn-primary mt-6"
           >
             Go home
           </button>
@@ -267,7 +267,7 @@ const SamplePage: React.FC = () => {
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex min-h-[44px] items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+            className="inline-flex min-h-tap items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Back"
           >
             <ArrowLeft size={14} />
@@ -388,7 +388,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={handleOrderInquiry}
-              className="inline-flex items-center justify-center gap-1.5 min-h-10 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
+              className="btn-primary"
             >
               <ShoppingCart size={14} />
               Add to cart
@@ -597,7 +597,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={() => navigate(sampleCurateHref(sample))}
-              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
+              className="btn-primary btn-primary-lg w-full"
             >
               <ExternalLink size={14} />
               Promote to Curate

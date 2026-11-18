@@ -40,3 +40,9 @@ export const test = base.extend({
     await use(context);
   },
 });
+
+/** The smallest a control may be in this project: 44px on a touch screen,
+ *  28px with a mouse. Mirrors --tap-min in src/styles/tailwind.css. */
+export function tapFloor(): number {
+  return base.info().project.use.hasTouch ? 44 : 28;
+}

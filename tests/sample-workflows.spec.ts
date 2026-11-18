@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, tapFloor } from './fixtures';
 import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 const CART_ITEM = {
@@ -29,7 +29,7 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     const holdingSelect = page.getByLabel('Inventory holding');
     await expect(holdingSelect).toHaveCSS('font-size', '16px');
     const holdingBox = await holdingSelect.boundingBox();
-    expect(holdingBox?.height).toBeGreaterThanOrEqual(44);
+    expect(holdingBox?.height).toBeGreaterThanOrEqual(tapFloor());
     await holdingSelect.selectOption('holding-1');
     await page.getByRole('button', { name: 'Save holding link' }).click();
     expect(movements).toHaveLength(0);
@@ -247,7 +247,7 @@ test.describe('Sample list and Sample batches interface', () => {
     await expect(allSearch).toHaveCSS('font-size', '16px');
     for (const control of await page.getByRole('button', { name: /^(All|Requested|Received|Untasted|Tasted|Favorite|To Order|Ordered|Passed)$/ }).all()) {
       const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
     }
   });
 
@@ -260,7 +260,7 @@ test.describe('Sample list and Sample batches interface', () => {
       const control = page.getByRole('button', { name: label });
       await expect(control).toBeVisible();
       const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(tapFloor());
     }
     await expect(page.getByText('1998 Dong Ding')).toHaveCSS('font-size', '16px');
   });
