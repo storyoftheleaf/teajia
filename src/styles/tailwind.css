@@ -63,6 +63,10 @@ nav[aria-label="Admin navigation"] * {
 @media (hover: hover) and (pointer: fine) {
   :root { --tap-min: 28px; }
 }
+/* The Curate capture form is a field tool, built on 44px rows whose pairs
+   (Type and Year, Origin and Era, Journey/Scan/Photo) align by sharing that
+   height. It keeps the finger floor at every pointer. */
+[data-curate-source] { --tap-min: 44px; }
 
 :root {
   color-scheme: dark;
