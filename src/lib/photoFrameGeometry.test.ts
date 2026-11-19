@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { clampPhotoFrameCrop, squareFrameSize, type FrameBounds } from './photoFrameGeometry';
+import { clampPhotoFrameCrop, photoFrameSize, squareFrameSize, type FrameBounds } from './photoFrameGeometry';
 
 const bounds: FrameBounds = { mediaWidth: 480, mediaHeight: 320, viewportWidth: 400, viewportHeight: 400 };
 
-function expectCornersInside(crop: { x: number; y: number }, frame: FrameBounds, zoom: number, angle: number) {
-  const side = squareFrameSize(frame, angle);
+function expectCornersInside(crop: { x: number; y: number }, frame: FrameBounds, zoom: number, angle: number, aspect = 1) {
+  const size = photoFrameSize(frame, angle, aspect);
   const radians = angle * Math.PI / 180;
   const cos = Math.cos(radians), sin = Math.sin(radians);
-  for (const x of [-side / 2, side / 2]) for (const y of [-side / 2, side / 2]) {
+  for (const x of [-size.width / 2, size.width / 2]) for (const y of [-size.height / 2, size.height / 2]) {
     const localX = (x - crop.x) * cos + (y - crop.y) * sin;
     const localY = -(x - crop.x) * sin + (y - crop.y) * cos;
     expect(Math.abs(localX)).toBeLessThanOrEqual(frame.mediaWidth * zoom / 2 + 1e-7);
@@ -58,4 +58,23 @@ describe('square photo focus geometry', () => {
     expect(squareFrameSize(bounds, NaN)).toBe(320);
     expect(clampPhotoFrameCrop({ x: NaN, y: Infinity }, bounds, NaN, Infinity)).toEqual({ x: 0, y: 0 });
   });
+});
+
+
+it('fits square, portrait and landscape focus presets inside viewport and rotated original during pan', () => {
+  for (const aspect of [1, 2 / 3, 3 / 2]) for (const frame of [bounds, { ...bounds, mediaWidth: 220, mediaHeight: 560 }, { ...bounds, viewportWidth: 180, viewportHeight: 280 }]) {
+    for (const angle of [-90, -45, -3, 0, 2, 3, 45, 90, 179]) {
+      const size = photoFrameSize(frame, angle, aspect);
+      expect(size.width / size.height).toBeCloseTo(aspect, 10);
+      expect(size.width).toBeLessThanOrEqual(frame.viewportWidth + 1e-7);
+      expect(size.height).toBeLessThanOrEqual(frame.viewportHeight + 1e-7);
+      for (const zoom of [1, 1.5, 4]) for (const pan of [{ x: 0, y: 0 }, { x: 1e4, y: -1e4 }, { x: -1e4, y: 1e4 }, { x: 1e4, y: 1e4 }]) {
+        const crop = clampPhotoFrameCrop(pan, frame, zoom, angle, aspect);
+        expectCornersInside(crop, frame, zoom, angle, aspect);
+      }
+    }
+  }
+  expect(photoFrameSize(bounds, 0, 3 / 2)).toEqual({ width: 400, height: 400 / 1.5 });
+  expect(photoFrameSize({ ...bounds, mediaWidth: 0 }, 3, 2 / 3)).toEqual({ width: 0, height: 0 });
+  expect(photoFrameSize(bounds, 0, NaN)).toEqual(photoFrameSize(bounds, 0, 1));
 });

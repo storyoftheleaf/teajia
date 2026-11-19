@@ -11608,8 +11608,8 @@ const handleCapturePhotoFrame: Handler = async (request, env, params) => {
   const rawFrame = data.get('frame');
   let frame: unknown;
   try { frame = typeof rawFrame === 'string' && rawFrame.length <= 2048 ? JSON.parse(rawFrame) : null; } catch { frame = null; }
-  if (!validCapturePhotoFrame(frame)) return json({ error: 'Invalid square photo framing' }, 400);
-  if (!(file instanceof File) || !file.size || file.type !== 'image/jpeg') return json({ error: 'Provide a JPEG square preview' }, 400);
+  if (!validCapturePhotoFrame(frame)) return json({ error: 'Invalid photo framing' }, 400);
+  if (!(file instanceof File) || !file.size || file.type !== 'image/jpeg') return json({ error: 'Provide a JPEG photo preview' }, 400);
   const fileError = await validateUpload(file, 'image', maxFrameBytes);
   if (fileError) return fileError;
   const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:capture-image`);

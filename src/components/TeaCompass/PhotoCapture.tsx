@@ -864,7 +864,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                   <CapturePhotoImage
                     src={url}
                     alt={`Photo ${i + 1}`}
-                    className="w-full h-full object-cover pointer-events-none"
+                    className="w-full h-full object-contain pointer-events-none"
                   />
                 </button>
                 {onRemovePhoto && photos && (
@@ -1235,6 +1235,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         isOpen={!!editingPhotoUrl}
         source={frameReady ? editingPhotoSource ?? null : null}
         initialFrame={editingFrame.data?.frame}
+        allowAspectSelection
         loadError={editingFrame.error?.message}
         title="Frame photo"
         confirmLabel={savingEdit ? 'Saving…' : 'Save framing'}

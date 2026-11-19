@@ -259,3 +259,21 @@ it('refuses oversize previews and changed framing at approval without publishing
   expect((await request('/api/media/curate-approved/' + approvalId, 'GET', undefined, '')).status).toBe(404);
   expect(new Uint8Array(await (await request(photo + '?original=1')).arrayBuffer())).toEqual(bytes(1));
 });
+
+
+it('persists the three framing presets on the same private original and refuses unsupported ratios', async () => {
+  const { request } = await setup();
+  const photo = sourcePhoto('preset-framing');
+  await request(photo, 'POST', form(1));
+  for (const aspect of [1, 2 / 3, 3 / 2]) {
+    const frame = { ...squareFrame, aspect };
+    expect((await request(photo + '/frame', 'PUT', frameForm(2, frame))).status).toBe(200);
+    expect(await (await request(photo + '/frame')).json()).toEqual({ frame });
+    expect((await request(photo + '/frame', 'PUT', frameForm(3, frame), 'outside')).status).toBe(404);
+    expect(new Uint8Array(await (await request(photo + '?original=1')).arrayBuffer())).toEqual(bytes(1));
+  }
+  for (const aspect of [0, -1, 16 / 9, 'portrait', null]) {
+    expect((await request(photo + '/frame', 'PUT', frameForm(3, { ...squareFrame, aspect }))).status).toBe(400);
+  }
+  expect(await (await request(photo + '/frame')).json()).toEqual({ frame: { ...squareFrame, aspect: 3 / 2 } });
+});
