@@ -42,7 +42,7 @@ function expectAtMost(count: number, ceiling: number, name: string, instead: str
 describe('raw <button> elements', () => {
   const instead = 'Use the shared button, `Button` from src/components/shared/Button.tsx (variants primary, secondary, ghost, icon, danger), instead of a new raw <button>.';
   it('in src/admin do not rise', () => {
-    expectAtMost(countMatches(inFolder('src/admin/'), /<button\b/g), 1216, 'raw <button in src/admin', instead);
+    expectAtMost(countMatches(inFolder('src/admin/'), /<button\b/g), 1214, 'raw <button in src/admin', instead);
   });
   it('in src/components do not rise', () => {
     // 1378 includes the shared Button itself, which renders a plain <button>
@@ -108,7 +108,7 @@ describe('very long files', () => {
     'src/components/SinglePageRenderer.tsx': 2300,
     'src/components/TeaCompass/CaptureCard.tsx': 2196,
     'src/components/TeaCompass/index.tsx': 1803,
-    'src/lib/api.ts': 5275,
+    'src/lib/api.ts': 5273,
     'src/pages/ArticlePage.tsx': 2969,
     'src/pages/DesignSystemShowcase.tsx': 2123,
     'src/samples/SampleSetCreator.tsx': 2009,

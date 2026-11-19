@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { ReviewedDbArticle } from '../../types';
+import { Button } from '../../components/shared/Button';
 import { ImmersivePreview } from './ImmersivePreview';
 
 export function EditorialPilotReview({ article, onClose, onSaved }: {
@@ -51,25 +52,24 @@ export function EditorialPilotReview({ article, onClose, onSaved }: {
     <div role="dialog" aria-modal="true" aria-labelledby="edition-review-title"
       className="fixed inset-x-0 top-0 bottom-nav z-modal flex min-w-0 flex-col bg-tea-bg text-tea-text">
       <header className="flex flex-wrap items-center gap-x-3 border-b border-tea-border px-4 py-2">
-        <button type="button" aria-label="Close" onClick={onClose} className="tap-target inline-flex min-h-11 items-center text-tea-text-sec">
+        <Button variant="icon" type="button" aria-label="Close" onClick={onClose}>
           <X size={18} />
-        </button>
+        </Button>
         <h2 id="edition-review-title" className="font-semibold">WordForge editions</h2>
-        <button type="button" disabled={working} onClick={() => void act('reload')}
-          className="ml-auto min-h-11 text-ui-13 text-tea-text-sec">Refresh review</button>
+        <Button variant="quiet" type="button" disabled={working} onClick={() => void act('reload')} className="ml-auto">Refresh review</Button>
       </header>
       <div role="group" aria-label="Compare editions" className="grid grid-cols-2 gap-2 border-b border-tea-border p-3">
-        <button type="button" aria-pressed={edition === 'current'} onClick={() => setEdition('current')}
+        <Button variant="plain" type="button" aria-pressed={edition === 'current'} onClick={() => setEdition('current')}
           className={`min-w-0 rounded-md border border-tea-border p-2 text-left ${edition === 'current' ? 'bg-tea-accent-sub' : 'bg-tea-surface'}`}>
           <span className="block text-ui-12 text-tea-text-sec">{publicNow ? 'Public edition' : 'Stored draft'}
             {pilot.approved_source_revision != null && ` · Revision ${pilot.approved_source_revision}`}</span>
           <span className="block break-words font-semibold">{current.title}</span>
-        </button>
-        <button type="button" aria-pressed={edition === 'candidate'} onClick={() => setEdition('candidate')}
+        </Button>
+        <Button variant="plain" type="button" aria-pressed={edition === 'candidate'} onClick={() => setEdition('candidate')}
           className={`min-w-0 rounded-md border border-tea-border p-2 text-left ${edition === 'candidate' ? 'bg-tea-accent-sub' : 'bg-tea-surface'}`}>
           <span className="block text-ui-12 text-tea-text-sec">WordForge revision {pilot.source_revision}</span>
           <span className="block break-words font-semibold">{pilot.candidate.title}</span>
-        </button>
+        </Button>
       </div>
       {preview.author_name && <p className="px-4 py-2 text-ui-13 text-tea-text-sec">By {preview.author_name}</p>}
       <div className="min-h-0 flex-1">
@@ -79,15 +79,14 @@ export function EditorialPilotReview({ article, onClose, onSaved }: {
         {message && <p role="status" className="pb-2 text-ui-13 text-tea-text-sec">{message}</p>}
         {!pilot.ready && <p className="pb-2 text-ui-13 text-tea-text-sec">Verify the staged edition’s byline and media before approval.</p>}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {publicNow && <button type="button" disabled={working} onClick={() => void act('withdraw')}
-            className="mr-auto min-h-11 text-ui-13 text-tea-text-sec">Withdraw</button>}
+          {publicNow && <Button variant="quiet" type="button" disabled={working} onClick={() => void act('withdraw')} className="mr-auto">Withdraw</Button>}
           {publicNow && pilot.placed && <span className="text-ui-13 text-tea-text-sec">Placed in Read</span>}
-          {(!publicNow || !matches) && <button type="button" disabled={working || edition !== 'candidate' || !pilot.ready}
-            onClick={() => void act('publish')} className="cta-solid min-h-11 rounded-md px-3 text-ui-13 disabled:opacity-50">
+          {(!publicNow || !matches) && <Button type="button" disabled={working || edition !== 'candidate' || !pilot.ready}
+            onClick={() => void act('publish')} variant="primary">
             {publicNow ? 'Replace public edition' : 'Publish reviewed edition'}
-          </button>}
-          {publicNow && matches && !pilot.placed && <button type="button" disabled={working || edition !== 'candidate' || !pilot.ready}
-            onClick={() => void act('place')} className="cta-solid min-h-11 rounded-md px-3 text-ui-13 disabled:opacity-50">Place in Read</button>}
+          </Button>}
+          {publicNow && matches && !pilot.placed && <Button type="button" disabled={working || edition !== 'candidate' || !pilot.ready}
+            onClick={() => void act('place')} variant="primary">Place in Read</Button>}
         </div>
       </footer>
     </div>

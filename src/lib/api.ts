@@ -1,3 +1,4 @@
+import { createArticleApi } from './articlesApi';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput, StudioReceiptReferral, StudioReceiptReferralInput } from './logisticsTypes';
@@ -5,7 +6,7 @@ import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, ArticleDraftInput, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, ReadIssueStory, ReviewedDbArticle, TastingData } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, PlatformRole, ReviewedDbArticle, TastingData } from '../types';
 import type {
   FavoriteWrite,
   PaymentMethod,
@@ -4834,63 +4835,7 @@ export const api = {
     },
   },
 
-  articles: {
-    // Admin
-    list: async (status?: string): Promise<DbArticle[]> => {
-      return authedFetch(`${API_URL}/api/admin/articles${status ? `?status=${status}` : ''}`);
-    },
-    get: async (id: string): Promise<ReviewedDbArticle> => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}`)
-    },
-    create: async (data: ArticleDraftInput): Promise<ReviewedDbArticle> => {
-      return authedFetch(`${API_URL}/api/admin/articles`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
-    update: async (id: string, data: ArticleDraftInput, reviewDigest: string): Promise<ReviewedDbArticle> => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...data, review_digest: reviewDigest }),
-      });
-    },
-    publish: async (id: string, reviewDigest: string): Promise<ReviewedDbArticle> => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}/publish`, {
-        method: 'POST',
-        body: JSON.stringify({ review_digest: reviewDigest }),
-      });
-    },
-    unpublish: async (id: string, reviewDigest: string): Promise<ReviewedDbArticle> => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}/unpublish`, {
-        method: 'POST',
-        body: JSON.stringify({ review_digest: reviewDigest }),
-      });
-    },
-    delete: async (id: string, reviewDigest: string): Promise<{ success: boolean }> => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}`, {
-        method: 'DELETE',
-        body: JSON.stringify({ review_digest: reviewDigest }),
-      });
-    },
-    approveEdition: (id: string, reviewDigest: string, candidateId: string, place: boolean): Promise<{ placed: boolean }> =>
-      authedFetch(`${API_URL}/api/admin/articles/${id}/approve-edition`, {
-        method: 'POST',
-        body: JSON.stringify({ review_digest: reviewDigest, candidate_id: candidateId, place }),
-      }),
-    readIssue: async (): Promise<{ story: ReadIssueStory | null }> =>
-      handleResponse(await fetchWithTimeout(`${API_URL}/api/read/editorial-issue`)),
-    // Public
-    listPublished: async (limit = 20, offset = 0) => {
-      const res = await fetchWithTimeout(
-        `${API_URL}/api/articles?limit=${limit}&offset=${offset}`
-      );
-      return handleResponse(res);
-    },
-    getBySlug: async (slug: string) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/articles/${slug}`);
-      return handleResponse(res);
-    },
-  },
+  articles: createArticleApi({ apiUrl: API_URL, authedFetch, fetchWithTimeout, handleResponse }),
 
   // Photos for hand-built Read story pages: a real image + pan/zoom crop per
   // named frame. Public read; admin-gated write (uses the same upload pipeline).

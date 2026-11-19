@@ -65,3 +65,29 @@ test('published native edits offer an explicit reviewed replacement after privat
   await expect.poll(() => publications).toEqual([{ review_digest: 'b'.repeat(64) }]);
   await expect(page.getByRole('button', { name: 'Unpublish', exact: true })).toBeVisible();
 });
+
+test('editorial candidate review requires selecting the candidate before replacement', async ({ page }) => {
+  const candidate = { ...article, title: 'Synthetic candidate B', blocks: [{ type: 'paragraph', text: 'Synthetic candidate text.' }] };
+  const published = { ...article, title: 'Synthetic public A', status: 'published', blocks: [{ type: 'paragraph', text: 'Synthetic published text.' }], editorial_pilot: {
+    review_digest: 'b'.repeat(64), placement_review_digest: 'c'.repeat(64), candidate_id: 'candidate-b', content_hash: 'd'.repeat(64), source_revision: 2, placed: false,
+    approved_id: 'candidate-a', approved_source_revision: 1, ready: true, candidate,
+  } };
+  await page.addInitScript(jwt => localStorage.setItem('teajia_token', jwt), token);
+  await page.route('**/api/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/admin/articles') return route.fulfill({ json: [published] });
+    if (path === '/api/admin/articles/legacy') return route.fulfill({ json: published });
+    return route.fulfill({ json: {} });
+  });
+  await page.goto('/admin/magazine');
+  await page.getByRole('button', { name: /Synthetic public A/ }).click();
+  const replace = page.getByRole('button', { name: 'Replace public edition', exact: true });
+  await expect(replace).toBeDisabled();
+  await page.getByRole('button', { name: /WordForge revision 2/ }).click();
+  await expect(replace).toBeEnabled();
+  await page.screenshot({ path: '/private/tmp/magazine-editorial-shared-buttons.png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(replace).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: '/private/tmp/magazine-editorial-shared-buttons-mobile.png' });
+});
