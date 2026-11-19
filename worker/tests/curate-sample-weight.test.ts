@@ -63,6 +63,7 @@ describe('unknown sample weight is never a reported ten grams', () => {
     db.sqlite.prepare("INSERT INTO tea_sample_sets(id,account_id) VALUES ('legacy-set','a')").run();
     db.sqlite.prepare("INSERT INTO tea_samples(id,account_id,set_id,grams,status) VALUES ('legacy-portion','a','legacy-set',7,'received')").run();
     db.exec(readFileSync('worker/migrations/0037_curate_history.sql', 'utf8'));
+    db.exec(readFileSync('worker/migrations/0068_curate_history_lookup_indexes.sql', 'utf8'));
     expect(db.sqlite.prepare("SELECT grams,grams_known FROM tea_samples WHERE id='legacy-portion'").get()).toMatchObject({ grams: 7, grams_known: 1 });
   });
 });

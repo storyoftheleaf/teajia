@@ -33,6 +33,7 @@ function setup() {
  INSERT INTO notes VALUES('said','a','tea','said original','transcript','other','Other writer',0);
  INSERT INTO curate_todos VALUES('todo','a','Ask vendor',NULL);`);
  db.exec(readFileSync('worker/migrations/0037_curate_history.sql','utf8'));
+ db.exec(readFileSync('worker/migrations/0068_curate_history_lookup_indexes.sql','utf8'));
  return {db,env:{DB:db as unknown as D1Database} as ToolEnv};
 }
 const row=(db:SqliteD1,table:string,id:string)=>db.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first<any>();

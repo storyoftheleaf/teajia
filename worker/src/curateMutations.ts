@@ -438,7 +438,7 @@ export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entit
   UNION SELECT r.mutation_id FROM curate_attachments a JOIN curate_mutation_records r
    ON r.account_id=a.account_id AND r.entity_type='attachment' AND r.entity_id=a.id
    WHERE a.account_id=? AND a.entity_type='tea' AND a.entity_id=?
-  ${['before_json','after_json'].map(column=>`UNION SELECT r.mutation_id FROM curate_mutation_records r
+  ${['before_json','after_json'].map(column=>`UNION SELECT r.mutation_id FROM curate_mutation_records r INDEXED BY idx_curate_records_tea_${column==='before_json'?'before':'after'}
    WHERE r.account_id=? AND json_extract(r.${column},'$.compass_entry_id')=?
    AND json_extract(r.${column},'$.account_id')=?
    AND r.entity_type IN ('note','transcript','todo','sample','quote_line')`).join('\n')}

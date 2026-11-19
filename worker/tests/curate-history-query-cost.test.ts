@@ -33,7 +33,7 @@ it('looks up each mutation’s records and undo by key instead of rescanning acc
   expect(result.history.map(row=>row.id)).toEqual(['undo','a-399']);
   expect(result.history[1].undone_by).toBe('undo');
   expect(plans.some(plan=>/SEARCH m .*\(id=\?\)/.test(plan))).toBe(true);
-  expect(plans.filter(plan=>/SEARCH r .*<expr>=\?/.test(plan))).toHaveLength(2);
+  expect(plans.filter(plan=>/SEARCH r USING INDEX idx_curate_records_tea_(before|after)/.test(plan)), plans.join('\n')).toHaveLength(2);
   expect(plans.some(plan=>/SEARCH undone .*\(account_id=\? AND undo_of=\?\)/.test(plan))).toBe(true);
   expect(result.history.every(row=>row.records.every(record=>record.entity_id==='target'))).toBe(true);
 });
