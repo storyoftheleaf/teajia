@@ -308,13 +308,13 @@ const OrderStatusPage: React.FC = () => {
               so it was still promising it after the tea had been posted. The
               stage below says what is actually true, and says it once. */}
           {trackingToken && inquiry.order && <PayPalSandboxCheckout
-            key={`${trackingToken}:${inquiry.order.invoice_id || inquiry.invoice_id}`}
+            key={`sandbox:${trackingToken}:${inquiry.order.invoice_id || inquiry.invoice_id}`}
             trackingToken={trackingToken}
             invoiceId={inquiry.order.invoice_id || inquiry.invoice_id}
             onConfirmed={() => setReloadKey(k => k + 1)}
           />}
           {trackingToken && inquiry.order && <PayPalCheckout
-            key={`${trackingToken}:${inquiry.order.invoice_id || inquiry.invoice_id}`}
+            key={`live:${trackingToken}:${inquiry.order.invoice_id || inquiry.invoice_id}`}
             trackingToken={trackingToken}
             invoiceId={inquiry.order.invoice_id || inquiry.invoice_id}
             onConfirmed={() => setReloadKey(k => k + 1)}
