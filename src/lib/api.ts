@@ -3381,6 +3381,8 @@ export const api = {
       whatsapp_handoff?: boolean;
       customer_location?: string;
       delivery_address?: string;
+      delivery_city?: string;
+      delivery_state?: string;
       pickup?: boolean;
       us_shipping_postcode?: string;
       delivery_country?: 'US';

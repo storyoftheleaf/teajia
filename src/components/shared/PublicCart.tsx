@@ -53,14 +53,11 @@ type SavedOrder = {
 
 const PENDING_KEY = 'teajia_pendingOrderRequest';
 
-/* Delivery and reply are picked from tiles, not a dropdown: four and three
-   choices are few enough to see at once, and a tap beats opening a menu.
+/* Shipping and pickup remain separate visible choices.
    Each tile is a real radio, so the order is still a plain form. */
 const DELIVERY_TILES: [DeliveryChoice, string, string][] = [
-  ['bali-delivery', 'Delivery', 'in Bali'],
-  ['bali-pickup', 'Pickup', 'in Bali'],
-  ['indonesia', 'Indonesia', 'outside Bali'],
-  ['international', 'International', 'shipping'],
+  ['international', 'US shipping', 'charged separately later'],
+  ['bali-pickup', 'Pickup', 'by arrangement in Bali'],
 ];
 /* Two ways to be answered, not three. "WhatsApp chat" and "WhatsApp number"
    read as the same choice; the difference is only whether the customer leaves
@@ -159,7 +156,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     event.preventDefault();
     if (saving.current || placedOrder) return;
     if (unavailable) { setCheckoutError('We could not check the shop. Please retry.'); return; }
-    const nextErrors = validateCheckoutDetails(details, channel);
+    const nextErrors = validateCheckoutDetails(details, channel, isBaliStore);
     const requestWhatsApp = channel === 'whatsapp' && whatsappConsent;
     if (requestWhatsApp && !internationalWhatsAppNumber(details.contact)) nextErrors.contact = 'Include + and your country code, for example +62…';
     if (requestWhatsApp && internationalWhatsAppNumber(details.contact)?.slice(1) === whatsappNumber?.replace(/\D/g, '')) nextErrors.contact = 'Enter your own WhatsApp number, rather than the store’s number.';
@@ -190,7 +187,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
       pendingIdentity.current = identity;
       try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, delivery_city: isBaliStore && isUsDelivery(details) ? details.location.trim() : undefined, delivery_state: isBaliStore && isUsDelivery(details) ? details.state.trim().toUpperCase() : undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
         const original = cart.find(item => item.id === line.product_id && item.quantityGrams === line.quantity);
@@ -228,7 +225,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     catch { setCopyStatus('Could not copy. Open your order-status page and bookmark it instead.'); }
   };
 
-  const field = (key: 'name' | 'contact' | 'location' | 'country' | 'postcode' | 'address', label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+  const field = (key: 'name' | 'contact' | 'location' | 'country' | 'state' | 'postcode' | 'address', label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div className="space-y-1">
       <label className="block font-body text-ui-13 text-tea-text-sec" htmlFor={`checkout-${key}`}>{label}</label>
       <input id={`checkout-${key}`} name={key} value={details[key]} onChange={event => updateDetail(key, event.target.value)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `checkout-${key}-error` : undefined} className="checkout-input" {...props} />
@@ -318,10 +315,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   <span className="font-body text-ui-15 leading-tight">{main}</span>{' '}<span className="font-body text-ui-12 leading-tight text-tea-text-sec">{sub}</span>
                 </label>)}
               </div>}
-              {details.delivery !== 'bali-pickup' && field('location', details.delivery === 'bali-delivery' ? 'Your area in Bali' : details.delivery === 'indonesia' ? 'City and province' : isUsDelivery(details) ? 'City and state' : 'Town or city', { autoComplete: 'address-level2', placeholder: details.delivery === 'bali-delivery' ? 'e.g. Ubud or Canggu' : details.delivery === 'indonesia' ? 'e.g. Jakarta, DKI Jakarta' : undefined })}
-              {details.delivery === 'international' && field('country', 'Country', { autoComplete: 'country-name' })}
+              {details.delivery !== 'bali-pickup' && field('location', details.delivery === 'bali-delivery' ? 'Your area in Bali' : details.delivery === 'indonesia' ? 'City and province' : isBaliStore && isUsDelivery(details) ? 'City' : isUsDelivery(details) ? 'City and state' : 'Town or city', { autoComplete: 'address-level2', placeholder: details.delivery === 'bali-delivery' ? 'e.g. Ubud or Canggu' : details.delivery === 'indonesia' ? 'e.g. Jakarta, DKI Jakarta' : undefined })}
+              {details.delivery === 'international' && (isBaliStore ? <p className="font-body text-ui-13 text-tea-text-sec">United States only</p> : field('country', 'Country', { autoComplete: 'country-name' }))}
+              {isBaliStore && isUsDelivery(details) && field('state', 'State (two-letter code)', { autoComplete: 'address-level1', maxLength: 2, placeholder: 'CA' })}
               {(details.delivery === 'indonesia' || details.delivery === 'international') && field('postcode', isUsDelivery(details) ? 'ZIP code' : 'Postcode (optional)', { autoComplete: 'postal-code' })}
-              {details.delivery !== 'bali-pickup' && field('address', 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
+              {details.delivery !== 'bali-pickup' && field('address', isBaliStore ? 'Street address and apartment' : 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
               <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay by bank transfer right away.' : 'Pay for your tea first. Shipping is quoted and charged separately later.'}</p>
             </fieldset>
             <fieldset className="space-y-3 min-w-0">

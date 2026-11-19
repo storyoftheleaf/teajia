@@ -10,6 +10,13 @@ const PRODUCT = {
   origin_country: 'China', origin_region: 'Fujian', retail_price_per_gram_usd: 0.15,
   stock_grams: 500, status: 'Active', description: 'Soft florals.',
 };
+async function fillUsAddress(page: Page) {
+  await page.getByLabel('City', { exact: true }).fill('Los Angeles');
+  await page.getByLabel('State (two-letter code)', { exact: true }).fill('CA');
+  await page.getByLabel('ZIP code', { exact: true }).fill('90012');
+  await page.getByLabel('Street address and apartment', { exact: true }).fill('12 Test Lane');
+}
+
 type SubmittedRequest = {
   tracking_token: string; ref_number: string; source: string; customer_location: string;
   customer_contact: string; items_json: string; whatsapp_confirmation_consent?: boolean; whatsapp_handoff?: boolean;
@@ -109,7 +116,7 @@ test.describe('guest public checkout', () => {
     await page.getByRole('radio', { name: 'Email', exact: true }).check();
     await page.getByLabel('Your name', { exact: true }).fill('Catalogue Customer');
     await page.getByLabel('Your email address', { exact: true }).fill('guest@example.com');
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await fillUsAddress(page);
     await page.getByLabel('Your email address', { exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath('catalogue-email-form-viewport.png'), animations: 'disabled' });
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
@@ -126,26 +133,27 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page);
     await beginOrder(page);
     await page.getByRole('combobox', { name: 'Currency', exact: true }).selectOption('Yuan');
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await fillUsAddress(page);
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
     expect(requests).toHaveLength(1);
     expect(requests[0].currency).toBe('CNY');
   });
 
-  test('orders in Bali on the website without opening WhatsApp or an email app', async ({ page }, testInfo) => {
+  test('orders US shipping on the website without opening WhatsApp or an email app', async ({ page }, testInfo) => {
     const requests = await prepare(page);
     await beginOrder(page);
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
-    await page.getByLabel('Street address (optional)', { exact: true }).fill('12 Test Lane');
+    await fillUsAddress(page);
+    await page.getByLabel('Street address and apartment', { exact: true }).fill('12 Test Lane');
     expect(await page.evaluate(() => localStorage.getItem('teajia_cartDetails'))).not.toContain('12 Test Lane');
-    await page.screenshot({ path: testInfo.outputPath('checkout-form.png'), fullPage: true });
+    await page.locator('legend').filter({ hasText: /^Receiving$/ }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath('checkout-form.png'), animations: 'disabled' });
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
     await expect(page.getByText('Your request is saved with Teajia Bali.', { exact: true })).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: testInfo.outputPath('checkout-receipt.png'), fullPage: true });
     expect(requests).toHaveLength(1);
-    expect(requests[0]).toMatchObject({ source: 'website', customer_location: 'Ubud, Bali, Indonesia', customer_contact: 'guest@example.com', delivery_address: '12 Test Lane' });
+    expect(requests[0]).toMatchObject({ source: 'website', customer_location: 'Los Angeles, CA 90012, United States', customer_contact: 'guest@example.com', delivery_address: '12 Test Lane' });
     expect(JSON.parse(requests[0].items_json)[0]).toMatchObject({ packGrams: 25, packs: 2 });
     expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(0);
     await expect(page.getByRole('link', { name: /View order status/ })).toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
@@ -158,9 +166,9 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page, { whatsapp: false, light: true });
     await beginOrder(page, false);
     await expect(page.getByRole('radio', { name: 'Email', exact: true })).toBeChecked();
-    await page.getByRole('radio', { name: 'Pickup in Bali', exact: true }).check();
-    await expect(page.getByLabel('Your area in Bali', { exact: true })).toHaveCount(0);
-    await expect(page.getByLabel('Street address (optional)', { exact: true })).toHaveCount(0);
+    await page.getByRole('radio', { name: 'Pickup by arrangement in Bali', exact: true }).check();
+    await expect(page.getByLabel('City', { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel('Street address and apartment', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('checkout-light-form.png'), fullPage: true });
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
@@ -171,7 +179,7 @@ test.describe('guest public checkout', () => {
   test('offers bank transfer immediately for confirmed pickup', async ({ page }) => {
     const requests = await prepare(page, { whatsapp: false, pickupDeadline: '2026-11-18T08:00:00Z' });
     await beginOrder(page, false);
-    await page.getByRole('radio', { name: 'Pickup in Bali', exact: true }).check();
+    await page.getByRole('radio', { name: 'Pickup by arrangement in Bali', exact: true }).check();
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByText('Your pickup order is reserved.')).toBeVisible();
     await expect(page.getByText('Total · free pickup')).toBeVisible();
@@ -185,11 +193,10 @@ test.describe('guest public checkout', () => {
   test('shows the saved US shipping charge and delivered total before bank transfer', async ({ page }) => {
     const requests = await prepare(page, { whatsapp: false, usShipping: true, canonicalPrice: 16 });
     await beginOrder(page, false);
-    await page.getByRole('radio', { name: 'International shipping' }).check();
-    await page.getByLabel('Country', { exact: true }).fill('United States');
-    await page.getByLabel('City and state', { exact: true }).fill('Los Angeles, CA');
+    await page.getByRole('radio', { name: 'US shipping charged separately later' }).check();
+    await fillUsAddress(page);
     await page.getByLabel('ZIP code', { exact: true }).fill('90012');
-    await page.getByLabel('Street address (optional)', { exact: true }).fill('12 Test Lane');
+    await page.getByLabel('Street address and apartment', { exact: true }).fill('12 Test Lane');
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     const receipt = page.getByRole('region', { name: 'Order request confirmation' });
     await expect(receipt).toContainText('US shipping');
@@ -260,7 +267,7 @@ test.describe('guest public checkout', () => {
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
     await openCart(page);
     await page.getByRole('radio', { name: 'WhatsApp', exact: true }).check();
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await fillUsAddress(page);
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
     await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
@@ -279,7 +286,7 @@ test.describe('guest public checkout', () => {
     const requests = await prepare(page);
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
     await openCart(page);
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await fillUsAddress(page);
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
     await page.getByRole('radio', { name: 'WhatsApp', exact: true }).check();
     const contact = page.getByLabel('Your WhatsApp number', { exact: true });
@@ -304,7 +311,7 @@ test.describe('guest public checkout', () => {
     await page.goto('/shop', { waitUntil: 'domcontentloaded' });
     await openCart(page);
     await page.getByRole('radio', { name: 'WhatsApp', exact: true }).check();
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await fillUsAddress(page);
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
     await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
@@ -314,36 +321,26 @@ test.describe('guest public checkout', () => {
     expect(await page.evaluate(() => (window as any).__checkoutPopupCalls)).toBe(0);
   });
 
-  test('requires a country internationally and keeps the postcode optional', async ({ page }) => {
+  test('shows US as the only shipping destination and refuses an incomplete postal address', async ({ page }) => {
     const requests = await prepare(page);
     await beginOrder(page);
-    await page.getByRole('radio', { name: 'International shipping', exact: true }).check();
-    await page.getByLabel('Town or city', { exact: true }).fill('Melbourne');
-    await page.getByRole('button', { name: 'Place order request', exact: true }).click();
-    await expect(page.getByText('Enter the destination country.', { exact: true })).toBeVisible();
-    expect(requests).toHaveLength(0);
-    await page.getByLabel('Country', { exact: true }).fill('Australia');
-    await page.getByRole('button', { name: 'Place order request', exact: true }).click();
-    await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
-    expect(requests[0].customer_location).toBe('Melbourne, Australia');
-  });
-
-  test('quotes another Indonesian city without asking for a country', async ({ page }) => {
-    const requests = await prepare(page);
-    await beginOrder(page);
-    await page.getByRole('radio', { name: 'Indonesia outside Bali', exact: true }).check();
-    await page.getByLabel('City and province', { exact: true }).fill('Jakarta, DKI Jakarta');
-    await page.getByLabel('Postcode (optional)', { exact: true }).fill('12345');
+    await expect(page.getByRole('radio', { name: 'US shipping charged separately later', exact: true })).toBeChecked();
+    await expect(page.getByText('United States only', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Country', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('radio')).toHaveCount(4);
+    await page.getByRole('button', { name: 'Place order request', exact: true }).click();
+    expect(requests).toHaveLength(0);
+    await expect(page.getByText('Enter a valid US ZIP code.', { exact: true })).toBeVisible();
+    await fillUsAddress(page);
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
-    expect(requests[0].customer_location).toBe('Jakarta, DKI Jakarta 12345, Indonesia');
+    expect(requests[0]).toMatchObject({ customer_location: 'Los Angeles, CA 90012, United States', delivery_country: 'US', delivery_city: 'Los Angeles', delivery_state: 'CA', us_shipping_postcode: '90012' });
   });
 
   test('keeps the basket after a failed save and reuses its private token after reload', async ({ page }) => {
     const requests = await prepare(page, { failFirst: true });
     await beginOrder(page);
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await fillUsAddress(page);
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('Could not save your request');
     expect(await savedCart(page)).toHaveLength(1);
@@ -351,6 +348,7 @@ test.describe('guest public checkout', () => {
     await openCart(page);
     await page.getByRole('radio', { name: 'Email', exact: true }).check();
     await expect(page.getByLabel('Your email address', { exact: true })).toHaveValue('guest@example.com');
+    await page.getByLabel('Street address and apartment', { exact: true }).fill('12 Test Lane');
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
     expect(requests).toHaveLength(2);
@@ -362,7 +360,7 @@ test.describe('guest public checkout', () => {
   test('retains the receipt link after closing, reopening, and reloading an empty cart', async ({ page }) => {
     const requests = await prepare(page);
     await beginOrder(page);
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await fillUsAddress(page);
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
     await page.getByRole('button', { name: 'Continue browsing', exact: true }).click();
@@ -383,7 +381,7 @@ test.describe('guest public checkout', () => {
   test('allows an order request before payment setup', async ({ page }) => {
     const requests = await prepare(page, { canBePaid: false });
     await beginOrder(page);
-    await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+    await fillUsAddress(page);
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Order request confirmation' })).toBeVisible();
     expect(requests).toHaveLength(1);
@@ -398,7 +396,7 @@ test('saves an invoice without a phone number before offering the connected What
   await expect(page.getByRole('radio', { name: 'WhatsApp', exact: true })).toBeChecked();
   await expect(page.getByLabel('Your WhatsApp number', { exact: true })).toHaveValue('');
   await page.getByLabel('Your name', { exact: true }).fill('Chat Customer');
-  await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+  await fillUsAddress(page);
   await page.getByRole('button', { name: 'Place order request', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Could not save');
   await expect(page.getByRole('link', { name: 'Discuss this order on WhatsApp', exact: true })).toHaveCount(0);
@@ -412,7 +410,7 @@ test('saves an invoice without a phone number before offering the connected What
   expect(url.origin + url.pathname).toBe('https://wa.me/6281234567890');
   const message = url.searchParams.get('text')!;
   expect(message).toContain('Moonlight White: 2 × 25g');
-  expect(message).toContain('Ubud, Bali, Indonesia');
+  expect(message).toContain('Los Angeles, CA 90012, United States');
   expect(message).toContain('Invoice: TJB-0001');
   expect(message).toContain(`/order/${requests[1].tracking_token}`);
   expect(message).not.toContain('/admin');
@@ -453,7 +451,7 @@ test('saved confirmation uses the server quote instead of a stale basket price',
   await prepare(page, { canonicalPrice: 23 });
   await beginOrder(page);
   await page.getByRole('combobox', { name: 'Currency', exact: true }).selectOption('USD');
-  await page.getByLabel('Your area in Bali', { exact: true }).fill('Ubud');
+  await fillUsAddress(page);
   await page.getByRole('button', { name: 'Place order request', exact: true }).click();
   const confirmation = page.getByRole('region', { name: 'Order request confirmation' });
   await expect(confirmation).toBeVisible();

@@ -1,4 +1,5 @@
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
+import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
 import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from './paypalSandbox';
 import { listPrivateSessionReflections, readPrivateSessionReflection, writePrivateSessionReflection } from './privateSessionReflections';
 import { claimReceivedCard, listReceivedCards } from './memberReceivedCards';
@@ -14882,9 +14883,19 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     if (usShippingPostcode && !/^\d{5}(-\d{4})?$/.test(usShippingPostcode)) {
       return json({ error: 'Enter a valid US ZIP code for US shipping.' }, 400);
     }
-    const deliveryAddress = source === 'website' && typeof body.delivery_address === 'string'
+    let deliveryAddress = source === 'website' && typeof body.delivery_address === 'string'
       ? body.delivery_address.trim()
       : '';
+    const usAddress = {
+      street: deliveryAddress,
+      city: typeof body.delivery_city === 'string' ? body.delivery_city.trim() : '',
+      state: typeof body.delivery_state === 'string' ? body.delivery_state.trim().toUpperCase() : '',
+      postcode: usShippingPostcode,
+    };
+    // Canonical lines are also sent to PayPal. Older saved requests retain their
+    // original address fingerprint so their private-link retries keep working.
+    if (source === 'website' && normalized.value.storeSlug === 'teajia-bali' && !pickupRequested &&
+        Object.keys(validateUsShippingAddress(usAddress)).length === 0) deliveryAddress = formatUsShippingAddress(usAddress);
     const addressError = inquiryFieldTooLong('Delivery address', deliveryAddress, 500);
     if (addressError) return json({ error: addressError }, 400);
     const phoneCandidate = typeof body.phone === 'string' ? body.phone.trim() : '';
@@ -14934,6 +14945,11 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     }
 
     if (source === 'website') {
+      if (normalized.value.storeSlug === 'teajia-bali' && !pickupRequested) {
+        if (body.delivery_country !== 'US') return json({ error: 'Shipping is currently available to the United States only.' }, 400);
+        const addressErrors = validateUsShippingAddress(usAddress);
+        if (Object.keys(addressErrors).length) return json({ error: Object.values(addressErrors)[0], fields: addressErrors }, 400);
+      }
       if (whatsappRecipient) {
         const business = await env.DB.prepare('SELECT whatsapp_number FROM accounts WHERE id=?').bind(accountId).first<{ whatsapp_number: string | null }>();
         if (business?.whatsapp_number?.replace(/\D/g, '') === whatsappRecipient.slice(1)) {

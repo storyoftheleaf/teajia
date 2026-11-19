@@ -1,0 +1,9 @@
+# US shipping: tea now, postage later
+
+The Teajia flagship checkout ships only to the United States. Pickup remains a separate choice, explicitly requested by the buyer for an agreed handover in Bali. Other stores keep their own destination flow. New shipping orders collect the recipient's name, street and apartment, city, two-letter state code and ZIP; the full postal address stays in the selling store's invoice. Saved historical orders remain accessible and existing request retries remain idempotent.
+
+Customers pay for the tea first. The order page says **Tea paid** while postage is still unknown, rather than treating an absent quote as free shipping. For orders requiring review, acceptance starts the existing 24-hour tea-payment deadline.
+
+In [Orders](https://teajia.com/admin/activity?tab=orders), open the order and its **Shipping** section. Confirm the packed shipment price with the buyer, enter **Shipping quote (USD)** and choose **Save shipping**. A typed zero explicitly confirms free shipping; an empty field leaves shipping unquoted. The customer's existing private order page then shows the shipping charge separately and the remaining balance to pay. Share that existing order link when giving the quote; saving a quote does not imply an automatic message was sent. Once shipping is paid, record the tracking number there and dispatch. Dispatch is refused until shipping is confirmed and the full resulting balance is paid; a later shipping payment never deducts the tea stock twice.
+
+Automatic US postage remains disabled until Adrian supplies the outbound price per kilogram and its currency, packed-weight allowance, minimum charge and destinations covered. The shop's inbound freight cost is unrelated and must never be reused as customer postage. No carrier label or collection is purchased automatically.

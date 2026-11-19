@@ -32,7 +32,7 @@ function orderPayload(account = 'shop-a', contact = 'guest@example.com', overrid
     source: 'website', store_slug: account === 'shop-a' ? 'teajia-bali' : account,
     tracking_token: `privatewebsiteordertoken000000000000${String(id).padStart(2, '0')}`,
     ref_number: `TJ-WEB-${id}`, customer_name: 'Guest', customer_contact: contact,
-    customer_location: 'Ubud, Indonesia', currency: 'USD', total_estimate_usd: 1,
+    customer_location: 'Los Angeles, CA 90012, United States', ...(overrides.pickup ? {} : { delivery_country: 'US', delivery_address: '12 Test Lane', delivery_city: 'Los Angeles', delivery_state: 'CA', us_shipping_postcode: '90012' }), currency: 'USD', total_estimate_usd: 1,
     items: [{ id: account === 'shop-a' ? 'tea-a' : 'tea-b', name: 'Red tea', category: 'tea',
       storeSlug: account === 'shop-a' ? 'teajia-bali' : account, quantityGrams: 50, packGrams: 25, packs: 2,
       pricePerGram: 0.001, totalPrice: 0.01 }],
@@ -209,7 +209,7 @@ describe('website order lifecycle', () => {
     expect(first.result).toMatchObject({ success: true, invoice_id: expect.any(String), invoice_number: expect.any(String) });
     const saved = invoice(db, first.result.invoice_id);
     expect(saved).toMatchObject({ account_id: 'shop-a', status: 'Draft', inventory_deducted: 0,
-      customer_whatsapp: '+628123456789', shipping_destination: 'Ubud, Indonesia' });
+      customer_whatsapp: '+628123456789', shipping_destination: 'Los Angeles, CA 90012, United States' });
     const line = db.sqlite.prepare('SELECT quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ?')
       .get(saved.id) as { quantity: number; price_at_sale: number };
     expect(line.quantity * line.price_at_sale).toBeCloseTo(14);
@@ -328,7 +328,7 @@ describe('website order lifecycle', () => {
     expect(tracking.status).toBe(200);
     expect(await tracking.text()).not.toContain(address);
     const owner = await admin(db, 'shop-a', '/api/invoices', undefined, 'GET');
-    expect(await owner.json()).toMatchObject([{ id: result.invoice_id, delivery_address: address }]);
+    expect(await owner.json()).toMatchObject([{ id: result.invoice_id, delivery_address: `${address}\nLos Angeles, CA 90012\nUnited States` }]);
     const otherStore = await admin(db, 'shop-b', '/api/invoices', undefined, 'GET');
     expect(await otherStore.json()).toEqual([]);
   });
