@@ -209,7 +209,7 @@ describe('website order lifecycle', () => {
     const tracking = await buyerRequest(db, `/api/inquiries/${body.tracking_token}`);
     const view = await tracking.json();
     expect(view).toMatchObject({
-      order: { status: 'Pending', shipping_destination: 'In-person pickup in Bali, Indonesia' },
+      order: { status: 'Pending', shipping_destination: 'In-person pickup in Bali, Indonesia', shipping_cost_usd: 0 },
       payment: { total_usd: 14, pay_url: expect.stringContaining('t=') },
     });
     expect(JSON.stringify(view)).not.toContain('Synthetic bank reference');
@@ -261,7 +261,7 @@ describe('website order lifecycle', () => {
     });
     const tracking = await buyerRequest(db, `/api/inquiries/${body.tracking_token}`);
     const view = await tracking.json();
-    expect(view).toMatchObject({ payment: { total_usd: 20, pay_url: expect.stringContaining('t=') } });
+    expect(view).toMatchObject({ order: { shipping_cost_usd: 6 }, payment: { total_usd: 20, pay_url: expect.stringContaining('t=') } });
     expect(JSON.stringify(view)).not.toContain(address.delivery_address);
     const replay = await publicOrder(db, body, undefined, { ...config, SHOP_US_SHIPPING_USD_PER_KG: '70' });
     expect(replay.status).toBe(200);

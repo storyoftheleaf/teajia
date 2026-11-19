@@ -15211,6 +15211,7 @@ const handleGetInquiryByRef: Handler = async (request, env, params) => {
         fulfillment_method: invoice.fulfillment_method, shipping_quote_status: invoice.shipping_quote_status,
         shipping_status: invoice.fulfilled_at ? 'shipped' : invoice.inventory_deducted ? 'ready_to_pack' : 'not_ready',
         shipping_destination: invoice.shipping_destination,
+        shipping_cost_usd: invoice.shipping_cost_usd,
         tracking_number: invoice.tracking_number,
         shipped_at: invoice.fulfilled_at, cancelled_at: invoice.cancelled_at,
         refund_required: Boolean(invoice.refund_required),...refundTotals, stock_exception: invoice.stock_exception,

@@ -290,6 +290,7 @@ const OrderStatusPage: React.FC = () => {
           </p>
 
           {inquiry.order && inquiry.payment && <dl className="mt-4 border-t border-tea-border pt-3 space-y-1 text-ui-13">
+            {inquiry.order.status !== 'Draft' && typeof inquiry.order.shipping_cost_usd === 'number' && Number.isFinite(inquiry.order.shipping_cost_usd) && <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Delivery</dt><dd className="num text-tea-text">{formatStoredUsd(inquiry.order.shipping_cost_usd)}</dd></div>}
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Invoice total</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.total_usd))}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Paid</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.paid_usd))}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Balance</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.outstanding_usd))}</dd></div>

@@ -3411,6 +3411,7 @@ export const api = {
         invoice_number: string;
         status: string;
         fulfillment_method?: 'bali_pickup' | 'us_shipping' | null;
+        shipping_cost_usd?: number | null;
         shipping_quote_status?: 'requested' | 'confirmed' | null;
         shipping_status?: string | null;
         shipped_at?: string | null;

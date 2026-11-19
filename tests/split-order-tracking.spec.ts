@@ -41,3 +41,30 @@ test('one private order link selects split invoice items, balance and payment re
   expect(selections).toContain('split/child');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+for (const state of ['awaiting', 'confirmed', 'free', 'draft'] as const) {
+  test(`customer delivery breakdown stays explicit when ${state}`, async ({ page }, testInfo) => {
+    const shipping = state === 'free' ? 0 : 4;
+    const total = 14 + shipping;
+    const paid = state === 'confirmed' ? total : 0;
+    await page.route('**/api/inquiries/delivery-breakdown', route => route.fulfill({ json: {
+      ref_number: 'TEST-GOJEK-001', invoice_id: 'test-invoice', created_at: '2026-11-19T00:00:00Z', currency: 'USD',
+      order: { invoice_id: 'test-invoice', invoice_number: 'TEST-001', status: state === 'draft' ? 'Draft' : 'Pending', shipping_destination: 'Gojek delivery · Ubud, Bali', shipping_cost_usd: shipping },
+      invoice_items: [{ id: 'line', name: 'Test tea', quantity: 50, quantity_unit: 'g', unit_price_usd: .28, line_total_usd: 14 }],
+      items_json: '[]', total_estimate_usd: 14,
+      payment: { total_usd: total, paid_usd: paid, outstanding_usd: total - paid, has_methods: false, pay_url: null },
+      journey: { stage: state === 'confirmed' ? 'paid' : 'awaiting_payment', label: state === 'confirmed' ? 'Paid in full' : 'Awaiting payment', detail: null, at: null },
+    } }));
+    await page.goto('/order/delivery-breakdown', { waitUntil: 'domcontentloaded' });
+    const heading = page.getByRole('heading', { name: 'Order TEST-GOJEK-001', exact: true });
+    await expect(heading).toBeVisible();
+    const block = heading.locator('..').locator('..');
+    const delivery = block.locator('dl > div').filter({ has: page.locator('dt', { hasText: /^Delivery$/ }) });
+    if (state === 'draft') await expect(delivery).toHaveCount(0);
+    else await expect(delivery.locator('dd')).toHaveText(`$${shipping}`);
+    await expect(block.locator('dl > div').filter({ has: page.locator('dt', { hasText: /^Invoice total$/ }) }).locator('dd')).toHaveText(`$${total}`);
+    await expect(block.locator('dl > div').filter({ has: page.locator('dt', { hasText: /^Paid$/ }) }).locator('dd')).toHaveText(`$${paid}`);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await block.screenshot({ path: testInfo.outputPath(`delivery-${state}.png`) });
+  });
+}
