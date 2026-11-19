@@ -1291,7 +1291,7 @@ export function isTransientApiError(error: unknown): boolean {
   return /timed out|couldn.t reach the server|network|offline|failed to fetch/i.test(error.message);
 }
 
-async function handleResponse(res: Response, requestToken?: string | null) {
+export async function handleResponse(res: Response, requestToken?: string | null) {
   const incidentContext = responseIncidentContext.get(res) ?? {
     route: routeFromUrl(res.url || '/unknown'),
     method: 'GET',

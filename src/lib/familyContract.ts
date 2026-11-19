@@ -1,0 +1,141 @@
+/**
+ * Teajia family: the contract between the phone and the upload door.
+ *
+ * Shared by the worker (worker/src/familyRoutes.ts) and the site
+ * (src/lib/api.ts `familyApi`, src/lib/familyPhotographSizes.ts), so a limit
+ * is stated once and the browser and the server cannot drift apart.
+ * Plain TypeScript only: the worker compiles this file without DOM types.
+ *
+ * Decisions behind the numbers: todo/plans/teajia-family.md, decision 16.
+ */
+
+/** Six photographs per tea per person. Removing one from your page frees its place. */
+export const FAMILY_PHOTOS_PER_TEA = 6;
+/** Photographs one person may add across all teas in a day. */
+export const FAMILY_PHOTOS_PER_DAY = 24;
+/** Voice notes one member may send in a day. Shop staff keep their own limits. */
+export const FAMILY_VOICE_NOTES_PER_DAY = 20;
+/** Two minutes of speech. */
+export const FAMILY_VOICE_MAX_SECONDS = 120;
+/** Two minutes at the highest bitrate a phone records speech (256 kbit/s is 3.84 MB). */
+export const FAMILY_VOICE_MAX_BYTES = 4 * 1024 * 1024;
+
+/** The large copy: long edge at most 2000px, stored under one megabyte. */
+export const FAMILY_FULL_LONG_EDGE = 2000;
+export const FAMILY_FULL_MAX_BYTES = 1_000_000;
+/** The small copy every grid asks for. */
+export const FAMILY_SMALL_LONG_EDGE = 480;
+export const FAMILY_SMALL_MAX_BYTES = 150_000;
+/** Anything smaller than this on its long edge is not a photograph of a tea. */
+export const FAMILY_MIN_LONG_EDGE = 64;
+/** The only type the door accepts. The phone re-encodes every picture to it. */
+export const FAMILY_PHOTO_TYPE = 'image/jpeg';
+
+/** Who can see a photograph or a tasting. Keep private is the default. */
+export type FamilyShareState = 'private' | 'page' | 'offered';
+export const FAMILY_SHARE_STATES: readonly FamilyShareState[] = ['private', 'page', 'offered'];
+
+/** What the shop has done with an offered photograph. */
+export type FamilyShopUse = 'none' | 'placed' | 'lead' | 'passed';
+
+/** What a visitor may report and the owner may hide. A page is addressed by its contributor id. */
+export type FamilyTargetKind = 'page' | 'photograph' | 'tasting';
+export const FAMILY_TARGET_KINDS: readonly FamilyTargetKind[] = ['page', 'photograph', 'tasting'];
+
+/** The tasting page a photograph was taken on, when the phone says. */
+export type FamilyPhotoPage = 'impression' | 'texture' | 'effect' | 'taste' | 'storage' | 'notes' | 'other';
+export const FAMILY_PHOTO_PAGES: readonly FamilyPhotoPage[] = ['impression', 'texture', 'effect', 'taste', 'storage', 'notes', 'other'];
+
+/** One photograph as its author sees it. */
+export interface FamilyPhotograph {
+  id: string;
+  product_id: string;
+  journal_entry_id: string | null;
+  page: FamilyPhotoPage | null;
+  full_url: string;
+  small_url: string;
+  full_width: number;
+  full_height: number;
+  small_width: number;
+  small_height: number;
+  share_state: FamilyShareState;
+  created_at: string;
+}
+
+/** Everything the member's own tea shop needs for one tea. */
+export interface FamilyMyTea {
+  product_id: string;
+  photographs: FamilyPhotograph[];
+  cover_photograph_id: string | null;
+  /** The tasting's share state, or null when the tasting has not been saved to the server yet. */
+  tasting_share_state: FamilyShareState | null;
+  /** How many more photographs this person may add to this tea. */
+  remaining: number;
+}
+
+/** The name a photograph is credited to, and the page it links to when there is one. */
+export interface FamilyAuthor {
+  name: string;
+  /** The contributor id of the person's page, or null when they have no page yet. */
+  page_id: string | null;
+}
+
+/** A shared photograph on a public tea page. Never carries a score. */
+export interface FamilySharedPhotograph {
+  id: string;
+  full_url: string;
+  small_url: string;
+  full_width: number;
+  full_height: number;
+  small_width: number;
+  small_height: number;
+  author: FamilyAuthor;
+}
+
+/** What a public tea page shows from the family. */
+export interface FamilyTeaPhotographs {
+  product_id: string;
+  /** The shop's chosen lead picture, credited. Null keeps the tea's own picture. */
+  lead: FamilySharedPhotograph | null;
+  /** Photographs the shop placed on the tea page. */
+  placed: FamilySharedPhotograph[];
+  /** "From the family": photographs their authors shared. */
+  family: FamilySharedPhotograph[];
+}
+
+/** One photograph in the shop's offered pile. */
+export interface FamilyOfferedPhotograph extends FamilySharedPhotograph {
+  product_id: string;
+  product_name: string | null;
+  share_state: FamilyShareState;
+  shop_use: FamilyShopUse;
+  /** True when the author has removed it from their own page. The shop may still use it. */
+  removed_by_author: boolean;
+  offered_at: string;
+}
+
+export interface FamilyRestockRequest {
+  id: string;
+  product_id: string;
+  product_name: string | null;
+  requester_name: string;
+  requester_email: string | null;
+  note: string | null;
+  status: 'open' | 'answered' | 'closed';
+  created_at: string;
+}
+
+export interface FamilyReport {
+  id: string;
+  target_kind: FamilyTargetKind;
+  target_id: string;
+  reason: string | null;
+  status: 'open' | 'acted' | 'dismissed';
+  created_at: string;
+}
+
+/** A refusal from the door: a plain sentence plus a code the screen can branch on. */
+export interface FamilyRefusal {
+  error: string;
+  code: string;
+}

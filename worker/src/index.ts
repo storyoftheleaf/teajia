@@ -178,6 +178,7 @@ import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
 import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
+import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv {
@@ -30817,6 +30818,19 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/admin/articles/:id/unpublish',      handleUnpublishArticle],
   ['DELETE', '/api/admin/articles/:id',                handleDeleteArticle],
 ];
+
+// Teajia family (worker/src/familyRoutes.ts). Put first, so its voice-note
+// wrappers answer /api/transcribe and the retry before the staff handlers they
+// delegate to for shop staff.
+const familyDeps: FamilyDeps<Env> = {
+  publicAccountId: BALI_ACCOUNT_ID,
+  requireAuthenticatedUser, optionalAuthenticatedUser, requireBundle, enforceDurableLimit, validateUpload, safeUploadExtension,
+};
+routes.unshift(
+  ['POST', '/api/transcribe', familyTranscribe(familyDeps, handleTranscribe)],
+  ['POST', '/api/transcriptions/:id/retry', familyRetryTranscription(familyDeps, handleRetryTranscription)],
+  ...familyRoutes(familyDeps),
+);
 
 // Simple in-memory rate limiter (per-isolate; resets on cold start — good enough for abuse deterrence)
 const _rlMap = new Map<string, { count: number; resetAt: number }>();

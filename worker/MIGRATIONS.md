@@ -62,6 +62,12 @@ Migration `119_curate_import_analysis.sql` adds AI-analysis state, per-source
 outcomes, vendor-group review, exact receipt-cost provenance, and durable
 Curate-to-Inventory receipt links for the full-screen import workflow.
 
+Migration `0069_teajia_family.sql` adds new tables only (member photographs,
+a member's cover per tea, tasting shares, restock requests, reports, the
+owner's hides) for the Teajia family plan (`todo/plans/teajia-family.md`). It
+reads and changes no existing row and is folded into `schema.sql`. Routes:
+`worker/src/familyRoutes.ts`.
+
 Caveats baked into this repo's history:
 - SQLite `ALTER TABLE ... ADD COLUMN` has **no `IF NOT EXISTS`** — column-adding
   migrations (e.g. 087, 088) error if run twice. Apply each exactly once.
