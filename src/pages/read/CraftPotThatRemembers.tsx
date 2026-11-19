@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
 
@@ -23,7 +23,7 @@ const moreLinks = [
 // ─── Shared sub-styles ───────────────────────────────────────────────────────
 const pBody: React.CSSProperties = {
   fontFamily: F.body,
-  fontSize: 'clamp(16px,2vw,18px)',
+  fontSize: S.body,
   lineHeight: 1.8,
   color: C.taupe,
   margin: '0 0 18px',
@@ -157,7 +157,7 @@ const CraftPotThatRemembers: React.FC = () => {
 
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: C.ink, margin: 0 }}>
             M
             ost teapots are inert, glazed, sealed, forgetful. The little pots of Yixing are the opposite. Thrown from a rare unglazed stoneware called{' '}
             <span style={{ fontFamily: F.cn, color: C.taupe }}>紫砂</span>
@@ -228,7 +228,7 @@ const CraftPotThatRemembers: React.FC = () => {
 
         {/* ── PULL QUOTE ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
-          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: S.heading, lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
             "One pot, one tea. A Yixing pot is a diary you are not allowed to overwrite."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
@@ -309,7 +309,7 @@ const CraftPotThatRemembers: React.FC = () => {
 
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px clamp(40px,6vw,72px)' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             In a world of objects designed to forget, wiped clean, reset, replaced, the Yixing pot insists on the opposite. It keeps everything. It asks for one tea, a little ritual, and a great deal of time, and in return it gives you something almost no other vessel can: a memory you can drink. Choose your pot, and your tea, with care. You may be choosing for your grandchildren.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>

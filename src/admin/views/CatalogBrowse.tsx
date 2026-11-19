@@ -412,7 +412,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
         <div className="flex-1 flex flex-col gap-1 min-w-0 py-1">
           {/* Name */}
           <h3
-            className="font-display text-[24px] font-normal leading-[1.2] tracking-[0.01em] text-tea-text"
+            className="font-display text-ui-24 font-normal leading-[1.2] tracking-[0.01em] text-tea-text"
             style={{ fontWeight: 400 }}
           >
             {profile.name}

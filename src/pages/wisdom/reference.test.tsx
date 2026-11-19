@@ -1628,7 +1628,7 @@ describe('three type sizes, and nothing else', () => {
   it('sets one headword per page and nothing else at that scale', () => {
     for (const path of [...INDEX_PAGES, ...DETAIL_PAGES]) {
       const html = render(path);
-      const headwords = html.match(/text-\[32px\] sm:text-\[44px\]/g) ?? [];
+      const headwords = html.match(/text-ui-32 sm:text-\[44px\]/g) ?? [];
       expect(headwords.length).toBe(1);
     }
   });

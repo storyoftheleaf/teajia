@@ -231,7 +231,7 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
 
         <div className="tea-ledger-identity min-w-0 flex-1">
           <div className="flex min-w-0 items-start gap-2">
-            <h3 className="min-w-0 truncate sm:overflow-visible sm:whitespace-normal sm:break-words font-display text-[18px] font-medium leading-tight text-tea-text lg:text-ui-20">
+            <h3 className="min-w-0 truncate sm:overflow-visible sm:whitespace-normal sm:break-words font-display text-ui-18 font-medium leading-tight text-tea-text lg:text-ui-20">
               {item.name}
             </h3>
             {tastingCount > 0 && (

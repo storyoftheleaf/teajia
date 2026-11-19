@@ -1041,7 +1041,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
           <div className="flex items-baseline justify-between py-3.5 border-t border-tea-border">
             <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Total</span>
             <div className="text-right">
-              <span className="font-serif text-[22px] leading-none text-tea-text tabular-nums">
+              <span className="font-serif text-ui-22 leading-none text-tea-text tabular-nums">
                 {formatCurrency(total, currency, rates)}
               </span>
               <span className="text-xs text-tea-text-sec ml-1.5">{currency}</span>

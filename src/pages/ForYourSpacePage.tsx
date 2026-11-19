@@ -213,7 +213,7 @@ export const ForYourSpacePage: React.FC = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="text-[2.2rem] md:text-[3rem] lg:text-[3.5rem] font-normal text-tea-text leading-[1.1] tracking-[-0.02em] mb-6"
+            className="text-[2.2rem] md:text-ui-48 lg:text-[3.5rem] font-normal text-tea-text leading-[1.1] tracking-[-0.02em] mb-6"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Bring tea to your space.

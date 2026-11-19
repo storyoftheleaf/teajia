@@ -25,7 +25,7 @@ export default function AtlasSearchPage() {
   const total = result ? result.named.length + result.text.length : 0;
   return (
     <AtlasFrame title={q ? `Search: ${q}` : 'Search'} trail={[{ label: 'Search' }]}>
-      <h1 className="font-display text-[34px] md:text-[46px] leading-[1.1] text-tea-text [overflow-wrap:anywhere]">{q ? `“${q}”` : 'Search'}</h1>
+      <h1 className="font-display text-ui-34 md:text-[46px] leading-[1.1] text-tea-text [overflow-wrap:anywhere]">{q ? `“${q}”` : 'Search'}</h1>
       {!q && <p className="font-body text-tea-text-sec text-ui-15 mt-3">Type a word, a name or a topic above.</p>}
       {q && failed && <p className="font-body text-tea-text-sec text-ui-15 italic mt-3">Could not search just now. Try again in a moment.</p>}
       {q && !failed && !result && <p className="font-body text-tea-text-dim text-ui-15 italic mt-3">Searching…</p>}

@@ -90,7 +90,7 @@ const TermLine: React.FC<{
       className={
         sentenceCase
           ? 'mx-auto max-w-[560px] text-balance font-display text-ui-16 leading-[1.55] text-tea-text'
-          : 'mx-auto mt-3 max-w-[300px] font-display text-[21px] leading-[1.65] text-tea-text lg:max-w-[360px] lg:text-[22px]'
+          : 'mx-auto mt-3 max-w-[300px] font-display text-[21px] leading-[1.65] text-tea-text lg:max-w-[360px] lg:text-ui-22'
       }
     >
       {sentenceCase && (
@@ -274,13 +274,13 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
               {tasteTerms.length > 0 &&
                 termLine(
                   tasteTerms,
-                  'font-display text-[19px] leading-[1.3] text-tea-text lg:text-[25px]',
+                  'font-display text-ui-19 leading-[1.3] text-tea-text lg:text-[25px]',
                 )}
               {feelingTerms.length > 0 && (
                 <div className={tasteTerms.length > 0 ? 'mt-2.5 lg:mt-3' : ''}>
                   {termLine(
                     feelingTerms,
-                    'font-display text-ui-16 leading-[1.3] text-tea-text-dim lg:text-[19px]',
+                    'font-display text-ui-16 leading-[1.3] text-tea-text-dim lg:text-ui-19',
                   )}
                 </div>
               )}

@@ -55,7 +55,7 @@ export const AlcoveOriginLine: React.FC<AlcoveOriginLineProps> = ({
   return (
     <div className="px-5 pb-7 pt-7 text-center lg:pb-8 lg:pt-9">
       {origin && (
-        <p className="m-0 font-display text-[22px] font-normal leading-[1.34] text-tea-text [text-wrap:balance] lg:text-ui-26">
+        <p className="m-0 font-display text-ui-22 font-normal leading-[1.34] text-tea-text [text-wrap:balance] lg:text-ui-26">
           {origin}
         </p>
       )}

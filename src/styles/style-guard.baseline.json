@@ -1,0 +1,1080 @@
+{
+  "master": "src/styles/tokens.css",
+  "totals": {
+    "colors": 1590,
+    "sizes": 1649,
+    "fonts": 807
+  },
+  "files": {
+    "index.html": {
+      "colors": 10,
+      "sizes": 1,
+      "fonts": 4
+    },
+    "src/App.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/admin/components/AddProductModal.tsx": {
+      "colors": 0,
+      "sizes": 5,
+      "fonts": 0
+    },
+    "src/admin/components/ArticleEditorModal.tsx": {
+      "colors": 0,
+      "sizes": 5,
+      "fonts": 0
+    },
+    "src/admin/components/BriefingCardsEditor.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/CustomerProfilePage.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/CustomersView.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/EventForm/shared.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/IntakeChatSheet.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/InventoryView.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/admin/components/InvoicePdf.tsx": {
+      "colors": 14,
+      "sizes": 11,
+      "fonts": 14
+    },
+    "src/admin/components/PostSessionEditor.tsx": {
+      "colors": 0,
+      "sizes": 5,
+      "fonts": 0
+    },
+    "src/admin/components/ProductEditPanel.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/admin/components/PurchaseOrderPdf.tsx": {
+      "colors": 13,
+      "sizes": 7,
+      "fonts": 11
+    },
+    "src/admin/components/RecommendationModal.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/ReminderTimeline.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/ShareSheet.tsx": {
+      "colors": 2,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/admin/components/SourcesView.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/admin/components/TeaDetailsModal.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/admin/components/VenueManager.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/collections/CollectionShareSheet.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/admin/components/contributorEditor/CardParts.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/contributorEditor/PersonPage.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 1
+    },
+    "src/admin/components/inventory/InventoryActionRail.tsx": {
+      "colors": 0,
+      "sizes": 4,
+      "fonts": 0
+    },
+    "src/admin/components/inventory/InventoryRow.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/admin/components/inventory/logisticsManifest.ts": {
+      "colors": 5,
+      "sizes": 2,
+      "fonts": 2
+    },
+    "src/admin/components/inventory/phone/PhoneSamplesList.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 2
+    },
+    "src/admin/components/inventory/phone/PhoneStockList.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/admin/components/inventory/phone/PhoneTeaSheet.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 2
+    },
+    "src/admin/components/inventory/phone/SampleDecide.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/components/tasting/ShareScreen.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/admin/components/wisdom/WisdomBrowser.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/admin/components/wisdom/config.ts": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/themeUtils.ts": {
+      "colors": 17,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/admin/views/CatalogBrowse.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/admin/views/CollectionEditView.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/views/CollectionsView.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/views/InboundCollectionView.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/views/IntakeWorkspace.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/admin/views/ProductStoryView.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/admin/views/SuggestionsInbox.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/admin/views/VendorProfileView.tsx": {
+      "colors": 3,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/admin/views/WholesaleOrderTimeline.tsx": {
+      "colors": 0,
+      "sizes": 5,
+      "fonts": 0
+    },
+    "src/admin/views/WholesaleOrdersList.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/atlas/AtlasIndex.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/atlas/add/readPdf.ts": {
+      "colors": 1,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/atlas/pages/AtlasIssuePage.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/atlas/pages/AtlasReaderPage.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/atlas/pages/AtlasSearchPage.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/atlas/pages/AtlasSourcePage.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/atlas/pages/AtlasTopicPage.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/components/AccountPanel/LaunchpadView.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/BottomTabBar.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/ContributorProfile.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/CurateV2/AgentInbox.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/CurateV2/BrowseCard.tsx": {
+      "colors": 1,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/CurateV2/CuratePrimitives.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/CurateV2/LedgerPdf.tsx": {
+      "colors": 13,
+      "sizes": 6,
+      "fonts": 11
+    },
+    "src/components/CurateV2/LedgerView.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/CurateV2/PhotoCapture.tsx": {
+      "colors": 2,
+      "sizes": 4,
+      "fonts": 0
+    },
+    "src/components/CurateV2/SessionReview.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/CurateV2/TeaFace.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 2
+    },
+    "src/components/CurateV2/TeaTagSheet.tsx": {
+      "colors": 10,
+      "sizes": 0,
+      "fonts": 5
+    },
+    "src/components/CurateV2/VendorHistory.tsx": {
+      "colors": 1,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/CurateV2/index.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/LearnCurriculum.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/LearnHub.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/LeftSidebar.tsx": {
+      "colors": 2,
+      "sizes": 13,
+      "fonts": 0
+    },
+    "src/components/Logos/LogoWordmark.tsx": {
+      "colors": 1,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/MediaViewer.tsx": {
+      "colors": 0,
+      "sizes": 8,
+      "fonts": 0
+    },
+    "src/components/Reader.tsx": {
+      "colors": 3,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/ShareModal.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/Shop.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/SinglePageRenderer.tsx": {
+      "colors": 19,
+      "sizes": 35,
+      "fonts": 8
+    },
+    "src/components/SiteMenu.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/StoryModal.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/TeaCompass/CaptureCard.tsx": {
+      "colors": 1,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/TeaCompass/LedgerPdf.tsx": {
+      "colors": 13,
+      "sizes": 6,
+      "fonts": 11
+    },
+    "src/components/TeaCompass/PhotoCapture.tsx": {
+      "colors": 2,
+      "sizes": 4,
+      "fonts": 0
+    },
+    "src/components/TeaCompass/PricingRow.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/TeaCompass/SessionReview.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/TeaCompass/TeaTagSheet.tsx": {
+      "colors": 10,
+      "sizes": 0,
+      "fonts": 5
+    },
+    "src/components/TeaCompass/VendorHistory.tsx": {
+      "colors": 1,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/TeaCompass/index.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/TeaCompass/types.ts": {
+      "colors": 7,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/TeaDiscovery/questions.ts": {
+      "colors": 4,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/TeaGlossary.tsx": {
+      "colors": 3,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/TeawareCatalog.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/advise/InquiryForm.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/advise/ProjectPlaceholder.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 3
+    },
+    "src/components/advise/Projects.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/article/SharePanel.tsx": {
+      "colors": 10,
+      "sizes": 12,
+      "fonts": 7
+    },
+    "src/components/events/AvailabilityBadge.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/events/EventLanding.tsx": {
+      "colors": 16,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/immersive/ReadingProgress.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/immersive/sections.tsx": {
+      "colors": 8,
+      "sizes": 1,
+      "fonts": 16
+    },
+    "src/components/people/immersive.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 1
+    },
+    "src/components/profile/PayAccessPanel.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/profile/PaymentChooser.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/reader/BreathPacer.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/reader/InfographicCircle.tsx": {
+      "colors": 7,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/reader/StackedCards.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/samples/SampleCartPanel.tsx": {
+      "colors": 7,
+      "sizes": 3,
+      "fonts": 5
+    },
+    "src/components/samples/SampleOrderModal.tsx": {
+      "colors": 2,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shared/AdminCart.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shared/BrewingQRCard.tsx": {
+      "colors": 11,
+      "sizes": 8,
+      "fonts": 10
+    },
+    "src/components/shared/BuyingBasket.tsx": {
+      "colors": 0,
+      "sizes": 4,
+      "fonts": 0
+    },
+    "src/components/shared/CartFlyAnimation.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shared/CartItem.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/shared/CurrencyToggle.tsx": {
+      "colors": 2,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/shared/HapticSlider.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shared/InProcess.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shared/NoteThread.tsx": {
+      "colors": 6,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shared/PageHeaderTabs.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shared/PreloadIndicator.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shared/PublicCart.tsx": {
+      "colors": 2,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shared/ScrollProgressBar.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shared/SectionDivider.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shared/SwipeCarousel.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shared/Tabs.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shop/AlcoveCard.tsx": {
+      "colors": 2,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shop/AlcoveModal.tsx": {
+      "colors": 0,
+      "sizes": 5,
+      "fonts": 0
+    },
+    "src/components/shop/CollectionTab.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shop/SetLedger.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shop/ShopCurrencyPicker.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shop/TeaFinder.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shop/TeaPlaceholder.tsx": {
+      "colors": 11,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/components/shop/TeaWeighControl.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shop/TeawareAlcoveCard.tsx": {
+      "colors": 2,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shop/TeawareCartControl.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shop/alcove/AlcoveAboutSection.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 5
+    },
+    "src/components/shop/alcove/AlcoveCarouselShell.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shop/alcove/AlcoveCharacterBand.tsx": {
+      "colors": 0,
+      "sizes": 6,
+      "fonts": 3
+    },
+    "src/components/shop/alcove/AlcoveCommerceFooter.tsx": {
+      "colors": 0,
+      "sizes": 4,
+      "fonts": 0
+    },
+    "src/components/shop/alcove/AlcoveFactsLedger.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/shop/alcove/AlcoveIdentityHeader.tsx": {
+      "colors": 0,
+      "sizes": 4,
+      "fonts": 0
+    },
+    "src/components/shop/alcove/AlcoveModals.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shop/alcove/AlcoveOriginLine.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/shop/alcove/AlcoveTableSection.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 1
+    },
+    "src/components/shop/alcove/AlcoveTastingPlate.tsx": {
+      "colors": 0,
+      "sizes": 7,
+      "fonts": 1
+    },
+    "src/components/shop/alcove/TeaAmountList.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/storefront/Storefront.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/components/tasting/AppearanceZone.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 3
+    },
+    "src/components/tasting/BodyZone.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/components/tasting/ColorSwatches.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/tasting/FlavorSplit.tsx": {
+      "colors": 0,
+      "sizes": 4,
+      "fonts": 2
+    },
+    "src/components/tasting/NotesPanel.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/tasting/StateZone.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 1
+    },
+    "src/components/tasting/TastingCard.tsx": {
+      "colors": 25,
+      "sizes": 9,
+      "fonts": 12
+    },
+    "src/components/tasting/TastingJournal.tsx": {
+      "colors": 1,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/components/tasting/TastingProfileStrip.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/tasting/TastingSession.tsx": {
+      "colors": 0,
+      "sizes": 4,
+      "fonts": 0
+    },
+    "src/components/tasting/ThroatZone.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/components/tasting/approvedWheel/TeaWheel.js": {
+      "colors": 281,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/components/tasting/approvedWheel/approved-wheel.css": {
+      "colors": 209,
+      "sizes": 99,
+      "fonts": 38
+    },
+    "src/components/tasting/connected-sensations.css": {
+      "colors": 0,
+      "sizes": 5,
+      "fonts": 2
+    },
+    "src/context/ThemeContext.tsx": {
+      "colors": 4,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/data/tastingTaxonomy.ts": {
+      "colors": 10,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/designTokens.ts": {
+      "colors": 132,
+      "sizes": 6,
+      "fonts": 8
+    },
+    "src/lib/useKeyboardInset.ts": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/pages/AccountJourneyPage.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/pages/ArticlePage.tsx": {
+      "colors": 50,
+      "sizes": 29,
+      "fonts": 86
+    },
+    "src/pages/ContributorProfilePage.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 3
+    },
+    "src/pages/ContributorsIndexPage.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 3
+    },
+    "src/pages/DesignSystemShowcase.tsx": {
+      "colors": 42,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/pages/EventsPage.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/pages/ForYourSpacePage.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 4
+    },
+    "src/pages/HomeV2Page.tsx": {
+      "colors": 0,
+      "sizes": 4,
+      "fonts": 2
+    },
+    "src/pages/ImmersiveArticlePage.tsx": {
+      "colors": 1,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/pages/PalettePreviewPage.tsx": {
+      "colors": 175,
+      "sizes": 20,
+      "fonts": 28
+    },
+    "src/pages/PassportPage.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/pages/ProductPage.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/pages/ProfilePaymentPage.tsx": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 0
+    },
+    "src/pages/PublicCollectionPage.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/pages/SignInPage.tsx": {
+      "colors": 4,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/pages/SignUpPage.tsx": {
+      "colors": 4,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/pages/SpacesPage.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 3
+    },
+    "src/pages/StartHerePage.tsx": {
+      "colors": 0,
+      "sizes": 1,
+      "fonts": 0
+    },
+    "src/pages/TabStyleDemo.tsx": {
+      "colors": 3,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/pages/advise/AdviseIndex.tsx": {
+      "colors": 0,
+      "sizes": 17,
+      "fonts": 27
+    },
+    "src/pages/craft/CraftIndex.tsx": {
+      "colors": 0,
+      "sizes": 10,
+      "fonts": 16
+    },
+    "src/pages/read/AtlasMapOfMountains.tsx": {
+      "colors": 12,
+      "sizes": 28,
+      "fonts": 31
+    },
+    "src/pages/read/BeforeTheMist.tsx": {
+      "colors": 16,
+      "sizes": 8,
+      "fonts": 6
+    },
+    "src/pages/read/CraftPotThatRemembers.tsx": {
+      "colors": 16,
+      "sizes": 18,
+      "fonts": 21
+    },
+    "src/pages/read/EarthWaterFire.tsx": {
+      "colors": 11,
+      "sizes": 17,
+      "fonts": 14
+    },
+    "src/pages/read/EditablePhoto.tsx": {
+      "colors": 1,
+      "sizes": 10,
+      "fonts": 9
+    },
+    "src/pages/read/EssayLongWayToCup.tsx": {
+      "colors": 5,
+      "sizes": 16,
+      "fonts": 9
+    },
+    "src/pages/read/FieldNotesTwoRoomsBali.tsx": {
+      "colors": 13,
+      "sizes": 29,
+      "fonts": 29
+    },
+    "src/pages/read/FieldStudyWaterBeforeLeaf.tsx": {
+      "colors": 23,
+      "sizes": 26,
+      "fonts": 31
+    },
+    "src/pages/read/HistoryTenThousandMornings.tsx": {
+      "colors": 1,
+      "sizes": 19,
+      "fonts": 12
+    },
+    "src/pages/read/LeafToLiquor.tsx": {
+      "colors": 20,
+      "sizes": 85,
+      "fonts": 90
+    },
+    "src/pages/read/LegendImmortalsCliff.tsx": {
+      "colors": 12,
+      "sizes": 13,
+      "fonts": 13
+    },
+    "src/pages/read/PlateRow.tsx": {
+      "colors": 0,
+      "sizes": 5,
+      "fonts": 5
+    },
+    "src/pages/read/ReadIndex.tsx": {
+      "colors": 6,
+      "sizes": 5,
+      "fonts": 11
+    },
+    "src/pages/read/ReadNotFound.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 3
+    },
+    "src/pages/read/RitualSevenSteeps.tsx": {
+      "colors": 34,
+      "sizes": 30,
+      "fonts": 19
+    },
+    "src/pages/read/RockRemembers.tsx": {
+      "colors": 4,
+      "sizes": 16,
+      "fonts": 14
+    },
+    "src/pages/read/StoryEditorBar.tsx": {
+      "colors": 0,
+      "sizes": 8,
+      "fonts": 10
+    },
+    "src/pages/read/TastingVocabularyOfTaste.tsx": {
+      "colors": 8,
+      "sizes": 12,
+      "fonts": 12
+    },
+    "src/pages/read/TeaHouseQuietHours.tsx": {
+      "colors": 5,
+      "sizes": 13,
+      "fonts": 9
+    },
+    "src/pages/read/conversation/byline.css": {
+      "colors": 0,
+      "sizes": 3,
+      "fonts": 4
+    },
+    "src/pages/read/conversation/conversation.css": {
+      "colors": 0,
+      "sizes": 38,
+      "fonts": 27
+    },
+    "src/pages/read/conversation/pieces/porcelainAndTea.story.ts": {
+      "colors": 2,
+      "sizes": 0,
+      "fonts": 0
+    },
+    "src/pages/read/immersive.tsx": {
+      "colors": 5,
+      "sizes": 9,
+      "fonts": 11
+    },
+    "src/pages/read/publishControl.css": {
+      "colors": 0,
+      "sizes": 6,
+      "fonts": 5
+    },
+    "src/pages/read/storyEdit.tsx": {
+      "colors": 0,
+      "sizes": 7,
+      "fonts": 4
+    },
+    "src/pages/wisdom/LineageTree.tsx": {
+      "colors": 0,
+      "sizes": 4,
+      "fonts": 0
+    },
+    "src/pages/wisdom/frame.tsx": {
+      "colors": 0,
+      "sizes": 0,
+      "fonts": 1
+    },
+    "src/pages/wisdom/wisdomShared.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/samples/SampleLabelSheet.tsx": {
+      "colors": 17,
+      "sizes": 12,
+      "fonts": 10
+    },
+    "src/samples/SampleSetCreator.tsx": {
+      "colors": 0,
+      "sizes": 2,
+      "fonts": 0
+    },
+    "src/styles/card-utilities.css": {
+      "colors": 177,
+      "sizes": 630,
+      "fonts": 19
+    },
+    "src/styles/reader-animations.css": {
+      "colors": 4,
+      "sizes": 7,
+      "fonts": 0
+    },
+    "src/styles/tailwind.css": {
+      "colors": 13,
+      "sizes": 12,
+      "fonts": 2
+    }
+  }
+}

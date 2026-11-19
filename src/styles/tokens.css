@@ -1,0 +1,808 @@
+/* ============================================================
+   TEAJIA MASTER STYLE FILE
+
+   Every colour, font, font size, spacing step, corner, control height,
+   shadow, transition and button style on teajia.com is written here and
+   nowhere else. Change a value in this file and every page that uses it
+   changes with it: the shop, the product pages, the magazine, the
+   account panel and the manage (admin) rooms.
+
+   Imported first by src/styles/tailwind.css, so every Tailwind utility
+   and every class in card-utilities.css reads from it, and any utility
+   written on an element still wins over a class defined here.
+
+   Where to find things
+     1. Sizes      type roles, type steps, spacing, corners, control
+                   heights, borders, shadows, motion, fonts
+     2. Palette    dark (the default), light, forced-dark wrappers
+     3. Colours    state, solid buttons, footer band, magazine reader
+     4. Admin      manage-room surfaces and text
+     5. Roles      what each kind of text and page is painted with
+     6. Buttons    primary, secondary, quiet, icon, tab, chip, field
+
+   Quick map: change this, this changes
+     --fs-body                every paragraph set with the body role
+     --fs-page-title          every page title (h1)
+     --fs-section-heading     every section heading (h2)
+     --fs-card-title          every card and drawer title (h3)
+     --fs-article-body        magazine story paragraphs
+     --fs-ui-12 (and -8..-28) every element written text-ui-12
+     --fs-admin-table         rows in the manage tables
+     --tea-bg / --page-bg     the page ground
+     --tea-gold               links, marks, focus, the primary button fill
+     --tea-gold-solid         the primary button fill alone
+     --control-h              every default button, tab and field height
+     --btn-pad-x              every button's side padding
+     --radius-control         every button, input and tab corner
+     --space-4                every p-4 / m-4 / gap-4 (16px)
+
+   Guarded by src/styles/masterStyleFile.test.ts: hard-coded colours,
+   raw font sizes and button padding written outside this file are
+   counted, and the count may only go down.
+   ============================================================ */
+
+/* ============================================================
+   1. SIZES: type, spacing, corners, control heights, shadows, motion
+   ============================================================ */
+
+:root {
+  /* ---- Fonts ---------------------------------------------------------- */
+  --font-display: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
+  --font-serif: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
+  --font-body: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* The numeral face. Lora, the same face as body text, so a price reads as
+     part of the line beside it. Its figures sit flat on the baseline. Named
+     `mono` for history only, nothing here is monospaced. See FONT_STACKS in
+     designTokens for the measurements and for why never Cormorant. */
+  --font-mono: 'Lora', Georgia, serif;
+
+  --fw-light: 300;
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ---- Font size by role ---------------------------------------------
+     Each role is one knob. The role classes (type-page-title and friends,
+     which TYPOGRAPHY_CLASSES in designTokens.ts hands out) and the Tailwind
+     utilities of the same name (text-page-title, text-body, ...) read them. */
+  --fs-page-title: clamp(32px, 4.8vw, 48px);
+  --lh-page-title: 1.12;
+  --fs-section-heading: clamp(24px, 3.5vw, 32px);
+  --lh-section-heading: 1.2;
+  --fs-card-title: 19px;
+  --lh-card-title: 1.3;
+  --fs-subtitle: 17px;
+  --lh-subtitle: 1.4;
+  --fs-body: 17px;
+  --lh-body: 1.7;
+  --fs-small: 15px;          /* captions, secondary paragraphs */
+  --lh-small: 1.65;
+  --fs-label: 11px;          /* uppercase tags and metadata */
+  --lh-label: 1.4;
+  --ls-label: 1.2px;
+  --fs-nav: 12px;            /* uppercase nav words */
+  --ls-nav: 1px;
+  --fs-sidebar: 17px;        /* desktop rail section names */
+  --fs-sidebar-child: 15px;
+  --fs-sidebar-group: 10px;
+  --fs-link: 14px;
+  --fs-meta: 12px;           /* account panel meta lines */
+  --fs-price: 11px;          /* prices, specs (Lora figures) */
+  --fs-button: 12px;
+  --fs-button-sm: 12px;
+  --fs-button-lg: 13px;
+  --fs-admin-table: 13px;    /* manage-room table rows */
+  --fs-field: 13px;          /* text inside inputs, selects, field buttons */
+  --fs-article-body: clamp(16px, 2vw, 18px);   /* magazine story paragraphs */
+  --lh-article-body: 1.8;
+  --fs-article-lead: clamp(18px, 2.2vw, 22px); /* magazine opening paragraph */
+  --lh-article-lead: 1.74;
+  --fs-article-kicker: 12px;                    /* magazine small caps furniture */
+  --fs-article-aside: clamp(17px, 2.1vw, 20px);    /* magazine italic asides and captions */
+  --fs-article-heading: clamp(28px, 4.8vw, 54px);  /* magazine chapter headings */
+  --fs-article-subheading: clamp(28px, 4.2vw, 42px);
+
+  /* ---- Font size steps -------------------------------------------------
+     The named pixel stops every `text-ui-N` utility reads, and Tailwind's
+     text-xs ... text-5xl. Prefer a role above; use a step for UI chrome. */
+  --fs-ui-8: 8px;
+  --fs-ui-9: 9px;
+  --fs-ui-10: 10px;
+  --fs-ui-11: 11px;
+  --fs-ui-12: 12px;
+  --fs-ui-13: 13px;
+  --fs-ui-14: 14px;
+  --fs-ui-15: 15px;
+  --fs-ui-16: 16px;
+  --fs-ui-17: 17px;
+  --fs-ui-18: 18px;
+  --fs-ui-19: 19px;
+  --fs-ui-20: 20px;
+  --fs-ui-22: 22px;
+  --fs-ui-24: 24px;
+  --fs-ui-26: 26px;
+  --fs-ui-28: 28px;
+  --fs-ui-30: 30px;
+  --fs-ui-32: 32px;
+  --fs-ui-34: 34px;
+  --fs-ui-36: 36px;
+  --fs-ui-40: 40px;
+  --fs-ui-48: 48px;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.25rem;
+  --fs-2xl: 1.5rem;
+  --fs-3xl: 1.875rem;
+  --fs-4xl: 2.25rem;
+  --fs-5xl: 3rem;
+
+  --lh-tight: 1.12;
+  --lh-snug: 1.2;
+  --lh-normal: 1.4;
+  --lh-relaxed: 1.625;
+  --lh-loose: 1.65;
+  --lh-reading: 1.7;
+
+  /* ---- Spacing: 4 / 8 / 12 / 16 / 24 / 32 / 48 ------------------------
+     Padding, margin and gap utilities (p-4, mt-2, gap-3 ...) read these.
+     Widths and heights (w-4, h-4) do not, so icons keep their size. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* ---- Corners -------------------------------------------------------- */
+  --radius-sm: 2px;
+  --radius-base: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 18px;
+
+  /* ---- Borders -------------------------------------------------------- */
+  --border-w: 1px;
+
+  /* ---- Shadows -------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-base: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(184, 146, 78, 0.05);
+  --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(184, 146, 78, 0.08);
+  --shadow-inset-panel: inset 0 1px 0 rgba(200, 170, 120, 0.06), inset 0 -1px 0 rgba(200, 170, 120, 0.03), 0 -1px 0 rgba(200, 170, 120, 0.05);
+  --shadow-inset-panel-light: inset 0 1px 0 rgba(142, 109, 46, 0.08), inset 0 -1px 0 rgba(142, 109, 46, 0.04), 0 -1px 0 rgba(142, 109, 46, 0.06);
+  --shadow-sidebar: inset -1px 0 0 rgba(200, 170, 120, 0.06), 1px 0 8px rgba(0, 0, 0, 0.15);
+
+  /* ---- Motion --------------------------------------------------------- */
+  --dur-micro: 150ms;      /* hover states, small feedback */
+  --dur-standard: 300ms;   /* transitions, modals */
+  --dur-emphasis: 500ms;   /* page transitions, colour mode */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Outdoor-legibility weight floor: text runs one step heavier than the bare
+   utility weights so thin strokes survive bright light. */
+.font-light  { font-weight: var(--fw-normal) !important; }
+.font-normal { font-weight: var(--fw-medium) !important; }
+.font-medium { font-weight: var(--fw-semibold) !important; }
+
+/* ---- Role classes --------------------------------------------------------
+   One class per text role: face, size, weight, leading, tracking and colour.
+   TYPOGRAPHY_CLASSES in designTokens.ts hands these out. Defined before the
+   Tailwind utilities, so a utility on the same element (text-tea-gold,
+   text-ui-15) still overrides a single property. */
+/* Weights already include the outdoor-legibility floor below: body text is
+   500, headings that were "medium" are 600. */
+.type-page-title      { font-family: var(--font-display); font-size: var(--fs-page-title); font-weight: var(--fw-medium); line-height: var(--lh-page-title); letter-spacing: 0.01em; color: var(--text-page-title); }
+.type-section-heading { font-family: var(--font-display); font-size: var(--fs-section-heading); font-weight: var(--fw-semibold); line-height: var(--lh-section-heading); letter-spacing: 0.01em; color: var(--text-section-heading); }
+.type-card-title      { font-family: var(--font-display); font-size: var(--fs-card-title); font-weight: var(--fw-medium); line-height: var(--lh-card-title); letter-spacing: 0.01em; color: var(--text-card-title); }
+.type-subtitle        { font-family: var(--font-body); font-size: var(--fs-subtitle); font-weight: var(--fw-medium); font-style: italic; line-height: var(--lh-subtitle); }
+.type-body            { font-family: var(--font-body); font-size: var(--fs-body); font-weight: var(--fw-medium); line-height: var(--lh-body); }
+.type-small           { font-family: var(--font-body); font-size: var(--fs-small); font-weight: var(--fw-medium); line-height: var(--lh-small); }
+.type-label           { font-family: var(--font-sans); font-size: var(--fs-label); font-weight: var(--fw-medium); line-height: var(--lh-label); letter-spacing: var(--ls-label); text-transform: uppercase; }
+.type-nav             { font-family: var(--font-sans); font-size: var(--fs-nav); font-weight: var(--fw-medium); line-height: 1.4; letter-spacing: var(--ls-nav); text-transform: uppercase; }
+.type-link            { font-family: var(--font-sans); font-size: var(--fs-link); font-weight: var(--fw-medium); letter-spacing: 0.2px; }
+.type-price           { font-family: var(--font-mono); font-size: var(--fs-price); font-weight: var(--fw-medium); }
+.type-sidebar         { font-family: var(--font-display); font-size: var(--fs-sidebar); font-weight: var(--fw-semibold); line-height: 1.3; letter-spacing: 0.04em; }
+.type-sidebar-child   { font-family: var(--font-display); font-size: var(--fs-sidebar-child); font-weight: var(--fw-medium); line-height: 1.3; letter-spacing: 0.04em; }
+.type-sidebar-group   { font-family: var(--font-sans); font-size: var(--fs-sidebar-group); font-weight: var(--fw-semibold); line-height: 1.3; letter-spacing: 0.18em; text-transform: uppercase; }
+.type-meta            { font-family: var(--font-sans); font-size: var(--fs-meta); font-weight: var(--fw-medium); line-height: 1.3; letter-spacing: 0.04em; }
+.type-admin-table     { font-family: var(--font-sans); font-size: var(--fs-admin-table); font-weight: var(--fw-normal); line-height: 1.4; }
+.type-article-body    { font-family: var(--font-body); font-size: var(--fs-article-body); font-weight: var(--fw-normal); line-height: var(--lh-article-body); color: var(--text-article-body); }
+.type-article-lead    { font-family: var(--font-body); font-size: var(--fs-article-lead); font-weight: var(--fw-normal); line-height: var(--lh-article-lead); color: var(--text-article-lead); }
+
+/* Control sizing: the one place that decides how tall a button, chip, tab or
+   input is. Every former 44px floor reads --tap-min.
+
+   A finger needs 44px (WCAG 2.5.5); a mouse does not. On a phone or tablet the
+   floor stays 44px. With a precise pointer (mouse, trackpad) it drops to 28px,
+   so desktop controls sit at their own padding, 28-34px, instead of being
+   inflated to a finger target nobody is using (Adrian's density rule,
+   UI audit 2026-11-18). */
+:root {
+  --tap-min: 44px;
+  --control-h-sm: 28px;
+  --control-h: 32px;
+  --control-h-lg: 36px;
+  --radius-control: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  :root { --tap-min: 28px; }
+}
+/* The Curate capture form is a field tool, built on 44px rows whose pairs
+   (Type and Year, Origin and Era, Journey/Scan/Photo) align by sharing that
+   height. It keeps the finger floor at every pointer. */
+[data-curate-source] { --tap-min: 44px; }
+
+/* ============================================================
+   2. COLOURS: the palette, dark (default), light, and forced-dark wrappers
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* The order block on the standing bar. Tan rather than the bronze accent:
+     browner and less yellow, so a solid block of it can never read as a
+     louder version of the gold used for links and marks. */
+  --tea-plate-tan: #a08a66;
+  /* One step up for press and hover, so the state change is felt without
+     the button jumping into a different colour family. */
+  --tea-plate-tan-lift: #b09a76;
+
+  /* Fine grain, shared by the paper ground and the label plate. Same figure
+     as TEXTURES.alcoveGrain in designTokens, held here so CSS can reach it. */
+  --alcove-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* Stand-in for the tea-label stock: soft warm strata in the same family.
+     Set --label-plate-image to the real photograph and this sits under it. */
+  --label-plate-wash:
+    radial-gradient(140% 90% at 28% 22%, rgba(247, 233, 200, 0.55) 0%, rgba(247, 233, 200, 0) 62%),
+    radial-gradient(110% 80% at 74% 78%, rgba(163, 128, 82, 0.4) 0%, rgba(163, 128, 82, 0) 66%),
+    linear-gradient(172deg, #e2d0a6 0%, #cfb98c 54%, #d9c79c 100%);
+
+  /* Outdoor-legibility tuned: background lifted off near-black so reflected
+     glare can't lift it past the text; muted tokens raised well above AA.
+
+     This ground is #22201c and stays there. It looks grey whenever the paper
+     and grain layers above it blend against nothing, and the fix for that is
+     in .paper-ground, not here: warming these tokens to compensate makes the
+     ground wrong everywhere else in the app. */
+  --tea-bg: #22201c;
+  --tea-bg-rgb: 34 32 28;
+  --tea-surface: #322e29;
+  --tea-surface-rgb: 50 46 41;
+  /* One step BELOW the ground, not above it. The record card on a product page
+     is a panel set INTO the page rather than lifted off it, which is what lets
+     a keyline read as an edge instead of a shadow. There was no such token:
+     every existing surface is lighter than --tea-bg. */
+  --tea-sunken: #1e1b17;
+  --tea-sunken-rgb: 30 27 23;
+  --tea-elevated: #423d36;
+  --tea-elevated-rgb: 66 61 54;
+  --tea-text: #ede4d4;
+  --tea-text-rgb: 237 228 212;
+  /* Raised floor for outdoor / low-light legibility */
+  --tea-text-sec: #ddd2bd;
+  --tea-text-sec-rgb: 221 210 189;
+  /* Raised well above WCAG AA for outdoor legibility */
+  --tea-text-dim: #b3a283;
+  --tea-text-dim-rgb: 179 162 131;
+  --tea-gold: #a8874d;
+  --tea-gold-rgb: 168 135 77;
+  --tea-gold-lt: #bfa06a;
+  --tea-gold-lt-rgb: 191 160 106;
+  /* Warm gold pinned for text, keeps reading gold even if --tea-gold shifts toward aged brass */
+  --tea-readgold: #a8874d;
+  --tea-readgold-rgb: 168 135 77;
+  /* Derived from --tea-gold-rgb at canonical alpha, keeps border/glow in sync with accent */
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
+  /* The keyline the floating bottom assembly draws around itself: the
+     navigation capsule, the order bar docked on top of it, and the
+     add-to-cart confirmation above that. Stronger on dark, where a near-black
+     bar sits on a dark page and the edge is the only thing separating them;
+     on light the bar is already at full contrast against pale paper and the
+     same weight would read as an outline drawn around it. */
+  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.28);
+  --tea-leaf: #5A6E5A;
+  /* Warmed from oxblood #8a3a32 to terracotta, reds now read on espresso */
+  --tea-error: #c46a5a;
+  --tea-error-rgb: 196 106 90;
+
+  /* Fonts live in section 1. */
+
+}
+
+/* Light mode */
+:root.light, .light {
+  color-scheme: light;
+  --tea-bg: #f4ece0;
+  --tea-bg-rgb: 244 236 224;
+  --tea-surface: #e4ddd3;
+  --tea-surface-rgb: 228 221 211;
+  --tea-sunken: #eae0d0;
+  --tea-sunken-rgb: 234 224 208;
+  --tea-elevated: #d5c8b4;
+  --tea-elevated-rgb: 213 200 180;
+  --tea-text: #18130e;
+  --tea-text-rgb: 24 19 14;
+  /* Raised floor for outdoor legibility */
+  --tea-text-sec: #332b20;
+  --tea-text-sec-rgb: 51 43 32;
+  /* Raised well above WCAG AA for outdoor legibility */
+  --tea-text-dim: #564a37;
+  --tea-text-dim-rgb: 86 74 55;
+  /* Spec says #8e6d2e for light gold (was production-drift #6b4f28, too dark on parchment) */
+  --tea-gold: #8e6d2e;
+  --tea-gold-rgb: 142 109 46;
+  --tea-gold-lt: #a88340;
+  --tea-gold-lt-rgb: 168 131 64;
+  --tea-readgold: #8e6d2e;
+  --tea-readgold-rgb: 142 109 46;
+  /* Derived from --tea-gold-rgb at canonical alpha (light mode uses slightly higher to read on parchment) */
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.16);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.12);
+  /* See the dark block: quieter here, where the bar already separates. */
+  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.18);
+  --tea-leaf: #4a5e4a;
+  --tea-error: #732a23;
+  --tea-error-rgb: 115 42 35;
+}
+
+/* Force dark tokens on any nested .dark wrapper (e.g. Journal, always dark) */
+:root.light .dark, .light .dark {
+  color-scheme: dark;
+  --tea-bg: #22201c;
+  --tea-bg-rgb: 34 32 28;
+  --tea-surface: #322e29;
+  --tea-surface-rgb: 50 46 41;
+  /* One step BELOW the ground, not above it. The record card on a product page
+     is a panel set INTO the page rather than lifted off it, which is what lets
+     a keyline read as an edge instead of a shadow. There was no such token:
+     every existing surface is lighter than --tea-bg. */
+  --tea-sunken: #1e1b17;
+  --tea-sunken-rgb: 30 27 23;
+  --tea-elevated: #423d36;
+  --tea-elevated-rgb: 66 61 54;
+  --tea-text: #ede4d4;
+  --tea-text-rgb: 237 228 212;
+  --tea-text-sec: #ddd2bd;
+  --tea-text-sec-rgb: 221 210 189;
+  --tea-text-dim: #b3a283;
+  --tea-text-dim-rgb: 179 162 131;
+  --tea-gold: #a8874d;
+  --tea-gold-rgb: 168 135 77;
+  --tea-gold-lt: #bfa06a;
+  --tea-gold-lt-rgb: 191 160 106;
+  --tea-readgold: #a8874d;
+  --tea-readgold-rgb: 168 135 77;
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
+  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.28);
+  --tea-leaf: #5A6E5A;
+  --tea-error: #c46a5a;
+  --tea-error-rgb: 196 106 90;
+}
+
+/* ============================================================
+   3. COLOURS: state, solid buttons, footer band, the magazine reader
+   ============================================================ */
+
+:root {
+  --tea-vignette-color: rgba(24, 19, 14, 0.12);
+  --teajia-sidebar-w: 4.5rem; /* the rail alone; LeftSidebar sets 17rem while the Manage column is open */
+
+  /* The two state hues the pill block needed and the palette did not have.
+
+     `--tea-error` already existed and is theme-aware, so the destructive pill
+     reads it directly. There was no warning token at all, which is why the
+     amber pill carried a raw `#fbbf24` (a Tailwind stock amber, picked for a
+     dark background and never rechecked against parchment) through two rounds
+     of token work. Declared here rather than in tailwind.css because these are
+     component-state colours used by this stylesheet, not palette entries a
+     component should be reaching for with a `text-` class.
+
+     Both are measured against their own page background, not eyeballed:
+     #e0a63f on #22201c is 7.5:1, #8a5510 on #f4ece0 is 5.3:1. */
+  --tea-warn: #e0a63f;
+  --tea-warn-rgb: 224 166 63;
+
+  /* The solid-CTA background. Identical to --tea-gold in dark mode, deliberately
+     darker than it in light. See the .alcove-order-btn note for the measurement.
+
+     The hover moves *away* from the page in both modes, which is why it needs a
+     token of its own rather than `--tea-gold-lt`: lightening a bronze fill is
+     the right hover on espresso (6.6:1) and the wrong one on parchment, where
+     `--tea-gold-lt` under cream text measures 3.0:1, so the button became
+     unreadable exactly while the cursor was on it. */
+  --tea-gold-solid: var(--tea-gold);
+  --tea-gold-solid-hover: var(--tea-gold-lt);
+
+  /* Shadow ink. Depth, not colour, which is why it is an rgb triplet and the
+     alpha stays with the caller: an inset or drop shadow is always some alpha
+     of this. Pure black is right on espresso and wrong on parchment, where a
+     black inset reads as grime rather than depth, so light mode uses the warm
+     espresso the light theme already spends on text (#18130e). Callers write
+     `rgb(var(--tea-shadow-rgb) / 0.2)`. */
+  --tea-shadow-rgb: 0 0 0;
+
+  /* The colophon footer band, which is deliberately darker than the page in
+     both themes so the site closes on a dark rule rather than fading out. It
+     is a surface, not an accent, so it is declared once here rather than being
+     retyped as a hex in the component.
+
+     Measured against it, not against --tea-bg: the taupe on this band is
+     10.6:1 and the link rest colour is 7.6:1. The previous rest colour was
+     #80735f, which measured 4.09:1 at 11px uppercase mono and was under the
+     floor on every page of the site at once. */
+  --tea-footer-band: #14100b;
+  --tea-footer-ink: #cdc0a8;
+  --tea-footer-ink-dim: #b3a283;
+
+  /* The Read section's own palette, 2026-09-20. src/pages/read/immersive.tsx
+     used to own these as literal hex in a `C` object, deliberately outside the
+     site's theme, by decision. That decision is superseded: Adrian wants the
+     reader to follow light mode when a visitor has it switched on. `C` keeps
+     its shape (the seventeen article files still read `C.bg`, `C.gold`, and so
+     on) but every entry now resolves through the variables declared here, so a
+     theme flip repaints the reader instead of leaving it stranded dark.
+
+     Dark values are the exact literals the reader has always used, unchanged.
+     Light values are the site's own light tokens, not invented figures: the
+     warm parchment ground, the espresso ink, the aged-bronze gold. `--tj-gold`
+     and `--tj-gold-lt` (set by applyAccent, above the accent-swatch retirement
+     note in immersive.tsx) still override the gold pair when a per-article
+     accent is active; `--tj-read-gold-default` / `-lt-default` are only the
+     fallback either side of that override. */
+  --tj-read-bg: #14100b;
+  --tj-read-bg-rgb: 20 16 11;
+  --tj-read-ink: #ede4d4;
+  --tj-read-cream: #f3ead9;
+  --tj-read-warm: #e3d6bd;
+  --tj-read-taupe: #cdc0a8;
+  /* Adrian's own voice in a story: his opening, his telling, his questions and his close.
+     Sand, so it reads as his by colour at the same size as theirs; never the bronze,
+     which marks the key words in a large quote (Adrian, 2026-10-01). 11:1 on the ground. */
+  --tj-read-voice: #d8c39b;
+  --tj-read-dim: #8c7f6a; /* 4.83:1 on the ground, 4.50:1 on a card. Was #80735f, 4.09:1, until 2026-09-29. */
+  --tj-read-gold-default: #a8874d;
+  --tj-read-gold-lt-default: #c6a667;
+  --tj-read-gold-rgb: 168 135 77;
+
+  /* The reader's recurring card and plate gradients (bordered inset panels,
+     photo placeholders). Structural chrome, not art direction, so they follow
+     theme too, unlike the oxidation scale and the liquor-colour dots in
+     LeafToLiquor, which stay literal because they are measurements of an
+     object rather than styling applied to one. */
+  --tj-read-card-from: #1d1810;
+  --tj-read-card-to: #15110b;
+  --tj-read-plate-from: #241d14;
+  --tj-read-plate-to: #120e09;
+  --tj-read-empty-from: #23252a;
+
+  /* `C.taupe`'s own RGB triplet, for the handful of spots that wrote it as an
+     rgba() fade instead of going through C.taupe (ReadIndex's index-row
+     kicker, StoryEditorBar's idle toolbar label, LeafToLiquor's photo
+     caption). Kept as its own token rather than reused off --tj-read-taupe,
+     which is a resolved colour, not an rgb triplet a fade can carry alpha on. */
+  --tj-read-taupe-rgb: 205 192 168;
+  /* ReadIndex's hover-emphasis tier on a title row: brighter than cream in
+     dark mode (there is room above it), gold in light mode (there is not,
+     so hover reads as an accent shift instead of a non-existent brighter
+     white). */
+  --tj-read-hover-ink: #fff7ea;
+}
+
+[data-theme="light"], .light-mode, .light {
+  --tea-vignette-color: rgba(240, 235, 228, 0.10);
+  --tea-warn: #8a5510;
+  --tea-warn-rgb: 138 85 16;
+  --tea-gold-solid: #806229;
+  --tea-gold-solid-hover: #6e5323;
+  --tea-shadow-rgb: 24 19 14;
+
+  /* Read section, light mode. `cream` and `ink` both land on --tea-text:
+     dark mode's brightest-to-primary pair has no room to go brighter than
+     primary ink on parchment. `warm` and `taupe`, the two secondary-emphasis
+     tiers, both land on --tea-text-sec for the same reason. The card and
+     plate gradients flatten onto the site's own surface pair rather than
+     carrying a bespoke light gradient nobody asked for. */
+  --tj-read-bg: var(--tea-bg);
+  --tj-read-bg-rgb: var(--tea-bg-rgb);
+  --tj-read-ink: var(--tea-text);
+  --tj-read-cream: var(--tea-text);
+  --tj-read-warm: var(--tea-text-sec);
+  --tj-read-taupe: var(--tea-text-sec);
+  --tj-read-voice: #6b5432; /* about 6:1 on the light ground */
+  --tj-read-dim: var(--tea-text-dim);
+  --tj-read-gold-default: var(--tea-gold);
+  --tj-read-gold-lt-default: var(--tea-gold-lt);
+  --tj-read-gold-rgb: var(--tea-gold-rgb);
+  --tj-read-card-from: var(--tea-elevated);
+  --tj-read-card-to: var(--tea-surface);
+  --tj-read-plate-from: var(--tea-elevated);
+  --tj-read-plate-to: var(--tea-surface);
+  --tj-read-empty-from: var(--tea-elevated);
+  --tj-read-taupe-rgb: var(--tea-text-sec-rgb);
+  --tj-read-hover-ink: var(--tea-gold);
+}
+
+/* ============================================================
+   4. COLOURS: the admin (manage) surfaces
+   ============================================================ */
+
+/* ==============================   Admin Neutral Surface
+   ==============================   A separate, intentionally-cool palette for admin work surfaces
+   (inventory panel, etc.) where the operator spends hours editing
+   data. The warm tea palette stays on customer-facing surfaces; admin
+   gets a Linear/Notion/Claude-style neutral that has a wider luminance
+   range and reads as a calm work surface rather than an editorial
+   destination.
+
+   Lightness steps are deliberately small (~6-8 points) so cards sit
+   on each other via the inset-top highlight, not via aggressive
+   background contrast. Borders are barely perceptible, they define
+   the edge without pulling focus.
+
+   Brand gold is preserved as the *single* interactive accent (focus
+   rings, active selections, recommended values). Functional colors
+   (red for empty stock, amber for low) are kept for state signals.
+   ============================================ */
+
+.dark {
+  /* HARMONIZED with the site-wide tea-* tokens (src/styles/tailwind.css).
+     The admin-card structural system (bg → surface → input each lighter,
+     gold as the sole accent, AA-contrast text floors) is preserved, only
+     the colour values now point at the exact tea palette so the admin
+     panels read as the same material as the rest of the site, not a
+     darker near-miss cousin. Update these in lockstep with the tea dark
+     values if those change. */
+  --admin-bg:           #22201c;  /* = --tea-bg */
+  --admin-surface:      #322e29;  /* = --tea-surface */
+  --admin-elevated:     #423d36;  /* = --tea-elevated (hover / active) */
+  --admin-input-bg:     #4d473e;  /* one notch above elevated so inputs read raised, same warm family */
+  --admin-border:       rgb(168 135 77 / 0.14);  /* = --tea-border (gold-tinted, not cream) */
+  --admin-border-hover: rgb(168 135 77 / 0.24);
+  --admin-text:         #ede4d4;  /* = --tea-text */
+  --admin-text-sec:     #ddd2bd;  /* = --tea-text-sec */
+  --admin-text-dim:     #b3a283;  /* = --tea-text-dim (raised above AA for outdoor legibility) */
+  --admin-text-faint:   #8a7c66;  /* very low priority, warm */
+}
+
+.light {
+  /* Light-mode admin palette, mirrors the tea light tokens. Previously
+     the admin-* block defined dark values under :root/.light/.dark, so the
+     panel stayed dark in light mode. These map onto --tea light values. */
+  --admin-bg:           #f4ece0;  /* = --tea-bg light */
+  --admin-surface:      #e4ddd3;  /* = --tea-surface light */
+  --admin-elevated:     #d5c8b4;  /* = --tea-elevated light */
+  --admin-input-bg:     #ede4d4;  /* raised input fill, lighter than surface */
+  --admin-border:       rgb(168 135 77 / 0.16);  /* = --tea-border light */
+  --admin-border-hover: rgb(168 135 77 / 0.28);
+  --admin-text:         #18130e;  /* = --tea-text light */
+  --admin-text-sec:     #332b20;  /* = --tea-text-sec light */
+  --admin-text-dim:     #5c5040;  /* muted warm, labels (AA on light surface) */
+  --admin-text-faint:   #8a7c66;
+}
+
+/* ============================================================
+   5. COLOURS BY ROLE: what each kind of text and page is painted with
+   ============================================================ */
+
+/* Each role points at a palette entry above. Repoint a role to restyle that
+   kind of text everywhere it is set with its role class, without touching the
+   palette (which the Tailwind tea-* utilities read directly).
+
+   Declared again on every theme wrapper, not on :root alone: a custom
+   property inherits as a resolved colour, so a forced-dark panel inside a
+   light page would otherwise keep the light role colours. */
+:root, .light, .dark, .light-mode, [data-theme="light"] {
+  --border-hairline: var(--border-w) solid var(--tea-border);
+  --shadow-focus-ring: 0 0 0 4px var(--tea-accent-sub);
+
+  /* Pages and surfaces */
+  --page-bg: var(--tea-bg);            /* the ground behind every customer page */
+  --page-text: var(--tea-text);        /* the text colour a page starts from */
+  --panel-bg: var(--tea-surface);      /* cards, drawers, panels */
+  --raised-bg: var(--tea-elevated);    /* hover and selected rows */
+  --sunken-bg: var(--tea-sunken);      /* panels set into the page */
+  --admin-page-bg: var(--admin-bg);    /* the ground behind every manage room */
+  --admin-panel-bg: var(--admin-surface);
+  --field-bg: var(--tea-surface);      /* inputs, selects, field buttons */
+  --overlay-bg: rgba(12, 9, 6, 0.78);  /* modal scrim */
+
+  /* Text */
+  --text-page-title: var(--tea-text);
+  --text-section-heading: var(--tea-text);
+  --text-card-title: var(--tea-text);
+  --text-body: var(--tea-text);
+  --text-small: var(--tea-text-sec);
+  --text-label: var(--tea-text-dim);
+  --text-nav: var(--tea-text-sec);
+  --text-link: var(--tea-readgold);
+  --text-price: var(--tea-text);
+  --text-error: var(--tea-error);
+  --text-on-primary: var(--tea-bg);    /* words on the solid bronze button */
+  --text-article-body: var(--tj-read-taupe);
+  --text-article-lead: var(--tj-read-ink);
+  --text-article-heading: var(--tj-read-cream);
+
+  /* Fixed palette entries Tailwind exposes as tea-green and tea-moss (rgb triplets so /N opacity works) */
+  --tea-green-rgb: 90 110 90;
+  --tea-moss-rgb: 42 52 48;
+}
+
+body {
+  background-color: var(--page-bg);
+  color: var(--page-text);
+}
+
+/* ============================================================
+   6. BUTTONS: the only place a button's shape, size and colour are written
+   ============================================================ */
+
+/* The one solid buy-button treatment, so a surface cannot opt out of the
+   measurement by writing the gold fill and the cream text out by hand. Compose
+   it with whatever shape and type role the surface needs; this carries colour
+   only.
+
+   Round nine pointed the shared `<Button variant="primary">` at this class and
+   swept 101 hand-written spellings out of src/components. lint-colors.sh
+   rule 12 blocks the pair from being written again on those paths. */
+.cta-solid {
+  background: var(--tea-gold-solid);
+  color: var(--tea-bg);
+}
+.cta-solid:hover:not(:disabled) {
+  background: var(--tea-gold-solid-hover);
+}
+
+/* Outline button that fills on hover. Same measured pair, applied on hover
+   only, so an outline CTA does not have to spell the fill and the text out and
+   reintroduce the 4.10:1 light-mode pairing at the exact moment the pointer is
+   on it. */
+.cta-solid-hover:hover:not(:disabled) {
+  background: var(--tea-gold-solid);
+  color: var(--tea-bg);
+}
+
+/* ---- The seven button variants -------------------------------------------
+   Every button on the site is one of these. The shared <Button> component
+   (src/components/shared/Button.tsx) hands them out; a raw <button> takes the
+   class directly. Shape, height, padding, type and colour are decided here
+   only, so a button never carries px-/py-/text-/rounded- utilities of its own.
+
+     primary    solid bronze, the one main action on a screen
+     secondary  hairline outline, the alternative to primary
+     quiet      no box until hover, for low-weight actions (Cancel, Edit)
+     icon       square, an icon alone
+     tab        underlined word, one of a set of views
+     chip       small outlined toggle, one of a set of filters
+     field      looks like an input: a select, date or picker trigger
+
+   Sizes: add .btn-sm (28px) or .btn-lg (36px); the default is 32px with a
+   mouse. Every size stays 44px tall on a touch screen through --tap-min.
+   Tone: add .btn-danger to secondary or quiet for a destructive action. */
+:root {
+  --btn-pad-x: 12px;
+  --btn-pad-x-sm: 10px;
+  --btn-pad-x-lg: 16px;
+  --btn-gap: 6px;
+  --btn-weight: var(--fw-semibold);
+  --btn-disabled-opacity: 0.4;
+  --chip-pad-x: 10px;
+  --tab-underline: 2px;
+}
+
+.btn-primary, .btn-secondary, .btn-quiet, .btn-icon, .btn-chip, .btn-field, .btn-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--btn-gap);
+  height: var(--control-h);
+  min-height: var(--tap-min);
+  padding: 0 var(--btn-pad-x);
+  border: var(--border-w) solid transparent;
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-size: var(--fs-button);
+  font-weight: var(--btn-weight);
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease, border-color var(--dur-micro) ease;
+}
+.btn-primary:disabled, .btn-secondary:disabled, .btn-quiet:disabled, .btn-icon:disabled,
+.btn-chip:disabled, .btn-field:disabled, .btn-tab:disabled {
+  opacity: var(--btn-disabled-opacity);
+  cursor: not-allowed;
+}
+.btn-primary:focus-visible, .btn-secondary:focus-visible, .btn-quiet:focus-visible, .btn-icon:focus-visible,
+.btn-chip:focus-visible, .btn-field:focus-visible, .btn-tab:focus-visible {
+  outline: 2px solid rgb(var(--tea-gold-rgb) / 0.5);
+  outline-offset: 2px;
+}
+
+/* primary: solid bronze. --tea-gold-solid is darkened in light mode so the
+   cream words measure 4.91:1 (see section 3). */
+.btn-primary { background: var(--tea-gold-solid); color: var(--text-on-primary); }
+.btn-primary:hover:not(:disabled) { background: var(--tea-gold-solid-hover); }
+
+/* secondary: hairline outline, fills faintly on hover. */
+.btn-secondary { background: transparent; border-color: var(--tea-border); color: var(--tea-text-sec); }
+.btn-secondary:hover:not(:disabled) { background: var(--tea-accent-sub); color: var(--tea-text); }
+
+/* quiet: words only until the pointer arrives. */
+.btn-quiet { background: transparent; color: var(--tea-text-sec); }
+.btn-quiet:hover:not(:disabled) { background: var(--tea-accent-sub); color: var(--tea-text); }
+
+/* icon: square, the height of its size. */
+.btn-icon { width: var(--control-h); min-width: var(--tap-min); padding: 0; background: transparent; color: var(--tea-text-sec); }
+.btn-icon:hover:not(:disabled) { background: var(--tea-accent-sub); color: var(--tea-text); }
+
+/* tab: an underlined word. Selected by aria-selected, aria-pressed,
+   aria-current, data-active="true" or .is-active. */
+.btn-tab {
+  padding: 0 2px;
+  border-width: 0 0 var(--tab-underline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--tea-text-dim);
+}
+.btn-tab:hover:not(:disabled) { color: var(--tea-text); }
+.btn-tab[aria-selected="true"], .btn-tab[aria-pressed="true"], .btn-tab[aria-current="page"],
+.btn-tab[data-active="true"], .btn-tab.is-active {
+  color: var(--tea-text);
+  border-bottom-color: var(--tea-gold);
+}
+
+/* chip: a small outlined toggle. On by the same signals as a tab. */
+.btn-chip {
+  height: var(--control-h-sm);
+  padding: 0 var(--chip-pad-x);
+  border-color: var(--tea-border);
+  background: transparent;
+  color: var(--tea-text-sec);
+  font-weight: var(--fw-medium);
+}
+.btn-chip:hover:not(:disabled) { color: var(--tea-text); background: var(--tea-accent-sub); }
+.btn-chip[aria-pressed="true"], .btn-chip[aria-selected="true"], .btn-chip[data-active="true"], .btn-chip.is-active {
+  background: var(--tea-accent-sub);
+  border-color: rgb(var(--tea-gold-rgb) / 0.5);
+  color: var(--tea-text);
+}
+
+/* field: the trigger of a select, date or picker, drawn as an input. */
+.btn-field {
+  justify-content: space-between;
+  text-align: left;
+  border-color: var(--tea-border);
+  background: var(--field-bg);
+  color: var(--tea-text);
+  font-size: var(--fs-field);
+  font-weight: var(--fw-normal);
+}
+.btn-field:hover:not(:disabled) { border-color: rgb(var(--tea-gold-rgb) / 0.4); }
+
+/* Sizes */
+.btn-sm { height: var(--control-h-sm); padding: 0 var(--btn-pad-x-sm); font-size: var(--fs-button-sm); }
+.btn-lg, .btn-primary-lg { height: var(--control-h-lg); padding: 0 var(--btn-pad-x-lg); font-size: var(--fs-button-lg); }
+.btn-icon.btn-sm { width: var(--control-h-sm); padding: 0; }
+.btn-icon.btn-lg { width: var(--control-h-lg); padding: 0; }
+
+/* Tone */
+.btn-danger { color: var(--tea-error); }
+.btn-secondary.btn-danger { border-color: rgb(var(--tea-error-rgb) / 0.4); }
+.btn-danger:hover:not(:disabled) { background: rgb(var(--tea-error-rgb) / 0.1); color: var(--tea-error); }

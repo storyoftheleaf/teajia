@@ -77,7 +77,7 @@ const BuyingLine: React.FC<{ tx: LedgerTransaction; item: LedgerLineItem }> = ({
   return (
     <div data-testid="buying-line" className="py-3 border-b border-tea-border">
       <div className="flex items-baseline gap-3">
-        <span className="min-w-0 truncate font-display text-[22px] leading-tight text-tea-text">{item.name}</span>
+        <span className="min-w-0 truncate font-display text-ui-22 leading-tight text-tea-text">{item.name}</span>
         <span className="ml-auto shrink-0 num text-ui-17 text-tea-text">{priced ? money(ledgerItemAmount(item), currency) : <span className="text-tea-text-sec text-ui-13">no price yet</span>}</span>
       </div>
       <p className="mt-0.5 font-body text-ui-12 text-tea-text-sec">
@@ -183,7 +183,7 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       <button type="button" onClick={onClose} aria-label="Close buying" className="min-w-tap min-h-tap flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
         <Icons.Close className="w-5 h-5" />
       </button>
-      <h2 className="flex-1 min-w-0 font-display text-[22px] leading-none text-tea-text">{placed ? 'Ordered' : 'Buying'}</h2>
+      <h2 className="flex-1 min-w-0 font-display text-ui-22 leading-none text-tea-text">{placed ? 'Ordered' : 'Buying'}</h2>
       {!placed && drafts.length > 0 && <span className="font-body text-ui-12 text-tea-text-sec">{drafts.length} {drafts.length === 1 ? 'supplier' : 'suppliers'}</span>}
     </div>
     <div className="flex-1 min-h-0 overflow-y-auto tea-card-scroll px-4 pt-1 pb-6">
@@ -191,7 +191,7 @@ export const BuyingBasket: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         <section role="status" aria-label="Orders placed" className="space-y-4 pt-2">
           {placed.map((p, i) => (
             <div key={i} className="flex items-baseline justify-between gap-3 py-2 border-b border-tea-border">
-              <span className="font-display text-[22px] leading-tight text-tea-text">{p.name}</span>
+              <span className="font-display text-ui-22 leading-tight text-tea-text">{p.name}</span>
               <span className={`font-body text-ui-13 ${p.failed ? 'text-tea-error' : 'text-tea-text-sec'}`}>{p.failed ? 'not recorded, retry in Curate' : 'placed'}</span>
             </div>
           ))}

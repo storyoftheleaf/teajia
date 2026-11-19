@@ -159,7 +159,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       <h1
         id={`alcove-title-${item.id}`}
         className={`m-0 font-display font-normal leading-[1.02] tracking-[0.005em] [text-wrap:balance] lg:leading-none ${
-          onPlate ? 'plate-ink text-[40px] lg:text-[clamp(32px,4vw,58px)]' : 'text-ui-28 leading-[1.12] text-tea-text'
+          onPlate ? 'plate-ink text-ui-40 lg:text-[clamp(32px,4vw,58px)]' : 'text-ui-28 leading-[1.12] text-tea-text'
         }`}
       >
         {title}
@@ -168,7 +168,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
         <p
           lang="zh"
           className={`m-0 font-calligraphy leading-none tracking-[0.3em] indent-[0.3em] lg:tracking-[0.32em] lg:indent-[0.32em] ${
-            onPlate ? 'plate-ink-han mt-[13px] text-[19px] lg:mt-6 lg:text-[clamp(18px,1.9vw,27px)]' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
+            onPlate ? 'plate-ink-han mt-[13px] text-ui-19 lg:mt-6 lg:text-[clamp(18px,1.9vw,27px)]' : 'mt-[7px] text-ui-17 text-tea-gold-lt'
           }`}
         >
           {chineseCharacters}

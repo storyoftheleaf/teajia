@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
 
@@ -23,7 +23,7 @@ const moreLinks = [
 // ─── Shared sub-styles ───────────────────────────────────────────────────────
 const pBody: React.CSSProperties = {
   fontFamily: F.body,
-  fontSize: 'clamp(16px,2vw,18px)',
+  fontSize: S.body,
   lineHeight: 1.8,
   color: C.taupe,
   margin: '0 0 18px',
@@ -149,7 +149,7 @@ const LegendImmortalsCliff: React.FC = () => {
 
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: C.ink, margin: 0 }}>
             H
             igh on a sheer face in the Wuyi mountains, reached by a narrow path and a great deal of nerve, grows the most famous tea in China:{' '}
             <span style={{ fontFamily: F.cn, color: C.taupe }}>大红袍</span>
@@ -199,7 +199,7 @@ const LegendImmortalsCliff: React.FC = () => {
 
         {/* ── PULL QUOTE ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
-          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: S.heading, lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
             "Twenty grams of it once sold for more than a small apartment. Then they decided it could not be sold at all."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
@@ -281,7 +281,7 @@ const LegendImmortalsCliff: React.FC = () => {
 
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(40px,6vw,80px) 24px clamp(40px,6vw,72px)' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             There is something fitting in a culture that decided its most precious tea was worth more left unpicked than sold, that the bushes themselves, ancient and stubborn on their ledge, mattered more than the cup. The immortals keep their cliff. We make do, very happily, with their descendants.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>

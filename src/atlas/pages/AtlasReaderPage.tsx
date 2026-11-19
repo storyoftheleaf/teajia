@@ -12,7 +12,7 @@ import type { AtlasArticle, AtlasBlock, AtlasHome, AtlasIssue } from '../types';
 // 17 to 18px on 1.8 the Read articles use), about 66 characters to a line.
 const CJK = /[\u3400-\u9fff\uf900-\ufaff]/;
 
-const BODY = 'font-body text-ui-17 md:text-[18px] leading-[1.8] text-tea-text';
+const BODY = 'font-body text-ui-17 md:text-ui-18 leading-[1.8] text-tea-text';
 
 const Block: React.FC<{ block: AtlasBlock; issueLabel: string }> = ({ block, issueLabel }) => {
   switch (block.t) {
@@ -20,7 +20,7 @@ const Block: React.FC<{ block: AtlasBlock; issueLabel: string }> = ({ block, iss
       return <p className={`${BODY} mb-[1.1em]`}>{block.v}</p>;
     case 'h':
       return (
-        <h2 className="font-display text-[22px] md:text-ui-26 font-medium leading-[1.25] text-tea-text mt-12 mb-4 [text-wrap:balance]">
+        <h2 className="font-display text-ui-22 md:text-ui-26 font-medium leading-[1.25] text-tea-text mt-12 mb-4 [text-wrap:balance]">
           {block.v}
         </h2>
       );
@@ -132,7 +132,7 @@ export default function AtlasReaderPage() {
         <div className="min-w-0">
           <article>
             <header className="mb-12 md:mb-14">
-              <h1 className="font-display text-[34px] md:text-[46px] font-normal leading-[1.1] tracking-[0.005em] text-tea-text [text-wrap:balance]">
+              <h1 className="font-display text-ui-34 md:text-[46px] font-normal leading-[1.1] tracking-[0.005em] text-tea-text [text-wrap:balance]">
                 {a.title}
               </h1>
               {byline && <p className="font-body text-ui-15 text-tea-text-sec mt-4">{byline}</p>}

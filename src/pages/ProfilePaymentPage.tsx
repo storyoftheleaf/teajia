@@ -153,7 +153,7 @@ export default function ProfilePaymentPage() {
           They go only to people I have sold tea to. Ask me once; from then on you can open them from my page.
         </p>
         {requested ? (
-          <p className="mt-[22px] flex min-h-[52px] items-center border-b font-display text-[22px] leading-none text-tea-text-dim" style={GOLD_LINE_STYLE} role="status" data-testid="pay-gate-asked">
+          <p className="mt-[22px] flex min-h-[52px] items-center border-b font-display text-ui-22 leading-none text-tea-text-dim" style={GOLD_LINE_STYLE} role="status" data-testid="pay-gate-asked">
             Asked. It opens here once I approve.
           </p>
         ) : (
@@ -241,7 +241,7 @@ function Sheet({ portrait, closeHref, children, testId }: { portrait: string | n
       </div>
       <section className="relative mt-[220px] border-t bg-tea-surface px-6 pb-8 pt-3" style={GOLD_LINE_STYLE}>
         <div className="flex min-h-tap items-center">
-          <a href={closeHref} aria-label="Close" className="tap-target inline-flex h-11 w-11 items-center justify-start font-sans text-[22px] text-tea-text-sec hover:text-tea-text">×</a>
+          <a href={closeHref} aria-label="Close" className="tap-target inline-flex h-11 w-11 items-center justify-start font-sans text-ui-22 text-tea-text-sec hover:text-tea-text">×</a>
         </div>
         {children}
       </section>

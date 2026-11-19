@@ -424,7 +424,7 @@ const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
             </div>
           )}
         </div>
-        <div className="text-[22px] leading-snug mb-1" style={{ color: '#f0ebe3', fontFamily: 'Georgia, serif' }}>{entry.productName}</div>
+        <div className="text-ui-22 leading-snug mb-1" style={{ color: '#f0ebe3', fontFamily: 'Georgia, serif' }}>{entry.productName}</div>
         {entry.productType && <div className="text-ui-9 tracking-[0.18em] uppercase mb-4" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{entry.productType}</div>}
         <div className="border-b mb-4" style={{ borderColor: '#2e2820' }} />
         {flavorTerms.length > 0 && (

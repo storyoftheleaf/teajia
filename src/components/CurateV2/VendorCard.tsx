@@ -166,7 +166,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, teas: all, onBac
         <button type="button" onClick={onBack} className="tap-target flex h-11 w-11 items-center justify-center text-tea-text-sec hover:text-tea-text" aria-label="Back to vendors">
           <ArrowLeft size={18} />
         </button>
-        <span className="min-w-0 flex-1 truncate font-display text-[30px] leading-none text-tea-text">{vendor.name}</span>
+        <span className="min-w-0 flex-1 truncate font-display text-ui-30 leading-none text-tea-text">{vendor.name}</span>
         {orders.length > 0 && <span className="pr-2 font-mono text-ui-13 text-tea-gold">Working with</span>}
       </div>
       <div className="border-t border-tea-border">

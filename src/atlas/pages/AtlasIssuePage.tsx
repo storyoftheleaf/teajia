@@ -30,7 +30,7 @@ export default function AtlasIssuePage() {
                 />
               )}
               <div className="md:hidden">
-                <h1 className="font-display text-[34px] leading-[1.1] text-tea-text">{issue.label}</h1>
+                <h1 className="font-display text-ui-34 leading-[1.1] text-tea-text">{issue.label}</h1>
                 <p className="font-body text-ui-14 text-tea-text-sec mt-2">{countLabel(articles.length, 'article', 'articles')}</p>
               </div>
             </div>

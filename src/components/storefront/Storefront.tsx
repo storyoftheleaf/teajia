@@ -258,7 +258,7 @@ const StorefrontPeopleSection: React.FC<{ people: PublicPerson[] }> = ({ people 
             ariaLabel={`${host.display_name}, who hosts this table`}
           >
             {host.role && <Kicker className="mb-2">{host.role}</Kicker>}
-            <span className="block font-display text-[30px] leading-[0.98] text-tea-text"><SplitName name={host.display_name} /></span>
+            <span className="block font-display text-ui-30 leading-[0.98] text-tea-text"><SplitName name={host.display_name} /></span>
             {host.own_line && <Dek className="mt-2 max-w-[30ch]">{host.own_line}</Dek>}
           </Cover>
         </div>

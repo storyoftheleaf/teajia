@@ -454,7 +454,7 @@ function TypographySection() {
           <SubHeader>UI pixel scale</SubHeader>
           <p className="text-ui-12 text-tea-text-dim mb-4">
             Use these for UI text outside the named patterns. Never write{' '}
-            <code className="font-mono text-tea-error">text-[12px]</code>.
+            <code className="font-mono text-tea-error">text-ui-12</code>.
           </p>
           <ul className="space-y-2">
             {UI_SCALE.map(([cls, px, use]) => (
@@ -1752,7 +1752,7 @@ function AntiPatternsSection() {
 
         <Demo banned label="Inline arbitrary pixels" caption="Use the token scale">
           <code className="block font-mono text-ui-12 text-tea-text-sec bg-tea-bg rounded-md p-3 break-all">
-            {'text-[12px] · gap-[14px] · z-priority · style={{ marginTop: 12 }}'}
+            {'text-ui-12 · gap-[14px] · z-priority · style={{ marginTop: 12 }}'}
           </code>
           <p className="text-ui-11 text-tea-text-dim mt-2">Use text-ui-12, gap-4, z-popover, mt-3.</p>
         </Demo>

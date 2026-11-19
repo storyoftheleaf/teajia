@@ -11,7 +11,7 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, ACCENTS,
 } from './immersive';
 
@@ -24,7 +24,7 @@ const moreLinks = [
 // ─── Shared sub-styles ────────────────────────────────────────────────────────
 const pBody: React.CSSProperties = {
   fontFamily: F.body,
-  fontSize: 'clamp(16px,2vw,18px)',
+  fontSize: S.body,
   lineHeight: 1.8,
   color: C.taupe,
   margin: '0 0 18px',
@@ -168,7 +168,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
 
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: C.ink, margin: 0 }}>
             L
             ù Yù, who wrote the first book on tea twelve centuries ago, devoted an entire chapter not to leaves but to{' '}
             <em style={{ fontStyle: 'italic', color: C.cream }}>water</em>. He ranked the rivers of China by name. He sent men to fetch from particular bends of particular streams. To him the leaf was only half the craft; the water was the other, quieter half, the half that does the actual carrying. We have mostly forgotten this. The tap, we assume, is the tap. It is not.
@@ -215,7 +215,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
 
         {/* ── PULL QUOTE ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
-          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: S.heading, lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
             "Mountain water is best, river water middling, well water the least."
           </blockquote>
           <p style={{ fontFamily: F.ui, fontSize: 11, fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, margin: '30px 0 0' }}>
@@ -385,7 +385,7 @@ const FieldStudyWaterBeforeLeaf: React.FC = () => {
 
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px clamp(40px,6vw,72px)' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             Change your water before you change your tea. It is the cheapest and most dramatic improvement a drinker can make, and the one almost no one thinks to try. The leaf gets all the attention. The water does most of the work.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>

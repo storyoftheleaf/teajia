@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, MoreFooter,
   AccentSwatches,
   useReveals, useReadingProgress, useImmersiveChrome, ACCENTS,
 } from './immersive';
@@ -222,7 +222,7 @@ const AtlasMapOfMountains: React.FC = () => {
 
         {/* ── STANDFIRST ─────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(36px,6vw,72px) 24px clamp(28px,5vw,52px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: 'var(--tj-read-ink)', margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: 'var(--tj-read-ink)', margin: 0 }}>
             T
             he French call it <em style={{ fontStyle: 'italic', color: 'var(--tj-read-cream)' }}>terroir</em>; the Chinese have known it far longer. Altitude, mist, the mineral in the rock, the angle of the morning sun, a tea drinks all of it in before a single leaf is plucked. Move a famous bush a hundred miles and it makes a stranger. Here are the places that cannot be moved.
           </p>
@@ -429,7 +429,7 @@ const AtlasMapOfMountains: React.FC = () => {
 
         {/* ── PULL QUOTE ─────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
-          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: 'var(--tj-read-cream)', margin: '0 auto', maxWidth: 860 }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: S.heading, lineHeight: 1.18, color: 'var(--tj-read-cream)', margin: '0 auto', maxWidth: 860 }}>
             "A tea carries its mountain the way a wine carries its hill, you are not drinking a leaf, but a place."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
@@ -444,10 +444,10 @@ const AtlasMapOfMountains: React.FC = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,300px),1fr))', gap: 'clamp(28px,5vw,56px)', alignItems: 'center' }}>
             <div data-reveal>
-              <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: 'var(--tj-read-taupe)', margin: '0 0 18px' }}>
+              <p style={{ fontFamily: F.body, fontSize: S.body, lineHeight: 1.8, color: 'var(--tj-read-taupe)', margin: '0 0 18px' }}>
                 Height buys a tea its slowness. Up in the cold and cloud, the leaf grows lazily, packing sugars and aromatics into a small, dense bud instead of racing to size. The mist that pools in mountain valleys filters the sun, sparing the leaf its harsher, more bitter compounds.
               </p>
-              <p style={{ fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: 'var(--tj-read-taupe)', margin: 0 }}>
+              <p style={{ fontFamily: F.body, fontSize: S.body, lineHeight: 1.8, color: 'var(--tj-read-taupe)', margin: 0 }}>
                 And the rock itself speaks. Iron, quartz, weathered stone, the root takes up the mountain's minerals and hands them, transformed, to your cup. This is why two gardens an hour apart can taste like different countries.
               </p>
             </div>
@@ -481,7 +481,7 @@ const AtlasMapOfMountains: React.FC = () => {
 
         {/* ── CLOSING ────────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: 'var(--tj-read-taupe)', margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: 'var(--tj-read-taupe)', margin: 0 }}>
             A map of tea is really a map of patience, of places remote and high enough that the modern hurry never quite arrived. Drink carefully, and the mountain comes with the cup: the cold, the cloud, the stone. Geography you can taste.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>

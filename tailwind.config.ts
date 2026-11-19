@@ -16,7 +16,7 @@ const config: Config = {
       // long as they have been written.
       opacity: { 6: '0.06', 8: '0.08' },
       // Touch floor: 44px on a touch screen, 28px with a mouse. Defined once in
-      // tailwind.css (--tap-min); never write min-h-[44px] again.
+      // tokens.css (--tap-min); never write min-h-[44px] again.
       minHeight: { tap: 'var(--tap-min)', control: 'var(--control-h)' },
       minWidth: { tap: 'var(--tap-min)' },
       height: { control: 'var(--control-h)', 'control-sm': 'var(--control-h-sm)', 'control-lg': 'var(--control-h-lg)' },
@@ -41,12 +41,12 @@ const config: Config = {
         'tea-error': 'rgb(var(--tea-error-rgb) / <alpha-value>)',
         'tea-border': 'var(--tea-border)',
         'tea-accent-sub': 'var(--tea-accent-sub)',
-        'tea-green': '#5A6E5A',
-        'tea-moss': '#2A3430',
+        'tea-green': 'rgb(var(--tea-green-rgb) / <alpha-value>)',
+        'tea-moss': 'rgb(var(--tea-moss-rgb) / <alpha-value>)',
         'tea-shadow': 'rgba(0,0,0,0.15)',
         // Modal/overlay scrim. Fixed value, not alpha-aware — use bare
         // `bg-tea-overlay`, never with a /N modifier.
-        'tea-overlay': 'rgba(12,9,6,0.78)',
+        'tea-overlay': 'var(--overlay-bg)',
         // Admin neutral palette — see card-utilities.css for the full
         // rationale. Intentionally NOT alpha-channel-aware so /N modifiers
         // don't accidentally produce off-system colors.
@@ -61,16 +61,18 @@ const config: Config = {
         'admin-text-dim':     'var(--admin-text-dim)',
         'admin-text-faint':   'var(--admin-text-faint)',
       },
+      // Faces are declared once, in src/styles/tokens.css (--font-*).
       fontFamily: {
-        display: DESIGN_TOKENS.fontFamily.display as string[],
-        serif: DESIGN_TOKENS.fontFamily.serif as string[],
-        body: DESIGN_TOKENS.fontFamily.body as string[],
-        sans: DESIGN_TOKENS.fontFamily.sans as string[],
-        mono: DESIGN_TOKENS.fontFamily.mono as string[],
+        display: ['var(--font-display)'],
+        serif: ['var(--font-serif)'],
+        body: ['var(--font-body)'],
+        sans: ['var(--font-sans)'],
+        mono: ['var(--font-mono)'],
       },
       fontSize: {
         ...(DESIGN_TOKENS.fontSize as Record<string, string>),
         ...(DESIGN_TOKENS.uiTextScale as Record<string, string>),
+        ...(DESIGN_TOKENS.roleTextScale as unknown as Record<string, string>),
       },
       fontWeight: DESIGN_TOKENS.fontWeight as Record<string, number>,
       lineHeight: DESIGN_TOKENS.lineHeight as Record<string, string>,
@@ -78,6 +80,11 @@ const config: Config = {
       transitionDuration: DESIGN_TOKENS.transitionDuration as Record<string, string>,
       backdropBlur: DESIGN_TOKENS.backdropBlur as Record<string, string>,
       spacing: DESIGN_TOKENS.spacing as Record<string, string>,
+      // p-4, mt-2, gap-3, space-y-6 read the spacing steps in tokens.css.
+      padding: DESIGN_TOKENS.spaceSteps as Record<string, string>,
+      margin: DESIGN_TOKENS.spaceSteps as Record<string, string>,
+      gap: DESIGN_TOKENS.spaceSteps as Record<string, string>,
+      space: DESIGN_TOKENS.spaceSteps as Record<string, string>,
       boxShadow: DESIGN_TOKENS.shadows as Record<string, string>,
       borderRadius: DESIGN_TOKENS.borderRadius as Record<string, string>,
       keyframes: DESIGN_TOKENS.keyframes as Record<string, Record<string, Record<string, string>>>,

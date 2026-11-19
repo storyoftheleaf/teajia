@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import { ConversationByline } from './conversation/Byline';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
 
@@ -21,7 +21,7 @@ const moreLinks = [
   { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
-const pBody: React.CSSProperties = { fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: C.taupe, margin: '0 0 16px' };
+const pBody: React.CSSProperties = { fontFamily: F.body, fontSize: S.body, lineHeight: 1.8, color: C.taupe, margin: '0 0 16px' };
 const qStyle: React.CSSProperties = { fontFamily: F.display, fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(21px,2.6vw,26px)', lineHeight: 1.34, color: C.warm, margin: '0 0 18px', paddingLeft: 20, borderLeft: `2px solid ${C.gold}` };
 
 const qa = (q: string, body: React.ReactNode) => ({ q, body });
@@ -139,7 +139,7 @@ const EarthWaterFire: React.FC = () => {
 
         {/* STANDFIRST */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: C.ink, margin: 0 }}>
             J
             ingdezhen has made porcelain for a thousand years; the kilns here have never truly gone cold. In a workshop off a lane stacked with drying bowls, Lín Yùzhēn sits at a wheel her grandmother used, opening a lump of grey clay into the beginnings of a gaiwan. She is forty-three. Her hands are pale with slip. She does not look up as we sit down.
           </p>
@@ -149,7 +149,7 @@ const EarthWaterFire: React.FC = () => {
 
         {/* PULL QUOTE */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
-          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: S.heading, lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
             “We do not make the colour. We make the conditions, and the fire decides.”
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
@@ -260,7 +260,7 @@ const EarthWaterFire: React.FC = () => {
 
         {/* CLOSING */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(40px,6vw,72px) 24px' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             She fires next week, three hundred pieces, and the quiet violence of the kiln. Some will not survive. Lín Yùzhēn has made her peace with that. The fire, she says, has better taste than she does; she has only learned to trust it.
           </p>
         </section>

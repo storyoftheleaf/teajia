@@ -43,7 +43,7 @@ Professional tea infrastructure — sourcing, inventory, education, events, and 
 - **Cart / currency / auth state** → `src/lib/store.ts` (Zustand)
 - **API calls** → `src/lib/api.ts`
 - **Worker API routes** → `worker/src/index.ts`
-- **Color tokens** → `tailwind.config.ts` + `src/styles/card-utilities.css`
+- **Every style value** (colours, font sizes by role, spacing, corners, control heights, shadows, motion, the seven button variants) → `src/styles/tokens.css`, the master style file. Change it there; `tailwind.config.ts` and `designTokens.ts` only point at it. Guard: `src/styles/masterStyleFile.test.ts`.
 - **Types** → `src/types.ts` (global), `src/admin/types.ts` (admin)
 - **Multi-store plan** → `docs/MULTI_STORE_PLAN.md`
 - **Product strategy** → `docs/VISION.md`, `docs/CONSOLIDATED_DIRECTION.md`
