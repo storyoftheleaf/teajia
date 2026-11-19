@@ -571,6 +571,14 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       seen.push(`strip photographs: ${await strip.getByTestId('family-photograph').count()}; second member linked to /people/${secondPage}`);
       await visitorPage.waitForLoadState('networkidle');
       expect(media.filter(u => u.includes('-full.'))).toEqual([]);
+      // A shared photograph is public only while it is on show, so its plain address must not be cached for a year.
+      const plain = localMedia(String(up.body.photograph.small_url)).split('?')[0];
+      const cached = await visitor.request.get(plain);
+      const cacheControl = cached.headers()['cache-control'] ?? '';
+      seen.push(`the shared photograph at its plain address: ${cached.status()}, Cache-Control "${cacheControl}"`);
+      expect(cached.status()).toBe(200);
+      expect(cacheControl).not.toContain('immutable');
+      expect(cacheControl).toMatch(/max-age=60\b/);
       expect(await noOverflow(visitorPage)).toBe(true);
       await strip.scrollIntoViewIfNeeded();
       await visitorPage.screenshot({ path: shot(10, 'from-the-family') });
