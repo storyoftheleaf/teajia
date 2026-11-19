@@ -1664,6 +1664,7 @@ export interface CustomerOrderDetail {
   }>;
   subtotal_amount_usd: number;
   shipping_amount_usd: number;
+  shipping_quote_status?: 'requested' | 'confirmed' | null;
   total_amount_usd: number;
   contact: { whatsapp: string | null; email: string | null };
 }

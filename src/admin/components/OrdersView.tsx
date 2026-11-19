@@ -91,6 +91,7 @@ function orderStatusLabel(order: DbOrder): string {
   if (order.status === 'Draft' && order.source_inquiry_id) return 'Pending request';
   if (canShipNoChargeOrder(order)) return 'No charge, ready to ship';
   if (order.status === 'Pending' && order.payment_status === 'paid' && order.stock_exception) return 'Paid, stock needs attention';
+  if (order.status === 'Pending' && order.payment_status === 'paid' && order.shipping_quote_status === 'requested') return 'Tea paid, shipping quote needed';
   if (order.status === 'Pending' && Number(order.payment?.outstanding_usd || 0) > 0 && order.inventory_deducted) return 'Shipping balance due';
   if (order.status === 'Pending' && order.payment_status === 'paid') return 'Paid, awaiting shipment';
   if (order.status === 'Filled') return 'Shipped';
@@ -98,13 +99,13 @@ function orderStatusLabel(order: DbOrder): string {
 }
 
 function canShip(order: DbOrder): boolean {
-  return order.status === 'Pending' && order.payment_status === 'paid' && order.inventory_deducted && Number(order.payment?.outstanding_usd || 0) <= 0;
+  return order.status === 'Pending' && order.shipping_quote_status !== 'requested' && order.payment_status === 'paid' && order.inventory_deducted && Number(order.payment?.outstanding_usd || 0) <= 0;
 }
 
 function canShipNoChargeOrder(order: DbOrder): boolean {
   // The dedicated ship RPC rechecks a zero balance and deducts stock before
   // changing status. A shortage leaves the invoice Pending and stock intact.
-  return order.status === 'Pending' && !order.stock_exception && Number(order.computed_total) === 0 && Number(order.shipping_cost_usd || 0) === 0;
+  return order.status === 'Pending' && order.shipping_quote_status !== 'requested' && !order.stock_exception && Number(order.computed_total) === 0 && Number(order.shipping_cost_usd || 0) === 0;
 }
 
 function notificationLabel(order: DbOrder): string | null {

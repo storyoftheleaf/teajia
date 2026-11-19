@@ -5,7 +5,7 @@ export interface PayPalSandboxEnv {
  PAYPAL_SANDBOX_CLIENT_ID?: string; PAYPAL_SANDBOX_CLIENT_SECRET?: string; PAYPAL_SANDBOX_MERCHANT_ID?: string;
 }
 export interface SandboxInvoice {
- id: string; account_id: string; invoice_number: string | null; amount_usd: number; quote_key: string; deadline: string; capture_allowed?: boolean;
+ id: string; account_id: string; invoice_number: string | null; amount_usd: number; quote_key: string; deadline: string; capture_allowed?: boolean; shipping_later?: boolean;
 }
 export interface SandboxCapture {
  invoice_id: string; account_id: string; capture_id: string; amount_usd: number; order_id: string;
@@ -56,7 +56,7 @@ export async function paypalSandboxRoutes(request: Request, env: PayPalSandboxEn
    if(!attempt.paypal_order_id){
     const returnUrl=new URL('/order/'+encodeURIComponent(trackingToken),env.APP_URL);returnUrl.searchParams.set('invoice',invoice.id);returnUrl.searchParams.set('paypal_sandbox_return','1');
     const cancelUrl=new URL(returnUrl);cancelUrl.searchParams.delete('paypal_sandbox_return');cancelUrl.searchParams.set('paypal_sandbox_cancel','1');
-    const created=await paypal(env,'/v2/checkout/orders',{intent:'CAPTURE',purchase_units:[{custom_id:attempt.id,invoice_id:'sandbox-'+attempt.id,payee:{merchant_id:env.PAYPAL_SANDBOX_MERCHANT_ID},amount:{currency_code:'USD',value:invoice.amount_usd.toFixed(2)}}],payment_source:{paypal:{experience_context:{return_url:returnUrl.href,cancel_url:cancelUrl.href,user_action:'PAY_NOW',shipping_preference:'NO_SHIPPING'}}}},attempt.id);
+    const created=await paypal(env,'/v2/checkout/orders',{intent:'CAPTURE',purchase_units:[{description:invoice.shipping_later?'Tea payment only. Shipping is quoted and charged separately later.':'Payment for invoice '+(invoice.invoice_number||invoice.id),custom_id:attempt.id,invoice_id:'sandbox-'+attempt.id,payee:{merchant_id:env.PAYPAL_SANDBOX_MERCHANT_ID},amount:{currency_code:'USD',value:invoice.amount_usd.toFixed(2)}}],payment_source:{paypal:{experience_context:{return_url:returnUrl.href,cancel_url:cancelUrl.href,user_action:'PAY_NOW',shipping_preference:'NO_SHIPPING'}}}},attempt.id);
     const link=created.links?.find((l:any)=>l.rel==='payer-action'||l.rel==='approve')?.href;
     if(!/^[A-Z0-9]{8,32}$/.test(created.id||'')||!validApproval(link))throw new Error('sandbox_invalid_provider_order');
     await env.DB.prepare('UPDATE paypal_sandbox_orders SET paypal_order_id=?,approval_url=? WHERE id=? AND paypal_order_id IS NULL').bind(created.id,link,attempt.id).run();

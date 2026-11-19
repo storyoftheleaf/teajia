@@ -98,7 +98,7 @@ const OrderStatusPage: React.FC = () => {
   // different place from where he works the order.
   const derivedJourney = normalizeJourney(inquiry?.journey);
   const journey = inquiry?.order?.status === 'Draft'
-    ? { stage: 'received' as const, label: 'Request received', detail: 'Your request is saved. We’ll review the tea, payment and shipping with you.', at: null }
+    ? { stage: 'received' as const, label: 'Request received', detail: 'Your request is saved. We’ll confirm your tea first. Shipping is quoted and charged separately later.', at: null }
     : inquiry?.order?.shipping_status === 'shipped'
       ? { stage: 'sent' as const, label: 'Shipped', detail: derivedJourney?.detail ?? null, at: inquiry.order.shipped_at ?? derivedJourney?.at ?? null }
       : derivedJourney;
@@ -107,7 +107,6 @@ const OrderStatusPage: React.FC = () => {
   // is still a thing this order can do at all.
   const offersPayment =
     inquiry?.order?.status !== 'Draft' && inquiry?.order?.status !== 'Void' &&
-    inquiry?.order?.shipping_quote_status !== 'requested' &&
     showsPaymentActions(journey, inquiry?.payment) &&
     Boolean(inquiry?.payment?.pay_url || shouldOfferPaymentClaim(inquiry?.payment));
   const formatStoredUsd = (amount: number) => {
@@ -252,7 +251,7 @@ const OrderStatusPage: React.FC = () => {
             <button type="button" disabled={claiming} onClick={() => { void claimOrder(); }} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">{claiming ? 'Adding…' : hasToken() ? 'Add to my order history' : 'Sign in to keep this order'}</button>
             {claimError && <p role="alert" className="text-ui-13 text-tea-text mt-2">{claimError}</p>}
           </div>
-          {inquiry.order?.shipping_quote_status === 'requested' && <p role="status" className="text-ui-13 text-tea-text-sec my-3">US shipping quote requested. We’ll confirm the shipping cost before payment.</p>}
+          {inquiry.order?.shipping_quote_status === 'requested' && <p role="status" className="text-ui-13 text-tea-text-sec my-3">Shipping is quoted and charged separately later.</p>}
           {(inquiry.order?.shipping_destination || inquiry.shipping_destination) && <p className="text-ui-13 text-tea-text-sec">Delivery: {inquiry.order?.shipping_destination || inquiry.shipping_destination}</p>}
           {(inquiry.order?.tracking_number || inquiry.tracking_number) && <p className="text-ui-13 text-tea-text-sec">Tracking: {inquiry.order?.tracking_number || inquiry.tracking_number}</p>}
 
@@ -291,7 +290,7 @@ const OrderStatusPage: React.FC = () => {
           </p>
 
           {inquiry.order && inquiry.payment && <dl className="mt-4 border-t border-tea-border pt-3 space-y-1 text-ui-13">
-            {inquiry.order.status !== 'Draft' && typeof inquiry.order.shipping_cost_usd === 'number' && Number.isFinite(inquiry.order.shipping_cost_usd) && <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Delivery</dt><dd className="num text-tea-text">{formatStoredUsd(inquiry.order.shipping_cost_usd)}</dd></div>}
+            {inquiry.order.status !== 'Draft' && inquiry.order.shipping_quote_status !== 'requested' && typeof inquiry.order.shipping_cost_usd === 'number' && Number.isFinite(inquiry.order.shipping_cost_usd) && <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Delivery</dt><dd className="num text-tea-text">{formatStoredUsd(inquiry.order.shipping_cost_usd)}</dd></div>}
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Invoice total</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.total_usd))}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Paid</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.paid_usd))}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-tea-text-sec">Balance</dt><dd className="num text-tea-text">{formatStoredUsd(Number(inquiry.payment.outstanding_usd))}</dd></div>

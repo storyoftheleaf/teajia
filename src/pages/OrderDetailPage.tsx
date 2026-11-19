@@ -121,7 +121,7 @@ export default function OrderDetailPage() {
 
           <section aria-label="Order totals" className="space-y-2 text-ui-14">
             <div className="flex justify-between gap-4 text-tea-text-sec"><span>Subtotal</span><span>{formatOrderAmount(order.subtotal_amount_usd, order.currency, rates)}</span></div>
-            <div data-testid="shipping-total" className="flex justify-between gap-4 text-tea-text-sec"><span>Shipping</span><span>{formatOrderAmount(order.shipping_amount_usd, order.currency, rates)}</span></div>
+            {order.shipping_quote_status === 'requested' ? <p className="text-ui-13 text-tea-text-sec">Shipping is quoted and charged separately later.</p> : <div data-testid="shipping-total" className="flex justify-between gap-4 text-tea-text-sec"><span>Shipping</span><span>{formatOrderAmount(order.shipping_amount_usd, order.currency, rates)}</span></div>}
             <div className="flex justify-between gap-4 border-t border-tea-border pt-3 text-tea-text font-semibold"><span>Total</span><span>{formatOrderAmount(order.total_amount_usd, order.currency, rates)}</span></div>
           </section>
 

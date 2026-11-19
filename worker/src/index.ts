@@ -4673,6 +4673,7 @@ export interface JourneyMoney {
 }
 
 export interface JourneyInvoice {
+  shipping_quote_status?: string | null;
   status: string | null;
   created_at: string | null;
   payment_date: string | null;
@@ -4698,6 +4699,7 @@ function journeyCopy(
   input: JourneyInput,
 ): { label: string; detail: string | null } {
   const amounts = input.invoice?.money;
+  const shippingLater = input.invoice?.shipping_quote_status === 'requested';
   const cancelled = String(input.invoice?.status || '') === 'Void';
   switch (stage) {
     case 'received':
@@ -4730,8 +4732,8 @@ function journeyCopy(
       };
     case 'paid':
       return {
-        label: 'Paid in full',
-        detail: 'Thank you. Your order is being prepared for sending.',
+        label: shippingLater ? 'Tea paid' : 'Paid in full',
+        detail: shippingLater ? 'Your tea payment is confirmed. Shipping will be quoted and charged separately later.' : 'Thank you. Your order is being prepared for sending.',
       };
     case 'sent':
       return {
@@ -4817,11 +4819,13 @@ export function deriveOrderJourney(input: JourneyInput): OrderJourney {
     const reported = 'You have told us a payment is on its way. We will confirm it once it reaches the account.';
     detail = detail ? `${detail} ${reported}` : reported;
   }
+  if (input.invoice?.shipping_quote_status === 'requested' && stage !== 'paid' && stage !== 'closed' && stage !== 'sent') detail = `${detail ? detail + ' ' : ''}Shipping is quoted and charged separately later.`;
   return { stage, label: copy.label, detail, at: journeyAt(stage, input) };
 }
 
 /** One order as the journey needs it. The money arrives from the payment map. */
 export interface JourneyInvoiceRow {
+  shipping_quote_status?: string | null;
   id: string;
   status: string | null;
   created_at: string | null;
@@ -4874,6 +4878,7 @@ async function resolveOrderJourneys(
       manualStatus: request?.manualStatus ?? null,
       invoice: {
         status: invoice.status,
+        shipping_quote_status: invoice.shipping_quote_status,
         created_at: invoice.created_at,
         payment_date: invoice.payment_date,
         fulfilled_at: invoice.fulfilled_at,
@@ -5107,16 +5112,18 @@ const handlePayPalSandbox: Handler = async (request, env, params) => {
         const storedReceipt = typeof returningOrder === 'string' ? await env.DB.prepare(`SELECT capture_id FROM paypal_sandbox_orders
           WHERE paypal_order_id=? AND invoice_id=? AND account_id=?`)
           .bind(returningOrder, invoiceId, inquiry.account_id).first() : null;
-        if (!storedReceipt && invoice.status !== 'Pending') return json({ error: 'Confirm this order and delivery quote before test payment.' }, 409);
+        if (!storedReceipt && invoice.status !== 'Pending') return json({ error: 'Confirm the tea order before test payment.' }, 409);
         const hold = (await loadCheckoutPaymentHolds(env, [invoiceId])).get(invoiceId);
-        if (!storedReceipt && (!hold || checkoutPaymentRefusal(hold))) return json({ error: 'The order hold expired. Confirm availability before test payment.' }, 409);
+        const fulfillment = lease?.invoice ?? await env.DB.prepare('SELECT inventory_deducted,shipping_quote_status FROM invoices WHERE id=? AND account_id=?').bind(invoiceId, inquiry.account_id).first();
+        const allocated = Number(fulfillment?.inventory_deducted) === 1;
+        if (!storedReceipt && !allocated && (!hold || checkoutPaymentRefusal(hold))) return json({ error: 'The order hold expired. Confirm availability before test payment.' }, 409);
         const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
         const money = invoiceMoney(invoice.total_usd, invoice.payment_status, ledger.get(invoiceId));
         const items = await currentInvoiceItems(env, inquiry.account_id, invoiceId);
         // Prices, quantities and the original deadline all bind this provider order to a reviewed quote.
         const quoteKey = await sha256Hex(JSON.stringify({ invoiceId, items: items.map(item => [item.id,item.product_id,item.quantity,item.quantity_unit,item.unit_price_usd]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))), total:invoice.total_usd, outstanding:money.outstanding_usd, deadline:hold?.payment_deadline }));
         return { id: invoiceId, account_id: inquiry.account_id, invoice_number: invoice.invoice_number,
-          amount_usd: money.outstanding_usd, quote_key: quoteKey, deadline: hold?.payment_deadline || '', capture_allowed: invoice.status === 'Pending' && Boolean(hold && !checkoutPaymentRefusal(hold)) };
+          amount_usd: money.outstanding_usd, quote_key: quoteKey, deadline: hold?.payment_deadline || '', shipping_later: fulfillment?.shipping_quote_status === 'requested', capture_allowed: invoice.status === 'Pending' && (allocated || Boolean(hold && !checkoutPaymentRefusal(hold))) };
       },
       settle: async receipt => {
         const invoice = await loadLedgerInvoice(env, invoiceId, inquiry.account_id);
@@ -5981,14 +5988,10 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     }
     if (Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd')) {
       body.shipping_cost_usd = validateShippingCostUsd(body.shipping_cost_usd);
-      if (invoice.fulfillment_method === 'us_shipping') {
+      if (invoice.shipping_quote_status === 'requested' || invoice.fulfillment_method === 'us_shipping') {
         body.shipping_quote_status = 'confirmed';
         cols.push('shipping_quote_status');
       }
-    }
-    if (invoice.fulfillment_method === 'us_shipping' && body.status === 'Pending' &&
-        invoice.shipping_quote_status !== 'confirmed' && body.shipping_quote_status !== 'confirmed') {
-      return restError(409, 'Confirm the US shipping price before accepting this order.', 'shipping_quote_required');
     }
     for (const key of ['shipping_destination', 'tracking_number']) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
@@ -6721,10 +6724,11 @@ const handleShipInvoice: Handler = async (request, env) => {
   const invoiceId = String(body.invoice_id || '').trim();
   if (!invoiceId) return restError(400, 'invoice_id is required', 'invalid_invoice_id');
   const invoice = await env.DB.prepare(
-    `SELECT id,status,inventory_deducted,fulfilled_at FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL`
+    `SELECT id,status,inventory_deducted,fulfilled_at,shipping_quote_status FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL`
   ).bind(invoiceId, ctx.accountId).first() as Record<string, any> | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
   if (invoice.status === 'Filled'){const trail=await shipmentTeaTrail(env,ctx.accountId,invoiceId);if(trail.length)await env.DB.batch(trail);return json({ success: true, idempotent: true, shipped_at: invoice.fulfilled_at });}
+  if (invoice.shipping_quote_status === 'requested') return restError(409, 'Confirm the shipping charge before dispatch. Tea payment does not cover shipping.', 'shipping_quote_required');
   const priced = await loadLedgerInvoice(env, invoiceId, ctx.accountId);
   const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
   if (!priced || (ledger.get(invoiceId)?.paid_usd ?? 0) < priced.total_usd - PAYMENT_EPSILON) {
@@ -6747,6 +6751,7 @@ const handleShipInvoice: Handler = async (request, env) => {
   const shipment=env.DB.prepare(
     `UPDATE invoices SET status='Filled',fulfilled_at=?,tracking_number=COALESCE(?,tracking_number)
      WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
+       AND COALESCE(shipping_quote_status,'confirmed')!='requested'
        AND fulfillment_claim_token IS NULL
        AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments
          WHERE invoice_id=invoices.id AND account_id=invoices.account_id AND status='confirmed'),0)
@@ -7217,6 +7222,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     updates.push(`${key} = ?`);
     vals.push(normalizedValues[key] ?? body[key] ?? null);
   }
+  if (updateKeys.includes('shipping_cost_usd') && invoice.shipping_quote_status === 'requested') updates.push("shipping_quote_status = 'confirmed'");
   if (replacementPaymentRecipient !== undefined) {
     updates.push('payment_recipient_user_id = ?');
     vals.push(replacementPaymentRecipient);
@@ -14917,10 +14923,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         return json({ error: error instanceof Error ? error.message : 'Could not price this request' }, 400);
       }
       const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
-      const shipping = usShippingPostcode && deliveryAddress && accountId === env.SHOP_US_SHIPPING_ACCOUNT_ID
-        ? quoteUsCheckoutShipping(lines, env.SHOP_US_SHIPPING_USD_PER_KG, env.SHOP_US_SHIPPING_PACKAGING_GRAMS,
-          env.SHOP_US_SHIPPING_MAX_PACKED_GRAMS)
-        : null;
+      const shipping = null as { usd: number; packedGrams: number } | null;
       const pickup = pickupRequested && accountId === env.SHOP_PICKUP_ACCOUNT_ID && !deliveryAddress;
       let checkout: { ownerId: string; lines: Awaited<ReturnType<typeof authorizeInvoiceLines>> } | null = null;
       // Unpriced, unknown-stock and mixed-owner baskets go through review.
@@ -14983,7 +14986,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
             deliveryAddress || null, shipping?.packedGrams ?? null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? 'Awaiting bank transfer.' : 'Review prices and shipping before sending.'}`,
             checkout?.ownerId ?? null, checkout?.ownerId ?? null,
             pickupRequested ? 'bali_pickup' : usShippingRequested ? 'us_shipping' : null,
-            usShippingRequested ? shipping ? 'confirmed' : 'requested' : null, paymentDeadline),
+            pickupRequested ? null : 'requested', paymentDeadline),
           ...lines.map(line => env.DB.prepare(
             `INSERT INTO invoice_line_items
              (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,quantity_unit,stock_owner_user_id)
@@ -15256,6 +15259,7 @@ const handleGetInquiryByRef: Handler = async (request, env, params) => {
       });
       journeyInvoice = {
         status: (invoice.status as string | null) ?? null,
+        shipping_quote_status: invoice.shipping_quote_status,
         created_at: (invoice.created_at as string | null) ?? null,
         payment_date: (invoice.payment_date as string | null) ?? null,
         fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
@@ -15286,7 +15290,7 @@ const handleGetInquiryByRef: Handler = async (request, env, params) => {
   if (row.source === 'website' && order?.status === 'Draft') {
     journey = {
       stage: 'received', label: 'Request received',
-      detail: 'We have your request. We will confirm the final price and shipping with you.',
+      detail: 'We have your request. We will confirm the tea first. Shipping is quoted and charged separately later.',
       at: toIsoTime(row.created_at),
     };
   }
@@ -23109,7 +23113,7 @@ const handleGetMyOrders: Handler = async (request, env) => {
             COALESCE(t.line_total, 0) as line_total,
             COALESCE(t.line_count, 0) as line_count,
             i.shipping_cost_usd, i.payment_status, i.payment_date, i.fulfilled_at,
-            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number
+            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number,i.shipping_quote_status
      FROM invoices i
      LEFT JOIN (
        SELECT invoice_id, account_id,
@@ -23148,6 +23152,7 @@ const handleGetMyOrders: Handler = async (request, env) => {
     created_at: row.created_at as string | null,
     payment_date: row.payment_date as string | null,
     fulfilled_at: row.fulfilled_at as string | null,
+    shipping_quote_status: row.shipping_quote_status,
   })), payments);
 
   const refunds=rows.length?await env.DB.prepare(`SELECT invoice_id,SUM(amount_usd) AS refunded_usd FROM invoice_refunds WHERE invoice_id IN (${rows.map(()=>'?').join(',')}) GROUP BY invoice_id`).bind(...rows.map(row=>row.id)).all():{results:[]};
@@ -23176,7 +23181,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
   const invoice = await env.DB.prepare(
     `SELECT i.id,i.account_id, i.invoice_number, i.status, i.created_at, i.payment_date,
             i.fulfilled_at, i.display_currency, i.shipping_cost_usd, i.payment_status,
-            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number
+            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number,i.shipping_quote_status
      FROM invoices i
      WHERE i.id = ? AND i.deleted_at IS NULL
        AND ${ownership.predicate}
@@ -23228,6 +23233,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
     created_at: invoice.created_at as string | null,
     payment_date: (invoice.payment_date as string | null) ?? null,
     fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
+    shipping_quote_status: invoice.shipping_quote_status,
   }], new Map([[invoice.id as string, payment]]));
 
   return json({
@@ -23245,6 +23251,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
     items,
     subtotal_amount_usd: subtotal,
     shipping_amount_usd: shipping,
+    shipping_quote_status: invoice.shipping_quote_status,
     total_amount_usd: subtotal + shipping,
     contact: {
       whatsapp: account?.whatsapp_number || null,

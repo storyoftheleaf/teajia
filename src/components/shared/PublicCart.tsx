@@ -257,7 +257,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         <div role="status" className="space-y-2">
           <p className="font-display text-ui-26 leading-tight text-tea-text">{placedOrder.paymentDeadline
             ? placedOrder.shippingTotal ? 'Your shipping order is reserved.' : 'Your pickup order is reserved.' : `Your request is saved with ${storeName}.`}</p>
-          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.paymentDeadline ? 'Open your order to see bank details and report your transfer.' : 'Your order request and draft invoice are saved. We’ll arrange stock, payment and shipping with you personally.'}</p>
+          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.paymentDeadline ? 'Open your order to see bank details and report your transfer.' : 'Your order request and draft invoice are saved. We’ll confirm your tea first; shipping is quoted and charged separately later.'}</p>
           {placedOrder.invoiceNumber && <p className="num text-ui-13 text-tea-text-sec">{`Invoice ${placedOrder.invoiceNumber}`}</p>}
         </div>
         <div className="space-y-4">
@@ -278,7 +278,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           </div>
           <p className="font-body text-ui-13 text-tea-text-sec">{placedOrder.paymentDeadline
             ? `Transfer by ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(placedOrder.paymentDeadline))} Bali time. We’ll confirm your deposit.`
-            : placedOrder.shippingQuoteRequested ? 'US shipping quote requested. We’ll confirm the shipping price and full total with you in chat before payment.' : placedOrder.shippingTotal ? 'Shipping is quoted. We’ll confirm availability with you before payment.' : 'Shipping is arranged personally. No payment has been taken.'}</p>
+            : placedOrder.shippingQuoteRequested ? 'Pay for your tea first. Shipping is quoted and charged separately later.' : placedOrder.shippingTotal ? 'Shipping is quoted. We’ll confirm availability with you before payment.' : 'Shipping is arranged personally. No payment has been taken.'}</p>
         </div>
         {channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.paymentDeadline && <section className="space-y-2" aria-label="Discuss your saved order">
           <h3 className={`${T.h3} text-tea-text`}>{placedOrder.handoff ? 'One more step' : 'On WhatsApp'}</h3>
@@ -322,7 +322,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               {details.delivery === 'international' && field('country', 'Country', { autoComplete: 'country-name' })}
               {(details.delivery === 'indonesia' || details.delivery === 'international') && field('postcode', isUsDelivery(details) ? 'ZIP code' : 'Postcode (optional)', { autoComplete: 'postal-code' })}
               {details.delivery !== 'bali-pickup' && field('address', 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
-              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay by bank transfer right away.' : isUsDelivery(details) ? 'Add your street address and ZIP code to check whether you can pay now.' : 'We’ll confirm delivery availability and cost with you.'}</p>
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay by bank transfer right away.' : 'Pay for your tea first. Shipping is quoted and charged separately later.'}</p>
             </fieldset>
             <fieldset className="space-y-3 min-w-0">
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
@@ -361,7 +361,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         <div className="flex items-center gap-4">
           <div className="flex flex-col gap-1 shrink-0">
             <span className="num text-ui-26 leading-none text-tea-text"><span className="sr-only">{cart.every(item => item.category === 'tea') ? 'Tea subtotal' : 'Tea & teaware subtotal'} </span>{shopPrice.total(subtotal)}</span>
-            <span className="font-body text-ui-11 leading-none text-tea-text-sec">Shipping arranged personally</span>
+            <span className="font-body text-ui-11 leading-none text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Free pickup' : 'Shipping charged later'}</span>
           </div>
           <Button type="submit" form="checkout-form" fullWidth className="flex-1 min-w-0 whitespace-nowrap !px-4" loading={isPersisting} disabled={unavailable}>{isPersisting ? 'Saving request…' : 'Place order request'}</Button>
         </div>
