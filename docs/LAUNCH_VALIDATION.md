@@ -22,7 +22,7 @@ These checks are required before claiming a real-world launch. Fixtures, local m
 - [ ] **Complete one real inquiry → order → fulfillment loop.** A real customer starts through WhatsApp or email; Jesse confirms quantities, prices, and delivery/pickup; the order is recorded and fulfilled; stock movement and customer-visible detail are checked; customer and operator feedback is captured.
 - [ ] **Test from actual mainland China.** On a mainland network, test public pages, Read, Shop/contact fallback, sign-in OTP, Curate capture/sync, uploads, and service-worker behavior. Include real voice capture/transcription through the configured Groq path; a non-mainland VPN simulation does not close this item. Afterward, read recent `incident_ledger` rows to correlate any transport, timeout, server, or chunk-recovery failures with the observed flow.
 - [ ] **Approve Barry's real material.** Adrian supplies or approves Barry's contributor profile, article attribution, pull quotes, and personal voice. Exercise the real contributor → article → public profile path without inventing or silently rewriting Barry's words.
-- [ ] **Perform the manual editorial-boundary and smoke walkthrough.** On the deployed build, walk commerce, authentication, account switching, Read, Curate, events, Journal/Favorites/Cellar, contributor publishing, public bylines, and contact fallback. Confirm drafts do not leak, legacy author fallback remains readable, account boundaries hold in visible behavior, mobile bottom navigation does not cover actions, and the inquiry model has not become automated checkout.
+- [ ] **Perform the manual editorial-boundary and smoke walkthrough.** On the deployed build, walk commerce, authentication, account switching, Read, Curate, events, Journal/Favorites/Cellar, contributor publishing, public bylines, and contact fallback. Confirm drafts do not leak, legacy author fallback remains readable, account boundaries hold in visible behavior, mobile bottom navigation does not cover actions, and only confirmed, known-stock orders can proceed to automatic checkout while uncertain orders retain review.
 
 ## Curate inventory data review
 
@@ -69,3 +69,11 @@ These do not block launch unless Adrian explicitly promotes one into section A.
 When an item closes, append a short indented evidence note beneath it containing the date, environment/person, and observable result. Link a deployment, screenshot, log, or business record when appropriate, but never paste secrets, OTP values, private customer details, or personal contributor material into this file.
 
 If a check fails, leave it unchecked and record the failure in the owning active track. Do not create another launch checklist.
+
+## US checkout and PayPal acceptance: 2026-11-19
+
+Adrian authorized US-only shipping and live PayPal activation after an actual USD14 Sandbox capture was automatically confirmed against a disposable order. The separate live app authenticated successfully, its receiving merchant ID was read from the existing PayPal Business account, and the three payment webhooks were registered. The owner completed PayPal’s contact-information confirmation personally. Credentials are held in Infisical and must be installed securely on the Worker before activation. No real customer payment was created or charged during acceptance.
+
+Local tests cover US address collection, immediate tea payment for confirmed stock, review holds, separate shipping balances, duplicate receipts, signed webhook confirmation without a browser return, and refusal to dispatch before shipping is confirmed and paid. Customer screenshots marked TEST-PREVIEW use mocked production payment responses. Sandbox acceptance is real provider evidence; mocked live checkout is not evidence of a real-money capture. Production publication is tracked by the immutable release runner, not this checklist.
+
+The outbound per-kilo rate remains an owner input. Until then, shipping is manually quoted in Orders and charged later through the existing customer link. Saving a shipping quote does not send a new message automatically. Refunds must be performed in PayPal and recorded in Teajia.
