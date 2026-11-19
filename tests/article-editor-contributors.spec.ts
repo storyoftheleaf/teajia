@@ -85,6 +85,7 @@ test('editorial candidate review requires selecting the candidate before replace
   await expect(replace).toBeDisabled();
   await page.getByRole('button', { name: /WordForge revision 2/ }).click();
   await expect(replace).toBeEnabled();
+  await expect(page.getByTestId('immersive-preview-article').locator('.immersive-reveal').first()).toHaveCSS('filter', 'none');
   await page.screenshot({ path: '/private/tmp/magazine-editorial-shared-buttons.png' });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(replace).toBeVisible();
