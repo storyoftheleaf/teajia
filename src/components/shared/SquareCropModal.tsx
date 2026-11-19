@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from './Button';
 import * as Dialog from '@radix-ui/react-dialog';
 import Cropper, { Area } from 'react-easy-crop';
 import { Loader2, RotateCw, X } from 'lucide-react';
@@ -308,7 +309,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           >
             Cancel
           </button>
-          {onViewOriginal && <button type="button" className="btn-quiet btn-sm" disabled={saving} onClick={onViewOriginal}>View original</button>}
+          {onViewOriginal && <Button type="button" variant="ghost" className="btn-sm" disabled={saving} onClick={onViewOriginal}>View original</Button>}
           <button
             type="button"
             onClick={handleConfirm}

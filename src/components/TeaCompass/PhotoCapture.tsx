@@ -1003,7 +1003,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       {/* Earlier shots + uploads in flight, as small thumbs under the hero. */}
       {(heroExtraCount > 0 || (heroValidUrl && onRemovePhoto)) && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {heroValidUrl && onRemovePhoto && photos && <button type="button" className="btn-quiet btn-sm" aria-label={`Delete photo ${validPhotos.length}`} onClick={() => onRemovePhoto(photos.indexOf(heroValidUrl))}>Delete</button>}
+          {heroValidUrl && onRemovePhoto && photos && <Button type="button" variant="ghost" className="btn-sm" aria-label={`Delete photo ${validPhotos.length}`} onClick={() => onRemovePhoto(photos.indexOf(heroValidUrl))}>Delete</Button>}
           {renderThumbs(heroValidUrl, heroPending)}
         </div>
       )}
