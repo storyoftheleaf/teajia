@@ -4230,12 +4230,14 @@ const CHECKOUT_HOLD_DEADLINE_SQL = `CASE WHEN NOT EXISTS (
               WHERE h.invoice_id = i.id AND h.account_id = i.account_id AND h.product_id = li.product_id
                 AND julianday(h.expires_at) > julianday('now')
             ), 0)
-          ) THEN (
+          ) THEN CASE WHEN i.order_payment_deadline IS NOT NULL THEN
+            CASE WHEN julianday(i.order_payment_deadline)>julianday('now') THEN i.order_payment_deadline END
+          ELSE (
             SELECT h.expires_at FROM stock_holds h
             WHERE h.invoice_id = i.id AND h.account_id = i.account_id
               AND julianday(h.expires_at) > julianday('now')
             ORDER BY julianday(h.expires_at) LIMIT 1
-          ) END`;
+          ) END END`;
 
 async function loadCheckoutPaymentHolds(env: Env, invoiceIds: string[]) {
   const holds = new Map<string, CheckoutPaymentHold>();
@@ -5064,11 +5066,14 @@ const handleCreateOrderPaymentClaim: Handler = async (request, env, params) => {
   ).bind(tokenHash).first() as Record<string, any> | null;
   // Nothing to pay until the request has been priced into an invoice.
   if (!inquiry?.converted_invoice_id) return json({ error: 'Not found' }, 404);
-  const invoice = await loadLedgerInvoice(
-    env, inquiry.converted_invoice_id as string, inquiry.account_id as string,
-  );
-  if (!invoice) return json({ error: 'Not found' }, 404);
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const selectedInvoiceId = typeof body.invoice_id === 'string' ? body.invoice_id : inquiry.converted_invoice_id;
+  const associated = await env.DB.prepare(`SELECT id FROM invoices
+    WHERE id=? AND account_id=? AND deleted_at IS NULL AND (id=? OR source_inquiry_id=?)`
+  ).bind(selectedInvoiceId, inquiry.account_id, inquiry.converted_invoice_id, inquiry.id).first();
+  if (!associated) return json({ error: 'Not found' }, 404);
+  const invoice = await loadLedgerInvoice(env, selectedInvoiceId, inquiry.account_id as string);
+  if (!invoice) return json({ error: 'Not found' }, 404);
   return createCustomerPaymentClaim(env, invoice, body, {
     name: (inquiry.name as string | null) || invoice.customer_name,
     contact: (inquiry.email as string | null) || (inquiry.phone as string | null) || null,
@@ -5551,7 +5556,7 @@ const handleGetInvoices: Handler = async (request, env) => {
     ? 'WHERE i.account_id = ?'
     : 'WHERE i.account_id = ? AND i.deleted_at IS NULL';
   const result = await env.DB.prepare(
-    `SELECT i.*, COALESCE(t.line_total, 0) as computed_total,
+    `SELECT i.*, q.ref_number AS website_order_reference, COALESCE(t.line_total, 0) as computed_total,
        ev.title as source_event_title, ev.slug as source_event_slug,
        ono.state AS notification_status, ono.message_purpose AS notification_purpose
      FROM invoices i
@@ -5559,6 +5564,7 @@ const handleGetInvoices: Handler = async (request, env) => {
        SELECT invoice_id, SUM(quantity * price_at_sale) as line_total
        FROM invoice_line_items GROUP BY invoice_id
      ) t ON t.invoice_id = i.id
+     LEFT JOIN inquiries q ON q.id=i.source_inquiry_id AND q.account_id=i.account_id
      LEFT JOIN events ev ON ev.id = i.source_event_id
      LEFT JOIN order_whatsapp_outbox ono ON ono.invoice_id=i.id AND ono.account_id=i.account_id
      ${whereClause}
@@ -5885,7 +5891,8 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     return invalidInvoiceResponse(error);
   }
   delete body.account_id;
-  const invoice = await env.DB.prepare('SELECT id,status,sold_by_user_id,inventory_deducted,source_inquiry_id FROM invoices WHERE id=? AND account_id=?')
+  delete body.shipping_quote_status;
+  const invoice = await env.DB.prepare('SELECT id,status,sold_by_user_id,inventory_deducted,source_inquiry_id,fulfillment_method,shipping_quote_status,order_payment_deadline FROM invoices WHERE id=? AND account_id=?')
     .bind(params.id, accountId).first() as Record<string, any> | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
   const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','shipping_destination','tracking_number','message_text','payment_status','paid_at','payment_date','due_date','payment_method','currency_rate','source_event_id']);
@@ -5915,6 +5922,14 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     }
     if (Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd')) {
       body.shipping_cost_usd = validateShippingCostUsd(body.shipping_cost_usd);
+      if (invoice.fulfillment_method === 'us_shipping') {
+        body.shipping_quote_status = 'confirmed';
+        cols.push('shipping_quote_status');
+      }
+    }
+    if (invoice.fulfillment_method === 'us_shipping' && body.status === 'Pending' &&
+        invoice.shipping_quote_status !== 'confirmed' && body.shipping_quote_status !== 'confirmed') {
+      return restError(409, 'Confirm the US shipping price before accepting this order.', 'shipping_quote_required');
     }
     for (const key of ['shipping_destination', 'tracking_number']) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
@@ -5944,6 +5959,24 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
       if (prior) await reconcileLedgerWithColumn(env, prior);
     }
     const statements: D1PreparedStatement[] = [];
+    let originalDeadline = invoice.order_payment_deadline as string | null;
+    if (invoice.source_inquiry_id && invoice.status === 'Pending' && body.status === 'Draft') {
+      originalDeadline = originalDeadline ?? await invoiceEditHoldDeadline(env, params.id, true);
+      if (!originalDeadline) {
+        await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
+        return restError(409, HOLD_EXPIRED_MESSAGE, 'invoice_hold_expired');
+      }
+    }
+    if (invoice.source_inquiry_id && invoice.status === 'Draft' && body.status === 'Pending') {
+      originalDeadline = originalDeadline ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      if (Date.parse(originalDeadline) <= Date.now()) {
+        await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
+        return restError(409, HOLD_EXPIRED_MESSAGE, 'invoice_hold_expired');
+      }
+    }
+    if (originalDeadline) statements.push(env.DB.prepare(
+      'UPDATE invoices SET order_payment_deadline=COALESCE(order_payment_deadline,?) WHERE id=? AND account_id=? AND fulfillment_claim_token=?'
+    ).bind(originalDeadline, params.id, accountId, editClaim));
     if (invoice.status === 'Draft' && body.status === 'Pending') {
       const current = await env.DB.prepare(
         'SELECT id,product_id,custom_name,quantity,price_at_sale,quantity_unit FROM invoice_line_items WHERE invoice_id=? AND account_id=?'
@@ -5978,7 +6011,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
       ).bind(line.stock_owner_user_id, line.sales_grant_id, line.owner_share_type, line.owner_share_value,line.quantity_unit??'g', line.id, accountId));
       statements.push(...buildInvoiceReservationStatements(env, {
         accountId, invoiceId: params.id, lines: authorized,
-        expiresAt: new Date(Date.now() + (invoice.source_inquiry_id ? 24 : 48) * 60 * 60 * 1000).toISOString(),
+        expiresAt: originalDeadline ?? new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
         guard: { invoiceId: params.id, claimToken: editClaim, status: 'Draft', inventoryDeducted: 0 },
       }));
       statements.push(env.DB.prepare(
@@ -6912,17 +6945,21 @@ const handleSplitInvoice: Handler = async (request, env) => {
     const numberBindings = websiteOrder ? [invoice_id, accountId, splitClaim, paidUsd, deadline, newNumber] : [newNumber];
     stmts.push(env.DB.prepare(
       `INSERT INTO invoices
-       (id,account_id,invoice_number,customer_name,customer_whatsapp,customer_id,display_currency,shipping_cost_usd,status,inventory_deducted,notes,sold_by_user_id,payment_recipient_user_id)
-       SELECT ?, ?, ${newNumberSql}, ?, ?, ?, ?, 0, 'Pending', 0, ?, ?, ?
+       (id,account_id,invoice_number,customer_name,customer_whatsapp,customer_id,display_currency,shipping_cost_usd,status,inventory_deducted,notes,sold_by_user_id,payment_recipient_user_id,
+        source_inquiry_id,customer_library_account_id,shipping_destination,delivery_address,fulfillment_method,shipping_quote_status,order_payment_deadline)
+       SELECT ?, ?, ${newNumberSql}, ?, ?, (SELECT customer_id FROM invoices WHERE id=? AND account_id=?), ?, 0, 'Pending', 0, ?, ?, ?,
+         ?, (SELECT customer_library_account_id FROM invoices WHERE id=? AND account_id=?), ?, ?, ?, ?, ?
        ${websiteOrder ? '' : `WHERE EXISTS (${sourceGuard})`}`
-    ).bind(newId, accountId, ...numberBindings, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id,
+    ).bind(newId, accountId, ...numberBindings, invoice.customer_name, invoice.customer_whatsapp, invoice_id, accountId,
       invoice.display_currency, invoice.notes, invoice.sold_by_user_id, movedPaymentRecipient,
+      invoice.source_inquiry_id ?? null, invoice_id, accountId, invoice.shipping_destination ?? null, invoice.delivery_address ?? null,
+      invoice.fulfillment_method ?? null, invoice.shipping_quote_status ?? null, deadline,
       ...(websiteOrder ? [] : [invoice_id, accountId, splitClaim])));
 
     stmts.push(env.DB.prepare(
-      `UPDATE invoices SET payment_recipient_user_id=? WHERE id=? AND account_id=? AND status='Pending'
-       AND inventory_deducted=0 AND fulfillment_claim_token=?`
-    ).bind(remainingPaymentRecipient, invoice_id, accountId, splitClaim));
+      `UPDATE invoices SET payment_recipient_user_id=?,order_payment_deadline=COALESCE(order_payment_deadline,?)
+       WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=0 AND fulfillment_claim_token=?`
+    ).bind(remainingPaymentRecipient, deadline, invoice_id, accountId, splitClaim));
 
     for (const itemId of line_item_ids) {
       stmts.push(
@@ -14536,8 +14573,10 @@ async function currentInvoiceItems(env:Env,accountId:string,invoiceId:string){
 const PICKUP_DESTINATION = 'In-person pickup in Bali, Indonesia';
 
 async function savedInvoiceContents(env: Env, accountId: string, invoiceId: string) {
-  const [invoice_items, checkout] = await Promise.all([
+  const [invoice_items, fulfillment, checkout] = await Promise.all([
     currentInvoiceItems(env, accountId, invoiceId),
+    env.DB.prepare('SELECT fulfillment_method,shipping_quote_status,checkout_shipping_grams,shipping_cost_usd FROM invoices WHERE id=? AND account_id=?')
+      .bind(invoiceId, accountId).first<{ fulfillment_method: string | null; shipping_quote_status: string | null; checkout_shipping_grams: number | null; shipping_cost_usd: number }>(),
     env.DB.prepare(`SELECT i.shipping_cost_usd, i.checkout_shipping_grams,
         MIN(h.expires_at) AS deadline
       FROM invoices i JOIN stock_holds h ON h.invoice_id=i.id AND h.account_id=i.account_id
@@ -14553,6 +14592,10 @@ async function savedInvoiceContents(env: Env, accountId: string, invoiceId: stri
   ]);
   return {
     invoice_items,
+    ...(fulfillment?.shipping_quote_status === 'requested' ? { shipping_quote_requested: true } : {}),
+    ...(fulfillment?.shipping_quote_status === 'confirmed' && fulfillment.checkout_shipping_grams != null ? {
+      shipping_quote: { packed_grams: fulfillment.checkout_shipping_grams, shipping_usd: fulfillment.shipping_cost_usd },
+    } : {}),
     total_estimate_usd: roundUsd(invoice_items.reduce((sum, line) => sum + Number(line.line_total_usd), 0)),
     ...(checkout?.checkout_shipping_grams != null ? {
       shipping_checkout: {
@@ -14567,7 +14610,7 @@ async function savedInvoiceContents(env: Env, accountId: string, invoiceId: stri
 const handleClaimInquiry:Handler=async(request,env,params)=>{
  const user=await optionalAuthenticatedUser(request,env);if(!user)return json({error:'Sign in to keep this order'},401);
  if(!isValidTrackingToken(params.ref))return json({error:'Order not found'},404);
- const inquiry=await env.DB.prepare('SELECT account_id,converted_invoice_id FROM inquiries WHERE tracking_token_hash=?').bind(await sha256Hex(params.ref)).first() as any;
+ const inquiry=await env.DB.prepare('SELECT id,account_id,converted_invoice_id FROM inquiries WHERE tracking_token_hash=?').bind(await sha256Hex(params.ref)).first() as any;
  if(!inquiry?.converted_invoice_id)return json({error:'Order not found'},404);
  const invoice=await env.DB.prepare('SELECT customer_id,customer_name FROM invoices WHERE id=? AND account_id=?').bind(inquiry.converted_invoice_id,inquiry.account_id).first() as any;
  if(invoice?.customer_id){const owner=await env.DB.prepare('SELECT user_id FROM customers WHERE id=? AND account_id=?').bind(invoice.customer_id,inquiry.account_id).first() as any;if(owner?.user_id&&owner.user_id!==user.userId)return json({error:'This order is already kept by another customer'},409);}
@@ -14576,7 +14619,10 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
  const membership=await getActiveAccount(request,env);const libraryAccount='error' in membership?null:membership.accountId;
  const lease=await claimInvoiceLinkLease(env,inquiry.account_id,inquiry.converted_invoice_id);if(!lease)return json({error:'Order is being updated; retry'},409);
  try{if(lease.invoice.customer_id&&lease.invoice.customer_id!==invoice.customer_id)return json({error:'Order ownership changed; reload'},409);
- await env.DB.batch([env.DB.prepare("INSERT OR IGNORE INTO customers(id,account_id,user_id,name,email,source) VALUES(?,?,?,?,?,'claimed_order')").bind(customerId,inquiry.account_id,user.userId,invoice.customer_name||user.name||'Customer',user.email),env.DB.prepare('UPDATE invoices SET customer_id=?,customer_library_account_id=COALESCE(customer_library_account_id,?) WHERE id=? AND account_id=? AND fulfillment_claim_token=?').bind(customerId,libraryAccount,inquiry.converted_invoice_id,inquiry.account_id,lease.claimToken)]);
+ await env.DB.batch([env.DB.prepare("INSERT OR IGNORE INTO customers(id,account_id,user_id,name,email,source) VALUES(?,?,?,?,?,'claimed_order')").bind(customerId,inquiry.account_id,user.userId,invoice.customer_name||user.name||'Customer',user.email),env.DB.prepare(`UPDATE invoices SET customer_id=?,customer_library_account_id=COALESCE(customer_library_account_id,?)
+ WHERE account_id=? AND (id=? OR source_inquiry_id=?)
+ AND EXISTS(SELECT 1 FROM invoices original WHERE original.id=? AND original.account_id=? AND original.fulfillment_claim_token=?)`
+ ).bind(customerId,libraryAccount,inquiry.account_id,inquiry.converted_invoice_id,inquiry.id,inquiry.converted_invoice_id,inquiry.account_id,lease.claimToken)]);
  await ensureContactRelationship(env,inquiry.account_id,customerId,'buyer','workflow','invoice',inquiry.converted_invoice_id);
  if(lease.invoice.status==='Filled'){const trail=await shipmentTeaTrail(env,inquiry.account_id,inquiry.converted_invoice_id);if(trail.length)await env.DB.batch(trail);}
  return json({success:true,invoice_id:inquiry.converted_invoice_id,account_id:inquiry.account_id});
@@ -14734,10 +14780,17 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     if (locationError) return json({ error: locationError }, 400);
     if (source === 'website' && !location) return json({ error: 'Approximate delivery location is required' }, 400);
     const pickupRequested = source === 'website' && body.pickup === true;
+    if (pickupRequested && normalized.value.storeSlug !== 'teajia-bali') {
+      return json({ error: 'In-person pickup is available in Bali only.' }, 400);
+    }
     const usShippingPostcode = source === 'website' && typeof body.us_shipping_postcode === 'string'
       ? body.us_shipping_postcode.trim()
       : '';
-    if (usShippingPostcode && (pickupRequested || !/^\d{5}(-\d{4})?$/.test(usShippingPostcode))) {
+    const usShippingRequested = source === 'website' && (body.delivery_country === 'US' || Boolean(usShippingPostcode));
+    if (pickupRequested && usShippingRequested) {
+      return json({ error: 'In-person pickup is available in Bali only.' }, 400);
+    }
+    if (usShippingPostcode && !/^\d{5}(-\d{4})?$/.test(usShippingPostcode)) {
       return json({ error: 'Enter a valid US ZIP code for US shipping.' }, 400);
     }
     const deliveryAddress = source === 'website' && typeof body.delivery_address === 'string'
@@ -14761,6 +14814,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       deliveryAddress,
       pickupRequested,
       usShippingPostcode,
+      deliveryCountry: usShippingRequested ? 'US' : undefined,
       notes,
       itemsJson: normalized.value.itemsJson,
       totalUsd: normalized.value.totalUsd,
@@ -14863,12 +14917,14 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
             `INSERT INTO invoices
              (id,account_id,invoice_number,customer_name,customer_whatsapp,display_currency,customer_id,customer_library_account_id,
               shipping_cost_usd,shipping_destination,delivery_address,checkout_shipping_grams,source_inquiry_id,status,inventory_deducted,notes,payment_status,
-              sold_by_user_id,payment_recipient_user_id)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'unpaid',?,?)`
+              sold_by_user_id,payment_recipient_user_id,fulfillment_method,shipping_quote_status,order_payment_deadline)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'unpaid',?,?,?,?,?)`
           ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,buyerId,buyerLibrary,
-            checkout && shipping ? shipping.usd : 0, checkout && pickup ? PICKUP_DESTINATION : location || null,
-            deliveryAddress || null, checkout ? shipping?.packedGrams ?? null : null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? 'Awaiting bank transfer.' : 'Review prices and shipping before sending.'}`,
-            checkout?.ownerId ?? null, checkout?.ownerId ?? null),
+            shipping ? shipping.usd : 0, checkout && pickup ? PICKUP_DESTINATION : location || null,
+            deliveryAddress || null, shipping?.packedGrams ?? null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? 'Awaiting bank transfer.' : 'Review prices and shipping before sending.'}`,
+            checkout?.ownerId ?? null, checkout?.ownerId ?? null,
+            pickupRequested ? 'bali_pickup' : usShippingRequested ? 'us_shipping' : null,
+            usShippingRequested ? shipping ? 'confirmed' : 'requested' : null, paymentDeadline),
           ...lines.map(line => env.DB.prepare(
             `INSERT INTO invoice_line_items
              (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,quantity_unit,stock_owner_user_id)
@@ -15080,17 +15136,30 @@ const handleGetInquiries: Handler = async (request, env) => {
   return json({ inquiries: parsed });
 };
 
-const handleGetInquiryByRef: Handler = async (_request, env, params) => {
+const handleGetInquiryByRef: Handler = async (request, env, params) => {
   const token = params.ref;
   if (!isValidTrackingToken(token)) return json({ error: 'Not found' }, 404);
   const tokenHash = await sha256Hex(token);
   const row = await env.DB.prepare(
-    `SELECT ref_number, items, status, source, total_usd, currency, created_at, converted_invoice_id,
+    `SELECT id, account_id, ref_number, items, status, source, total_usd, currency, created_at, converted_invoice_id,
             (SELECT whatsapp_number FROM accounts WHERE accounts.id=inquiries.account_id) AS store_whatsapp_number,
             (SELECT contact_email FROM accounts WHERE accounts.id=inquiries.account_id) AS store_contact_email
      FROM inquiries WHERE tracking_token_hash = ? LIMIT 1`
   ).bind(tokenHash).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
+  const invoices = row.converted_invoice_id
+    ? (await env.DB.prepare(`SELECT id AS invoice_id, invoice_number, status
+        FROM invoices WHERE account_id=? AND deleted_at IS NULL
+          AND (id=? OR source_inquiry_id=?)
+        ORDER BY CASE WHEN id=? THEN 0 ELSE 1 END, created_at, id`
+      ).bind(row.account_id, row.converted_invoice_id, row.id, row.converted_invoice_id)
+        .all<{ invoice_id: string; invoice_number: string; status: string }>()).results
+    : [];
+  const requestedInvoiceId = new URL(request.url).searchParams.get('invoice');
+  if (requestedInvoiceId && !invoices.some(invoice => invoice.invoice_id === requestedInvoiceId)) {
+    return json({ error: 'Not found' }, 404);
+  }
+  const selectedInvoiceId = requestedInvoiceId || row.converted_invoice_id;
 
   // There is nothing to pay until the request has been priced into an invoice,
   // so the pay link only appears once it has been converted.
@@ -15103,14 +15172,15 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
   let journeyInvoice: JourneyInvoice | null = null;
   let order: Record<string, unknown> | null = null;
   let invoiceItems:unknown[]=[];let refundTotals:Record<string,unknown>={};
-  if (row.converted_invoice_id) {
+  if (selectedInvoiceId) {
     const invoice = await env.DB.prepare(
       `SELECT id, account_id, invoice_number, shipping_cost_usd, shipping_destination,
               tracking_number, inventory_deducted, stock_exception, refund_required,
+              fulfillment_method,shipping_quote_status,
               cancelled_at, status, payment_status, display_currency, payment_date, fulfilled_at, created_at,
               payment_recipient_user_id, sold_by_user_id
-         FROM invoices WHERE id = ? AND deleted_at IS NULL`
-    ).bind(row.converted_invoice_id).first() as Record<string, any> | null;
+         FROM invoices WHERE id = ? AND account_id=? AND deleted_at IS NULL`
+    ).bind(selectedInvoiceId, row.account_id).first() as Record<string, any> | null;
     if (invoice) {
       invoiceItems=await currentInvoiceItems(env,invoice.account_id,invoice.id);
       if(invoice.status==='Void')refundTotals=await invoiceRefundTotals(env,invoice.account_id,invoice.id);
@@ -15138,6 +15208,7 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
       order = {
         invoice_id: invoice.id, invoice_number: invoice.invoice_number,
         status: invoice.status, payment_status: invoice.payment_status,
+        fulfillment_method: invoice.fulfillment_method, shipping_quote_status: invoice.shipping_quote_status,
         shipping_status: invoice.fulfilled_at ? 'shipped' : invoice.inventory_deducted ? 'ready_to_pack' : 'not_ready',
         shipping_destination: invoice.shipping_destination,
         tracking_number: invoice.tracking_number,
@@ -15159,7 +15230,7 @@ const handleGetInquiryByRef: Handler = async (_request, env, params) => {
       at: toIsoTime(row.created_at),
     };
   }
-  return json({ ...redactPublicInquiry(row), payment, journey, order,
+  return json({ ...redactPublicInquiry(row), payment, journey, order, invoices,
     contact: { whatsapp: row.store_whatsapp_number || null,email:row.store_contact_email||null },
     invoice_items:invoiceItems,...refundTotals,
     invoice_id: order?.invoice_id ?? null,

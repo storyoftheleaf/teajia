@@ -14,7 +14,7 @@ afterEach(() => {
 function seed(schema: 'schema' | 'migrations' = 'schema') {
   const db = new SqliteD1(schema);
   databases.push(db);
-  seedIdentity(db, { userId: 'owner-a', accountId: 'shop-a', bundles: ['sell'] });
+  seedIdentity(db, { userId: 'owner-a', accountId: 'shop-a', accountSlug: 'teajia-bali', bundles: ['sell'] });
   seedIdentity(db, { userId: 'owner-b', accountId: 'shop-b', bundles: ['sell'] });
   db.sqlite.exec(`
     UPDATE accounts SET default_shipping_rate_per_kg = 0, default_shipping_rate_currency = 'USD';
@@ -29,12 +29,12 @@ function seed(schema: 'schema' | 'migrations' = 'schema') {
 function orderPayload(account = 'shop-a', contact = 'guest@example.com', overrides: Record<string, unknown> = {}) {
   const id = ++sequence;
   return {
-    source: 'website', store_slug: account,
+    source: 'website', store_slug: account === 'shop-a' ? 'teajia-bali' : account,
     tracking_token: `privatewebsiteordertoken000000000000${String(id).padStart(2, '0')}`,
     ref_number: `TJ-WEB-${id}`, customer_name: 'Guest', customer_contact: contact,
     customer_location: 'Ubud, Indonesia', currency: 'USD', total_estimate_usd: 1,
     items: [{ id: account === 'shop-a' ? 'tea-a' : 'tea-b', name: 'Red tea', category: 'tea',
-      storeSlug: account, quantityGrams: 50, packGrams: 25, packs: 2,
+      storeSlug: account === 'shop-a' ? 'teajia-bali' : account, quantityGrams: 50, packGrams: 25, packs: 2,
       pricePerGram: 0.001, totalPrice: 0.01 }],
     ...overrides,
   };
@@ -543,7 +543,7 @@ describe('website order lifecycle', () => {
       invoice_id: index === 0 ? child : id, product_id: line.product_id, held_grams: 50, expires_at: deadline,
     })));
     expect(seq().invoice_seq).toBe(startSeq + 1);
-    expect(invoice(db, child).source_inquiry_id).toBeNull();
+    expect(invoice(db, child).source_inquiry_id).toBe(invoice(db, id).source_inquiry_id);
     expect(ledger(db, id)).toEqual(expect.arrayContaining([
       { status: 'claimed', amount_usd: 42 }, { status: 'confirmed', amount_usd: 5 },
     ]));
@@ -553,6 +553,167 @@ describe('website order lifecycle', () => {
     const after = snapshot();
     expect([400, 409]).toContain((await split()).status);
     expect(snapshot()).toEqual(after);
+  });
+
+  it('keeps split children on the same private order, buyer, deadline, and payment ledger', async () => {
+    const { db, body, id, split, hold } = await reviewedOrderForSplit();
+    db.sqlite.exec(`
+      UPDATE accounts SET owner_user_id='owner-a' WHERE id='shop-a';
+      INSERT INTO contributors(id,account_id,user_id,display_name,is_published)
+      VALUES ('seller','shop-a','owner-a','Seller',1);
+      INSERT INTO payment_methods(id,contributor_id,method_type,label,recipient_name,account_identifier,is_published)
+      VALUES ('bank','seller','bank_transfer','Transfer','Seller','SYNTHETIC',1);
+    `);
+    const originalDeadline = hold()[0].expires_at;
+    const splitResponse = await split();
+    expect(splitResponse.status).toBe(201);
+    const { new_id: child } = await splitResponse.json();
+    const path = `/api/inquiries/${body.tracking_token}`;
+    const group = await buyerRequest(db, path);
+    const original = await group.json();
+    expect(original.invoice_id).toBe(id);
+    expect(original.invoices.map((invoice: any) => invoice.invoice_id).sort()).toEqual([id, child].sort());
+    const childRead = await buyerRequest(db, `${path}?invoice=${child}`);
+    const childView = await childRead.json();
+    expect(childRead.status).toBe(200);
+    expect(childView).toMatchObject({
+      invoice_id: child, payment: { total_usd: 14, payment_deadline: originalDeadline, pay_url: expect.any(String) },
+      invoice_items: [{ quantity: 50, quantity_unit: 'g' }],
+    });
+    expect(JSON.stringify(childView)).not.toContain('SYNTHETIC');
+    const foreign = (await create(db, orderPayload('shop-b'))).result.invoice_id;
+    expect((await buyerRequest(db, `${path}?invoice=${foreign}`)).status).toBe(404);
+    expect((await buyerRequest(db, `${path}?invoice=unknown`)).status).toBe(404);
+
+    const report = (invoiceId: string) => worker.fetch(new Request(`https://app.test/api/orders/${body.tracking_token}/payment-claim`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '198.51.100.17' },
+      body: JSON.stringify({ invoice_id: invoiceId, amount_usd: 5 }),
+    }), { DB: db, JWT_SECRET: SECRET } as never, {} as never);
+    expect((await report(foreign)).status).toBe(404);
+    expect((await report(child)).status).toBe(201);
+    expect(ledger(db, id)).toEqual([]);
+    expect(ledger(db, child)).toEqual([{ status: 'claimed', amount_usd: 5 }]);
+    const edited = await admin(db, 'shop-a', `/api/invoices/${child}`, { notes: 'Child reviewed' }, 'PUT');
+    expect(edited.status).toBe(200);
+    const reserve = await admin(db, 'shop-a', '/api/rpc/reserve-stock', { invoice_id: child });
+    expect(reserve.status).toBe(200);
+    expect(hold().every(row => row.expires_at === originalDeadline)).toBe(true);
+    expect((await admin(db, 'shop-a', `/api/invoices/${child}`, { status: 'Draft' }, 'PUT')).status).toBe(200);
+    expect((await admin(db, 'shop-a', `/api/invoices/${child}`, { status: 'Pending' }, 'PUT')).status).toBe(200);
+    expect(hold().every(row => row.expires_at === originalDeadline)).toBe(true);
+    expect(invoice(db, child).order_payment_deadline).toBe(originalDeadline);
+
+    seedIdentity(db, { userId: 'buyer', accountId: 'buyer-home' });
+    seedIdentity(db, { userId: 'other-buyer', accountId: 'other-home' });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      expect((await buyerRequest(db, `${path}/claim`, 'buyer', 'POST')).status).toBe(200);
+    }
+    expect((await buyerRequest(db, `${path}/claim`, 'other-buyer', 'POST')).status).toBe(409);
+    expect((await buyerRequest(db, `/api/me/orders/${child}`, 'buyer')).status).toBe(200);
+    expect((await buyerRequest(db, `/api/me/orders/${child}`, 'other-buyer')).status).toBe(404);
+    const adminList = await admin(db, 'shop-a', '/api/invoices', undefined, 'GET');
+    expect((await adminList.json()).filter((row: any) => [id, child].includes(row.id)))
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({ id, website_order_reference: body.ref_number }),
+        expect.objectContaining({ id: child, website_order_reference: body.ref_number }),
+      ]));
+
+    db.sqlite.prepare("UPDATE stock_holds SET expires_at=datetime('now','-1 minute') WHERE invoice_id IN (?,?)").run(id, child);
+    const expired = await (await buyerRequest(db, `${path}?invoice=${child}`)).json();
+    expect(expired.payment).toMatchObject({ pay_url: null, hold_expired: true });
+    expect((await admin(db, 'shop-a', '/api/rpc/reserve-stock', { invoice_id: child })).status).toBe(409);
+    const oldPay = new URL(childView.payment.pay_url);
+    const share = oldPay.searchParams.get('t');
+    const recipient = oldPay.pathname.split('/').filter(Boolean).at(-2);
+    expect((await buyerRequest(db, `/api/public/people/${recipient}/payment-methods?t=${share}`)).status).toBe(409);
+    expect((await report(child)).status).toBe(201);
+    expect(stockMovements(db, child)).toEqual([]);
+    db.sqlite.prepare('DELETE FROM stock_holds WHERE invoice_id=?').run(child);
+    expect((await admin(db, 'shop-a', `/api/invoices/${child}`, { notes: 'Expired child edited' }, 'PUT')).status).toBe(200);
+    expect((await admin(db, 'shop-a', '/api/rpc/reserve-stock', { invoice_id: child })).status).toBe(409);
+  });
+
+  it('confirms and refunds a split child once without moving the original payment or stock', async () => {
+    const { db, body, id, split } = await reviewedOrderForSplit();
+    const response = await split();
+    expect(response.status).toBe(201);
+    const { new_id: child } = await response.json();
+    const payments = `/api/invoices/${child}/payments`;
+    const partial = await admin(db, 'shop-a', payments, { amount_usd: 5, method_label: 'Transfer', request_id: 'child-part' });
+    expect(partial.status).toBe(201);
+    expect(await partial.json()).toMatchObject({ payment_status: 'partial', outstanding_usd: 9 });
+    expect(stockMovements(db, child)).toEqual([]);
+    const final = { amount_usd: 9, method_label: 'Transfer', request_id: 'child-final' };
+    expect((await admin(db, 'shop-a', payments, final)).status).toBe(201);
+    expect((await admin(db, 'shop-a', payments, final)).status).toBe(200);
+    expect(stockMovements(db, child)).toEqual([{ delta: -50, balance_after: 950, account_id: 'shop-a', movement_unit: 'gram' }]);
+    expect(ledger(db, id)).toEqual([]);
+    expect(stockMovements(db, id)).toEqual([]);
+    const cancel = () => admin(db, 'shop-a', '/api/rpc/cancel-invoice', { invoice_id: child });
+    expect((await cancel()).status).toBe(200);
+    expect((await cancel()).status).toBe(200);
+    const refund = { amount_usd: 14, request_id: 'child-refund' };
+    expect((await admin(db, 'shop-a', `/api/invoices/${child}/refunds`, refund)).status).toBe(201);
+    expect((await admin(db, 'shop-a', `/api/invoices/${child}/refunds`, refund)).status).toBe(200);
+    const view = await buyerRequest(db, `/api/inquiries/${body.tracking_token}?invoice=${child}`);
+    expect(await view.json()).toMatchObject({ order: { status: 'Void', refunded_usd: 14, refund_due_usd: 0 } });
+    expect(stockMovements(db, child)).toEqual([
+      { delta: -50, balance_after: 950, account_id: 'shop-a', movement_unit: 'gram' },
+      { delta: 50, balance_after: 1000, account_id: 'shop-a', movement_unit: 'gram' },
+    ]);
+    expect(stockMovements(db, id)).toEqual([]);
+  });
+
+  it('preserves one order identity through a second split of a child', async () => {
+    const { db, body, id, lines, hold } = await reviewedOrderForSplit();
+    const deadline = hold()[0].expires_at;
+    const split = (invoiceId: string, selected: string[]) => admin(db, 'shop-a', '/api/rpc/split-invoice', {
+      invoice_id: invoiceId, line_item_ids: selected,
+    });
+    const first = await split(id, [String(lines[0].id), String(lines[1].id)]);
+    expect(first.status).toBe(201);
+    const { new_id: child } = await first.json();
+    const second = await split(child, [String(lines[0].id)]);
+    expect(second.status).toBe(201);
+    const { new_id: grandchild } = await second.json();
+    const response = await buyerRequest(db, `/api/inquiries/${body.tracking_token}`);
+    expect((await response.json()).invoices.map((row: any) => row.invoice_id).sort())
+      .toEqual([id, child, grandchild].sort());
+    expect(hold().every(row => row.expires_at === deadline)).toBe(true);
+    expect(invoice(db, grandchild)).toMatchObject({
+      source_inquiry_id: invoice(db, id).source_inquiry_id,
+      order_payment_deadline: deadline,
+    });
+  });
+
+  it('requires a confirmed US quote before operator acceptance and keeps absent shipping out of checkout', async () => {
+    const db = seed('migrations');
+    const { result } = await create(db, orderPayload('shop-a', 'us@example.test', {
+      us_shipping_postcode: '90012', delivery_address: '12 Synthetic Lane',
+      customer_location: 'Los Angeles, CA 90012, United States',
+    }));
+    expect(result).toMatchObject({ shipping_quote_requested: true });
+    expect(result).not.toHaveProperty('shipping_checkout');
+    const id = result.invoice_id;
+    const pending = await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT');
+    expect(pending.status).toBe(409);
+    expect(await pending.json()).toMatchObject({ code: 'shipping_quote_required' });
+    expect(invoice(db, id).status).toBe('Draft');
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { shipping_cost_usd: 6 }, 'PUT')).status).toBe(200);
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT')).status).toBe(200);
+    expect(invoice(db, id)).toMatchObject({ shipping_cost_usd: 6, shipping_quote_status: 'confirmed', fulfillment_method: 'us_shipping' });
+    const { result: free } = await create(db, orderPayload('shop-a', 'free@example.test', { delivery_country: 'US' }));
+    expect(free).toMatchObject({ shipping_quote_requested: true });
+    expect((await admin(db, 'shop-a', `/api/invoices/${free.invoice_id}`, {
+      shipping_cost_usd: 0, status: 'Pending',
+    }, 'PUT')).status).toBe(200);
+    expect(invoice(db, free.invoice_id)).toMatchObject({ shipping_cost_usd: 0, shipping_quote_status: 'confirmed' });
+  });
+
+  it('refuses pickup from a store outside Bali', async () => {
+    const response = await publicOrder(seed(), orderPayload('shop-b', 'guest@example.test', { pickup: true }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: 'In-person pickup is available in Bali only.' });
   });
 
   it.each(['expired', 'incomplete', 'expired during batch', 'paid'] as const)(

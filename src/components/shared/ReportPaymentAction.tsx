@@ -25,7 +25,7 @@ import {
  * customer is doing the same thing at both of them.
  */
 export type ReportPaymentSource =
-  | { kind: 'tracking'; trackingToken: string }
+  | { kind: 'tracking'; trackingToken: string; invoiceId?: string }
   | { kind: 'account'; invoiceId: string };
 
 export interface ReportPaymentActionProps {
@@ -126,7 +126,7 @@ export const ReportPaymentAction: React.FC<ReportPaymentActionProps> = ({
     setError(null);
 
     const request = source.kind === 'tracking'
-      ? api.inquiries.reportPayment(source.trackingToken, body)
+      ? api.inquiries.reportPayment(source.trackingToken, { ...body, invoice_id: source.invoiceId })
       : api.me.reportOrderPayment(source.invoiceId, body);
 
     void request

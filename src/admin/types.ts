@@ -221,6 +221,9 @@ export interface Invoice {
   delivery_address?: string | null;
   tracking_number?: string | null;
   source_inquiry_id?: string | null;
+  website_order_reference?: string | null;
+  fulfillment_method?: 'bali_pickup' | 'us_shipping' | null;
+  shipping_quote_status?: 'requested' | 'confirmed' | null;
   notification_status?: string | null;
   notification_purpose?: string | null;
   fulfilled_at?: string | null;

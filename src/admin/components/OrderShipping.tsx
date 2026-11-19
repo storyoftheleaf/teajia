@@ -9,6 +9,7 @@ interface ShippingOrder {
   shipping_cost_usd?: number;
   shipping_destination?: string | null;
   delivery_address?: string | null;
+  shipping_quote_status?: 'requested' | 'confirmed' | null;
   tracking_number?: string | null;
 }
 
@@ -17,7 +18,7 @@ export const OrderShipping: React.FC<{
   order: ShippingOrder;
   onChanged: () => Promise<void>;
 }> = ({ order, onChanged }) => {
-  const [quote, setQuote] = useState(String(order.shipping_cost_usd ?? 0));
+  const [quote, setQuote] = useState(order.shipping_quote_status === 'requested' ? '' : String(order.shipping_cost_usd ?? 0));
   const [destination, setDestination] = useState(order.shipping_destination ?? '');
   const [tracking, setTracking] = useState(order.tracking_number ?? '');
   const [saving, setSaving] = useState(false);
@@ -76,6 +77,7 @@ export const OrderShipping: React.FC<{
   return (
     <section aria-label="Shipping" className="min-w-0">
       <h4 className={`${T.h3} text-tea-text mb-3`}>Shipping</h4>
+      {order.shipping_quote_status === 'requested' && <p className="mb-3 text-ui-13 text-tea-text-sec">US shipping quote requested. Confirm the price with the buyer before accepting.</p>}
       {order.delivery_address && <p className="mb-3 break-words whitespace-pre-line text-ui-13 text-tea-text-sec">{order.delivery_address}</p>}
       <form onSubmit={save} noValidate className="space-y-3">
         <div>

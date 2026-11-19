@@ -408,6 +408,7 @@ export interface RecordPaymentInput {
  * by more than a cent is refused.
  */
 export interface PaymentClaimInput {
+  invoice_id?: string;
   amount?: number;
   currency?: string;
   method?: string;
@@ -3379,12 +3380,13 @@ export const api = {
       delivery_address?: string;
       pickup?: boolean;
       us_shipping_postcode?: string;
+      delivery_country?: 'US';
       notes?: string;
       items_json: string;
       total_estimate_usd: number;
       currency: string;
       source: 'whatsapp' | 'email' | 'copy' | 'website';
-    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean; pickup_payment_deadline?: string; shipping_checkout?: { packed_grams: number; shipping_usd: number; payment_deadline: string }; invoice_items?: import('./orderTrackingDomain').AgreedOrderItem[]; total_estimate_usd?: number }> => {
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean; shipping_quote_requested?: boolean; shipping_quote?: { packed_grams: number; shipping_usd: number }; pickup_payment_deadline?: string; shipping_checkout?: { packed_grams: number; shipping_usd: number; payment_deadline: string }; invoice_items?: import('./orderTrackingDomain').AgreedOrderItem[]; total_estimate_usd?: number }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
@@ -3399,7 +3401,8 @@ export const api = {
       return saved;
     },
 
-    getByTrackingToken: async (token: string): Promise<{
+    getByTrackingToken: async (token: string, invoiceId?: string): Promise<{
+      invoices?: Array<{ invoice_id: string; invoice_number: string; status: string }>;
       ref_number: string;
       invoice_id?: string | null;
       invoice_number?: string | null;
@@ -3407,6 +3410,8 @@ export const api = {
         invoice_id: string;
         invoice_number: string;
         status: string;
+        fulfillment_method?: 'bali_pickup' | 'us_shipping' | null;
+        shipping_quote_status?: 'requested' | 'confirmed' | null;
         shipping_status?: string | null;
         shipped_at?: string | null;
         shipping_destination?: string | null;
@@ -3441,7 +3446,8 @@ export const api = {
       // rest with their private order key in the incident ledger, which platform
       // admins read. The signature already carries category, method and status,
       // so the identifier adds nothing the report needs.
-      const res = await fetchWithTimeout(`${API_URL}/api/inquiries/${encodeURIComponent(token)}`, { reportIncident: false });
+      const selection = invoiceId ? `?invoice=${encodeURIComponent(invoiceId)}` : "";
+      const res = await fetchWithTimeout(`${API_URL}/api/inquiries/${encodeURIComponent(token)}${selection}`, { reportIncident: false });
       if (res.status === 404) return null;
       if (!res.ok) {
         const error = await res.json().catch(() => null) as { error?: string } | null;

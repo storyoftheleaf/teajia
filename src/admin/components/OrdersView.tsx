@@ -856,6 +856,7 @@ export const OrdersView = () => {
                 <div className="mb-4 pr-8">
                     <h3 className={`${T.h3} text-tea-text mb-1`}>Invoice Details</h3>
                     <p className="text-tea-text-sec text-sm num">{viewingInvoice.invoice_number}</p>
+                    {viewingInvoice.website_order_reference && <p className="text-ui-13 text-tea-text-sec">Website order {viewingInvoice.website_order_reference}</p>}
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-4 text-ui-13">

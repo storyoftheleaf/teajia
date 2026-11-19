@@ -45,6 +45,7 @@ type SavedOrder = {
   invoiceNumber?: string;
   paymentDeadline?: string;
   shippingTotal?: string;
+  shippingQuoteRequested?: boolean;
   handoff: boolean;
   /** The customer chose WhatsApp (with or without a number), not email. */
   viaWhatsApp: boolean;
@@ -189,14 +190,14 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
       pendingIdentity.current = identity;
       try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
         const original = cart.find(item => item.id === line.product_id && item.quantityGrams === line.quantity);
         return { ...original, ...agreedItemForDisplay(line), variant: original?.variant || '', storeSlug, storeName };
       }) : [...cart];
       const savedSubtotal = result.total_estimate_usd ?? savedItems.reduce((sum, item) => sum + item.totalPrice, 0);
-      const shipping = result.shipping_checkout;
+      const shipping = result.shipping_checkout ?? result.shipping_quote;
       const total = savedSubtotal + (shipping?.shipping_usd ?? 0);
       const message = buildOrderMessage({
         type: 'inquiry', ref: result.ref_number, invoiceNumber: result.invoice_number, trackingUrl,
@@ -208,7 +209,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(false);
-      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: shipping?.payment_deadline ?? result.pickup_payment_deadline, shippingTotal: shipping ? shopPrice.total(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
+      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? shopPrice.total(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
       clearPublicCart();
@@ -272,12 +273,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             <span className="num text-ui-17 text-tea-text">{placedOrder.shippingTotal}</span>
           </div>}
           <div className="flex items-baseline justify-between gap-3 pt-3 border-t border-tea-border">
-            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.paymentDeadline ? placedOrder.shippingTotal ? 'Total with shipping' : 'Total · free pickup' : placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
+            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.shippingTotal ? 'Total with shipping' : placedOrder.paymentDeadline ? 'Total · free pickup' : placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
             <span className="num text-ui-20 text-tea-text">{placedOrder.total}</span>
           </div>
           <p className="font-body text-ui-13 text-tea-text-sec">{placedOrder.paymentDeadline
             ? `Transfer by ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(placedOrder.paymentDeadline))} Bali time. We’ll confirm your deposit.`
-            : 'Shipping is arranged personally. No payment has been taken.'}</p>
+            : placedOrder.shippingQuoteRequested ? 'US shipping quote requested. We’ll confirm the shipping price and full total with you in chat before payment.' : placedOrder.shippingTotal ? 'Shipping is quoted. We’ll confirm availability with you before payment.' : 'Shipping is arranged personally. No payment has been taken.'}</p>
         </div>
         {channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.paymentDeadline && <section className="space-y-2" aria-label="Discuss your saved order">
           <h3 className={`${T.h3} text-tea-text`}>{placedOrder.handoff ? 'One more step' : 'On WhatsApp'}</h3>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { sameCurrency } from '../lib/currency';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import { api, hasToken } from '../lib/api';
 import { buildOrderMessage } from '../lib/whatsapp';
@@ -20,6 +20,8 @@ const inputClass =
 const OrderStatusPage: React.FC = () => {
   const { ref: trackingToken } = useParams<{ ref: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const invoiceId = searchParams.get('invoice') || undefined;
 
   const [inquiry, setInquiry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ const OrderStatusPage: React.FC = () => {
     setUnavailable(false);
     setInquiry(null);
     const guard = createAsyncResultGuard();
-    loadTrackingRequest(() => api.inquiries.getByTrackingToken(trackingToken))
+    loadTrackingRequest(() => api.inquiries.getByTrackingToken(trackingToken, invoiceId))
       .then((result) => {
         if (!guard.isCurrent()) return;
         if (result.status === 'found') setInquiry(result.inquiry);
@@ -68,7 +70,7 @@ const OrderStatusPage: React.FC = () => {
         setLoading(false);
       });
     return () => guard.cancel();
-  }, [trackingToken, reloadKey]);
+  }, [trackingToken, invoiceId, reloadKey]);
 
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +106,7 @@ const OrderStatusPage: React.FC = () => {
   // is still a thing this order can do at all.
   const offersPayment =
     inquiry?.order?.status !== 'Draft' && inquiry?.order?.status !== 'Void' &&
+    inquiry?.order?.shipping_quote_status !== 'requested' &&
     showsPaymentActions(journey, inquiry?.payment) &&
     Boolean(inquiry?.payment?.pay_url || shouldOfferPaymentClaim(inquiry?.payment));
   const formatStoredUsd = (amount: number) => {
@@ -152,8 +155,8 @@ const OrderStatusPage: React.FC = () => {
       </div>
 
       {/* Lookup form */}
-      <details open={!inquiry}>
-      <summary className={inquiry ? 'tap-target cursor-pointer text-ui-13 text-tea-text-sec' : 'hidden'}>Look up another order</summary>
+      <div>
+      {inquiry && <p className="text-ui-13 text-tea-text-sec mb-2">Look up another order</p>}
       <form onSubmit={handleLookup} className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
         <label htmlFor="order-ref" className="block text-ui-12 text-tea-text-sec">
           Private tracking code
@@ -182,7 +185,7 @@ const OrderStatusPage: React.FC = () => {
           </p>
         )}
       </form>
-      </details>
+      </div>
 
       {unavailable && (
         <div role="alert" className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -223,11 +226,32 @@ const OrderStatusPage: React.FC = () => {
             </span>
           </div>
 
+          {inquiry.invoices?.length > 1 && trackingToken && (
+            <section aria-label="Invoices for this order" className="mb-4">
+              <p className="text-ui-12 text-tea-text-sec mb-2">This order has {inquiry.invoices.length} invoices. Select one to see its items and balance.</p>
+              <div className="flex flex-wrap gap-2">
+                {inquiry.invoices.map((invoice: { invoice_id: string; invoice_number: string; status: string }) => {
+                  const selected = invoice.invoice_id === (inquiry.order?.invoice_id || inquiry.invoice_id);
+                  return <Link
+                    key={invoice.invoice_id}
+                    to={`/order/${encodeURIComponent(trackingToken)}?invoice=${encodeURIComponent(invoice.invoice_id)}`}
+                    aria-current={selected ? 'page' : undefined}
+                    className={`tap-target inline-flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-ui-13 text-tea-text ${selected ? 'border-tea-gold bg-tea-accent-sub' : 'border-tea-border hover:border-tea-gold'}`}
+                  >
+                    <span>{invoice.invoice_number}</span>
+                    <span className="text-ui-12 text-tea-text-sec">{invoice.status}</span>
+                  </Link>;
+                })}
+              </div>
+            </section>
+          )}
+
           {(inquiry.order?.invoice_number || inquiry.invoice_number) && <p className="text-ui-13 text-tea-text-sec">Invoice {inquiry.order?.invoice_number || inquiry.invoice_number}</p>}
           <div className="my-3">
             <button type="button" disabled={claiming} onClick={() => { void claimOrder(); }} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">{claiming ? 'Adding…' : hasToken() ? 'Add to my order history' : 'Sign in to keep this order'}</button>
             {claimError && <p role="alert" className="text-ui-13 text-tea-text mt-2">{claimError}</p>}
           </div>
+          {inquiry.order?.shipping_quote_status === 'requested' && <p role="status" className="text-ui-13 text-tea-text-sec my-3">US shipping quote requested. We’ll confirm the shipping cost before payment.</p>}
           {(inquiry.order?.shipping_destination || inquiry.shipping_destination) && <p className="text-ui-13 text-tea-text-sec">Delivery: {inquiry.order?.shipping_destination || inquiry.shipping_destination}</p>}
           {(inquiry.order?.tracking_number || inquiry.tracking_number) && <p className="text-ui-13 text-tea-text-sec">Tracking: {inquiry.order?.tracking_number || inquiry.tracking_number}</p>}
 
@@ -250,10 +274,10 @@ const OrderStatusPage: React.FC = () => {
           </div>
 
           {/* Total */}
-          {showingAgreedItems && <details className="my-3 text-ui-12 text-tea-text-sec">
-            <summary className="tap-target cursor-pointer">Original request</summary>
+          {showingAgreedItems && <div className="my-3 text-ui-12 text-tea-text-sec">
+            <p>Original request</p>
             {orderDisplayItems({ items_json: inquiry.items_json }).map((item, index) => <p key={index} className="mt-2">{item.name} · {trackingItemQuantity(item)} · {formatStoredUsd(item.totalPrice)}</p>)}
-          </details>}
+          </div>}
           <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-tea-border">
             <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text`}>{showingAgreedItems ? 'Agreed items subtotal' : 'Requested tea subtotal estimate'}</span>
             <span className="font-mono text-ui-17 text-tea-text tabular-nums">
@@ -286,14 +310,15 @@ const OrderStatusPage: React.FC = () => {
               <OrderJourneyStatus journey={journey}>
                 {offersPayment && (
                   <div className="space-y-4">
-                    <PayOrderAction payment={inquiry.payment} reference={inquiry.ref_number} trackingToken={trackingToken} />
+                    <PayOrderAction payment={inquiry.payment} reference={inquiry.invoices?.length > 1 ? inquiry.order?.invoice_number || inquiry.invoice_number : inquiry.ref_number} trackingToken={trackingToken} />
                     {/* The quieter half: what a customer does after the transfer has
                         left their bank. Reached by a tracking token, never a login, so
                         it knocks on the public claim door. */}
                     {trackingToken && (
                       <ReportPaymentAction
                         payment={inquiry.payment}
-                        source={{ kind: 'tracking', trackingToken }}
+                        key={inquiry.order?.invoice_id || inquiry.invoice_id || trackingToken}
+                        source={{ kind: 'tracking', trackingToken, invoiceId: inquiry.order?.invoice_id || inquiry.invoice_id || undefined }}
                         onReported={() => setReloadKey(k => k + 1)}
                       />
                     )}
