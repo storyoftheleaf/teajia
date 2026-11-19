@@ -18,6 +18,7 @@ import { SyncIndicator } from './SyncIndicator';
  */
 interface CaptureContextChipsProps {
   category: CompassCategory;
+  entryId?: string;
   vendorName?: string;
   vendorOpen: boolean;
   onToggleVendor: () => void;
@@ -34,6 +35,7 @@ interface CaptureContextChipsProps {
 
 export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   category,
+  entryId,
   vendorName,
   vendorOpen,
   onToggleVendor,
@@ -149,7 +151,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
 
   const syncIndicator = (
       <div className="shrink-0 pl-1 md:ml-auto">
-        <SyncIndicator />
+        <SyncIndicator entryId={entryId} />
       </div>
   );
 

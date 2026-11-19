@@ -1225,6 +1225,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
   );
   const contextChips = (
           <CaptureContextChips
+            entryId={entryId}
             category={entry.category}
             vendorName={entry.vendorName}
             vendorOpen={vendorOpen}
@@ -1290,6 +1291,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
   // 'flow' (curate/CaptureFlowLayout.tsx): the context chips as a Library supplier header.
   const supplierHeader = (
           <CaptureContextChips
+            entryId={entryId}
             category={entry.category}
             vendorName={entry.vendorName}
             vendorOpen={vendorOpen}

@@ -1,100 +1,47 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { syncCompassEntries } from '../../lib/teaCompassSync';
+import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
+import { useNotesStore } from '../../lib/notesStore';
+import { ensureCompassEncounterSaved } from '../../lib/teaCompassSync';
 
-/**
- * SyncIndicator, surfaces only when something actually needs the user's
- * attention. The previous tiny gold dot read as decoration; users had no
- * way to tell it from an empty bullet point. The new version:
- *
- *   - all synced  → renders nothing (no chrome)
- *   - syncing     → spinner + "Syncing"
- *   - n unsynced  → cloud-off + count + "unsaved", tap to sync
- *
- * Gives the row real meaning when it shows up and disappears entirely
- * when there's nothing to communicate.
- */
-export const SyncIndicator: React.FC = () => {
-  const unsyncedCount = useTeaCompassStore((s) => s.entries.filter(e => !e.synced).length);
-  const syncError = useTeaCompassStore((s) => s.syncError);
-  const [syncing, setSyncing] = useState(false);
-  const [showSavedFlash, setShowSavedFlash] = useState(false);
+/** Capture status and explicit retries belong to this tea. Background failures
+ * for other records must never label a saved recording or empty capture as lost. */
+export const SyncIndicator: React.FC<{ entryId?: string }> = ({ entryId }) => {
+  const activeEntryId = useTeaCompassStore(s => s.activeEntryId);
+  const id = entryId ?? activeEntryId;
+  const entry = useTeaCompassStore(s => s.entries.find(e => e.id === id) ?? s.pendingEntries.find(e => e.id === id));
+  const accountId = useTeaCompassStore(s => s.accountScopeId);
+  const userId = useTeaCompassStore(s => s.userScopeId);
+  const pendingNotes = useNotesStore(s => s.notes.some(note => !note.synced && note.compassEntryId === id && note.accountId === accountId && note.authorId === userId));
+  const [attempt, setAttempt] = useState({ id, busy: false, error: '', saved: false });
+  const busy = useRef(false);
+  const isPending = Boolean(entry && ((!entry.synced && entryHasDeliberateInput(entry)) || pendingNotes));
+  const current = attempt.id === id ? attempt : undefined;
 
-  const handleSync = useCallback(async () => {
-    if (syncing) return;
-    setSyncing(true);
+  const handleSave = useCallback(async () => {
+    if (!id || busy.current) return;
+    busy.current = true;
+    setAttempt({ id, busy: true, error: '', saved: false });
     try {
-      await syncCompassEntries();
-      const latest = useTeaCompassStore.getState();
-      if (!latest.syncError && latest.entries.every(entry => entry.synced)) {
-        setShowSavedFlash(true);
-        setTimeout(() => setShowSavedFlash(false), 1500);
-      }
+      await ensureCompassEncounterSaved(id);
+      setAttempt({ id, busy: false, error: '', saved: true });
+    } catch (error) {
+      setAttempt({ id, busy: false, error: error instanceof Error ? error.message : 'Your changes are kept here. Retry saving this tea.', saved: false });
     } finally {
-      setSyncing(false);
+      busy.current = false;
     }
-  }, [syncing]);
+  }, [id]);
 
-  const isPending = unsyncedCount > 0;
+  if (current?.busy) return <span className="inline-flex items-center gap-1.5 text-ui-11 text-tea-text-sec" role="status"><Loader2 size={12} className="animate-spin" />Saving…</span>;
+  if (!isPending) return current?.saved
+    ? <span className="inline-flex items-center gap-1.5 text-ui-11 text-tea-text-sec" role="status"><Cloud size={12} />Saved</span>
+    : null;
 
-  // Quiet path, fully synced, no error, and not flashing the just-saved confirmation.
-  if (!isPending && !syncing && !showSavedFlash && !syncError) return null;
-
-  if (syncing) {
-    return (
-      <div
-        className="inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-11 font-medium"
-        aria-live="polite"
-      >
-        <Loader2 size={12} className="animate-spin" />
-        <span>Syncing</span>
-      </div>
-    );
-  }
-
-  if (showSavedFlash) {
-    return (
-      <div
-        className="inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-11 font-medium"
-        aria-live="polite"
-      >
-        <Cloud size={12} />
-        <span>Saved</span>
-      </div>
-    );
-  }
-
-  // Couldn't reach the server, say so plainly and offer a retry. Takes priority
-  // over the neutral "unsaved" count so the user knows it's a connection problem,
-  // not just work pending. This is the signal that was missing when changes
-  // silently failed to save (e.g. on a blocked network).
-  if (syncError) {
-    return (
-      <button
-        type="button"
-        onClick={handleSync}
-        className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-error/[0.10] text-tea-error border border-tea-error/30 hover:bg-tea-error/[0.16] transition-colors text-ui-11 font-medium"
-        aria-label="Couldn't save to the server. Tap to retry."
-        title="Couldn't reach the server. Tap to retry."
-      >
-        <CloudOff size={12} strokeWidth={1.75} />
-        <span>Not saved. Retry</span>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleSync}
-      className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-gold/[0.08] text-tea-gold border border-tea-gold/30 hover:bg-tea-gold/[0.14] transition-colors text-ui-11 font-medium"
-      aria-label={`${unsyncedCount} unsaved ${unsyncedCount === 1 ? 'entry' : 'entries'}, tap to sync`}
-      title={`${unsyncedCount} unsaved, tap to sync`}
-    >
-      <CloudOff size={12} strokeWidth={1.75} />
-      <span className="tabular-nums">{unsyncedCount}</span>
-      <span>unsaved</span>
+  return <span className="inline-flex flex-wrap items-center gap-1.5">
+    <button type="button" onClick={() => void handleSave()} className="btn-quiet btn-sm tap-target"
+      aria-label={current?.error ? 'Retry saving this tea' : 'Save changes to this tea'}>
+      <CloudOff size={12} />{current?.error ? 'Not saved. Retry' : 'Save changes'}
     </button>
-  );
+    {current?.error && <span role="alert" className="text-ui-11 text-tea-text-sec">{current.error}</span>}
+  </span>;
 };

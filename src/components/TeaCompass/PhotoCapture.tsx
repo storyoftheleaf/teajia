@@ -35,7 +35,7 @@ interface PhotoCaptureProps {
   /** 'lg' renders the inline strip with larger thumbs + 44×44 action buttons,
    *  used by the teaware capture card where the top of the form needs breathing room. */
   size?: 'default' | 'lg';
-  /** 'hero' renders the full-width 4:3 camera tile that leads the capture
+  /** 'hero' renders the full-width square camera tile that leads the capture
    *  card: tap anywhere to open the camera before a photo exists; after a
    *  photo, it fills the tile with scan/add actions overlaid bottom-right. */
   variant?: 'strip' | 'hero' | 'viewer';
@@ -429,8 +429,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     try {
       // Initial capture stays large, 1600px / quality 0.7, so the in-app
       // editor has plenty of pixels to work with for crop, rotation and
-      // future adjustments. Once the user commits an edit the editor saves
-      // back at 800px square, but we want the unedited source generous.
+      // future adjustments. Explicit edits also keep a 1600px square for
+      // later product use; an upload never silently crops a label.
       const compressed = await compressImage(file, 1600, 0.7);
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
       const imageUrl = await uploadPhoto(compressedFile).catch(() => null);
@@ -838,27 +838,40 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     <>
           {validPhotos.map((url, i) =>
             url === skipUrl ? null : (
-              <button
-                key={url}
-                type="button"
-                onClick={(event) => {
-                  lightboxTriggerRef.current = event.currentTarget;
-                  if (split) setLightboxIndex(i); else setMenuPhotoIndex(i);
-                }}
-                className={`w-[60px] h-[60px] relative shrink-0 block rounded-md overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
-                  menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
-                }`}
-                aria-haspopup={split ? 'dialog' : 'menu'}
-                aria-expanded={menuPhotoIndex === i}
-                aria-label={split ? `View photo ${i + 1}` : 'Photo actions'}
-                title={split ? 'View, add, edit or delete' : 'Tap for options'}
-              >
-                <CapturePhotoImage
-                  src={url}
-                  alt={`Photo ${i + 1}`}
-                  className="w-full h-full object-cover pointer-events-none"
-                />
-              </button>
+              <div key={url} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    lightboxTriggerRef.current = event.currentTarget;
+                    setLightboxIndex(i);
+                  }}
+                  className="relative block w-[calc(var(--space-12)+var(--space-8))] aspect-square overflow-hidden rounded-md border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
+                  aria-haspopup="dialog"
+                  aria-label={`View photo ${i + 1}`}
+                  title="View photo"
+                >
+                  <CapturePhotoImage
+                    src={url}
+                    alt={`Photo ${i + 1}`}
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
+                </button>
+                {onRemovePhoto && photos && (
+                  <button
+                    type="button"
+                    className="btn-icon absolute top-0 right-0 bg-tea-surface"
+                    aria-label={`Remove photo ${i + 1}`}
+                    title="Remove photo"
+                    onClick={() => onRemovePhoto(photos.indexOf(url))}
+                  ><X size={16} /></button>
+                )}
+                {onPhotoReplaced && (
+                  <button type="button" className="btn-quiet btn-sm w-full" aria-label={`Crop photo ${i + 1}`}
+                    title="Crop square, rotate or reposition" onClick={() => setEditingPhotoUrl(url)}>
+                    <Edit3 size={14} />Crop
+                  </button>
+                )}
+              </div>
             )
           )}
           {pendingPreviews.map((preview, i) =>
@@ -892,7 +905,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const heroArea = (
     <div className="w-full">
-      <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl bg-tea-elevated">
+      <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-tea-elevated">
         {heroPending ? (
           <>
             <img
@@ -946,6 +959,18 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           >
             <Camera size={30} strokeWidth={1.25} className="text-tea-gold" />
             <span className="text-ui-11 uppercase tracking-[0.16em]">Photo</span>
+          </button>
+        )}
+
+        {heroValidUrl && onRemovePhoto && photos && (
+          <button type="button" className="btn-icon absolute top-2 left-2 bg-tea-surface"
+            aria-label={`Remove photo ${validPhotos.length}`} title="Remove photo"
+            onClick={() => onRemovePhoto(photos.indexOf(heroValidUrl))}><X size={16} /></button>
+        )}
+        {heroValidUrl && onPhotoReplaced && (
+          <button type="button" className="btn-secondary absolute bottom-2 left-2"
+            aria-label={`Crop photo ${validPhotos.length}`} onClick={() => setEditingPhotoUrl(heroValidUrl)}>
+            <Edit3 size={14} />Crop
           </button>
         )}
 
@@ -1131,6 +1156,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         </div>
         {photoSlot}
       </div>
+      {validPhotos.length > 0 && <div className="flex flex-wrap gap-2">{renderThumbs(null, null)}</div>}
       {scanFeedback}
     </>
   );
@@ -1216,23 +1242,22 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       <SquareCropModal
         isOpen={!!editingPhotoSource}
         source={editingPhotoSource ?? null}
-        title="Edit photo"
-        confirmLabel={savingEdit ? 'Saving…' : 'Save'}
-        outputSize={800}
-        outputQuality={0.7}
+        title="Crop square photo"
+        confirmLabel={savingEdit ? 'Saving…' : 'Save square photo'}
+        outputSize={1600}
+        outputQuality={0.88}
         onClose={() => { if (!savingEdit) setEditingPhotoUrl(null); }}
         onConfirm={async (blob) => {
           if (!editingPhotoUrl) return;
           setSavingEdit(true);
           try {
             const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            const newUrl = await uploadPhoto(file).catch(() => null);
-            if (newUrl) {
-              onPhotoReplaced?.(editingPhotoUrl, newUrl);
-            }
+            const newUrl = await uploadPhoto(file);
+            if (!newUrl) throw new Error('The square photo could not be saved. Retry Save square photo.');
+            onPhotoReplaced?.(editingPhotoUrl, newUrl);
+            setEditingPhotoUrl(null);
           } finally {
             setSavingEdit(false);
-            setEditingPhotoUrl(null);
           }
         }}
       />

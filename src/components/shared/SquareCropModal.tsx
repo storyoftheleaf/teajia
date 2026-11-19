@@ -237,7 +237,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={saving || !imageSrc || !croppedAreaPixels || !!error}
+            disabled={saving || !imageSrc || !imageLoaded || !croppedAreaPixels}
             className="btn-primary hover:opacity-90 tap-target"
           >
             {saving && <Loader2 className="animate-spin" size={13} />}
