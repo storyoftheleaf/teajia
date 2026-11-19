@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import Cropper, { Area, type MediaSize } from 'react-easy-crop';
+import Cropper, { Area } from 'react-easy-crop';
 import { Loader2, RotateCw, X } from 'lucide-react';
 import { cropToSquareBlob, fileOrUrlToObjectUrl, type SquarePhotoFrame } from '../../lib/cropImage';
 import { clampPhotoFrameCrop, squareFrameSize } from '../../lib/photoFrameGeometry';
@@ -32,10 +32,11 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   const [turns, setTurns] = useState(0);
   const [straighten, setStraighten] = useState(0);
   const rotation = turns + straighten;
-  const [media, setMedia] = useState({ width: 0, height: 0 });
+  const [natural, setNatural] = useState({ width: 0, height: 0 });
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [viewportNode, setViewportNode] = useState<HTMLDivElement | null>(null);
-  const bounds = { mediaWidth: media.width, mediaHeight: media.height, viewportWidth: viewport.width, viewportHeight: viewport.height };
+  const scale = Math.min(1, viewport.width / (natural.width || 1), viewport.height / (natural.height || 1));
+  const bounds = { mediaWidth: natural.width * scale, mediaHeight: natural.height * scale, viewportWidth: viewport.width, viewportHeight: viewport.height };
   const frameSize = squareFrameSize(bounds, rotation);
   const changeCrop = (point: { x: number; y: number }) => setCrop(clampPhotoFrameCrop(point, bounds, zoom, rotation));
   const changeZoom = (value: number) => { setZoom(value); setCrop(point => clampPhotoFrameCrop(point, bounds, value, rotation)); };
@@ -44,7 +45,6 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     setTurns(base); setStraighten(value - base);
     setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, value));
   };
-  const measureMedia = useCallback((size: MediaSize) => setMedia(previous => previous.width === size.width && previous.height === size.height ? previous : { width: size.width, height: size.height }), []);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   // Mirror croppedAreaPixels into a ref so handleConfirm always reads the
   // freshest value. Without this, a quick zoom-then-Save tap could save
@@ -100,6 +100,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     let cancelled = false;
     let createdBlobUrl: string | null = null;
     setImageSrc(null);
+    setNatural({ width: 0, height: 0 });
     setError(null);
     setCrop(initialFrame?.crop ?? { x: 0, y: 0 });
     setZoom(initialFrame?.zoom ?? 1);
@@ -122,6 +123,17 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           createdBlobUrl = url;
         }
         setImageSrc(url);
+        // Measure the source before mounting Cropper. Its percentage restore must
+        // start with the final square size, never a temporary rotated bounding box.
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => {
+          if (cancelled) return;
+          setNatural({ width: image.naturalWidth, height: image.naturalHeight });
+          setImageLoaded(true);
+        };
+        image.onerror = () => { if (!cancelled) setError('This photo could not be loaded.'); };
+        image.src = url;
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -194,7 +206,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           <Dialog.Title asChild><h3 className="text-base font-serif text-tea-text flex-1">{title}</h3></Dialog.Title>
           <button
             onClick={handleRotate}
-            disabled={saving || !imageSrc}
+            disabled={saving || !imageSrc || !imageLoaded}
             className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-11 inline-flex items-center gap-1.5 tap-target disabled:opacity-40"
             aria-label="Rotate 90° clockwise"
             title="Rotate 90°"
@@ -212,7 +224,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
             Layering means a transient load failure (CORS, 404) can't leave
             the user staring at a blank square. */}
         <div ref={setViewportNode} className="relative w-full aspect-square bg-black/60 overflow-hidden">
-          {imageSrc && (
+          {imageSrc && frameSize > 0 && (
             <Cropper
               image={imageSrc}
               crop={crop}
@@ -227,24 +239,10 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               onCropChange={changeCrop}
               onZoomChange={changeZoom}
               onRotationChange={changeRotation}
-              setMediaSize={measureMedia}
               onCropComplete={onCropComplete}
               onCropAreaChange={onCropComplete}
               initialCroppedAreaPercentages={initialFrame?.areaPercent}
               onMediaLoaded={() => setImageLoaded(true)}
-            />
-          )}
-          {/* Hidden probe, confirms the image actually fetches. If the
-              Cropper's internal img can't load (CORS / 404), our onerror
-              fires here and we surface a real error rather than a black
-              square. */}
-          {imageSrc && !imageLoaded && !error && (
-            <img
-              src={imageSrc}
-              alt=""
-              className="hidden"
-              crossOrigin="anonymous"
-              onError={() => setError('This photo couldn’t be loaded. The host may be offline or unreachable.')}
             />
           )}
           {(error || loadError || !imageSrc || !imageLoaded) && (
@@ -269,7 +267,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               step={0.01}
               value={zoom}
               onChange={(e) => changeZoom(Number(e.target.value))}
-              disabled={!imageSrc || saving || !!error}
+              disabled={!imageSrc || !imageLoaded || saving || !!error}
               className="flex-1 accent-tea-gold"
               aria-label="Zoom"
             />
@@ -286,7 +284,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           <div className="flex items-center gap-3 mt-2">
             <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-10 shrink-0">Rotate</span>
             <input type="range" min={-45} max={45} step={0.1} value={straighten}
-              aria-label="Rotation" disabled={!imageSrc || saving}
+              aria-label="Rotation" disabled={!imageSrc || !imageLoaded || saving}
               className="flex-1 accent-tea-gold"
               onChange={event => {
                 const value = Number(event.target.value);

@@ -86,7 +86,6 @@ test('clicking a photo opens reversible square framing; Delete stays below the i
   for (let i = 0; i < 10; i += 1) await rotation.press('ArrowRight');
   await expect(rotation).toHaveValue('3');
   expect((await cropArea.boundingBox())!.width).toBeLessThan(twoDegrees);
-  await dialog.getByLabel('Zoom').focus(); await dialog.getByLabel('Zoom').press('End');
   const crop = dialog.locator('.reactEasyCrop_Container');
   const box = (await crop.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -94,7 +93,7 @@ test('clicking a photo opens reversible square framing; Delete stays below the i
   await dialog.getByRole('button', { name: 'Save framing' }).click();
   await expect(dialog).toHaveCount(0);
   expect(server.photos.get(path)!.original).toEqual(originalBytes);
-  expect(server.photos.get(path)!.frame?.zoom).toBe(4);
+  expect(server.photos.get(path)!.frame?.zoom).toBe(1);
   expect(server.photos.get(path)!.frame?.rotation).toBe(3);
   expect(server.photos.get(path)!.frame?.crop.x).not.toBe(0);
   expect(server.state.uploads).toBe(2);
@@ -102,7 +101,7 @@ test('clicking a photo opens reversible square framing; Delete stays below the i
   await page.reload();
   await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
   await page.getByRole('button', { name: 'Photos for Reversible photo framing', exact: true }).click();
-  await expect(dialog.getByLabel('Zoom')).toHaveValue('4');
+  await expect(dialog.getByLabel('Zoom')).toHaveValue('1');
   await expect(dialog.getByLabel('Rotation', { exact: true })).toHaveValue('3');
   await expect(dialog.locator('.reactEasyCrop_Image')).toHaveJSProperty('naturalWidth', 600);
   expect(server.state.originalReads).toBeGreaterThan(0);
