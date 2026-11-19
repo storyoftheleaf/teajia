@@ -20,7 +20,8 @@ import { join } from 'node:path';
  * voice notes is proved separately with a request it refuses before any provider call.
  *
  * Line 19 (lint, unit suites, test:mobile) is a set of commands, not a browser step;
- * its output is saved beside these screenshots by the person running the walk.
+ * its output is saved beside these screenshots as 19-*.txt by the person running the walk,
+ * and results.json marks it failed here so nobody reads it as checked by the browser.
  */
 const SHOTS = 'test-results/teajia-family';
 const PASSWORD = 'walk-fixture-1';
@@ -664,6 +665,15 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       db.close();
       seen.push(`stored row still there: ${JSON.stringify(stored ? { share_state: stored.share_state } : null)}`);
       expect(stored).toBeTruthy();
+      // The file itself: gone from the public address, still readable by the shop through its own signed address.
+      const publicFetch = await visitor.request.get(`/api/media/${stored!.small_key}`);
+      const pile = await (await ownerPage.request.get('/api/admin/family/photographs', { headers: ownerHeaders })).json();
+      const forShop = (pile.photographs as Array<{ id: string; small_url: string }>).find(p => p.id === gone);
+      expect(forShop).toBeTruthy();
+      const shopFetch = await ownerPage.request.get(localMedia(forShop!.small_url));
+      seen.push(`removed file at its plain address: ${publicFetch.status()}; through the shop's signed address: ${shopFetch.status()}`);
+      expect(publicFetch.status()).toBe(404);
+      expect(shopFetch.status()).toBe(200);
       await shopRow.scrollIntoViewIfNeeded();
       await ownerPage.screenshot({ path: shot(13, 'b-still-with-the-shop') });
       current = page;
