@@ -98,7 +98,7 @@ const OrderRow: React.FC<{ order: ShopOrder; onReceived: (text: string) => void 
   return (
     <div data-testid="in-process-order" className="py-3 border-b border-tea-border">
       <div className="flex items-baseline gap-2 min-w-0">
-        <span className="truncate font-display text-[19px] font-semibold leading-tight text-tea-text">{order.vendorName}</span>
+        <span className="truncate font-display text-ui-19 font-semibold leading-tight text-tea-text">{order.vendorName}</span>
         {order.shipMode && <span className={`shrink-0 text-ui-12 ${order.shipMode === 'air' ? 'text-tea-gold-lt' : 'text-tea-text-sec'}`}>{order.shipMode === 'air' ? 'air' : 'boat'}</span>}
         <span className="ml-auto shrink-0 num text-ui-14 text-tea-text">{totals.parts.map((p) => money(p.amount, p.currency)).join(' + ')}</span>
       </div>
@@ -128,7 +128,7 @@ export const InProcess: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <button type="button" onClick={onClose} aria-label="Close in process" className="min-w-tap min-h-tap flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
         <Icons.Close className="w-5 h-5" />
       </button>
-      <h2 className="font-display text-[22px] leading-none text-tea-text">In process</h2>
+      <h2 className="font-display text-ui-22 leading-none text-tea-text">In process</h2>
       <span className="num text-ui-12 text-tea-text-sec">{orders.length}</span>
     </div>
     <div className="flex-1 min-h-0 overflow-y-auto tea-card-scroll px-4 pb-nav-gap">

@@ -387,7 +387,7 @@ fi
 #     The character is built with printf rather than typed, so this rule does
 #     not report its own source line.
 EMDASH=$(printf '\xe2\x80\x94')
-EMDASH_ENFORCED_FILES="scripts/lint-colors.sh src/styles/card-utilities.css src/styles/tailwind.css src/styles/reader-animations.css"
+EMDASH_ENFORCED_FILES="scripts/lint-colors.sh src/styles/tokens.css src/styles/card-utilities.css src/styles/tailwind.css src/styles/reader-animations.css"
 EMDASH_BLOCKING=$(grep -nF "$EMDASH" $EMDASH_ENFORCED_FILES 2>/dev/null || true)
 if [ -n "$EMDASH_BLOCKING" ]; then
   echo ""

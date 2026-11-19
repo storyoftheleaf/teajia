@@ -16,7 +16,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ProgressTrack,
+  S, C, F, ImmersiveRoot, ProgressTrack,
   useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
 
@@ -480,7 +480,7 @@ const Thread: React.FC = () => {
   );
   const kicker: React.CSSProperties = { fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, marginBottom: 14 };
   const h2: React.CSSProperties = { fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(28px,4.4vw,42px)', lineHeight: 1.1, color: C.cream, margin: '0 0 18px' };
-  const body: React.CSSProperties = { fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.78, color: C.taupe, margin: 0 };
+  const body: React.CSSProperties = { fontFamily: F.body, fontSize: S.body, lineHeight: 1.78, color: C.taupe, margin: 0 };
   const stepPad: React.CSSProperties = { position: 'relative', padding: '0 0 clamp(40px,7vw,72px) clamp(58px,14vw,98px)' };
 
   return (

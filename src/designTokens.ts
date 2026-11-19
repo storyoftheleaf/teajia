@@ -163,35 +163,42 @@ export const TYPE_SCALE = {
 } as const;
 
 /** Tailwind class presets for common typography patterns */
+/**
+ * Role classes for common typography. Each is one class in
+ * src/styles/tokens.css (the master style file), which owns the face, size,
+ * weight, leading, tracking and, for headings, the colour. Change the role
+ * there (--fs-page-title, --text-page-title, ...) and every use changes.
+ */
 export const TYPOGRAPHY_CLASSES = {
-  h1:        'font-display text-[clamp(32px,4.8vw,48px)] font-normal leading-[1.12] tracking-[0.01em]',
-  h2:        'font-display text-[clamp(24px,3.5vw,32px)] font-medium leading-[1.2] tracking-[0.01em]',
-  h3:        'font-display text-[19px] font-normal leading-[1.3] tracking-[0.01em]',
-  subtitle:  'font-body text-ui-17 font-normal italic leading-[1.4]',
-  body:      'font-body text-ui-17 font-normal leading-[1.7]',
-  bodyLight: 'font-body text-ui-15 font-normal leading-[1.65]',
-  label:     'font-sans text-ui-11 font-normal uppercase tracking-[1.2px] leading-[1.4]',
-  nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
-  link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',
-  mono:      'font-mono text-ui-11 font-normal',
+  h1:        'type-page-title',
+  h2:        'type-section-heading',
+  h3:        'type-card-title',
+  subtitle:  'type-subtitle',
+  body:      'type-body',
+  bodyLight: 'type-small',
+  label:     'type-label',
+  nav:       'type-nav',
+  link:      'type-link',
+  mono:      'type-price',
   // Sidebar nav: Adrian feedback: 15/13 was too small, lifted to 17/15.
   // Group labels (BROWSE / MANAGE / CURATE micro-caps) are sans 10 semibold.
-  navSidebar:      'font-display text-ui-17 font-medium tracking-[0.04em] leading-[1.3]',
-  navSidebarChild: 'font-display text-ui-15 font-normal tracking-[0.04em] leading-[1.3]',
-  navSidebarGroup: 'font-sans text-ui-10 font-semibold uppercase tracking-[0.18em] leading-[1.3]',
-  accountMeta:     'font-sans text-ui-12 font-normal tracking-[0.04em] leading-[1.3]',
+  navSidebar:      'type-sidebar',
+  navSidebarChild: 'type-sidebar-child',
+  navSidebarGroup: 'type-sidebar-group',
+  accountMeta:     'type-meta',
 } as const;
 
+/** Tailwind's text-xs ... text-5xl, read from tokens.css (--fs-xs ...). */
 export const FONT_SIZES = {
-  xs:   '0.75rem',     // 12px
-  sm:   '0.875rem',    // 14px
-  base: '1rem',        // 16px
-  lg:   '1.125rem',    // 18px
-  xl:   '1.25rem',     // 20px
-  '2xl': '1.5rem',     // 24px
-  '3xl': '1.875rem',   // 30px
-  '4xl': '2.25rem',    // 36px
-  '5xl': '3rem',       // 48px
+  xs:   'var(--fs-xs)',    // 12px
+  sm:   'var(--fs-sm)',    // 14px
+  base: 'var(--fs-base)',  // 16px
+  lg:   'var(--fs-lg)',    // 18px
+  xl:   'var(--fs-xl)',    // 20px
+  '2xl': 'var(--fs-2xl)',  // 24px
+  '3xl': 'var(--fs-3xl)',  // 30px
+  '4xl': 'var(--fs-4xl)',  // 36px
+  '5xl': 'var(--fs-5xl)',  // 48px
 } as const;
 
 /**
@@ -201,19 +208,52 @@ export const FONT_SIZES = {
  * `text-[Npx]` for any value that has a defined stop.
  */
 export const UI_TEXT_SCALE = {
-  'ui-8':  '8px',
-  'ui-9':  '9px',
-  'ui-10': '10px',
-  'ui-11': '11px',
-  'ui-12': '12px',
-  'ui-13': '13px',
-  'ui-14': '14px',
-  'ui-15': '15px',
-  'ui-16': '16px',
-  'ui-17': '17px',
-  'ui-20': '20px',
-  'ui-26': '26px',
-  'ui-28': '28px',
+  'ui-8': 'var(--fs-ui-8)',
+  'ui-9': 'var(--fs-ui-9)',
+  'ui-10': 'var(--fs-ui-10)',
+  'ui-11': 'var(--fs-ui-11)',
+  'ui-12': 'var(--fs-ui-12)',
+  'ui-13': 'var(--fs-ui-13)',
+  'ui-14': 'var(--fs-ui-14)',
+  'ui-15': 'var(--fs-ui-15)',
+  'ui-16': 'var(--fs-ui-16)',
+  'ui-17': 'var(--fs-ui-17)',
+  'ui-18': 'var(--fs-ui-18)',
+  'ui-19': 'var(--fs-ui-19)',
+  'ui-20': 'var(--fs-ui-20)',
+  'ui-22': 'var(--fs-ui-22)',
+  'ui-24': 'var(--fs-ui-24)',
+  'ui-26': 'var(--fs-ui-26)',
+  'ui-28': 'var(--fs-ui-28)',
+  'ui-30': 'var(--fs-ui-30)',
+  'ui-32': 'var(--fs-ui-32)',
+  'ui-34': 'var(--fs-ui-34)',
+  'ui-36': 'var(--fs-ui-36)',
+  'ui-40': 'var(--fs-ui-40)',
+  'ui-48': 'var(--fs-ui-48)',
+} as const;
+
+/**
+ * Font size by role, as Tailwind utilities (text-page-title, text-body, ...).
+ * Same knobs as the type-* classes in tokens.css; use these when only the
+ * size and leading are wanted.
+ */
+export const ROLE_TEXT_SCALE = {
+  'page-title':      ['var(--fs-page-title)', { lineHeight: 'var(--lh-page-title)' }],
+  'section-heading': ['var(--fs-section-heading)', { lineHeight: 'var(--lh-section-heading)' }],
+  'card-title':      ['var(--fs-card-title)', { lineHeight: 'var(--lh-card-title)' }],
+  body:              ['var(--fs-body)', { lineHeight: 'var(--lh-body)' }],
+  small:             ['var(--fs-small)', { lineHeight: 'var(--lh-small)' }],
+  label:             'var(--fs-label)',
+  nav:               'var(--fs-nav)',
+  link:              'var(--fs-link)',
+  meta:              'var(--fs-meta)',
+  price:             'var(--fs-price)',
+  button:            'var(--fs-button)',
+  field:             'var(--fs-field)',
+  'admin-table':     'var(--fs-admin-table)',
+  'article-body':    ['var(--fs-article-body)', { lineHeight: 'var(--lh-article-body)' }],
+  'article-lead':    ['var(--fs-article-lead)', { lineHeight: 'var(--lh-article-lead)' }],
 } as const;
 
 export const FONT_WEIGHTS = {
@@ -225,12 +265,12 @@ export const FONT_WEIGHTS = {
 } as const;
 
 export const LINE_HEIGHTS = {
-  tight:   '1.12',    // Display headings
-  snug:    '1.2',     // H2 headings
-  normal:  '1.4',     // Subtitles, labels
-  relaxed: '1.625',   // UI text
-  loose:   '1.65',    // Body light (captions)
-  reading: '1.7',     // Body / article text
+  tight:   'var(--lh-tight)',    // Display headings
+  snug:    'var(--lh-snug)',     // H2 headings
+  normal:  'var(--lh-normal)',   // Subtitles, labels
+  relaxed: 'var(--lh-relaxed)',  // UI text
+  loose:   'var(--lh-loose)',    // Body light (captions)
+  reading: 'var(--lh-reading)',  // Body / article text
 } as const;
 
 /**
@@ -572,29 +612,23 @@ export const TEXTURE_USAGE = {
 // ─────────────────────────────────────────────────────────────
 
 export const SHADOWS = {
-  sm:   '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-  base: '0 1px 3px rgba(0,0,0,0.3)',
-  md:   '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-  lg:   '0 8px 20px rgba(0,0,0,0.4)',
-  xl:   '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-
+  sm:   'var(--shadow-sm)',
+  base: 'var(--shadow-base)',
+  md:   'var(--shadow-md)',
+  lg:   'var(--shadow-lg)',
+  xl:   'var(--shadow-xl)',
   /** Card grid item resting state */
-  card: '0 1px 4px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.12), inset 0 1px 0 rgba(184,146,78,0.05)',
-
+  card: 'var(--shadow-card)',
   /** Card grid item hover */
-  cardHover: '0 6px 16px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(184,146,78,0.08)',
-
+  cardHover: 'var(--shadow-card-hover)',
   /** Inset panel, alcove-inspired recessed surface */
-  insetPanel: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03), 0 -1px 0 rgba(200,170,120,0.05)',
-
+  insetPanel: 'var(--shadow-inset-panel)',
   /** Light mode inset panel */
-  insetPanelLight: 'inset 0 1px 0 rgba(142,109,46,0.08), inset 0 -1px 0 rgba(142,109,46,0.04), 0 -1px 0 rgba(142,109,46,0.06)',
-
+  insetPanelLight: 'var(--shadow-inset-panel-light)',
   /** Sidebar edge lighting */
-  sidebar: 'inset -1px 0 0 rgba(200,170,120,0.06), 1px 0 8px rgba(0,0,0,0.15)',
-
+  sidebar: 'var(--shadow-sidebar)',
   /** Focus ring (keyboard navigation) */
-  focusRing: '0 0 0 4px var(--tea-accent-sub)',
+  focusRing: 'var(--shadow-focus-ring)',
 } as const;
 
 
@@ -603,13 +637,29 @@ export const SHADOWS = {
 // ─────────────────────────────────────────────────────────────
 
 export const SPACING = {
-  xs:   '0.25rem',   // 4px
-  sm:   '0.5rem',    // 8px
-  md:   '1rem',      // 16px
-  lg:   '1.5rem',    // 24px
-  xl:   '2rem',      // 32px
-  '2xl': '3rem',     // 48px
-  '3xl': '4rem',     // 64px
+  xs:   'var(--space-1)',   // 4px
+  sm:   'var(--space-2)',   // 8px
+  md:   'var(--space-4)',   // 16px
+  lg:   'var(--space-6)',   // 24px
+  xl:   'var(--space-8)',   // 32px
+  '2xl': 'var(--space-12)', // 48px
+  '3xl': '4rem',            // 64px
+} as const;
+
+/**
+ * The house spacing steps (4 / 8 / 12 / 16 / 24 / 32 / 48) under Tailwind's
+ * own numeric names, so p-4, mt-2, gap-3 and space-y-6 read tokens.css.
+ * Wired into padding, margin, gap and space only; widths and heights keep
+ * Tailwind's fixed values so an icon's w-4 h-4 never moves with spacing.
+ */
+export const SPACE_STEPS = {
+  '1':  'var(--space-1)',
+  '2':  'var(--space-2)',
+  '3':  'var(--space-3)',
+  '4':  'var(--space-4)',
+  '6':  'var(--space-6)',
+  '8':  'var(--space-8)',
+  '12': 'var(--space-12)',
 } as const;
 
 
@@ -619,15 +669,16 @@ export const SPACING = {
 
 export const BORDER_RADIUS = {
   none: '0px',
-  sm:   '0.125rem',   // 2px , subtle rounding
-  base: '0.25rem',    // 4px
-  md:   '0.375rem',   // 6px , inset panels
-  lg:   '0.5rem',     // 8px
-  xl:   '0.75rem',    // 12px
-  '2xl': '0.875rem',  // 14px, cards
-  '3xl': '1.125rem',  // 18px, large panels, modals
-  full: '9999px',     // pills, tags, avatars
-  control: 'var(--radius-control)', // buttons, inputs, tabs (4px), see tailwind.css
+  DEFAULT: 'var(--radius-base)', // 4px, bare `rounded`
+  sm:   'var(--radius-sm)',      // 2px , subtle rounding
+  base: 'var(--radius-base)',    // 4px
+  md:   'var(--radius-md)',      // 6px , inset panels
+  lg:   'var(--radius-lg)',      // 8px
+  xl:   'var(--radius-xl)',      // 12px
+  '2xl': 'var(--radius-2xl)',    // 14px, cards
+  '3xl': 'var(--radius-3xl)',    // 18px, large panels, modals
+  full: '9999px',                // pills, tags, avatars
+  control: 'var(--radius-control)', // buttons, inputs, tabs (4px)
 } as const;
 
 
@@ -636,9 +687,9 @@ export const BORDER_RADIUS = {
 // ─────────────────────────────────────────────────────────────
 
 export const TIMING = {
-  micro:    '150ms',  // Hover states, badges, small feedback
-  standard: '300ms',  // Transitions, modals, buttons
-  emphasis: '500ms',  // Page transitions, image reveals, color mode
+  micro:    'var(--dur-micro)',     // 150ms: hover states, badges, small feedback
+  standard: 'var(--dur-standard)',  // 300ms: transitions, modals, buttons
+  emphasis: 'var(--dur-emphasis)',  // 500ms: page transitions, image reveals, color mode
 } as const;
 
 export const EASING = {
@@ -1011,6 +1062,8 @@ export const DESIGN_TOKENS = {
   typography:      TYPOGRAPHY_CLASSES,
   fontSize:        FONT_SIZES,
   uiTextScale:     UI_TEXT_SCALE,
+  roleTextScale:   ROLE_TEXT_SCALE,
+  spaceSteps:      SPACE_STEPS,
   fontWeight:      FONT_WEIGHTS,
   lineHeight:      LINE_HEIGHTS,
   letterSpacing:   LETTER_SPACING,

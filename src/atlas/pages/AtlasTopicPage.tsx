@@ -94,7 +94,7 @@ export default function AtlasTopicPage() {
             <>
               <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
                 <div>
-                  <h1 className="font-display text-[34px] md:text-[42px] leading-[1.1] text-tea-text">{topic.name}</h1>
+                  <h1 className="font-display text-ui-34 md:text-[42px] leading-[1.1] text-tea-text">{topic.name}</h1>
                   <p className="font-body text-ui-15 text-tea-text-sec mt-2" aria-live="polite">
                     {filtering
                       ? `${shown.length.toLocaleString()} of ${articles.length.toLocaleString()} articles`

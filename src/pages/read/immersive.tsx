@@ -124,6 +124,19 @@ export const F = {
   cn: "'Noto Serif SC',serif",
 } as const;
 
+/**
+ * The reader's type sizes by role, read from src/styles/tokens.css (the
+ * master style file). Change --fs-article-body there and every story's
+ * paragraphs follow.
+ */
+export const S = {
+  body: 'var(--fs-article-body)',
+  lead: 'var(--fs-article-lead)',
+  aside: 'var(--fs-article-aside)',
+  heading: 'var(--fs-article-heading)',
+  subheading: 'var(--fs-article-subheading)',
+} as const;
+
 export const ACCENTS = ['#a8874d', '#b06a3c', '#6f8f6a', '#9a5246'] as const;
 
 // Grain SVG data-URI (matches the mockup's fractal-noise overlay).

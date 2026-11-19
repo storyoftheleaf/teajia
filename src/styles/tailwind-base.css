@@ -1,0 +1,3 @@
+/* Tailwind preflight, on its own so tokens.css can sit between it and the
+   utilities (see the top of tailwind.css). */
+@tailwind base;

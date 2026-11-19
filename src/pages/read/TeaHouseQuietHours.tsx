@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { ConversationByline } from './conversation/Byline';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
 
@@ -25,7 +25,7 @@ const moreLinks = [
 // ─── Shared sub-styles ───────────────────────────────────────────────────────
 const pBody: React.CSSProperties = {
   fontFamily: F.body,
-  fontSize: 'clamp(16px,2vw,18px)',
+  fontSize: S.body,
   lineHeight: 1.8,
   color: C.taupe,
   margin: '0 0 20px',
@@ -167,7 +167,7 @@ const TeaHouseQuietHours: React.FC = () => {
 
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: C.ink, margin: 0 }}>
             O
             n a wide grey street in Brunswick, between a tyre shop and a bakery, there is a doorway most people walk straight past. Inside, the noise of Melbourne falls away. This is Quiet Hours, a tea house that began, improbably, with a homesick woman, a year in Bali, and a builder who had never finished a pot of tea in his life. I came to ask how a room gets made. It turns out it takes two very different people, talking past each other in the most productive way.
           </p>
@@ -197,7 +197,7 @@ const TeaHouseQuietHours: React.FC = () => {
 
         {/* ── PULL QUOTE ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
-          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: S.heading, lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
             &#x201C;A tea house is not a menu with chairs. It is a permission to be unhurried.&#x201D;
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
@@ -271,7 +271,7 @@ const TeaHouseQuietHours: React.FC = () => {
 
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(48px,7vw,96px) 24px' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             When I leave, the late sun is doing exactly what Tom built it to do, sliding gold along the grain of the bar while Mei warms a pot for a stranger who has nowhere else to be. Two people who would never have met, a hemisphere from where the tea was grown, have made a small room where time runs slower. The city waits outside, as instructed.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>

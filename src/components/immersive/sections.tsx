@@ -43,7 +43,7 @@ export function CoverSection({ title, subtitle, image, kicker, variant, mark }: 
         className="relative min-h-[100dvh] flex flex-col items-center justify-center text-center px-8"
         style={{ background: 'radial-gradient(circle at 50% 30%, #2c2924, var(--tea-bg))' }}
       >
-        {mark && <div className="font-display text-tea-gold leading-none text-[34px] md:text-[44px] mb-8 opacity-90">{mark}</div>}
+        {mark && <div className="font-display text-tea-gold leading-none text-ui-34 md:text-[44px] mb-8 opacity-90">{mark}</div>}
         <h1 className="font-display text-tea-text leading-none text-[56px] md:text-[80px]">{title}</h1>
         {subtitle && <p className="font-sans text-tea-text-dim tracking-[0.2em] uppercase text-ui-12 mt-6">{subtitle}</p>}
       </section>
@@ -136,7 +136,7 @@ export function ProseSection({ text, dropcap, effect = 'scroll-highlight', segme
   /** The text split into tea terms (renderBlock's linker); absent = no links. */
   segments?: TermSegment[];
 }) {
-  const proseClass = 'font-body text-[18px] md:text-ui-20 leading-[1.78]';
+  const proseClass = 'font-body text-ui-18 md:text-ui-20 leading-[1.78]';
   const body =
     effect === 'scroll-highlight' ? (
       <ScrollHighlightText text={text} segments={segments} className={proseClass} />
@@ -166,7 +166,7 @@ export function SectionHeading({ text, effect }: { text: string; effect?: TextEf
             as="h3"
             effect={effect}
             text={text}
-            className="font-display font-medium text-tea-text leading-[1.05] text-[34px] md:text-[44px]"
+            className="font-display font-medium text-tea-text leading-[1.05] text-ui-34 md:text-[44px]"
           />
         </Reveal>
       </ReadingColumn>
@@ -180,7 +180,7 @@ export function PullQuote({ text, attribution, id, segments }: { text: string; a
   return (
     <section id={id} className="py-24 md:py-32 text-center px-6 scroll-mt-16">
       <Reveal>
-        <blockquote className="font-display font-medium italic text-tea-gold-lt leading-[1.18] text-[32px] md:text-[46px] max-w-[760px] mx-auto">
+        <blockquote className="font-display font-medium italic text-tea-gold-lt leading-[1.18] text-ui-32 md:text-[46px] max-w-[760px] mx-auto">
           {segments ? renderSegments(segments) : text}
         </blockquote>
         {attribution && (
@@ -197,7 +197,7 @@ export function ChapterDivider({ number, title, subtitle }: { number?: string; t
   return (
     <section className="py-28 md:py-40 px-8 text-center">
       {number && <div className="font-display text-tea-gold leading-none text-[44px] md:text-[64px] mb-4">{number}</div>}
-      <h2 className="font-display font-medium text-tea-text leading-[1.05] text-[36px] md:text-[52px]">{title}</h2>
+      <h2 className="font-display font-medium text-tea-text leading-[1.05] text-ui-36 md:text-[52px]">{title}</h2>
       {subtitle && <p className="font-body text-tea-text-dim mt-4 text-ui-16 md:text-ui-20 max-w-[520px] mx-auto">{subtitle}</p>}
     </section>
   );
@@ -209,7 +209,7 @@ export function Epilogue({ text, signature, segments }: { text: string; signatur
     <section className="py-24 md:py-32">
       <div className="px-6 md:px-0 mx-auto max-w-[680px]">
         <Reveal>
-          <p className="font-display italic text-tea-text-sec leading-[1.5] text-[24px] md:text-[30px]">{segments ? renderSegments(segments) : text}</p>
+          <p className="font-display italic text-tea-text-sec leading-[1.5] text-ui-24 md:text-ui-30">{segments ? renderSegments(segments) : text}</p>
           {signature && <p className="font-sans text-tea-text-dim tracking-[0.14em] uppercase text-ui-11 mt-8">{signature}</p>}
         </Reveal>
       </div>
@@ -411,7 +411,7 @@ export function BrewingSteps({ title, steps, ingredients, pairing }: {
     <section className="py-16 md:py-24">
       <div className="px-6 md:px-0 mx-auto max-w-[680px]">
         <Reveal>
-          {title && <h3 className="font-display font-medium text-tea-text leading-[1.1] text-[30px] md:text-[40px] mb-8">{title}</h3>}
+          {title && <h3 className="font-display font-medium text-tea-text leading-[1.1] text-ui-30 md:text-ui-40 mb-8">{title}</h3>}
           {ingredients && ingredients.length > 0 && (
             <ul className="mb-10 flex flex-wrap gap-2">
               {ingredients.map((ing, i) => (
@@ -422,7 +422,7 @@ export function BrewingSteps({ title, steps, ingredients, pairing }: {
           <ol className="space-y-7">
             {steps.map((s, i) => (
               <li key={i} className="flex gap-5 items-start">
-                <span className="font-display text-tea-gold leading-none text-[30px] md:text-[38px] shrink-0 w-10 tabular-nums">{i + 1}</span>
+                <span className="font-display text-tea-gold leading-none text-ui-30 md:text-[38px] shrink-0 w-10 tabular-nums">{i + 1}</span>
                 <span className="font-body text-tea-text-sec text-ui-17 md:text-ui-20 leading-[1.7] pt-1">{s}</span>
               </li>
             ))}
@@ -574,7 +574,7 @@ export function ProductCard({ title, blurb, href, image }: { title: string; blur
             {image && <img src={image} alt="" className="w-28 md:w-40 object-cover shrink-0" />}
             <div className="py-5 pr-6 flex flex-col justify-center">
               <span className="font-sans text-ui-10 tracking-[0.2em] uppercase text-tea-gold-lt mb-2">From the shop</span>
-              <h4 className="font-display text-tea-text text-[24px] md:text-[30px] leading-tight">{title}</h4>
+              <h4 className="font-display text-tea-text text-ui-24 md:text-ui-30 leading-tight">{title}</h4>
               {blurb && <p className="font-body text-tea-text-dim text-ui-15 mt-2">{blurb}</p>}
               <span className="font-sans text-ui-12 text-tea-gold mt-3">View tea ↗</span>
             </div>
@@ -679,7 +679,7 @@ export function PoemSection({ text }: { text: string }) {
       <Reveal>
         <div className="fx-line-stagger mx-auto max-w-[560px]">
           {lines.map((line, i) => (
-            <p key={i} className="font-display italic text-tea-text-sec leading-[1.7] text-[22px] md:text-ui-28" style={{ transitionDelay: `${i * 120}ms` }}>{line}</p>
+            <p key={i} className="font-display italic text-tea-text-sec leading-[1.7] text-ui-22 md:text-ui-28" style={{ transitionDelay: `${i * 120}ms` }}>{line}</p>
           ))}
         </div>
       </Reveal>
@@ -694,9 +694,9 @@ export function DefinitionSection({ term, body, etymology }: { term: string; bod
     <section className="py-16 md:py-24">
       <div className="px-6 md:px-0 mx-auto max-w-[680px]">
         <Reveal>
-          <h3 className="fx-blur-focus font-display text-tea-gold-lt leading-tight text-[36px] md:text-[52px]">{term}</h3>
+          <h3 className="fx-blur-focus font-display text-tea-gold-lt leading-tight text-ui-36 md:text-[52px]">{term}</h3>
           {etymology && <p className="font-sans text-ui-12 tracking-[0.14em] uppercase text-tea-text-dim mt-2">{etymology}</p>}
-          <p className="font-body text-tea-text-sec text-[18px] md:text-ui-20 leading-[1.78] mt-5">{body}</p>
+          <p className="font-body text-tea-text-sec text-ui-18 md:text-ui-20 leading-[1.78] mt-5">{body}</p>
         </Reveal>
       </div>
     </section>

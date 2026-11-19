@@ -21,7 +21,7 @@
 .h3 {
   font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
   font-weight: 400;
-  font-size: 19px;
+  font-size: var(--fs-ui-19);
   line-height: 1.3;
   letter-spacing: 0.01em;
   color: rgb(var(--tea-text-rgb));
@@ -30,28 +30,28 @@
   font-family: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   font-weight: 400;
   font-style: italic;
-  font-size: 17px;
+  font-size: var(--fs-ui-17);
   line-height: 1.4;
   color: rgb(var(--tea-text-sec-rgb));
 }
 .body-prose {
   font-family: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   font-weight: 400;
-  font-size: 17px;
+  font-size: var(--fs-ui-17);
   line-height: 1.7;
   color: rgb(var(--tea-text-rgb));
 }
 .body-light {
   font-family: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   font-weight: 300;
-  font-size: 15px;
+  font-size: var(--fs-ui-15);
   line-height: 1.65;
   color: rgb(var(--tea-text-sec-rgb));
 }
 .label-caps {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-weight: 400;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: rgb(var(--tea-text-sec-rgb));
@@ -59,7 +59,7 @@
 .nav-caps {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-weight: 400;
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: rgb(var(--tea-text-sec-rgb));
@@ -67,7 +67,7 @@
 .link-text {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-weight: 400;
-  font-size: 14px;
+  font-size: var(--fs-ui-14);
   letter-spacing: 0.02em;
   color: rgb(var(--tea-readgold-rgb));
 }
@@ -75,20 +75,20 @@
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   color: rgb(var(--tea-text-rgb));
 }
 .nav-sidebar {
   font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
   font-weight: 500;
-  font-size: 17px;
+  font-size: var(--fs-ui-17);
   letter-spacing: 0.04em;
   color: rgb(var(--tea-text-sec-rgb));
 }
 .nav-sidebar-child {
   font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
   font-weight: 400;
-  font-size: 15px;
+  font-size: var(--fs-ui-15);
   letter-spacing: 0.04em;
   color: rgb(var(--tea-text-sec-rgb));
 }
@@ -128,198 +128,8 @@
   }
 }
 
-/* ==============================   CSS Custom Properties: Theme-adaptive values
-   ============================================ */
+/* Theme variables and the button classes moved to tokens.css (the master style file). */
 
-:root {
-  --tea-vignette-color: rgba(24, 19, 14, 0.12);
-  --teajia-sidebar-w: 4.5rem; /* the rail alone; LeftSidebar sets 17rem while the Manage column is open */
-
-  /* The two state hues the pill block needed and the palette did not have.
-
-     `--tea-error` already existed and is theme-aware, so the destructive pill
-     reads it directly. There was no warning token at all, which is why the
-     amber pill carried a raw `#fbbf24` (a Tailwind stock amber, picked for a
-     dark background and never rechecked against parchment) through two rounds
-     of token work. Declared here rather than in tailwind.css because these are
-     component-state colours used by this stylesheet, not palette entries a
-     component should be reaching for with a `text-` class.
-
-     Both are measured against their own page background, not eyeballed:
-     #e0a63f on #22201c is 7.5:1, #8a5510 on #f4ece0 is 5.3:1. */
-  --tea-warn: #e0a63f;
-  --tea-warn-rgb: 224 166 63;
-
-  /* The solid-CTA background. Identical to --tea-gold in dark mode, deliberately
-     darker than it in light. See the .alcove-order-btn note for the measurement.
-
-     The hover moves *away* from the page in both modes, which is why it needs a
-     token of its own rather than `--tea-gold-lt`: lightening a bronze fill is
-     the right hover on espresso (6.6:1) and the wrong one on parchment, where
-     `--tea-gold-lt` under cream text measures 3.0:1, so the button became
-     unreadable exactly while the cursor was on it. */
-  --tea-gold-solid: var(--tea-gold);
-  --tea-gold-solid-hover: var(--tea-gold-lt);
-
-  /* Shadow ink. Depth, not colour, which is why it is an rgb triplet and the
-     alpha stays with the caller: an inset or drop shadow is always some alpha
-     of this. Pure black is right on espresso and wrong on parchment, where a
-     black inset reads as grime rather than depth, so light mode uses the warm
-     espresso the light theme already spends on text (#18130e). Callers write
-     `rgb(var(--tea-shadow-rgb) / 0.2)`. */
-  --tea-shadow-rgb: 0 0 0;
-
-  /* The colophon footer band, which is deliberately darker than the page in
-     both themes so the site closes on a dark rule rather than fading out. It
-     is a surface, not an accent, so it is declared once here rather than being
-     retyped as a hex in the component.
-
-     Measured against it, not against --tea-bg: the taupe on this band is
-     10.6:1 and the link rest colour is 7.6:1. The previous rest colour was
-     #80735f, which measured 4.09:1 at 11px uppercase mono and was under the
-     floor on every page of the site at once. */
-  --tea-footer-band: #14100b;
-  --tea-footer-ink: #cdc0a8;
-  --tea-footer-ink-dim: #b3a283;
-
-  /* The Read section's own palette, 2026-09-20. src/pages/read/immersive.tsx
-     used to own these as literal hex in a `C` object, deliberately outside the
-     site's theme, by decision. That decision is superseded: Adrian wants the
-     reader to follow light mode when a visitor has it switched on. `C` keeps
-     its shape (the seventeen article files still read `C.bg`, `C.gold`, and so
-     on) but every entry now resolves through the variables declared here, so a
-     theme flip repaints the reader instead of leaving it stranded dark.
-
-     Dark values are the exact literals the reader has always used, unchanged.
-     Light values are the site's own light tokens, not invented figures: the
-     warm parchment ground, the espresso ink, the aged-bronze gold. `--tj-gold`
-     and `--tj-gold-lt` (set by applyAccent, above the accent-swatch retirement
-     note in immersive.tsx) still override the gold pair when a per-article
-     accent is active; `--tj-read-gold-default` / `-lt-default` are only the
-     fallback either side of that override. */
-  --tj-read-bg: #14100b;
-  --tj-read-bg-rgb: 20 16 11;
-  --tj-read-ink: #ede4d4;
-  --tj-read-cream: #f3ead9;
-  --tj-read-warm: #e3d6bd;
-  --tj-read-taupe: #cdc0a8;
-  /* Adrian's own voice in a story: his opening, his telling, his questions and his close.
-     Sand, so it reads as his by colour at the same size as theirs; never the bronze,
-     which marks the key words in a large quote (Adrian, 2026-10-01). 11:1 on the ground. */
-  --tj-read-voice: #d8c39b;
-  --tj-read-dim: #8c7f6a; /* 4.83:1 on the ground, 4.50:1 on a card. Was #80735f, 4.09:1, until 2026-09-29. */
-  --tj-read-gold-default: #a8874d;
-  --tj-read-gold-lt-default: #c6a667;
-  --tj-read-gold-rgb: 168 135 77;
-
-  /* The reader's recurring card and plate gradients (bordered inset panels,
-     photo placeholders). Structural chrome, not art direction, so they follow
-     theme too, unlike the oxidation scale and the liquor-colour dots in
-     LeafToLiquor, which stay literal because they are measurements of an
-     object rather than styling applied to one. */
-  --tj-read-card-from: #1d1810;
-  --tj-read-card-to: #15110b;
-  --tj-read-plate-from: #241d14;
-  --tj-read-plate-to: #120e09;
-  --tj-read-empty-from: #23252a;
-
-  /* `C.taupe`'s own RGB triplet, for the handful of spots that wrote it as an
-     rgba() fade instead of going through C.taupe (ReadIndex's index-row
-     kicker, StoryEditorBar's idle toolbar label, LeafToLiquor's photo
-     caption). Kept as its own token rather than reused off --tj-read-taupe,
-     which is a resolved colour, not an rgb triplet a fade can carry alpha on. */
-  --tj-read-taupe-rgb: 205 192 168;
-  /* ReadIndex's hover-emphasis tier on a title row: brighter than cream in
-     dark mode (there is room above it), gold in light mode (there is not,
-     so hover reads as an accent shift instead of a non-existent brighter
-     white). */
-  --tj-read-hover-ink: #fff7ea;
-}
-
-[data-theme="light"], .light-mode, .light {
-  --tea-vignette-color: rgba(240, 235, 228, 0.10);
-  --tea-warn: #8a5510;
-  --tea-warn-rgb: 138 85 16;
-  --tea-gold-solid: #806229;
-  --tea-gold-solid-hover: #6e5323;
-  --tea-shadow-rgb: 24 19 14;
-
-  /* Read section, light mode. `cream` and `ink` both land on --tea-text:
-     dark mode's brightest-to-primary pair has no room to go brighter than
-     primary ink on parchment. `warm` and `taupe`, the two secondary-emphasis
-     tiers, both land on --tea-text-sec for the same reason. The card and
-     plate gradients flatten onto the site's own surface pair rather than
-     carrying a bespoke light gradient nobody asked for. */
-  --tj-read-bg: var(--tea-bg);
-  --tj-read-bg-rgb: var(--tea-bg-rgb);
-  --tj-read-ink: var(--tea-text);
-  --tj-read-cream: var(--tea-text);
-  --tj-read-warm: var(--tea-text-sec);
-  --tj-read-taupe: var(--tea-text-sec);
-  --tj-read-voice: #6b5432; /* about 6:1 on the light ground */
-  --tj-read-dim: var(--tea-text-dim);
-  --tj-read-gold-default: var(--tea-gold);
-  --tj-read-gold-lt-default: var(--tea-gold-lt);
-  --tj-read-gold-rgb: var(--tea-gold-rgb);
-  --tj-read-card-from: var(--tea-elevated);
-  --tj-read-card-to: var(--tea-surface);
-  --tj-read-plate-from: var(--tea-elevated);
-  --tj-read-plate-to: var(--tea-surface);
-  --tj-read-empty-from: var(--tea-elevated);
-  --tj-read-taupe-rgb: var(--tea-text-sec-rgb);
-  --tj-read-hover-ink: var(--tea-gold);
-}
-
-/* The one solid buy-button treatment, so a surface cannot opt out of the
-   measurement by writing the gold fill and the cream text out by hand. Compose
-   it with whatever shape and type role the surface needs; this carries colour
-   only.
-
-   Round nine pointed the shared `<Button variant="primary">` at this class and
-   swept 101 hand-written spellings out of src/components. lint-colors.sh
-   rule 12 blocks the pair from being written again on those paths. */
-.cta-solid {
-  background: var(--tea-gold-solid);
-  color: var(--tea-bg);
-}
-.cta-solid:hover:not(:disabled) {
-  background: var(--tea-gold-solid-hover);
-}
-
-/* The one primary button. Solid bronze, sans 12px semibold, title case, 4px
-   corners, 32px with a mouse (44px on touch via --tap-min). `.btn-primary-lg`
-   (36px, 13px) is for the single page-level action: Sign in, Begin, Add to
-   order. Same as <Button variant="primary">; use either, never hand-roll. */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: var(--control-h);
-  min-height: var(--tap-min);
-  padding: 0 12px;
-  border-radius: var(--radius-control);
-  font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, sans-serif);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: none;
-  background: var(--tea-gold-solid);
-  color: var(--tea-bg);
-  transition: background-color 150ms ease;
-}
-.btn-primary:hover:not(:disabled) { background: var(--tea-gold-solid-hover); }
-.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-primary-lg { height: var(--control-h-lg); padding: 0 16px; font-size: 13px; }
-
-/* Outline button that fills on hover. Same measured pair, applied on hover
-   only, so an outline CTA does not have to spell the fill and the text out and
-   reintroduce the 4.10:1 light-mode pairing at the exact moment the pointer is
-   on it. */
-.cta-solid-hover:hover:not(:disabled) {
-  background: var(--tea-gold-solid);
-  color: var(--tea-bg);
-}
 
 /* ==============================   Theme-aware image filter classes
    Used by EditableImage and similar components.
@@ -944,7 +754,7 @@ input[type="number"]::-webkit-outer-spin-button {
 /* Canonical form label, uppercase meta label above every field */
 .label-field {
   display: block;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1015,7 +825,7 @@ input[type="number"]::-webkit-outer-spin-button {
   min-height: var(--tap-min);
   border-radius: 6px;
   border: none;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   cursor: pointer;
@@ -1067,7 +877,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .pill.curate-duplicate-action {
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
 }
 
 /* Amber variant (warnings, stock alerts).
@@ -1127,7 +937,7 @@ input[type="number"]::-webkit-outer-spin-button {
   /* Matches the Curate support tier (text-ui-12 uppercase tracking-[1.2px])
      so Run/Vendor/Suggest read at the same
      size as the Notes/Profile eyebrows elsewhere on the capture card. */
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   text-transform: uppercase;
   letter-spacing: 1.2px;
   cursor: pointer;
@@ -1180,7 +990,7 @@ input[type="number"]::-webkit-outer-spin-button {
   padding: 2px 8px;
   border-radius: 4px;
   border: none;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1213,7 +1023,7 @@ input[type="number"]::-webkit-outer-spin-button {
   padding: 4px 8px;
   border-radius: 9999px;
   border: none;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   background: rgb(var(--tea-gold-rgb) / 0.12);
   color: var(--tea-gold);
 }
@@ -1222,7 +1032,7 @@ input[type="number"]::-webkit-outer-spin-button {
    while preserving a full mobile touch target. */
 .tag.curate-tasting-tag {
   min-height: var(--tap-min);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
 }
 
 /* Selectable tag in a grid (tasting picker) */
@@ -1233,7 +1043,7 @@ input[type="number"]::-webkit-outer-spin-button {
   padding: 5px 8px;
   border-radius: 4px;
   border: none;
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   cursor: pointer;
   transition: all 150ms ease;
   background: var(--tea-surface);
@@ -1259,7 +1069,7 @@ input[type="number"]::-webkit-outer-spin-button {
   padding: 2px 8px;
   border-radius: 4px;
   border: none;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 500;
 }
 
@@ -1395,7 +1205,7 @@ input[type="number"]::-webkit-outer-spin-button {
   padding: 2px 8px;
   border-radius: 9999px;
   border: none;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1423,7 +1233,7 @@ input[type="number"]::-webkit-outer-spin-button {
   padding: 2px 8px;
   border-radius: 4px;
   border: none;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 700;
   cursor: pointer;
   transition: all 150ms ease;
@@ -1886,7 +1696,7 @@ input[type="number"]::-webkit-outer-spin-button {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'MS Mincho', serif;
-  font-size: 14px;
+  font-size: var(--fs-ui-14);
   opacity: 0.18;
   letter-spacing: 0.1em;
   pointer-events: none;
@@ -2132,7 +1942,7 @@ input[type="number"]::-webkit-outer-spin-button {
   gap: 2px;
   padding: 6px 12px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
@@ -2337,7 +2147,7 @@ input[type="number"]::-webkit-outer-spin-button {
   margin: -8px 0;
   cursor: pointer;
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: var(--fs-ui-10);
   font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -2597,7 +2407,7 @@ input[type="number"]::-webkit-outer-spin-button {
   flex-shrink: 0;
   color: var(--tea-gold-lt);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-ui-13);
   transition: transform 150ms ease;
 }
 .alcove-row-btn:hover .alcove-row-go { transform: translateX(2px); }
@@ -2622,7 +2432,7 @@ input[type="number"]::-webkit-outer-spin-button {
   justify-content: center;
   gap: 1px;
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: var(--fs-ui-10);
   font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -2641,7 +2451,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-seg-btn small {
   display: block;
-  font-size: 8px;
+  font-size: var(--fs-ui-8);
   letter-spacing: 0.06em;
   text-transform: none;
   color: var(--tea-text-dim);
@@ -2687,7 +2497,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 /* Title case, no tracking: an action, not an eyebrow (DESIGN_SYSTEM.md §7). */
 .alcove-order-verb {
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -2709,14 +2519,14 @@ input[type="number"]::-webkit-outer-spin-button {
 /* What the order costs. The one figure the reader is deciding about, so it
    outweighs both the verb beside it and the rate that follows it. */
 .alcove-order-total {
-  font-size: 15px;
+  font-size: var(--fs-ui-15);
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 /* The per-gram rate, kept as a footnote to the total rather than its equal.
    Fixed blend rather than opacity so the contrast on gold stays predictable. */
 .alcove-order-rate {
-  font-size: 9px;
+  font-size: var(--fs-ui-9);
   font-weight: 400;
   letter-spacing: 0.04em;
   color: rgba(24, 19, 14, 0.72);
@@ -2819,7 +2629,7 @@ input[type="number"]::-webkit-outer-spin-button {
   border: none;
   cursor: pointer;
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   color: var(--tea-text-sec);
   opacity: 0.7;
   letter-spacing: 0.1em;
@@ -3291,13 +3101,13 @@ input[type="number"]::-webkit-outer-spin-button {
   background: none;
   color: var(--tea-text-sec);
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   letter-spacing: 0.06em;
   cursor: pointer;
   transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 .alcove-amount-chip small {
-  font-size: 9px;
+  font-size: var(--fs-ui-9);
   letter-spacing: 0.04em;
   color: var(--tea-text-dim);
   transition: color 150ms ease;
@@ -3467,7 +3277,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: var(--tea-elevated);
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.35), inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.18);
   color: var(--tea-text);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   opacity: 0;
@@ -3802,7 +3612,7 @@ input[type="number"]::-webkit-outer-spin-button {
   border-radius: 2px;
   background: rgb(var(--tea-gold-rgb) / 0.06);
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -3865,7 +3675,7 @@ input[type="number"]::-webkit-outer-spin-button {
    was the caption under a total; with the total gone, a dim word alone in the
    corner reads as disabled. */
 .alcove-dock-cta-verb {
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 500;
   letter-spacing: 0.16em;
   line-height: 1;
@@ -3929,7 +3739,7 @@ input[type="number"]::-webkit-outer-spin-button {
    show the list any other way. It gives up padding instead. */
 @media (max-width: 639px) {
   .alcove-dock-cta { padding: 0 14px; gap: 2px; }
-  .alcove-dock-cta-verb { font-size: 10px; letter-spacing: 0.1em; }
+  .alcove-dock-cta-verb { font-size: var(--fs-ui-10); letter-spacing: 0.1em; }
 }
 /* The order bar is fixed, and the site footer comes after the page that owns
    it, so the bar sat over the footer's last row (copyright and admin) on every
@@ -4097,14 +3907,14 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
    ============================================ */
 .curate-primary {
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: var(--fs-ui-16);
   line-height: 1.45;
   color: var(--tea-text);
 }
 
 .curate-support {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   line-height: 1.45;
   color: var(--tea-text-sec);
 }
@@ -4138,7 +3948,7 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   background: var(--tea-surface);
   color: var(--tea-text);
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: var(--fs-ui-16);
   line-height: 1.45;
   transition: border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -4155,7 +3965,7 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
 [data-curate-source] input:not([type="file"]),
 [data-curate-source] select,
 [data-curate-source] textarea {
-  font-size: 16px;
+  font-size: var(--fs-ui-16);
 }
 
 .curate-section {
@@ -4168,7 +3978,7 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   margin: 0 0 0.375rem;
   color: var(--tea-text-sec);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   font-weight: 600;
   line-height: 1.45;
   letter-spacing: 0.04em;
@@ -4182,7 +3992,7 @@ body:has(.commerce-dock) [data-testid='bottom-tab-bar'] {
   gap: 0.4rem;
   color: var(--tea-text-sec);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   line-height: 1.2;
   transition: color 160ms cubic-bezier(0.16, 1, 0.3, 1), background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), border-color 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -4299,7 +4109,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
 .curate-inline-label {
   color: var(--tea-text-dim);
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: var(--fs-ui-10);
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: 0.12em;
@@ -4318,7 +4128,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
      inside the box, above what is typed. */
   color: var(--tea-text-sec);
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 500;
   line-height: 1.2;
   letter-spacing: 1.2px;
@@ -4359,7 +4169,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
   gap: 0.3rem;
   color: var(--tea-gold);
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: var(--fs-ui-10);
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: 0.12em;
@@ -4385,7 +4195,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
   padding-left: 0.5rem;
   color: var(--tea-text-dim);
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: var(--fs-ui-10);
   font-weight: 500;
   line-height: 1.2;
   letter-spacing: 0.12em;
@@ -4401,7 +4211,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
   gap: 0.35rem;
   padding-left: 0.75rem;
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   line-height: 1.4;
 }
 .curate-field-note-derived { color: var(--tea-text-dim); }
@@ -4465,59 +4275,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
   }
 }
 
-/* ==============================   Admin Neutral Surface
-   ==============================   A separate, intentionally-cool palette for admin work surfaces
-   (inventory panel, etc.) where the operator spends hours editing
-   data. The warm tea palette stays on customer-facing surfaces; admin
-   gets a Linear/Notion/Claude-style neutral that has a wider luminance
-   range and reads as a calm work surface rather than an editorial
-   destination.
-
-   Lightness steps are deliberately small (~6-8 points) so cards sit
-   on each other via the inset-top highlight, not via aggressive
-   background contrast. Borders are barely perceptible, they define
-   the edge without pulling focus.
-
-   Brand gold is preserved as the *single* interactive accent (focus
-   rings, active selections, recommended values). Functional colors
-   (red for empty stock, amber for low) are kept for state signals.
-   ============================================ */
-
-.dark {
-  /* HARMONIZED with the site-wide tea-* tokens (src/styles/tailwind.css).
-     The admin-card structural system (bg → surface → input each lighter,
-     gold as the sole accent, AA-contrast text floors) is preserved, only
-     the colour values now point at the exact tea palette so the admin
-     panels read as the same material as the rest of the site, not a
-     darker near-miss cousin. Update these in lockstep with the tea dark
-     values if those change. */
-  --admin-bg:           #22201c;  /* = --tea-bg */
-  --admin-surface:      #322e29;  /* = --tea-surface */
-  --admin-elevated:     #423d36;  /* = --tea-elevated (hover / active) */
-  --admin-input-bg:     #4d473e;  /* one notch above elevated so inputs read raised, same warm family */
-  --admin-border:       rgb(168 135 77 / 0.14);  /* = --tea-border (gold-tinted, not cream) */
-  --admin-border-hover: rgb(168 135 77 / 0.24);
-  --admin-text:         #ede4d4;  /* = --tea-text */
-  --admin-text-sec:     #ddd2bd;  /* = --tea-text-sec */
-  --admin-text-dim:     #b3a283;  /* = --tea-text-dim (raised above AA for outdoor legibility) */
-  --admin-text-faint:   #8a7c66;  /* very low priority, warm */
-}
-
-.light {
-  /* Light-mode admin palette, mirrors the tea light tokens. Previously
-     the admin-* block defined dark values under :root/.light/.dark, so the
-     panel stayed dark in light mode. These map onto --tea light values. */
-  --admin-bg:           #f4ece0;  /* = --tea-bg light */
-  --admin-surface:      #e4ddd3;  /* = --tea-surface light */
-  --admin-elevated:     #d5c8b4;  /* = --tea-elevated light */
-  --admin-input-bg:     #ede4d4;  /* raised input fill, lighter than surface */
-  --admin-border:       rgb(168 135 77 / 0.16);  /* = --tea-border light */
-  --admin-border-hover: rgb(168 135 77 / 0.28);
-  --admin-text:         #18130e;  /* = --tea-text light */
-  --admin-text-sec:     #332b20;  /* = --tea-text-sec light */
-  --admin-text-dim:     #5c5040;  /* muted warm, labels (AA on light surface) */
-  --admin-text-faint:   #8a7c66;
-}
+/* Admin palette moved to tokens.css, section 4. */
 
 /* Card surface, three concurrent moves create the "milled object" feel:
    1. Background gradient (subtle 2.5% white fade at top), ambient lift
@@ -4595,7 +4353,7 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] > div {
   padding: 4px 10px;
   border-radius: 6px;
   border: 1px solid transparent;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   letter-spacing: 0.04em;
   color: var(--admin-text-sec);
   background: transparent;
@@ -4794,7 +4552,7 @@ body.cart-panel-open .commerce-dock {
   justify-content: center;
   width: 100%;
   font-family: 'Lora', 'Lora Fallback', Georgia, serif;
-  font-size: 16px;
+  font-size: var(--fs-ui-16);
   line-height: 1;
   font-variant-numeric: lining-nums tabular-nums;
 }
@@ -4827,14 +4585,14 @@ body.cart-panel-open .commerce-dock {
   border-top: 1px solid var(--tea-border);
 }
 .tea-save-tile-year-long {
-  font-size: 14px;
+  font-size: var(--fs-ui-14);
 }
 /* On a phone the year steps down inside the same tile, so "1990s" has air
    around it and the tile keeps its size beside the name. */
 @media (max-width: 639px) {
   .tea-save-tile-year,
   .tea-save-tile-year-long {
-    font-size: 13px;
+    font-size: var(--fs-ui-13);
   }
 }
 .tea-save-tile[aria-pressed="true"] .tea-save-tile-action::before {
@@ -4899,7 +4657,7 @@ body.cart-panel-open .commerce-dock {
   border-radius: 0;
   padding-inline: 0.5rem;
   font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
-  font-size: 14px;
+  font-size: var(--fs-ui-14);
 }
 .checkout-channel {
   display: inline-flex;
@@ -5052,7 +4810,7 @@ body.cart-panel-open .commerce-dock {
 .curate-v2 .curate-v2-name {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;
   font-feature-settings: 'lnum' 1;
-  font-size: 19px;
+  font-size: var(--fs-ui-19);
   font-weight: 500;
   line-height: 1.15;
   color: var(--tea-text);
@@ -5077,7 +4835,7 @@ body.cart-panel-open .commerce-dock {
   border: 1px solid var(--tea-border);
   border-radius: 3px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   letter-spacing: 0.06em;
   color: var(--tea-text-sec);
   transition: color 0.15s, border-color 0.15s;
@@ -5093,7 +4851,7 @@ body.cart-panel-open .commerce-dock {
   min-height: 46px;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -5110,7 +4868,7 @@ body.cart-panel-open .commerce-dock {
    left, the value on the right, a divider under each line. Choices are thin
    frames that turn gold when chosen. No pills, no fills, no sliders. */
 .curate-v2-frame.is-tall { height: 44px; }
-.curate-v2-frame.is-name { font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif; font-size: 17px; letter-spacing: 0; }
+.curate-v2-frame.is-name { font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif; font-size: var(--fs-ui-17); letter-spacing: 0; }
 .curate-v2-frame.is-slim { min-width: 0; padding: 0; }
 .curate-v2-frame.is-wide { width: 100%; justify-content: center; }
 .curate-v2-frame:disabled { color: var(--tea-text-sec); cursor: not-allowed; }
@@ -5138,7 +4896,7 @@ body.cart-panel-open .commerce-dock {
   background: transparent;
   text-align: right;
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: var(--fs-ui-15);
   letter-spacing: 0.005em;
   color: var(--tea-text);
   -moz-appearance: textfield;
@@ -5150,9 +4908,9 @@ body.cart-panel-open .commerce-dock {
 .curate-v2-field.is-name {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', var(--curate-cjk), Georgia, serif;
   font-feature-settings: 'lnum' 1;
-  font-size: 19px;
+  font-size: var(--fs-ui-19);
 }
-.curate-v2-field.is-hanzi { font-family: 'Noto Serif SC', serif; font-size: 17px; }
+.curate-v2-field.is-hanzi { font-family: 'Noto Serif SC', serif; font-size: var(--fs-ui-17); }
 .curate-v2-select {
   appearance: none;
   -webkit-appearance: none;
@@ -5164,7 +4922,7 @@ body.cart-panel-open .commerce-dock {
   min-height: var(--tap-min);
   cursor: pointer;
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: var(--fs-ui-15);
   color: var(--tea-text);
   text-align: right;
   text-align-last: right;
@@ -5193,7 +4951,7 @@ body.cart-panel-open .commerce-dock {
 }
 .curate-v2-heading h3 {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
-  font-size: 26px;
+  font-size: var(--fs-ui-26);
   font-weight: 400;
   letter-spacing: 0.02em;
   line-height: 1.15;
@@ -5213,7 +4971,7 @@ body.cart-panel-open .commerce-dock {
   border-radius: 3px;
   text-align: left;
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
-  font-size: 19px;
+  font-size: var(--fs-ui-19);
   color: var(--tea-text-sec);
   transition: color 0.15s, border-color 0.15s;
 }
@@ -5231,7 +4989,7 @@ body.cart-panel-open .commerce-dock {
   border-bottom: 1px solid var(--tea-border);
   text-align: left;
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
-  font-size: 20px;
+  font-size: var(--fs-ui-20);
   color: var(--tea-text);
 }
 .curate-v2-sheetrow[aria-pressed='true'] { color: var(--curate-gold-text, var(--tea-gold)); }
@@ -5239,7 +4997,7 @@ body.cart-panel-open .commerce-dock {
 /* A plain gold word that acts: Done, add, suggest. No frame, no fill. */
 .curate-v2-word {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--fs-ui-13);
   letter-spacing: 0.06em;
   color: var(--curate-gold-text, var(--tea-gold));
 }
@@ -5247,12 +5005,12 @@ body.cart-panel-open .commerce-dock {
 /* A fold-away block (details/summary) shows a plus or a minus, never a triangle. */
 .curate-v2 details > summary { list-style: none; justify-content: space-between; }
 .curate-v2 details > summary::-webkit-details-marker { display: none; }
-.curate-v2 details > summary::after { content: '+'; font-family: var(--font-mono); font-size: 16px; color: var(--tea-text-sec); }
+.curate-v2 details > summary::after { content: '+'; font-family: var(--font-mono); font-size: var(--fs-ui-16); color: var(--tea-text-sec); }
 .curate-v2 details[open] > summary::after { content: '\2212'; }
 .curate-v2 input[type='file'] { font-family: var(--font-mono); }
 .curate-v2 input[type='file']::file-selector-button {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   background: transparent;
   color: var(--tea-text-sec);
   border: 1px solid var(--tea-border);
@@ -5267,7 +5025,7 @@ body.cart-panel-open .commerce-dock {
   box-shadow: none;
 }
 .curate-v2-notes .tasting-voice-field:focus-within { border-color: var(--tea-gold); box-shadow: none; }
-.curate-v2-notes textarea { font-size: 17px; }
+.curate-v2-notes textarea { font-size: var(--fs-ui-17); }
 .curate-v2-notes .tasting-voice-btn { color: var(--tea-text-sec); border-left: 1px solid var(--tea-border); }
 .curate-v2-notes .tasting-voice-btn:hover { color: var(--curate-gold-text, var(--tea-gold)); }
 
@@ -5281,14 +5039,14 @@ body.cart-panel-open .commerce-dock {
    hairline; small labels are Lora capitals; no tinted tiles, no pills, no icons.
    `!important` is on exactly the properties the zones set inline. */
 .curate-v2[data-tasting-session-overlay] > .bg-tea-bg { border-radius: 3px !important; }
-.curate-v2 .tasting-scroll p.italic { font-size: 13px; color: var(--tea-text-sec); }
+.curate-v2 .tasting-scroll p.italic { font-size: var(--fs-ui-13); color: var(--tea-text-sec); }
 .curate-v2 .tasting-scroll .divider-warm { display: none; }
 /* A section: the word large, a regular hairline under it. */
 .curate-v2 .tasting-scroll .uppercase.text-ui-12,
 .curate-v2 .tasting-scroll :not(button *)[style*='font-display'].text-ui-13,
 .curate-v2 .tasting-scroll :not(button *)[style*='font-display'].border-b {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif !important;
-  font-size: 24px;
+  font-size: var(--fs-ui-24);
   font-weight: 400;
   line-height: 1.15;
   letter-spacing: 0.02em !important;
@@ -5318,7 +5076,7 @@ body.cart-panel-open .commerce-dock {
   letter-spacing: 0.16em !important;
   color: var(--tea-text-sec);
 }
-.curate-v2 .tasting-scroll p.text-tea-text-sec { font-size: 13px; line-height: 1.5; }
+.curate-v2 .tasting-scroll p.text-tea-text-sec { font-size: var(--fs-ui-13); line-height: 1.5; }
 /* The quadrants of Effect: no tile, the heading does the grouping. */
 .curate-v2 .tasting-scroll .bg-tea-surface\/40 { background: transparent; border-radius: 0; padding: 0; }
 /* Every choice: a thin frame, gold when chosen. */
@@ -5330,7 +5088,7 @@ body.cart-panel-open .commerce-dock {
   border-radius: 3px !important;
   min-height: var(--tap-min);
   font-family: var(--font-mono) !important;
-  font-size: 14px !important;
+  font-size: var(--fs-ui-14) !important;
   font-weight: 400 !important;
   letter-spacing: 0.02em;
   color: var(--tea-text-sec);
@@ -5362,12 +5120,12 @@ body.cart-panel-open .commerce-dock {
 .curate-v2 .tasting-segment-toggle:has(> :nth-child(10)) { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .curate-v2 .tasting-segment-toggle > button { min-height: 48px; }
 /* Flavour: the family list is plain words, the chosen one gold. */
-.curate-v2 .tasting-scroll button[role='option'] { background: transparent !important; border-radius: 0 !important; min-height: var(--tap-min); font-size: 18px !important; }
+.curate-v2 .tasting-scroll button[role='option'] { background: transparent !important; border-radius: 0 !important; min-height: var(--tap-min); font-size: var(--fs-ui-18) !important; }
 .curate-v2 .tasting-scroll button[role='option'] > span.rounded-full {
   background: transparent !important;
   color: var(--curate-gold-text, var(--tea-gold)) !important;
   font-family: var(--font-mono) !important;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   font-weight: 500;
   width: auto;
   right: -22px !important;
@@ -5409,22 +5167,22 @@ body.cart-panel-open .commerce-dock {
 .curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button {
   font-family: var(--font-mono) !important;
   font-weight: 500 !important;
-  font-size: 11px !important;
+  font-size: var(--fs-ui-11) !important;
   letter-spacing: 0.16em !important;
 }
 .curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button:not(.text-tea-gold) { color: var(--tea-text-sec); }
-.curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button span.tabular-nums { color: currentColor !important; font-size: 11px !important; }
+.curate-v2[data-tasting-session-overlay] .border-t.bg-tea-bg button span.tabular-nums { color: currentColor !important; font-size: var(--fs-ui-11) !important; }
 /* A bottom sheet opened from Curate: the name in Cormorant, its line in Lora. */
 .curate-v2-sheet .bottom-sheet-title {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif !important;
-  font-size: 22px;
+  font-size: var(--fs-ui-22);
   font-weight: 500;
   line-height: 1.15;
   letter-spacing: 0 !important;
 }
 .curate-v2-sheet .bottom-sheet-description {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
   letter-spacing: 0.04em;
   color: var(--tea-text-sec);
   margin-top: 2px;
@@ -5437,7 +5195,7 @@ body.cart-panel-open .commerce-dock {
   background: transparent;
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
 }
-.curate-v2-sheet .sheet-option > span > span:first-child { font-size: 20px; font-weight: 500; }
+.curate-v2-sheet .sheet-option > span > span:first-child { font-size: var(--fs-ui-20); font-weight: 500; }
 .curate-v2-sheet .sheet-option:hover,
 .curate-v2-sheet .sheet-option:active,
 .curate-v2-sheet .sheet-option[aria-pressed='true'] { background: transparent; }
@@ -5568,8 +5326,8 @@ body.cart-panel-open .commerce-dock {
 .library-supplier-group[data-tone='1'] { background: linear-gradient(120deg,var(--tea-surface),color-mix(in srgb,var(--tea-elevated) 65%,var(--tea-bg))); }
 .library-supplier-header { display: flex; align-items: center; gap: 8px; padding: 0 6px 4px; }
 .library-supplier-heading { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: var(--tap-min); text-align: left; color: var(--tea-text); }
-.library-supplier-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; line-height: 1.15; }
-.library-supplier-count { flex-shrink: 0; color: var(--tea-text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+.library-supplier-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: 'Cormorant Garamond', Georgia, serif; font-size: var(--fs-ui-20); line-height: 1.15; }
+.library-supplier-count { flex-shrink: 0; color: var(--tea-text-dim); font-size: var(--fs-ui-11); font-variant-numeric: tabular-nums; }
 .library-supplier-heading > svg { flex-shrink: 0; color: var(--tea-text-dim); }
 .library-supplier-content { min-width: 0; }
 .library-tea-card { min-width: 0; overflow: hidden; padding: 0 10px; border: 1px solid var(--tea-border); border-radius: 8px; background: var(--tea-bg); box-shadow: 0 2px 0 var(--tea-border), inset 0 0 0 1px var(--tea-border); }
@@ -5585,7 +5343,7 @@ body.cart-panel-open .commerce-dock {
 .library-inline-value > button { width: 100%; justify-content: flex-start; text-align: left; padding: 0; font: inherit; color: inherit; overflow-wrap: anywhere; }
 .library-inline-value > button:hover { color: var(--tea-gold-lt); }
 .library-card-year > button { justify-content: flex-end; text-align: right; }
-.library-inline-value input { width: 100%; min-width: 0; min-height: var(--tap-min); padding: 2px 4px; border: 1px solid var(--tea-border); border-radius: 4px; color: var(--tea-text); background: var(--tea-bg); font-size: 16px; }
+.library-inline-value input { width: 100%; min-width: 0; min-height: var(--tap-min); padding: 2px 4px; border: 1px solid var(--tea-border); border-radius: 4px; color: var(--tea-text); background: var(--tea-bg); font-size: var(--fs-ui-16); }
 .library-inline-value input:focus { outline: 1px solid var(--tea-gold); }
 .library-inline-hint { display: block; font-weight: 400; }
 .library-ribbon-prices { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin-inline: -10px; border-block: 1px solid var(--tea-border); background: linear-gradient(100deg,var(--tea-elevated),color-mix(in srgb,var(--tea-elevated) 80%,var(--tea-surface))); }
@@ -5630,11 +5388,11 @@ body.cart-panel-open .commerce-dock {
 .library-card-title-row { display: block; }
 .library-card-name > button { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: var(--tap-min); }
 .library-card-subrow > .library-card-year { flex: 0 0 68px; }
-.library-detail-link { flex: 0 0 44px; font-size: 11px; min-height: var(--tap-min); text-align: center; }
+.library-detail-link { flex: 0 0 44px; font-size: var(--fs-ui-11); min-height: var(--tap-min); text-align: center; }
 .library-ribbon-prices { background: linear-gradient(110deg,color-mix(in srgb,var(--tea-surface) 58%,var(--tea-bg)),color-mix(in srgb,var(--tea-surface) 35%,var(--tea-bg))); }
 .library-ribbon-metric { min-height: 66px; padding: 4px 10px; gap: 0; justify-content: flex-start; }
-.library-ribbon-metric > span:first-child { position: static; font-size: 12px; min-height: 16px; line-height: 16px; }
-.library-ribbon-metric > strong { padding: 0; min-height: var(--tap-min); display: flex; align-items: center; font-size: 16px; }
+.library-ribbon-metric > span:first-child { position: static; font-size: var(--fs-ui-12); min-height: 16px; line-height: 16px; }
+.library-ribbon-metric > strong { padding: 0; min-height: var(--tap-min); display: flex; align-items: center; font-size: var(--fs-ui-16); }
 .library-ribbon-metric .library-inline-value > button { align-items: center; padding: 0; }
 .library-ribbon-metric .library-inline-value:has(input) { padding-top: 0; }
 .library-tea-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 0; min-height: 54px; padding: 5px 0; background: transparent; }
@@ -5644,7 +5402,7 @@ body.cart-panel-open .commerce-dock {
 .library-order-metrics > div { display: flex; flex-direction: column; gap: 4px; padding: 10px; }
 .library-order-metrics > div + div { border-left: 1px solid var(--tea-border); }
 
-.library-ribbon-metric .library-unset { font-size: 13px; font-weight: 400; }
+.library-ribbon-metric .library-unset { font-size: var(--fs-ui-13); font-weight: 400; }
 
 /* Tea-derived field shading stays inside the label, using the shared tea palette. */
 .library-tea-card .library-ribbon-prices { background: transparent; }
@@ -5653,11 +5411,11 @@ body.cart-panel-open .commerce-dock {
   padding: 2px 10px;
   background: linear-gradient(145deg, color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 65%, var(--tea-bg)), color-mix(in srgb, var(--library-tea-tint, var(--tea-surface)) 30%, var(--tea-bg)));
 }
-.library-tea-card .library-ribbon-metric > span:first-child { font-size: 11px; line-height: 14px; min-height: 14px; }
+.library-tea-card .library-ribbon-metric > span:first-child { font-size: var(--fs-ui-11); line-height: 14px; min-height: 14px; }
 .library-tea-card .library-ribbon-metric > strong,
-.library-tea-card .library-ribbon-metric .library-inline-value { font-size: 15px; font-weight: 600; }
-.library-tea-card .library-ribbon-metric .library-unset { font-size: 13px; font-weight: 400; }
-.library-tea-actions .library-detail-link { font-size: 12px; }
+.library-tea-card .library-ribbon-metric .library-inline-value { font-size: var(--fs-ui-15); font-weight: 600; }
+.library-tea-card .library-ribbon-metric .library-unset { font-size: var(--fs-ui-13); font-weight: 400; }
+.library-tea-actions .library-detail-link { font-size: var(--fs-ui-12); }
 
 /* Whole-card tea tint, with compact identity and a pressed choice button. */
 .library-tea-card {
@@ -5712,7 +5470,7 @@ body.cart-panel-open .commerce-dock {
 .library-tea-card .library-ribbon-metric { min-height: 52px; padding: 2px 6px; text-align: center; }
 .library-tea-card .library-ribbon-metric > span:first-child { text-align: center; }
 .library-tea-card .library-ribbon-metric > strong,
-.library-tea-card .library-ribbon-metric .library-inline-value { font-size: 14px; font-weight: 600; }
+.library-tea-card .library-ribbon-metric .library-inline-value { font-size: var(--fs-ui-14); font-weight: 600; }
 .library-tea-card .library-ribbon-metric > strong { justify-content: center; min-height: 34px; }
 .library-tea-card .library-ribbon-metric .library-inline-value > button {
   min-height: 34px;
@@ -5722,11 +5480,11 @@ body.cart-panel-open .commerce-dock {
 }
 .library-tea-card .library-ribbon-metric .library-inline-value > button::after { content: ''; position: absolute; inset: -5px 0; }
 .library-tea-card .library-ribbon-metric input { text-align: center; }
-.library-tea-card .library-ribbon-metric .library-unset { font-size: 13px; font-weight: 400; }
+.library-tea-card .library-ribbon-metric .library-unset { font-size: var(--fs-ui-13); font-weight: 400; }
 
 .library-weight-options { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; }
 .library-weight-presets { display: flex; flex-wrap: wrap; gap: 6px; }
-.library-weight-options button, .library-weight-presets button { min-height: var(--tap-min); padding: 0 8px; border: 1px solid var(--tea-border); border-radius: 5px; font-size: 13px; color: var(--tea-text-sec); background: var(--tea-surface); }
+.library-weight-options button, .library-weight-presets button { min-height: var(--tap-min); padding: 0 8px; border: 1px solid var(--tea-border); border-radius: 5px; font-size: var(--fs-ui-13); color: var(--tea-text-sec); background: var(--tea-surface); }
 .library-weight-options button[aria-pressed='true'], .library-weight-presets button[aria-pressed='true'] { border-color: var(--tea-gold); background: var(--tea-accent-sub); color: var(--tea-text); }
 .library-weight-options button:focus-visible, .library-weight-presets button:focus-visible { outline: 2px solid var(--tea-gold); }
 
@@ -5748,8 +5506,8 @@ body.cart-panel-open .commerce-dock {
 }
 .library-supplier-header { padding: 2px 4px 6px; }
 .library-supplier-heading { display:grid; grid-template-columns:minmax(0,1fr) 20px; gap:4px 8px; padding-block:4px; }
-.library-supplier-name { font-size:20px; }
-.library-supplier-count { grid-row:2; font-size:11px; }
+.library-supplier-name { font-size: var(--fs-ui-20); }
+.library-supplier-count { grid-row:2; font-size: var(--fs-ui-11); }
 .library-supplier-heading > svg { grid-column:2; grid-row:1 / 3; }
 .library-card-grid { gap:8px; }
 .library-tea-card {
@@ -5758,7 +5516,7 @@ body.cart-panel-open .commerce-dock {
   background:linear-gradient(180deg,var(--tea-bg),color-mix(in srgb,var(--tea-elevated) 8%,var(--tea-bg)));
 }
 .library-tea-card .library-card-title-row { padding:0 10px; }
-.library-tea-card .library-card-name { font-size:22px; line-height:1.15; font-weight:400; }
+.library-tea-card .library-card-name { font-size: var(--fs-ui-22); line-height:1.15; font-weight:400; }
 .library-tea-card .library-card-name > button { min-height:var(--tap-min); padding:5px 0; }
 .library-tea-card .library-card-subrow {
   height:auto; min-height:34px; padding:0 10px; gap:8px; align-items:center;
@@ -5769,18 +5527,18 @@ body.cart-panel-open .commerce-dock {
   border-top:1px solid color-mix(in srgb,var(--library-accent, var(--tea-gold)) 42%,var(--tea-bg));
   border-bottom:1px solid var(--tea-border);
 }
-.library-tea-card .library-given-name > button, .library-tea-card .library-card-year > button { align-items:center; font-size:12px; height:34px; min-height:34px; }
+.library-tea-card .library-given-name > button, .library-tea-card .library-card-year > button { align-items:center; font-size: var(--fs-ui-12); height:34px; min-height:34px; }
 .library-tea-card .library-card-subrow > .library-card-year { flex:0 0 58px; }
-.library-card-type { font-size:11px; color:var(--library-accent); white-space:nowrap; border-left:1px solid var(--tea-border); padding-left:8px; }
+.library-card-type { font-size: var(--fs-ui-11); color:var(--library-accent); white-space:nowrap; border-left:1px solid var(--tea-border); padding-left:8px; }
 .library-tea-card .library-ribbon-prices { margin:0; border:0; border-radius:0; overflow:visible; background:transparent; }
 .library-tea-card .library-ribbon-metric { background:transparent; border:0; padding:4px 6px 6px; min-height:52px; justify-content:center; gap:1px; }
-.library-tea-card .library-ribbon-metric > span:first-child { order:2; color:var(--tea-text-sec); font-size:10px; line-height:12px; min-height:12px; }
-.library-tea-card .library-ribbon-metric > strong, .library-tea-card .library-ribbon-metric .library-inline-value { font-size:15px; font-weight:500; line-height:20px; }
+.library-tea-card .library-ribbon-metric > span:first-child { order:2; color:var(--tea-text-sec); font-size: var(--fs-ui-10); line-height:12px; min-height:12px; }
+.library-tea-card .library-ribbon-metric > strong, .library-tea-card .library-ribbon-metric .library-inline-value { font-size: var(--fs-ui-15); font-weight:500; line-height:20px; }
 .library-tea-card .library-ribbon-metric > strong { min-height:24px; }
 .library-tea-card .library-ribbon-metric .library-inline-value > button { min-height:24px; height:24px; padding:0; justify-content:center; align-items:center; }
 .library-tea-card .library-ribbon-metric .library-inline-value > button::after { inset:-4px 0 -16px; }
 .library-tea-card .library-tea-actions { margin:0; padding:0 4px 3px; min-height:var(--tap-min); border-top:1px solid var(--tea-border); background:transparent; gap:2px; }
-.library-tea-card .library-tea-actions > button { border:0; border-radius:3px; margin:0; background:transparent; min-height:var(--tap-min); font-size:12px; }
+.library-tea-card .library-tea-actions > button { border:0; border-radius:3px; margin:0; background:transparent; min-height:var(--tap-min); font-size: var(--fs-ui-12); }
 .library-tea-card .library-tea-actions .library-tea-primary { box-shadow:inset 0 -1px var(--library-accent); font-weight:600; color:var(--tea-text); }
 .library-tea-card .library-tea-actions .library-choose[aria-pressed='true'] { background:var(--tea-accent-sub); color:var(--tea-text); box-shadow:inset 0 -2px var(--tea-gold); }
 .light .library-tea-card { --library-metal-l:.83!important; }
@@ -5797,7 +5555,7 @@ body.cart-panel-open .commerce-dock {
 .library-record-links > p { margin-top:8px; }
 
 /* Stock geometry plus one compact Library decision row. */
-.library-tea-card .library-card-name { font-size:20px; }
+.library-tea-card .library-card-name { font-size: var(--fs-ui-20); }
 .library-tea-card .library-card-name > button, .library-more-action { min-height:40px; }
 .library-tea-card .library-card-subrow { min-height:32px; }
 .library-tea-card .library-given-name > button, .library-tea-card .library-card-year > button { height:32px; min-height:32px; }
@@ -5807,7 +5565,7 @@ body.cart-panel-open .commerce-dock {
 .library-quick-actions .library-tea-primary.is-tasted { color:var(--library-accent); }
 .library-tea-card .library-ribbon-metric { min-height:48px; padding:2px 3px 4px; }
 .library-tea-card .library-tea-actions { grid-template-columns:1fr 1fr 1.4fr; min-height:36px; padding:0 4px; }
-.library-tea-card .library-tea-actions > button { min-height:36px; font-size:11px; }
+.library-tea-card .library-tea-actions > button { min-height:36px; font-size: var(--fs-ui-11); }
 /* A sample's batch: one quiet line above the decision row, opening the batch in Samples. */
 .library-sample-batch { display:flex; align-items:center; gap:4px; width:100%; min-height:32px; padding:0 4px; border-top:1px solid var(--tea-border); background:transparent; text-align:left; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; transition:color 160ms; }
 .library-sample-batch > span { overflow:hidden; text-overflow:ellipsis; }
@@ -5815,20 +5573,20 @@ body.cart-panel-open .commerce-dock {
 
 /* A long source title stays readable while editing; taps never replace it accidentally. */
 .library-tea-card .library-card-title-row:has(.library-title-editor) { align-items:flex-start; padding-block:6px; }
-.library-title-editor { display:block; width:100%; min-height:72px; padding:8px; resize:vertical; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-bg); color:var(--tea-text); font-family:inherit; font-size:18px; line-height:1.4; }
+.library-title-editor { display:block; width:100%; min-height:72px; padding:8px; resize:vertical; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-bg); color:var(--tea-text); font-family:inherit; font-size: var(--fs-ui-18); line-height:1.4; }
 .library-title-editor::selection { background:var(--tea-accent-sub); color:var(--tea-text); }
 .library-title-editor:focus { outline:1px solid var(--tea-gold); }
 .library-title-editor-actions { display:flex; justify-content:flex-end; gap:8px; }
-.library-title-editor-actions > button { min-height:var(--tap-min); padding:0 12px; font-family:var(--font-sans); font-size:12px; color:var(--tea-text); }
+.library-title-editor-actions > button { min-height:var(--tap-min); padding:0 12px; font-family:var(--font-sans); font-size: var(--fs-ui-12); color:var(--tea-text); }
 .library-title-editor-actions > button:last-child { font-weight:600; }
 .library-details-sheet { height:88dvh; max-width:48rem; margin-inline:auto; }
 .library-details-sheet .tea-record-panel { height:auto; }
 .library-details-sheet [data-testid="tea-record-scroll"] { overflow:visible; padding-inline:8px; }
 
 /* Type remains an editable slot even before classification. */
-.library-card-subrow > button.library-card-type { flex:0 0 auto; min-height:32px; padding:0 0 0 8px; font-size:11px; }
+.library-card-subrow > button.library-card-type { flex:0 0 auto; min-height:32px; padding:0 0 0 8px; font-size: var(--fs-ui-11); }
 .library-type-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding-bottom:12px; }
-.library-type-options > button { min-height:var(--tap-min); padding:8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
+.library-type-options > button { min-height:var(--tap-min); padding:8px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); font-size: var(--fs-ui-13); }
 .library-type-options > button[aria-pressed='true'] { border-color:var(--tea-gold); background:var(--tea-accent-sub); }
 .library-type-options > button:focus-visible { outline:2px solid var(--tea-gold); }
 
@@ -5905,10 +5663,10 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-recap { margin-top: 12px; border-top: 1px solid var(--tea-border); padding-top: 8px; }
 .tasting-impression-recap > h3 { margin: 0 0 4px; color: var(--tea-text-dim); }
 .tasting-impression-recap-group { display:grid; grid-template-columns:72px minmax(0,1fr); align-items:start; gap:12px; padding:0; }
-.tasting-impression-group-link { display: flex; align-items: center; justify-content: flex-start; gap:4px; width: 100%; min-height: var(--tap-min); font-family: var(--font-body); font-size:12px; color:var(--tea-text-dim); text-align: left; }
+.tasting-impression-group-link { display: flex; align-items: center; justify-content: flex-start; gap:4px; width: 100%; min-height: var(--tap-min); font-family: var(--font-body); font-size: var(--fs-ui-12); color:var(--tea-text-dim); text-align: left; }
 .tasting-impression-group-link > span:last-child { display:none; }
 .tasting-impression-words { display: flex; flex-wrap: wrap; gap: 0 12px; min-width:0; }
-.tasting-impression-words button { min-height: var(--tap-min); font-size: 14px; text-align: left; text-decoration: none; overflow-wrap: anywhere; }
+.tasting-impression-words button { min-height: var(--tap-min); font-size: var(--fs-ui-14); text-align: left; text-decoration: none; overflow-wrap: anywhere; }
 
 .connected-sensation-family { min-width: 0; border-top: 1px solid var(--tea-border); padding: 9px 0 14px; scroll-margin-top: 12px; }
 .connected-sensation-family:first-of-type { border-top: 0; padding-top: 0; }
@@ -5927,11 +5685,11 @@ body.cart-panel-open .commerce-dock {
 /* Slim centered impression entry, with an independent admin microphone. */
 .tasting-session-header { position:relative; flex-shrink:0; padding: max(10px, env(safe-area-inset-top)) 12px 0; }
 .tasting-heading-trigger { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; min-height:56px; padding:8px 50px; border:1px solid var(--tea-border); border-radius:32px; background:var(--tea-surface); color:var(--tea-text); }
-.tasting-heading-name { min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--font-display); font-size:18px; }
-.tasting-heading-summary { font-family:var(--font-body); font-size:12px; color:var(--tea-text-sec); }
+.tasting-heading-name { min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--font-display); font-size: var(--fs-ui-18); }
+.tasting-heading-summary { font-family:var(--font-body); font-size: var(--fs-ui-12); color:var(--tea-text-sec); }
 .tasting-heading-mic { position:absolute; right:20px; top:max(16px, calc(env(safe-area-inset-top) + 6px)); display:grid; place-items:center; width:44px; height:44px; border-radius:50%; color:var(--tea-text-sec); background:var(--tea-bg); }
 .tasting-heading-mic[aria-pressed="true"] { color:var(--tea-gold); }
-.tasting-heading-tools { display:flex; justify-content:flex-end; align-items:center; gap:8px; height:44px; color:var(--tea-text-sec); font-size:12px; }
+.tasting-heading-tools { display:flex; justify-content:flex-end; align-items:center; gap:8px; height:44px; color:var(--tea-text-sec); font-size: var(--fs-ui-12); }
 .tasting-heading-tools button { display:flex; align-items:center; justify-content:center; min-width:var(--tap-min); min-height:var(--tap-min); }
 .tasting-heading-tools button:disabled { opacity:.45; }
 
@@ -5943,7 +5701,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-numbers button[aria-pressed="true"] { background:var(--tea-elevated); color:var(--tea-text); font-weight:600; }
 .tasting-notes-save-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px; }
 .tasting-notes-save-row > span { color:var(--tea-text-dim); }
-.tasting-impression .tasting-notes-save { flex-shrink:0; min-height:var(--tap-min); padding:0 14px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-family:var(--font-body); font-size:13px; }
+.tasting-impression .tasting-notes-save { flex-shrink:0; min-height:var(--tap-min); padding:0 14px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-family:var(--font-body); font-size: var(--fs-ui-13); }
 .tasting-notes-save:disabled { opacity:.45; cursor:default; }
 
 /* Effect follows the earlier softly grouped vocabulary cards. */
@@ -5974,26 +5732,26 @@ body.cart-panel-open .commerce-dock {
 .stock-view table.inv-tight col:first-child{width:25%!important}
 .stock-view tr[data-product-id]{height:38px!important;background:var(--tea-bg)}
 .stock-view tr[data-product-id] td{padding:3px 7px;position:static!important;background:transparent!important;min-width:0}
-.stock-view [data-stock-column=productName] button{font-size:15px!important;line-height:1.12;white-space:normal;text-align:left}
-.stock-view [data-stock-column=productName]>div>span{font-size:11px}
+.stock-view [data-stock-column=productName] button{font-size: var(--fs-ui-15)!important;line-height:1.12;white-space:normal;text-align:left}
+.stock-view [data-stock-column=productName]>div>span{font-size: var(--fs-ui-11)}
 .stock-view tr:has([data-stock-column=year]) [data-stock-column=productName] span.num{display:none}
 .stock-view [data-stock-column=productName] span:empty{display:none}
 .stock-view tr[data-product-id][aria-selected=true]{background:var(--tea-accent-sub)!important;outline:1px solid var(--tea-gold);outline-offset:-1px}
 }
 .stock-group-toggle{background:var(--stock-shell);border-bottom:1px solid var(--stock-keyline)}
 .stock-group-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:7px 12px}
-.stock-group-name{display:flex;align-items:baseline;gap:7px;min-width:0;color:var(--tea-text);font-family:'Cormorant Garamond','Noto Serif SC',Georgia,serif;font-size:20px;font-weight:500;line-height:1.15}
+.stock-group-name{display:flex;align-items:baseline;gap:7px;min-width:0;color:var(--tea-text);font-family:'Cormorant Garamond','Noto Serif SC',Georgia,serif;font-size: var(--fs-ui-20);font-weight:500;line-height:1.15}
 .stock-group-name svg{flex-shrink:0;align-self:center;color:var(--tea-text-dim)}
-.stock-group-summary{display:flex;gap:15px;align-items:baseline;flex-shrink:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:12px;line-height:1.3;color:var(--tea-text-sec);font-variant-numeric:lining-nums tabular-nums}
+.stock-group-summary{display:flex;gap:15px;align-items:baseline;flex-shrink:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size: var(--fs-ui-12);line-height:1.3;color:var(--tea-text-sec);font-variant-numeric:lining-nums tabular-nums}
 @media(max-width:767px){
 .stock-view [data-testid=inventory-primary-row]{gap:3px;padding-inline:9px}
 .stock-view [data-testid=inventory-primary-row]>div.ml-auto{gap:1px}
 .stock-view [data-testid=inventory-primary-row]>div.ml-auto>span:first-child{display:none}
 .stock-view [data-testid=inventory-purpose-row]{gap:5px;padding-inline:9px;border-bottom:1px solid var(--tea-border)}
 .stock-view [data-testid=inventory-purpose-lenses]{gap:2px;flex:1;justify-content:space-between;min-width:0}
-.stock-view [data-testid=inventory-purpose-lenses]>button{font-size:15px;min-width:0;padding:0 2px}
+.stock-view [data-testid=inventory-purpose-lenses]>button{font-size: var(--fs-ui-15);min-width:0;padding:0 2px}
 .stock-view [data-testid=inventory-purpose-row]>span{display:none}
-.stock-view [data-testid=inventory-purpose-row]>div.relative>button{font-size:14px;gap:2px}
+.stock-view [data-testid=inventory-purpose-row]>div.relative>button{font-size: var(--fs-ui-14);gap:2px}
 .stock-view [data-testid=inventory-purpose-row]>div.relative>button>span:last-child{padding-inline:3px}
 .stock-view [data-testid=inventory-scroll]>.relative{padding:0 8px}
 .stock-view [data-testid=inventory-scroll]>.relative>div{border:0;background:transparent;border-radius:0;overflow:visible}
@@ -6003,35 +5761,35 @@ body.cart-panel-open .commerce-dock {
 .stock-view [data-stock-group]{margin-bottom:9px;border:0;border-radius:0;background:transparent;overflow:hidden;padding:0 5px 5px}
 .stock-view .stock-group-toggle{width:calc(100% + 10px);margin-left:-5px;border:0;border-bottom:1px solid var(--stock-keyline)}
 .stock-view .stock-group-toggle>.stock-group-head{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;padding:8px 10px;min-height:52px}
-.stock-group-name{display:flex;justify-content:space-between;font-size:20px;overflow-wrap:anywhere}
-.stock-group-summary{display:grid;grid-template-columns:1fr auto auto;gap:12px;width:100%;font-size:11px}
+.stock-group-name{display:flex;justify-content:space-between;font-size: var(--fs-ui-20);overflow-wrap:anywhere}
+.stock-group-summary{display:grid;grid-template-columns:1fr auto auto;gap:12px;width:100%;font-size: var(--fs-ui-11)}
 .stock-view tr[data-product-id]{display:block;height:auto!important;margin-top:6px;border:1px solid var(--stock-keyline);border-radius:5px;overflow:hidden;background:var(--tea-bg)}
 .stock-view .stock-mobile-cell{display:block;padding:0!important;width:100%}
 .stock-record{display:flex;flex-direction:column;color:var(--tea-text)}
 .stock-identity{min-width:0;padding:7px 9px 0}
 .stock-title{width:100%;min-width:0}
-.stock-title>button,.stock-title>input{display:block;width:100%;max-width:100%;min-height:24px;font-family:'Cormorant Garamond','Noto Serif SC',Georgia,serif!important;font-size:20px!important;font-weight:500!important;line-height:1.12!important;letter-spacing:.005em!important;text-align:left;white-space:normal;overflow-wrap:anywhere}
-.stock-subtitle{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;min-height:var(--tap-min);font-size:12px;line-height:1.25;color:var(--tea-text-sec)}
-.stock-inline-edit{font-size:12px;color:var(--tea-text-sec);border-bottom:1px dotted var(--tea-border);white-space:normal;text-align:left}
+.stock-title>button,.stock-title>input{display:block;width:100%;max-width:100%;min-height:24px;font-family:'Cormorant Garamond','Noto Serif SC',Georgia,serif!important;font-size: var(--fs-ui-20)!important;font-weight:500!important;line-height:1.12!important;letter-spacing:.005em!important;text-align:left;white-space:normal;overflow-wrap:anywhere}
+.stock-subtitle{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;min-height:var(--tap-min);font-size: var(--fs-ui-12);line-height:1.25;color:var(--tea-text-sec)}
+.stock-inline-edit{font-size: var(--fs-ui-12);color:var(--tea-text-sec);border-bottom:1px dotted var(--tea-border);white-space:normal;text-align:left}
 .stock-given-name{min-width:60px}
-.stock-confidence{margin-left:auto;font-size:10px;color:var(--tea-gold-lt)}
+.stock-confidence{margin-left:auto;font-size: var(--fs-ui-10);color:var(--tea-gold-lt)}
 .stock-field{padding:0!important;margin:0!important;display:inline-flex;align-items:center;min-width:0;max-width:100%;height:auto!important;min-height:0;font-size:inherit!important;line-height:inherit!important;white-space:normal!important;text-align:inherit!important;overflow:visible!important}
 .stock-field :is(span,button){max-width:100%;white-space:normal!important;overflow:visible;text-overflow:clip}
 .stock-subtitle [data-field=type]>span{font-weight:400}
 .stock-details{display:flex;flex-wrap:wrap;gap:3px 9px;padding:1px 9px 5px;color:var(--tea-text-sec)}
 .stock-details:empty{display:none}
-.stock-detail{display:flex;align-items:baseline;gap:4px;min-width:0;font-size:11px;line-height:1.35}
+.stock-detail{display:flex;align-items:baseline;gap:4px;min-width:0;font-size: var(--fs-ui-11);line-height:1.35}
 .stock-detail-label{display:none}
-.stock-detail .stock-field,.stock-detail [data-field=vendor] button{font-size:11px!important}
+.stock-detail .stock-field,.stock-detail [data-field=vendor] button{font-size: var(--fs-ui-11)!important}
 .stock-workbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px;min-height:46px;margin:0 6px 4px}
 .stock-figures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:0;border-radius:3px;overflow:hidden;margin:0;background:transparent;min-width:0}
 .stock-figure{position:relative;min-height:var(--tap-min);font-variant-numeric:lining-nums tabular-nums}
-.stock-figure dt{position:absolute;top:3px;left:0;right:0;pointer-events:none;text-align:center;font-family:'Plus Jakarta Sans',system-ui,sans-serif!important;font-size:10px!important;font-weight:400!important;line-height:1.2!important;letter-spacing:0!important;text-transform:none!important;color:var(--tea-text-dim)}
-.stock-figure dd{position:absolute;bottom:3px;left:0;right:0;display:flex;justify-content:center;font-family:Lora,Georgia,serif;font-size:15px;line-height:1.3;font-weight:400;text-align:center}
+.stock-figure dt{position:absolute;top:3px;left:0;right:0;pointer-events:none;text-align:center;font-family:'Plus Jakarta Sans',system-ui,sans-serif!important;font-size: var(--fs-ui-10)!important;font-weight:400!important;line-height:1.2!important;letter-spacing:0!important;text-transform:none!important;color:var(--tea-text-dim)}
+.stock-figure dd{position:absolute;bottom:3px;left:0;right:0;display:flex;justify-content:center;font-family:Lora,Georgia,serif;font-size: var(--fs-ui-15);line-height:1.3;font-weight:400;text-align:center}
 .stock-figure dd button{position:absolute;bottom:-3px;left:0;width:100%;height:44px;min-height:var(--tap-min)!important;display:flex;align-items:flex-end!important;justify-content:center;padding:0 2px 3px!important;font:inherit}
 .stock-year-figure{display:none}
 .stock-quick-actions{display:grid;grid-template-columns:44px 74px 44px;align-items:center;min-width:0}
-.stock-quick-actions>button{display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);min-width:var(--tap-min);gap:4px;color:var(--tea-text-sec);font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:11px;line-height:1.2;text-align:center}
+.stock-quick-actions>button{display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);min-width:var(--tap-min);gap:4px;color:var(--tea-text-sec);font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size: var(--fs-ui-11);line-height:1.2;text-align:center}
 .stock-quick-actions>button:hover,.stock-inline-edit:hover{color:var(--tea-text);background:var(--tea-accent-sub)}
 .stock-camera-action svg,.stock-tasting-icon{stroke-width:1.5}
 .stock-tasting-icon{display:none}
@@ -6046,7 +5804,7 @@ body.cart-panel-open .commerce-dock {
 .stock-view .stock-subtitle{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}
 .stock-view .stock-given-name{grid-column:1;grid-row:1;min-width:0;justify-self:start;overflow-wrap:anywhere}
 .stock-view .stock-form-edit{grid-column:2;grid-row:1;min-width:0;max-width:130px;text-align:right;justify-self:end;color:var(--tea-text-sec)}
-.stock-form-sheet .admin-input{font-size:16px}
+.stock-form-sheet .admin-input{font-size: var(--fs-ui-16)}
 .stock-view .stock-subtitle>[data-field=type]{grid-column:3;grid-row:1;justify-self:end;text-align:right}
 .stock-view .stock-workbar{grid-template-columns:88px minmax(0,1fr);gap:8px;margin:0 8px 6px}
 .stock-view .stock-figures{grid-column:2;grid-row:1}
@@ -6054,7 +5812,7 @@ body.cart-panel-open .commerce-dock {
 .stock-view .stock-more-action{position:absolute;top:0;right:2px;width:44px;height:44px}
 .stock-view .stock-tasting-label{display:none}
 .stock-view .stock-tasting-icon{display:block}
-.stock-view .stock-figure dd{font-size:14px}
+.stock-view .stock-figure dd{font-size: var(--fs-ui-14)}
 .stock-view .stock-figure dt{white-space:nowrap}
 /* Original quick-edit controls reflow without changing their handlers. */
 .stock-view tbody>tr:has([data-quick-edit]),.stock-view tbody>tr:has([data-quick-edit])>td{display:block;width:100%}
@@ -6069,9 +5827,9 @@ body.cart-panel-open .commerce-dock {
 .stock-view .inv-detail-panel td:first-child>div{display:grid;grid-template-columns:1fr;gap:5px}
 .stock-view .inv-detail-panel td:first-child>div>div{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .stock-view .inv-detail-panel td:first-child>div>div:first-child{justify-content:space-between}
-.stock-view .inv-detail-panel td:first-child p{font-size:11px;line-height:1.4}
+.stock-view .inv-detail-panel td:first-child p{font-size: var(--fs-ui-11);line-height:1.4}
 .stock-view .inv-detail-panel td>span,.stock-view .inv-detail-panel td>button{min-height:var(--tap-min);justify-content:center}
-.stock-view .inv-detail-panel input{font-size:16px}
+.stock-view .inv-detail-panel input{font-size: var(--fs-ui-16)}
 }
 
 /* Shared supplier correction beside the group fold control. */
@@ -6091,17 +5849,17 @@ body.cart-panel-open .commerce-dock {
 .stock-form-dialog{width:100%;max-width:620px;margin-inline:auto}
 .stock-form-sheet{max-width:560px;margin-inline:auto}
 .stock-form-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
-.stock-form-options button{width:100%;padding-inline:3px;border-color:transparent;background:transparent;font-size:13px;letter-spacing:0;border-radius:5px}
+.stock-form-options button{width:100%;padding-inline:3px;border-color:transparent;background:transparent;font-size: var(--fs-ui-13);letter-spacing:0;border-radius:5px}
 .stock-form-options button[aria-pressed="true"]{background:var(--tea-accent-sub);border-color:var(--tea-gold);color:var(--tea-text)}
 .stock-form-options button:hover{background:var(--tea-surface)}
-.stock-form-help{margin:6px 0 0;font-size:11px;line-height:1.45;color:var(--tea-text-dim)}
-.stock-form-sheet legend,.stock-form-sheet label,.stock-form-sheet dt{font-size:11px;letter-spacing:.04em}
-.stock-form-sheet .stock-retail-figures dd{font-size:18px}
+.stock-form-help{margin:6px 0 0;font-size: var(--fs-ui-11);line-height:1.45;color:var(--tea-text-dim)}
+.stock-form-sheet legend,.stock-form-sheet label,.stock-form-sheet dt{font-size: var(--fs-ui-11);letter-spacing:.04em}
+.stock-form-sheet .stock-retail-figures dd{font-size: var(--fs-ui-18)}
 .stock-form-sheet .stock-retail-summary{padding-block:10px}
 .stock-form-sheet>button{background:var(--tea-accent-sub);color:var(--tea-text);border:1px solid var(--tea-border);box-shadow:none;text-transform:none;letter-spacing:0}
-@media(max-width:350px){.stock-form-options button{font-size:12px}}
+@media(max-width:350px){.stock-form-options button{font-size: var(--fs-ui-12)}}
 .stock-form-sheet label,.stock-form-sheet legend,.stock-form-sheet dt{color:var(--tea-text-dim)}
-.stock-form-input{display:block;width:100%;height:44px;min-width:0;margin-top:6px;padding:9px 12px;border:1px solid var(--tea-border);border-radius:5px;background:var(--tea-surface);color:var(--tea-text);font:inherit;font-size:16px;font-variant-numeric:tabular-nums;outline:none}
+.stock-form-input{display:block;width:100%;height:44px;min-width:0;margin-top:6px;padding:9px 12px;border:1px solid var(--tea-border);border-radius:5px;background:var(--tea-surface);color:var(--tea-text);font:inherit;font-size: var(--fs-ui-16);font-variant-numeric:tabular-nums;outline:none}
 .stock-form-input::placeholder{color:var(--tea-text-dim)}
 .stock-form-input:focus{border-color:var(--tea-gold)}
 .stock-form-input:disabled{opacity:.6}
@@ -6117,18 +5875,18 @@ body.cart-panel-open .commerce-dock {
 
 /* Stock separates the tea selection from optional list arrangement. */
 .stock-view-bar { display:flex; align-items:center; gap:1rem; min-height:48px; padding:0 1rem; border-bottom:1px solid var(--tea-border); }
-.stock-show-button { display:inline-flex; align-items:center; gap:.5rem; min-width:0; max-width:55%; font-size:14px; color:var(--tea-text); }
-.stock-view-summary { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--tea-text-dim); }
+.stock-show-button { display:inline-flex; align-items:center; gap:.5rem; min-width:0; max-width:55%; font-size: var(--fs-ui-14); color:var(--tea-text); }
+.stock-view-summary { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size: var(--fs-ui-12); color:var(--tea-text-dim); }
 .stock-view-options,.stock-show-choices { width:100%; max-width:560px; margin:auto; color:var(--tea-text); }
 .stock-view-options { display:grid; gap:1rem; }
-.stock-view-select { display:block; width:100%; min-width:0; height:44px; margin-top:6px; padding:0 10px; border:1px solid var(--tea-border); border-radius:6px; background:var(--tea-surface); color:var(--tea-text); font-size:16px; }
+.stock-view-select { display:block; width:100%; min-width:0; height:44px; margin-top:6px; padding:0 10px; border:1px solid var(--tea-border); border-radius:6px; background:var(--tea-surface); color:var(--tea-text); font-size: var(--fs-ui-16); }
 .stock-view-select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
 .stock-view-segments { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:6px; }
-.stock-view-segments button { min-height:var(--tap-min); border:1px solid var(--tea-border); border-radius:6px; background:var(--tea-surface); color:var(--tea-text-sec); font-size:14px; }
+.stock-view-segments button { min-height:var(--tap-min); border:1px solid var(--tea-border); border-radius:6px; background:var(--tea-surface); color:var(--tea-text-sec); font-size: var(--fs-ui-14); }
 .stock-view-segments button[aria-pressed=true] { border-color:var(--tea-gold); color:var(--tea-gold); }
 .stock-view-details { border-top:1px solid var(--tea-border); }
-.stock-view-details summary { display:list-item; padding:14px 0; cursor:pointer; font-size:14px; color:var(--tea-text-sec); }
-.stock-show-choice { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:var(--tap-min); width:100%; padding:8px 10px; border-radius:6px; text-align:left; font-size:16px; }
+.stock-view-details summary { display:list-item; padding:14px 0; cursor:pointer; font-size: var(--fs-ui-14); color:var(--tea-text-sec); }
+.stock-show-choice { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:var(--tap-min); width:100%; padding:8px 10px; border-radius:6px; text-align:left; font-size: var(--fs-ui-16); }
 .stock-show-choice[aria-pressed=true] { background:var(--tea-surface); color:var(--tea-gold); }
 @media(max-width:767px) {
   .stock-view-bar { padding:0 12px; gap:12px; }
@@ -6137,11 +5895,11 @@ body.cart-panel-open .commerce-dock {
 }
 
 /* Development-only Stock heading comparison. Records use the ordinary Stock view. */
-.stock-heading-study { border-bottom:1px solid var(--tea-border); color:var(--tea-text); font-size:12px; }
+.stock-heading-study { border-bottom:1px solid var(--tea-border); color:var(--tea-text); font-size: var(--fs-ui-12); }
 .stock-heading-study button,.stock-heading-study select { min-height:var(--tap-min); }
-.stock-heading-study select { width:100%; min-width:0; background:transparent; border:0; color:var(--tea-text); font-size:13px; }
+.stock-heading-study select { width:100%; min-width:0; background:transparent; border:0; color:var(--tea-text); font-size: var(--fs-ui-13); }
 .heading-study-fields { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; padding:8px 12px 0; }
-.heading-study-fields label { display:block; min-width:0; color:var(--tea-text-dim); font-size:10px; }
+.heading-study-fields label { display:block; min-width:0; color:var(--tea-text-dim); font-size: var(--fs-ui-10); }
 .heading-study-order { display:flex; min-width:0; }
 .heading-study-order button { min-width:var(--tap-min); }
 .heading-study-tabs { display:flex; gap:4px; padding:0 12px; }
@@ -6157,14 +5915,14 @@ body.cart-panel-open .commerce-dock {
 .heading-study-sentence>span:first-child { margin-right:auto; }
 .heading-study-sheet { display:grid; gap:8px; max-width:560px; margin:auto; }
 .heading-study-sheet label { display:block; color:var(--tea-text-dim); }
-.heading-study-sheet select { display:block; width:100%; height:44px; background:var(--tea-surface); border:1px solid var(--tea-border); border-radius:5px; font-size:16px; color:var(--tea-text); padding:0 10px; margin-top:6px; }
+.heading-study-sheet select { display:block; width:100%; height:44px; background:var(--tea-surface); border:1px solid var(--tea-border); border-radius:5px; font-size: var(--fs-ui-16); color:var(--tea-text); padding:0 10px; margin-top:6px; }
 .heading-study-sheet button { min-height:var(--tap-min); text-align:left; }
 .heading-study-options-host { display:contents; }
 .heading-study-options-host>button { display:none!important; }
 
 .stock-current-view { min-width:0; flex:1; }
-.stock-current-view select { width:100%; max-width:220px; min-height:var(--tap-min); padding:0 4px; background:transparent; color:var(--tea-text); border:0; font-size:13px; }
-.stock-arrangement-button { display:flex; align-items:center; gap:8px; min-height:var(--tap-min); max-width:64%; min-width:0; padding:0 10px; border:1px solid var(--tea-border); border-radius:5px; color:var(--tea-text-sec); font-size:12px; }
+.stock-current-view select { width:100%; max-width:220px; min-height:var(--tap-min); padding:0 4px; background:transparent; color:var(--tea-text); border:0; font-size: var(--fs-ui-13); }
+.stock-arrangement-button { display:flex; align-items:center; gap:8px; min-height:var(--tap-min); max-width:64%; min-width:0; padding:0 10px; border:1px solid var(--tea-border); border-radius:5px; color:var(--tea-text-sec); font-size: var(--fs-ui-12); }
 .stock-arrangement-button span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .stock-arrangement-button svg { flex-shrink:0; }
 .stock-arrangement-button:hover { background:var(--tea-surface); }
@@ -6177,7 +5935,7 @@ body.cart-panel-open .commerce-dock {
 .stock-group-menu-head .stock-group-actions { align-self:start; }
 .stock-view [data-stock-group][data-collapsed=true] { padding-bottom:0; }
 .stock-view [data-stock-group][data-collapsed=true]>.stock-group-menu-head { border-bottom:0; }
-.stock-supplier-edit-option { display:flex; align-items:center; gap:8px; width:100%; min-height:var(--tap-min); padding:8px 12px; font-size:13px; text-align:left; color:var(--tea-text-sec); }
+.stock-supplier-edit-option { display:flex; align-items:center; gap:8px; width:100%; min-height:var(--tap-min); padding:8px 12px; font-size: var(--fs-ui-13); text-align:left; color:var(--tea-text-sec); }
 .stock-supplier-edit-option:hover { background:var(--tea-surface); color:var(--tea-text); }
 .stock-group-main-toggle:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; border-radius:4px; }
 
@@ -6201,10 +5959,10 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-workbar { margin:0 8px 3px; min-height:var(--tap-min); }
   .stock-view .stock-figures { background:transparent; border:0; border-radius:0; overflow:visible; }
   .stock-view .stock-figure { display:grid; grid-template-rows:14px 28px; min-height:var(--tap-min); }
-  .stock-view .stock-figure dt { position:static; padding-top:2px; font-size:10px!important; }
+  .stock-view .stock-figure dt { position:static; padding-top:2px; font-size: var(--fs-ui-10)!important; }
   .stock-view .stock-figure dd { position:static; margin:0; display:flex; align-items:center; justify-content:center; line-height:1.2; }
   .stock-view .stock-figure dd button { inset:0; height:44px; padding:0 2px 3px!important; align-items:flex-end!important; white-space:nowrap!important; }
-  .stock-view .stock-figure dd>.stock-field { font-size:14px!important; }
+  .stock-view .stock-figure dd>.stock-field { font-size: var(--fs-ui-14)!important; }
 }
 
 /* Give the title room while keeping the middle band visually narrow. */
@@ -6274,9 +6032,9 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-record[data-card-study="2"] .stock-figure dt { width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
   .stock-view .stock-record[data-card-study="2"] .stock-figure dd { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; height:44px; }
   .stock-view .stock-record[data-card-study="2"] .stock-figure dd button { display:flex; flex-direction:column; align-items:center!important; justify-content:center; gap:2px; padding:0!important; }
-  .stock-view .stock-record[data-card-study="2"] .stock-number { display:block; font-size:15px; line-height:18px; font-variant-numeric:lining-nums tabular-nums; }
-  .stock-view .stock-record[data-card-study="2"] .stock-caption { display:block; color:var(--tea-text-dim); font-family:'Plus Jakarta Sans',system-ui,sans-serif; font-size:10px; line-height:12px; font-weight:400; letter-spacing:0; white-space:nowrap; }
-  .stock-view .stock-record[data-card-study="2"] .stock-figure dd>.stock-field { position:static; font-size:15px!important; line-height:18px!important; }
+  .stock-view .stock-record[data-card-study="2"] .stock-number { display:block; font-size: var(--fs-ui-15); line-height:18px; font-variant-numeric:lining-nums tabular-nums; }
+  .stock-view .stock-record[data-card-study="2"] .stock-caption { display:block; color:var(--tea-text-dim); font-family:'Plus Jakarta Sans',system-ui,sans-serif; font-size: var(--fs-ui-10); line-height:12px; font-weight:400; letter-spacing:0; white-space:nowrap; }
+  .stock-view .stock-record[data-card-study="2"] .stock-figure dd>.stock-field { position:static; font-size: var(--fs-ui-15)!important; line-height:18px!important; }
   .stock-view .stock-record[data-card-study="2"] .stock-subtitle>[data-field=type] { border-left:1px solid color-mix(in srgb,var(--stock-tea-hue) 38%,var(--tea-border)); padding-left:8px!important; }
 
   /* 3: one soft wash under the three references; photo and tasting stay neutral. */
@@ -6377,8 +6135,8 @@ body.cart-panel-open .commerce-dock {
 /* Browse by independent choices without adding another toolbar tier. */
 .stock-browse-bar { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; padding:0 12px; border-bottom:1px solid var(--tea-border); }
 .stock-browse-bar>label { display:block; position:relative; min-width:0; }
-.stock-browse-bar>label>span { position:absolute; top:4px; left:0; font-size:10px; line-height:12px; color:var(--tea-text-dim); pointer-events:none; }
-.stock-browse-bar select { display:block; width:100%; min-width:0; min-height:47px; padding:12px 12px 0 0; border:0; border-radius:0; background:transparent; color:var(--tea-text); font-size:12px; text-overflow:ellipsis; }
+.stock-browse-bar>label>span { position:absolute; top:4px; left:0; font-size: var(--fs-ui-10); line-height:12px; color:var(--tea-text-dim); pointer-events:none; }
+.stock-browse-bar select { display:block; width:100%; min-width:0; min-height:47px; padding:12px 12px 0 0; border:0; border-radius:0; background:transparent; color:var(--tea-text); font-size: var(--fs-ui-12); text-overflow:ellipsis; }
 /* Keep the closed filter in the site's palette, and let the native picker
    use a complete system palette, including its group headings. Safari keeps
    its platform picker; no custom menu or selection behavior is substituted. */
@@ -6392,26 +6150,26 @@ body.cart-panel-open .commerce-dock {
 @media(min-width:768px) {
   .stock-browse-bar { display:flex; flex-wrap:wrap; align-items:center; gap:4px 24px; max-width:none; }
   .stock-browse-bar>label { display:inline-flex; align-items:center; gap:6px; }
-  .stock-browse-bar>label>span { position:static; font-size:11px; line-height:1; }
-  .stock-browse-bar select { width:auto; max-width:220px; min-height:var(--tap-min); height:var(--control-h); padding:0 18px 0 0; font-size:13px; }
+  .stock-browse-bar>label>span { position:static; font-size: var(--fs-ui-11); line-height:1; }
+  .stock-browse-bar select { width:auto; max-width:220px; min-height:var(--tap-min); height:var(--control-h); padding:0 18px 0 0; font-size: var(--fs-ui-13); }
 }
 
 /* Spreadsheet refinement: phone/card geometry stays unchanged. */
 @media(min-width:768px) {
-  .stock-view table.inv-tight th { padding:8px 10px; font-size:11px; line-height:1.25; letter-spacing:.04em; background:var(--tea-bg); }
+  .stock-view table.inv-tight th { padding:8px 10px; font-size: var(--fs-ui-11); line-height:1.25; letter-spacing:.04em; background:var(--tea-bg); }
   .stock-view table.inv-tight th+th { border-left:1px solid var(--tea-border); }
   .stock-view table.inv-tight th.text-right>button { flex-direction:row-reverse; }
   .stock-view tr[data-product-id]>td { padding:5px 10px; vertical-align:middle; border-right:1px solid var(--tea-border); }
   .stock-view tr[data-product-id]>td:last-child { border-right:0; }
   .stock-view tr[data-product-id]:not([aria-selected=true]):hover { background:var(--tea-accent-sub); }
   .stock-view [data-stock-column=productName]>div { gap:1px; }
-  .stock-view [data-stock-column=productName]>div>button { font-size:15px; line-height:18px; }
-  .stock-view [data-stock-column=productName]>div>span { font-size:11px; line-height:14px; color:var(--tea-text-dim); }
+  .stock-view [data-stock-column=productName]>div>button { font-size: var(--fs-ui-15); line-height:18px; }
+  .stock-view [data-stock-column=productName]>div>span { font-size: var(--fs-ui-11); line-height:14px; color:var(--tea-text-dim); }
   .stock-view [data-stock-column]:not([data-stock-column=productName]) { font-variant-numeric:lining-nums tabular-nums; }
   .stock-view [data-stock-group]>.stock-group-menu-head { padding:4px 6px; background:var(--stock-shell); border-bottom:1px solid var(--tea-border); }
   .stock-view .stock-group-main-toggle { gap:2px; padding:2px 4px; }
-  .stock-view .stock-group-main-toggle .stock-group-name { min-height:24px; font-size:18px; }
-  .stock-view .stock-group-main-toggle .stock-group-summary { font-size:11px; }
+  .stock-view .stock-group-main-toggle .stock-group-name { min-height:24px; font-size: var(--fs-ui-18); }
+  .stock-view .stock-group-main-toggle .stock-group-summary { font-size: var(--fs-ui-11); }
 }
 
 /* Two comfortable phone-width cards before the spreadsheet takes over. */
@@ -6437,18 +6195,18 @@ body.cart-panel-open .commerce-dock {
 .tasting-header-controls { display:flex; align-items:center; gap:4px; }
 .tasting-heading-trigger { flex:1; min-width:0; width:auto; min-height:48px; padding:0 10px; border:1px solid var(--tea-border); border-radius:10px; background:var(--tea-elevated); box-shadow:none; flex-direction:row; gap:7px; text-align:left; align-items:center; justify-content:center; }
 .tasting-heading-trigger:hover { border-color:var(--tea-gold); }
-.tasting-heading-summary { display:flex; flex-shrink:0; align-items:center; gap:5px; max-width:100%; font-size:11px; white-space:nowrap; }
+.tasting-heading-summary { display:flex; flex-shrink:0; align-items:center; gap:5px; max-width:100%; font-size: var(--fs-ui-11); white-space:nowrap; }
 .tasting-heading-summary svg { flex-shrink:0; color:var(--tea-text-sec); }
 .tasting-header-controls .tasting-heading-close,
 .tasting-header-controls .tasting-heading-mic { position:static; display:grid; place-items:center; flex:0 0 44px; width:44px; height:44px; background:transparent; color:var(--tea-text-sec); }
-.tasting-heading-save { display:flex; align-items:center; justify-content:center; gap:4px; flex-shrink:0; min-width:var(--tap-min); min-height:48px; padding:0 4px; border:0; border-radius:8px; background:transparent; color:var(--tea-text); font-size:13px; font-weight:600; }
+.tasting-heading-save { display:flex; align-items:center; justify-content:center; gap:4px; flex-shrink:0; min-width:var(--tap-min); min-height:48px; padding:0 4px; border:0; border-radius:8px; background:transparent; color:var(--tea-text); font-size: var(--fs-ui-13); font-weight:600; }
 .tasting-heading-save:hover:not(:disabled) { border-color:var(--tea-gold); }
 .tasting-heading-save:disabled { opacity:.65; }
 .tasting-header-controls button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
-.tasting-save-guidance { margin:8px 16px 0; font-size:12px; color:var(--tea-text-sec); }
+.tasting-save-guidance { margin:8px 16px 0; font-size: var(--fs-ui-12); color:var(--tea-text-sec); }
 
 /* The tasting shell stays usable while its wheel loads separately. */
-.tasting-loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:24px; color:var(--tea-text-sec); font-size:13px; }
+.tasting-loading-state { display:flex; align-items:center; justify-content:center; gap:12px; padding:24px; color:var(--tea-text-sec); font-size: var(--fs-ui-13); }
 .tasting-wheel-loading { flex-direction:column; width:100%; aspect-ratio:1; border:1px solid var(--tea-border); border-radius:50%; background:radial-gradient(circle,var(--tea-surface),var(--tea-bg) 70%); }
 .tasting-wheel-loading button { min-height:var(--tap-min); padding:0 16px; border:1px solid var(--tea-border); border-radius:8px; }
 
@@ -6560,7 +6318,7 @@ body.cart-panel-open .commerce-dock {
  .purchase-tracking-supplier { width:100%; }
  .purchase-tracking-supplier select { width:100%; max-width:none; }
  .purchase-tracking-quantities>span { padding-inline:6px; flex-wrap:wrap; }
- .purchase-tracking-item-title h3 { font-size:17px; }
+ .purchase-tracking-item-title h3 { font-size: var(--fs-ui-17); }
 }
 @media(max-width:360px) {
  .purchase-tracking-status { white-space:normal; }
@@ -6664,14 +6422,14 @@ body.cart-panel-open .commerce-dock {
   display: flex;
   justify-content: space-between;
   gap: 4px;
-  font-size: 10px;
+  font-size: var(--fs-ui-10);
   line-height: 1.3;
 }
 .observation-strength-clear {
   display: block;
   min-height: var(--tap-min);
   width: 100%;
-  font-size: 11px;
+  font-size: var(--fs-ui-11);
   color: var(--tea-text-sec);
 }
 
@@ -6707,7 +6465,7 @@ body.cart-panel-open .commerce-dock {
   .tasting-desktop-nav button[aria-current=page] { background: var(--tea-elevated); color: var(--tea-text); }
   .tasting-desktop-nav button:hover { background: var(--tea-surface); }
   .tasting-desktop-nav button:focus-visible { outline: 2px solid var(--tea-gold); }
-  .tasting-desktop-nav small { margin-left: auto; font-size: 12px; }
+  .tasting-desktop-nav small { margin-left: auto; font-size: var(--fs-ui-12); }
   .tasting-desktop-nav .tasting-desktop-impression { margin-top: 16px; border-top: 1px solid var(--tea-border); border-radius: 0; }
   .tasting-desktop-workspace .tasting-mobile-content { width: 100%; max-width: 880px; margin: 0 auto; padding: 20px 24px 0; }
   .tasting-desktop-workspace .tasting-wheel-panel { max-width: 700px; margin: 0 auto; }
@@ -6998,7 +6756,7 @@ body.cart-panel-open .commerce-dock {
  .purchase-outbound .shipment-overview { grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); }
  .purchase-outbound .shipment-costs { border-top:0; border-left:1px solid var(--tea-border); }
 }
-.logistics-message-draft { font-size:13px; line-height:1.6; }
+.logistics-message-draft { font-size: var(--fs-ui-13); line-height:1.6; }
 
 /* Message-sourced logistics facts stay together in one compact row. */
 .logistics-reported-update {
@@ -7037,16 +6795,16 @@ body.cart-panel-open .commerce-dock {
 }
 
 /* In type groups, use the repeated type slot for the tea's source. */
-.stock-view .stock-subtitle>.stock-source-label { max-width:130px; font-size:11px; }
+.stock-view .stock-subtitle>.stock-source-label { max-width:130px; font-size: var(--fs-ui-11); }
 .stock-view .stock-record .stock-subtitle>.stock-source-label>span { color:var(--tea-text-dim)!important; }
 
 /* Stock identity: original and given names share one compact heading. */
 .stock-view .stock-record[data-card-study="2"] .stock-title-line { gap:6px; min-height:42px; }
 .stock-view .stock-record[data-card-study="2"] .stock-title>button,
-.stock-view .stock-record[data-card-study="2"] .stock-title>input { font-family:'Lora',Georgia,serif!important; font-size:16px!important; line-height:1.3!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.stock-view .stock-title-line>.stock-given-name { flex:0 1 auto; max-width:35%; min-width:0; min-height:var(--tap-min); border:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; font-size:12px; color:var(--tea-text-dim); }
+.stock-view .stock-record[data-card-study="2"] .stock-title>input { font-family:'Lora',Georgia,serif!important; font-size: var(--fs-ui-16)!important; line-height:1.3!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stock-view .stock-title-line>.stock-given-name { flex:0 1 auto; max-width:35%; min-width:0; min-height:var(--tap-min); border:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; font-size: var(--fs-ui-12); color:var(--tea-text-dim); }
 .stock-view .stock-record[data-card-study="2"] .stock-more-action { flex-basis:28px; width:28px; justify-content:flex-end; color:var(--tea-text-dim); }
-.stock-view .stock-subtitle>.stock-source-label { grid-column:1; grid-row:1; min-width:0; max-width:none; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:0; font-size:11px; }
+.stock-view .stock-subtitle>.stock-source-label { grid-column:1; grid-row:1; min-width:0; max-width:none; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:0; font-size: var(--fs-ui-11); }
 .stock-view .stock-subtitle>.stock-source-label>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 /* Save stays quiet until there are edits ready to commit. */
 .tasting-save-control {
@@ -7107,7 +6865,7 @@ body.cart-panel-open .commerce-dock {
 
 /* The name row: the name straight on the card, gold underline only while typing. */
 [data-form-layout='flow'] .curate-flow-name { min-height: var(--tap-min); }
-[data-form-layout='flow'] .curate-flow-name input { padding-left: 0; border-bottom-color: transparent; font-family: var(--font-display); font-size: 20px; }
+[data-form-layout='flow'] .curate-flow-name input { padding-left: 0; border-bottom-color: transparent; font-family: var(--font-display); font-size: var(--fs-ui-20); }
 [data-form-layout='flow'] .curate-flow-name input:focus { border-bottom-color: var(--tea-gold); }
 
 /* Keep the type tint on the Source band and give the three fields room to breathe. */
@@ -7121,11 +6879,11 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > * + * { padding-left: 10px; }
 [data-form-layout='flow'] .curate-flow-cells > * + * { border-left: 1px solid var(--tea-border); }
 [data-form-layout='flow'] :is(.curate-flow-band, .curate-flow-cells) > :not(:last-child) { padding-right: 10px; }
-[data-form-layout='flow'] .curate-flow-cell { color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; background: transparent; }
-[data-form-layout='flow'] .curate-flow-value { font-size: 16px; }
+[data-form-layout='flow'] .curate-flow-cell { color: var(--tea-text); font-family: var(--font-sans); font-size: var(--fs-ui-16); line-height: 1.45; background: transparent; }
+[data-form-layout='flow'] .curate-flow-value { font-size: var(--fs-ui-16); }
 [data-form-layout='flow'] .curate-flow-input {
   min-height: var(--tap-min); padding: 0; border: 0; border-radius: 0; background: transparent;
-  color: var(--tea-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.45;
+  color: var(--tea-text); font-family: var(--font-sans); font-size: var(--fs-ui-16); line-height: 1.45;
 }
 [data-form-layout='flow'] .curate-flow-input::placeholder { color: var(--tea-text-dim); }
 [data-form-layout='flow'] .curate-flow-card .curate-flow-input:focus,
@@ -7205,7 +6963,7 @@ body.cart-panel-open .commerce-dock {
 [data-form-layout='flow'] .curate-section-title,
 [data-form-layout='flow'] [data-testid='structured-tea-fields'] > summary {
   margin-bottom: 0; color: var(--tea-text-sec); font-family: var(--font-sans);
-  font-size: 11px; font-weight: 500; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase;
+  font-size: var(--fs-ui-11); font-weight: 500; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase;
 }
 [data-form-layout='flow'] .library-supplier-header { padding: 0 2px 2px 11px; }
 [data-form-layout='flow'] .library-supplier-heading { min-height: var(--tap-min); padding-block: 0; }
@@ -7279,7 +7037,7 @@ body.cart-panel-open .commerce-dock {
    of the rows above and below, and wins taps there (it is positioned). */
 .tasting-words-line {
   position: relative; min-width: 0; height: 44px; margin-block: -8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-  font-family: var(--font-sans); font-size: 12px; line-height: 44px; color: var(--tea-text-sec);
+  font-family: var(--font-sans); font-size: var(--fs-ui-12); line-height: 44px; color: var(--tea-text-sec);
 }
 .tasting-words-line > button {
   display: inline-block; height: 44px; padding: 0; vertical-align: top; border: 0; background: transparent; color: inherit; font: inherit; line-height: 44px;
@@ -7342,7 +7100,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-session-quick .tasting-impression-notes label { margin-bottom:5px; }
 .tasting-session-quick .tasting-impression-notes textarea { min-height:74px; }
 .tasting-quick-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
-.tasting-quick-actions button { min-height:var(--tap-min); padding:6px; border:1px solid var(--tea-border); border-radius:8px; font-size:13px; }
+.tasting-quick-actions button { min-height:var(--tap-min); padding:6px; border:1px solid var(--tea-border); border-radius:8px; font-size: var(--fs-ui-13); }
 .tasting-quick-actions button:disabled { opacity:.45; }
 .tea-card-control-row {
   display: grid;
@@ -7401,7 +7159,7 @@ body.cart-panel-open .commerce-dock {
 }
 .tea-order-line .tea-card-action-row > button {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--fs-ui-12);
 }
 .tea-order-record-links {
   min-width: 0;
@@ -7425,7 +7183,7 @@ body.cart-panel-open .commerce-dock {
 
 
 .tasting-session-tools { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 8px; }
-.tasting-session-tools button { flex:1; min-height:var(--tap-min); padding:4px 8px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-size:13px; }
+.tasting-session-tools button { flex:1; min-height:var(--tap-min); padding:4px 8px; border:1px solid var(--tea-border); border-radius:8px; background:var(--tea-surface); color:var(--tea-text); font-size: var(--fs-ui-13); }
 .tasting-session-tools button[aria-pressed="true"] { background:var(--tea-elevated); font-weight:600; }
 .tasting-session-tools button:disabled { opacity:.45; }
 
@@ -7509,20 +7267,20 @@ body.cart-panel-open .commerce-dock {
 .stock-layout-switch { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; border-bottom:1px solid var(--tea-border); }
 /* Underline tabs, not a segmented box (DESIGN_SYSTEM.md §6 bans the macOS pill). */
 .stock-layout-actions { display:flex; align-items:center; gap:16px; }
-.stock-layout-actions button { min-height:var(--tap-min); height:var(--control-h); padding:0 2px; border-bottom:1px solid transparent; color:var(--tea-text-sec); font-size:12px; transition:color 150ms ease; }
+.stock-layout-actions button { min-height:var(--tap-min); height:var(--control-h); padding:0 2px; border-bottom:1px solid transparent; color:var(--tea-text-sec); font-size: var(--fs-ui-12); transition:color 150ms ease; }
 .stock-layout-actions button:hover { color:var(--tea-text); }
 .stock-layout-actions button[aria-pressed='true'] { color:var(--tea-text); border-bottom-color:var(--tea-gold); }
 .stock-layout-actions button:focus-visible, .stock-tea-open:focus-visible { outline:1px solid var(--tea-gold); outline-offset:2px; }
 .stock-card-sections { display:grid; gap:16px; padding:8px 12px 28px; }
 .stock-card-section-heading { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; padding:3px 2px 6px; border-bottom:1px solid var(--tea-border); }
 .stock-card-section-heading h2 { margin:0; color:var(--tea-text); font-family:var(--font-display),serif; font-size:21px; font-weight:400; }
-.stock-card-section-heading span { color:var(--tea-text-sec); font-size:11px; font-variant-numeric:tabular-nums; }
+.stock-card-section-heading span { color:var(--tea-text-sec); font-size: var(--fs-ui-11); font-variant-numeric:tabular-nums; }
 .stock-card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); gap:8px; padding-top:7px; }
-.stock-tea-card .library-card-name { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; font-size:18px; }
+.stock-tea-card .library-card-name { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; font-size: var(--fs-ui-18); }
 .stock-tea-card .library-card-title-row { min-height:var(--tap-min); }
-.stock-card-year { flex:none; padding-left:6px; color:var(--tea-text-sec); font-size:12px; font-variant-numeric:tabular-nums; }
+.stock-card-year { flex:none; padding-left:6px; color:var(--tea-text-sec); font-size: var(--fs-ui-12); font-variant-numeric:tabular-nums; }
 .stock-tea-card .library-card-subrow { min-width:0; }
 .stock-tea-card .library-card-meta-primary { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .stock-tea-card .tea-card-action-row { justify-content:flex-end; padding:0 6px; }
-.stock-tea-open { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:var(--tap-min); padding:0 6px; color:var(--tea-text-sec); font-size:12px; }
+.stock-tea-open { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:var(--tap-min); padding:0 6px; color:var(--tea-text-sec); font-size: var(--fs-ui-12); }
 .stock-tea-open:hover { color:var(--tea-gold-lt); }

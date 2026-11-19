@@ -50,15 +50,15 @@ const TYPE = {
   display: 'text-[84px] font-display leading-[0.92] tracking-[-0.02em] font-light',
   displaySm: 'text-[64px] font-display leading-[0.95] tracking-[-0.01em] font-light',
   // Headlines: Cormorant Garamond, medium weight
-  headline: 'text-[40px] font-display leading-[1.15] font-normal',
-  subtitle: 'text-[30px] font-display leading-[1.25] font-normal italic',
+  headline: 'text-ui-40 font-display leading-[1.15] font-normal',
+  subtitle: 'text-ui-30 font-display leading-[1.25] font-normal italic',
   headlineSm: 'text-ui-28 font-display leading-[1.3] font-normal',
   // Body: Lora, optimized for reading (sizes increased for ~47% mobile scale)
   subhead: 'text-ui-26 font-body leading-[1.4]',
   bodyLarge: 'text-[27px] font-body leading-[1.6]',
   body: 'text-[25px] font-body leading-[1.65]',         // was 21px → renders ~12px on mobile
   bodySm: 'text-[23px] font-body leading-[1.55]',
-  bodyDense: 'text-[24px] font-body leading-[36px]',    // Multi-column, locked leading
+  bodyDense: 'text-ui-24 font-body leading-[36px]',    // Multi-column, locked leading
   // Captions: Plus Jakarta Sans, small-caps, letterspaced (increased for legibility)
   caption: 'text-ui-15 font-caption leading-[1.4] tracking-[0.12em]',
   folio: 'text-ui-13 font-caption leading-[1.3] tracking-[0.18em]',
@@ -1987,7 +1987,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center text-center`}>
                         <div className="w-16 h-16 bg-current opacity-8 rounded-md flex items-center justify-center mb-8">
-                            <span className="text-[40px] font-display font-light opacity-30">T</span>
+                            <span className="text-ui-40 font-display font-light opacity-30">T</span>
                         </div>
                         <span className={`${TYPE.caption} font-caption mb-2`}>Teajia Journal · Issue 03</span>
                         <span className={`${TYPE.micro} opacity-15 font-caption`}>2024</span>
@@ -2014,7 +2014,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="absolute inset-0 bg-gradient-to-b from-tea-bg/10 to-tea-bg/20 z-[5] pointer-events-none"></div>
                         {/* Swipe hint arrow */}
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
-                            <span className="text-tea-text/40 text-[32px] font-light">→</span>
+                            <span className="text-tea-text/40 text-ui-32 font-light">→</span>
                         </div>
                     </div>
                 );
@@ -2026,7 +2026,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Main body text..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className="pl-6 flex items-center" style={{ marginLeft: '-1.5rem' }}>
-                            <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`text-[36px] ${LH.normal} font-display italic text-tea-gold font-light hang-punct`} placeholder="Pull quote here..." tag="p" readOnly={readOnly} />
+                            <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`text-ui-36 ${LH.normal} font-display italic text-tea-gold font-light hang-punct`} placeholder="Pull quote here..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className={getBottomTreatment(variant, theme.fadeBg)}></div>
                     </div>

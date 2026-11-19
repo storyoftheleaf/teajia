@@ -20,7 +20,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, ACCENTS,
 } from './immersive';
 
@@ -391,7 +391,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
 
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(32px,5vw,60px) 24px clamp(28px,5vw,48px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: C.ink, margin: 0 }}>
             T
             he hardest part of tea is not tasting it, it is finding the words. The mouth knows long before the mind can name it. A flavour wheel is a borrowed vocabulary: a way to turn a wordless impression into "orchid," "wet stone," "toasted rice." Turn the wheel below, and let the cup teach you its language.
           </p>
@@ -439,7 +439,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
 
         {/* ── PULL QUOTE ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
-          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 860 }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: S.heading, lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 860 }}>
             "To name a flavour is to notice it twice, once on the tongue, and once in the mind."
           </blockquote>
           <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
@@ -508,7 +508,7 @@ const TastingVocabularyOfTaste: React.FC = () => {
 
         {/* ── CLOSING ───────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             No two drinkers taste quite the same cup, and no wheel can hold every word. But a shared vocabulary lets us point at the same fleeting thing and say, "there, that." The wheel is only a beginning. The fluency is yours to drink into being.
           </p>
           <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>

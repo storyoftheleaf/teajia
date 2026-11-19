@@ -22,7 +22,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F,
+  S, C, F,
   ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome,
   ACCENTS,
@@ -38,7 +38,7 @@ const moreLinks = [
 // ─── Shared era-body style ────────────────────────────────────────────────────
 const pEra: React.CSSProperties = {
   fontFamily: F.body,
-  fontSize: 'clamp(16px,2vw,18px)',
+  fontSize: S.body,
   lineHeight: 1.78,
   color: C.taupe,
   margin: 0,
@@ -519,7 +519,7 @@ const HistoryTenThousandMornings: React.FC = () => {
 
         {/* ── STANDFIRST ─────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(32px,5vw,60px) 24px clamp(20px,4vw,36px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: C.ink, margin: 0 }}>
             N
             o other drink has been with us so long, or changed its costume so often. Tea has been medicine,
             currency, a court's obsession, an empire's habit, and the cause of more than one revolution. Yet
@@ -714,7 +714,7 @@ const HistoryTenThousandMornings: React.FC = () => {
             fontFamily: F.display,
             fontStyle: 'italic',
             fontWeight: 400,
-            fontSize: 'clamp(28px,4.8vw,54px)',
+            fontSize: S.heading,
             lineHeight: 1.18,
             color: C.cream,
             margin: '0 auto',
@@ -757,7 +757,7 @@ const HistoryTenThousandMornings: React.FC = () => {
 
         {/* ── CLOSING ────────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px)' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             The line runs on past us, of course, some future age will find its own way to meet the leaf.
             But this much has held for fifty centuries: someone heats water, waits, and is, for a moment,
             restored. Tea is the oldest morning we still keep.

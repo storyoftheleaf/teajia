@@ -1,4 +1,8 @@
-@tailwind base;
+/* Order matters. Preflight first, then the master style file (every token
+   and the button classes), then the utilities, so a utility written on an
+   element overrides a token class and the token classes override preflight. */
+@import './tailwind-base.css';
+@import './tokens.css';
 @tailwind components;
 @tailwind utilities;
 
@@ -45,183 +49,8 @@ nav[aria-label="Admin navigation"] * {
   touch-action: manipulation;
 }
 
-/* Control sizing: the one place that decides how tall a button, chip, tab or
-   input is. Every former 44px floor reads --tap-min.
+/* Every token (sizes, colours, buttons) lives in tokens.css, imported at the top of this file. */
 
-   A finger needs 44px (WCAG 2.5.5); a mouse does not. On a phone or tablet the
-   floor stays 44px. With a precise pointer (mouse, trackpad) it drops to 28px,
-   so desktop controls sit at their own padding, 28-34px, instead of being
-   inflated to a finger target nobody is using (Adrian's density rule,
-   UI audit 2026-11-18). */
-:root {
-  --tap-min: 44px;
-  --control-h-sm: 28px;
-  --control-h: 32px;
-  --control-h-lg: 36px;
-  --radius-control: 4px;
-}
-@media (hover: hover) and (pointer: fine) {
-  :root { --tap-min: 28px; }
-}
-/* The Curate capture form is a field tool, built on 44px rows whose pairs
-   (Type and Year, Origin and Era, Journey/Scan/Photo) align by sharing that
-   height. It keeps the finger floor at every pointer. */
-[data-curate-source] { --tap-min: 44px; }
-
-:root {
-  color-scheme: dark;
-
-  /* The order block on the standing bar. Tan rather than the bronze accent:
-     browner and less yellow, so a solid block of it can never read as a
-     louder version of the gold used for links and marks. */
-  --tea-plate-tan: #a08a66;
-  /* One step up for press and hover, so the state change is felt without
-     the button jumping into a different colour family. */
-  --tea-plate-tan-lift: #b09a76;
-
-  /* Fine grain, shared by the paper ground and the label plate. Same figure
-     as TEXTURES.alcoveGrain in designTokens, held here so CSS can reach it. */
-  --alcove-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-
-  /* Stand-in for the tea-label stock: soft warm strata in the same family.
-     Set --label-plate-image to the real photograph and this sits under it. */
-  --label-plate-wash:
-    radial-gradient(140% 90% at 28% 22%, rgba(247, 233, 200, 0.55) 0%, rgba(247, 233, 200, 0) 62%),
-    radial-gradient(110% 80% at 74% 78%, rgba(163, 128, 82, 0.4) 0%, rgba(163, 128, 82, 0) 66%),
-    linear-gradient(172deg, #e2d0a6 0%, #cfb98c 54%, #d9c79c 100%);
-
-  /* Outdoor-legibility tuned: background lifted off near-black so reflected
-     glare can't lift it past the text; muted tokens raised well above AA.
-
-     This ground is #22201c and stays there. It looks grey whenever the paper
-     and grain layers above it blend against nothing, and the fix for that is
-     in .paper-ground, not here: warming these tokens to compensate makes the
-     ground wrong everywhere else in the app. */
-  --tea-bg: #22201c;
-  --tea-bg-rgb: 34 32 28;
-  --tea-surface: #322e29;
-  --tea-surface-rgb: 50 46 41;
-  /* One step BELOW the ground, not above it. The record card on a product page
-     is a panel set INTO the page rather than lifted off it, which is what lets
-     a keyline read as an edge instead of a shadow. There was no such token:
-     every existing surface is lighter than --tea-bg. */
-  --tea-sunken: #1e1b17;
-  --tea-sunken-rgb: 30 27 23;
-  --tea-elevated: #423d36;
-  --tea-elevated-rgb: 66 61 54;
-  --tea-text: #ede4d4;
-  --tea-text-rgb: 237 228 212;
-  /* Raised floor for outdoor / low-light legibility */
-  --tea-text-sec: #ddd2bd;
-  --tea-text-sec-rgb: 221 210 189;
-  /* Raised well above WCAG AA for outdoor legibility */
-  --tea-text-dim: #b3a283;
-  --tea-text-dim-rgb: 179 162 131;
-  --tea-gold: #a8874d;
-  --tea-gold-rgb: 168 135 77;
-  --tea-gold-lt: #bfa06a;
-  --tea-gold-lt-rgb: 191 160 106;
-  /* Warm gold pinned for text, keeps reading gold even if --tea-gold shifts toward aged brass */
-  --tea-readgold: #a8874d;
-  --tea-readgold-rgb: 168 135 77;
-  /* Derived from --tea-gold-rgb at canonical alpha, keeps border/glow in sync with accent */
-  --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
-  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
-  /* The keyline the floating bottom assembly draws around itself: the
-     navigation capsule, the order bar docked on top of it, and the
-     add-to-cart confirmation above that. Stronger on dark, where a near-black
-     bar sits on a dark page and the edge is the only thing separating them;
-     on light the bar is already at full contrast against pale paper and the
-     same weight would read as an outline drawn around it. */
-  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.28);
-  --tea-leaf: #5A6E5A;
-  /* Warmed from oxblood #8a3a32 to terracotta, reds now read on espresso */
-  --tea-error: #c46a5a;
-  --tea-error-rgb: 196 106 90;
-
-  /* Font Families */
-  --font-display: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
-  --font-serif: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
-  --font-body: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-  /* The numeral face. Lora, the same face as body text, so a price reads as
-     part of the line beside it. Its figures sit flat on the baseline. Named
-     `mono` for history only, nothing here is monospaced. See FONT_STACKS in
-     designTokens for the measurements and for why never Cormorant. */
-  --font-mono: 'Lora', Georgia, serif;
-
-}
-
-/* Light mode */
-:root.light, .light {
-  color-scheme: light;
-  --tea-bg: #f4ece0;
-  --tea-bg-rgb: 244 236 224;
-  --tea-surface: #e4ddd3;
-  --tea-surface-rgb: 228 221 211;
-  --tea-sunken: #eae0d0;
-  --tea-sunken-rgb: 234 224 208;
-  --tea-elevated: #d5c8b4;
-  --tea-elevated-rgb: 213 200 180;
-  --tea-text: #18130e;
-  --tea-text-rgb: 24 19 14;
-  /* Raised floor for outdoor legibility */
-  --tea-text-sec: #332b20;
-  --tea-text-sec-rgb: 51 43 32;
-  /* Raised well above WCAG AA for outdoor legibility */
-  --tea-text-dim: #564a37;
-  --tea-text-dim-rgb: 86 74 55;
-  /* Spec says #8e6d2e for light gold (was production-drift #6b4f28, too dark on parchment) */
-  --tea-gold: #8e6d2e;
-  --tea-gold-rgb: 142 109 46;
-  --tea-gold-lt: #a88340;
-  --tea-gold-lt-rgb: 168 131 64;
-  --tea-readgold: #8e6d2e;
-  --tea-readgold-rgb: 142 109 46;
-  /* Derived from --tea-gold-rgb at canonical alpha (light mode uses slightly higher to read on parchment) */
-  --tea-border: rgb(var(--tea-gold-rgb) / 0.16);
-  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.12);
-  /* See the dark block: quieter here, where the bar already separates. */
-  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.18);
-  --tea-leaf: #4a5e4a;
-  --tea-error: #732a23;
-  --tea-error-rgb: 115 42 35;
-}
-
-/* Force dark tokens on any nested .dark wrapper (e.g. Journal, always dark) */
-:root.light .dark, .light .dark {
-  color-scheme: dark;
-  --tea-bg: #22201c;
-  --tea-bg-rgb: 34 32 28;
-  --tea-surface: #322e29;
-  --tea-surface-rgb: 50 46 41;
-  /* One step BELOW the ground, not above it. The record card on a product page
-     is a panel set INTO the page rather than lifted off it, which is what lets
-     a keyline read as an edge instead of a shadow. There was no such token:
-     every existing surface is lighter than --tea-bg. */
-  --tea-sunken: #1e1b17;
-  --tea-sunken-rgb: 30 27 23;
-  --tea-elevated: #423d36;
-  --tea-elevated-rgb: 66 61 54;
-  --tea-text: #ede4d4;
-  --tea-text-rgb: 237 228 212;
-  --tea-text-sec: #ddd2bd;
-  --tea-text-sec-rgb: 221 210 189;
-  --tea-text-dim: #b3a283;
-  --tea-text-dim-rgb: 179 162 131;
-  --tea-gold: #a8874d;
-  --tea-gold-rgb: 168 135 77;
-  --tea-gold-lt: #bfa06a;
-  --tea-gold-lt-rgb: 191 160 106;
-  --tea-readgold: #a8874d;
-  --tea-readgold-rgb: 168 135 77;
-  --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
-  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
-  --tea-keyline: rgb(var(--tea-gold-rgb) / 0.28);
-  --tea-leaf: #5A6E5A;
-  --tea-error: #c46a5a;
-  --tea-error-rgb: 196 106 90;
-}
 
 /* ============================================
    Safari in-app browser viewport fix
@@ -303,11 +132,7 @@ body {
   transition: background-color 500ms ease, color 500ms ease, border-color 500ms ease !important;
 }
 
-/* Outdoor-legibility weight floor, text runs one step heavier than the
-   bare utility weights so thin strokes survive bright light. */
-.font-light  { font-weight: 400 !important; }
-.font-normal { font-weight: 500 !important; }
-.font-medium { font-weight: 600 !important; }
+/* The outdoor-legibility weight floor lives in tokens.css, section 1. */
 
 p {
   line-height: 1.7;
@@ -652,7 +477,7 @@ p {
   /* A step number is a number. Reads the shared numeral setting. */
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums lining-nums;
-  font-size: 14px;
+  font-size: var(--fs-ui-14);
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -665,7 +490,7 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: var(--fs-ui-28);
 }
 
 /* Map location dot */

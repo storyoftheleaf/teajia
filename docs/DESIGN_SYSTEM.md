@@ -1,5 +1,7 @@
 # Teajia Design System
 
+> **The values live in [`src/styles/tokens.css`](../src/styles/tokens.css)**, the master style file. This document describes it; if the two disagree, the file wins. Buttons are one of seven classes there: `btn-primary`, `btn-secondary`, `btn-quiet`, `btn-icon`, `btn-tab`, `btn-chip`, `btn-field` (map: [docs/design/master-style-2026-11-19/BUTTON-MAP.md](design/master-style-2026-11-19/BUTTON-MAP.md)).
+
 A portable, self-contained spec for the Teajia visual language. Paste this whole document into a design tool (Claude Design, Figma, v0, etc.) to generate or evaluate a canonical page. Different page types compose these rules differently — the **rules are universal, the layouts vary**.
 
 ---

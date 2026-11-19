@@ -444,12 +444,12 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
           {avatarDataUrl ? (
             <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" />
           ) : (
-            <span className="font-display text-[32px] text-tea-gold leading-none">{initial}</span>
+            <span className="font-display text-ui-32 text-tea-gold leading-none">{initial}</span>
           )}
         </button>
 
         {/* Name */}
-        <div className="font-display text-[22px] text-tea-text mt-4 tracking-[0.01em]">
+        <div className="font-display text-ui-22 text-tea-text mt-4 tracking-[0.01em]">
           {displayName}
         </div>
 
@@ -464,7 +464,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         <div className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mt-6">
           {today}
         </div>
-        <div className="font-display italic text-[18px] text-tea-text mt-2">
+        <div className="font-display italic text-ui-18 text-tea-text mt-2">
           {frontispiece}
         </div>
         {/* What needs you: the sentence above names the queue; the list itself
@@ -552,7 +552,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
               className="flex min-h-[52px] w-full items-center justify-between border-b border-tea-border text-left"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <span className="min-w-0"><span className="block font-display text-[24px] leading-[1.08] text-tea-text">People who can see it</span><span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">{soFarLine(payAccess.approved.length)}</span></span>
+              <span className="min-w-0"><span className="block font-display text-ui-24 leading-[1.08] text-tea-text">People who can see it</span><span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">{soFarLine(payAccess.approved.length)}</span></span>
             </button>
             <button
               type="button"
@@ -560,7 +560,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
               className="flex min-h-[52px] w-full items-center justify-between border-b border-tea-border text-left"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <span className="min-w-0"><span className="block font-display text-[24px] leading-[1.08] text-tea-text">Share pay link</span><span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">From your table, or from an invoice.</span></span>
+              <span className="min-w-0"><span className="block font-display text-ui-24 leading-[1.08] text-tea-text">Share pay link</span><span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">From your table, or from an invoice.</span></span>
             </button>
           </div>
         </section>

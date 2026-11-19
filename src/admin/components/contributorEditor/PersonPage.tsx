@@ -149,7 +149,7 @@ export function personPageParts(props: Props): { card: React.ReactNode; sheets: 
           onChange={event => onChange({ display_name: event.target.value })}
           placeholder="As you want it read"
           autoComplete="off"
-          inputClassName="w-full rounded-none border-0 border-b border-tea-border bg-transparent px-0 py-1 font-display text-[34px] font-light leading-tight text-tea-text placeholder:text-tea-text-dim/60 focus:border-tea-gold focus:outline-none focus:ring-0 sm:text-[38px]"
+          inputClassName="w-full rounded-none border-0 border-b border-tea-border bg-transparent px-0 py-1 font-display text-ui-34 font-light leading-tight text-tea-text placeholder:text-tea-text-dim/60 focus:border-tea-gold focus:outline-none focus:ring-0 sm:text-[38px]"
         />
         {afterName}
         <Line label="Business name" id="f-business-name" value={value.business_name} onChange={event => onChange({ business_name: event.target.value })} placeholder="If you have one, the name you trade under" />

@@ -234,7 +234,7 @@ export default function BriefingPage() {
   if (!isAdmin) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center px-6 text-center pb-nav">
-        <div className="font-display text-[22px] text-tea-text mb-2">Not available</div>
+        <div className="font-display text-ui-22 text-tea-text mb-2">Not available</div>
         <p className="font-serif text-ui-15 text-tea-text-sec max-w-[320px]">These walk-throughs are visible to the platform owner only.</p>
         <button onClick={() => navigate('/account')} className="mt-6 text-ui-13 text-tea-text-sec hover:text-tea-text underline underline-offset-2">Back to Your Table</button>
       </div>

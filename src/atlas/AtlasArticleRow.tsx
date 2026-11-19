@@ -28,7 +28,7 @@ export const AtlasArticleRow: React.FC<{
         <span className="min-w-0">
           <span
             className={`block font-display leading-[1.3] transition-colors ${
-              compact ? 'text-ui-16' : 'text-ui-17 md:text-[19px]'
+              compact ? 'text-ui-16' : 'text-ui-17 md:text-ui-19'
             } ${current ? 'text-tea-gold' : 'text-tea-text group-hover:text-tea-gold-lt'}`}
           >
             {title}

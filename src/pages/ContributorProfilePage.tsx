@@ -298,8 +298,8 @@ export default function ContributorProfilePage() {
             ariaLabel={`${data.display_name}, portrait`}
           >
             {kicker && <Kicker className="mb-3">{kicker}</Kicker>}
-            <h1 className="font-display text-[40px] leading-[0.98] text-tea-text"><SplitName name={data.display_name} /></h1>
-            {data.chinese_name && <p className="mt-2 text-[22px] leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
+            <h1 className="font-display text-ui-40 leading-[0.98] text-tea-text"><SplitName name={data.display_name} /></h1>
+            {data.chinese_name && <p className="mt-2 text-ui-22 leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>
           {/* Where to find them, as one line under the name and only when there

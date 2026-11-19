@@ -17,7 +17,7 @@ export default function AtlasSourcePage() {
       <AtlasLoadState load={load}>
         {({ source, years }) => (
           <>
-            <h1 className="font-display text-[40px] md:text-[56px] leading-[1.05] text-tea-text">{source.name}</h1>
+            <h1 className="font-display text-ui-40 md:text-[56px] leading-[1.05] text-tea-text">{source.name}</h1>
             {source.subtitle && <p className="font-body italic text-ui-15 md:text-ui-17 text-tea-text-sec mt-3 mb-12 md:mb-14">{source.subtitle}</p>}
             {years.map(({ year, issues }) => (
               <section

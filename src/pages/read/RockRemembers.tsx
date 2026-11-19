@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import { ConversationByline } from './conversation/Byline';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
 
@@ -23,7 +23,7 @@ const moreLinks = [
 
 const qa = (q: string, body: React.ReactNode) => ({ q, body });
 
-const pBody: React.CSSProperties = { fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: C.taupe, margin: '0 0 16px' };
+const pBody: React.CSSProperties = { fontFamily: F.body, fontSize: S.body, lineHeight: 1.8, color: C.taupe, margin: '0 0 16px' };
 const qStyle: React.CSSProperties = { fontFamily: F.display, fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(21px,2.6vw,26px)', lineHeight: 1.34, color: C.warm, margin: '0 0 18px', paddingLeft: 20, borderLeft: `2px solid ${C.gold}` };
 
 const movementI = [
@@ -121,7 +121,7 @@ const RockRemembers: React.FC = () => {
 
         {/* STANDFIRST */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.74, color: C.ink, margin: 0 }}>
             T
             o reach Chén Wǔ you climb. Past the last teahouse, past the tour groups, up a path slick with morning mist, to a low stone room where a century of charcoal has soaked into the walls. He is sixty-one, narrow as a bamboo cane, and he does not stop tending the fire as we speak. Below us, the Wuyi cliffs fall away into cloud. This is where rock tea is made, and, he insists, where it must be made.
           </p>
@@ -234,7 +234,7 @@ const RockRemembers: React.FC = () => {
 
         {/* CLOSING */}
         <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(40px,6vw,72px) 24px' }}>
-          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: S.aside, lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             By the time we leave, the mist has burned away and the cliffs stand clear and red against the sky. Chén Wǔ does not see us out; he is bent over the baskets, listening to the fire. The tea, he says, is almost ready to tell him something.
           </p>
         </section>

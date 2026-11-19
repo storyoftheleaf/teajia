@@ -242,7 +242,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       <button type="button" onClick={onClose} aria-label="Close cart" className="min-w-tap min-h-tap flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
         <Icons.Close className="w-5 h-5" />
       </button>
-      <h2 className="flex-1 min-w-0 font-display text-[22px] leading-none text-tea-text">{placedOrder ? 'Request received' : 'Your order'}</h2>
+      <h2 className="flex-1 min-w-0 font-display text-ui-22 leading-none text-tea-text">{placedOrder ? 'Request received' : 'Your order'}</h2>
       {!placedOrder && rates.length > 0 && <select aria-label="Currency" value={currency} onChange={event => setCurrency(event.target.value as Currency)} disabled={isPersisting} className="checkout-currency">
         {rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}
       </select>}
@@ -262,7 +262,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         <div className="space-y-4">
           {placedOrder.items.map(item => <div key={lineKeyOf(item)} className="flex items-baseline justify-between gap-3">
             <span className="min-w-0">
-              <span className="block font-display text-[22px] leading-tight text-tea-text">{item.name}</span>
+              <span className="block font-display text-ui-22 leading-tight text-tea-text">{item.name}</span>
               <span className="num text-ui-13 text-tea-text-sec">{item.category === 'tea' ? `${(item.packs ?? 1) > 1 ? `${item.packs} × ` : ''}${item.packGrams ?? item.quantityGrams}g` : `${item.quantityGrams} pieces`}</span>
             </span>
             <span className="num text-ui-17 text-tea-text shrink-0">{shopPrice.total(item.totalPrice)}</span>

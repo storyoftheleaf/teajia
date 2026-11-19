@@ -11,7 +11,7 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
+  S, C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, ACCENTS,
 } from './immersive';
 
@@ -24,7 +24,7 @@ const moreLinks = [
 // ─── Shared sub-styles ───────────────────────────────────────────────────────
 const pBody: React.CSSProperties = {
   fontFamily: F.body,
-  fontSize: 'clamp(16px,2vw,18px)',
+  fontSize: S.body,
   lineHeight: 1.84,
   color: C.taupe,
   margin: '0 0 22px',
@@ -149,7 +149,7 @@ const EssayLongWayToCup: React.FC = () => {
 
         {/* ── STANDFIRST ────────────────────────────────────────────────── */}
         <section data-reveal style={{ maxWidth: 660, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
-          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.76, color: C.ink, margin: 0 }}>
+          <p style={{ fontFamily: F.body, fontSize: S.lead, lineHeight: 1.76, color: C.ink, margin: 0 }}>
             T
             here is a Chinese word for the sweetness that arrives{' '}
             <em style={{ fontStyle: 'italic', color: C.cream }}>after</em>{' '}

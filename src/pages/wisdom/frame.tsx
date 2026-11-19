@@ -47,7 +47,7 @@ import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMod
  * which is documented where it is set.
  */
 export const TITLE_CLASS =
-  'font-display text-[32px] sm:text-[44px] font-normal leading-[1.04] tracking-[-0.015em]';
+  'font-display text-ui-32 sm:text-[44px] font-normal leading-[1.04] tracking-[-0.015em]';
 export const NAME_CLASS = 'font-display text-ui-17 font-normal leading-[1.35] tracking-[0.01em]';
 export const FACT_CLASS = 'font-body text-ui-17 font-normal leading-[1.6]';
 export const LABEL_CLASS = 'font-sans text-ui-11 font-normal uppercase tracking-[1.2px] leading-[1.4]';
