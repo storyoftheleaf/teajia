@@ -51,18 +51,23 @@ it('keeps original audio on its exact encounter across retry, stale sync, expiry
     expect((await call(transcription.audio_url, 'GET', undefined, user, account)).status).toBe(status);
     expect((await call('/api/transcriptions/' + id + '/attach', 'POST', { compass_entry_id: 'tea' }, user, account)).status).toBe(status);
   }
-  const attach = () => call('/api/transcriptions/' + id + '/attach', 'POST', { compass_entry_id: 'tea' });
+  const attach = (entryId = 'tea') => call('/api/transcriptions/' + id + '/attach', 'POST', { compass_entry_id: entryId });
   const competing = await Promise.all([
     attach(), call('/api/transcriptions/' + id + '/attach', 'POST', { compass_entry_id: 'second' }),
   ]);
   expect(competing.map(response => response.status).sort()).toEqual([200, 409]);
-  expect((await attach()).status).toBe(200);
-  const attached = await (await attach()).json();
-  expect(attached.entry.id).toBe('tea');
+  // Request order does not determine which atomic attachment wins.
+  const winner = await competing.find(response => response.status === 200)!.json();
+  const winnerId = winner.entry.id as string;
+  expect(['tea', 'second']).toContain(winnerId);
+  const loserId = winnerId === 'tea' ? 'second' : 'tea';
+  expect((await attach(winnerId)).status).toBe(200);
+  const attached = await (await attach(winnerId)).json();
+  expect(attached.entry.id).toBe(winnerId);
   expect(JSON.parse(attached.entry.audio_clips)).toEqual([attached.clip]);
-  expect(attached.note).toMatchObject({ id: 'recording-' + id, compass_entry_id: 'tea', source_type: 'voice', visibility: 'private' });
+  expect(attached.note).toMatchObject({ id: 'recording-' + id, compass_entry_id: winnerId, source_type: 'voice', visibility: 'private' });
   expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM notes').get()).toEqual({ n: 1 });
-  expect((await call('/api/transcriptions/' + id + '/attach', 'POST', { compass_entry_id: 'second' })).status).toBe(409);
+  expect((await attach(loserId)).status).toBe(409);
 
   const audio = await call(transcription.audio_url);
   expect(audio.headers.get('Cache-Control')).toBe('private, no-store');
@@ -70,11 +75,11 @@ it('keeps original audio on its exact encounter across retry, stale sync, expiry
   expect((await call('/api/media/' + [...objects.keys()][0], 'GET', undefined, '')).status).toBe(404);
 
   // Stale snapshots cannot remove a durable attachment or forge one on another encounter.
-  expect((await call('/api/compass/sync', 'POST', { entries: [{ id: 'tea', audio_clips: [] },
-    { id: 'second', audio_clips: [attached.clip, { url: 'https://legacy.test/audio.mp3', timestamp: 'old' }] }] })).status).toBe(200);
+  expect((await call('/api/compass/sync', 'POST', { entries: [{ id: winnerId, audio_clips: [] },
+    { id: loserId, audio_clips: [attached.clip, { url: 'https://legacy.test/audio.mp3', timestamp: 'old' }] }] })).status).toBe(200);
   const entries = await (await call('/api/compass/entries')).json();
-  expect(JSON.parse(entries.entries.find((row: any) => row.id === 'tea').audio_clips)).toHaveLength(1);
-  expect(JSON.parse(entries.entries.find((row: any) => row.id === 'second').audio_clips)).toEqual([{ url: 'https://legacy.test/audio.mp3', timestamp: 'old' }]);
+  expect(JSON.parse(entries.entries.find((row: any) => row.id === winnerId).audio_clips)).toHaveLength(1);
+  expect(JSON.parse(entries.entries.find((row: any) => row.id === loserId).audio_clips)).toEqual([{ url: 'https://legacy.test/audio.mp3', timestamp: 'old' }]);
   db.sqlite.prepare("UPDATE private_recordings SET expires_at=datetime('now','-1 day')").run();
   await worker.scheduled({} as ScheduledEvent, env as never, {} as ExecutionContext);
   expect(objects.size).toBe(1);
@@ -82,6 +87,6 @@ it('keeps original audio on its exact encounter across retry, stale sync, expiry
   expect((await call('/api/transcriptions/' + id, 'DELETE')).status).toBe(200);
   expect(objects.size).toBe(0);
   expect((await call(transcription.audio_url)).status).toBe(404);
-  expect(JSON.parse((db.sqlite.prepare("SELECT audio_clips FROM tea_compass_entries WHERE id='tea'").get() as any).audio_clips)).toEqual([]);
+  expect(JSON.parse((db.sqlite.prepare('SELECT audio_clips FROM tea_compass_entries WHERE id=?').get(winnerId) as any).audio_clips)).toEqual([]);
   expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM notes').get()).toEqual({ n: 1 });
 });
