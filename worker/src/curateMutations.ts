@@ -428,8 +428,26 @@ export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entit
  // Read parent relations from recorded before/after facts: a later move must
  // not erase the parent's history. Exact child reads remain exact child reads.
  const filter=options.entity_id?` AND EXISTS(SELECT 1 FROM curate_mutation_records r WHERE r.mutation_id = m.id AND r.account_id = m.account_id AND ((r.entity_id = ? AND r.entity_type = ?) OR (r.entity_type='attachment' AND EXISTS(SELECT 1 FROM curate_attachments a WHERE a.id=r.entity_id AND a.account_id=m.account_id AND a.entity_id=? AND a.entity_type=?))${related}))`:'';
- const rows=await env.DB.prepare(`SELECT m.*, (SELECT undone.id FROM curate_mutations undone WHERE undone.account_id=m.account_id AND undone.undo_of=m.id ORDER BY undone.confirmed_at DESC,undone.rowid DESC LIMIT 1) AS undone_by FROM curate_mutations m WHERE m.account_id = ?${filter} ORDER BY m.confirmed_at DESC,m.rowid DESC LIMIT ?`)
- .bind(auth.accountId,...(options.entity_id?[options.entity_id,entityType,options.entity_id,entityType,...relationValues]:[]),Math.min(100,Math.max(1,options.limit??20))).all<Row>();
+ // A named tea starts at its indexed records, not at every mutation in the
+ // account. Unary + keeps SQLite on the mutation-id lookup rather than its
+ // account/date index. Keep both recorded parent snapshots so moving a note preserves
+ // history for the old tea as well as the new one.
+ const teaId=entityType==='tea'?options.entity_id:undefined;
+ const teaFilter=` AND m.id IN (
+  SELECT r.mutation_id FROM curate_mutation_records r WHERE r.account_id=? AND r.entity_type='tea' AND r.entity_id=?
+  UNION SELECT r.mutation_id FROM curate_attachments a JOIN curate_mutation_records r
+   ON r.account_id=a.account_id AND r.entity_type='attachment' AND r.entity_id=a.id
+   WHERE a.account_id=? AND a.entity_type='tea' AND a.entity_id=?
+  ${['before_json','after_json'].map(column=>`UNION SELECT r.mutation_id FROM curate_mutation_records r
+   WHERE r.account_id=? AND json_extract(r.${column},'$.compass_entry_id')=?
+   AND json_extract(r.${column},'$.account_id')=?
+   AND r.entity_type IN ('note','transcript','todo','sample','quote_line')`).join('\n')}
+ )`;
+ const filterValues=teaId
+  ? [auth.accountId,teaId,auth.accountId,teaId,auth.accountId,teaId,auth.accountId,auth.accountId,teaId,auth.accountId]
+  : options.entity_id?[options.entity_id,entityType,options.entity_id,entityType,...relationValues]:[];
+ const rows=await env.DB.prepare(`SELECT m.*, (SELECT undone.id FROM curate_mutations undone WHERE undone.account_id=m.account_id AND undone.undo_of=m.id ORDER BY undone.confirmed_at DESC,undone.rowid DESC LIMIT 1) AS undone_by FROM curate_mutations m WHERE ${teaId?'+':''}m.account_id = ?${teaId?teaFilter:filter} ORDER BY m.confirmed_at DESC,m.rowid DESC LIMIT ?`)
+ .bind(auth.accountId,...filterValues,Math.min(100,Math.max(1,options.limit??20))).all<Row>();
  return {history:await Promise.all((rows.results??[]).map(async m=>({...m,records:(await env.DB.prepare('SELECT entity_type,entity_id,before_json,after_json FROM curate_mutation_records WHERE mutation_id = ? AND account_id = ?').bind(m.id,auth.accountId).all()).results})))};
 }
 /** Discover product-reference columns rather than keeping a list that misses

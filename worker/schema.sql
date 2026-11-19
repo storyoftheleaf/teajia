@@ -2990,6 +2990,8 @@ CREATE INDEX idx_curate_mutations_history ON curate_mutations(account_id, confir
 CREATE INDEX idx_curate_mutation_records_entity ON curate_mutation_records(account_id, entity_type, entity_id);
 CREATE INDEX idx_curate_mutation_records_history ON curate_mutation_records(account_id, mutation_id);
 CREATE INDEX idx_curate_mutations_undo ON curate_mutations(account_id, undo_of, confirmed_at DESC);
+CREATE INDEX idx_curate_records_tea_before ON curate_mutation_records(account_id, json_extract(before_json, '$.compass_entry_id'));
+CREATE INDEX idx_curate_records_tea_after ON curate_mutation_records(account_id, json_extract(after_json, '$.compass_entry_id'));
 
 -- External Drive changes have their own durable audit, never a local Curate undo.
 CREATE TABLE IF NOT EXISTS curate_drive_photo_operations (
