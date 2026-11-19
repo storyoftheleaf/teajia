@@ -351,10 +351,10 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, c
           {recapToShare}
         </p>
         <div className="flex flex-wrap justify-between gap-2 px-6 py-4">
-          <button type="button" disabled={sharing} onClick={() => setRecapToShare(null)} className="tap-target px-2 text-ui-13 text-tea-text-sec">
+          <button type="button" disabled={sharing} onClick={() => setRecapToShare(null)} className="btn-quiet tap-target">
             Cancel
           </button>
-          <button type="button" disabled={sharing} onClick={handleShareRecap} className="tap-target cta-solid rounded-md px-3 text-ui-13 font-semibold disabled:opacity-40">
+          <button type="button" disabled={sharing} onClick={handleShareRecap} className="btn-primary tap-target">
             {sharing ? 'Sharing…' : 'Share recap'}
           </button>
         </div>
