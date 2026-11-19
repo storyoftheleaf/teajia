@@ -8,6 +8,7 @@ import { resolveContactChannels } from '../lib/contact';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { PayOrderAction } from '../components/shared/PayOrderAction';
 import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
+import { PayPalSandboxCheckout } from '../components/shared/PayPalSandboxCheckout';
 import { shouldOfferPaymentClaim } from '../components/shared/paymentClaimDomain';
 import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
 import { normalizeJourney, showsPaymentActions } from '../components/shared/orderJourneyDomain';
@@ -306,6 +307,12 @@ const OrderStatusPage: React.FC = () => {
               about availability and pricing whatever had happened to the order,
               so it was still promising it after the tea had been posted. The
               stage below says what is actually true, and says it once. */}
+          {trackingToken && inquiry.order && <PayPalSandboxCheckout
+            key={`${trackingToken}:${inquiry.order.invoice_id || inquiry.invoice_id}`}
+            trackingToken={trackingToken}
+            invoiceId={inquiry.order.invoice_id || inquiry.invoice_id}
+            onConfirmed={() => setReloadKey(k => k + 1)}
+          />}
           {(journey || offersPayment) && (
             <div className="mt-5 pt-5 border-t border-tea-border">
               <OrderJourneyStatus journey={journey}>

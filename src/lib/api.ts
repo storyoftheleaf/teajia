@@ -1,3 +1,4 @@
+import type { TrackedOrder } from './orderTrackingTypes';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput, StudioReceiptReferral, StudioReceiptReferralInput } from './logisticsTypes';
@@ -3403,47 +3404,7 @@ export const api = {
       return saved;
     },
 
-    getByTrackingToken: async (token: string, invoiceId?: string): Promise<{
-      invoices?: Array<{ invoice_id: string; invoice_number: string; status: string }>;
-      ref_number: string;
-      invoice_id?: string | null;
-      invoice_number?: string | null;
-      order?: {
-        invoice_id: string;
-        invoice_number: string;
-        status: string;
-        fulfillment_method?: 'bali_pickup' | 'us_shipping' | null;
-        shipping_cost_usd?: number | null;
-        shipping_quote_status?: 'requested' | 'confirmed' | null;
-        shipping_status?: string | null;
-        shipped_at?: string | null;
-        shipping_destination?: string | null;
-        tracking_number?: string | null;
-        payment_status?: string | null;
-        fulfilled_at?: string | null;
-        refund_required?: boolean;
-        refunded_usd?: number;
-        refund_due_usd?: number;
-      } | null;
-      payment_status?: 'unpaid' | 'partial' | 'paid';
-      shipping_destination?: string | null;
-      tracking_number?: string | null;
-      fulfilled_at?: string | null;
-      notification_status?: string | null;
-      contact?: { whatsapp: string | null; email?: string | null };
-      invoice_items?: Array<{ id: string; product_id?: string | null; name: string; quantity: number; quantity_unit?: 'g' | 'unit'; unit_price_usd: number; line_total_usd: number }>;
-      items_json: string;
-      status: string;
-      total_estimate_usd: number;
-      currency: string;
-      created_at: string;
-      // Null until the request has been priced into an invoice. There is
-      // nothing to pay before that.
-      payment: InvoicePayment | null;
-      // Where the order stands, derived. `status` above is still the operator's
-      // own filing word and is NOT what the customer should be shown.
-      journey: OrderJourney;
-    } | null> => {
+    getByTrackingToken: async (token: string, invoiceId?: string): Promise<TrackedOrder | null> => {
       // The plaintext token is in the path, and the incident reporter files the
       // path it failed on. A signed-in customer hitting a 5xx here would come to
       // rest with their private order key in the incident ledger, which platform

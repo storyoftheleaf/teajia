@@ -1,3 +1,4 @@
+import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from './paypalSandbox';
 import { listPrivateSessionReflections, readPrivateSessionReflection, writePrivateSessionReflection } from './privateSessionReflections';
 import { claimReceivedCard, listReceivedCards } from './memberReceivedCards';
 import { sharedSessionVerdict } from './sessionVerdictProjection';
@@ -180,7 +181,7 @@ import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
-interface Env extends WorkerReleaseEnv {
+interface Env extends WorkerReleaseEnv, PayPalSandboxEnv {
   DB: D1Database;
   SHOP_PICKUP_ACCOUNT_ID?: string;
   SHOP_US_SHIPPING_ACCOUNT_ID?: string;
@@ -5078,6 +5079,64 @@ const handleCreateOrderPaymentClaim: Handler = async (request, env, params) => {
     name: (inquiry.name as string | null) || invoice.customer_name,
     contact: (inquiry.email as string | null) || (inquiry.phone as string | null) || null,
   });
+};
+
+// Sandbox credentials are separate and cannot be used on a non-loopback request.
+const handlePayPalSandbox: Handler = async (request, env, params) => {
+  if (!paypalSandboxEnabled(request, env)) return request.method === 'GET'
+    ? json({ enabled: false }) : json({ error: 'Sandbox checkout is not configured.' }, 404);
+  if (!isValidTrackingToken(params.ref)) return json({ error: 'Order not found.' }, 404);
+  const input = request.method === 'POST' ? await request.clone().json().catch(() => null) as Record<string, unknown> | null : null;
+  const selection = input?.invoice_id ?? new URL(request.url).searchParams.get('invoice');
+  if (selection != null && (typeof selection !== 'string' || selection.length > 128)) return json({ error: 'Order not found.' }, 404);
+  const inquiry = await env.DB.prepare('SELECT id,account_id,converted_invoice_id FROM inquiries WHERE tracking_token_hash=? AND account_id=?')
+    .bind(await sha256Hex(params.ref), env.PAYPAL_SANDBOX_ACCOUNT_ID).first<{ id: string; account_id: string; converted_invoice_id: string }>();
+  if (!inquiry?.converted_invoice_id) return json({ error: 'Order not found.' }, 404);
+  const invoiceId = String(selection || inquiry.converted_invoice_id);
+  const associated = await env.DB.prepare(`SELECT id FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL AND (id=? OR source_inquiry_id=?)`)
+    .bind(invoiceId, inquiry.account_id, inquiry.converted_invoice_id, inquiry.id).first();
+  if (!associated) return json({ error: 'Order not found.' }, 404);
+  const lease = request.method === 'POST' ? await claimInvoiceLinkLease(env, inquiry.account_id, invoiceId) : null;
+  if (request.method === 'POST' && !lease) return json({ error: 'Order is being updated. Retry shortly.' }, 409);
+  try {
+    return await paypalSandboxRoutes(request, env, params.ref, {
+      load: async () => {
+        const invoice = await loadLedgerInvoice(env, invoiceId, inquiry.account_id);
+        if (!invoice) return json({ error: 'Order not found.' }, 404);
+        const returningOrder = input?.order_id ?? new URL(request.url).searchParams.get('order_id');
+        const storedReceipt = typeof returningOrder === 'string' ? await env.DB.prepare(`SELECT capture_id FROM paypal_sandbox_orders
+          WHERE paypal_order_id=? AND invoice_id=? AND account_id=?`)
+          .bind(returningOrder, invoiceId, inquiry.account_id).first() : null;
+        if (!storedReceipt && invoice.status !== 'Pending') return json({ error: 'Confirm this order and delivery quote before test payment.' }, 409);
+        const hold = (await loadCheckoutPaymentHolds(env, [invoiceId])).get(invoiceId);
+        if (!storedReceipt && (!hold || checkoutPaymentRefusal(hold))) return json({ error: 'The order hold expired. Confirm availability before test payment.' }, 409);
+        const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
+        const money = invoiceMoney(invoice.total_usd, invoice.payment_status, ledger.get(invoiceId));
+        const items = await currentInvoiceItems(env, inquiry.account_id, invoiceId);
+        // Prices, quantities and the original deadline all bind this provider order to a reviewed quote.
+        const quoteKey = await sha256Hex(JSON.stringify({ invoiceId, items: items.map(item => [item.id,item.product_id,item.quantity,item.quantity_unit,item.unit_price_usd]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))), total:invoice.total_usd, outstanding:money.outstanding_usd, deadline:hold?.payment_deadline }));
+        return { id: invoiceId, account_id: inquiry.account_id, invoice_number: invoice.invoice_number,
+          amount_usd: money.outstanding_usd, quote_key: quoteKey, deadline: hold?.payment_deadline || '', capture_allowed: invoice.status === 'Pending' && Boolean(hold && !checkoutPaymentRefusal(hold)) };
+      },
+      settle: async receipt => {
+        const invoice = await loadLedgerInvoice(env, invoiceId, inquiry.account_id);
+        if (!invoice || invoice.status === 'Void') throw new Error('sandbox_invoice_unavailable');
+        await reconcileLedgerWithColumn(env, invoice);
+        const recorded = await insertInvoicePayment(env, { invoice, amount: receipt.amount_usd,
+          fields: { amount: receipt.amount_usd, amountOriginal: receipt.amount_usd, currency: 'USD',
+            methodLabel: 'PayPal Sandbox · test only', reference: receipt.capture_id, note: 'Verified sandbox capture; no real money.' },
+          claimedBy: 'operator', status: 'confirmed', requestId: 'sandbox_paypal_' + receipt.capture_id });
+        const result = await recomputeInvoicePaymentStatus(env, invoice);
+        // Stock confirmation owns the same lease, so give it back after the verified ledger write.
+        if (lease) await releaseInvoiceLinkLease(env, inquiry.account_id, invoiceId, lease.claimToken);
+        const account = await env.DB.prepare('SELECT owner_user_id FROM accounts WHERE id=?').bind(inquiry.account_id).first<{ owner_user_id: string | null }>();
+        const stock = result.payment_status === 'paid' && account?.owner_user_id
+          ? await applyConfirmedPaymentStock(env, invoiceId, { accountId: inquiry.account_id, userId: account.owner_user_id, role: 'owner' })
+          : { state: 'not_due' };
+        return { ...result, payment_id: recorded.id, idempotent: !recorded.inserted, stock };
+      },
+    });
+  } finally { if (lease) await releaseInvoiceLinkLease(env, inquiry.account_id, invoiceId, lease.claimToken); }
 };
 
 // POST /api/me/orders/:id/payment-claim — signed in, scoped the way
@@ -14568,7 +14627,7 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 // ── Cart Inquiries ──────────────────────────────────────────────────────────
 
 async function currentInvoiceItems(env:Env,accountId:string,invoiceId:string){
- const rows=await env.DB.prepare(`SELECT l.id,l.product_id,COALESCE(l.custom_name,p.given_name,p.product_name,'Item') AS name,l.quantity,COALESCE(l.quantity_unit,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END) AS quantity_unit,l.price_at_sale AS unit_price_usd,ROUND(l.quantity*l.price_at_sale,2) AS line_total_usd FROM invoice_line_items l LEFT JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all<{ line_total_usd: number }>();return rows.results;
+ const rows=await env.DB.prepare(`SELECT l.id,l.product_id,COALESCE(l.custom_name,p.given_name,p.product_name,'Item') AS name,l.quantity,COALESCE(l.quantity_unit,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END) AS quantity_unit,l.price_at_sale AS unit_price_usd,ROUND(l.quantity*l.price_at_sale,2) AS line_total_usd FROM invoice_line_items l LEFT JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all<{ id: string; product_id: string | null; name: string; quantity: number; quantity_unit: 'g' | 'unit'; unit_price_usd: number; line_total_usd: number }>();return rows.results;
 }
 const PICKUP_DESTINATION = 'In-person pickup in Bali, Indonesia';
 
@@ -30528,6 +30587,9 @@ const routes: [string, string, Handler][] = [
   ['POST','/api/inquiries/:ref/claim',handleClaimInquiry],
   ['GET', '/api/inquiries/:ref', handleGetInquiryByRef],
   ['POST', '/api/orders/:ref/payment-claim', handleCreateOrderPaymentClaim],
+  ['GET', '/api/orders/:ref/paypal-sandbox', handlePayPalSandbox],
+  ['POST', '/api/orders/:ref/paypal-sandbox', handlePayPalSandbox],
+  ['POST', '/api/orders/:ref/paypal-sandbox/capture', handlePayPalSandbox],
   ['POST', '/api/inquiries/:id/convert', handleConvertInquiry],
   ['GET', '/api/admin/inquiries', handleGetInquiries],
   ['PATCH', '/api/admin/inquiries/:id/status', handleUpdateInquiryStatus],
