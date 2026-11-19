@@ -5,7 +5,7 @@ import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, ArticleDraftInput, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, ReadIssueStory, ReviewedDbArticle, TastingData } from '../types';
 import type {
   FavoriteWrite,
   PaymentMethod,
@@ -2701,7 +2701,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ session_notes: sessionNotes }),
       }),
-    createArticleDraft: (id: string): Promise<{ existing: boolean; article: DbArticle }> =>
+    createArticleDraft: (id: string): Promise<{ existing: boolean; article: ReviewedDbArticle }> =>
       authedFetch(`${API_URL}/api/admin/events/${id}/article-draft`, { method: 'POST' }),
     duplicate: async (id: string, input: { slug: string; eventDate: string }) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/duplicate`, {
@@ -4839,36 +4839,46 @@ export const api = {
     list: async (status?: string): Promise<DbArticle[]> => {
       return authedFetch(`${API_URL}/api/admin/articles${status ? `?status=${status}` : ''}`);
     },
-    get: async (id: string): Promise<DbArticle> => {
+    get: async (id: string): Promise<ReviewedDbArticle> => {
       return authedFetch(`${API_URL}/api/admin/articles/${id}`)
     },
-    create: async (data: Partial<DbArticle>): Promise<DbArticle> => {
+    create: async (data: ArticleDraftInput): Promise<ReviewedDbArticle> => {
       return authedFetch(`${API_URL}/api/admin/articles`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
-    update: async (id: string, data: Partial<DbArticle>): Promise<DbArticle> => {
+    update: async (id: string, data: ArticleDraftInput, reviewDigest: string): Promise<ReviewedDbArticle> => {
       return authedFetch(`${API_URL}/api/admin/articles/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, review_digest: reviewDigest }),
       });
     },
-    publish: async (id: string) => {
+    publish: async (id: string, reviewDigest: string): Promise<ReviewedDbArticle> => {
       return authedFetch(`${API_URL}/api/admin/articles/${id}/publish`, {
         method: 'POST',
+        body: JSON.stringify({ review_digest: reviewDigest }),
       });
     },
-    unpublish: async (id: string) => {
+    unpublish: async (id: string, reviewDigest: string): Promise<ReviewedDbArticle> => {
       return authedFetch(`${API_URL}/api/admin/articles/${id}/unpublish`, {
         method: 'POST',
+        body: JSON.stringify({ review_digest: reviewDigest }),
       });
     },
-    delete: async (id: string) => {
+    delete: async (id: string, reviewDigest: string): Promise<{ success: boolean }> => {
       return authedFetch(`${API_URL}/api/admin/articles/${id}`, {
         method: 'DELETE',
+        body: JSON.stringify({ review_digest: reviewDigest }),
       });
     },
+    approveEdition: (id: string, reviewDigest: string, candidateId: string, place: boolean): Promise<{ placed: boolean }> =>
+      authedFetch(`${API_URL}/api/admin/articles/${id}/approve-edition`, {
+        method: 'POST',
+        body: JSON.stringify({ review_digest: reviewDigest, candidate_id: candidateId, place }),
+      }),
+    readIssue: async (): Promise<{ story: ReadIssueStory | null }> =>
+      handleResponse(await fetchWithTimeout(`${API_URL}/api/read/editorial-issue`)),
     // Public
     listPublished: async (limit = 20, offset = 0) => {
       const res = await fetchWithTimeout(
@@ -4917,21 +4927,25 @@ export const api = {
       }
       return optionallyAuthedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}`);
     },
-    saveDraft: async (slug: string, content: any): Promise<{ ok: true }> => {
+    getDraftForReview: async <T,>(slug: string): Promise<{ content: T; review_digest: string | null }> => {
+      return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}?state=draft&review=1`);
+    },
+    saveDraft: async (slug: string, content: any): Promise<{ ok: true; review_digest: string }> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/draft`, {
         method: 'PUT',
         body: JSON.stringify({ content }),
       });
     },
-    publish: async (slug: string): Promise<{ ok: true }> => {
+    publish: async (slug: string, reviewDigest: string): Promise<{ ok: true; review_digest: string }> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/publish`, {
         method: 'POST',
+        body: JSON.stringify({ review_digest: reviewDigest }),
       });
     },
     versions: async (slug: string): Promise<{ id: string; label: string | null; created_at: string }[]> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/versions`);
     },
-    restore: async (slug: string, versionId: string): Promise<{ ok: true; content: any }> => {
+    restore: async <T,>(slug: string, versionId: string): Promise<{ ok: true; content: T; review_digest: string }> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/restore/${encodeURIComponent(versionId)}`, {
         method: 'POST',
       });

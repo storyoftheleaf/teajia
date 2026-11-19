@@ -17,7 +17,6 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import type { DbArticle } from '../../types';
 import {
   C, F, ImmersiveRoot, ProgressTrack,
   useReadingProgress, useImmersiveChrome, useReveals,
@@ -25,18 +24,6 @@ import {
 } from './immersive';
 import { isArticleVisible, useIsReadOwner, useReadPublishState } from './publishGate';
 import type { ReadPublishOverrides } from './articleLive';
-
-// ── Seed-article filter (kept from original ReadIndex) ───────────────────────
-const SEED_ARTICLE_TITLES = new Set([
-  'Into the Wuyi Mountains',
-  'Laoshan Green',
-  'A Conversation with Master Lin',
-  'Tea in the Kitchen',
-  'Origin Story',
-]);
-function isRealArticle(a: { title?: string }): boolean {
-  return !!a.title && !SEED_ARTICLE_TITLES.has(a.title.trim());
-}
 
 // Spell small counts as words for the editorial masthead ("Three pieces"),
 // falling back to digits past the curated set. Exported so the Craft index
@@ -308,21 +295,12 @@ const ReadIndex: React.FC = () => {
   // agree on who counts as the owner.
   const isAdmin = useIsReadOwner();
 
-  // Published articles from the DB, machinery kept from original ReadIndex.
-  // The primary content surface is now the curated 14-piece index, but the
-  // query is retained so published articles remain available if needed.
-  const { data: published } = useQuery<DbArticle[]>({
-    queryKey: ['read-published-articles'],
-    queryFn: async () => {
-      const res = await api.articles.listPublished(40, 0);
-      const list = Array.isArray(res) ? res : (res?.articles ?? res?.data ?? []);
-      return list as DbArticle[];
-    },
+  const { data: issue } = useQuery({
+    queryKey: ['read-editorial-issue'],
+    queryFn: api.articles.readIssue,
+    staleTime: 0,
   });
-
-  // Suppress unused-variable warning, the query is kept for future use.
-  void published;
-  void isRealArticle;
+  const placedStory = issue?.story;
 
   // How many pieces the current audience can see. A visitor counts only live
   // pieces; the owner counts all of them. Drives the masthead + contents labels.
@@ -417,11 +395,17 @@ const ReadIndex: React.FC = () => {
               piece is live; the owner always sees the full designed rail. When
               a visitor has no live featured pieces, the rail hides entirely so
               the page never shows a broken or empty feature. */}
-          <aside className="tj-rail" style={{ position: 'sticky', top: 88, display: (canSee('/read/porcelain-and-tea') || canSee('/read/legend') || canSee('/read/tea-house')) ? 'block' : 'none' }}>
+          <aside className="tj-rail" style={{ position: 'sticky', top: 88, display: (placedStory || canSee('/read/porcelain-and-tea') || canSee('/read/legend') || canSee('/read/tea-house')) ? 'block' : 'none' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.dim, marginBottom: 18 }}>
               This issue
             </div>
 
+            {placedStory && <Link to={`/article/${encodeURIComponent(placedStory.slug)}`}
+              className="mb-4 block rounded-md border border-tea-border bg-tea-surface p-3 text-tea-text">
+              {placedStory.cover_image_url && <img src={placedStory.cover_image_url} alt="" className="mb-2 aspect-video w-full rounded-md object-cover" />}
+              <span className="block font-semibold">{placedStory.title}</span>
+              {placedStory.author_name && <span className="block text-ui-13 text-tea-text-sec">By {placedStory.author_name}</span>}
+            </Link>}
             {canSee('/read/porcelain-and-tea') && <LeadCover />}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>

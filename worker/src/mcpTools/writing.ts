@@ -1,10 +1,12 @@
 import { compassStateForSample } from '../curateSampleBridge';
 import { captureCurateSampleGuards, prepareCurateRecordedWrite, requireCurateManager, type CurateRecordedChange, type CurateGuard } from '../curateMutations';
 import { sha256Hex } from '../inquiryDomain';
+import { ARTICLE_PUBLICATION_REVIEW, commitArticlePublication, stageNativeArticle, readArticleReview, STALE_ARTICLE_REVIEW, unpackArticleReview } from '../articlePublicationReview';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET, PENDING_TTL_MS, consumeTicket as consumeShared, issueTicket } from './tickets';
 import { isWordforgeManagedArticle } from '../wordforgeArticleDraft';
 import { buildEventArticleDraft } from '../eventArticleDraft';
+import { readEditorialPilot } from '../articleEditorialPilot';
 
 /**
  * The journal, and the sample shelf: the two things Adrian works on that an
@@ -88,14 +90,14 @@ type WritingMutation =
     }
   | {
       kind: 'writing.update_article_draft';
-      accountId: string; userEmail: string; articleId: string;
+      accountId: string; userEmail: string; articleId: string; reviewDigest: string;
       /** Only columns the caller actually named. A column absent here is untouched. */
       fields: Record<string, string | number | null>;
     }
   | {
       kind: 'writing.set_article_published';
       accountId: string; userEmail: string; articleId: string;
-      published: boolean; publishedAt: string | null;
+      published: boolean; publishedAt: string | null; reviewDigest: string;
     }
   | {
       kind: 'writing.draft_article_from_event';
@@ -295,9 +297,8 @@ const ARTICLE_UPDATABLE = new Set([
 const WORDFORGE_PROTECTED = new Set(['title', 'subtitle', 'slug', 'category', 'tags', 'blocks']);
 
 async function loadArticle(env: ToolEnv, accountId: string, articleId: string) {
-  return await env.DB.prepare(
-    'SELECT * FROM articles WHERE id = ? AND account_id = ?'
-  ).bind(articleId, accountId).first() as Record<string, any> | null;
+  const row = await readArticleReview(env.DB, accountId, articleId);
+  return row ? { ...row, ...(await unpackArticleReview(row)).article } : null;
 }
 
 async function logWriting(
@@ -520,8 +521,8 @@ const toolUpdateArticleDraft: ToolHandler = async (env, auth, args) => {
     if (named.length === 0) {
       throw new Error('Name at least one of: title, subtitle, slug, category, tags, cover_image_url, pull_quote, reading_time_mins, body');
     }
-    if (named.some(field => WORDFORGE_PROTECTED.has(field))
-      && await isWordforgeManagedArticle(env.DB, auth.accountId, articleId)) {
+    if (existing.approved_source_revision_id || (named.some(field => WORDFORGE_PROTECTED.has(field))
+      && await isWordforgeManagedArticle(env.DB, auth.accountId, articleId))) {
       return {
         error: 'externally_managed_article',
         detail: 'This article\'s prose is written in WordForge and re-synced from there. An edit made here would be overwritten without notice.',
@@ -530,7 +531,7 @@ const toolUpdateArticleDraft: ToolHandler = async (env, auth, args) => {
 
     const token = await issueTicket(env, {
       kind: 'writing.update_article_draft',
-      accountId: auth.accountId, userEmail: auth.userEmail, articleId, fields,
+      accountId: auth.accountId, userEmail: auth.userEmail, articleId, fields, reviewDigest: (await unpackArticleReview(existing as any)).reviewDigest,
     }, auth.tokenId);
 
     return {
@@ -538,9 +539,7 @@ const toolUpdateArticleDraft: ToolHandler = async (env, auth, args) => {
         action: 'update_article_draft',
         article: { id: articleId, title: existing.title, slug: existing.slug, status: existing.status },
         changing: named,
-        // Editing a published piece changes what is live the moment it commits.
-        // The admin route allows it; the caller should know which it is doing.
-        live_now: existing.status === 'published',
+        live_now: false,
       },
       confirmation_token: token,
       expires_in_seconds: PENDING_TTL_MS / 1000,
@@ -560,10 +559,21 @@ const toolUpdateArticleDraft: ToolHandler = async (env, auth, args) => {
     && await isWordforgeManagedArticle(env.DB, m.accountId, m.articleId)) {
     return { error: 'externally_managed_article' };
   }
-  await env.DB.prepare(
+  const reviewed = await readArticleReview(env.DB, m.accountId, m.articleId);
+  if (!reviewed) return { error: 'not_found' };
+  const review = await unpackArticleReview(reviewed);
+  if (review.reviewDigest !== m.reviewDigest) return STALE_ARTICLE_REVIEW;
+  if (reviewed.status === 'published' || reviewed.published_at) {
+    const staged = await stageNativeArticle(env.DB, m.accountId, m.articleId, m.fields, reviewed);
+    if (!staged) return STALE_ARTICLE_REVIEW;
+    await logWriting(env, m.accountId, m.userEmail, 'ARTICLE_UPDATED_MCP', 'Private replacement staged via MCP', 'article', m.articleId);
+    return { committed: true, action: 'update_article_draft', changed: cols, article: articleToApi((await unpackArticleReview(staged)).article) };
+  }
+  const edited = await env.DB.prepare(
     `UPDATE articles SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = datetime('now')
-      WHERE id = ? AND account_id = ?`
-  ).bind(...cols.map(c => m.fields[c]), m.articleId, m.accountId).run();
+      WHERE id = ? AND account_id = ? AND approved_source_revision_id IS NULL AND ${ARTICLE_PUBLICATION_REVIEW} = ?`
+  ).bind(...cols.map(c => m.fields[c]), m.articleId, m.accountId, review.snapshot).run();
+  if (!edited.meta.changes) return { error: 'externally_managed_article' };
 
   await logWriting(env, m.accountId, m.userEmail, 'ARTICLE_UPDATED_MCP',
     `Article updated via MCP: ${cols.join(', ')}`, 'article', m.articleId);
@@ -579,27 +589,29 @@ const toolSetArticlePublished: ToolHandler = async (env, auth, args) => {
   const published = args.published as boolean;
   const confirm = args?.confirm ? String(args.confirm) : null;
 
-  const existing = await loadArticle(env, auth.accountId, articleId);
+  const existing = await readArticleReview(env.DB, auth.accountId, articleId);
   if (!existing) return { error: 'not_found' };
+  const { article, snapshot, productIds, reviewDigest } = await unpackArticleReview(existing);
 
   if (!confirm) {
     // Re-publishing keeps the original date. A piece that was public in March
     // and is corrected in September is still a March piece, and the journal
     // orders by published_at — moving it would silently reorder the archive.
-    const publishedAt = published ? (existing.published_at || new Date().toISOString()) : null;
+    const publishedAt = published ? (article.published_at || new Date().toISOString()) : null;
     const token = await issueTicket(env, {
       kind: 'writing.set_article_published',
-      accountId: auth.accountId, userEmail: auth.userEmail, articleId, published, publishedAt,
+      accountId: auth.accountId, userEmail: auth.userEmail, articleId, published, publishedAt, reviewDigest,
     }, auth.tokenId);
 
     return {
       preview: {
         action: 'set_article_published',
-        article: { id: articleId, title: existing.title, slug: existing.slug },
-        current_status: existing.status,
+        article: { ...articleToApi(article), linked_product_ids: parseJsonArray(productIds) },
+        review_digest: reviewDigest,
+        current_status: article.status,
         new_status: published ? 'published' : 'draft',
-        already_in_target_state: existing.status === (published ? 'published' : 'draft'),
-        published_at: published ? publishedAt : existing.published_at,
+        already_in_target_state: article.status === (published ? 'published' : 'draft'),
+        published_at: published ? publishedAt : article.published_at,
         public_effect: published
           ? 'The article becomes readable at /journal and is served by the public article API.'
           : 'The article returns to draft and disappears from the public journal. Its published_at date is kept, so re-publishing restores the original date.',
@@ -610,28 +622,24 @@ const toolSetArticlePublished: ToolHandler = async (env, auth, args) => {
   }
 
   const m = await consumeShared<WritingMutation, 'writing.set_article_published'>(env, confirm, 'writing.set_article_published', auth);
-  if (!m || m.articleId !== articleId) return INVALID_TICKET;
-
-  if (m.published) {
-    await env.DB.prepare(
-      `UPDATE articles SET status = 'published', published_at = ?, updated_at = datetime('now')
-        WHERE id = ? AND account_id = ?`
-    ).bind(m.publishedAt, m.articleId, m.accountId).run();
-  } else {
-    // published_at is deliberately left standing, exactly as the unpublish
-    // route leaves it.
-    await env.DB.prepare(
-      `UPDATE articles SET status = 'draft', updated_at = datetime('now')
-        WHERE id = ? AND account_id = ?`
-    ).bind(m.articleId, m.accountId).run();
+  if (!m || m.articleId !== articleId || m.published !== published) return INVALID_TICKET;
+  if (m.reviewDigest !== reviewDigest) return STALE_ARTICLE_REVIEW;
+  if (published && (existing.approved_source_revision_id
+    || (auth.accountId === env.EDITORIAL_PILOT_ACCOUNT_ID && await readEditorialPilot(env.DB, auth.accountId, articleId)))) {
+    return { error: 'article_edition_required', detail: 'Approve this WordForge edition in the Magazine editor.' };
   }
+
+  const updated = await commitArticlePublication(env.DB, {
+    accountId: m.accountId, articleId: m.articleId, status: m.published ? 'published' : 'draft',
+    publishedAt: m.publishedAt, snapshot,
+  });
+  if (!updated) return STALE_ARTICLE_REVIEW;
 
   await logWriting(env, m.accountId, m.userEmail,
     m.published ? 'ARTICLE_PUBLISHED_MCP' : 'ARTICLE_UNPUBLISHED_MCP',
-    `Article "${existing.title}" ${m.published ? 'published' : 'unpublished'} via MCP`, 'article', m.articleId);
+    `Article "${article.title}" ${m.published ? 'published' : 'unpublished'} via MCP`, 'article', m.articleId);
 
-  const updated = await loadArticle(env, m.accountId, m.articleId);
-  return { committed: true, action: 'set_article_published', article: updated ? articleToApi(updated) : null };
+  return { committed: true, action: 'set_article_published', article: articleToApi((await unpackArticleReview(updated)).article) };
 };
 
 const toolDraftArticleFromEvent: ToolHandler = async (env, auth, args) => {

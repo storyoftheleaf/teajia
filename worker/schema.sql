@@ -2027,7 +2027,11 @@ CREATE TABLE IF NOT EXISTS articles (
   pull_quote TEXT,
   pull_quote_subject TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  publication_generation INTEGER NOT NULL DEFAULT 0,
+  approved_source_revision_id TEXT REFERENCES wordforge_article_revisions(id),
+  read_issue_slot TEXT,
+  editorial_receipt_id TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
 CREATE INDEX IF NOT EXISTS idx_articles_account_status ON articles(account_id, status);
@@ -3395,3 +3399,39 @@ CREATE TABLE IF NOT EXISTS private_session_reflections (
   FOREIGN KEY(attendee_id, event_id, account_id) REFERENCES event_attendees(id, event_id, account_id)
 );
 CREATE INDEX IF NOT EXISTS idx_session_reflections_owner ON private_session_reflections(account_id, user_id, updated_at);
+
+-- Private WordForge intake history. The source mapping owns the account and
+-- points to the compatibility article row. These payloads are never published
+-- by the receiver.
+CREATE TABLE wordforge_article_revisions (
+  id TEXT PRIMARY KEY,
+  external_source_id TEXT NOT NULL REFERENCES article_external_sources(id) ON DELETE CASCADE,
+  source_revision INTEGER NOT NULL CHECK (source_revision > 0),
+  content_hash TEXT NOT NULL,
+  assigned_slug TEXT NOT NULL,
+  source_article_json TEXT NOT NULL,
+  received_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (external_source_id, source_revision)
+);
+
+CREATE UNIQUE INDEX idx_article_read_issue_slot ON articles(account_id, read_issue_slot) WHERE read_issue_slot IS NOT NULL;
+
+CREATE TABLE article_editorial_receipts (
+  id TEXT PRIMARY KEY,
+  article_id TEXT NOT NULL REFERENCES articles(id),
+  actor_id TEXT NOT NULL,
+  review_digest TEXT NOT NULL,
+  candidate_id TEXT NOT NULL REFERENCES wordforge_article_revisions(id),
+  public_generation INTEGER NOT NULL,
+  prior_edition_json TEXT,
+  approved_edition_json TEXT NOT NULL,
+  read_issue_slot TEXT,
+  approved_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Private replacement candidates for native articles. No existing rows change.
+CREATE TABLE article_native_drafts (
+  article_id TEXT PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+  base_generation INTEGER NOT NULL,
+  draft_json TEXT NOT NULL CHECK(json_valid(draft_json))
+);

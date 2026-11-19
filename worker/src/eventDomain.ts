@@ -7,7 +7,7 @@ export type EventLifecycle =
   | 'archived';
 
 export const EVENT_TRANSITIONS: Readonly<Record<EventLifecycle, readonly EventLifecycle[]>> =
-  Object.freeze({
+  Object.freeze<Record<EventLifecycle, readonly EventLifecycle[]>>({
     draft: Object.freeze(['published', 'cancelled']),
     published: Object.freeze(['registration_closed', 'cancelled']),
     registration_closed: Object.freeze(['completed', 'cancelled']),

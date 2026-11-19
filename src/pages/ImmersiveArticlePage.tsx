@@ -1,5 +1,5 @@
 // src/pages/ImmersiveArticlePage.tsx
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
@@ -55,11 +55,16 @@ export default function ImmersiveArticlePage() {
       <GlossaryScope>
         <TermStyle />
         <article className="pb-nav-gap">
-          {article.blocks.map((block, i) => renderBlock(block, i, {
+          {article.blocks.map((block, i) => <Fragment key={i}>
+            {renderBlock(block, i, {
             terms,
             onShare: () => setShareOpen(true),
             quoteAnchor: article.pull_quote && article.pull_quote_subject ? { text: article.pull_quote, id: `quote-${article.pull_quote_subject}` } : null,
-          }))}
+            })}
+            {i === 0 && article.author_name && <p className="mx-auto max-w-2xl px-6 pt-6 text-ui-14 text-tea-text-sec">
+              {article.author_id ? <a href={`/people/${encodeURIComponent(article.author_id)}`}>By {article.author_name}</a> : <>By {article.author_name}</>}
+            </p>}
+          </Fragment>)}
         </article>
       </GlossaryScope>
       {shareOpen && <SharePanel page={null} article={article} onClose={() => setShareOpen(false)} />}

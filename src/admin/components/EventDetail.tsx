@@ -22,7 +22,7 @@ import { VenueManager } from './VenueManager';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { ArticleEditorModal } from './ArticleEditorModal';
-import type { DbArticle } from '../../types';
+import type { ReviewedDbArticle } from '../../types';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 const statusToVariant = (status: EventStatus): StatusPillVariant => {
@@ -381,7 +381,7 @@ export const EventDetail: React.FC = () => {
   const [confirmClose, setConfirmClose] = useState(false);
   const [savingBriefing, setSavingBriefing] = useState(false);
   const [briefingCards, setBriefingCards] = useState<BriefingCard[] | null>(null);
-  const [draftArticle, setDraftArticle] = useState<DbArticle | null>(null);
+  const [draftArticle, setDraftArticle] = useState<ReviewedDbArticle | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [draftExisting, setDraftExisting] = useState(false);
   const draftEventIdRef = useRef(id);

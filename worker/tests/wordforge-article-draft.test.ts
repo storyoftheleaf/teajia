@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { decodeWordforgeDraft } from '../src/wordforgeArticleDraft';
 import { seedIdentity, signedToken, SqliteD1 } from './helpers/sqliteD1';
+import { hashWordforgeDraft } from './helpers/wordforgeDraftHash';
 
 const fixture = JSON.parse(readFileSync(join(process.cwd(), 'worker/tests/fixtures/teajia-wordforge-draft.v1.json'), 'utf8'));
 const integrationEnv = (db: SqliteD1, overrides: Record<string, unknown> = {}) => ({
@@ -90,22 +91,22 @@ describe('PUT WordForge article draft integration', () => {
   });
 
   it('creates once, no-ops an identical revision, and updates the same draft for a newer revision', async () => {
-    const db = new SqliteD1();
+    const db = new SqliteD1('migrations');
     db.sqlite.prepare("INSERT INTO accounts (id, slug, name, status) VALUES (?, ?, ?, 'active')").run('acc-wordforge', 'wordforge', 'WordForge');
     const first = await worker.fetch(request(), integrationEnv(db));
     expect(first.status).toBe(201);
     const created = await first.json() as any;
-    expect(created).toMatchObject({ created: true, unchanged: false, source_revision: 1 });
+    expect(created).toMatchObject({ created: true, unchanged: false, source_revision: 1, candidate_id: expect.any(String) });
     expect(db.sqlite.prepare('SELECT status, account_id FROM articles WHERE id = ?').get(created.article_id)).toMatchObject({ status: 'draft', account_id: 'acc-wordforge' });
 
     const same = await worker.fetch(request(), integrationEnv(db));
     expect(same.status).toBe(200);
-    expect(await same.json()).toMatchObject({ article_id: created.article_id, created: false, unchanged: true });
+    expect(await same.json()).toMatchObject({ article_id: created.article_id, candidate_id: created.candidate_id, created: false, unchanged: true });
 
     const newer = structuredClone(fixture);
     newer.source.revision = 2;
-    newer.source.content_hash = 'f'.repeat(64);
     newer.article.title = 'Listening to the Mountain, Revised';
+    newer.source.content_hash = hashWordforgeDraft(newer);
     const updated = await worker.fetch(request(newer), integrationEnv(db));
     expect(updated.status).toBe(200);
     expect(await updated.json()).toMatchObject({ article_id: created.article_id, source_revision: 2, unchanged: false });
@@ -115,12 +116,16 @@ describe('PUT WordForge article draft integration', () => {
   });
 
   it('rejects conflicting revisions and source IDs', async () => {
-    const db = new SqliteD1();
+    const db = new SqliteD1('migrations');
     db.sqlite.prepare("INSERT INTO accounts (id, slug, name, status) VALUES (?, ?, ?, 'active')").run('acc-wordforge', 'wordforge', 'WordForge');
     expect((await worker.fetch(request(fixture, 'receiver-secret', 'different'), integrationEnv(db))).status).toBe(400);
     expect((await worker.fetch(request(), integrationEnv(db))).status).toBe(201);
     const conflict = structuredClone(fixture);
-    conflict.source.content_hash = 'a'.repeat(64);
+    conflict.article.title = 'Different content with a reused revision';
+    const badHash = await worker.fetch(request(conflict), integrationEnv(db));
+    expect(badHash.status).toBe(400);
+    expect(await badHash.json()).toMatchObject({ code: 'wordforge_content_hash_mismatch' });
+    conflict.source.content_hash = hashWordforgeDraft(conflict);
     expect((await worker.fetch(request(conflict), integrationEnv(db))).status).toBe(409);
     const stale = structuredClone(fixture);
     stale.source.revision = 0;
@@ -140,7 +145,7 @@ describe('PUT WordForge article draft integration', () => {
 
 describe('WordForge-managed article administration', () => {
   it('protects external prose while leaving presentation and publication under Teajia control', async () => {
-    const db = new SqliteD1();
+    const db = new SqliteD1('migrations');
     const identity = seedIdentity(db, { accountId: 'acc-wordforge', bundles: ['publish'] });
     const received = await worker.fetch(request(), integrationEnv(db));
     const { article_id: articleId } = await received.json() as any;
@@ -151,19 +156,35 @@ describe('WordForge-managed article administration', () => {
       body: body ? JSON.stringify(body) : undefined,
     }), { DB: db, JWT_SECRET: 'jwt-secret' } as any);
 
-    const protectedUpdate = await admin(`/api/admin/articles/${articleId}`, 'PUT', { title: 'Locally rewritten' });
+    const articlePath = `/api/admin/articles/${articleId}`;
+    const review = async () => (await (await admin(articlePath, 'GET')).json() as { review_digest: string }).review_digest;
+    const protectedUpdate = await admin(articlePath, 'PUT', { title: 'Locally rewritten', review_digest: await review() });
     expect(protectedUpdate.status).toBe(409);
     expect(await protectedUpdate.json()).toMatchObject({ code: 'externally_managed_article' });
 
     const presentation = await admin(`/api/admin/articles/${articleId}`, 'PUT', {
       cover_image_url: 'https://images.example.test/local-cover.jpg', layout_template: 'immersive_scroll', reading_time_mins: 8,
+      review_digest: await review(),
     });
     expect(presentation.status).toBe(200);
     expect(await presentation.json()).toMatchObject({ cover_image_url: 'https://images.example.test/local-cover.jpg', layout_template: 'immersive_scroll', reading_time_mins: 8 });
 
-    expect((await admin(`/api/admin/articles/${articleId}/publish`, 'POST')).status).toBe(200);
+    const revision = structuredClone(fixture);
+    revision.source.revision = 2;
+    revision.article.title = 'Latest private draft';
+    revision.article.cover_image_url = 'https://images.example.test/new-sender-cover.jpg';
+    revision.source.content_hash = hashWordforgeDraft(revision);
+    expect((await worker.fetch(request(revision), integrationEnv(db))).status).toBe(200);
+    expect(await (await admin(`/api/admin/articles/${articleId}`, 'GET')).json()).toMatchObject({
+      title: revision.article.title,
+      cover_image_url: 'https://images.example.test/local-cover.jpg',
+      layout_template: 'immersive_scroll',
+      reading_time_mins: 8,
+    });
+
+    expect((await admin(`${articlePath}/publish`, 'POST', { review_digest: await review() })).status).toBe(200);
     expect(db.sqlite.prepare('SELECT status FROM articles WHERE id = ?').get(articleId)).toMatchObject({ status: 'published' });
-    expect((await admin(`/api/admin/articles/${articleId}/unpublish`, 'POST')).status).toBe(200);
+    expect((await admin(`${articlePath}/unpublish`, 'POST', { review_digest: await review() })).status).toBe(200);
     expect(db.sqlite.prepare('SELECT status FROM articles WHERE id = ?').get(articleId)).toMatchObject({ status: 'draft' });
     db.close();
   });

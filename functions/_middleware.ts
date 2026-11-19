@@ -361,10 +361,11 @@ async function productMeta(id: string, workerOrigin: URL, path: string): Promise
   }
 }
 
-async function articleMeta(slug: string, workerOrigin: URL): Promise<Meta | null> {
+export async function resolveArticleMeta(slug: string, workerOrigin: URL): Promise<Meta | null> {
   try {
     const res = await fetch(new URL(`/api/articles/${encodeURIComponent(slug)}`, workerOrigin), {
       headers: { 'X-Teajia-Account': 'acc_teajia_bali' },
+      cache: 'no-store',
       // short timeout via AbortSignal so a slow API never blocks the page
       signal: AbortSignal.timeout(2500),
     });
@@ -497,7 +498,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const workerOrigin = configuredWorkerOrigin(context.env.WORKER_ORIGIN);
       if (!workerOrigin) return Response.json({ error: 'API upstream is not configured.' }, { status: 503 });
       const slug = path.slice('/article/'.length);
-      meta = await articleMeta(slug, workerOrigin);
+      meta = await resolveArticleMeta(slug, workerOrigin);
     }
   }
 
