@@ -17,7 +17,7 @@ import { ContentType } from '../../types';
 
 import { AlcoveShell } from './alcove/AlcoveShell';
 import { AlcoveGallery } from './alcove/AlcoveGallery';
-import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
+import { AlcoveIdentityHeader, type PlateExtras } from './alcove/AlcoveIdentityHeader';
 import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
 import { AlcoveOriginLine } from './alcove/AlcoveOriginLine';
 import { AlcoveSectionHeading } from './alcove/AlcoveSectionHeading';
@@ -66,6 +66,10 @@ interface AlcoveCardProps {
    * Both layouts share the exact same state, handlers, and section blocks.
    */
   layout?: 'card' | 'page';
+  /** Page layout only: the family's picture in the plate, and a place to drop one of the member's own. */
+  plateExtras?: PlateExtras;
+  /** Page layout only: what sits directly under the plate (the member's thumbnails, the sold-out line). */
+  underPlate?: React.ReactNode;
 }
 
 /** Returns stock status info for display */
@@ -93,7 +97,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card', plateExtras, underPlate }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -465,6 +469,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             ? `One whole ${(wholePiece?.label ?? '').toLowerCase()} · ${wholePieceGrams}g`
             : undefined
         }
+        plateExtras={layout === 'page' ? plateExtras : undefined}
         productName={productName}
         givenName={givenName}
         teaType={teaType}
@@ -689,8 +694,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             percentage it stays 520 at 1440 and gets out of the way below it,
             capped so it never grows past what the file draws. */}
         <div className="lg:grid lg:grid-cols-[minmax(0,min(36%,520px))_minmax(0,1fr)] lg:items-stretch lg:gap-0">
-          <div className="lg:h-full lg:border-r lg:border-tea-border">
+          {/* With something under it the plate gives up its full-height stretch
+              to the column, so the strip sits below it instead of past the end. */}
+          <div className={`lg:h-full lg:border-r lg:border-tea-border${underPlate ? ' lg:flex lg:flex-col lg:[&>header]:h-auto lg:[&>header]:flex-1' : ''}`}>
             {identityHeader}
+            {/* The plate fills the column, which on a long tea is far taller than the
+                window, so the strip stays in view at the foot of the window. */}
+            {underPlate && <div className="lg:sticky lg:bottom-0 lg:z-10 lg:bg-tea-bg lg:pb-3">{underPlate}</div>}
           </div>
 
           {/* The reading, with what the shop knows at the top of it */}

@@ -25,6 +25,8 @@ import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { GroupHead, IndexRow, SplitName } from '../components/people/immersive';
+import { useTeaFamily } from '../components/shop/useTeaFamily';
+import { FromTheFamily, OwnPhotographRow, SoldOutUnderPlate } from '../components/shop/TeaFamilyStrips';
 
 
 interface ProductPageProps {
@@ -111,6 +113,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     staleTime: 1000 * 60 * 5,
   });
   const selectedBy = selectedByQuery.data?.selected_by ?? [];
+
+  // The family's photographs of this tea: the shop's lead picture, the strip of
+  // other people's shared ones and, signed in, the reader's own with their cover.
+  const family = useTeaFamily(item?.id, item?.name ?? '');
 
   // Tasting session (customers) / product tasting editor (admins): same
   // behaviors the shop grids attach to the modal card.
@@ -471,6 +477,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         onOpenOrder={onCartClick}
         isAdmin={isAdmin}
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
+        plateExtras={{
+          picture: family.plate,
+          onDropPhotograph: family.ownPhotographs.length > 0 ? (id) => { void family.chooseCover(id); } : undefined,
+        }}
+        underPlate={(family.ownPhotographs.length > 0 || isSoldOut) ? (
+          <>
+            <OwnPhotographRow photographs={family.ownPhotographs} coverId={family.coverId} teaName={item.name} onChoose={(id) => { void family.chooseCover(id); }} />
+            {isSoldOut && <SoldOutUnderPlate productId={item.id} name={item.name} />}
+          </>
+        ) : undefined}
       />
 
       {/* Tasting session (customers) */}
@@ -515,6 +531,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           ))}
         </section>
       )}
+
+      <FromTheFamily photographs={family.familyStrip} teaName={item.name} />
 
       {/* Admin: product tasting editor, same modal used from the admin panel */}
       {adminTastingItem && adminTastingProductShim && (
