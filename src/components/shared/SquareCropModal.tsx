@@ -3,7 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import Cropper, { Area } from 'react-easy-crop';
 import { Loader2, RotateCw, X } from 'lucide-react';
 import { cropToSquareBlob, fileOrUrlToObjectUrl, type SquarePhotoFrame } from '../../lib/cropImage';
-import { clampPhotoFrameCrop, squareFrameSize } from '../../lib/photoFrameGeometry';
+import { clampPhotoFrameCrop, photoFrameSize } from '../../lib/photoFrameGeometry';
 
 interface SquareCropModalProps {
   isOpen: boolean;
@@ -16,6 +16,7 @@ interface SquareCropModalProps {
   /** JPEG quality 0–1. Default 0.88. */
   outputQuality?: number;
   initialFrame?: SquarePhotoFrame | null;
+  allowAspectSelection?: boolean;
   loadError?: string;
   onViewOriginal?: () => void;
   onClose: () => void;
@@ -24,11 +25,12 @@ interface SquareCropModalProps {
 
 export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   isOpen, source, title = 'Crop photo', confirmLabel = 'Save',
-  outputSize, outputQuality, initialFrame, loadError, onViewOriginal, onClose, onConfirm,
+  outputSize, outputQuality, initialFrame, allowAspectSelection = false, loadError, onViewOriginal, onClose, onConfirm,
 }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [aspect, setAspect] = useState(1);
   const [turns, setTurns] = useState(0);
   const [straighten, setStraighten] = useState(0);
   const rotation = turns + straighten;
@@ -37,13 +39,13 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   const [viewportNode, setViewportNode] = useState<HTMLDivElement | null>(null);
   const scale = Math.min(1, viewport.width / (natural.width || 1), viewport.height / (natural.height || 1));
   const bounds = { mediaWidth: natural.width * scale, mediaHeight: natural.height * scale, viewportWidth: viewport.width, viewportHeight: viewport.height };
-  const frameSize = squareFrameSize(bounds, rotation);
-  const changeCrop = (point: { x: number; y: number }) => setCrop(clampPhotoFrameCrop(point, bounds, zoom, rotation));
-  const changeZoom = (value: number) => { setZoom(value); setCrop(point => clampPhotoFrameCrop(point, bounds, value, rotation)); };
+  const frameSize = photoFrameSize(bounds, rotation, aspect);
+  const changeCrop = (point: { x: number; y: number }) => setCrop(clampPhotoFrameCrop(point, bounds, zoom, rotation, aspect));
+  const changeZoom = (value: number) => { setZoom(value); setCrop(point => clampPhotoFrameCrop(point, bounds, value, rotation, aspect)); };
   const changeRotation = (value: number) => {
     const base = Math.round(value / 90) * 90;
     setTurns(base); setStraighten(value - base);
-    setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, value));
+    setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, value, aspect));
   };
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   // Mirror croppedAreaPixels into a ref so handleConfirm always reads the
@@ -104,6 +106,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     setError(null);
     setCrop(initialFrame?.crop ?? { x: 0, y: 0 });
     setZoom(initialFrame?.zoom ?? 1);
+    setAspect(allowAspectSelection ? initialFrame?.aspect ?? 1 : 1);
     const angle = initialFrame?.rotation ?? 0;
     const base = Math.round(angle / 90) * 90;
     setTurns(base); setStraighten(angle - base);
@@ -145,7 +148,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
       cancelled = true;
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
-  }, [isOpen, source, initialFrame]);
+  }, [isOpen, source, initialFrame, allowAspectSelection]);
 
   const onCropComplete = useCallback((areaPercent: Area, croppedPixels: Area) => {
     areaPercentRef.current = areaPercent;
@@ -164,9 +167,9 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
       const blob = await cropToSquareBlob(imageSrc, pixels, {
         size: outputSize,
         quality: outputQuality,
-        rotation,
+        rotation, aspect,
       });
-      await onConfirm(blob, { crop, zoom, rotation: ((rotation % 360) + 360) % 360, areaPercent: areaPercentRef.current });
+      await onConfirm(blob, { crop, zoom, rotation: ((rotation % 360) + 360) % 360, areaPercent: areaPercentRef.current, aspect });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save crop');
       setSaving(false);
@@ -223,15 +226,22 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               3. ready: Cropper with full image
             Layering means a transient load failure (CORS, 404) can't leave
             the user staring at a blank square. */}
+        {allowAspectSelection && <div role="group" aria-label="Photo frame shape" className="flex flex-wrap justify-center gap-2 px-5 py-2">
+          {([{ label: 'Square', ratio: 1 }, { label: 'Portrait 2:3', ratio: 2 / 3 }, { label: 'Landscape 3:2', ratio: 3 / 2 }]).map(option => <button
+            key={option.label} type="button" className="btn-chip" aria-pressed={aspect === option.ratio} disabled={saving}
+            onClick={() => { setAspect(option.ratio); setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, rotation, option.ratio)); }}>
+            {option.label}
+          </button>)}
+        </div>}
         <div ref={setViewportNode} className="relative w-full aspect-square bg-black/60 overflow-hidden">
-          {imageSrc && frameSize > 0 && (
+          {imageSrc && frameSize.width > 0 && (
             <Cropper
               image={imageSrc}
               crop={crop}
               zoom={zoom}
               rotation={rotation}
-              cropSize={frameSize > 0 ? { width: frameSize, height: frameSize } : undefined}
-              aspect={1}
+              cropSize={frameSize.width > 0 ? frameSize : undefined}
+              aspect={aspect}
               minZoom={1}
               maxZoom={4}
               showGrid={true}
@@ -289,7 +299,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               onChange={event => {
                 const value = Number(event.target.value);
                 setStraighten(value);
-                setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, turns + value));
+                setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, turns + value, aspect));
               }} />
             <output className="text-ui-11 text-tea-text-sec tabular-nums" aria-label="Rotation angle">{Number(straighten.toFixed(1))}°</output>
           </div>
@@ -312,7 +322,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={saving || !imageSrc || !imageLoaded || !croppedAreaPixels || frameSize <= 0}
+            disabled={saving || !imageSrc || !imageLoaded || !croppedAreaPixels || frameSize.width <= 0}
             className="btn-primary hover:opacity-90 tap-target"
           >
             {saving && <Loader2 className="animate-spin" size={13} />}

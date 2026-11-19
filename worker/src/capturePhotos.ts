@@ -6,7 +6,7 @@ const ENTRY_ID = /^[A-Za-z0-9_-]{1,120}$/;
 const PHOTO_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-export type CapturePhotoFrame = { crop: { x: number; y: number }; zoom: number; rotation: number; areaPercent: { x: number; y: number; width: number; height: number } };
+export type CapturePhotoFrame = { aspect?: number; crop: { x: number; y: number }; zoom: number; rotation: number; areaPercent: { x: number; y: number; width: number; height: number } };
 
 type PhotoScope = { accountId: string; userId: string };
 type PhotoEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
@@ -70,9 +70,10 @@ export async function privateCapturePhoto(env: PhotoEnv, scope: PhotoScope, entr
 
 export function validCapturePhotoFrame(value: unknown): value is CapturePhotoFrame {
   if (!value || typeof value !== 'object') return false;
-  const { crop, zoom, rotation, areaPercent: area } = value as CapturePhotoFrame;
+  const { crop, zoom, rotation, aspect, areaPercent: area } = value as CapturePhotoFrame;
   const finite = (number: unknown): number is number => typeof number === 'number' && Number.isFinite(number);
-  return !!crop && finite(crop.x) && finite(crop.y) && Math.abs(crop.x) <= 100000 && Math.abs(crop.y) <= 100000
+  return (aspect === undefined || aspect === 1 || aspect === 2 / 3 || aspect === 3 / 2)
+    && !!crop && finite(crop.x) && finite(crop.y) && Math.abs(crop.x) <= 100000 && Math.abs(crop.y) <= 100000
     && finite(zoom) && zoom >= 1 && zoom <= 4 && finite(rotation) && rotation >= 0 && rotation < 360
     && !!area && finite(area.x) && finite(area.y) && finite(area.width) && finite(area.height)
     && area.x >= 0 && area.y >= 0 && area.width > 0 && area.height > 0

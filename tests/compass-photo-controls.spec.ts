@@ -128,3 +128,44 @@ test('a failed framing save keeps the original and square position for retry', a
   expect(server.state.frameWrites).toBe(2); expect(server.state.uploads).toBe(1);
   expect([...server.photos.values()][0].frame?.zoom).toBe(4);
 });
+
+test('square, portrait and landscape choices reopen after reload without changing the original', async ({ page }, testInfo) => {
+  const server = await photoServer(page);
+  await openCompass(page);
+  await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Aspect presets tea');
+  await uploadWidePhoto(page);
+  await expect(frameButton(page)).toBeVisible();
+  const [path, photo] = [...server.photos.entries()][0];
+  const original = Buffer.from(photo.original);
+  await page.getByRole('button', { name: 'Save changes to this tea' }).filter({ visible: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/, visible: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
+  const open = page.getByRole('button', { name: 'Photos for Aspect presets tea', exact: true });
+  for (const preset of [
+    { label: 'Portrait 2:3', aspect: 2 / 3, dimensions: [1066, 1599] },
+    { label: 'Landscape 3:2', aspect: 3 / 2, dimensions: [1599, 1066] },
+    { label: 'Square', aspect: 1, dimensions: [1600, 1600] },
+  ]) {
+    await open.click();
+    const dialog = page.getByRole('dialog', { name: 'Frame photo', exact: true });
+    await expect(dialog.getByRole('button', { name: 'Save framing', exact: true })).toBeEnabled();
+    await dialog.getByRole('button', { name: preset.label, exact: true }).click();
+    await expect(dialog.getByRole('button', { name: preset.label, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => { const box = await dialog.locator('.reactEasyCrop_CropArea').boundingBox(); return box!.width / box!.height; }).toBeCloseTo(preset.aspect, 2);
+    await page.screenshot({ path: testInfo.outputPath(`frame-${preset.aspect === 1 ? 'square' : preset.aspect < 1 ? 'portrait' : 'landscape'}.png`) });
+    await dialog.getByRole('button', { name: 'Save framing', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect.poll(() => open.locator('img').evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual(preset.dimensions);
+    expect(server.photos.get(path)!.original).toEqual(original);
+    expect(server.photos.get(path)!.frame?.aspect).toBe(preset.aspect);
+    await page.reload();
+    await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
+    await open.click();
+    await expect(dialog.getByRole('button', { name: preset.label, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.getByLabel('Zoom')).toHaveValue('1');
+    await expect(dialog.locator('.reactEasyCrop_Image')).toHaveJSProperty('naturalWidth', 600);
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  }
+  expect(server.state.uploads).toBe(1);
+  expect(server.state.frameWrites).toBe(3);
+});
