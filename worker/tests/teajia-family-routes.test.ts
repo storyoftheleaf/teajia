@@ -395,7 +395,10 @@ describe('the shop\'s side', () => {
     expect((await fetchPath(`${bare}?exp=${Math.floor(Date.now() / 1000) + 600}&sig=${'0'.repeat(64)}`)).status).toBe(404);
     // Shared: public.
     await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
-    expect((await fetchPath(bare)).status).toBe(200);
+    const shown = await fetchPath(bare);
+    expect(shown.status).toBe(200);
+    // Short, never a year: a browser that saw it must lose it within a minute of its removal.
+    expect(shown.headers.get('Cache-Control')).toBe('public, max-age=60');
     // Hidden by the shop: gone again.
     await call(env, OWNER, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'photograph', target_id: made.id } });
     expect((await fetchPath(bare)).status).toBe(404);

@@ -32,7 +32,7 @@ function orderPayload(account = 'shop-a', contact = 'guest@example.com', overrid
     source: 'website', store_slug: account === 'shop-a' ? 'teajia-bali' : account,
     tracking_token: `privatewebsiteordertoken000000000000${String(id).padStart(2, '0')}`,
     ref_number: `TJ-WEB-${id}`, customer_name: 'Guest', customer_contact: contact,
-    customer_location: 'Ubud, Indonesia', currency: 'USD', total_estimate_usd: 1,
+    customer_location: 'Los Angeles, CA 90012, United States', ...(overrides.pickup ? {} : { delivery_country: 'US', delivery_address: '12 Test Lane', delivery_city: 'Los Angeles', delivery_state: 'CA', us_shipping_postcode: '90012' }), currency: 'USD', total_estimate_usd: 1,
     items: [{ id: account === 'shop-a' ? 'tea-a' : 'tea-b', name: 'Red tea', category: 'tea',
       storeSlug: account === 'shop-a' ? 'teajia-bali' : account, quantityGrams: 50, packGrams: 25, packs: 2,
       pricePerGram: 0.001, totalPrice: 0.01 }],
@@ -96,7 +96,7 @@ async function seedPaidOrder() {
   const trackingPath = `/api/inquiries/${body.tracking_token}`;
   expect((await buyerRequest(db, `${trackingPath}/claim`, 'buyer', 'POST')).status).toBe(200);
   db.sqlite.prepare(`
-    UPDATE invoices SET status='Pending', payment_status='paid', inventory_deducted=1
+    UPDATE invoices SET status='Pending', payment_status='paid', inventory_deducted=1, shipping_quote_status='confirmed'
     WHERE id=? AND account_id='shop-a'
   `).run(id);
   db.sqlite.prepare("UPDATE products SET stock_grams=950 WHERE id='tea-a' AND account_id='shop-a'").run();
@@ -144,6 +144,64 @@ function stockMovements(db: SqliteD1, invoiceId: string) {
 }
 
 describe('website order lifecycle', () => {
+  it.each(['Bali', 'US'])('takes tea payment before the %s shipping quote, then charges shipping without another stock deduction', async destination => {
+    const db = seed('migrations');
+    const body = orderPayload('shop-a', 'later@example.test', destination === 'US' ? { delivery_country: 'US' } : {});
+    const { result } = await create(db, body);
+    const id = result.invoice_id;
+    expect(result).toMatchObject({ shipping_quote_requested: true });
+    expect(invoice(db, id)).toMatchObject({ shipping_cost_usd: 0, shipping_quote_status: 'requested' });
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT')).status).toBe(200);
+    const deadline = invoice(db, id).order_payment_deadline;
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}/payments`, { amount_usd: 14, method_label: 'Test transfer' })).status).toBe(201);
+    const receipt = await (await buyerRequest(db, `/api/inquiries/${body.tracking_token}`)).json() as any;
+    expect(receipt.journey).toMatchObject({ label: 'Tea paid' });
+    expect(receipt.journey.detail).toContain('charged separately later');
+    seedIdentity(db, { userId: 'buyer', accountId: 'buyer-home' });
+    expect((await buyerRequest(db, `/api/inquiries/${body.tracking_token}/claim`, 'buyer', 'POST')).status).toBe(200);
+    const history = await (await buyerRequest(db, '/api/me/orders', 'buyer')).json() as any;
+    expect(history.orders[0].journey.label).toBe('Tea paid');
+    const detail = await (await buyerRequest(db, `/api/me/orders/${id}`, 'buyer')).json() as any;
+    expect(detail).toMatchObject({ shipping_quote_status: 'requested', journey: { label: 'Tea paid' } });
+    expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(409);
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { shipping_cost_usd: 6 }, 'PUT')).status).toBe(200);
+    expect(invoice(db, id)).toMatchObject({ shipping_quote_status: 'confirmed', order_payment_deadline: deadline });
+    const balance = await (await buyerRequest(db, `/api/inquiries/${body.tracking_token}`)).json() as any;
+    expect(balance.payment).toMatchObject({ paid_usd: 14, outstanding_usd: 6 });
+    expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(409);
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}/payments`, { amount_usd: 6, request_id: 'later_shipping_test', method_label: 'Test transfer' })).status).toBe(201);
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}/payments`, { amount_usd: 6, request_id: 'later_shipping_test', method_label: 'Test transfer' })).status).toBe(200);
+    expect(stockMovements(db, id)).toEqual([{ delta: -50, balance_after: 950, account_id: 'shop-a', movement_unit: 'gram' }]);
+    const paid = await (await buyerRequest(db, `/api/inquiries/${body.tracking_token}`)).json() as any;
+    expect(paid.journey.label).toBe('Paid in full');
+    expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(200);
+  });
+
+  it('atomically refuses dispatch if shipping becomes unconfirmed during the ship action', async () => {
+    const db = seed('migrations'); const { result } = await create(db); const id = result.invoice_id;
+    await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending', shipping_cost_usd: 0 }, 'PUT');
+    await admin(db, 'shop-a', `/api/invoices/${id}/payments`, { amount_usd: 14 });
+    const batch = db.batch.bind(db);
+    const race = vi.spyOn(db, 'batch').mockImplementation(statements => {
+      db.sqlite.prepare("UPDATE invoices SET shipping_quote_status='requested' WHERE id=?").run(id);
+      return batch(statements);
+    });
+    expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(409);
+    race.mockRestore();
+    expect(invoice(db, id).status).toBe('Pending');
+    expect(stockMovements(db, id)).toHaveLength(1);
+  });
+
+  it('an explicit zero confirms free shipping after tea payment without treating unknown shipping as free', async () => {
+    const db = seed('migrations'); const { result } = await create(db); const id = result.invoice_id;
+    await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT');
+    await admin(db, 'shop-a', `/api/invoices/${id}/payments`, { amount_usd: 14 });
+    expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(409);
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { shipping_cost_usd: 0 }, 'PUT')).status).toBe(200);
+    expect(invoice(db, id).shipping_quote_status).toBe('confirmed');
+    expect((await admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: id })).status).toBe(200);
+  });
+
   it('atomically creates one server-priced Draft, request, and customer outbox without a payment method', async () => {
     const db = seed();
     const body = orderPayload('shop-a', '+628123456789', { total_estimate_usd: 0, whatsapp_confirmation_consent: true });
@@ -151,7 +209,7 @@ describe('website order lifecycle', () => {
     expect(first.result).toMatchObject({ success: true, invoice_id: expect.any(String), invoice_number: expect.any(String) });
     const saved = invoice(db, first.result.invoice_id);
     expect(saved).toMatchObject({ account_id: 'shop-a', status: 'Draft', inventory_deducted: 0,
-      customer_whatsapp: '+628123456789', shipping_destination: 'Ubud, Indonesia' });
+      customer_whatsapp: '+628123456789', shipping_destination: 'Los Angeles, CA 90012, United States' });
     const line = db.sqlite.prepare('SELECT quantity, price_at_sale FROM invoice_line_items WHERE invoice_id = ?')
       .get(saved.id) as { quantity: number; price_at_sale: number };
     expect(line.quantity * line.price_at_sale).toBeCloseTo(14);
@@ -228,61 +286,20 @@ describe('website order lifecycle', () => {
     ]);
   });
 
-  it('quotes configured US shipping from server-priced tea grams and preserves the invoice on retry', async () => {
+  it('keeps US shipping quote-only even when a preset is configured', async () => {
     const db = seed('migrations');
-    db.sqlite.exec(`
-      UPDATE accounts SET owner_user_id='owner-a' WHERE id='shop-a';
-      UPDATE products SET stock_known_at=datetime('now') WHERE id='tea-a';
-      INSERT INTO contributors(id,account_id,user_id,display_name,is_published)
-      VALUES ('bali-seller','shop-a','owner-a','Bali seller',1);
-      INSERT INTO payment_methods(id,contributor_id,method_type,label,recipient_name,account_identifier,is_published)
-      VALUES ('bali-bank','bali-seller','bank_transfer','Bank transfer','Bali seller','Synthetic bank reference',1);
-    `);
-    const config = {
-      SHOP_US_SHIPPING_ACCOUNT_ID: 'shop-a',
-      SHOP_US_SHIPPING_USD_PER_KG: '40.00',
-      SHOP_US_SHIPPING_PACKAGING_GRAMS: '100',
-      SHOP_US_SHIPPING_MAX_PACKED_GRAMS: '500',
-    };
-    const address = {
-      customer_location: 'Los Angeles, CA 90012, United States',
-      delivery_address: '12 Test Lane',
-      us_shipping_postcode: '90012',
-      shipping_cost_usd: 0.01,
-      packed_grams: 1,
-    };
-    const body = orderPayload('shop-a', 'guest@example.test', address);
+    const config = { SHOP_US_SHIPPING_ACCOUNT_ID: 'shop-a', SHOP_US_SHIPPING_USD_PER_KG: '40', SHOP_US_SHIPPING_PACKAGING_GRAMS: '100', SHOP_US_SHIPPING_MAX_PACKED_GRAMS: '500' };
+    const body = orderPayload('shop-a', 'preset@example.test', { delivery_country: 'US', us_shipping_postcode: '90012', delivery_address: '12 Test Lane', customer_location: 'Los Angeles, CA, United States', shipping_cost_usd: 0.01 });
     const response = await publicOrder(db, body, undefined, config);
-    expect(response.status).toBe(201);
-    const result = await response.json() as { invoice_id: string; shipping_checkout: unknown };
-    expect(result.shipping_checkout).toMatchObject({ shipping_usd: 6, packed_grams: 150, payment_deadline: expect.any(String) });
-    expect(invoice(db, result.invoice_id)).toMatchObject({
-      status: 'Pending', shipping_cost_usd: 6, checkout_shipping_grams: 150, delivery_address: address.delivery_address,
-    });
-    const tracking = await buyerRequest(db, `/api/inquiries/${body.tracking_token}`);
-    const view = await tracking.json();
-    expect(view).toMatchObject({ order: { shipping_cost_usd: 6 }, payment: { total_usd: 20, pay_url: expect.stringContaining('t=') } });
-    expect(JSON.stringify(view)).not.toContain(address.delivery_address);
+    expect(response.status).toBe(201); const result = await response.json() as any;
+    expect(result).toMatchObject({ shipping_quote_requested: true });
+    expect(result).not.toHaveProperty('shipping_checkout'); expect(result).not.toHaveProperty('shipping_quote');
+    expect(invoice(db, result.invoice_id)).toMatchObject({ status: 'Draft', shipping_cost_usd: 0, checkout_shipping_grams: null, shipping_quote_status: 'requested' });
     const replay = await publicOrder(db, body, undefined, { ...config, SHOP_US_SHIPPING_USD_PER_KG: '70' });
-    expect(replay.status).toBe(200);
-    expect(await replay.json()).toMatchObject({ invoice_id: result.invoice_id, shipping_checkout: result.shipping_checkout, idempotent: true });
-    const review = await publicOrder(db, orderPayload('shop-a', 'review@example.test', address));
-    expect(review.status).toBe(201);
-    const fallback = await review.json() as { invoice_id: string };
-    expect(fallback).not.toHaveProperty('shipping_checkout');
-    expect(invoice(db, fallback.invoice_id)).toMatchObject({ status: 'Draft', checkout_shipping_grams: null });
-
-    const payments = `/api/invoices/${result.invoice_id}/payments`;
-    const partial = await admin(db, 'shop-a', payments, { amount_usd: 14, method_label: 'Bank transfer' });
-    expect(partial.status).toBe(201);
-    expect(await partial.json()).toMatchObject({ payment_status: 'partial', outstanding_usd: 6 });
-    expect(stockMovements(db, result.invoice_id)).toEqual([]);
-    const full = await admin(db, 'shop-a', payments, { amount_usd: 6, method_label: 'Bank transfer' });
-    expect(full.status).toBe(201);
-    expect(await full.json()).toMatchObject({ payment_status: 'paid', outstanding_usd: 0 });
-    expect(stockMovements(db, result.invoice_id)).toEqual([
-      { delta: -50, balance_after: 950, account_id: 'shop-a', movement_unit: 'gram' },
-    ]);
+    expect(await replay.json()).toMatchObject({ invoice_id: result.invoice_id, shipping_quote_requested: true, idempotent: true });
+    expect((await admin(db, 'shop-a', `/api/invoices/${result.invoice_id}`, { status: 'Pending' }, 'PUT')).status).toBe(200);
+    const view = await (await buyerRequest(db, `/api/inquiries/${body.tracking_token}`)).json() as any;
+    expect(view.payment.total_usd).toBe(14); expect(view.order.shipping_quote_status).toBe('requested');
   });
 
   it('keeps pickup in review when a bank transfer method is unavailable', async () => {
@@ -311,7 +328,7 @@ describe('website order lifecycle', () => {
     expect(tracking.status).toBe(200);
     expect(await tracking.text()).not.toContain(address);
     const owner = await admin(db, 'shop-a', '/api/invoices', undefined, 'GET');
-    expect(await owner.json()).toMatchObject([{ id: result.invoice_id, delivery_address: address }]);
+    expect(await owner.json()).toMatchObject([{ id: result.invoice_id, delivery_address: `${address}\nLos Angeles, CA 90012\nUnited States` }]);
     const otherStore = await admin(db, 'shop-b', '/api/invoices', undefined, 'GET');
     expect(await otherStore.json()).toEqual([]);
   });
@@ -435,6 +452,7 @@ describe('website order lifecycle', () => {
     expect(replay.status).toBe(200);
     expect(await replay.json()).toMatchObject({ idempotent: true, stock: { state: 'already_deducted' } });
     expect(holds()).toEqual([]);
+    expect((await admin(db, 'shop-a', `/api/invoices/${winner}`, { shipping_cost_usd: 0 }, 'PUT')).status).toBe(200);
     const ship = () => admin(db, 'shop-a', '/api/rpc/ship-invoice', { invoice_id: winner, tracking_number: 'TRACK-OVERLAP' });
     expect((await ship()).status).toBe(200);
     expect((await ship()).status).toBe(200);
@@ -686,7 +704,7 @@ describe('website order lifecycle', () => {
     });
   });
 
-  it('requires a confirmed US quote before operator acceptance and keeps absent shipping out of checkout', async () => {
+  it('accepts the tea total before a US shipping quote and keeps shipping separate', async () => {
     const db = seed('migrations');
     const { result } = await create(db, orderPayload('shop-a', 'us@example.test', {
       us_shipping_postcode: '90012', delivery_address: '12 Synthetic Lane',
@@ -696,9 +714,8 @@ describe('website order lifecycle', () => {
     expect(result).not.toHaveProperty('shipping_checkout');
     const id = result.invoice_id;
     const pending = await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT');
-    expect(pending.status).toBe(409);
-    expect(await pending.json()).toMatchObject({ code: 'shipping_quote_required' });
-    expect(invoice(db, id).status).toBe('Draft');
+    expect(pending.status).toBe(200);
+    expect(invoice(db, id)).toMatchObject({ status: 'Pending', shipping_quote_status: 'requested' });
     expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { shipping_cost_usd: 6 }, 'PUT')).status).toBe(200);
     expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT')).status).toBe(200);
     expect(invoice(db, id)).toMatchObject({ shipping_cost_usd: 6, shipping_quote_status: 'confirmed', fulfillment_method: 'us_shipping' });
@@ -1047,7 +1064,7 @@ describe('website order lifecycle', () => {
     const db = seed();
     const { body, result } = await create(db);
     const id = result.invoice_id;
-    expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending' }, 'PUT')).status).toBe(200);
+    expect((await admin(db, 'shop-a', `/api/invoices/${id}`, { status: 'Pending', shipping_cost_usd: 0 }, 'PUT')).status).toBe(200);
     const claimResponse = await worker.fetch(new Request(`https://app.test/api/orders/${body.tracking_token}/payment-claim`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.201' },
       body: JSON.stringify({ amount: 14, currency: 'USD', method: 'Bank transfer' }),
@@ -1182,7 +1199,7 @@ describe('website order lifecycle', () => {
       }, 'PUT');
       expect(edited.status, JSON.stringify(await edited.clone().json())).toBe(200);
       expect((await admin(db, 'shop-a', `/api/invoices/${id}`, {
-        status: 'Pending', allow_unpriced_lines: true,
+        status: 'Pending', allow_unpriced_lines: true, shipping_cost_usd: 0,
       }, 'PUT')).status).toBe(200);
       return id;
     };

@@ -1,8 +1,11 @@
 import { useAppStore } from '../../lib/store';
 import { CapturePhotoApproval } from '../curate/CapturePhotoApproval';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { CapturePhotoImage, useCapturePhotoUpload, useCapturePhotoUrl } from '../curate/CapturePhotoImage';
+import { capturePhotoIdentity, CapturePhotoImage, useCapturePhotoFrame, useCapturePhotoUpload, useCapturePhotoUrl } from '../curate/CapturePhotoImage';
 import { createPortal } from 'react-dom';
+import * as Dialog from '@radix-ui/react-dialog';
+import { useQueryClient } from '@tanstack/react-query';
+import { capturePhotoApi } from '../../lib/capturePhotoApi';
 import { Camera, Check, ChevronLeft, ChevronRight, Edit3, ImagePlus, Maximize2, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
@@ -151,6 +154,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const [chooseScanSource, setChooseScanSource] = useState(false);
   const [pendingPreviews, setPendingPreviews] = useState<PendingPreview[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [viewOriginal, setViewOriginal] = useState(false);
   const [reviewPhoto, setReviewPhoto] = useState<string | null>(null);
   const photoScope = useAppStore(state => `${state.activeAccountId}:${state.activeUserId}`);
   const lightboxRef = useRef<HTMLDivElement>(null);
@@ -252,10 +256,17 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     ...pendingPreviews.filter((p) => !p.failed).map((p) => p.localUrl),
   ];
   const selectedPhoto = lightboxIndex === null ? undefined : allPhotos[lightboxIndex];
-  const selectedPhotoUrl = useCapturePhotoUrl(selectedPhoto);
-  const editingPhotoSource = useCapturePhotoUrl(editingPhotoUrl);
-  // 'viewer': open on the first photo; a photo added from the viewer is shown at once.
-  useEffect(() => { if (viewerOnly) setLightboxIndex(0); }, [viewerOnly]);
+  const selectedPhotoUrl = useCapturePhotoUrl(selectedPhoto, false, viewOriginal);
+  const editingPhotoSource = useCapturePhotoUrl(editingPhotoUrl, false, true);
+  const editingFrame = useCapturePhotoFrame(editingPhotoUrl);
+  const queryClient = useQueryClient();
+  const frameReady = !capturePhotoIdentity(editingPhotoUrl) || editingFrame.isSuccess;
+  const closeFrame = () => { if (!savingEdit) { setEditingPhotoUrl(null); if (viewerOnly) onViewerClose?.(); } };
+  // An editable Library photo opens the same reversible square frame as Source.
+  useEffect(() => {
+    if (!viewerOnly) return;
+    if (onPhotoReplaced && photos?.[0]) setEditingPhotoUrl(photos[0]); else setLightboxIndex(0);
+  }, [viewerOnly]);
   const photoTotal = allPhotos.length;
   const shownTotal = useRef(photoTotal);
   useEffect(() => {
@@ -709,7 +720,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   // ── Lightbox ───────────────────────────────────────────────────────────────
   const lightbox = lightboxIndex !== null && allPhotos[lightboxIndex]
-    ? createPortal(
+    ? <Dialog.Root open onOpenChange={open => { if (!open) closeLightbox(); }}><Dialog.Portal><Dialog.Content asChild aria-describedby={undefined} onOpenAutoFocus={event => event.preventDefault()}>
         <motion.div
           ref={lightboxRef}
           key="lightbox"
@@ -717,7 +728,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-modal flex items-center justify-center"
+          className="fixed inset-0 z-popover flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.88)' }}
           onClick={closeLightbox}
           role="dialog"
@@ -725,6 +736,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           aria-label="Photo viewer"
           data-photo-viewer
         >
+          <Dialog.Title className="sr-only">Photo viewer</Dialog.Title>
           <button
             ref={lightboxCloseRef}
             type="button"
@@ -798,9 +810,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               ))}
             </div>
           )}
-        </motion.div>,
-        document.body
-      )
+        </motion.div>
+      </Dialog.Content></Dialog.Portal></Dialog.Root>
     : null;
 
   // ── Quiet scan-failure line ─────────────────────────────────────────────
@@ -843,33 +854,27 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                   type="button"
                   onClick={(event) => {
                     lightboxTriggerRef.current = event.currentTarget;
-                    setLightboxIndex(i);
+                    if (onPhotoReplaced) setEditingPhotoUrl(url); else setLightboxIndex(i);
                   }}
                   className="relative block w-[calc(var(--space-12)+var(--space-8))] aspect-square overflow-hidden rounded-md border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
                   aria-haspopup="dialog"
-                  aria-label={`View photo ${i + 1}`}
-                  title="View photo"
+                  aria-label={onPhotoReplaced ? `Frame photo ${i + 1}` : `View photo ${i + 1}`}
+                  title={onPhotoReplaced ? 'Adjust square framing' : 'View photo'}
                 >
                   <CapturePhotoImage
                     src={url}
                     alt={`Photo ${i + 1}`}
-                    className="w-full h-full object-cover pointer-events-none"
+                    className="w-full h-full object-contain pointer-events-none"
                   />
                 </button>
                 {onRemovePhoto && photos && (
                   <button
                     type="button"
-                    className="btn-icon absolute top-0 right-0 bg-tea-surface"
-                    aria-label={`Remove photo ${i + 1}`}
-                    title="Remove photo"
+                    className="btn-quiet btn-sm w-full"
+                    aria-label={`Delete photo ${i + 1}`}
+                    title="Delete photo"
                     onClick={() => onRemovePhoto(photos.indexOf(url))}
-                  ><X size={16} /></button>
-                )}
-                {onPhotoReplaced && (
-                  <button type="button" className="btn-quiet btn-sm w-full" aria-label={`Crop photo ${i + 1}`}
-                    title="Crop square, rotate or reposition" onClick={() => setEditingPhotoUrl(url)}>
-                    <Edit3 size={14} />Crop
-                  </button>
+                  >Delete</button>
                 )}
               </div>
             )
@@ -936,12 +941,12 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             type="button"
             onClick={(event) => {
               lightboxTriggerRef.current = event.currentTarget;
-              setMenuPhotoIndex(validPhotos.length - 1);
+              if (onPhotoReplaced) setEditingPhotoUrl(heroValidUrl); else setMenuPhotoIndex(validPhotos.length - 1);
             }}
             className="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
-            aria-haspopup="menu"
-            aria-label="Photo actions"
-            title="Tap for options"
+            aria-haspopup="dialog"
+            aria-label={onPhotoReplaced ? `Frame photo ${validPhotos.length}` : 'Photo actions'}
+            title={onPhotoReplaced ? 'Adjust square framing' : 'Photo actions'}
           >
             <CapturePhotoImage
               src={heroValidUrl}
@@ -959,18 +964,6 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           >
             <Camera size={30} strokeWidth={1.25} className="text-tea-gold" />
             <span className="text-ui-11 uppercase tracking-[0.16em]">Photo</span>
-          </button>
-        )}
-
-        {heroValidUrl && onRemovePhoto && photos && (
-          <button type="button" className="btn-icon absolute top-2 left-2 bg-tea-surface"
-            aria-label={`Remove photo ${validPhotos.length}`} title="Remove photo"
-            onClick={() => onRemovePhoto(photos.indexOf(heroValidUrl))}><X size={16} /></button>
-        )}
-        {heroValidUrl && onPhotoReplaced && (
-          <button type="button" className="btn-secondary absolute bottom-2 left-2"
-            aria-label={`Crop photo ${validPhotos.length}`} onClick={() => setEditingPhotoUrl(heroValidUrl)}>
-            <Edit3 size={14} />Crop
           </button>
         )}
 
@@ -1008,8 +1001,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       </div>
 
       {/* Earlier shots + uploads in flight, as small thumbs under the hero. */}
-      {heroExtraCount > 0 && (
+      {(heroExtraCount > 0 || (heroValidUrl && onRemovePhoto)) && (
         <div className="mt-2 flex flex-wrap gap-2">
+          {heroValidUrl && onRemovePhoto && photos && <Button type="button" variant="ghost" className="btn-sm" aria-label={`Delete photo ${validPhotos.length}`} onClick={() => onRemovePhoto(photos.indexOf(heroValidUrl))}>Delete</Button>}
           {renderThumbs(heroValidUrl, heroPending)}
         </div>
       )}
@@ -1082,13 +1076,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               type="button"
               onClick={(event) => {
                 lightboxTriggerRef.current = event.currentTarget;
-                setMenuPhotoIndex(0);
+                if (onPhotoReplaced) setEditingPhotoUrl(validPhotos[0]); else setMenuPhotoIndex(0);
               }}
               className="relative h-11 w-11 overflow-hidden border-r border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
-              aria-haspopup="menu"
-              aria-expanded={menuPhotoIndex === 0}
-              aria-label="Photo actions"
-              title="Photo actions"
+              aria-haspopup={onPhotoReplaced ? 'dialog' : 'menu'}
+              aria-expanded={onPhotoReplaced ? !!editingPhotoUrl : menuPhotoIndex === 0}
+              aria-label={onPhotoReplaced ? 'Frame photo 1' : 'Photo actions'}
+              title={onPhotoReplaced ? 'Adjust square framing' : 'Photo actions'}
             >
               <CapturePhotoImage src={validPhotos[0]} alt="Photo 1" className="pointer-events-none h-full w-full object-cover" />
               {validPhotos.length > 1 && (
@@ -1140,11 +1134,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       {stripTarget && (validPhotos.length > 0 || pendingPreviews.length > 0)
         ? createPortal(<div className="flex flex-wrap items-center gap-2" data-testid="curate-photo-strip">
           {renderThumbs(null, null)}
-          <span role="status" className="text-ui-12 text-tea-text-sec">
-            {pendingPreviews.some(photo => photo.uploading) ? 'Saving photo…'
-              : pendingPreviews.some(photo => photo.failed) ? 'Photo upload failed'
-              : `${validPhotos.length} ${validPhotos.length === 1 ? 'photo' : 'photos'} saved`}
-          </span>
+          {pendingPreviews.some(photo => photo.uploading || photo.failed) && <span role="status" className="text-ui-12 text-tea-text-sec">
+            {pendingPreviews.some(photo => photo.uploading) ? 'Saving photo…' : 'Photo upload failed'}
+          </span>}
         </div>, stripTarget)
         : null}
     </>
@@ -1240,22 +1232,44 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           Output goes back through the private upload and replaces the original
           via onPhotoReplaced so callers don't need to know the new URL. */}
       <SquareCropModal
-        isOpen={!!editingPhotoSource}
-        source={editingPhotoSource ?? null}
-        title="Crop square photo"
-        confirmLabel={savingEdit ? 'Saving…' : 'Save square photo'}
+        isOpen={!!editingPhotoUrl}
+        source={frameReady ? editingPhotoSource ?? null : null}
+        initialFrame={editingFrame.data?.frame}
+        allowAspectSelection
+        loadError={editingFrame.error?.message}
+        title="Frame photo"
+        confirmLabel={savingEdit ? 'Saving…' : 'Save framing'}
         outputSize={1600}
         outputQuality={0.88}
-        onClose={() => { if (!savingEdit) setEditingPhotoUrl(null); }}
-        onConfirm={async (blob) => {
-          if (!editingPhotoUrl) return;
+        onClose={closeFrame}
+        onViewOriginal={() => {
+          setViewOriginal(true);
+          setLightboxIndex(validPhotos.indexOf(editingPhotoUrl!));
+          setEditingPhotoUrl(null);
+        }}
+        onConfirm={async (preview, frame) => {
+          if (!editingPhotoUrl || !editingPhotoSource) return;
+          const { activeAccountId: accountId, activeUserId: userId } = useAppStore.getState();
+          if (!accountId || !userId) throw new Error('Sign in to save photo framing.');
+          const expectedAuth = { accountId, userId };
           setSavingEdit(true);
           try {
-            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            const newUrl = await uploadPhoto(file);
-            if (!newUrl) throw new Error('The square photo could not be saved. Retry Save square photo.');
-            onPhotoReplaced?.(editingPhotoUrl, newUrl);
+            let originalUrl = editingPhotoUrl;
+            let identity = capturePhotoIdentity(originalUrl);
+            // Legacy external photos get a private copy of their original bytes.
+            if (!identity) {
+              const response = await fetch(editingPhotoSource);
+              if (!response.ok) throw new Error('The original photo could not be loaded.');
+              originalUrl = await uploadPhoto(await response.blob());
+              identity = capturePhotoIdentity(originalUrl);
+              if (!identity) throw new Error('The original photo could not be kept.');
+            }
+            await capturePhotoApi.saveFrame(identity.entryId, identity.photoId, preview, frame, expectedAuth);
+            if (originalUrl !== editingPhotoUrl) onPhotoReplaced?.(editingPhotoUrl, originalUrl);
+            queryClient.setQueryData(['capture-photo-frame', accountId, userId, originalUrl], { frame });
+            await queryClient.invalidateQueries({ queryKey: ['capture-photo-bytes', accountId, userId, originalUrl, false, false], exact: true });
             setEditingPhotoUrl(null);
+            if (viewerOnly) onViewerClose?.();
           } finally {
             setSavingEdit(false);
           }

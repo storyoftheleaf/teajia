@@ -156,7 +156,7 @@ describe('flow repair economic boundaries',()=>{
   }finally{db.close();}
  });
  it('keeps a shipped purchase in the identified customer tea trail once',async()=>{
-  const db=seed();const {body,result}=await create(db);const id=result.invoice_id;await admin(db,'shop-a',`/api/inquiries/${body.tracking_token}/claim`,{});await admin(db,'shop-a',`/api/invoices/${id}`,{status:'Pending'},'PUT');await admin(db,'shop-a',`/api/invoices/${id}/payments`,{amount_usd:14,method_label:'Cash'});
+  const db=seed();const {body,result}=await create(db);const id=result.invoice_id;await admin(db,'shop-a',`/api/inquiries/${body.tracking_token}/claim`,{});await admin(db,'shop-a',`/api/invoices/${id}`,{status:'Pending',shipping_cost_usd:0},'PUT');await admin(db,'shop-a',`/api/invoices/${id}/payments`,{amount_usd:14,method_label:'Cash'});
   expect((await admin(db,'shop-a','/api/rpc/ship-invoice',{invoice_id:id})).status).toBe(200);
   const entries=db.sqlite.prepare("SELECT name,status FROM tea_compass_entries WHERE user_id='owner-a' AND account_id='shop-a'").all();expect(entries).toEqual([{name:'Red tea',status:'available_to_taste'}]);
   await admin(db,'shop-a','/api/rpc/ship-invoice',{invoice_id:id});expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM tea_compass_entries WHERE user_id='owner-a'").get()).toEqual({n:1});

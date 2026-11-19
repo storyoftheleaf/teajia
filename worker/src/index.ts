@@ -1,3 +1,6 @@
+import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
+import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
+import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from './paypalSandbox';
 import { listPrivateSessionReflections, readPrivateSessionReflection, writePrivateSessionReflection } from './privateSessionReflections';
 import { claimReceivedCard, listReceivedCards } from './memberReceivedCards';
 import { sharedSessionVerdict } from './sessionVerdictProjection';
@@ -181,8 +184,8 @@ import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { familyMediaVerdict } from './familyMedia';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
-import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
-interface Env extends WorkerReleaseEnv {
+import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
+interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv {
   DB: D1Database;
   SHOP_PICKUP_ACCOUNT_ID?: string;
   SHOP_US_SHIPPING_ACCOUNT_ID?: string;
@@ -4674,6 +4677,7 @@ export interface JourneyMoney {
 }
 
 export interface JourneyInvoice {
+  shipping_quote_status?: string | null;
   status: string | null;
   created_at: string | null;
   payment_date: string | null;
@@ -4699,6 +4703,7 @@ function journeyCopy(
   input: JourneyInput,
 ): { label: string; detail: string | null } {
   const amounts = input.invoice?.money;
+  const shippingLater = input.invoice?.shipping_quote_status === 'requested';
   const cancelled = String(input.invoice?.status || '') === 'Void';
   switch (stage) {
     case 'received':
@@ -4731,8 +4736,8 @@ function journeyCopy(
       };
     case 'paid':
       return {
-        label: 'Paid in full',
-        detail: 'Thank you. Your order is being prepared for sending.',
+        label: shippingLater ? 'Tea paid' : 'Paid in full',
+        detail: shippingLater ? 'Your tea payment is confirmed. Shipping will be quoted and charged separately later.' : 'Thank you. Your order is being prepared for sending.',
       };
     case 'sent':
       return {
@@ -4818,11 +4823,13 @@ export function deriveOrderJourney(input: JourneyInput): OrderJourney {
     const reported = 'You have told us a payment is on its way. We will confirm it once it reaches the account.';
     detail = detail ? `${detail} ${reported}` : reported;
   }
+  if (input.invoice?.shipping_quote_status === 'requested' && stage !== 'paid' && stage !== 'closed' && stage !== 'sent') detail = `${detail ? detail + ' ' : ''}Shipping is quoted and charged separately later.`;
   return { stage, label: copy.label, detail, at: journeyAt(stage, input) };
 }
 
 /** One order as the journey needs it. The money arrives from the payment map. */
 export interface JourneyInvoiceRow {
+  shipping_quote_status?: string | null;
   id: string;
   status: string | null;
   created_at: string | null;
@@ -4875,6 +4882,7 @@ async function resolveOrderJourneys(
       manualStatus: request?.manualStatus ?? null,
       invoice: {
         status: invoice.status,
+        shipping_quote_status: invoice.shipping_quote_status,
         created_at: invoice.created_at,
         payment_date: invoice.payment_date,
         fulfilled_at: invoice.fulfilled_at,
@@ -5080,6 +5088,89 @@ const handleCreateOrderPaymentClaim: Handler = async (request, env, params) => {
     name: (inquiry.name as string | null) || invoice.customer_name,
     contact: (inquiry.email as string | null) || (inquiry.phone as string | null) || null,
   });
+};
+
+// Sandbox credentials are separate and cannot be used on a non-loopback request.
+async function handlePayPalPayment(request: Request, env: Env, params: Record<string, string>, live = false, trustedInvoiceId?: string): Promise<Response> {
+  const enabled = live ? paypalLiveEnabled : paypalSandboxEnabled;
+  const accountId = live ? env.PAYPAL_LIVE_ACCOUNT_ID : env.PAYPAL_SANDBOX_ACCOUNT_ID;
+  const providerRoutes = live ? paypalLiveRoutes : paypalSandboxRoutes;
+  const table = live ? 'paypal_live_orders' : 'paypal_sandbox_orders';
+  if (!enabled(request, env)) return request.method === 'GET'
+    ? json({ enabled: false }) : json({ error: 'PayPal checkout is not configured.' }, 404);
+  if (!trustedInvoiceId && !isValidTrackingToken(params.ref)) return json({ error: 'Order not found.' }, 404);
+  const input = request.method === 'POST' ? await request.clone().json().catch(() => null) as Record<string, unknown> | null : null;
+  const selection = input?.invoice_id ?? new URL(request.url).searchParams.get('invoice');
+  if (selection != null && (typeof selection !== 'string' || selection.length > 128)) return json({ error: 'Order not found.' }, 404);
+  const inquiry = trustedInvoiceId
+    ? await env.DB.prepare('SELECT q.id,q.account_id,q.converted_invoice_id FROM inquiries q JOIN invoices i ON i.source_inquiry_id=q.id AND i.account_id=q.account_id WHERE i.id=? AND q.account_id=?').bind(trustedInvoiceId, accountId).first<{id:string;account_id:string;converted_invoice_id:string}>()
+    : await env.DB.prepare('SELECT id,account_id,converted_invoice_id FROM inquiries WHERE tracking_token_hash=? AND account_id=?').bind(await sha256Hex(params.ref), accountId).first<{id:string;account_id:string;converted_invoice_id:string}>();
+  if (!inquiry?.converted_invoice_id) return json({ error: 'Order not found.' }, 404);
+  const invoiceId = String(selection || inquiry.converted_invoice_id);
+  const associated = await env.DB.prepare(`SELECT id FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL AND (id=? OR source_inquiry_id=?)`)
+    .bind(invoiceId, inquiry.account_id, inquiry.converted_invoice_id, inquiry.id).first();
+  if (!associated) return json({ error: 'Order not found.' }, 404);
+  const lease = request.method === 'POST' ? await claimInvoiceLinkLease(env, inquiry.account_id, invoiceId) : null;
+  if (request.method === 'POST' && !lease) return json({ error: 'Order is being updated. Retry shortly.' }, 409);
+  try {
+    return await providerRoutes(request, env, params.ref, {
+      load: async () => {
+        const invoice = await loadLedgerInvoice(env, invoiceId, inquiry.account_id);
+        if (!invoice) return json({ error: 'Order not found.' }, 404);
+        const returningOrder = input?.order_id ?? new URL(request.url).searchParams.get('order_id');
+        const storedReceipt = typeof returningOrder === 'string' ? await env.DB.prepare(`SELECT capture_id FROM ${table}
+          WHERE paypal_order_id=? AND invoice_id=? AND account_id=?`)
+          .bind(returningOrder, invoiceId, inquiry.account_id).first() : null;
+        if (!storedReceipt && invoice.status !== 'Pending') return json({ error: 'Confirm the tea order before payment.' }, 409);
+        const hold = (await loadCheckoutPaymentHolds(env, [invoiceId])).get(invoiceId);
+        const fulfillment = lease?.invoice ?? await env.DB.prepare('SELECT inventory_deducted,shipping_quote_status,delivery_address,customer_name,fulfillment_method FROM invoices WHERE id=? AND account_id=?').bind(invoiceId, inquiry.account_id).first();
+        const allocated = Number(fulfillment?.inventory_deducted) === 1;
+        if (!storedReceipt && !allocated && (!hold || checkoutPaymentRefusal(hold))) return json({ error: 'The order hold expired. Confirm availability before payment.' }, 409);
+        const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
+        const money = invoiceMoney(invoice.total_usd, invoice.payment_status, ledger.get(invoiceId));
+        const items = await currentInvoiceItems(env, inquiry.account_id, invoiceId);
+        // Prices, quantities and the original deadline all bind this provider order to a reviewed quote.
+        const quoteKey = await sha256Hex(JSON.stringify({ invoiceId, items: items.map(item => [item.id,item.product_id,item.quantity,item.quantity_unit,item.unit_price_usd]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))), total:invoice.total_usd, outstanding:money.outstanding_usd, ...(live?{shipping_address:fulfillment?.delivery_address,recipient:fulfillment?.customer_name}:{}), deadline:hold?.payment_deadline }));
+        return { id: invoiceId, account_id: inquiry.account_id, invoice_number: invoice.invoice_number,
+          amount_usd: money.outstanding_usd, quote_key: quoteKey, deadline: hold?.payment_deadline || '', ...(live ? {pickup:fulfillment?.fulfillment_method === 'bali_pickup',shipping: paypalUSShipping(fulfillment?.customer_name as string|null, fulfillment?.delivery_address as string|null)} : {}), shipping_later: fulfillment?.shipping_quote_status === 'requested', capture_allowed: invoice.status === 'Pending' && (allocated || Boolean(hold && !checkoutPaymentRefusal(hold))) };
+      },
+      settle: async receipt => {
+        const invoice = await loadLedgerInvoice(env, invoiceId, inquiry.account_id);
+        if (!invoice || invoice.status === 'Void') throw new Error('sandbox_invoice_unavailable');
+        await reconcileLedgerWithColumn(env, invoice);
+        const recorded = await insertInvoicePayment(env, { invoice, amount: receipt.amount_usd,
+          fields: { amount: receipt.amount_usd, amountOriginal: receipt.amount_usd, currency: 'USD',
+            methodLabel: live ? 'PayPal' : 'PayPal Sandbox · test only', reference: receipt.capture_id, note: live ? 'Verified PayPal capture.' : 'Verified sandbox capture; no real money.' },
+          claimedBy: 'operator', status: 'confirmed', requestId: (live ? 'live_paypal_' : 'sandbox_paypal_') + receipt.capture_id });
+        const result = await recomputeInvoicePaymentStatus(env, invoice);
+        // Stock confirmation owns the same lease, so give it back after the verified ledger write.
+        if (lease) await releaseInvoiceLinkLease(env, inquiry.account_id, invoiceId, lease.claimToken);
+        const account = await env.DB.prepare('SELECT owner_user_id FROM accounts WHERE id=?').bind(inquiry.account_id).first<{ owner_user_id: string | null }>();
+        const stock = result.payment_status === 'paid' && account?.owner_user_id
+          ? await applyConfirmedPaymentStock(env, invoiceId, { accountId: inquiry.account_id, userId: account.owner_user_id, role: 'owner' })
+          : { state: 'not_due' };
+        return { ...result, payment_id: recorded.id, idempotent: !recorded.inserted, stock };
+      },
+    });
+  } finally { if (lease) await releaseInvoiceLinkLease(env, inquiry.account_id, invoiceId, lease.claimToken); }
+};
+
+const handlePayPalSandbox: Handler = (request,env,params) => handlePayPalPayment(request,env,params);
+const handlePayPalLive: Handler = (request,env,params) => handlePayPalPayment(request,env,params,true);
+const handlePayPalLiveWebhook: Handler = async (request,env) => {
+ let event: Record<string,any>|null;
+ try { event=await verifyPayPalLiveWebhook(request,env); } catch { return json({error:'Verification unavailable.'},503); }
+ if(!event)return json({error:'Invalid webhook.'},400);
+ if(!['CHECKOUT.ORDER.APPROVED','PAYMENT.CAPTURE.COMPLETED','PAYMENT.CAPTURE.PENDING'].includes(event.event_type))return json({received:true});
+ const orderId=event.event_type==='CHECKOUT.ORDER.APPROVED'?event.resource?.id:event.resource?.supplementary_data?.related_ids?.order_id;
+ if(typeof orderId!=='string'||!/^[A-Z0-9]{8,32}$/.test(orderId))return json({error:'Missing provider order.'},400);
+ const attempt=await env.DB.prepare('SELECT invoice_id FROM paypal_live_orders WHERE paypal_order_id=? AND account_id=?').bind(orderId,env.PAYPAL_LIVE_ACCOUNT_ID).first<{invoice_id:string}>();
+ if(!attempt)return json({received:true});
+ const internal=new Request(new URL('/api/orders/webhook/paypal/capture',request.url),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice_id:attempt.invoice_id,order_id:orderId})});
+ const result=await handlePayPalPayment(internal,env,{ref:'webhook'},true,attempt.invoice_id);
+ // PayPal retries non-2xx, including an invoice lease held by a concurrent return.
+ // A quote/hold refusal always prevents a fresh charge.
+ return result;
 };
 
 // POST /api/me/orders/:id/payment-claim — signed in, scoped the way
@@ -5924,14 +6015,10 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     }
     if (Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd')) {
       body.shipping_cost_usd = validateShippingCostUsd(body.shipping_cost_usd);
-      if (invoice.fulfillment_method === 'us_shipping') {
+      if (invoice.shipping_quote_status === 'requested' || invoice.fulfillment_method === 'us_shipping') {
         body.shipping_quote_status = 'confirmed';
         cols.push('shipping_quote_status');
       }
-    }
-    if (invoice.fulfillment_method === 'us_shipping' && body.status === 'Pending' &&
-        invoice.shipping_quote_status !== 'confirmed' && body.shipping_quote_status !== 'confirmed') {
-      return restError(409, 'Confirm the US shipping price before accepting this order.', 'shipping_quote_required');
     }
     for (const key of ['shipping_destination', 'tracking_number']) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
@@ -6664,10 +6751,11 @@ const handleShipInvoice: Handler = async (request, env) => {
   const invoiceId = String(body.invoice_id || '').trim();
   if (!invoiceId) return restError(400, 'invoice_id is required', 'invalid_invoice_id');
   const invoice = await env.DB.prepare(
-    `SELECT id,status,inventory_deducted,fulfilled_at FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL`
+    `SELECT id,status,inventory_deducted,fulfilled_at,shipping_quote_status FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL`
   ).bind(invoiceId, ctx.accountId).first() as Record<string, any> | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
   if (invoice.status === 'Filled'){const trail=await shipmentTeaTrail(env,ctx.accountId,invoiceId);if(trail.length)await env.DB.batch(trail);return json({ success: true, idempotent: true, shipped_at: invoice.fulfilled_at });}
+  if (invoice.shipping_quote_status === 'requested') return restError(409, 'Confirm the shipping charge before dispatch. Tea payment does not cover shipping.', 'shipping_quote_required');
   const priced = await loadLedgerInvoice(env, invoiceId, ctx.accountId);
   const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
   if (!priced || (ledger.get(invoiceId)?.paid_usd ?? 0) < priced.total_usd - PAYMENT_EPSILON) {
@@ -6690,6 +6778,7 @@ const handleShipInvoice: Handler = async (request, env) => {
   const shipment=env.DB.prepare(
     `UPDATE invoices SET status='Filled',fulfilled_at=?,tracking_number=COALESCE(?,tracking_number)
      WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
+       AND COALESCE(shipping_quote_status,'confirmed')!='requested'
        AND fulfillment_claim_token IS NULL
        AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments
          WHERE invoice_id=invoices.id AND account_id=invoices.account_id AND status='confirmed'),0)
@@ -7160,6 +7249,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     updates.push(`${key} = ?`);
     vals.push(normalizedValues[key] ?? body[key] ?? null);
   }
+  if (updateKeys.includes('shipping_cost_usd') && invoice.shipping_quote_status === 'requested') updates.push("shipping_quote_status = 'confirmed'");
   if (replacementPaymentRecipient !== undefined) {
     updates.push('payment_recipient_user_id = ?');
     vals.push(replacementPaymentRecipient);
@@ -11507,7 +11597,37 @@ const handleReadCapturePhoto: Handler = async (request, env, params) => {
   const { id, photoId } = params;
   if (!validCaptureEntryId(id) || !validCapturePhotoId(photoId)) return capturePhotoResponse(null);
   const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
-  return capturePhotoResponse(await privateCapturePhoto(env, ctx, id, photoId, manager), request.method === 'HEAD');
+  return capturePhotoResponse(await privateCapturePhoto(env, ctx, id, photoId, manager, new URL(request.url).searchParams.get('original') === '1'), request.method === 'HEAD');
+};
+
+const handleCapturePhotoFrame: Handler = async (request, env, params) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { id, photoId } = params;
+  if (!validCaptureEntryId(id) || !validCapturePhotoId(photoId)) return json({ error: 'Photo not found' }, 404);
+  if (!env.ATLAS_BUCKET) return json({ error: 'Private photo storage is unavailable' }, 503);
+  const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
+  if (request.method === 'GET') {
+    const result = await readCapturePhotoFrame(env, ctx, id, photoId, manager);
+    return result ? Response.json(result, { headers: { 'Cache-Control': 'private, no-store' } }) : json({ error: 'Photo not found' }, 404);
+  }
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) return json({ error: 'Expected multipart/form-data' }, 400);
+  const maxFrameBytes = 6 * 1024 * 1024;
+  const preReadError = validateContentLength(request, maxFrameBytes + 4096);
+  if (preReadError) return preReadError;
+  const data = await request.formData();
+  const file: unknown = data.get('file');
+  const rawFrame = data.get('frame');
+  let frame: unknown;
+  try { frame = typeof rawFrame === 'string' && rawFrame.length <= 2048 ? JSON.parse(rawFrame) : null; } catch { frame = null; }
+  if (!validCapturePhotoFrame(frame)) return json({ error: 'Invalid photo framing' }, 400);
+  if (!(file instanceof File) || !file.size || file.type !== 'image/jpeg') return json({ error: 'Provide a JPEG photo preview' }, 400);
+  const fileError = await validateUpload(file, 'image', maxFrameBytes);
+  if (fileError) return fileError;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:capture-image`);
+  if (limited) return limited;
+  const saved = await storeCapturePhotoFrame(env, ctx, id, photoId, manager, file, frame);
+  return saved ? json({ ok: true }) : json({ error: 'Photo not found' }, 404);
 };
 
 const handleReviewCaptureShopPhoto: Handler = async (request, env, params) => {
@@ -11539,6 +11659,9 @@ const handleReviewCaptureShopPhoto: Handler = async (request, env, params) => {
   const review = await loadCapturePhotoReview(env, ctx, id, photoId, manager);
   if (!review || review.product_id !== body.product_id || Object.entries(review.snapshot).some(([field, value]) => body.snapshot?.[field] !== value)) {
     return json({ error: 'The photo or Stock record changed. Review it again.' }, 409);
+  }
+  if (!await pinCaptureApprovalPhoto(env, ctx, id, photoId, body.approval_id, review.snapshot.capture_photo_frame_sha256, manager)) {
+    return json({ error: 'The photo framing changed. Review it again.' }, 409);
   }
   await env.DB.batch(prepareCaptureApproval(env, ctx, id, photoId, body.approval_id, review, manager));
   const saved = await captureApproval(env, body.approval_id);
@@ -14580,7 +14703,7 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 // ── Cart Inquiries ──────────────────────────────────────────────────────────
 
 async function currentInvoiceItems(env:Env,accountId:string,invoiceId:string){
- const rows=await env.DB.prepare(`SELECT l.id,l.product_id,COALESCE(l.custom_name,p.given_name,p.product_name,'Item') AS name,l.quantity,COALESCE(l.quantity_unit,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END) AS quantity_unit,l.price_at_sale AS unit_price_usd,ROUND(l.quantity*l.price_at_sale,2) AS line_total_usd FROM invoice_line_items l LEFT JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all<{ line_total_usd: number }>();return rows.results;
+ const rows=await env.DB.prepare(`SELECT l.id,l.product_id,COALESCE(l.custom_name,p.given_name,p.product_name,'Item') AS name,l.quantity,COALESCE(l.quantity_unit,CASE WHEN p.type='Teaware' THEN 'unit' ELSE 'g' END) AS quantity_unit,l.price_at_sale AS unit_price_usd,ROUND(l.quantity*l.price_at_sale,2) AS line_total_usd FROM invoice_line_items l LEFT JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.invoice_id=? AND l.account_id=?`).bind(invoiceId,accountId).all<{ id: string; product_id: string | null; name: string; quantity: number; quantity_unit: 'g' | 'unit'; unit_price_usd: number; line_total_usd: number }>();return rows.results;
 }
 const PICKUP_DESTINATION = 'In-person pickup in Bali, Indonesia';
 
@@ -14593,10 +14716,9 @@ async function savedInvoiceContents(env: Env, accountId: string, invoiceId: stri
         MIN(h.expires_at) AS deadline
       FROM invoices i JOIN stock_holds h ON h.invoice_id=i.id AND h.account_id=i.account_id
       WHERE i.id=? AND i.account_id=? AND i.status='Pending' AND i.inventory_deducted=0
-        AND (i.shipping_destination=? OR i.checkout_shipping_grams IS NOT NULL)
         AND julianday(h.expires_at)>julianday('now')
       GROUP BY i.id, i.shipping_cost_usd, i.checkout_shipping_grams`
-    ).bind(invoiceId, accountId, PICKUP_DESTINATION).first<{
+    ).bind(invoiceId, accountId).first<{
       deadline: string;
       checkout_shipping_grams: number | null;
       shipping_cost_usd: number;
@@ -14609,6 +14731,7 @@ async function savedInvoiceContents(env: Env, accountId: string, invoiceId: stri
       shipping_quote: { packed_grams: fulfillment.checkout_shipping_grams, shipping_usd: fulfillment.shipping_cost_usd },
     } : {}),
     total_estimate_usd: roundUsd(invoice_items.reduce((sum, line) => sum + Number(line.line_total_usd), 0)),
+    ...(checkout?.deadline ? { checkout_payment_deadline: checkout.deadline } : {}),
     ...(checkout?.checkout_shipping_grams != null ? {
       shipping_checkout: {
         packed_grams: checkout.checkout_shipping_grams,
@@ -14805,9 +14928,19 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     if (usShippingPostcode && !/^\d{5}(-\d{4})?$/.test(usShippingPostcode)) {
       return json({ error: 'Enter a valid US ZIP code for US shipping.' }, 400);
     }
-    const deliveryAddress = source === 'website' && typeof body.delivery_address === 'string'
+    let deliveryAddress = source === 'website' && typeof body.delivery_address === 'string'
       ? body.delivery_address.trim()
       : '';
+    const usAddress = {
+      street: deliveryAddress,
+      city: typeof body.delivery_city === 'string' ? body.delivery_city.trim() : '',
+      state: typeof body.delivery_state === 'string' ? body.delivery_state.trim().toUpperCase() : '',
+      postcode: usShippingPostcode,
+    };
+    // Canonical lines are also sent to PayPal. Older saved requests retain their
+    // original address fingerprint so their private-link retries keep working.
+    if (source === 'website' && normalized.value.storeSlug === 'teajia-bali' && !pickupRequested &&
+        Object.keys(validateUsShippingAddress(usAddress)).length === 0) deliveryAddress = formatUsShippingAddress(usAddress);
     const addressError = inquiryFieldTooLong('Delivery address', deliveryAddress, 500);
     if (addressError) return json({ error: addressError }, 400);
     const phoneCandidate = typeof body.phone === 'string' ? body.phone.trim() : '';
@@ -14857,6 +14990,11 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     }
 
     if (source === 'website') {
+      if (normalized.value.storeSlug === 'teajia-bali' && !pickupRequested) {
+        if (body.delivery_country !== 'US') return json({ error: 'Shipping is currently available to the United States only.' }, 400);
+        const addressErrors = validateUsShippingAddress(usAddress);
+        if (Object.keys(addressErrors).length) return json({ error: Object.values(addressErrors)[0], fields: addressErrors }, 400);
+      }
       if (whatsappRecipient) {
         const business = await env.DB.prepare('SELECT whatsapp_number FROM accounts WHERE id=?').bind(accountId).first<{ whatsapp_number: string | null }>();
         if (business?.whatsapp_number?.replace(/\D/g, '') === whatsappRecipient.slice(1)) {
@@ -14870,14 +15008,13 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         return json({ error: error instanceof Error ? error.message : 'Could not price this request' }, 400);
       }
       const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
-      const shipping = usShippingPostcode && deliveryAddress && accountId === env.SHOP_US_SHIPPING_ACCOUNT_ID
-        ? quoteUsCheckoutShipping(lines, env.SHOP_US_SHIPPING_USD_PER_KG, env.SHOP_US_SHIPPING_PACKAGING_GRAMS,
-          env.SHOP_US_SHIPPING_MAX_PACKED_GRAMS)
-        : null;
+      const shipping = null as { usd: number; packedGrams: number } | null;
       const pickup = pickupRequested && accountId === env.SHOP_PICKUP_ACCOUNT_ID && !deliveryAddress;
+      const livePayPal = accountId === env.PAYPAL_LIVE_ACCOUNT_ID && paypalLiveEnabled(request,env);
+      const payableTea = livePayPal && (usShippingRequested || pickupRequested);
       let checkout: { ownerId: string; lines: Awaited<ReturnType<typeof authorizeInvoiceLines>> } | null = null;
       // Unpriced, unknown-stock and mixed-owner baskets go through review.
-      if ((pickup || shipping) && !whatsappHandoff &&
+      if ((pickup || shipping || payableTea) && !whatsappHandoff &&
           lines.length > 0 && lines.every(line => line.product_id && line.price_at_sale > 0)) {
         const owner = await env.DB.prepare(`SELECT a.owner_user_id FROM accounts a
           JOIN account_members m ON m.account_id=a.id AND m.user_id=a.owner_user_id
@@ -14897,7 +15034,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
               id: 'checkout-method-check', account_id: accountId, status: 'Pending',
               sold_by_user_id: owner.owner_user_id, total_usd: serverSubtotalUsd,
             }], true);
-            if (methods.get('checkout-method-check')?.has_methods) {
+            if (livePayPal || methods.get('checkout-method-check')?.has_methods) {
               checkout = { ownerId: owner.owner_user_id, lines: authorized };
             }
           }
@@ -14933,10 +15070,10 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'unpaid',?,?,?,?,?)`
           ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,buyerId,buyerLibrary,
             shipping ? shipping.usd : 0, checkout && pickup ? PICKUP_DESTINATION : location || null,
-            deliveryAddress || null, shipping?.packedGrams ?? null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? 'Awaiting bank transfer.' : 'Review prices and shipping before sending.'}`,
+            deliveryAddress || null, shipping?.packedGrams ?? null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? livePayPal ? 'Awaiting PayPal payment. Shipping quoted separately where applicable.' : 'Awaiting bank transfer.' : 'Review prices and availability before sending.'}`,
             checkout?.ownerId ?? null, checkout?.ownerId ?? null,
             pickupRequested ? 'bali_pickup' : usShippingRequested ? 'us_shipping' : null,
-            usShippingRequested ? shipping ? 'confirmed' : 'requested' : null, paymentDeadline),
+            pickupRequested ? null : 'requested', paymentDeadline),
           ...lines.map(line => env.DB.prepare(
             `INSERT INTO invoice_line_items
              (id,account_id,invoice_id,product_id,custom_name,quantity,price_at_sale,quantity_unit,stock_owner_user_id)
@@ -15209,6 +15346,7 @@ const handleGetInquiryByRef: Handler = async (request, env, params) => {
       });
       journeyInvoice = {
         status: (invoice.status as string | null) ?? null,
+        shipping_quote_status: invoice.shipping_quote_status,
         created_at: (invoice.created_at as string | null) ?? null,
         payment_date: (invoice.payment_date as string | null) ?? null,
         fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
@@ -15239,7 +15377,7 @@ const handleGetInquiryByRef: Handler = async (request, env, params) => {
   if (row.source === 'website' && order?.status === 'Draft') {
     journey = {
       stage: 'received', label: 'Request received',
-      detail: 'We have your request. We will confirm the final price and shipping with you.',
+      detail: 'We have your request. We will confirm the tea first. Shipping is quoted and charged separately later.',
       at: toIsoTime(row.created_at),
     };
   }
@@ -23062,7 +23200,7 @@ const handleGetMyOrders: Handler = async (request, env) => {
             COALESCE(t.line_total, 0) as line_total,
             COALESCE(t.line_count, 0) as line_count,
             i.shipping_cost_usd, i.payment_status, i.payment_date, i.fulfilled_at,
-            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number
+            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number,i.shipping_quote_status
      FROM invoices i
      LEFT JOIN (
        SELECT invoice_id, account_id,
@@ -23101,6 +23239,7 @@ const handleGetMyOrders: Handler = async (request, env) => {
     created_at: row.created_at as string | null,
     payment_date: row.payment_date as string | null,
     fulfilled_at: row.fulfilled_at as string | null,
+    shipping_quote_status: row.shipping_quote_status,
   })), payments);
 
   const refunds=rows.length?await env.DB.prepare(`SELECT invoice_id,SUM(amount_usd) AS refunded_usd FROM invoice_refunds WHERE invoice_id IN (${rows.map(()=>'?').join(',')}) GROUP BY invoice_id`).bind(...rows.map(row=>row.id)).all():{results:[]};
@@ -23129,7 +23268,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
   const invoice = await env.DB.prepare(
     `SELECT i.id,i.account_id, i.invoice_number, i.status, i.created_at, i.payment_date,
             i.fulfilled_at, i.display_currency, i.shipping_cost_usd, i.payment_status,
-            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number
+            i.payment_recipient_user_id, i.sold_by_user_id,i.refund_required,i.cancelled_at,i.shipping_destination,i.tracking_number,i.shipping_quote_status
      FROM invoices i
      WHERE i.id = ? AND i.deleted_at IS NULL
        AND ${ownership.predicate}
@@ -23181,6 +23320,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
     created_at: invoice.created_at as string | null,
     payment_date: (invoice.payment_date as string | null) ?? null,
     fulfilled_at: (invoice.fulfilled_at as string | null) ?? null,
+    shipping_quote_status: invoice.shipping_quote_status,
   }], new Map([[invoice.id as string, payment]]));
 
   return json({
@@ -23198,6 +23338,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
     items,
     subtotal_amount_usd: subtotal,
     shipping_amount_usd: shipping,
+    shipping_quote_status: invoice.shipping_quote_status,
     total_amount_usd: subtotal + shipping,
     contact: {
       whatsapp: account?.whatsapp_number || null,
@@ -30410,6 +30551,8 @@ const routes: [string, string, Handler][] = [
   // Image Upload
   ['POST', '/api/upload-image', handleUploadImage],
   ['POST', '/api/curate/capture/:id/photos/:photoId', handleUploadCapturePhoto],
+  ['GET', '/api/curate/capture/:id/photos/:photoId/frame', handleCapturePhotoFrame],
+  ['PUT', '/api/curate/capture/:id/photos/:photoId/frame', handleCapturePhotoFrame],
   ['GET', '/api/curate/capture/:id/photos/:photoId', handleReadCapturePhoto],
   ['HEAD', '/api/curate/capture/:id/photos/:photoId', handleReadCapturePhoto],
   ['GET', '/api/curate/capture/:id/photos/:photoId/shop-review', handleReviewCaptureShopPhoto],
@@ -30541,6 +30684,13 @@ const routes: [string, string, Handler][] = [
   ['POST','/api/inquiries/:ref/claim',handleClaimInquiry],
   ['GET', '/api/inquiries/:ref', handleGetInquiryByRef],
   ['POST', '/api/orders/:ref/payment-claim', handleCreateOrderPaymentClaim],
+  ['GET', '/api/orders/:ref/paypal', handlePayPalLive],
+  ['POST', '/api/orders/:ref/paypal', handlePayPalLive],
+  ['POST', '/api/orders/:ref/paypal/capture', handlePayPalLive],
+  ['POST', '/api/paypal/webhook', handlePayPalLiveWebhook],
+  ['GET', '/api/orders/:ref/paypal-sandbox', handlePayPalSandbox],
+  ['POST', '/api/orders/:ref/paypal-sandbox', handlePayPalSandbox],
+  ['POST', '/api/orders/:ref/paypal-sandbox/capture', handlePayPalSandbox],
   ['POST', '/api/inquiries/:id/convert', handleConvertInquiry],
   ['GET', '/api/admin/inquiries', handleGetInquiries],
   ['PATCH', '/api/admin/inquiries/:id/status', handleUpdateInquiryStatus],
@@ -31104,7 +31254,7 @@ const requestHandler = {
       obj.writeHttpMetadata(headers);
       headers.set('etag', obj.httpEtag);
       // Objects are immutable (UUID/slot-keyed) — cache hard at edge + browser.
-      headers.set('Cache-Control', familyVerdict === 'signed' ? 'private, max-age=3600' : 'public, max-age=31536000, immutable');
+      headers.set('Cache-Control', familyVerdict === 'signed' ? 'private, max-age=3600' : familyVerdict === 'public' ? 'public, max-age=60' : 'public, max-age=31536000, immutable');
       const body = request.method === 'HEAD' ? null : obj.body;
       return cors(new Response(body, { headers }), corsOrigin);
     }

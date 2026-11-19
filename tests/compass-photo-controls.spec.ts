@@ -1,46 +1,171 @@
-import { test, expect } from './fixtures';
+import { test, expect, type Page } from './fixtures';
 import { installCompassHarness, openCompass } from './helpers/compassHarness';
+import type { SquarePhotoFrame } from '../src/lib/cropImage';
 
-const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64');
-
-async function uploadPhoto(page: import('@playwright/test').Page) {
-  await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: 'tea.png', mimeType: 'image/png', buffer: image });
+type Photo = { original: Buffer; preview?: Buffer; frame: SquarePhotoFrame | null };
+async function photoServer(page: Page) {
+  await installCompassHarness(page);
+  const photos = new Map<string, Photo>();
+  const state = { refuse: false, uploads: 0, frameWrites: 0, originalReads: 0 };
+  await page.route('**/api/curate/capture/**', async route => {
+    const request = route.request(), url = new URL(request.url());
+    const match = url.pathname.match(/^(\/api\/curate\/capture\/[^/]+\/photos\/[^/]+)(\/frame)?$/);
+    if (!match) return route.fallback();
+    const path = match[1], photo = photos.get(path);
+    if (request.method() === 'POST') {
+      const form = await new Response(new Uint8Array(request.postDataBuffer()!), { headers: { 'content-type': request.headers()['content-type'] } }).formData();
+      photos.set(path, { original: Buffer.from(await (form.get('file') as File).arrayBuffer()), frame: null });
+      state.uploads += 1;
+      return route.fulfill({ status: 201, json: { url: path } });
+    }
+    if (!photo) return route.fulfill({ status: 404 });
+    if (match[2]) {
+      if (request.method() === 'GET') return route.fulfill({ json: { frame: photo.frame } });
+      state.frameWrites += 1;
+      if (state.refuse) return route.fulfill({ status: 503, json: { error: 'Framing could not be saved. Retry.' } });
+      const form = await new Response(new Uint8Array(request.postDataBuffer()!), { headers: { 'content-type': request.headers()['content-type'] } }).formData();
+      photo.frame = JSON.parse(String(form.get('frame')));
+      photo.preview = Buffer.from(await (form.get('file') as File).arrayBuffer());
+      return route.fulfill({ json: { ok: true } });
+    }
+    if (url.searchParams.has('original')) state.originalReads += 1;
+    return route.fulfill({ body: url.searchParams.has('original') ? photo.original : photo.preview ?? photo.original, contentType: 'image/jpeg' });
+  });
+  return { photos, state };
 }
 
-test('Source photos expose remove and square crop controls without opening a hidden menu', async ({ page }, testInfo) => {
-  await installCompassHarness(page);
-  await page.route('https://img.test/**', route => route.fulfill({ body: image, contentType: 'image/png' }));
+async function uploadWidePhoto(page: Page) {
+  const data = await page.evaluate(() => {
+    const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 300;
+    const context = canvas.getContext('2d')!;
+    context.fillStyle = '#607050'; context.fillRect(0, 0, 200, 300);
+    context.fillStyle = '#c9b78a'; context.fillRect(200, 0, 200, 300);
+    context.fillStyle = '#564530'; context.fillRect(400, 0, 200, 300);
+    return canvas.toDataURL('image/jpeg').split(',')[1];
+  });
+  await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: 'tea.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(data, 'base64') });
+}
+
+const frameButton = (page: Page, number = 1) => page.getByRole('button', { name: `Frame photo ${number}`, exact: true }).filter({ visible: true }).first();
+
+test('clicking a photo opens reversible square framing; Delete stays below the image', async ({ page }, testInfo) => {
+  const server = await photoServer(page);
   await openCompass(page);
-  await uploadPhoto(page);
-  await expect(page.getByRole('button', { name: 'Remove photo 1', exact: true }).filter({ visible: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Crop photo 1', exact: true }).filter({ visible: true })).toHaveText('Crop');
-  await uploadPhoto(page);
-  await expect(page.getByRole('button', { name: 'Remove photo 2', exact: true }).filter({ visible: true })).toBeVisible();
-  const thumb = page.getByRole('button', { name: 'View photo 1', exact: true }).filter({ visible: true });
-  const box = await thumb.boundingBox();
-  expect(box!.width).toBeCloseTo(box!.height, 0);
-  await page.screenshot({ path: `/tmp/teajia-photo-controls-${testInfo.project.name.replaceAll(' ', '-').toLowerCase()}.png`, fullPage: true });
-  await page.getByRole('button', { name: 'Remove photo 1', exact: true }).filter({ visible: true }).click();
-  await expect(page.getByRole('button', { name: 'Remove photo 2', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Remove photo 1', exact: true }).filter({ visible: true })).toBeVisible();
+  await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Reversible photo framing');
+  await uploadWidePhoto(page);
+  const photo = frameButton(page);
+  const deletion = page.getByRole('button', { name: 'Delete photo 1', exact: true }).filter({ visible: true });
+  await expect(photo).toBeVisible(); await expect(deletion).toHaveText('Delete');
+  const imageBox = await photo.boundingBox(), deleteBox = await deletion.boundingBox();
+  expect(imageBox!.width).toBeCloseTo(imageBox!.height, 0);
+  expect(deleteBox!.y).toBeGreaterThanOrEqual(imageBox!.y + imageBox!.height);
+  await expect(page.getByRole('button', { name: /Remove photo|Crop photo/ })).toHaveCount(0);
+  await uploadWidePhoto(page);
+  await page.getByRole('button', { name: 'Delete photo 2', exact: true }).filter({ visible: true }).click();
+  await expect(frameButton(page, 2)).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('delete-under-photo.png') });
+  const [path, original] = [...server.photos.entries()][0];
+  const originalBytes = Buffer.from(original.original);
+  await page.getByRole('button', { name: 'Save changes to this tea' }).filter({ visible: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/, visible: true })).toBeVisible();
+  await expect(page.getByText('Photos & source documents', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('1 photo saved', { exact: true })).toHaveCount(0);
+  await photo.click();
+  const dialog = page.getByRole('dialog', { name: 'Frame photo', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Save framing' })).toBeEnabled();
+  const cropArea = dialog.locator('.reactEasyCrop_CropArea');
+  const initialSize = (await cropArea.boundingBox())!.width;
+  const rotation = dialog.getByLabel('Rotation', { exact: true });
+  await expect(rotation).toHaveAttribute('type', 'range');
+  await rotation.focus();
+  for (let i = 0; i < 20; i += 1) await rotation.press('ArrowRight');
+  await expect(rotation).toHaveValue('2');
+  const twoDegrees = (await cropArea.boundingBox())!.width;
+  expect(twoDegrees).toBeLessThan(initialSize);
+  for (let i = 0; i < 10; i += 1) await rotation.press('ArrowRight');
+  await expect(rotation).toHaveValue('3');
+  expect((await cropArea.boundingBox())!.width).toBeLessThan(twoDegrees);
+  const crop = dialog.locator('.reactEasyCrop_Container');
+  const box = (await crop.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2 + 20, { steps: 5 }); await page.mouse.up();
+  await dialog.getByRole('button', { name: 'Save framing' }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(server.photos.get(path)!.original).toEqual(originalBytes);
+  expect(server.photos.get(path)!.frame?.zoom).toBe(1);
+  expect(server.photos.get(path)!.frame?.rotation).toBe(3);
+  expect(server.photos.get(path)!.frame?.crop.x).not.toBe(0);
+  expect(server.state.uploads).toBe(2);
+  await expect.poll(() => photo.locator('img').evaluate((img: HTMLImageElement) => [img.naturalWidth, img.naturalHeight])).toEqual([1600, 1600]);
+  await page.reload();
+  await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
+  await page.getByRole('button', { name: 'Photos for Reversible photo framing', exact: true }).click();
+  await expect(dialog.getByLabel('Zoom')).toHaveValue('1');
+  await expect(dialog.getByLabel('Rotation', { exact: true })).toHaveValue('3');
+  await expect(dialog.locator('.reactEasyCrop_Image')).toHaveJSProperty('naturalWidth', 600);
+  expect(server.state.originalReads).toBeGreaterThan(0);
+  await page.screenshot({ path: testInfo.outputPath('reversible-square-frame.png') });
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  expect([...server.photos.keys()][0]).toBe(path);
+  expect(server.photos.get(path)!.original).toEqual(originalBytes);
 });
 
-test('failed square crop upload retains the editor and original photo for retry', async ({ page }) => {
-  await installCompassHarness(page);
-  await page.route('https://img.test/**', route => route.fulfill({ body: image, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' } }));
-  await openCompass(page);
-  await uploadPhoto(page);
-  await page.getByRole('button', { name: 'Crop photo 1', exact: true }).filter({ visible: true }).click();
-  await expect(page.getByRole('heading', { name: 'Crop square photo' })).toBeVisible();
-  let refuse = true;
-  await page.route('**/api/curate/capture/*/photos/*', route => refuse ? route.fulfill({ status: 503, json: { error: 'Photo upload temporarily unavailable' } }) : route.fallback());
-  const save = page.getByRole('button', { name: 'Save square photo', exact: true });
+test('a failed framing save keeps the original and square position for retry', async ({ page }) => {
+  const server = await photoServer(page);
+  await openCompass(page); await uploadWidePhoto(page); await frameButton(page).click();
+  const dialog = page.getByRole('dialog', { name: 'Frame photo', exact: true });
+  const save = dialog.getByRole('button', { name: 'Save framing', exact: true });
   await expect(save).toBeEnabled();
-  await save.click();
-  await expect(page.getByText('Photo upload temporarily unavailable', { exact: false })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Crop square photo' })).toBeVisible();
-  refuse = false;
-  await save.click();
-  await expect(page.getByRole('heading', { name: 'Crop square photo' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Remove photo 1', exact: true }).filter({ visible: true })).toBeVisible();
+  await dialog.getByLabel('Zoom').focus(); await dialog.getByLabel('Zoom').press('End');
+  server.state.refuse = true; await save.click();
+  await expect(dialog.getByText('Framing could not be saved. Retry.', { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel('Zoom')).toHaveValue('4');
+  expect([...server.photos.values()][0].frame).toBeNull();
+  server.state.refuse = false; await save.click();
+  await expect(dialog).toHaveCount(0);
+  expect(server.state.frameWrites).toBe(2); expect(server.state.uploads).toBe(1);
+  expect([...server.photos.values()][0].frame?.zoom).toBe(4);
+});
+
+test('square, portrait and landscape choices reopen after reload without changing the original', async ({ page }, testInfo) => {
+  const server = await photoServer(page);
+  await openCompass(page);
+  await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Aspect presets tea');
+  await uploadWidePhoto(page);
+  await expect(frameButton(page)).toBeVisible();
+  const [path, photo] = [...server.photos.entries()][0];
+  const original = Buffer.from(photo.original);
+  await page.getByRole('button', { name: 'Save changes to this tea' }).filter({ visible: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/, visible: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
+  const open = page.getByRole('button', { name: 'Photos for Aspect presets tea', exact: true });
+  for (const preset of [
+    { label: 'Portrait 2:3', aspect: 2 / 3, dimensions: [1066, 1599] },
+    { label: 'Landscape 3:2', aspect: 3 / 2, dimensions: [1599, 1066] },
+    { label: 'Square', aspect: 1, dimensions: [1600, 1600] },
+  ]) {
+    await open.click();
+    const dialog = page.getByRole('dialog', { name: 'Frame photo', exact: true });
+    await expect(dialog.getByRole('button', { name: 'Save framing', exact: true })).toBeEnabled();
+    await dialog.getByRole('button', { name: preset.label, exact: true }).click();
+    await expect(dialog.getByRole('button', { name: preset.label, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => { const box = await dialog.locator('.reactEasyCrop_CropArea').boundingBox(); return box!.width / box!.height; }).toBeCloseTo(preset.aspect, 2);
+    await page.screenshot({ path: testInfo.outputPath(`frame-${preset.aspect === 1 ? 'square' : preset.aspect < 1 ? 'portrait' : 'landscape'}.png`) });
+    await dialog.getByRole('button', { name: 'Save framing', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect.poll(() => open.locator('img').evaluate((image: HTMLImageElement) => [image.naturalWidth, image.naturalHeight])).toEqual(preset.dimensions);
+    expect(server.photos.get(path)!.original).toEqual(original);
+    expect(server.photos.get(path)!.frame?.aspect).toBe(preset.aspect);
+    await page.reload();
+    await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
+    await open.click();
+    await expect(dialog.getByRole('button', { name: preset.label, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.getByLabel('Zoom')).toHaveValue('1');
+    await expect(dialog.locator('.reactEasyCrop_Image')).toHaveJSProperty('naturalWidth', 600);
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  }
+  expect(server.state.uploads).toBe(1);
+  expect(server.state.frameWrites).toBe(3);
 });

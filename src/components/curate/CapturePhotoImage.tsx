@@ -24,7 +24,7 @@ export function useCapturePhotoUpload(entryId: string) {
   };
 }
 
-export function useCapturePhotoUrl(src?: string | null, stockPreview = false) {
+export function useCapturePhotoUrl(src?: string | null, stockPreview = false, original = false) {
   const accountId = useAppStore(state => state.activeAccountId);
   const userId = useAppStore(state => state.activeUserId);
   const [loaded, setLoaded] = useState<{ key: string; url: string }>();
@@ -32,11 +32,11 @@ export function useCapturePhotoUrl(src?: string | null, stockPreview = false) {
   const projectedPhotoId = stockPreview ? getStockCapturePhotoId(src) : undefined;
   const needsAuth = Boolean(identity || projectedPhotoId);
   const canRead = !!accountId && !!userId && isTokenScopedToAccount(accountId, userId);
-  const key = JSON.stringify([src, accountId, userId, stockPreview]);
+  const key = JSON.stringify([src, accountId, userId, stockPreview, original]);
   // Reuse private bytes across the thumbnail, its sheet and the full-size
   // viewer. The query is memory-only, and the app clears it on token changes.
   const { data: blob } = useQuery({
-    queryKey: ['capture-photo-bytes', accountId, userId, src, stockPreview],
+    queryKey: ['capture-photo-bytes', accountId, userId, src, stockPreview, original],
     enabled: needsAuth && canRead,
     staleTime: 30_000,
     gcTime: 30_000,
@@ -44,7 +44,7 @@ export function useCapturePhotoUrl(src?: string | null, stockPreview = false) {
     queryFn: () => {
       const scope = { accountId: accountId!, userId: userId! };
       return identity
-        ? capturePhotoApi.blob(identity.entryId, identity.photoId, scope)
+        ? capturePhotoApi.blob(identity.entryId, identity.photoId, scope, original)
         : capturePhotoApi.stockBlob(projectedPhotoId!, scope);
     },
   });
@@ -56,6 +56,18 @@ export function useCapturePhotoUrl(src?: string | null, stockPreview = false) {
   }, [blob, canRead, key]);
   if (needsAuth) return canRead && blob && loaded?.key === key ? loaded.url : undefined;
   return mediaUrl(src);
+}
+
+export function useCapturePhotoFrame(src?: string | null) {
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
+  const identity = capturePhotoIdentity(src);
+  return useQuery({
+    queryKey: ['capture-photo-frame', accountId, userId, src],
+    enabled: !!identity && !!accountId && !!userId && isTokenScopedToAccount(accountId, userId),
+    retry: false,
+    queryFn: () => capturePhotoApi.frame(identity!.entryId, identity!.photoId, { accountId: accountId!, userId: userId! }),
+  });
 }
 
 type CapturePhotoImageProps = ImgHTMLAttributes<HTMLImageElement> & { stockPreview?: boolean };

@@ -53,14 +53,11 @@ type SavedOrder = {
 
 const PENDING_KEY = 'teajia_pendingOrderRequest';
 
-/* Delivery and reply are picked from tiles, not a dropdown: four and three
-   choices are few enough to see at once, and a tap beats opening a menu.
+/* Shipping and pickup remain separate visible choices.
    Each tile is a real radio, so the order is still a plain form. */
 const DELIVERY_TILES: [DeliveryChoice, string, string][] = [
-  ['bali-delivery', 'Delivery', 'in Bali'],
-  ['bali-pickup', 'Pickup', 'in Bali'],
-  ['indonesia', 'Indonesia', 'outside Bali'],
-  ['international', 'International', 'shipping'],
+  ['international', 'US shipping', 'charged separately later'],
+  ['bali-pickup', 'Pickup', 'by arrangement in Bali'],
 ];
 /* Two ways to be answered, not three. "WhatsApp chat" and "WhatsApp number"
    read as the same choice; the difference is only whether the customer leaves
@@ -159,7 +156,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     event.preventDefault();
     if (saving.current || placedOrder) return;
     if (unavailable) { setCheckoutError('We could not check the shop. Please retry.'); return; }
-    const nextErrors = validateCheckoutDetails(details, channel);
+    const nextErrors = validateCheckoutDetails(details, channel, isBaliStore);
     const requestWhatsApp = channel === 'whatsapp' && whatsappConsent;
     if (requestWhatsApp && !internationalWhatsAppNumber(details.contact)) nextErrors.contact = 'Include + and your country code, for example +62…';
     if (requestWhatsApp && internationalWhatsAppNumber(details.contact)?.slice(1) === whatsappNumber?.replace(/\D/g, '')) nextErrors.contact = 'Enter your own WhatsApp number, rather than the store’s number.';
@@ -190,7 +187,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
       pendingIdentity.current = identity;
       try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, delivery_city: isBaliStore && isUsDelivery(details) ? details.location.trim() : undefined, delivery_state: isBaliStore && isUsDelivery(details) ? details.state.trim().toUpperCase() : undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
         const original = cart.find(item => item.id === line.product_id && item.quantityGrams === line.quantity);
@@ -209,7 +206,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(false);
-      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? shopPrice.total(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
+      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? shopPrice.total(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
       clearPublicCart();
@@ -228,7 +225,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     catch { setCopyStatus('Could not copy. Open your order-status page and bookmark it instead.'); }
   };
 
-  const field = (key: 'name' | 'contact' | 'location' | 'country' | 'postcode' | 'address', label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+  const field = (key: 'name' | 'contact' | 'location' | 'country' | 'state' | 'postcode' | 'address', label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div className="space-y-1">
       <label className="block font-body text-ui-13 text-tea-text-sec" htmlFor={`checkout-${key}`}>{label}</label>
       <input id={`checkout-${key}`} name={key} value={details[key]} onChange={event => updateDetail(key, event.target.value)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `checkout-${key}-error` : undefined} className="checkout-input" {...props} />
@@ -256,8 +253,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             stopped looking like the thing the reader had just built. */}
         <div role="status" className="space-y-2">
           <p className="font-display text-ui-26 leading-tight text-tea-text">{placedOrder.paymentDeadline
-            ? placedOrder.shippingTotal ? 'Your shipping order is reserved.' : 'Your pickup order is reserved.' : `Your request is saved with ${storeName}.`}</p>
-          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.paymentDeadline ? 'Open your order to see bank details and report your transfer.' : 'Your order request and draft invoice are saved. We’ll arrange stock, payment and shipping with you personally.'}</p>
+            ? 'Your order is reserved.' : `Your request is saved with ${storeName}.`}</p>
+          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.paymentDeadline ? 'Open your order to pay securely and follow its payment status.' : 'Your order request and draft invoice are saved. We’ll confirm your tea first; shipping is quoted and charged separately later.'}</p>
           {placedOrder.invoiceNumber && <p className="num text-ui-13 text-tea-text-sec">{`Invoice ${placedOrder.invoiceNumber}`}</p>}
         </div>
         <div className="space-y-4">
@@ -273,12 +270,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             <span className="num text-ui-17 text-tea-text">{placedOrder.shippingTotal}</span>
           </div>}
           <div className="flex items-baseline justify-between gap-3 pt-3 border-t border-tea-border">
-            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.shippingTotal ? 'Total with shipping' : placedOrder.paymentDeadline ? 'Total · free pickup' : placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
+            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.shippingTotal ? 'Total with shipping' : placedOrder.paymentDeadline ? placedOrder.shippingQuoteRequested ? 'Tea subtotal' : 'Total · free pickup' : placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
             <span className="num text-ui-20 text-tea-text">{placedOrder.total}</span>
           </div>
           <p className="font-body text-ui-13 text-tea-text-sec">{placedOrder.paymentDeadline
-            ? `Transfer by ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(placedOrder.paymentDeadline))} Bali time. We’ll confirm your deposit.`
-            : placedOrder.shippingQuoteRequested ? 'US shipping quote requested. We’ll confirm the shipping price and full total with you in chat before payment.' : placedOrder.shippingTotal ? 'Shipping is quoted. We’ll confirm availability with you before payment.' : 'Shipping is arranged personally. No payment has been taken.'}</p>
+            ? `Pay by ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(placedOrder.paymentDeadline))} Bali time to keep your reservation.`
+            : placedOrder.shippingQuoteRequested ? 'Pay for your tea first. Shipping is quoted and charged separately later.' : placedOrder.shippingTotal ? 'Shipping is quoted. We’ll confirm availability with you before payment.' : 'Shipping is arranged personally. No payment has been taken.'}</p>
         </div>
         {channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.paymentDeadline && <section className="space-y-2" aria-label="Discuss your saved order">
           <h3 className={`${T.h3} text-tea-text`}>{placedOrder.handoff ? 'One more step' : 'On WhatsApp'}</h3>
@@ -318,11 +315,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
                   <span className="font-body text-ui-15 leading-tight">{main}</span>{' '}<span className="font-body text-ui-12 leading-tight text-tea-text-sec">{sub}</span>
                 </label>)}
               </div>}
-              {details.delivery !== 'bali-pickup' && field('location', details.delivery === 'bali-delivery' ? 'Your area in Bali' : details.delivery === 'indonesia' ? 'City and province' : isUsDelivery(details) ? 'City and state' : 'Town or city', { autoComplete: 'address-level2', placeholder: details.delivery === 'bali-delivery' ? 'e.g. Ubud or Canggu' : details.delivery === 'indonesia' ? 'e.g. Jakarta, DKI Jakarta' : undefined })}
-              {details.delivery === 'international' && field('country', 'Country', { autoComplete: 'country-name' })}
+              {details.delivery !== 'bali-pickup' && field('location', details.delivery === 'bali-delivery' ? 'Your area in Bali' : details.delivery === 'indonesia' ? 'City and province' : isBaliStore && isUsDelivery(details) ? 'City' : isUsDelivery(details) ? 'City and state' : 'Town or city', { autoComplete: 'address-level2', placeholder: details.delivery === 'bali-delivery' ? 'e.g. Ubud or Canggu' : details.delivery === 'indonesia' ? 'e.g. Jakarta, DKI Jakarta' : undefined })}
+              {details.delivery === 'international' && (isBaliStore ? <p className="font-body text-ui-13 text-tea-text-sec">United States only</p> : field('country', 'Country', { autoComplete: 'country-name' }))}
+              {isBaliStore && isUsDelivery(details) && field('state', 'State (two-letter code)', { autoComplete: 'address-level1', maxLength: 2, placeholder: 'CA' })}
               {(details.delivery === 'indonesia' || details.delivery === 'international') && field('postcode', isUsDelivery(details) ? 'ZIP code' : 'Postcode (optional)', { autoComplete: 'postal-code' })}
-              {details.delivery !== 'bali-pickup' && field('address', 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
-              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay by bank transfer right away.' : isUsDelivery(details) ? 'Add your street address and ZIP code to check whether you can pay now.' : 'We’ll confirm delivery availability and cost with you.'}</p>
+              {details.delivery !== 'bali-pickup' && field('address', isBaliStore ? 'Street address and apartment' : 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay right away.' : 'Pay for your tea first. Shipping is quoted and charged separately later.'}</p>
             </fieldset>
             <fieldset className="space-y-3 min-w-0">
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
@@ -354,14 +352,14 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           print at the top of the scrolling list, which is off screen by the
           time a reader reaches the button, so pressing it looked like nothing. */}
       {checkoutError && <p role="alert" className="font-body text-ui-13 leading-snug text-tea-text bg-tea-elevated px-3 py-2">{checkoutError}</p>}
-      {placedOrder?.paymentDeadline ? <a href={recentOrderRequestPath(placedOrder.request)} onClick={onClose} className="btn-primary btn-primary-lg w-full">View bank transfer instructions</a>
+      {placedOrder?.paymentDeadline ? <a href={recentOrderRequestPath(placedOrder.request)} onClick={onClose} className="btn-primary btn-primary-lg w-full">View order and pay</a>
         : placedOrder ? channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.paymentDeadline
         ? <a className="btn-primary btn-primary-lg w-full whitespace-nowrap" href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
         : <Button fullWidth onClick={onClose}>Continue browsing</Button> : cart.length > 0 ? <>
         <div className="flex items-center gap-4">
           <div className="flex flex-col gap-1 shrink-0">
             <span className="num text-ui-26 leading-none text-tea-text"><span className="sr-only">{cart.every(item => item.category === 'tea') ? 'Tea subtotal' : 'Tea & teaware subtotal'} </span>{shopPrice.total(subtotal)}</span>
-            <span className="font-body text-ui-11 leading-none text-tea-text-sec">Shipping arranged personally</span>
+            <span className="font-body text-ui-11 leading-none text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Free pickup' : 'Shipping charged later'}</span>
           </div>
           <Button type="submit" form="checkout-form" fullWidth className="flex-1 min-w-0 whitespace-nowrap !px-4" loading={isPersisting} disabled={unavailable}>{isPersisting ? 'Saving request…' : 'Place order request'}</Button>
         </div>

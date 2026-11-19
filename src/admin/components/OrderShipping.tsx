@@ -77,7 +77,7 @@ export const OrderShipping: React.FC<{
   return (
     <section aria-label="Shipping" className="min-w-0">
       <h4 className={`${T.h3} text-tea-text mb-3`}>Shipping</h4>
-      {order.shipping_quote_status === 'requested' && <p className="mb-3 text-ui-13 text-tea-text-sec">US shipping quote requested. Confirm the price with the buyer before accepting.</p>}
+      {order.shipping_quote_status === 'requested' && <p className="mb-3 text-ui-13 text-tea-text-sec">Tea is paid separately. Enter the agreed shipping quote; the buyer pays the remaining balance on their existing order page before dispatch.</p>}
       {order.delivery_address && <p className="mb-3 break-words whitespace-pre-line text-ui-13 text-tea-text-sec">{order.delivery_address}</p>}
       <form onSubmit={save} noValidate className="space-y-3">
         <div>

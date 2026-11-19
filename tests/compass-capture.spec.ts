@@ -268,9 +268,9 @@ test.describe('Curate field capture preservation', () => {
       });
     });
 
-    const photoTrigger = page.getByRole('button', { name: 'Photo actions' }).filter({ visible: true }).first();
+    const photoTrigger = page.getByRole('button', { name: 'Frame photo 1', exact: true }).filter({ visible: true }).first();
     await photoTrigger.click();
-    await page.getByRole('button', { name: 'View full size', exact: true }).click();
+    await page.getByRole('button', { name: 'View original', exact: true }).click();
     const viewer = page.getByRole('dialog', { name: 'Photo viewer' });
     await expect(viewer).toBeVisible();
     await expect(page.getByRole('button', { name: 'Close photo viewer' })).toBeFocused();

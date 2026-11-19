@@ -1,5 +1,10 @@
 ## 2026-11-12: Curate's Source form follows the sitting
 
+## 2026-11-19: US checkout with tea paid first
+
+The flagship checkout collects a full US address or an explicitly arranged Bali pickup. Confirmed stock can proceed to PayPal immediately, with verified server receipts and payment notifications confirming the ledger automatically. Orders needing review retain the 24-hour window after acceptance. Shipping is quoted and charged separately later on the same private order page; dispatch requires a confirmed quote and paid balance. Sandbox receipts remain isolated from live payments. No outbound shipping rate or carrier label is assumed.
+
+
 The form the owner uses standing in a shop is reorganised into small cards in the Library's language and ordered as a sitting goes: where, the tea, its cost, capture, then the decision. With a price typed, everything through Buy, Sample, Done fits one phone screen. Photos stay visible on the form and on the tea's Library card. Sample now opens the Buy panel set to a sample; tasting has its own Taste button. Buy's panel opens under the button it was tapped from. The header rows and the microphone stay in place while scrolling. The earlier form is kept at `/admin/compass?form=classic`.
 
 ## 2026-11-05: Read confidentiality candidate (not deployed)

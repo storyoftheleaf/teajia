@@ -1,12 +1,21 @@
-// Produces a square JPEG Blob from a source image URL/blob and a pixel crop area
-// (the format react-easy-crop returns via onCropComplete). Output is always
-// 1:1 aspect ratio, sized to OUTPUT_SIZE × OUTPUT_SIZE. Used by SquareCropModal.
+// Produces a framed JPEG from an unchanged source image and a pixel crop area.
+// Defaults to square; optional 2:3 or 3:2 preserves exact proportions.
 
 export interface PixelCrop {
   x: number;
   y: number;
   width: number;
   height: number;
+}
+
+/** A reversible square viewport on an immutable source photo. */
+export interface SquarePhotoFrame {
+  crop: { x: number; y: number };
+  zoom: number;
+  rotation: number;
+  areaPercent: PixelCrop;
+  /** Missing on older frames means square. */
+  aspect?: number;
 }
 
 const OUTPUT_SIZE = 1600;
@@ -25,11 +34,15 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 export async function cropToSquareBlob(
   imageSrc: string,
   pixelCrop: PixelCrop,
-  options?: { size?: number; quality?: number; rotation?: number },
+  options?: { size?: number; quality?: number; rotation?: number; aspect?: number },
 ): Promise<Blob> {
   const size = options?.size ?? OUTPUT_SIZE;
   const quality = options?.quality ?? QUALITY;
   const rotation = options?.rotation ?? 0;
+  const aspect = options?.aspect ?? 1;
+  const unit = Math.max(1, Math.floor(size / 3));
+  const width = aspect === 3 / 2 ? unit * 3 : aspect === 2 / 3 ? unit * 2 : size;
+  const height = aspect === 3 / 2 ? unit * 2 : aspect === 2 / 3 ? unit * 3 : size;
   const image = await loadImage(imageSrc);
 
   // When a rotation is applied, react-easy-crop reports pixelCrop relative
@@ -56,8 +69,8 @@ export async function cropToSquareBlob(
   }
 
   const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get 2d canvas context');
 
@@ -73,8 +86,8 @@ export async function cropToSquareBlob(
     pixelCrop.height,
     0,
     0,
-    size,
-    size,
+    width,
+    height,
   );
 
   return new Promise<Blob>((resolve, reject) => {

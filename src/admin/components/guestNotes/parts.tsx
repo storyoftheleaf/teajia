@@ -39,7 +39,9 @@ export function SectionHeading({ children, aside }: { children: React.ReactNode;
 
 export function dayLabel(iso: string | null | undefined): string {
   if (!iso) return '';
-  const date = new Date(iso);
+  // SQLite writes 'YYYY-MM-DD HH:MM:SS' in UTC with no zone: say so, or east of UTC the day is wrong.
+  const stamp = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(iso) ? iso.replace(' ', 'T') + 'Z' : iso;
+  const date = new Date(stamp);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
