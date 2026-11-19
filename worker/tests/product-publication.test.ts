@@ -5,8 +5,8 @@ import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
 const databases: SqliteD1[] = [];
 afterEach(() => databases.splice(0).forEach(db => db.close()));
 
-async function setup() {
-  const db = new SqliteD1('schema');
+async function setup(source: 'schema' | 'migrations' = 'schema') {
+  const db = new SqliteD1(source);
   databases.push(db);
   const { accountId, userId, email } = seedIdentity(db, { bundles: ['stock', 'catalog', 'sell', 'publish'] });
   const JWT_SECRET = 'synthetic-publication-jwt';
@@ -173,4 +173,83 @@ it('rolls back publication and its mirror when stock changes after eligibility i
   });
   expect(product(id)).toMatchObject({ is_public: 0, stock_known_at: null });
   expect(db.sqlite.prepare('SELECT is_public FROM product_listings WHERE legacy_product_id = ?').get(id)).toEqual({ is_public: 0 });
+});
+
+it('refuses to publish an uncounted Draft through an MCP pricing status edit', async () => {
+  const { db, accountId, request, tool } = await setup('migrations');
+  db.sqlite.prepare(`INSERT INTO products
+    (id, account_id, product_name, type, status, stock_grams, stock_known_at, fixed_retail_price_usd, is_public, shown_in_shop)
+    VALUES ('draftflags', ?, 'Uncounted Draft', 'Red', 'Draft', 200, NULL, 2, 1, 1)`).run(accountId);
+  const path = `/api/s/${accountId}/products/draftflags`;
+  const args = { product_id: 'draftflags', status: 'Active' };
+  const missingStock = { code: 'product_publication_incomplete', details: { missing: ['stock'] } };
+  expect(await request(path, 'GET', undefined, '')).toMatchObject({ status: 404 });
+  expect(await request('/api/products/draftflags/publication', 'PUT', { status: 'Active' })).toMatchObject({
+    status: 409, body: missingStock,
+  });
+  expect(await tool('update_tea_pricing', args)).toMatchObject(missingStock);
+
+  // A valid preview still cannot publish if a confirmed write sees new facts.
+  db.sqlite.exec("UPDATE products SET stock_known_at = '2026-11-17' WHERE id = 'draftflags'");
+  const preview = await tool('update_tea_pricing', args);
+  expect(preview.confirmation_token).toBeTruthy();
+  db.sqlite.exec("UPDATE products SET stock_known_at = NULL WHERE id = 'draftflags'");
+  expect(await tool('update_tea_pricing', { ...args, confirm: preview.confirmation_token })).toMatchObject(missingStock);
+  expect(await request(path, 'GET', undefined, '')).toMatchObject({ status: 404 });
+
+  // Archiving an unready draft must not grant grandfathered visibility on restore.
+  const archive = { ...args, status: 'Archived' };
+  const archivePreview = await tool('update_tea_pricing', archive);
+  expect(await tool('update_tea_pricing', { ...archive, confirm: archivePreview.confirmation_token })).toMatchObject({ committed: true });
+  const restore = await tool('update_tea_pricing', args);
+  expect(await tool('update_tea_pricing', { ...args, confirm: restore.confirmation_token })).toMatchObject({ committed: true });
+  expect(await request(path, 'GET', undefined, '')).toMatchObject({ status: 404 });
+});
+
+it('evaluates pending price edits and keeps already published teas reachable when marked sold out', async () => {
+  const { db, accountId, request, tool } = await setup('migrations');
+  db.sqlite.prepare(`INSERT INTO products
+    (id, account_id, product_name, type, status, stock_grams, stock_known_at, fixed_retail_price_usd, cost_amount, is_public, shown_in_shop)
+    VALUES ('draftflags', ?, 'Unpriced Draft', 'Red', 'Draft', 200, '2026-11-17', NULL, NULL, 1, 1)`).run(accountId);
+  const path = `/api/s/${accountId}/products/draftflags`;
+  const args = { product_id: 'draftflags', status: 'Active', retail_price_usd: 2 };
+  const preview = await tool('update_tea_pricing', args);
+  expect(preview.confirmation_token).toBeTruthy();
+  expect(await tool('update_tea_pricing', { ...args, confirm: preview.confirmation_token })).toMatchObject({ committed: true });
+  expect(await request(path, 'GET', undefined, '')).toMatchObject({ status: 200, body: { status: 'Active', retail_price_per_gram_usd: 2 } });
+
+  db.sqlite.exec("UPDATE products SET stock_known_at = NULL, fixed_retail_price_usd = NULL WHERE id = 'draftflags'");
+  const sellout = { product_id: 'draftflags', status: 'Sold Out' };
+  const selloutPreview = await tool('update_tea_pricing', sellout);
+  expect(selloutPreview.confirmation_token).toBeTruthy();
+  expect(await tool('update_tea_pricing', { ...sellout, confirm: selloutPreview.confirmation_token })).toMatchObject({ committed: true });
+  expect(await request(path, 'GET', undefined, '')).toMatchObject({ status: 200, body: { status: 'Sold Out' } });
+});
+
+it('rolls back MCP pricing publication and its mirrors when counted stock changes during confirmation', async () => {
+  const { db, accountId, request, tool, product } = await setup('migrations');
+  const created = await request('/api/products', 'POST', { ...ready, stock_grams: 200, is_public: false });
+  expect(created.status).toBe(201);
+  const id = created.body.id;
+  const originalProfile = db.sqlite.prepare('SELECT description FROM tea_profiles WHERE id = ?').get(`prof_${id}`);
+  db.sqlite.prepare("UPDATE products SET status = 'Draft', is_public = 1, shown_in_shop = 1 WHERE id = ?").run(id);
+  db.sqlite.prepare("UPDATE product_listings SET status = 'draft', is_public = 1, shown_in_shop = 1 WHERE legacy_product_id = ?").run(id);
+  const args = { product_id: id, status: 'Active', retail_price_usd: 3, description: 'Confirmed introduction' };
+  const preview = await tool('update_tea_pricing', args);
+  expect(preview.confirmation_token).toBeTruthy();
+  const batch = db.batch.bind(db);
+  db.batch = statements => {
+    db.sqlite.prepare('UPDATE products SET stock_known_at = NULL WHERE id = ?').run(id);
+    db.batch = batch;
+    return batch(statements);
+  };
+  expect(await tool('update_tea_pricing', { ...args, confirm: preview.confirmation_token })).toMatchObject({
+    code: 'product_publication_changed',
+  });
+  expect(product(id)).toMatchObject({ status: 'Draft', fixed_retail_price_usd: 2, stock_known_at: null });
+  expect(db.sqlite.prepare('SELECT status, fixed_retail_price_usd FROM product_listings WHERE legacy_product_id = ?').get(id))
+    .toEqual({ status: 'draft', fixed_retail_price_usd: 2 });
+  expect(db.sqlite.prepare('SELECT description FROM tea_profiles WHERE id = ?').get(`prof_${id}`)).toEqual(originalProfile);
+  expect(await request(`/api/s/${accountId}/products/${id}`, 'GET', undefined, ''))
+    .toMatchObject({ status: 404 });
 });

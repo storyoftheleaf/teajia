@@ -2226,6 +2226,20 @@ async function commitUpdateCustomer(env: Env, m: Extract<PendingMutation, { kind
 }
 
 // ── tool: update_tea_pricing (preview / confirm) ──
+
+type TeaPricingPublicationEdit = Pick<Extract<PendingMutation, { kind: 'update_tea_pricing' }>,
+  'status' | 'costAmount' | 'costCurrency' | 'retailPriceUsd' | 'quantityPurchased' | 'shippingRatePerKg' | 'clearFields'>;
+
+function checkTeaPricingPublication(env: Env, accountId: string, productId: string, edit: TeaPricingPublicationEdit) {
+  return checkProductPublication(env, accountId, productId, { status: edit.status }, {
+    ...(edit.costAmount !== null ? { cost_amount: edit.costAmount } : {}),
+    ...(edit.costCurrency !== null ? { cost_currency: edit.costCurrency } : {}),
+    ...(edit.retailPriceUsd !== null ? { fixed_retail_price_usd: edit.retailPriceUsd } : {}),
+    ...(edit.quantityPurchased !== null ? { quantity_purchased: edit.quantityPurchased } : {}),
+    ...(edit.clearFields?.includes('shipping_rate_per_kg') ? { shipping_rate_per_kg: null }
+      : edit.shippingRatePerKg !== null ? { shipping_rate_per_kg: edit.shippingRatePerKg } : {}),
+  });
+}
 async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   const productId = String(args?.product_id || '').trim();
   const confirm = args?.confirm ? String(args.confirm) : null;
@@ -2300,7 +2314,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     : undefined;
 
   const product = await env.DB.prepare(
-    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg FROM products WHERE id = ? AND account_id = ?'
+    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, status FROM products WHERE id = ? AND account_id = ?'
   ).bind(productId, auth.accountId).first() as Record<string, any> | null;
   if (!product) return { error: 'not_found' };
   /* An amount needs a unit. The row's own currency counts, since most calls
@@ -2316,6 +2330,11 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
   }
 
   if (!confirm) {
+    const { refusal } = await checkTeaPricingPublication(env, auth.accountId, productId, {
+      status, costAmount, costCurrency, retailPriceUsd, quantityPurchased, shippingRatePerKg, clearFields,
+    });
+    if (refusal) return refusal;
+
     const oldRetail = Number(product.fixed_retail_price_usd || 0);
     const newRetail = retailPriceUsd ?? oldRetail;
 
@@ -2420,6 +2439,9 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
 }
 
 async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { kind: 'update_tea_pricing' }>) {
+  const { refusal, assertion, clearDraftVisibility } = await checkTeaPricingPublication(env, m.accountId, m.productId, m);
+  if (refusal) return refusal;
+
   const cols: string[] = [];
   const vals: any[] = [];
   if (m.costAmount !== null) { cols.push('cost_amount'); vals.push(m.costAmount); }
@@ -2433,6 +2455,7 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   if (m.quantityPurchased !== null) { cols.push('quantity_purchased'); vals.push(m.quantityPurchased); }
   if (m.year !== null) { cols.push('year'); vals.push(m.year); }
   if (m.status !== null) { cols.push('status'); vals.push(m.status); }
+  if (clearDraftVisibility) { cols.push('is_public', 'shown_in_shop'); vals.push(0, 0); }
   if (m.shippingRatePerKg !== null) { cols.push('shipping_rate_per_kg'); vals.push(m.shippingRatePerKg); }
   if (m.tastingNotes !== null) { cols.push('tasting_notes'); vals.push(JSON.stringify(m.tastingNotes)); }
   if (m.originCountry !== null) { cols.push('origin_country'); vals.push(m.originCountry); }
@@ -2501,7 +2524,7 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
   const listingColumns = new Set([
     'cost_amount', 'cost_currency', 'cost_currency_source',
     'fixed_retail_price_usd', 'quantity_purchased', 'shipping_rate_per_kg',
-    'stock_verified_at', 'status',
+    'stock_verified_at', 'status', 'is_public', 'shown_in_shop',
   ]);
   const listingSets: string[] = [];
   const listingVals: any[] = [];
@@ -2530,7 +2553,8 @@ async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { ki
     ),
   );
 
-  await env.DB.batch(stmts);
+  const conflict = await writeProductPublication(env, stmts, assertion);
+  if (conflict) return conflict;
   return {
     committed: true,
     action: 'update_tea_pricing',

@@ -3,6 +3,10 @@ import { addPricingFields, shopFreightPerKgUsd } from './productPricing';
 
 type ProductColumns = Record<string, unknown>;
 type PublicationEnv = { DB: D1Database };
+type PublicationPricingEdits = Partial<Record<
+  'cost_amount' | 'cost_currency' | 'fixed_retail_price_usd' | 'quantity_purchased' | 'shipping_rate_per_kg',
+  number | string | null
+>>;
 
 function numericColumn(value: unknown): number | undefined {
   if (typeof value === 'number') return value;
@@ -77,6 +81,7 @@ const PUBLICATION_SNAPSHOT_SQL = `json_array(
 
 export async function checkProductPublication(
   env: PublicationEnv, accountId: string, id: string, patch: Partial<PublicationState>,
+  pricingEdits?: PublicationPricingEdits,
 ): Promise<{ refusal: PublicationRefusal | null; assertion?: D1PreparedStatement; clearDraftVisibility?: boolean }> {
   if (patch.isPublic !== true && patch.shownInShop !== true && patch.status !== 'Active' && patch.status !== 'Sold Out' && patch.status !== 'Archived') return { refusal: null };
   const product = await env.DB.prepare(
@@ -87,7 +92,8 @@ export async function checkProductPublication(
   if (needsPublicationReview({
     status: product.status, isPublic: Boolean(product.is_public), shownInShop: Boolean(product.shown_in_shop),
   }, patch)) {
-    const refusal = await checkCandidate(env, accountId, product);
+    // Pricing and status can be edited together; assert the stored snapshot but review the result of the edit.
+    const refusal = await checkCandidate(env, accountId, { ...product, ...pricingEdits });
     if (refusal) return { refusal };
   }
 
