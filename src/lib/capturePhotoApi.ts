@@ -1,6 +1,8 @@
 import { API_URL, authedBlobFetch, authedFetch, type ApiRequestInit } from './api';
+import type { SquarePhotoFrame } from './cropImage';
 import { notifyCommerceChanged } from './refreshCommerce';
 
+export type CapturePhotoFrame = SquarePhotoFrame;
 export type CapturePhotoAuth = NonNullable<ApiRequestInit['expectedAuth']>;
 export type CaptureShopPhotoReview = { product_id: string; name: string; live: boolean; snapshot: Record<string, unknown> };
 
@@ -16,8 +18,16 @@ export const capturePhotoApi = {
     });
     return result.url;
   },
-  blob: (entryId: string, photoId: string, expectedAuth: CapturePhotoAuth) =>
-    authedBlobFetch(capturePhotoEndpoint(entryId, photoId), { expectedAuth, cache: 'no-store', reportIncident: false }),
+  blob: (entryId: string, photoId: string, expectedAuth: CapturePhotoAuth, original = false) =>
+    authedBlobFetch(capturePhotoEndpoint(entryId, photoId) + (original ? '?original=1' : ''), { expectedAuth, cache: 'no-store', reportIncident: false }),
+  frame: (entryId: string, photoId: string, expectedAuth: CapturePhotoAuth): Promise<{ frame: CapturePhotoFrame | null }> =>
+    authedFetch(capturePhotoEndpoint(entryId, photoId) + '/frame', { expectedAuth, cache: 'no-store' }),
+  saveFrame: (entryId: string, photoId: string, file: Blob, frame: CapturePhotoFrame, expectedAuth: CapturePhotoAuth): Promise<{ ok: true }> => {
+    const data = new FormData();
+    data.append('file', file, 'square-preview.jpg');
+    data.append('frame', JSON.stringify(frame));
+    return authedFetch(capturePhotoEndpoint(entryId, photoId) + '/frame', { method: 'PUT', body: data, expectedAuth });
+  },
   stockBlob: (approvalId: string, expectedAuth: CapturePhotoAuth) =>
     authedBlobFetch(`${API_URL}/api/curate/shop-photos/${encodeURIComponent(approvalId)}`, { expectedAuth, cache: 'no-store', reportIncident: false }),
   review: (entryId: string, photoId: string, expectedAuth: CapturePhotoAuth): Promise<CaptureShopPhotoReview> =>

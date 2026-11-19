@@ -179,7 +179,7 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
-import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
+import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv {
   DB: D1Database;
   SHOP_PICKUP_ACCOUNT_ID?: string;
@@ -11495,7 +11495,37 @@ const handleReadCapturePhoto: Handler = async (request, env, params) => {
   const { id, photoId } = params;
   if (!validCaptureEntryId(id) || !validCapturePhotoId(photoId)) return capturePhotoResponse(null);
   const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
-  return capturePhotoResponse(await privateCapturePhoto(env, ctx, id, photoId, manager), request.method === 'HEAD');
+  return capturePhotoResponse(await privateCapturePhoto(env, ctx, id, photoId, manager, new URL(request.url).searchParams.get('original') === '1'), request.method === 'HEAD');
+};
+
+const handleCapturePhotoFrame: Handler = async (request, env, params) => {
+  const ctx = await requireSourcing(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { id, photoId } = params;
+  if (!validCaptureEntryId(id) || !validCapturePhotoId(photoId)) return json({ error: 'Photo not found' }, 404);
+  if (!env.ATLAS_BUCKET) return json({ error: 'Private photo storage is unavailable' }, 503);
+  const manager = await canManageCurate(env, ctx.accountId, ctx.userId);
+  if (request.method === 'GET') {
+    const result = await readCapturePhotoFrame(env, ctx, id, photoId, manager);
+    return result ? Response.json(result, { headers: { 'Cache-Control': 'private, no-store' } }) : json({ error: 'Photo not found' }, 404);
+  }
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) return json({ error: 'Expected multipart/form-data' }, 400);
+  const maxFrameBytes = 6 * 1024 * 1024;
+  const preReadError = validateContentLength(request, maxFrameBytes + 4096);
+  if (preReadError) return preReadError;
+  const data = await request.formData();
+  const file: unknown = data.get('file');
+  const rawFrame = data.get('frame');
+  let frame: unknown;
+  try { frame = typeof rawFrame === 'string' && rawFrame.length <= 2048 ? JSON.parse(rawFrame) : null; } catch { frame = null; }
+  if (!validCapturePhotoFrame(frame)) return json({ error: 'Invalid square photo framing' }, 400);
+  if (!(file instanceof File) || !file.size || file.type !== 'image/jpeg') return json({ error: 'Provide a JPEG square preview' }, 400);
+  const fileError = await validateUpload(file, 'image', maxFrameBytes);
+  if (fileError) return fileError;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${ctx.accountId}:${ctx.userId}:capture-image`);
+  if (limited) return limited;
+  const saved = await storeCapturePhotoFrame(env, ctx, id, photoId, manager, file, frame);
+  return saved ? json({ ok: true }) : json({ error: 'Photo not found' }, 404);
 };
 
 const handleReviewCaptureShopPhoto: Handler = async (request, env, params) => {
@@ -11527,6 +11557,9 @@ const handleReviewCaptureShopPhoto: Handler = async (request, env, params) => {
   const review = await loadCapturePhotoReview(env, ctx, id, photoId, manager);
   if (!review || review.product_id !== body.product_id || Object.entries(review.snapshot).some(([field, value]) => body.snapshot?.[field] !== value)) {
     return json({ error: 'The photo or Stock record changed. Review it again.' }, 409);
+  }
+  if (!await pinCaptureApprovalPhoto(env, ctx, id, photoId, body.approval_id, review.snapshot.capture_photo_frame_sha256, manager)) {
+    return json({ error: 'The photo framing changed. Review it again.' }, 409);
   }
   await env.DB.batch(prepareCaptureApproval(env, ctx, id, photoId, body.approval_id, review, manager));
   const saved = await captureApproval(env, body.approval_id);
@@ -30397,6 +30430,8 @@ const routes: [string, string, Handler][] = [
   // Image Upload
   ['POST', '/api/upload-image', handleUploadImage],
   ['POST', '/api/curate/capture/:id/photos/:photoId', handleUploadCapturePhoto],
+  ['GET', '/api/curate/capture/:id/photos/:photoId/frame', handleCapturePhotoFrame],
+  ['PUT', '/api/curate/capture/:id/photos/:photoId/frame', handleCapturePhotoFrame],
   ['GET', '/api/curate/capture/:id/photos/:photoId', handleReadCapturePhoto],
   ['HEAD', '/api/curate/capture/:id/photos/:photoId', handleReadCapturePhoto],
   ['GET', '/api/curate/capture/:id/photos/:photoId/shop-review', handleReviewCaptureShopPhoto],

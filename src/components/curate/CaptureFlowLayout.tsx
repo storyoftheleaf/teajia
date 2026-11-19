@@ -53,7 +53,7 @@ export interface CaptureFlowLayoutProps {
   details?: React.ReactNode;
   /** Share: at the right end of the details row, or of the name row when there is none. */
   share?: React.ReactNode;
-  recordTools: React.ReactNode;
+  recordTools?: React.ReactNode;
   decision: React.ReactNode;
   actions: React.ReactNode;
   buyPanel: React.ReactNode;

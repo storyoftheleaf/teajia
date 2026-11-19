@@ -9,6 +9,14 @@ export interface PixelCrop {
   height: number;
 }
 
+/** A reversible square viewport on an immutable source photo. */
+export interface SquarePhotoFrame {
+  crop: { x: number; y: number };
+  zoom: number;
+  rotation: number;
+  areaPercent: PixelCrop;
+}
+
 const OUTPUT_SIZE = 1600;
 const QUALITY = 0.88;
 

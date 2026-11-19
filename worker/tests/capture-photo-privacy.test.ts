@@ -8,13 +8,15 @@ afterEach(() => databases.splice(0).forEach(database => database.close()));
 type TestObject = {
   bytes: ArrayBuffer;
   httpMetadata: { contentType: string };
-  customMetadata: { uploader: string; sha256: string };
+  customMetadata: { uploader: string; sha256: string; frame?: string };
 };
 
 class PrivateBucket {
   objects = new Map<string, TestObject>();
-  async put(key: string, bytes: ArrayBuffer, options: Omit<TestObject, 'bytes'> & { onlyIf: { etagDoesNotMatch: string } }) {
-    if (options.onlyIf.etagDoesNotMatch === '*' && this.objects.has(key)) return null;
+  failPut = false;
+  async put(key: string, bytes: ArrayBuffer, options: Omit<TestObject, 'bytes'> & { onlyIf?: { etagDoesNotMatch: string } }) {
+    if (this.failPut) throw new Error('Storage temporarily unavailable');
+    if (options.onlyIf?.etagDoesNotMatch === '*' && this.objects.has(key)) return null;
     const object = { bytes, httpMetadata: options.httpMetadata, customMetadata: options.customMetadata };
     this.objects.set(key, object);
     return object;
@@ -49,7 +51,7 @@ async function setup() {
       },
       body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }), env, { waitUntil() {} } as never);
-  return { db, request };
+  return { db, request, bucket: (env as any).ATLAS_BUCKET as PrivateBucket };
 }
 
 const sourcePhoto = (entry: string) => `/api/curate/capture/${entry}/photos/${crypto.randomUUID()}`;
@@ -164,4 +166,96 @@ it('reviews and approves the working hero when a linked Library tea also has a s
     { id: 'first-sample', image_url: null },
     { id: 'second-working', image_url: url },
   ]);
+});
+
+
+const squareFrame = { crop: { x: 12, y: -4 }, zoom: 1.5, rotation: 90, areaPercent: { x: 10, y: 20, width: 50, height: 60 } };
+function frameForm(index: number, frame: unknown = squareFrame) {
+  const data = form(index);
+  data.set('frame', JSON.stringify(frame));
+  return data;
+}
+
+it('keeps original bytes and stable photo URL while persisting the selected square frame', async () => {
+  const { request } = await setup();
+  const photo = sourcePhoto('framed-tea');
+  expect((await request(photo, 'POST', form(1))).status).toBe(201);
+  expect(await (await request(photo + '/frame')).json()).toEqual({ frame: null });
+  expect((await request(photo + '/frame', 'PUT', frameForm(2))).status).toBe(200);
+  expect(await (await request(photo + '/frame')).json()).toEqual({ frame: squareFrame });
+  expect(new Uint8Array(await (await request(photo)).arrayBuffer())).toEqual(bytes(2));
+  expect(new Uint8Array(await (await request(photo + '?original=1')).arrayBuffer())).toEqual(bytes(1));
+  expect((await request(photo, 'POST', form(2))).status).toBe(409);
+});
+
+it('rejects unauthorized, missing-source and invalid framing without changing the original or prior frame', async () => {
+  const { request } = await setup();
+  const photo = sourcePhoto('private-framing');
+  expect((await request(photo + '/frame', 'PUT', frameForm(2))).status).toBe(404);
+  await request(photo, 'POST', form(1));
+  await request(photo + '/frame', 'PUT', frameForm(2));
+  for (const actor of ['', 'viewer', 'outside', 'gatherer']) {
+    const expected = actor === '' ? 401 : actor === 'viewer' ? 403 : 404;
+    expect((await request(photo + '/frame', 'GET', undefined, actor)).status).toBe(expected);
+    expect((await request(photo + '/frame', 'PUT', frameForm(3), actor)).status).toBe(expected);
+  }
+  for (const frame of [{ ...squareFrame, zoom: 0 }, { ...squareFrame, rotation: 999 }, { ...squareFrame, crop: { x: null, y: 0 } }, { ...squareFrame, areaPercent: { x: 99, y: 0, width: 50, height: 20 } }]) {
+    expect((await request(photo + '/frame', 'PUT', frameForm(3, frame))).status).toBe(400);
+  }
+  const wrongType = frameForm(3); wrongType.set('file', new File([bytes(3)], 'not-jpeg.png', { type: 'image/png' }));
+  expect((await request(photo + '/frame', 'PUT', wrongType)).status).toBe(400);
+  expect(new Uint8Array(await (await request(photo + '?original=1')).arrayBuffer())).toEqual(bytes(1));
+  expect(new Uint8Array(await (await request(photo)).arrayBuffer())).toEqual(bytes(2));
+});
+
+it('keeps the previous frame and original when preview storage fails', async () => {
+  const { request, bucket } = await setup();
+  const photo = sourcePhoto('failed-framing');
+  await request(photo, 'POST', form(1));
+  await request(photo + '/frame', 'PUT', frameForm(2));
+  bucket.failPut = true;
+  expect((await request(photo + '/frame', 'PUT', frameForm(3))).status).toBe(500);
+  bucket.failPut = false;
+  expect(new Uint8Array(await (await request(photo)).arrayBuffer())).toEqual(bytes(2));
+  expect(new Uint8Array(await (await request(photo + '?original=1')).arrayBuffer())).toEqual(bytes(1));
+  expect(await (await request(photo + '/frame')).json()).toEqual({ frame: squareFrame });
+});
+
+it('pins the chosen square preview at approval so future reframing cannot change the approved product photo', async () => {
+  const { db, request } = await setup();
+  const photo = sourcePhoto('approved-framing');
+  await request(photo, 'POST', form(1));
+  await request(photo + '/frame', 'PUT', frameForm(2));
+  await request('/api/compass/entries', 'POST', { id: 'approved-framing', name: 'Framed tea', type: 'Oolong', photos: [photo] });
+  await request('/api/compass/entries/approved-framing/promote', 'POST');
+  const review = await (await request(photo + '/shop-review')).json() as any;
+  const approval = { ...review, approval_id: crypto.randomUUID() };
+  const result = await request(photo + '/shop-review', 'POST', approval);
+  expect(result.status).toBe(200);
+  const { url } = await result.json() as any;
+  db.sqlite.prepare("UPDATE products SET status = 'Active', is_public = 1, shown_in_shop = 1, stock_grams = 50 WHERE id = ?").run(review.product_id);
+  await request(photo + '/frame', 'PUT', frameForm(3));
+  expect(new Uint8Array(await (await request(photo)).arrayBuffer())).toEqual(bytes(3));
+  expect(new Uint8Array(await (await request(projection(url), 'GET', undefined, '')).arrayBuffer())).toEqual(bytes(2));
+  expect(new Uint8Array(await (await request(photo + '?original=1')).arrayBuffer())).toEqual(bytes(1));
+});
+
+it('refuses oversize previews and changed framing at approval without publishing an unreviewed image', async () => {
+  const { request } = await setup();
+  const photo = sourcePhoto('reviewed-framing');
+  await request(photo, 'POST', form(1));
+  const huge = frameForm(2);
+  const hugeBytes = new Uint8Array(6 * 1024 * 1024 + 1); hugeBytes.set(bytes(2));
+  huge.set('file', new File([hugeBytes], 'huge.jpg', { type: 'image/jpeg' }));
+  expect((await request(photo + '/frame', 'PUT', huge)).status).toBe(413);
+  const malformed = frameForm(2); malformed.set('frame', '{broken');
+  expect((await request(photo + '/frame', 'PUT', malformed)).status).toBe(400);
+  await request('/api/compass/entries', 'POST', { id: 'reviewed-framing', name: 'Reviewed tea', type: 'Oolong', photos: [photo] });
+  await request('/api/compass/entries/reviewed-framing/promote', 'POST');
+  const review = await (await request(photo + '/shop-review')).json() as any;
+  await request(photo + '/frame', 'PUT', frameForm(2));
+  const approvalId = crypto.randomUUID();
+  expect((await request(photo + '/shop-review', 'POST', { ...review, approval_id: approvalId })).status).toBe(409);
+  expect((await request('/api/media/curate-approved/' + approvalId, 'GET', undefined, '')).status).toBe(404);
+  expect(new Uint8Array(await (await request(photo + '?original=1')).arrayBuffer())).toEqual(bytes(1));
 });
