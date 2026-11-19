@@ -557,7 +557,7 @@ describe('the order page hands its token to the pay control', () => {
   );
 
   it('passes the tracking token, or the handoff never starts', () => {
-    const payAction = orderStatusSource.match(/<PayOrderAction[^>]*\/>/s);
+    const payAction = orderStatusSource.match(/<PayOrderAction.*?\/>/s);
     expect(payAction, 'OrderStatusPage no longer renders PayOrderAction at all').not.toBeNull();
     expect(payAction![0]).toContain('trackingToken=');
   });
