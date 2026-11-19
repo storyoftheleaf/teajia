@@ -27,3 +27,11 @@ export function authPagePath(mode: 'signin' | 'signup', returnTo?: unknown): str
   const safe = safeAuthReturnTo(returnTo);
   return `/${mode}${safe ? `?${new URLSearchParams({ returnTo: safe })}` : ''}`;
 }
+
+/** The tea page and the wish to open the tasting there, so joining from "Add your tasting"
+ * brings the person back to the tasting and not only to the tea. */
+export function tastingReturnPath(pathname: string, search: string): string {
+  const params = new URLSearchParams(search);
+  params.set('taste', '1');
+  return `${pathname}?${params.toString()}`;
+}

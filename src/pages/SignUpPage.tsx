@@ -8,23 +8,18 @@ import { API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup }
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
 
-type ContactPlatform = 'whatsapp' | 'telegram';
-
 export default function SignUpPage() {
   const navigate = useNavigate();
   const auth = useAuth();
   const [searchParams] = useSearchParams();
   const destination = authReturnTo(searchParams.get('returnTo'));
   const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [whatOpen, setWhatOpen] = useState(false);
-  const [contactPlatform, setContactPlatform] = useState<ContactPlatform | null>(null);
-  const [contactPhone, setContactPhone] = useState('');
   const [pendingSignup, setPendingSignup] = useState<PendingSignup | null>(() => restorePendingSignup());
   const [verificationCode, setVerificationCode] = useState('');
   const [isEditingSignup, setIsEditingSignup] = useState(false);
@@ -59,7 +54,7 @@ export default function SignUpPage() {
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
     try {
-      const pending = await auth.signup(email, password, name, username.trim() || null);
+      const pending = await auth.signup(email, password, name, null);
       setPendingSignup(pending);
       setVerificationCode('');
       setIsEditingSignup(false);
@@ -78,10 +73,6 @@ export default function SignUpPage() {
     setLoading(true);
     try {
       await auth.verifySignup(pendingSignup, verificationCode);
-      if (contactPlatform) {
-        localStorage.setItem('teajia_contact_platform', contactPlatform);
-        if (contactPhone.trim()) localStorage.setItem('teajia_contact_phone', contactPhone.trim());
-      }
       navigate(destination, { replace: true });
     } catch (err: unknown) {
       setVerificationFailures(count => count + 1);
@@ -217,8 +208,10 @@ export default function SignUpPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className={labelClass}>Name</label>
+          <label htmlFor="signup-name" className={labelClass}>Name</label>
           <input
+            id="signup-name"
+            autoComplete="name"
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
@@ -230,24 +223,10 @@ export default function SignUpPage() {
         </div>
 
         <div>
-          <label className={labelClass}>
-            Username <span className="normal-case tracking-normal font-normal text-tea-text-dim">(optional)</span>
-          </label>
+          <label htmlFor="signup-email" className={labelClass}>Email</label>
           <input
-            type="text"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            autoComplete="username"
-            pattern="[a-zA-Z0-9_.\-]{3,32}"
-            className={inputClass}
-            placeholder="Letters, numbers, . _ -"
-          />
-          <p className="text-ui-12 text-tea-text-dim mt-1">Sign in with either your email or username.</p>
-        </div>
-
-        <div>
-          <label className={labelClass}>Email</label>
-          <input
+            id="signup-email"
+            autoComplete="email"
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
@@ -258,9 +237,11 @@ export default function SignUpPage() {
         </div>
 
         <div>
-          <label className={labelClass}>Password</label>
+          <label htmlFor="signup-password" className={labelClass}>Password</label>
           <div className="relative">
             <input
+              id="signup-password"
+              autoComplete="new-password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -278,58 +259,6 @@ export default function SignUpPage() {
             </button>
           </div>
           <p className="text-ui-12 text-tea-text-dim mt-1">Must be at least 6 characters.</p>
-        </div>
-
-        {/* Event & order contact opt-in */}
-        <div className="pt-4 mt-2 border-t border-tea-border">
-          <p className="label-caps text-tea-text-sec mb-1.5">Contact for events & orders</p>
-          <p className="text-ui-12 text-tea-text-dim mb-3 leading-relaxed">
-            Reserve spots at tea events, receive orders and invoices directly to your phone.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            {(['whatsapp', 'telegram'] as ContactPlatform[]).map(platform => (
-              <button
-                key={platform}
-                type="button"
-                onClick={() => {
-                  setContactPlatform(prev => prev === platform ? null : platform);
-                  setContactPhone('');
-                }}
-                className={`inline-flex min-h-10 items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-12 font-medium border transition-colors ${
-                  contactPlatform === platform
-                    ? 'border-tea-gold bg-tea-gold/10 text-tea-text'
-                    : 'border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text'
-                }`}
-              >
-                {platform === 'whatsapp' ? (
-                  <Icons.Message className="w-3.5 h-3.5" />
-                ) : (
-                  <Icons.Send className="w-3.5 h-3.5" />
-                )}
-                {platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'}
-              </button>
-            ))}
-            <span className="text-ui-11 text-tea-text-dim">Optional</span>
-          </div>
-          <p className="text-ui-11 text-tea-text-dim mb-3">Both platforms work equally well. Choose whichever you use most.</p>
-
-          {contactPlatform && (
-            <div>
-              <label className={labelClass}>
-                {contactPlatform === 'whatsapp' ? 'WhatsApp' : 'Telegram'} number
-              </label>
-              <input
-                type="tel"
-                value={contactPhone}
-                onChange={e => setContactPhone(e.target.value)}
-                className={inputClass}
-                placeholder="+1 234 567 8900"
-                autoFocus
-              />
-              <p className="text-ui-12 text-tea-text-dim mt-1">Include country code, e.g. +1, +44, +86.</p>
-            </div>
-          )}
         </div>
 
         {error && (

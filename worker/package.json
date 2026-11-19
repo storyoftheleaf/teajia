@@ -18,7 +18,7 @@
     "practice:config": "node sandbox/practice-config.mjs",
     "practice:migrate": "node --experimental-sqlite --experimental-strip-types --no-warnings sandbox/migrate-local.mjs",
     "practice:seed": "node sandbox/seed-operator.mjs && node sandbox/seed-creator-fixtures.mjs",
-    "practice": "node sandbox/practice-config.mjs && node sandbox/check-db.mjs && npm run practice:migrate && wrangler dev --config wrangler.practice.toml --port 8798 --local"
+    "practice": "node sandbox/practice-config.mjs && node sandbox/check-db.mjs && npm run practice:migrate && wrangler dev --config wrangler.practice.toml --port 8798 --local --var DEV_RETURN_VERIFY_CODES:true"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241218.0",

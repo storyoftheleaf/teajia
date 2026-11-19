@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authPagePath, authReturnTo, safeAuthReturnTo } from './authNavigation';
+import { authPagePath, authReturnTo, safeAuthReturnTo, tastingReturnPath } from './authNavigation';
 
 describe('one authentication destination policy', () => {
   it('defaults to Your Table and preserves an explicit journey including query and anchor', () => {
@@ -18,5 +18,18 @@ describe('one authentication destination policy', () => {
       expect(new URL(authPagePath(mode, destination), 'https://teajia.com').searchParams.get('returnTo')).toBe(destination);
     }
     expect(authPagePath('signin')).toBe('/signin');
+  });
+});
+
+describe('joining from Add your tasting', () => {
+  it('comes back to the tea with the tasting asked for, keeping the store', () => {
+    const back = tastingReturnPath('/shop/product/tea-a', '?store=bali');
+    expect(back).toBe('/shop/product/tea-a?store=bali&taste=1');
+    expect(authReturnTo(back)).toBe(back);
+    const through = new URL(authPagePath('signin', back), 'https://teajia.com').searchParams.get('returnTo');
+    expect(through).toBe(back);
+  });
+  it('does not repeat the marker', () => {
+    expect(tastingReturnPath('/shop/product/x', '?taste=1')).toBe('/shop/product/x?taste=1');
   });
 });
