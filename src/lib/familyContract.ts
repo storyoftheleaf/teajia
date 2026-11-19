@@ -169,3 +169,36 @@ export function familyPageNeedsReview(tier: FamilyPageTier | null | undefined): 
 export function familyPageTierOf(value: unknown): FamilyPageTier | null {
   return value === 'family' || value === 'creator' || value === 'master' ? value : null;
 }
+
+// ── A person's page: shared tastings ──────────────────────────────────────
+
+/** One dated note from a shared tasting. Words only: never a score, verdict or private note. */
+export interface FamilyPersonWord {
+  /** ISO date the note was written, or null when none was kept. */
+  date: string | null;
+  text: string;
+}
+
+/** A photograph on a person's page. Grids ask for the small copy. */
+export interface FamilyPersonPhotograph {
+  id: string;
+  small_url: string;
+  small_width: number;
+  small_height: number;
+  full_url: string;
+}
+
+/**
+ * One tea on a person's page: the words and photographs they chose to share.
+ * A tea that has sold out stays, with `sold_out` true and one action: ask
+ * Teajia to find more (`familyApi.requestRestock`).
+ */
+export interface FamilyPersonTasting {
+  product_id: string;
+  name: string;
+  chinese_name: string | null;
+  public_path: string;
+  sold_out: boolean;
+  words: FamilyPersonWord[];
+  photographs: FamilyPersonPhotograph[];
+}

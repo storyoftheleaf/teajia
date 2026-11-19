@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { familyPageTierOf, type FamilyPersonTasting } from '../lib/familyContract';
 import type {
   ContributorProfile,
   ContributorListItem,
@@ -77,6 +78,8 @@ export const useContributor = (slug: string | undefined) => {
         payment_accounts: arrayOf(data.payment_accounts),
         host_account: data.host_account ?? null,
         seasonal_line: data.seasonal_line ?? null,
+        page_tier: familyPageTierOf(data.page_tier),
+        tastings: arrayOf<FamilyPersonTasting>(data.tastings),
       };
     },
     staleTime: 1000 * 60 * 5,
@@ -106,6 +109,8 @@ export const useContributors = () => {
         own_line: typeof r.own_line === 'string' ? r.own_line : null,
         is_host: r.is_host === true,
         article_count: Number(r.article_count || 0),
+        page_tier: familyPageTierOf(r.page_tier),
+        family_last_active: typeof r.family_last_active === 'string' ? r.family_last_active : null,
       }));
     },
     staleTime: 1000 * 60 * 5,

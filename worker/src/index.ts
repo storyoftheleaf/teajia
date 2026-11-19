@@ -179,7 +179,7 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
-import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages';
+import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv {
@@ -24847,7 +24847,7 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
 const CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL =
   `(c.is_published = 1 OR (c.unpublished_at IS NULL AND EXISTS (
       SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
-    )))`;
+    ))) AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`;
 
 function firstSentenceOf(text: unknown): string | null {
   if (typeof text !== 'string') return null;
@@ -24859,7 +24859,7 @@ function firstSentenceOf(text: unknown): string | null {
 
 const handleListPublicContributors: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
-    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.page_tier, c.business_name, c.location_line, c.avatar_url,
+    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.page_tier, ${FAMILY_LAST_ACTIVE_COLUMN}, c.business_name, c.location_line, c.avatar_url,
             c.now_text, c.beginnings, c.inspirations,
             (SELECT gi.image_url FROM contributor_gallery_images gi
               WHERE gi.contributor_id = c.id
@@ -24901,7 +24901,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // The directory's two filters. A host runs a room or is about to: a hosted
     // account, or a public lead/co-host role on any event. A writer has at
     // least one published article of their own.
-    is_host: Number(row.is_host) === 1,
+    is_host: Number(row.is_host) === 1, family_last_active: row.family_last_active ?? null, page_tier: familyPageTierOf(row.page_tier),
     article_count: Number(row.article_count || 0),
   }));
 
@@ -25067,7 +25067,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     `WITH ranked AS (
        SELECT pf.tea_profile_id, pf.note, pf.position AS favorite_position,
               tp.slug AS tea_slug, tp.name AS tea_name, tp.image_url AS tea_image_url,
-              p.product_name, p.given_name,
+              p.product_name, p.given_name, p.status AS product_status, p.stock_grams AS product_stock, pl.legacy_product_id AS product_id,
               COALESCE(p.type, tp.type) AS tea_type,
               COALESCE(p.year, tp.harvest_year) AS tea_year,
               COALESCE(p.chinese_name, tp.chinese_name) AS tea_chinese_name,
@@ -25090,11 +25090,11 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
           AND tp.status = 'published'
           AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1
           AND a.public_enabled = 1 AND a.status = 'active'
      )
      SELECT tea_profile_id, note AS why, tea_slug, tea_name, tea_image_url,
-            COALESCE(given_name, product_name) AS product_name, public_path, favorite_position,
+            COALESCE(given_name, product_name) AS product_name, product_status, product_stock, product_id, public_path, favorite_position,
             tea_type, tea_year, tea_chinese_name, tea_origin_region, tea_origin_country
        FROM ranked
       WHERE listing_rank = 1
@@ -25108,7 +25108,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     name: tea.tea_name,
     image_url: tea.tea_image_url ?? null,
     product_name: tea.product_name,
-    public_path: tea.public_path,
+    public_path: tea.public_path, product_id: tea.product_id ?? null, sold_out: tea.product_status === 'Sold Out' || (tea.product_stock != null && Number(tea.product_stock) <= 0),
     // The typographic row on the profile: the shop has no product photos, so
     // the vintage sits on the liquor ground and the type word is tinted.
     type: tea.tea_type ?? null,
@@ -25245,7 +25245,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     // Pay shows for tea masters only; a page from before the family keeps its Pay.
     has_payment_methods: familyPageAllowsPay(familyPageTierOf(row.page_tier)) && paymentAvailability.hasAnyMethod,
     payment_accounts: familyPageAllowsPay(familyPageTierOf(row.page_tier)) ? paymentAvailability.accounts : [],
-    seasonal_line: seasonalLine,
+    seasonal_line: seasonalLine, page_tier: familyPageTierOf(row.page_tier), tastings: await personTastings(env.DB, row.user_id as string | null),
   });
 };
 
@@ -25285,14 +25285,14 @@ const handleGetProductSelectedBy: Handler = async (_request, env, params) => {
 };
 
 const handleGetPublicProfileFavorites: Handler = async (_request, env, params) => {
-  const contributor = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND is_published = 1')
+  const contributor = await env.DB.prepare(`SELECT c.id FROM contributors c WHERE c.id = ? AND c.is_published = 1 AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`)
     .bind(params.slug).first();
   if (!contributor) return json({ error: 'Contributor not found' }, 404);
   const rows = await env.DB.prepare(
     `WITH eligible_favorites AS (
        SELECT pf.tea_profile_id, pf.note, pf.position AS favorite_position, pf.created_at,
               tp.slug, tp.name, tp.chinese_name, tp.type, tp.form, tp.origin_country,
-              tp.origin_region, tp.varietal, tp.harvest_year, tp.description, tp.image_url,
+              tp.origin_region, tp.varietal, tp.harvest_year, tp.description, tp.image_url, p.status AS product_status, p.stock_grams AS product_stock, pl.legacy_product_id AS product_id,
               a.slug AS source_account_slug, a.name AS source_account_name,
               '/shop/product/' || COALESCE(p.slug, pl.legacy_product_id) || '?store=' || a.slug AS public_path,
               ROW_NUMBER() OVER (
@@ -25314,7 +25314,7 @@ const handleGetPublicProfileFavorites: Handler = async (_request, env, params) =
           AND tp.status = 'published'
           AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1
           AND a.public_enabled = 1 AND a.status = 'active'
      ), chosen AS (
        SELECT * FROM eligible_favorites WHERE listing_rank = 1
@@ -25323,7 +25323,7 @@ const handleGetPublicProfileFavorites: Handler = async (_request, env, params) =
             ROW_NUMBER() OVER (ORDER BY favorite_position, created_at) - 1 AS position,
             slug, name, chinese_name, type, form, origin_country, origin_region,
             varietal, harvest_year, description, image_url,
-            source_account_slug, source_account_name, public_path
+            source_account_slug, source_account_name, public_path, product_id, (product_status = 'Sold Out' OR (product_stock IS NOT NULL AND product_stock <= 0)) AS sold_out
        FROM chosen
       ORDER BY favorite_position, created_at`
   ).bind(params.slug).all();
@@ -25389,7 +25389,7 @@ async function resolveLocalPaymentAmount(
 }
 
 const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
-  const contributor = await env.DB.prepare('SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url, page_tier FROM contributors WHERE id = ? AND is_published = 1')
+  const contributor = await env.DB.prepare('SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url, page_tier FROM contributors c WHERE c.id = ? AND c.is_published = 1 AND ' + FAMILY_PAGE_NOT_HIDDEN_SQL)
     .bind(params.slug).first<Record<string, any>>();
   if (!contributor || !familyPageAllowsPay(familyPageTierOf(contributor.page_tier))) return json({ error: 'Contributor not found' }, 404);
   const url = new URL(request.url);
@@ -25517,7 +25517,7 @@ async function resolvePayAccess(
 
 async function loadPayContributor(env: Env, slug: string): Promise<PayContributorRow | null> {
   return env.DB.prepare(
-    'SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1'
+    'SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url FROM contributors c WHERE c.id = ? AND c.is_published = 1 AND ' + FAMILY_PAGE_NOT_HIDDEN_SQL
   ).bind(slug).first<PayContributorRow>();
 }
 

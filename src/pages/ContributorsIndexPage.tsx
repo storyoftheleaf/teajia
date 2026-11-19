@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
-import { Cover, Dek, GroupHead, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
+import { Cover, Dek, GroupHead, IndexRow, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
 import { coverKicker } from '../components/people/profileFormat';
 import { useContributors } from '../hooks/useContributor';
 import { mediaUrl } from '../lib/mediaUrl';
@@ -12,6 +12,12 @@ import { mediaUrl } from '../lib/mediaUrl';
 // and one line in their own words. No caps labels anywhere but the "This
 // season" divider (canvas version 24, 2026-09-20): the role and place still
 // name the card for a screen reader, not for the eye.
+//
+// Under it, "The family": everyone who has shared a tasting, most recently
+// active first, as plain rows. No counts, no dates, no ranking words. A person
+// whose page is a family page has only this row; the cover cards stay for the
+// people the owner has made tea creators and tea masters, and for pages that
+// were here before the family.
 
 export default function ContributorsIndexPage() {
   const { data, isLoading } = useContributors();
@@ -19,13 +25,21 @@ export default function ContributorsIndexPage() {
   const progress = useReadingProgress();
 
   const people = useMemo(
-    () => [...(data ?? [])].sort((a, b) => a.display_name.localeCompare(b.display_name)),
+    () => [...(data ?? [])]
+      .filter(person => person.page_tier !== 'family')
+      .sort((a, b) => a.display_name.localeCompare(b.display_name)),
+    [data],
+  );
+  const family = useMemo(
+    () => (data ?? [])
+      .filter(person => Boolean(person.family_last_active))
+      .sort((a, b) => String(b.family_last_active).localeCompare(String(a.family_last_active)) || a.display_name.localeCompare(b.display_name)),
     [data],
   );
 
   if (isLoading) return null;
 
-  const count = people.length;
+  const count = people.length + family.length;
 
   return (
     <PeopleRoot rootRef={rootRef} testId="people-directory">
@@ -42,7 +56,8 @@ export default function ContributorsIndexPage() {
           {count === 0 ? (
             <p className="subtitle mt-10 py-16 text-center text-tea-text-sec">The first pages are being set in type. Come back soon.</p>
           ) : (
-            <div data-reveal>
+            <>
+            {people.length > 0 && <div data-reveal>
               <GroupHead label="This season" />
               <ul className="mt-3.5 flex flex-col gap-3.5" aria-label="People">
                 {people.map(person => (
@@ -74,7 +89,26 @@ export default function ContributorsIndexPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </div>}
+            {family.length > 0 && (
+              <div data-reveal data-testid="people-family">
+                <GroupHead label="The family" />
+                <ul aria-label="The family">
+                  {family.map(person => (
+                    <li key={person.id}>
+                      <IndexRow
+                        to={`/people/${encodeURIComponent(person.id)}`}
+                        testId="family-row"
+                        title={<SplitName name={person.display_name} />}
+                        dek={person.own_line}
+                        ariaLabel={`${person.display_name}, ${person.role || 'Teajia family'}`}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            </>
           )}
         </main>
 

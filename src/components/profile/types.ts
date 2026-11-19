@@ -97,6 +97,9 @@ export interface FavoriteTea {
   origin?: string | null;
   image_url?: string | null;
   public_path?: string | null;
+  /** The shop tea behind this favourite, and whether it has sold out. */
+  product_id?: string | null;
+  sold_out?: boolean;
   is_public: boolean;
   source_account_id?: string | null;
   source_product_id?: string | null;

@@ -1537,7 +1537,7 @@ function normalizeProfileFavorite(row: any, publicResponse = false): ProfileFavo
       year: row?.harvest_year ?? row?.year ?? row?.tea?.year ?? null,
       origin: [row?.origin_region, row?.origin_country].filter(Boolean).join(', ') || row?.tea?.origin || null,
       image_url: row?.image_url ?? row?.tea?.image_url ?? null,
-      public_path: row?.public_path ?? row?.tea?.public_path ?? null,
+      public_path: row?.public_path ?? row?.tea?.public_path ?? null, product_id: row?.product_id ?? null, sold_out: row?.sold_out === 1 || row?.sold_out === true,
       is_public: publicResponse || Boolean(row?.tea?.is_public ?? statusPublic),
     },
   };

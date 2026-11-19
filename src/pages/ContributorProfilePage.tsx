@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
+import { PersonTastingsSection, SoldOutLine } from '../components/people/PersonTastings';
+import { ReportPageLine } from '../components/people/ReportPageLine';
 import { PLATFORM_NAMES } from '../components/people/PlatformMark';
 import {
   Cover,
@@ -51,8 +53,8 @@ import storyPeople from './read/storyPeople.generated.json';
 // line, alone. The portrait is a lead cover: thin gold border, fade, kicker,
 // the name with an italic gold surname, one first-person line. Directly under
 // it, the hub: a row of equal bordered cells in the Cinema manner, exactly
-// Words, Teas and Pay, no counts, each only when the tea master has it, so
-// fewer cells share the width. Then the groups, each fading and lifting in as
+// Words, Teas, Tastings, Contact and Pay, no counts, each only when the person
+// has it (Pay for tea masters only), so fewer cells share the width. Then the groups, each fading and lifting in as
 // it arrives: In my words, Hands on, Words, The teas, Hosting, My table, Reach
 // me. Everything else is a plain row: title and italic dek. No row on this
 // page carries a right column (canvas versions 20 to 23, 2026-09-20).
@@ -127,6 +129,7 @@ function wordRows(data: ContributorProfile, readStates?: ReadPublishOverrides): 
 function TeaRow({ tea }: { tea: ContributorTeaSelectionRef }) {
   const origin = (tea.origin ?? '').split(',').map(part => part.trim()).filter(Boolean).slice(0, 2).join(', ');
   return (
+    <>
     <IndexRow
       to={tea.public_path}
       testId="profile-tea-row"
@@ -138,6 +141,8 @@ function TeaRow({ tea }: { tea: ContributorTeaSelectionRef }) {
       )}
       dek={tea.why || origin || null}
     />
+    {tea.sold_out && <SoldOutLine productId={tea.product_id} name={tea.product_name || tea.name} />}
+    </>
   );
 }
 
@@ -265,10 +270,12 @@ export default function ContributorProfilePage() {
   const canPay = data.has_payment_methods === true;
   const payHref = `/people/${encodeURIComponent(data.id)}/pay`;
   const links = data.links;
+  const tastings = data.tastings ?? [];
 
   const cells = [
     rows.length > 0 ? { id: 'words', label: 'Words', href: '#words' } : null,
     hasTeas ? { id: 'teas', label: 'Teas', href: '#teas' } : null,
+    tastings.length > 0 ? { id: 'tastings', label: 'Tastings', href: '#tastings' } : null,
     // Contact and Pay sit at the top so a visitor can reach or pay them without scrolling.
     data.links.length > 0 ? { id: 'contact', label: 'Contact', href: '#reach' } : null,
     canPay ? { id: 'pay', label: 'Pay', href: payHref, route: true } : null,
@@ -398,6 +405,9 @@ export default function ContributorProfilePage() {
           </Section>
         )}
 
+        {/* ── Tastings ───────────────────────────────────────────────────── */}
+        <PersonTastingsSection tastings={tastings} />
+
         {/* ── Reach me ───────────────────────────────────────────────────── */}
         {links.length > 0 && (
           <Section id="reach" testId="profile-reach">
@@ -412,6 +422,7 @@ export default function ContributorProfilePage() {
         <footer data-reveal className={`${SIDE} pb-16 pt-14 text-center`}>
           {data.closing && <Dek className="text-ui-16">{data.closing}</Dek>}
           <a href="/people" className={`tap-target inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.22em] text-tea-text-dim hover:text-tea-text ${data.closing ? 'mt-5' : ''}`}>All people</a>
+          {data.page_tier === 'family' && <ReportPageLine contributorId={data.id} />}
         </footer>
       </article>
     </PeopleRoot>
