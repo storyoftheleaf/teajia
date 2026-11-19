@@ -127,14 +127,14 @@ test.describe('Curate responsive preservation', () => {
   test('capture content clears the mobile bottom navigation', async ({ page }, testInfo) => {
     test.skip(!testInfo.project.name.includes('Mobile'), 'Bottom navigation clearance is a mobile contract');
     await openCompass(page);
-    const done = page.getByRole('button', { name: /Done/ }).first();
-    await done.scrollIntoViewIfNeeded();
+    const saveTea = page.getByRole('button', { name: 'Save tea', exact: true });
+    await saveTea.scrollIntoViewIfNeeded();
     const nav = page.getByTestId('bottom-tab-bar');
     await expect(nav).toBeVisible();
-    const [doneBox, navBox] = await Promise.all([done.boundingBox(), nav.boundingBox()]);
-    expect(doneBox, 'Done button must have a layout box').not.toBeNull();
+    const [saveBox, navBox] = await Promise.all([saveTea.boundingBox(), nav.boundingBox()]);
+    expect(saveBox, 'Save tea button must have a layout box').not.toBeNull();
     expect(navBox, 'Bottom navigation must have a layout box').not.toBeNull();
-    expect(doneBox!.y + doneBox!.height, 'Done button is obscured by mobile bottom navigation').toBeLessThanOrEqual(navBox!.y);
+    expect(saveBox!.y + saveBox!.height, 'Save tea button is obscured by mobile bottom navigation').toBeLessThanOrEqual(navBox!.y);
   });
 
   test('Library search resists mobile zoom and visible row actions keep 44px hit areas', async ({ page }) => {

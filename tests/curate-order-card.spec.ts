@@ -40,7 +40,7 @@ for (const size of [{ width: 390, height: 844 }, { width: 1360, height: 900 }]) 
       orders: [], services: [], addresses: [],
       shipments: [{
         id: 'shipment-demo', state: 'in_transit', dispatched_at: '2026-11-13 09:30:00', eta: '2026-11-19',
-        lines: [{ purchase_id: 'po-demo', receipt_line_id: lines[0].id, quantity: 750, received_quantity: 0 }],
+        lines: [{ id: 'shipment-line-demo', purchase_id: 'po-demo', receipt_line_id: lines[0].id, quantity: 750, received_quantity: 0 }],
       }],
     } }));
     await page.goto('/admin/compass?tab=library', { waitUntil: 'domcontentloaded' });
@@ -59,7 +59,10 @@ for (const size of [{ width: 390, height: 844 }, { width: 1360, height: 900 }]) 
     }, { items, supplier, recordedAt });
     await page.getByRole('tab', { name: 'Orders', exact: true }).filter({ visible: true }).first().click();
     const order = page.getByTestId(`curate-order-line-${teas[0].id}`).filter({ visible: true });
-    await expect(order.getByRole('button', { name: 'Receive 750g' })).toBeVisible({ timeout: 20_000 });
+    await expect(order.getByRole('link', { name: 'Open studio receipt', exact: true })).toHaveAttribute(
+      'href', '/admin/purchase-orders?shipmentId=shipment-demo&receiptLineId=shipment-line-demo',
+      { timeout: 20_000 },
+    );
     const orderBands = await order.evaluate(bands);
     expect(orderBands).toEqual(referenceBands);
     await expect(order.getByRole('button', { name: 'Open Spring Oolong in Library' })).toBeVisible();
