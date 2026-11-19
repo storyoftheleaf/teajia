@@ -1,3 +1,4 @@
+import { PrivateSessionReflection } from '../PrivateSessionReflection';
 import React, { Suspense, lazy } from 'react';
 import type { GuestManagementData } from '../../../types/events';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
@@ -147,6 +148,8 @@ const PostEventView: React.FC<PostEventViewProps> = ({
             </div>
           </Suspense>
         )}
+
+        {didAttend && attendee.status === 'confirmed' && <PrivateSessionReflection token={magicToken} />}
 
         {/* Notify me of next session */}
         <div className="border-t border-tea-border pt-10 mt-10">

@@ -1,3 +1,6 @@
+import { listPrivateSessionReflections, readPrivateSessionReflection, writePrivateSessionReflection } from './privateSessionReflections';
+import { claimReceivedCard, listReceivedCards } from './memberReceivedCards';
+import { sharedSessionVerdict } from './sessionVerdictProjection';
 import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
 import { quoteUsCheckoutShipping } from './usCheckoutShipping';
 import { hasPublicStatus } from '../../src/lib/productPublication';
@@ -12821,6 +12824,37 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
   return json({ success: true, status: 'confirmed' });
 };
 
+const handlePrivateSessionReflection: Handler = async (request, env, params) => {
+  const scope = await requireAccount(request, env);
+  if ('error' in scope) return scope.error;
+  let response: Response;
+  if (!params.token && !params.id) {
+    response = json({ reflections: await listPrivateSessionReflections(env.DB, scope) });
+  } else if (params.id) {
+    const body = await request.json().catch(() => null) as { reflection?: unknown } | null;
+    if (typeof body?.reflection !== 'string' || body.reflection.length > 12000) {
+      return json({ error: 'Enter a reflection of up to 12,000 characters' }, 400);
+    }
+    const updated = await env.DB.prepare(
+      `UPDATE private_session_reflections SET reflection = ?, updated_at = ?
+       WHERE attendee_id = ? AND account_id = ? AND user_id = ?`
+    ).bind(body.reflection, new Date().toISOString(), params.id, scope.accountId, scope.userId).run();
+    response = updated.meta?.changes ? json({ success: true }) : json({ error: 'Private reflection not found' }, 404);
+  } else if (request.method === 'GET') {
+    const reflection = await readPrivateSessionReflection(env.DB, scope, params.token);
+    response = reflection ? json(reflection) : json({ error: 'Private reflection not found' }, 404);
+  } else {
+    const body = await request.json().catch(() => null) as { reflection?: unknown } | null;
+    if (typeof body?.reflection !== 'string' || body.reflection.length > 12000) {
+      return json({ error: 'Enter a reflection of up to 12,000 characters' }, 400);
+    }
+    const written = await writePrivateSessionReflection(env.DB, scope, params.token, body.reflection);
+    response = written ? json({ success: true }) : json({ error: 'Verify ownership of this attended session before saving a private reflection' }, 403);
+  }
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
+};
+
 const handleGetPostSession: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
     `SELECT ea.event_id, ea.account_id, ea.status, ea.attended,
@@ -12838,7 +12872,15 @@ const handleGetPostSession: Handler = async (_request, env, params) => {
     return json({ error: 'Post-session recap is not available until the event is completed' }, 409);
   }
   if (attendee.recap_status !== 'published') {
-    return json({ error: 'Post-session recap not published' }, 404);
+    const shared = await env.DB.prepare(
+      `SELECT event_id, session_notes FROM event_attendee_recaps
+       WHERE event_id = ? AND account_id = ?`
+    ).bind(attendee.event_id, attendee.account_id).first();
+    const response = shared
+      ? json({ event_id: shared.event_id, session_notes: shared.session_notes })
+      : json({ error: 'Post-session recap not published' }, 404);
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
   }
 
   const postSession = await env.DB.prepare(
@@ -13603,6 +13645,32 @@ const handleCreateNotifications: Handler = async (request, env, params) => {
   }
 
   return json({ success: true, count: stmts.length }, 201);
+};
+
+const handleShareAttendeeRecap: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'gather');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json().catch(() => null) as { session_notes?: unknown } | null;
+  const notes = typeof body?.session_notes === 'string' ? body.session_notes.trim() : '';
+  if (!notes || notes.length > 12000) {
+    return json({ error: 'Enter a recap of up to 12,000 characters' }, 400);
+  }
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
+
+  const result = await env.DB.prepare(
+    `INSERT INTO event_attendee_recaps (event_id, account_id, session_notes)
+     SELECT id, account_id, ? FROM events
+     WHERE id = ? AND account_id = ? AND lifecycle_status = 'completed' AND recap_status = 'draft'
+     ON CONFLICT(event_id) DO UPDATE SET session_notes = excluded.session_notes
+     WHERE event_attendee_recaps.account_id = excluded.account_id`
+  ).bind(notes, params.id, accountId).run();
+  if (!result.meta?.changes) {
+    return json({ error: 'Attendee sharing requires a completed session without an existing published recap' }, 409);
+  }
+  return json({ success: true });
 };
 
 const handleUpsertPostSession: Handler = async (request, env, params) => {
@@ -18699,53 +18767,14 @@ const handleCompassIncoming: Handler = async (request, env) => {
 // POST /api/compass/shares/:id/accept — create a compass entry, mark share accepted
 const handleCompassAcceptShare: Handler = async (request, env, params) => {
   const auth = await requireAccount(request, env);
-  if ('error' in auth) return (auth as any).error;
-  const { accountId, userId } = auth as any;
-
+  if ('error' in auth) return auth.error;
   const share = await env.DB.prepare(
-    `SELECT * FROM compass_shares WHERE id = ? AND target_account_id = ? AND status = 'pending'`
-  ).bind(params.id, accountId).first() as Record<string, any> | null;
+    `SELECT * FROM compass_shares WHERE id = ? AND target_account_id = ?
+     AND (status = 'pending' OR (status = 'accepted' AND claimed_by_user_id = ?))`
+  ).bind(params.id, auth.accountId, auth.userId).first<any>();
   if (!share) return json({ error: 'Share not found or already handled' }, 404);
-
-  const meta = share.shared_metadata ? JSON.parse(share.shared_metadata as string) : {};
-  const existing = await env.DB.prepare(
-    `SELECT * FROM tea_compass_entries
-     WHERE user_id = ? AND account_id = ? AND source_entry_id = ?
-     ORDER BY created_at DESC LIMIT 1`
-  ).bind(userId, accountId, share.source_entry_id).first();
-  const entryId = crypto.randomUUID();
-  const now = new Date().toISOString();
-
-  if (existing) {
-    await env.DB.prepare(
-      `UPDATE compass_shares SET status = 'accepted', claimed_by_user_id = ?, claimed_at = ? WHERE id = ?`
-    ).bind(userId, now, params.id).run();
-    return json({ entry: existing, share_id: params.id, already_claimed: true });
-  }
-
-  await env.DB.prepare(
-    `INSERT INTO tea_compass_entries
-       (id, user_id, account_id, name, chinese_name, type, form, year, season,
-        origin_region, category, teaware_category, material, capacity_ml,
-        photos, tea_key, source_entry_id, status, notes, quantity, price_currency, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'incoming', '', 1, 'NT', ?, ?)`
-  ).bind(
-    entryId, userId, accountId,
-    meta.name || '', meta.chineseName || null, meta.type || null, meta.form || null,
-    meta.year || null, meta.season || null, meta.originRegion || null,
-    meta.category || 'tea', meta.teawareCategory || null, meta.material || null, meta.capacityMl || null,
-    meta.photo ? JSON.stringify([meta.photo]) : '[]',
-    meta.teaKey || share.tea_key,
-    share.source_entry_id,
-    now, now
-  ).run();
-
-  await env.DB.prepare(
-    `UPDATE compass_shares SET status = 'accepted', claimed_by_user_id = ?, claimed_at = ? WHERE id = ?`
-  ).bind(userId, now, params.id).run();
-
-  const created = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(entryId).first();
-  return json({ entry: created, share_id: params.id });
+  const result = await claimReceivedCard(env.DB, auth, share, true);
+  return result ? json(result) : json({ error: 'Share changed; reopen the invitation' }, 409);
 };
 
 // POST /api/compass/shares/:id/decline
@@ -18785,54 +18814,24 @@ const handleCompassGetInvite: Handler = async (request, env, params) => {
 // POST /api/compass/invite/:token/claim — authenticated user claims into their compass
 const handleCompassClaimInvite: Handler = async (request, env, params) => {
   const auth = await requireAccount(request, env);
-  if ('error' in auth) return (auth as any).error;
-  const { accountId, userId } = auth as any;
-
+  if ('error' in auth) return auth.error;
   const share = await env.DB.prepare(
-    `SELECT * FROM compass_shares WHERE invite_token = ? AND status = 'pending'`
-  ).bind(params.token).first() as Record<string, any> | null;
+    "SELECT * FROM compass_shares WHERE invite_token = ? AND status = 'pending'"
+  ).bind(params.token).first<any>();
   if (!share) return json({ error: 'Invite not found or already used' }, 404);
+  const result = await claimReceivedCard(env.DB, auth, share);
+  return result ? json(result) : json({ error: 'Invite changed; reopen the invitation' }, 409);
+};
 
-  const meta = share.shared_metadata ? JSON.parse(share.shared_metadata as string) : {};
-  const existing = await env.DB.prepare(
-    `SELECT * FROM tea_compass_entries
-     WHERE user_id = ? AND account_id = ? AND source_entry_id = ?
-     ORDER BY created_at DESC LIMIT 1`
-  ).bind(userId, accountId, share.source_entry_id).first();
-  const entryId = crypto.randomUUID();
-  const now = new Date().toISOString();
-
-  if (existing) {
-    await env.DB.prepare(
-      `UPDATE compass_shares SET claimed_by_user_id = ?, claimed_at = ? WHERE id = ?`
-    ).bind(userId, now, share.id).run();
-    return json({ entry: existing, already_claimed: true });
-  }
-
-  await env.DB.prepare(
-    `INSERT INTO tea_compass_entries
-       (id, user_id, account_id, name, chinese_name, type, form, year, season,
-        origin_region, category, teaware_category, material, capacity_ml,
-        photos, tea_key, source_entry_id, status, notes, quantity, price_currency, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'incoming', '', 1, 'NT', ?, ?)`
-  ).bind(
-    entryId, userId, accountId,
-    meta.name || '', meta.chineseName || null, meta.type || null, meta.form || null,
-    meta.year || null, meta.season || null, meta.originRegion || null,
-    meta.category || 'tea', meta.teawareCategory || null, meta.material || null, meta.capacityMl || null,
-    meta.photo ? JSON.stringify([meta.photo]) : '[]',
-    meta.teaKey || share.tea_key,
-    share.source_entry_id,
-    now, now
-  ).run();
-
-  // Mark claimed — keep share open for other claimers (invite links are multi-use by default)
-  await env.DB.prepare(
-    `UPDATE compass_shares SET claimed_by_user_id = ?, claimed_at = ? WHERE id = ?`
-  ).bind(userId, now, share.id).run();
-
-  const created = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(entryId).first();
-  return json({ entry: created });
+const handleReceivedCards: Handler = async (request, env, params) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return auth.error;
+  const cards = await listReceivedCards(env.DB, auth, params.id);
+  const response = params.id
+    ? (cards[0] ? json({ card: cards[0] }) : json({ error: 'Saved card not found' }, 404))
+    : json({ cards });
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 };
 
 // ── Tea Reviews (cross-account, keyed by tea_key) ──────────────────────────
@@ -23385,19 +23384,29 @@ const handleCreateSession: Handler = async (request, env) => {
 
   const body = await request.json() as {
     title?: string;
+    event_id?: string;
     entry_ids?: string[];
     product_ids?: string[];
     member_ids?: string[];
   };
+
+  const eventId = body.event_id ?? null;
+  if (eventId !== null) {
+    if (typeof eventId !== 'string' || !eventId.trim()) return json({ error: 'Invalid RSVP event' }, 400);
+    if (!ctx.bundles.includes('gather')) return json({ error: 'Hosting permission required to attach an RSVP event' }, 403);
+    const event = await env.DB.prepare('SELECT id FROM events WHERE id = ? AND account_id = ?')
+      .bind(eventId, accountId).first();
+    if (!event) return json({ error: 'RSVP event not found' }, 404);
+  }
 
   const sessionId = crypto.randomUUID();
   const inviteToken = crypto.randomUUID().replace(/-/g, '');
   const now = new Date().toISOString();
 
   await env.DB.prepare(
-    `INSERT INTO tasting_sessions (id, account_id, created_by_user_id, title, status, invite_token, max_participants, created_at)
-     VALUES (?, ?, ?, ?, 'active', ?, 8, ?)`
-  ).bind(sessionId, accountId, userId, body.title || null, inviteToken, now).run();
+    `INSERT INTO tasting_sessions (id, account_id, created_by_user_id, title, status, invite_token, max_participants, created_at, event_id)
+     VALUES (?, ?, ?, ?, 'active', ?, 8, ?, ?)`
+  ).bind(sessionId, accountId, userId, body.title || null, inviteToken, now, eventId).run();
 
   // Add creator as first member. INSERT OR IGNORE matches the other join paths
   // and is safe under retry (handler crash + retry would otherwise hit a UNIQUE
@@ -23476,6 +23485,10 @@ const handleGetSession: Handler = async (request, env, params) => {
   if ('error' in gate) return gate.error;
   const { userId, sessionRow: session } = gate;
 
+  const origin = session.event_id ? await env.DB.prepare(
+    'SELECT title FROM events WHERE id = ? AND account_id = ?'
+  ).bind(session.event_id, session.account_id).first<{ title: string }>() : null;
+
   const [teas, members] = await Promise.all([
     env.DB.prepare('SELECT * FROM tasting_session_teas WHERE session_id = ? ORDER BY position').bind(params.id).all(),
     env.DB.prepare(
@@ -23491,7 +23504,7 @@ const handleGetSession: Handler = async (request, env, params) => {
   ).bind(params.id, userId).all();
 
   return json({
-    session,
+    session: { ...session, event_title: origin?.title ?? null },
     teas: teas.results.map((t: any) => ({
       ...t,
       tea_metadata: t.tea_metadata ? JSON.parse(t.tea_metadata) : {},
@@ -23706,10 +23719,7 @@ const handleGetSessionVerdicts: Handler = async (request, env, params) => {
   ).bind(params.id).all();
 
   return json({
-    verdicts: (verdicts.results as any[]).map(v => ({
-      ...v,
-      tasting_data: v.tasting_data ? JSON.parse(v.tasting_data) : null,
-    })),
+    verdicts: (verdicts.results as Record<string, unknown>[]).map(sharedSessionVerdict),
   });
 };
 
@@ -24021,10 +24031,7 @@ const handleSessionHostLive: Handler = async (request, env, params) => {
       tea_metadata: t.tea_metadata ? (() => { try { return JSON.parse(t.tea_metadata); } catch { return {}; } })() : {},
     })),
     members: members.results,
-    verdicts: (verdicts.results as any[]).map(v => ({
-      ...v,
-      tasting_data: v.tasting_data ? (() => { try { return JSON.parse(v.tasting_data); } catch { return null; } })() : null,
-    })),
+    verdicts: (verdicts.results as Record<string, unknown>[]).map(sharedSessionVerdict),
     progress,
   });
 };
@@ -24114,7 +24121,7 @@ const handleGetEntryFeedback: Handler = async (request, env, params) => {
 
   // Aggregate verdicts from tasting sessions where this entry was used
   const sessionVerdicts = await env.DB.prepare(
-    `SELECT tsv.verdict, tsv.notes, tsv.tasting_data, u.name as user_name, tsv.submitted_at
+    `SELECT tsv.user_id, tsv.session_tea_id, tsv.verdict, tsv.tasting_data, u.name as user_name
      FROM tasting_session_verdicts tsv
      JOIN tasting_session_teas sst ON sst.id = tsv.session_tea_id
      LEFT JOIN users u ON u.id = tsv.user_id
@@ -24142,9 +24149,7 @@ const handleGetEntryFeedback: Handler = async (request, env, params) => {
   return json({
     counts,
     total: all.length,
-    session_verdicts: (sessionVerdicts.results as any[]).map(v => ({
-      ...v, tasting_data: v.tasting_data ? JSON.parse(v.tasting_data) : null,
-    })),
+    session_verdicts: (sessionVerdicts.results as Record<string, unknown>[]).map(sharedSessionVerdict),
     table_verdicts: (tableVerdicts.results as any[]).map(v => ({
       ...v, tasting_data: v.tasting_data ? JSON.parse(v.tasting_data) : null,
     })),
@@ -30339,6 +30344,10 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/rsvp/:token', handleUpdateRSVP],
   ['POST', '/api/rsvp/:token/claim', handleClaimSpot],
   ['GET', '/api/rsvp/:token/post-session', handleGetPostSession],
+  ['GET', '/api/rsvp/:token/reflection', handlePrivateSessionReflection],
+  ['PUT', '/api/rsvp/:token/reflection', handlePrivateSessionReflection],
+  ['GET', '/api/me/session-reflections', handlePrivateSessionReflection],
+  ['PUT', '/api/me/session-reflections/:id', handlePrivateSessionReflection],
   ['POST', '/api/rsvp/:token/tasting-notes', handleSubmitTastingNotes],
 
   // Saved Locations — Admin (legacy, kept for edit-form compat)
@@ -30370,6 +30379,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/admin/events/:id/article-draft', handleCreateEventArticleDraft],
   ['GET', '/api/admin/events/:id/post-session', handleGetAdminPostSession],
   ['POST', '/api/admin/events/:id/post-session', handleUpsertPostSession],
+  ['POST', '/api/admin/events/:id/attendee-recap', handleShareAttendeeRecap],
   ['POST', '/api/admin/events/:id/duplicate', handleDuplicateEvent],
   ['POST', '/api/admin/events/:id/attendance', handleBatchAttendance],
   ['GET', '/api/admin/events/:id/tea-menu', handleGetTeaMenu],
@@ -30530,6 +30540,8 @@ const routes: [string, string, Handler][] = [
   // Compass Sharing
   ['POST', '/api/compass/share', handleCompassShare],
   ['GET', '/api/compass/incoming', handleCompassIncoming],
+  ['GET', '/api/me/received-cards', handleReceivedCards],
+  ['GET', '/api/me/received-cards/:id', handleReceivedCards],
   ['POST', '/api/compass/shares/:id/accept', handleCompassAcceptShare],
   ['POST', '/api/compass/shares/:id/decline', handleCompassDeclineShare],
   ['GET', '/api/compass/invite/:token', handleCompassGetInvite],

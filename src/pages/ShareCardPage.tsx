@@ -3,7 +3,7 @@
  * Route: /share/:token
  *
  * Anyone with the link can view the shared capture card metadata.
- * Authenticated users can claim it into their tea journal.
+ * Authenticated users can save their own received tea card.
  * Unauthenticated users are nudged to sign up.
  */
 
@@ -11,14 +11,17 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Check, Leaf } from 'lucide-react';
-import { api, hasToken } from '../lib/api';
-import { hydrateCompassEntries } from '../lib/teaCompassSync';
+import { api, hasToken, isTokenScopedToAccount } from '../lib/api';
+import { useAppStore } from '../lib/store';
 
 const ShareCardPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [claimed, setClaimed] = useState(false);
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
+  const [saved, setSaved] = useState<{ accountId: string; userId: string; id: string } | null>(null);
+  const claimed = saved?.accountId === accountId && saved?.userId === userId ? saved : null;
 
   const { data: invite, isLoading, isError } = useQuery({
     queryKey: ['compass-invite', token],
@@ -28,10 +31,13 @@ const ShareCardPage: React.FC = () => {
   });
 
   const claimMutation = useMutation({
-    mutationFn: () => api.compass.claimInvite(token!),
-    onSuccess: async () => {
-      await hydrateCompassEntries();
-      setClaimed(true);
+    mutationFn: async () => {
+      if (!accountId || !userId) throw new Error('Choose your account before saving this card.');
+      const result = await api.compass.claimInvite(token!, { accountId, userId });
+      return { accountId, userId, id: result.receipt_id as string };
+    },
+    onSuccess: result => {
+      if (isTokenScopedToAccount(result.accountId, result.userId)) setSaved(result);
     },
   });
 
@@ -76,14 +82,14 @@ const ShareCardPage: React.FC = () => {
           </div>
           <h1 className="font-serif text-2xl text-tea-text mb-3">Card saved</h1>
           <p className="text-sm text-tea-text-sec mb-6">
-            {meta.name || 'This tea'} is now saved to your tea journal.
+            {meta.name || 'This tea'} is saved to your received cards.
           </p>
           <button
             type="button"
-            onClick={() => navigate('/account/journal')}
+            onClick={() => navigate(`/account/collection?card=${encodeURIComponent(claimed!.id)}`)}
             className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
           >
-            Open journal
+            Open saved card
           </button>
         </div>
       </div>
@@ -119,7 +125,7 @@ const ShareCardPage: React.FC = () => {
           <p className="text-sm text-tea-text-sec mb-1">
             <span className="text-tea-text font-medium">{fromName}</span> is sharing a tea record with you
           </p>
-          <p className="text-xs text-tea-text-dim mt-1">Save it to your own tea journal</p>
+          <p className="text-xs text-tea-text-dim mt-1">Keep your own copy of this tea card</p>
         </div>
 
         {/* Card */}
@@ -165,7 +171,7 @@ const ShareCardPage: React.FC = () => {
               {claimMutation.isPending ? (
                 <span className="inline-block w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
               ) : (
-                'Save to my journal'
+                'Save card'
               )}
             </button>
             {claimMutation.isError && (
@@ -177,7 +183,7 @@ const ShareCardPage: React.FC = () => {
         ) : (
           <div className="text-center space-y-4">
             <p className="text-sm text-tea-text-sec">
-              Sign in to save this card to your tea journal and add your own notes.
+              Sign in to keep this tea card in your account.
             </p>
             <Link
               to={`/signin?returnTo=${returnPath}`}

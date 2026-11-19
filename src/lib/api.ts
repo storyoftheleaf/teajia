@@ -1,3 +1,5 @@
+import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
+export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput, StudioReceiptReferral, StudioReceiptReferralInput } from './logisticsTypes';
 import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
@@ -2693,6 +2695,11 @@ export const api = {
         body: JSON.stringify(data),
       });
     },
+    shareAttendeeRecap: (id: string, sessionNotes: string): Promise<{ success: true }> =>
+      authedFetch(`${API_URL}/api/admin/events/${id}/attendee-recap`, {
+        method: 'POST',
+        body: JSON.stringify({ session_notes: sessionNotes }),
+      }),
     createArticleDraft: (id: string): Promise<{ existing: boolean; article: DbArticle }> =>
       authedFetch(`${API_URL}/api/admin/events/${id}/article-draft`, { method: 'POST' }),
     duplicate: async (id: string, input: { slug: string; eventDate: string }) => {
@@ -3271,17 +3278,7 @@ export const api = {
         method: 'POST',
       });
     },
-    /** Public, fetch share metadata from an invite token (no auth required) */
-    getInvite: async (token: string) => {
-      // Token is injected by authedFetch (if present), no extra headers needed.
-      return authedFetch(`${API_URL}/api/compass/invite/${token}`);
-    },
-    /** Authenticated, claim an invite link into the caller's compass */
-    claimInvite: async (token: string) => {
-      return authedFetch(`${API_URL}/api/compass/invite/${token}/claim`, {
-        method: 'POST',
-      });
-    },
+    ...createCompassInviteApi(authedFetch, API_URL),
     entryFeedback: async (entryId: string) => {
       return authedFetch(`${API_URL}/api/compass/entries/${entryId}/feedback`)
     },
@@ -3292,6 +3289,8 @@ export const api = {
       });
     },
   },
+
+  ...createMemberRecordsApi(authedFetch, API_URL),
 
   curateContext: {
     listJourneys: (): Promise<{ journeys: CurateJourney[] }> => authedFetch(`${API_URL}/api/curate/journeys`),
@@ -4734,7 +4733,7 @@ export const api = {
       const url = `${API_URL}/api/sessions${qs.toString() ? `?${qs.toString()}` : ''}`;
       return authedFetch(url);
     },
-    create: async (data: { title?: string; entry_ids?: string[]; product_ids?: string[]; member_ids?: string[] }) => {
+    create: async (data: { title?: string; event_id?: string; entry_ids?: string[]; product_ids?: string[]; member_ids?: string[] }) => {
       return authedFetch(`${API_URL}/api/sessions`, {
         method: 'POST',
         body: JSON.stringify(data),

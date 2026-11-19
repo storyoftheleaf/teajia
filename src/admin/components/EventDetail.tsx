@@ -908,7 +908,11 @@ export const EventDetail: React.FC = () => {
                 </p>
               )}
             </section>
-            <PostSessionEditor eventId={event.id} />
+            <PostSessionEditor
+              key={event.id}
+              eventId={event.id}
+              canShareAttendeeRecap={event.lifecycleStatus === 'completed' && event.recapStatus !== 'published'}
+            />
           </div>
         )}
 

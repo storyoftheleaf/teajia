@@ -1983,6 +1983,12 @@ CREATE TABLE IF NOT EXISTS event_consents (
 );
 
 -- Event post-session editorial source and ordinary article drafts.
+CREATE TABLE IF NOT EXISTS event_attendee_recaps (
+  event_id TEXT PRIMARY KEY NOT NULL REFERENCES events(id),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  session_notes TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS event_post_session (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
   account_id TEXT,
@@ -3356,3 +3362,29 @@ CREATE TRIGGER logistics_hold_studio_receipt BEFORE UPDATE OF received_quantity 
    WHERE r.account_id = OLD.account_id AND r.shipment_line_id = OLD.id AND r.resolved_at IS NULL
  )
  BEGIN SELECT RAISE(ABORT, 'studio receipt referral is open'); END;
+
+ALTER TABLE tasting_sessions ADD COLUMN event_id TEXT REFERENCES events(id);
+CREATE INDEX IF NOT EXISTS idx_tasting_sessions_event ON tasting_sessions(account_id, event_id);
+
+CREATE TABLE IF NOT EXISTS compass_claim_receipts (
+  id TEXT PRIMARY KEY NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  user_id TEXT NOT NULL REFERENCES users(id),
+  source_entry_id TEXT NOT NULL,
+  share_id TEXT NOT NULL REFERENCES compass_shares(id),
+  entry_id TEXT NOT NULL UNIQUE REFERENCES tea_compass_entries(id),
+  claimed_at TEXT NOT NULL,
+  UNIQUE(account_id, user_id, source_entry_id)
+);
+CREATE INDEX IF NOT EXISTS idx_claim_receipts_owner ON compass_claim_receipts(account_id, user_id, claimed_at);
+
+CREATE TABLE IF NOT EXISTS private_session_reflections (
+  attendee_id TEXT PRIMARY KEY NOT NULL,
+  event_id TEXT NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  user_id TEXT NOT NULL REFERENCES users(id),
+  reflection TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(attendee_id, event_id, account_id) REFERENCES event_attendees(id, event_id, account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_session_reflections_owner ON private_session_reflections(account_id, user_id, updated_at);

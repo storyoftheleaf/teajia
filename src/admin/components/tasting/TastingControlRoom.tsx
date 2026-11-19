@@ -15,7 +15,7 @@ import { TabList, TabPanel, useTabsIds, type TabItem } from '../../../components
 type Tab = 'share' | 'live';
 
 interface SessionEnvelope {
-  session: { id: string; title?: string | null; status: 'active' | 'completed'; created_by_user_id: string };
+  session: { id: string; title?: string | null; status: 'active' | 'completed'; created_by_user_id: string; event_id?: string | null; event_title?: string | null };
 }
 
 const TABS: TabItem[] = [
@@ -85,6 +85,12 @@ export function TastingControlRoom() {
         </div>
       </header>
 
+      {session?.event_id && session.event_title && (
+        <p className="px-4 md:px-6 lg:px-10 pb-2 max-w-5xl w-full mx-auto text-ui-13 text-tea-text-sec break-words">
+          RSVP event · {session.event_title}
+        </p>
+      )}
+
       {/* Tab strip */}
       <TabList
         tabs={TABS}
@@ -130,7 +136,7 @@ export function TastingControlRoom() {
       >
         <div className="px-6 pb-6 pt-2">
           <p className="text-ui-13 text-tea-text-sec mb-6">
-            Notes are kept. Guests can still read them later, but no new verdicts can be saved.
+            Guests can reopen their own tasting notes after the session ends. New verdicts close when you end the session.
           </p>
           <div className="flex items-center justify-between gap-2 pt-4 border-t border-tea-border">
             <button
