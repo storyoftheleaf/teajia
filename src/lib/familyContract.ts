@@ -132,6 +132,47 @@ export interface FamilyReport {
   reason: string | null;
   status: 'open' | 'acted' | 'dismissed';
   created_at: string;
+  /** What was reported, in words the shop can read: a person's name, or a tea and who made it. */
+  label?: string | null;
+  /** The small copy of a reported photograph. */
+  small_url?: string | null;
+  /** Whether the shop has already hidden the thing reported. */
+  hidden?: boolean;
+}
+
+/** The impression a member chose for a tea. Owner only: it never reaches a page. */
+export type FamilyImpression = 'love' | 'like' | 'neutral' | 'pass';
+
+/**
+ * One note a member wrote, as the shop reads it. The impression and the score
+ * are the member's own and are sent to the shop's screens only.
+ */
+export interface FamilyFeedbackNote {
+  journal_entry_id: string;
+  note_key: string;
+  product_id: string;
+  product_name: string | null;
+  author_name: string;
+  /** The person's live page, or null when they have none. */
+  page_id: string | null;
+  text: string;
+  written_at: string | null;
+  status: 'open' | 'promoted' | 'dismissed';
+  impression: FamilyImpression | null;
+  /** Out of ten, or null when the member gave none. */
+  rating: number | null;
+  /** True when the member shared this tasting, which is what a tasting hide needs. */
+  shared: boolean;
+  tasting_hidden: boolean;
+  page_hidden: boolean;
+}
+
+/** A moment range for the owner's day sheet: instants, so the worker needs no time zone. */
+export interface FamilySheetRange {
+  /** The calendar day shown in the file name, YYYY-MM-DD. */
+  day: string;
+  from: string;
+  to: string;
 }
 
 /** A refusal from the door: a plain sentence plus a code the screen can branch on. */

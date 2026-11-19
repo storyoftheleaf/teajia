@@ -8,8 +8,8 @@
  * Kept out of api.ts, which is past its length ceiling
  * (src/admin/guards/driftCeilings.test.ts). Import it from here.
  */
-import { API_URL, authedFetch, fetchWithTimeout, handleResponse } from './api';
-import type { FamilyMyTea, FamilyOfferedPhotograph, FamilyPageTier, FamilyPhotoPage, FamilyPhotograph, FamilyReport, FamilyRestockRequest, FamilyShareState, FamilyShopUse, FamilyTargetKind, FamilyTeaPhotographs } from './familyContract';
+import { API_URL, authedBlobFetch, authedFetch, fetchWithTimeout, handleResponse } from './api';
+import type { FamilyFeedbackNote, FamilySheetRange, FamilyMyTea, FamilyOfferedPhotograph, FamilyPageTier, FamilyPhotoPage, FamilyPhotograph, FamilyReport, FamilyRestockRequest, FamilyShareState, FamilyShopUse, FamilyTargetKind, FamilyTeaPhotographs } from './familyContract';
 
 export const familyApi = {
   /** Both copies of one photograph of a shop tea. `page` is the tasting page it was taken on. */
@@ -76,6 +76,12 @@ export const familyApi = {
       authedFetch(`${API_URL}/api/admin/family/reports/${encodeURIComponent(reportId)}/dismiss`, { method: 'POST' }),
     restockRequests: (status: FamilyRestockRequest['status'] = 'open'): Promise<{ requests: FamilyRestockRequest[] }> =>
       authedFetch(`${API_URL}/api/admin/family/restock-requests?status=${encodeURIComponent(status)}`),
+    /** Every note about the shop's teas, with the member's impression and score. Owner only. */
+    feedback: (): Promise<{ notes: FamilyFeedbackNote[] }> =>
+      authedFetch(`${API_URL}/api/admin/family/feedback`),
+    /** The day's notes and ratings as a CSV file to save. A download, not a scheduled job. */
+    sheet: (range: FamilySheetRange): Promise<Blob> =>
+      authedBlobFetch(`${API_URL}/api/admin/family/sheet?day=${encodeURIComponent(range.day)}&from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`),
     answerRestock: (requestId: string): Promise<{ id: string; status: 'answered' }> =>
       authedFetch(`${API_URL}/api/admin/family/restock-requests/${encodeURIComponent(requestId)}/answer`, { method: 'POST' }),
   },

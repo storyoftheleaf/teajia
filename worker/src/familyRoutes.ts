@@ -33,6 +33,7 @@ import {
 } from '../../src/lib/familyContract';
 import { inspectJpeg } from './familyJpeg';
 import { ensureFamilyPage } from './familyPages';
+import { describeReports, familyFeedbackRoutes } from './familyFeedback';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError, type TeaVoiceEnvironment } from './curateVoiceTranscription';
 
 interface RateLimiter { limit: (opts: { key: string }) => Promise<{ success: boolean }> }
@@ -617,8 +618,8 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     const { results } = await env.DB.prepare(
       `SELECT id, target_kind, target_id, reason, status, created_at FROM family_reports
         WHERE account_id = ? AND status = ? ORDER BY created_at DESC LIMIT 200`,
-    ).bind(shop.accountId, status).all();
-    return json({ reports: results ?? [] });
+    ).bind(shop.accountId, status).all<Parameters<typeof describeReports>[2][number]>();
+    return json({ reports: await describeReports(env.DB, shop.accountId, results ?? []) });
   };
 
   // POST /api/admin/family/reports/:id/dismiss
@@ -681,6 +682,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     ['POST', '/api/admin/family/reports/:id/dismiss', dismissReport],
     ['GET', '/api/admin/family/restock-requests', listRestock],
     ['POST', '/api/admin/family/restock-requests/:id/answer', answerRestock],
+    ...familyFeedbackRoutes(deps),
   ];
 }
 
