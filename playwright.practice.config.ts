@@ -13,7 +13,8 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
-  testMatch: /practice-.*\.spec\.ts/,
+  // The practice specs, plus the full walk of the family plan (tests/teajia-family-walk.spec.ts).
+  testMatch: /(practice-.*|teajia-family-walk)\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   retries: 0,
