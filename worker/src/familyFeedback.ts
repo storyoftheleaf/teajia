@@ -19,10 +19,10 @@
  */
 import { journalRowToNotes } from './tastingNoteCuration';
 import { wordsFromSittings } from './familyPersonTastings';
+import { signedFamilyMediaUrl } from './familyMedia';
 import type { FamilyDeps, FamilyEnv, FamilyHandler } from './familyRoutes';
 import type { FamilyFeedbackNote, FamilyImpression, FamilyReport } from '../../src/lib/familyContract';
 
-const MEDIA_PREFIX = 'https://media.teajia.co/';
 const MAX_JOURNALS = 500;
 
 const IMPRESSIONS: readonly FamilyImpression[] = ['love', 'like', 'neutral', 'pass'];
@@ -105,7 +105,20 @@ export function feedbackFromRow(
   };
   const out: FamilyFeedbackNote[] = [];
   const seen = new Map<string, number>();
-  for (const note of journalRowToNotes(row, resolved)) {
+  const rowNotes = journalRowToNotes(row, resolved);
+  const sittingWords = wordsFromSittings(row.tastings);
+  // Once there is a second sitting the personal note is every note joined into one block. Those
+  // notes are listed one by one, so the joined block would read each of them a second time.
+  const pieces = [...rowNotes.filter(n => n.noteKey !== 'personal').map(n => n.text.trim()), ...sittingWords.map(w => w.text)]
+    .filter(Boolean).sort((x, y) => y.length - x.length);
+  const isJoinedCopy = (text: string): boolean => {
+    if (pieces.length < 2 || pieces.includes(text)) return false;
+    let rest = text;
+    for (const piece of pieces) rest = rest.split(piece).join('');
+    return rest.trim() === '' && rest.length < text.length;
+  };
+  for (const note of rowNotes) {
+    if (note.noteKey === 'personal' && note.status === 'open' && isJoinedCopy(note.text.trim())) continue;
     const entry: FamilyFeedbackNote = {
       ...base,
       note_key: note.noteKey,
@@ -124,7 +137,7 @@ export function feedbackFromRow(
       out[earlier] = entry;
     }
   }
-  wordsFromSittings(row.tastings).forEach((word, index) => {
+  sittingWords.forEach((word, index) => {
     if (seen.has(word.text)) return;
     seen.set(word.text, out.length);
     out.push({ ...base, note_key: `sitting-${index}`, text: word.text, written_at: word.date, status: 'open' });
@@ -149,7 +162,7 @@ export async function feedbackNotes(
               EXISTS (SELECT 1 FROM member_tasting_shares s WHERE s.journal_entry_id = j.id AND s.share_state IN ('page', 'offered')) AS shared,
               EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'tasting' AND h.target_id = j.id) AS tasting_hidden,
               EXISTS (SELECT 1 FROM family_hides h JOIN contributors hc ON hc.id = h.target_id
-                       WHERE h.target_kind = 'page' AND hc.user_id = u.id) AS page_hidden
+                       WHERE h.account_id = p.account_id AND h.target_kind = 'page' AND hc.user_id = u.id) AS page_hidden
          FROM customer_tasting_journal j
          JOIN products p ON p.id = j.product_id AND p.account_id = ?1
          LEFT JOIN users u ON u.email = j.user_id
@@ -225,7 +238,7 @@ export function sheetRange(params: URLSearchParams, now = new Date()): { day: st
 type ReportRow = Pick<FamilyReport, 'id' | 'target_kind' | 'target_id' | 'reason' | 'status' | 'created_at'>;
 
 /** Reports with a readable label, the small copy of a photograph, and whether the target is already hidden. */
-export async function describeReports(db: D1Database, accountId: string, rows: ReportRow[]): Promise<FamilyReport[]> {
+export async function describeReports(db: D1Database, accountId: string, rows: ReportRow[], secret?: string): Promise<FamilyReport[]> {
   const out: FamilyReport[] = [];
   for (const row of rows) {
     let label: string | null = null;
@@ -256,9 +269,9 @@ export async function describeReports(db: D1Database, accountId: string, rows: R
       if (tasting) label = `Tasting of ${tasting.tea ?? 'a tea'}${tasting.who ? ` by ${tasting.who}` : ''}`;
     }
     const hidden = await db.prepare(
-      `SELECT 1 AS x FROM family_hides WHERE target_kind = ? AND target_id = ? AND (account_id = ? OR target_kind = 'page')`,
+      `SELECT 1 AS x FROM family_hides WHERE target_kind = ? AND target_id = ? AND account_id = ?`,
     ).bind(row.target_kind, row.target_id, accountId).first();
-    out.push({ ...row, label, small_url: smallKey ? `${MEDIA_PREFIX}${smallKey}` : null, hidden: Boolean(hidden) });
+    out.push({ ...row, label, small_url: smallKey ? await signedFamilyMediaUrl(secret, smallKey) : null, hidden: Boolean(hidden) });
   }
   return out;
 }

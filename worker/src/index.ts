@@ -179,7 +179,7 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
-import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings';
+import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { familyMediaVerdict } from './familyMedia';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv {
@@ -31098,13 +31098,13 @@ const requestHandler = {
       if (!env.MEDIA_BUCKET) {
         return cors(new Response('Media bucket not configured', { status: 503 }), corsOrigin);
       }
-      const obj = await env.MEDIA_BUCKET.get(key);
+      const familyVerdict = env.DB ? await familyMediaVerdict(env.DB, env.JWT_SECRET, key, url.searchParams) : 'not-family'; const obj = familyVerdict === 'refused' ? null : await env.MEDIA_BUCKET.get(key);
       if (!obj) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const headers = new Headers();
       obj.writeHttpMetadata(headers);
       headers.set('etag', obj.httpEtag);
       // Objects are immutable (UUID/slot-keyed) — cache hard at edge + browser.
-      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      headers.set('Cache-Control', familyVerdict === 'signed' ? 'private, max-age=3600' : 'public, max-age=31536000, immutable');
       const body = request.method === 'HEAD' ? null : obj.body;
       return cors(new Response(body, { headers }), corsOrigin);
     }

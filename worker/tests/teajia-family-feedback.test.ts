@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
-import { csvCell, sheetRange, sheetCsv } from '../src/familyFeedback';
+import { csvCell, feedbackFromRow, sheetRange, sheetCsv } from '../src/familyFeedback';
 
 // Teajia family, stage 6 (todo/plans/teajia-family.md): what the shop reads of
 // its members' notes, the day sheet, and described reports. Driven through
@@ -195,7 +195,7 @@ describe('reports the shop can read', () => {
     const byKind = Object.fromEntries(reports.map((r: any) => [r.target_kind, r]));
     expect(byKind.page).toMatchObject({ label: "Mei Lin's page", hidden: false });
     expect(byKind.photograph).toMatchObject({
-      label: 'Photograph of Tea tea-a by Mei', small_url: 'https://media.teajia.co/family-photos/k-small.jpg', hidden: false,
+      label: 'Photograph of Tea tea-a by Mei', small_url: expect.stringMatching(/^https:\/\/media\.teajia\.co\/family-photos\/k-small\.jpg\?exp=\d+&sig=[0-9a-f]{64}$/), hidden: false,
     });
     expect(byKind.tasting).toMatchObject({ label: 'Tasting of Tea tea-a by Mei', hidden: false });
     // Hiding acts on the report and the list says the thing is hidden.
@@ -225,5 +225,34 @@ describe('the sheet\'s pure parts', () => {
     expect(sheetRange(new URLSearchParams('from=2026-11-19T05:00:00Z&to=2026-11-20T05:00:00Z'))?.day).toBe('2026-11-19');
     expect(sheetRange(new URLSearchParams(''), new Date('2026-03-04T12:00:00Z'))?.day).toBe('2026-03-04');
     expect(sheetCsv([]).endsWith('\r\n')).toBe(true);
+  });
+});
+
+describe('a second sitting does not read the first one twice', () => {
+  const row = {
+    id: 'j', product_id: 'p', author_name: 'Mei', created_at: '2026-11-19 09:00:00', rating: 9,
+    note: JSON.stringify({
+      verdict: 'love', updatedAt: '2026-11-19T09:00:00Z',
+      // The tasting screen saves every note of the tasting joined as the personal note.
+      personalNote: 'Smoky the week before\nOrchid and wet stone',
+      tasting: { notes: [
+        { id: 'n1', text: 'Smoky the week before', capturedAt: '2026-11-12T09:00:00Z' },
+        { id: 'n2', text: 'Orchid and wet stone', capturedAt: '2026-11-19T09:00:00Z' },
+      ] },
+    }),
+    tastings: JSON.stringify([
+      { id: 's1', createdAt: '2026-11-12T09:00:00Z', tasting: { notes: [{ id: 'n1', text: 'Smoky the week before', capturedAt: '2026-11-12T09:00:00Z' }] } },
+      { id: 's2', createdAt: '2026-11-19T09:00:00Z', tasting: { notes: [{ id: 'n2', text: 'Orchid and wet stone', capturedAt: '2026-11-19T09:00:00Z' }] } },
+    ]),
+  };
+
+  it('lists two notes for two sittings, not three', () => {
+    const notes = feedbackFromRow(row, new Map());
+    expect(notes.map(n => n.text).sort()).toEqual(['Orchid and wet stone', 'Smoky the week before']);
+  });
+
+  it('keeps the joined block when the shop has already decided on it', () => {
+    const notes = feedbackFromRow(row, new Map([['j::personal', 'promoted' as const]]));
+    expect(notes.filter(n => n.status === 'promoted')).toHaveLength(1);
   });
 });

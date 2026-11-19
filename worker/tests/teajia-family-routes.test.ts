@@ -4,6 +4,7 @@ import worker from '../src/index';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
 import { seedFromMigrations, splitStatements, MIGRATIONS_DIR } from './helpers/migratedSqlite';
 import { inspectJpeg } from '../src/familyJpeg';
+import { FAMILY_PAGE_NOT_HIDDEN_SQL } from '../src/familyPersonTastings';
 
 // Teajia family, stage 1 (todo/plans/teajia-family.md): the upload door and
 // the shop's side of it, driven through worker.fetch against a real SQLite
@@ -27,7 +28,10 @@ class Bucket {
   }
   async get(key: string) {
     const object = this.objects.get(key);
-    return object ? { arrayBuffer: async () => object.bytes.slice().buffer, httpMetadata: { contentType: object.type } } : null;
+    return object ? {
+      arrayBuffer: async () => object.bytes.slice().buffer, httpMetadata: { contentType: object.type },
+      writeHttpMetadata: (headers: Headers) => { headers.set('content-type', object.type); }, httpEtag: '"e"', body: object.bytes,
+    } : null;
   }
   async head(key: string) { return this.objects.has(key) ? {} : null; }
   async delete(key: string) { this.objects.delete(key); }
@@ -142,7 +146,7 @@ describe('POST /api/family/photographs', () => {
       product_id: 'tea-a', journal_entry_id: 'journal-one', page: 'impression', share_state: 'private',
       full_width: 2000, full_height: 1500, small_width: 480, small_height: 360,
     });
-    expect(body.photograph.small_url).toMatch(/^https:\/\/media\.teajia\.co\/family-photos\/acc_teajia_bali\/tea-a\/.+-small\.jpg$/);
+    expect(body.photograph.small_url).toMatch(/^https:\/\/media\.teajia\.co\/family-photos\/acc_teajia_bali\/tea-a\/.+-small\.jpg\?exp=\d+&sig=[0-9a-f]{64}$/);
     expect([...bucket.objects.values()].map(o => o.type)).toEqual(['image/jpeg', 'image/jpeg']);
     const row = db.sqlite.prepare('SELECT account_id, author_user_id, full_bytes, small_bytes FROM member_photographs').get() as any;
     expect(row).toMatchObject({ account_id: SHOP, author_user_id: 'member-one' });
@@ -361,6 +365,49 @@ describe('the shop\'s side', () => {
     expect(family).toHaveLength(2);
     // Another shop cannot hide this shop's photograph.
     expect((await call(env, OTHER_OWNER, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'photograph', target_id: one } })).status).toBe(404);
+  });
+
+  it('keeps one shop from hiding a page that belongs to another shop, and from undoing its hide', async () => {
+    const { env, db } = setup();
+    db.sqlite.prepare(`INSERT INTO contributors (id, account_id, display_name, user_id, is_published, links)
+      VALUES ('mei-page', ?, 'Mei Lin', 'member-one', 1, '[]')`).run(SHOP);
+    expect((await call(env, OTHER_OWNER, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'page', target_id: 'mei-page' } })).status).toBe(404);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM family_hides').get()).toEqual({ n: 0 });
+    // A stray hide row from another shop does not take the page off the people list either.
+    db.sqlite.prepare(`INSERT INTO family_hides (account_id, target_kind, target_id, hidden_by) VALUES (?, 'page', 'mei-page', 'other-owner')`).run(OTHER_SHOP);
+    const row = db.sqlite.prepare(`SELECT c.id FROM contributors c WHERE c.id = 'mei-page' AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`).get();
+    expect(row).toEqual({ id: 'mei-page' });
+    expect((await call(env, OWNER, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'page', target_id: 'mei-page' } })).status).toBe(200);
+    expect(db.sqlite.prepare(`SELECT c.id FROM contributors c WHERE c.id = 'mei-page' AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`).get()).toBeUndefined();
+  });
+
+  it('serves a family photograph to the public only while it is on show, and to its author by a signed address', async () => {
+    const { env, db, bucket } = setup();
+    const made = ((await (await upload(env, MEMBER)).json()) as any).photograph;
+    const keyOf = (url: string) => url.replace('https://media.teajia.co/', '/api/media/');
+    const fetchPath = (path: string) => worker.fetch(new Request(`https://worker.test${path}`), env);
+    const bare = keyOf(made.small_url.split('?')[0]);
+    // Private: the bare address gives nothing, the signed one the author holds does.
+    expect((await fetchPath(bare)).status).toBe(404);
+    const signed = await fetchPath(keyOf(made.small_url));
+    expect(signed.status).toBe(200);
+    expect(signed.headers.get('Cache-Control')).toMatch(/^private/);
+    expect((await fetchPath(`${bare}?exp=${Math.floor(Date.now() / 1000) + 600}&sig=${'0'.repeat(64)}`)).status).toBe(404);
+    // Shared: public.
+    await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
+    expect((await fetchPath(bare)).status).toBe(200);
+    // Hidden by the shop: gone again.
+    await call(env, OWNER, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'photograph', target_id: made.id } });
+    expect((await fetchPath(bare)).status).toBe(404);
+    await call(env, OWNER, '/api/admin/family/unhide', { method: 'POST', body: { target_kind: 'photograph', target_id: made.id } });
+    expect((await fetchPath(bare)).status).toBe(200);
+    // Taken off the page by its author: the address that was once public stops working.
+    await call(env, MEMBER, `/api/family/photographs/${made.id}/remove`, { method: 'POST' });
+    expect((await fetchPath(bare)).status).toBe(404);
+    expect(db.sqlite.prepare('SELECT removed_by_member_at FROM member_photographs').get()).not.toEqual({ removed_by_member_at: null });
+    // Media outside the family folder is untouched by this rule.
+    bucket.objects.set('other/thing.jpg', { bytes: new Uint8Array([1]), type: 'image/jpeg' });
+    expect((await fetchPath('/api/media/other/thing.jpg')).status).toBe(200);
   });
 
   it('lands "find me more" with the shop for a sold-out tea, once per person', async () => {

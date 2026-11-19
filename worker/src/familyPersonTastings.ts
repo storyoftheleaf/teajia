@@ -10,7 +10,7 @@
  * removed from their page.
  *
  * The owner's hides apply here: a whole page (family_hides 'page' by
- * contributor id, from any shop), one tasting ('tasting' by journal id) and
+ * contributor id, from the shop that holds the page), one tasting ('tasting' by journal id) and
  * one photograph ('photograph' by id).
  *
  * The SQL pieces are exported as strings so index.ts can use them on lines it
@@ -21,9 +21,9 @@ import type { FamilyPersonPhotograph, FamilyPersonTasting, FamilyPersonWord } fr
 const MEDIA_PREFIX = 'https://media.teajia.co/';
 const mediaUrl = (key: string) => `${MEDIA_PREFIX}${key}`;
 
-/** True when the owner has hidden this whole page. Needs the contributors row aliased `c`. */
+/** True when the shop that holds this page has not hidden it. A hide by another shop never reaches it. Needs the contributors row aliased `c`. */
 export const FAMILY_PAGE_NOT_HIDDEN_SQL =
-  `NOT EXISTS (SELECT 1 FROM family_hides fh WHERE fh.target_kind = 'page' AND fh.target_id = c.id)`;
+  `NOT EXISTS (SELECT 1 FROM family_hides fh WHERE fh.target_kind = 'page' AND fh.target_id = c.id AND fh.account_id = c.account_id)`;
 
 const TASTING_NOT_HIDDEN =
   `NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = s.account_id AND h.target_kind = 'tasting' AND h.target_id = s.journal_entry_id)`;

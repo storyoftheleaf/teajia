@@ -7290,21 +7290,21 @@ body.cart-panel-open .commerce-dock {
 .tasting-header-controls .tasting-impression-control .tasting-heading-camera { border-radius:0 9px 9px 0; }
 .tasting-impression-photos { margin-bottom:16px; }
 .tasting-impression-photos-label { display:block; color:var(--tea-text-dim); margin-bottom:10px; }
-.tasting-photo-box { display:flex; flex-wrap:wrap; align-items:flex-start; gap:10px; min-height:58px; padding:12px; border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); }
+.tasting-photo-box { display:flex; flex-wrap:wrap; align-items:flex-start; gap:10px; min-height:var(--space-12); padding:var(--space-3); border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); }
 .tasting-photo-box > p { margin:0; align-self:center; color:var(--tea-text-dim); }
-.tasting-photo { margin:0; width:88px; }
-.tasting-photo img { display:block; width:88px; height:88px; object-fit:cover; border-radius:4px; }
-.tasting-photo button { display:block; width:100%; min-height:var(--tap-min); padding:4px 0 0; text-align:left; background:transparent; color:var(--tea-text-sec); font-size:var(--fs-ui-11); line-height:1.25; }
+.tasting-photo { margin:0; width:calc(var(--space-12) * 2 - var(--space-1) * 2); }
+.tasting-photo img { display:block; width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px; }
+.tasting-photo button { display:block; width:100%; min-height:var(--tap-min); padding:var(--space-1) 0 0; text-align:left; background:transparent; color:var(--tea-text-sec); font-size:var(--fs-ui-11); line-height:var(--lh-card-title); }
 .tasting-impression-notice { margin:8px 0 0; color:var(--tea-text-dim); }
 .tasting-impression-notice a { color:var(--tea-text-sec); text-decoration:underline; text-underline-offset:2px; }
 .tasting-impression-history time { display:block; margin-top:8px; color:var(--tea-text-dim); }
 .tasting-impression-history time + p { margin-top:2px; }
-.tasting-share-step { position:absolute; left:0; right:0; bottom:0; z-index:10; padding:16px 16px calc(16px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--tea-border); background:var(--tea-elevated); color:var(--tea-text); }
+.tasting-share-step { position:absolute; left:0; right:0; bottom:0; z-index:10; padding:var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom)); border-top:1px solid var(--tea-border); background:var(--tea-elevated); color:var(--tea-text); }
 .tasting-share-step h3 { margin:0 0 10px; color:var(--tea-text-dim); }
 .tasting-share-options { display:grid; gap:6px; }
-.tasting-share-options button { min-height:var(--tap-min); padding:10px 12px; text-align:left; border:1px solid var(--tea-border); border-radius:11px; background:var(--tea-surface); color:var(--tea-text); }
+.tasting-share-options button { min-height:var(--tap-min); padding:var(--space-2) var(--space-3); text-align:left; border:1px solid var(--tea-border); border-radius:var(--radius-xl); background:var(--tea-surface); color:var(--tea-text); }
 .tasting-share-options button[aria-pressed="true"] { background:var(--tea-accent-sub); }
 .tasting-share-actions { display:flex; justify-content:space-between; gap:12px; margin-top:12px; }
-.tasting-share-actions button { min-height:var(--tap-min); padding:0 14px; color:var(--tea-text-sec); background:transparent; }
+.tasting-share-actions button { min-height:var(--tap-min); padding:0 var(--space-3); color:var(--tea-text-sec); background:transparent; }
 .tasting-share-actions .tasting-share-primary { margin-left:auto; color:var(--tea-text); border:1px solid var(--tea-border); border-radius:11px; background:var(--tea-surface); }
 .tasting-share-step button:focus-visible, .tasting-photo button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }

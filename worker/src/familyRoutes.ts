@@ -34,6 +34,7 @@ import {
 import { inspectJpeg } from './familyJpeg';
 import { ensureFamilyPage } from './familyPages';
 import { describeReports, familyFeedbackRoutes } from './familyFeedback';
+import { signPhotograph } from './familyMedia';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError, type TeaVoiceEnvironment } from './curateVoiceTranscription';
 
 interface RateLimiter { limit: (opts: { key: string }) => Promise<{ success: boolean }> }
@@ -42,6 +43,7 @@ export interface FamilyEnv extends TeaVoiceEnvironment {
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   PROVIDER_LIMITER?: RateLimiter;
+  JWT_SECRET?: string;
 }
 
 type Person = { userId: string; email: string; name: string };
@@ -291,7 +293,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
       return after.onTea >= FAMILY_PHOTOS_PER_TEA ? teaFull() : dayFull();
     }
     const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(id).first<PhotoRow>();
-    return json({ photograph: ownPhoto(row!), remaining: FAMILY_PHOTOS_PER_TEA - (before.onTea + 1) }, 201);
+    return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)), remaining: FAMILY_PHOTOS_PER_TEA - (before.onTea + 1) }, 201);
   };
 
   // GET /api/family/teas/:productId/mine: the member's own photographs, cover and share state for one tea.
@@ -316,7 +318,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
           WHERE j.user_id = ? AND j.product_id = ? LIMIT 1`,
       ).bind(person.email, params.productId).first<{ id: string; share_state: FamilyShareState | null }>(),
     ]);
-    const photographs = (photos.results ?? []).map(ownPhoto);
+    const photographs = await Promise.all((photos.results ?? []).map(row => signPhotograph(env.JWT_SECRET, ownPhoto(row))));
     return json({
       product_id: params.productId,
       photographs,
@@ -368,7 +370,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(params.id).first<PhotoRow>();
     // Putting a photograph on a page is what makes the page: on the first share it is created.
     const page = body.share_state === 'private' ? null : await ensureFamilyPage(env.DB, person);
-    return json({ photograph: ownPhoto(row!), page_id: page?.id ?? null });
+    return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)), page_id: page?.id ?? null });
   };
 
   // POST /api/family/photographs/:id/remove: gone from the member's page and view.
@@ -530,8 +532,8 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
         LIMIT 200`,
     ).bind(shop.accountId).all<PhotoRow & { author_name: string | null; page_id: string | null; product_name: string | null; hidden: number }>();
     return json({
-      photographs: (results ?? []).map(row => ({
-        ...sharedPhoto(row),
+      photographs: await Promise.all((results ?? []).map(async row => ({
+        ...(await signPhotograph(env.JWT_SECRET, sharedPhoto(row))),
         product_id: row.product_id,
         product_name: row.product_name,
         share_state: row.share_state,
@@ -539,7 +541,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
         removed_by_author: row.removed_by_member_at !== null,
         offered_at: row.offered_at!,
         hidden: Number(row.hidden) === 1,
-      })),
+      }))),
     });
   };
 
@@ -587,8 +589,8 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
       return refuse(400, 'Say what to hide.', 'validation_failed');
     }
     const owner = await targetAccount(env.DB, body.target_kind, body.target_id);
-    // A person's page belongs to everyone; any shop may hide it from its own tea pages.
-    if (!owner || (body.target_kind !== 'page' && owner !== shop.accountId)) {
+    // A hide only ever reaches what belongs to this shop: its own photographs, tastings and pages.
+    if (!owner || owner !== shop.accountId) {
       return refuse(404, 'That is not in this shop.', 'target_not_found');
     }
     if (hidden) {
@@ -619,7 +621,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
       `SELECT id, target_kind, target_id, reason, status, created_at FROM family_reports
         WHERE account_id = ? AND status = ? ORDER BY created_at DESC LIMIT 200`,
     ).bind(shop.accountId, status).all<Parameters<typeof describeReports>[2][number]>();
-    return json({ reports: await describeReports(env.DB, shop.accountId, results ?? []) });
+    return json({ reports: await describeReports(env.DB, shop.accountId, results ?? [], env.JWT_SECRET) });
   };
 
   // POST /api/admin/family/reports/:id/dismiss
