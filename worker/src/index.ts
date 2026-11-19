@@ -14704,10 +14704,9 @@ async function savedInvoiceContents(env: Env, accountId: string, invoiceId: stri
         MIN(h.expires_at) AS deadline
       FROM invoices i JOIN stock_holds h ON h.invoice_id=i.id AND h.account_id=i.account_id
       WHERE i.id=? AND i.account_id=? AND i.status='Pending' AND i.inventory_deducted=0
-        AND (i.shipping_destination=? OR i.checkout_shipping_grams IS NOT NULL)
         AND julianday(h.expires_at)>julianday('now')
       GROUP BY i.id, i.shipping_cost_usd, i.checkout_shipping_grams`
-    ).bind(invoiceId, accountId, PICKUP_DESTINATION).first<{
+    ).bind(invoiceId, accountId).first<{
       deadline: string;
       checkout_shipping_grams: number | null;
       shipping_cost_usd: number;
@@ -14720,6 +14719,7 @@ async function savedInvoiceContents(env: Env, accountId: string, invoiceId: stri
       shipping_quote: { packed_grams: fulfillment.checkout_shipping_grams, shipping_usd: fulfillment.shipping_cost_usd },
     } : {}),
     total_estimate_usd: roundUsd(invoice_items.reduce((sum, line) => sum + Number(line.line_total_usd), 0)),
+    ...(checkout?.deadline ? { checkout_payment_deadline: checkout.deadline } : {}),
     ...(checkout?.checkout_shipping_grams != null ? {
       shipping_checkout: {
         packed_grams: checkout.checkout_shipping_grams,

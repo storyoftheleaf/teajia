@@ -9,7 +9,7 @@ interface PayPalCheckoutProps {
   onConfirmed: () => void;
 }
 
-type PayPalConfig = { enabled: boolean; outstanding_usd?: number };
+type PayPalConfig = { enabled: boolean; outstanding_usd?: number; shipping_later?: boolean };
 type CheckoutState = 'idle' | 'creating' | 'verifying' | 'pending' | 'completed' | 'error';
 
 async function paypalRequest<T>(url: string, body?: Record<string, string>): Promise<T> {
@@ -112,7 +112,7 @@ export const PayPalCheckout: React.FC<PayPalCheckoutProps> = ({ trackingToken, i
   return (
     <section aria-label="PayPal checkout" className="mt-5 border-t border-tea-border pt-5 space-y-3">
       <p className="text-ui-14 text-tea-text">PayPal checkout</p>
-      <p className="text-ui-12 text-tea-text-sec">Pay securely with PayPal. Shipping is quoted and charged separately later.</p>
+      <p className="text-ui-12 text-tea-text-sec">{config.shipping_later ? 'Pay securely with PayPal. Shipping is quoted and charged separately later.' : 'Pay securely with PayPal.'}</p>
       {cancelled && <p role="status" className="text-ui-13 text-tea-text-sec">Checkout cancelled. No payment was confirmed.</p>}
       {state === 'pending' && <p role="status" className="text-ui-13 text-tea-text-sec">PayPal is still processing this payment. Your order is not marked paid yet.</p>}
       {state === 'completed' && <p role="status" className="text-ui-13 text-tea-text-sec">PayPal confirmed this payment.</p>}

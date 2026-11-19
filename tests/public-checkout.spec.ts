@@ -26,7 +26,7 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean; product?: Record<string, unknown>; canonicalPrice?: number; pickupDeadline?: string; usShipping?: boolean; emptyCatalogue?: boolean } = {}) {
+async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: boolean; failFirst?: boolean; allowPopup?: boolean; light?: boolean; emptyCart?: boolean; product?: Record<string, unknown>; canonicalPrice?: number; pickupDeadline?: string; usShipping?: boolean; emptyCatalogue?: boolean; teaOnlyReady?: boolean } = {}) {
   const requests: SubmittedRequest[] = [];
   await page.addInitScript(({ item, allowPopup, light, emptyCart }) => {
     // Seed once per test context; a reload must exercise the app's saved state.
@@ -47,7 +47,7 @@ async function prepare(page: Page, options: { canBePaid?: boolean; whatsapp?: bo
       const body = route.request().postDataJSON() as SubmittedRequest;
       requests.push(body);
       if (options.failFirst && requests.length === 1) return json(route, { error: 'Could not save your request. Please retry.' }, 503);
-      return json(route, { success: true, id: 'request-1', invoice_id: 'invoice-1', invoice_number: 'TJB-0001', tracking_token: body.tracking_token, ref_number: body.ref_number, source: body.source, email_sent: false, pickup_payment_deadline: body.pickup ? options.pickupDeadline : undefined, shipping_checkout: options.usShipping && body.us_shipping_postcode ? { packed_grams: 150, shipping_usd: 6, payment_deadline: '2026-11-18T08:00:00Z' } : undefined, ...(options.canonicalPrice === undefined ? {} : { total_estimate_usd: options.canonicalPrice, invoice_items: [{ id: 'saved-line', product_id: CART_ITEM.id, name: CART_ITEM.name, quantity: 50, quantity_unit: 'g', unit_price_usd: options.canonicalPrice / 50, line_total_usd: options.canonicalPrice }] }) });
+      return json(route, { success: true, id: 'request-1', invoice_id: 'invoice-1', invoice_number: 'TJB-0001', tracking_token: body.tracking_token, ref_number: body.ref_number, source: body.source, email_sent: false, ...(options.teaOnlyReady ? {checkout_payment_deadline:'2099-01-01T08:00:00Z',shipping_quote_requested:true}:{}), pickup_payment_deadline: body.pickup ? options.pickupDeadline : undefined, shipping_checkout: options.usShipping && body.us_shipping_postcode ? { packed_grams: 150, shipping_usd: 6, payment_deadline: '2026-11-18T08:00:00Z' } : undefined, ...(options.canonicalPrice === undefined ? {} : { total_estimate_usd: options.canonicalPrice, invoice_items: [{ id: 'saved-line', product_id: CART_ITEM.id, name: CART_ITEM.name, quantity: 50, quantity_unit: 'g', unit_price_usd: options.canonicalPrice / 50, line_total_usd: options.canonicalPrice }] }) });
     }
     if (pathname === '/api/s/teajia-bali') return json(route, {
       id: 'bali-account', slug: 'teajia-bali', name: 'Teajia Bali', public_enabled: true,
@@ -181,13 +181,21 @@ test.describe('guest public checkout', () => {
     await beginOrder(page, false);
     await page.getByRole('radio', { name: 'Pickup by arrangement in Bali', exact: true }).check();
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
-    await expect(page.getByText('Your pickup order is reserved.')).toBeVisible();
+    await expect(page.getByText('Your order is reserved.')).toBeVisible();
     await expect(page.getByText('Total · free pickup')).toBeVisible();
-    await expect(page.getByText(/Transfer by .*Bali time/)).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View bank transfer instructions' }))
+    await expect(page.getByText(/Pay by .*Bali time/)).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View order and pay' }))
       .toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
     expect(requests[0]).toMatchObject({ pickup: true, customer_location: 'Pickup requested in Bali, Indonesia' });
     expect(requests[0]).not.toHaveProperty('delivery_address');
+  });
+
+  test('opens payment immediately for a reserved tea order while shipping remains unquoted',async({page})=>{
+    const requests=await prepare(page,{whatsapp:false,teaOnlyReady:true});await beginOrder(page,false);await fillUsAddress(page);
+    await page.getByRole('button',{name:'Place order request',exact:true}).click();
+    const receipt=page.getByRole('region',{name:'Order request confirmation'});
+    await expect(receipt).toContainText('Your order is reserved.');await expect(receipt).toContainText('Tea subtotal');await expect(receipt).not.toContainText('free pickup');await expect(receipt).not.toContainText('bank details');
+    await expect(page.getByRole('link',{name:'View order and pay'})).toHaveAttribute('href',`/order/${requests[0].tracking_token}`);
   });
 
   test('shows the saved US shipping charge and delivered total before bank transfer', async ({ page }) => {
@@ -203,7 +211,7 @@ test.describe('guest public checkout', () => {
     await expect(receipt).toContainText('IDR 96k');
     await expect(receipt).toContainText('Total with shipping');
     await expect(receipt).toContainText('IDR 352k');
-    await expect(page.getByRole('link', { name: 'View bank transfer instructions' })).toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
+    await expect(page.getByRole('link', { name: 'View order and pay' })).toHaveAttribute('href', `/order/${requests[0].tracking_token}`);
     expect(requests[0]).toMatchObject({ us_shipping_postcode: '90012', delivery_address: '12 Test Lane' });
   });
 

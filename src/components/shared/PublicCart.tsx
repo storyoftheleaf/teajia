@@ -206,7 +206,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(false);
-      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? shopPrice.total(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
+      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? shopPrice.total(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
       clearPublicCart();
@@ -253,8 +253,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             stopped looking like the thing the reader had just built. */}
         <div role="status" className="space-y-2">
           <p className="font-display text-ui-26 leading-tight text-tea-text">{placedOrder.paymentDeadline
-            ? placedOrder.shippingTotal ? 'Your shipping order is reserved.' : 'Your pickup order is reserved.' : `Your request is saved with ${storeName}.`}</p>
-          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.paymentDeadline ? 'Open your order to see bank details and report your transfer.' : 'Your order request and draft invoice are saved. We’ll confirm your tea first; shipping is quoted and charged separately later.'}</p>
+            ? 'Your order is reserved.' : `Your request is saved with ${storeName}.`}</p>
+          <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.paymentDeadline ? 'Open your order to pay securely and follow its payment status.' : 'Your order request and draft invoice are saved. We’ll confirm your tea first; shipping is quoted and charged separately later.'}</p>
           {placedOrder.invoiceNumber && <p className="num text-ui-13 text-tea-text-sec">{`Invoice ${placedOrder.invoiceNumber}`}</p>}
         </div>
         <div className="space-y-4">
@@ -270,11 +270,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             <span className="num text-ui-17 text-tea-text">{placedOrder.shippingTotal}</span>
           </div>}
           <div className="flex items-baseline justify-between gap-3 pt-3 border-t border-tea-border">
-            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.shippingTotal ? 'Total with shipping' : placedOrder.paymentDeadline ? 'Total · free pickup' : placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
+            <span className="font-body text-ui-13 text-tea-text-sec">{placedOrder.shippingTotal ? 'Total with shipping' : placedOrder.paymentDeadline ? placedOrder.shippingQuoteRequested ? 'Tea subtotal' : 'Total · free pickup' : placedOrder.items.every(item => item.category === 'tea') ? 'Tea subtotal estimate' : 'Tea & teaware subtotal estimate'}</span>
             <span className="num text-ui-20 text-tea-text">{placedOrder.total}</span>
           </div>
           <p className="font-body text-ui-13 text-tea-text-sec">{placedOrder.paymentDeadline
-            ? `Transfer by ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(placedOrder.paymentDeadline))} Bali time. We’ll confirm your deposit.`
+            ? `Pay by ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Makassar' }).format(new Date(placedOrder.paymentDeadline))} Bali time to keep your reservation.`
             : placedOrder.shippingQuoteRequested ? 'Pay for your tea first. Shipping is quoted and charged separately later.' : placedOrder.shippingTotal ? 'Shipping is quoted. We’ll confirm availability with you before payment.' : 'Shipping is arranged personally. No payment has been taken.'}</p>
         </div>
         {channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.paymentDeadline && <section className="space-y-2" aria-label="Discuss your saved order">
@@ -320,7 +320,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               {isBaliStore && isUsDelivery(details) && field('state', 'State (two-letter code)', { autoComplete: 'address-level1', maxLength: 2, placeholder: 'CA' })}
               {(details.delivery === 'indonesia' || details.delivery === 'international') && field('postcode', isUsDelivery(details) ? 'ZIP code' : 'Postcode (optional)', { autoComplete: 'postal-code' })}
               {details.delivery !== 'bali-pickup' && field('address', isBaliStore ? 'Street address and apartment' : 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
-              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay by bank transfer right away.' : 'Pay for your tea first. Shipping is quoted and charged separately later.'}</p>
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay right away.' : 'Pay for your tea first. Shipping is quoted and charged separately later.'}</p>
             </fieldset>
             <fieldset className="space-y-3 min-w-0">
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
@@ -352,7 +352,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
           print at the top of the scrolling list, which is off screen by the
           time a reader reaches the button, so pressing it looked like nothing. */}
       {checkoutError && <p role="alert" className="font-body text-ui-13 leading-snug text-tea-text bg-tea-elevated px-3 py-2">{checkoutError}</p>}
-      {placedOrder?.paymentDeadline ? <a href={recentOrderRequestPath(placedOrder.request)} onClick={onClose} className="btn-primary btn-primary-lg w-full">View bank transfer instructions</a>
+      {placedOrder?.paymentDeadline ? <a href={recentOrderRequestPath(placedOrder.request)} onClick={onClose} className="btn-primary btn-primary-lg w-full">View order and pay</a>
         : placedOrder ? channels.whatsapp && placedOrder.viaWhatsApp && !placedOrder.paymentDeadline
         ? <a className="btn-primary btn-primary-lg w-full whitespace-nowrap" href={buildWhatsAppUrl(whatsappNumber!, placedOrder.message)} target="_blank" rel="noopener noreferrer">Discuss this order on WhatsApp</a>
         : <Button fullWidth onClick={onClose}>Continue browsing</Button> : cart.length > 0 ? <>

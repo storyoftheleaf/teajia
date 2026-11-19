@@ -47,7 +47,7 @@ export async function paypalLiveRoutes(request: Request, env: PayPalLiveEnv, tra
   const capture=new URL(request.url).pathname.endsWith('/capture');
   const invoice=await dependencies.load(invoiceId as string|undefined,capture);if(invoice instanceof Response)return invoice;
   if(invoice.account_id!==env.PAYPAL_LIVE_ACCOUNT_ID)return reply({error:'Order not found.'},404);
-  if(request.method==='GET')return reply({enabled:invoice.amount_usd>0||new URL(request.url).searchParams.has('order_id'),outstanding_usd:invoice.amount_usd});
+  if(request.method==='GET')return reply({enabled:invoice.amount_usd>0||new URL(request.url).searchParams.has('order_id'),outstanding_usd:invoice.amount_usd,shipping_later:invoice.shipping_later===true});
   if(!capture){
    if(!invoice.pickup&&!invoice.shipping)return reply({error:'Add a complete US shipping address before paying.',code:'paypal_address_required'},409);
    if(!Number.isFinite(invoice.amount_usd)||!Number.isSafeInteger(Math.round(invoice.amount_usd*100))||invoice.amount_usd<=0)return reply({error:'Nothing outstanding.'},409);

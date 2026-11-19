@@ -3391,7 +3391,7 @@ export const api = {
       total_estimate_usd: number;
       currency: string;
       source: 'whatsapp' | 'email' | 'copy' | 'website';
-    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean; shipping_quote_requested?: boolean; shipping_quote?: { packed_grams: number; shipping_usd: number }; pickup_payment_deadline?: string; shipping_checkout?: { packed_grams: number; shipping_usd: number; payment_deadline: string }; invoice_items?: import('./orderTrackingDomain').AgreedOrderItem[]; total_estimate_usd?: number }> => {
+    }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean; shipping_quote_requested?: boolean; shipping_quote?: { packed_grams: number; shipping_usd: number }; checkout_payment_deadline?: string; pickup_payment_deadline?: string; shipping_checkout?: { packed_grams: number; shipping_usd: number; payment_deadline: string }; invoice_items?: import('./orderTrackingDomain').AgreedOrderItem[]; total_estimate_usd?: number }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
