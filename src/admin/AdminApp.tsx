@@ -572,7 +572,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="samples" element={<Navigate to={carryQuery("/admin/compass?sampleOrder=manage", location.search)} replace />} />
 
               {/* Operations: staff, admin, owner */}
-              <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={!isLoggedIn}><PageTransition><ActivityView products={products} canManageInventory={canManageInventory} /></PageTransition></ProtectedRoute>} />
               <Route path="activity-logs" element={<Navigate to={carryQuery("/admin/activity?tab=log", location.search)} replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={!isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={!isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />

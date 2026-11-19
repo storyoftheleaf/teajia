@@ -537,7 +537,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // when you click them, and what keeps the derived Readiness and Publication
   // lines honest. Use `livePanelProduct` for rendering, `panelProduct` for
   // identity and lifecycle.
-  const [panelProduct, setPanelProduct] = useState<Product | null>(null);
+  const [selectedPanelProduct, setSelectedPanelProduct] = useState<Product | null>(null);
+  // Linked panels always resolve against the current store’s product list.
+  const panelProduct = panelParam
+    ? products.find(product => product.id === panelParam) ?? null
+    : selectedPanelProduct;
+  const setPanelProduct = useCallback((product: Product | null) => {
+    if (!panelParam) {
+      setSelectedPanelProduct(product);
+      return;
+    }
+    setSelectedPanelProduct(null);
+    setSearchParams(previous => withParam(previous, 'panel', product?.id ?? null), { replace: true });
+  }, [panelParam, setSearchParams]);
   const [sourcePanelProduct, setSourcePanelProduct] = useState<Product | null>(null);
   // The supplier sheet: tapping a supplier's name anywhere in Stock opens it, to
   // rename him everywhere, edit his contact, and see how he ships. It carries the
@@ -657,18 +669,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     document.addEventListener('click', handler, true);
     return () => document.removeEventListener('click', handler, true);
   }, [rowDropdownId]);
-
-  // Auto-open panel from URL param (e.g. from Sources view)
-  useEffect(() => {
-    if (panelParam && products.length > 0) {
-      const match = products.find(p => p.id === panelParam);
-      if (match) {
-        setPanelProduct(match);
-        // Clear the param so it doesn't re-trigger
-        setSearchParams(prev => { prev.delete('panel'); return prev; }, { replace: true });
-      }
-    }
-  }, [panelParam, products]);
 
   // Tasting Editor Modal
   const [tastingEditorProduct, setTastingEditorProduct] = useState<Product | null>(null);
@@ -1135,7 +1135,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const stableOpenSource = useCallback((product: Product) => {
     setPanelProduct(null);
     setSourcePanelProduct(product);
-  }, []);
+  }, [setPanelProduct]);
 
   const stableOpenSupplier = useCallback((product: Product) => {
     if (!product.vendor) return;
@@ -1193,7 +1193,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       if (product.id === destination?.id) return { ...product, ...(unit === 'unit' ? { quantityUnits: destination.afterBalance } : { stockGrams: destination.afterBalance }), stockKnownAt: new Date().toISOString() };
       return product;
     }));
-    setPanelProduct(prev => prev?.id === productId ? { ...prev, ...updatedStock, stockKnownAt: new Date().toISOString() } : prev);
+    setSelectedPanelProduct(prev => prev?.id === productId ? { ...prev, ...updatedStock, stockKnownAt: new Date().toISOString() } : prev);
     setStockMovement(prev => prev?.product.id === productId ? { ...prev, product: { ...prev.product, ...updatedStock, stockKnownAt: new Date().toISOString() } } : prev);
     refreshChangedProducts(destination ? [productId, destination.id] : [productId]);
   }, [refreshChangedProducts, setLocalProducts]);
@@ -1800,7 +1800,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [panelProduct, processedProducts]);
+  }, [panelProduct, processedProducts, setPanelProduct]);
 
   // Selection keyboard shortcuts
   useEffect(() => {
@@ -3452,7 +3452,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           onClose={() => setTastingEditorProduct(null)}
           onSaved={(product, tastingData, derivedMood) => {
             // Update the panel product if it's the same one
-            setPanelProduct(prev => {
+            setSelectedPanelProduct(prev => {
               if (!prev || prev.id !== product.id) return prev;
               return {
                 ...prev,

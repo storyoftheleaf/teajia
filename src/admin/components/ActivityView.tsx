@@ -38,6 +38,7 @@ function resolveTab(raw: string | null): ActivityTab {
 
 interface ActivityViewProps {
   products: Product[];
+  canManageInventory?: boolean;
 }
 
 function usePendingCount() {
@@ -70,7 +71,7 @@ function useClaimsPendingCount() {
   return scope.ready ? data ?? 0 : 0;
 }
 
-export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
+export const ActivityView: React.FC<ActivityViewProps> = ({ products, canManageInventory = false }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab');
   const activeTab: ActivityTab = resolveTab(rawTab);
@@ -181,7 +182,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
         {activeTab === 'wholesale' && <WholesaleOrdersList embedded />}
         {/* One Ledger: the stock ledger, the activity log and the sold-out
             archive, switched inside it rather than as three Sales tabs. */}
-        {activeTab === 'ledger' && <RecordsView key={ledgerStart} products={products} initialTab={ledgerStart} showTabs />}
+        {activeTab === 'ledger' && <RecordsView key={ledgerStart} products={products} canManageInventory={canManageInventory} initialTab={ledgerStart} showTabs />}
       </div>
     </div>
   );

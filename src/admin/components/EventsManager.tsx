@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Calendar, Copy, Bell, Search, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEvents } from '../hooks/useEventData';
@@ -35,6 +35,17 @@ function formatEventDate(dateStr: string): string {
 }
 
 export const EventsManager: React.FC = () => {
+  const [params, setParams] = useSearchParams();
+  const linkedSearch = params.get('search')?.trim() ?? '';
+  const clearLinkedSearch = () => {
+    const next = new URLSearchParams(params);
+    next.delete('search');
+    setParams(next, { replace: true });
+  };
+  return <SessionsList key={linkedSearch} linkedSearch={linkedSearch} onClearLinkedSearch={clearLinkedSearch} />;
+};
+
+function SessionsList({ linkedSearch, onClearLinkedSearch }: { linkedSearch: string; onClearLinkedSearch: () => void }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { data: events = [], isLoading, refetch } = useEvents();
@@ -47,9 +58,15 @@ export const EventsManager: React.FC = () => {
     eventDate: string;
     error: string | null;
   } | null>(null);
-  const [searchRaw, setSearchRaw] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<EventFilter>('upcoming');
+  const [searchRaw, setSearchRaw] = useState(linkedSearch);
+  const [searchQuery, setSearchQuery] = useState(linkedSearch.toLowerCase());
+  // A saved attribution can point to a session on any tab.
+  const [filter, setFilter] = useState<EventFilter | null>(linkedSearch ? null : 'upcoming');
+  const activeFilter = filter ?? (searchQuery ? null : 'upcoming');
+  const changeSearch = (value: string) => {
+    setSearchRaw(value);
+    if (!value && linkedSearch) onClearLinkedSearch();
+  };
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -69,12 +86,13 @@ export const EventsManager: React.FC = () => {
     }
     const byTab = events.filter(ev => {
       const isPast = new Date(ev.eventDate) < now;
-      if (filter === 'drafts') return ev.status === 'draft';
-      if (filter === 'past') return isPast;
+      if (activeFilter === null) return true;
+      if (activeFilter === 'drafts') return ev.status === 'draft';
+      if (activeFilter === 'past') return isPast;
       return ev.status !== 'draft' && !isPast;
     });
     return { upcomingCount: upcoming, pastCount: past, draftCount: drafts, filteredByTab: byTab };
-  }, [events, filter]);
+  }, [events, activeFilter]);
 
   const filteredEvents = useMemo(() => {
     if (!searchQuery) return filteredByTab;
@@ -167,7 +185,7 @@ export const EventsManager: React.FC = () => {
           { key: 'past',     label: 'Past',     count: pastCount },
           { key: 'drafts',   label: 'Drafts',   count: draftCount },
         ] as { key: EventFilter; label: string; count: number }[]).map(tab => {
-          const active = filter === tab.key;
+          const active = activeFilter === tab.key;
           return (
             <button
               key={tab.key}
@@ -196,15 +214,15 @@ export const EventsManager: React.FC = () => {
           <input
             type="text"
             value={searchRaw}
-            onChange={e => setSearchRaw(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Escape') setSearchRaw(''); }}
+            onChange={e => changeSearch(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') changeSearch(''); }}
             placeholder="Search by title, date, location, or status…"
             aria-label="Search events"
             className="w-full bg-transparent border-0 border-b border-tea-border rounded-none pl-6 pr-7 py-2 text-ui-14 font-serif text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors"
           />
           {searchRaw && (
             <button
-              onClick={() => setSearchRaw('')}
+              onClick={() => changeSearch('')}
               className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label="Clear search"
             >
@@ -242,7 +260,7 @@ export const EventsManager: React.FC = () => {
       ) : filteredEvents.length === 0 ? (
         <div className="py-12 text-center">
           <p className="text-sm text-tea-text-sec">Nothing matched. Try different words.</p>
-          <button onClick={() => setSearchRaw('')} className="mt-2 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors">Clear search</button>
+          <button onClick={() => changeSearch('')} className="mt-2 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors">Clear search</button>
         </div>
       ) : (
         <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
@@ -384,4 +402,4 @@ export const EventsManager: React.FC = () => {
     </div>
     </>
   );
-};
+}

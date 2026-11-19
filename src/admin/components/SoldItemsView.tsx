@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import Papa from 'papaparse';
 import { Download, AlertCircle, Archive, ScrollText, Loader2, Search, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight, BarChart3, RefreshCw } from 'lucide-react';
@@ -48,7 +48,20 @@ const REASON_LABELS: Record<string, string> = {
 const headerCellClass = (align: 'left' | 'right' | 'center' = 'left') =>
   `px-4 py-2 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display font-normal text-tea-text-sec text-${align}`;
 
-export const RecordsView = ({ products, initialTab, showTabs = false }: { products: Product[]; initialTab?: 'archive' | 'log' | 'ledger'; showTabs?: boolean }) => {
+function StockRecordName({ id, name, className }: { id?: string; name: string; className: string }) {
+  return id
+    ? <Link to={`/admin/stock?panel=${encodeURIComponent(id)}`} className={`tap-target max-w-full justify-start hover:text-tea-gold ${className}`}>
+        <span className="truncate">{name}</span>
+      </Link>
+    : <span className={className}>{name}</span>;
+}
+
+export const RecordsView = ({ products, canManageInventory, initialTab, showTabs = false }: {
+  products: Product[];
+  canManageInventory: boolean;
+  initialTab?: 'archive' | 'log' | 'ledger';
+  showTabs?: boolean;
+}) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -58,6 +71,7 @@ export const RecordsView = ({ products, initialTab, showTabs = false }: { produc
   const isHosted = !!initialTab && !showTabs;
   const [activeTab, setActiveTab] = useState<'archive' | 'logs' | 'ledger'>(mappedInitial as any);
   const soldOutProducts = products.filter(p => p.status === 'Sold Out');
+  const openableStockIds = new Set(canManageInventory ? products.map(product => product.id) : []);
 
   // Logbook state
   const [logOffset, setLogOffset] = useState(0);
@@ -299,12 +313,11 @@ export const RecordsView = ({ products, initialTab, showTabs = false }: { produc
                     <tr key={product.id} className="border-b border-tea-border last:border-b-0 transition-colors hover:bg-tea-accent-sub group" style={{ height: ROW_HEIGHT }}>
                       <td className="px-4 py-2 align-middle overflow-hidden">
                         <div className="flex flex-col justify-center h-full">
-                          <button
-                            onClick={() => navigate(`/admin/catalog?search=${encodeURIComponent(product.givenName || product.productName)}`)}
-                            className="font-display text-ui-17 leading-tight text-tea-text-sec truncate hover:text-tea-readgold transition-colors text-left"
-                          >
-                            {product.givenName || product.productName}
-                          </button>
+                          <StockRecordName
+                            id={openableStockIds.has(product.id) ? product.id : undefined}
+                            name={product.givenName || product.productName}
+                            className="block truncate text-left font-display text-ui-17 leading-tight text-tea-text-sec"
+                          />
                           {product.givenName && (
                             <span className="font-sans text-ui-11 text-tea-text-dim mt-0.5 truncate block">{product.productName}</span>
                           )}
@@ -364,7 +377,11 @@ export const RecordsView = ({ products, initialTab, showTabs = false }: { produc
                   className="px-4 py-2 flex items-center gap-3 border-b border-tea-border last:border-b-0 transition-colors active:bg-tea-accent-sub"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-display text-ui-17 leading-tight text-tea-text-sec truncate">{product.givenName || product.productName}</div>
+                    <StockRecordName
+                      id={openableStockIds.has(product.id) ? product.id : undefined}
+                      name={product.givenName || product.productName}
+                      className="block truncate font-display text-ui-17 leading-tight text-tea-text-sec"
+                    />
                     <div className="font-sans text-ui-11 text-tea-text-dim mt-0.5">{product.type} · {product.vendor || '—'}</div>
                   </div>
                   <button
@@ -575,12 +592,11 @@ export const RecordsView = ({ products, initialTab, showTabs = false }: { produc
                               <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">{new Date(entry.created_at).toLocaleString()}</span>
                             </td>
                             <td className="px-4 py-2 align-middle overflow-hidden">
-                              <button
-                                onClick={() => navigate(`/admin/catalog?search=${encodeURIComponent(entry.product_name || '')}`)}
-                                className="font-display text-ui-17 leading-tight text-tea-text hover:text-tea-readgold transition-colors truncate block text-left"
-                              >
-                                {entry.product_name || entry.product_id}
-                              </button>
+                              <StockRecordName
+                                id={openableStockIds.has(entry.product_id) ? entry.product_id : undefined}
+                                name={entry.product_name || entry.product_id}
+                                className="block truncate text-left font-display text-ui-17 leading-tight text-tea-text"
+                              />
                             </td>
                             <td className="px-4 py-2 align-middle text-right">
                               <span className="font-serif text-ui-15 text-right tabular-nums text-tea-text inline-flex items-center justify-end gap-0.5">
@@ -673,7 +689,11 @@ export const RecordsView = ({ products, initialTab, showTabs = false }: { produc
                           <span className={`w-1 shrink-0 ${isPositive ? 'bg-tea-green' : 'bg-tea-error'}`} aria-hidden />
                           <div className="flex-1 min-w-0 px-3.5 py-3">
                             {/* Headline: product */}
-                            <div className="font-display text-ui-17 leading-tight text-tea-text truncate">{entry.product_name || 'Unknown'}</div>
+                            <StockRecordName
+                              id={openableStockIds.has(entry.product_id) ? entry.product_id : undefined}
+                              name={entry.product_name || 'Unknown'}
+                              className="block truncate font-display text-ui-17 leading-tight text-tea-text"
+                            />
 
                             {/* The movement, written plainly: Added/Removed N, then before → after */}
                             <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-2">

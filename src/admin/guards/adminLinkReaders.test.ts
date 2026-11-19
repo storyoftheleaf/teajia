@@ -169,27 +169,6 @@ function unreadPairs(): Map<string, { written: Written[]; via: string[]; unmatch
   return unread;
 }
 
-// ---- the allow-list -----------------------------------------------------
-//
-// Pairs written today that no screen reads. The list may only shrink: a pair
-// that gets a reader (or stops being written) must be removed, and a new
-// unread pair is a failure, not an addition. Each entry names the file that
-// writes it; the line is where it was on 2026-11-11 and may drift.
-//
-// Format: 'path?param': 'file:line, what the tap does today'
-const UNREAD_TODAY: Record<string, string> = {
-  // OrdersView links an order with no session to the Sessions list, filtered by
-  // the customer's name. EventsManager keeps its search in component state and
-  // never reads the address, so the tap lands on the full list.
-  '/admin/events?search':
-    'src/admin/components/OrdersView.tsx:642, :748 and :931; lands on the unfiltered Sessions list',
-  // SoldItemsView sends "view in catalog" to /admin/catalog. CatalogView does not
-  // read search (only a platform account is redirected to Stock, which seeds the
-  // search box), so everyone else lands on the whole catalog.
-  '/admin/catalog?search':
-    'src/admin/components/SoldItemsView.tsx:303 and :579; lands on the unfiltered catalog for a non-platform account',
-};
-
 describe('every admin link with a query has a reader', () => {
   const unread = unreadPairs();
   const pairs = writtenPairs();
@@ -206,9 +185,8 @@ describe('every admin link with a query has a reader', () => {
     expect(dynamic.map(([, w]) => `${w[0].file}:${w[0].line}`)).toEqual([]);
   });
 
-  it('has no unread parameter that is not on the allow-list', () => {
-    const fresh = [...unread.entries()].filter(([key]) => !(key in UNREAD_TODAY));
-    const message = fresh.map(([key, v]) => {
+  it('has no unread parameters', () => {
+    const message = [...unread.entries()].map(([key, v]) => {
       const where = v.written.map(w => `${w.file}:${w.line}`).join(', ');
       const via = v.via.length ? ` (redirects to ${v.via.join(', ')})` : '';
       return `${key}${via} written at ${where}`;
@@ -216,21 +194,7 @@ describe('every admin link with a query has a reader', () => {
     expect(
       message,
       'These links carry a query parameter that the screen they open never reads, so the tap lands on an unfiltered page. '
-      + 'Make the screen read the parameter (useSearchParams), or link without it. Do not add it to UNREAD_TODAY.',
+      + 'Make the screen read the parameter (useSearchParams), or link without it.',
     ).toEqual([]);
-  });
-
-  it('keeps the allow-list honest: every entry is still written and still unread', () => {
-    const gone = Object.keys(UNREAD_TODAY).filter(key => !pairs.has(key));
-    expect(gone, 'No longer written anywhere: delete these from UNREAD_TODAY.').toEqual([]);
-    const nowRead = Object.keys(UNREAD_TODAY).filter(key => pairs.has(key) && !unread.has(key));
-    expect(nowRead, 'A screen reads these now: delete them from UNREAD_TODAY so the list shrinks.').toEqual([]);
-  });
-
-  it('names the files that write each allow-listed pair', () => {
-    for (const [key, note] of Object.entries(UNREAD_TODAY)) {
-      const files = (pairs.get(key) ?? []).map(w => w.file);
-      expect(files.some(f => note.includes(f)), `${key}: the note must name a writing file (${files.join(', ')})`).toBe(true);
-    }
   });
 });
