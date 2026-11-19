@@ -4,14 +4,16 @@ import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useTastingNotes } from '../hooks/useEventData';
 import { useToast } from './Toast';
+import { Modal } from '../../components/shared/Modal';
 import { TastingNote } from '../../types/events';
 import { createPostSessionLoadCoordinator, createPostSessionUploadGuard, postSessionUploadErrorMessage, runPostSessionUpload, savePostSession } from './PostSessionEditorContract';
 
 interface PostSessionEditorProps {
   eventId: string;
+  canShareAttendeeRecap: boolean;
 }
 
-export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId }) => {
+export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, canShareAttendeeRecap }) => {
   const { showToast } = useToast();
   const { data: tastingNotes = [] } = useTastingNotes(eventId);
 
@@ -24,6 +26,8 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
   const [hostNotes, setHostNotes] = useState('');
   const [hostChanges, setHostChanges] = useState('');
   const [saving, setSaving] = useState(false);
+  const [recapToShare, setRecapToShare] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [ledgerLoaded, setLedgerLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -99,6 +103,20 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
       showToast(err.message || 'Failed to save', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleShareRecap = async () => {
+    if (recapToShare === null || sharing) return;
+    setSharing(true);
+    try {
+      await api.events.shareAttendeeRecap(eventId, recapToShare);
+      setRecapToShare(null);
+      showToast('Recap shared with attendees', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not share recap', 'error');
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -296,9 +314,19 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
       </div>
 
       {/* Save button */}
-      <div className="flex justify-end pt-2 border-t border-tea-border">
+      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-tea-border">
         {loadError && (
           <p className="mr-auto self-center text-xs text-tea-text-sec">Post-session data could not be loaded.</p>
+        )}
+        {canShareAttendeeRecap && (
+          <button
+            type="button"
+            disabled={!ledgerLoaded || loadError || saving || sharing || !sessionNotes.trim() || sessionNotes.trim().length > 12000}
+            onClick={() => setRecapToShare(sessionNotes.trim())}
+            className="tap-target rounded-md border border-tea-border px-3 text-ui-13 text-tea-text-sec disabled:opacity-40"
+          >
+            Share recap with attendees
+          </button>
         )}
         <button
           onClick={handleSave}
@@ -309,6 +337,28 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
           {!ledgerLoaded ? 'Loading Post-Session' : 'Save Post-Session'}
         </button>
       </div>
+
+      <Modal
+        isOpen={recapToShare !== null && canShareAttendeeRecap}
+        onClose={() => { if (!sharing) setRecapToShare(null); }}
+        title="Share recap with attendees?"
+        initialFocus="container"
+      >
+        <p className="px-6 pt-4 text-ui-13 text-tea-text-sec">
+          Only confirmed guests marked attended can read this text from their RSVP link.
+        </p>
+        <p className="mx-6 mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-tea-bg p-3 text-ui-13 text-tea-text">
+          {recapToShare}
+        </p>
+        <div className="flex flex-wrap justify-between gap-2 px-6 py-4">
+          <button type="button" disabled={sharing} onClick={() => setRecapToShare(null)} className="tap-target px-2 text-ui-13 text-tea-text-sec">
+            Cancel
+          </button>
+          <button type="button" disabled={sharing} onClick={handleShareRecap} className="tap-target cta-solid rounded-md px-3 text-ui-13 font-semibold disabled:opacity-40">
+            {sharing ? 'Sharing…' : 'Share recap'}
+          </button>
+        </div>
+      </Modal>
 
       {/* Tasting Notes (read-only) */}
       {tastingNotes.length > 0 && (

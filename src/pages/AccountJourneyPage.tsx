@@ -1,3 +1,4 @@
+import { SessionReflectionArchive } from '../components/account/SessionReflectionArchive';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -425,6 +426,7 @@ const AccountJourneyPage: React.FC = () => {
             <span className="text-ui-13">Back</span>
           </button>
           <p className="label-caps text-tea-text-dim mb-2">Your Journey</p>
+          <SessionReflectionArchive />
           <h1 className="h1 mb-4">It begins at the table.</h1>
           <div className="w-10 h-[1px] bg-tea-gold mb-8" />
           <p className="body-prose mb-4">
@@ -484,6 +486,8 @@ const AccountJourneyPage: React.FC = () => {
             <ArrowLeft size={14} />
             <span className="text-ui-13">Back</span>
           </button>
+
+          <SessionReflectionArchive />
 
           {/* Header */}
           <div className="mb-12">

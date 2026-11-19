@@ -1,12 +1,17 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { api } from '../../../lib/api';
 import { TeaPicker } from './TeaPicker';
+import { useEvents } from '../../hooks/useEventData';
 
 export function TastingEventForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [eventId, setEventId] = useState(searchParams.get('eventId') || '');
+  const { data: events = [], isLoading: eventsLoading, isError: eventsFailed, refetch: reloadEvents } = useEvents();
+  const selectedEventAvailable = !eventId || events.some(event => event.id === eventId);
   const [title, setTitle] = useState('');
   const [picked, setPicked] = useState<{ id: string; name: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -16,11 +21,13 @@ export function TastingEventForm() {
     e.preventDefault();
     setError(null);
     if (picked.length === 0) { setError('Pick at least one tea'); return; }
+    if (!selectedEventAvailable) { setError('Choose an available RSVP event or a standalone tasting'); return; }
     setSubmitting(true);
     try {
       const res = await api.sessions.create({
         title: title.trim() || undefined,
         product_ids: picked.map(p => p.id),
+        event_id: eventId || undefined,
       });
       const sessionId = res?.session?.id;
       if (!sessionId) throw new Error('Could not create session');
@@ -66,6 +73,31 @@ export function TastingEventForm() {
               />
             </label>
 
+            <div className="space-y-2">
+              <label className="block">
+                <span className="block text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec mb-2">
+                  RSVP event (optional)
+                </span>
+                <select
+                  value={eventId}
+                  onChange={e => setEventId(e.target.value)}
+                  aria-busy={eventsLoading}
+                  className="w-full min-h-11 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-14 text-tea-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold"
+                >
+                  <option value="">Standalone tasting</option>
+                  {eventId && !selectedEventAvailable && (
+                    <option value={eventId} disabled>{eventsLoading ? 'Loading RSVP event…' : 'RSVP event unavailable'}</option>
+                  )}
+                  {events.map(event => <option key={event.id} value={event.id}>{event.title}</option>)}
+                </select>
+              </label>
+              {eventsFailed && (
+                <button type="button" onClick={() => reloadEvents()} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text">
+                  Retry RSVP events
+                </button>
+              )}
+            </div>
+
             <div
               role="group"
               aria-labelledby="teas-group-label"
@@ -96,7 +128,7 @@ export function TastingEventForm() {
           </button>
           <button
             type="submit"
-            disabled={submitting || picked.length === 0}
+            disabled={submitting || picked.length === 0 || !selectedEventAvailable}
             className="btn-primary tap-target"
           >
             {submitting ? 'Creating…' : 'Create group tasting'}
