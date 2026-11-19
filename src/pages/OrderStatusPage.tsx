@@ -8,6 +8,7 @@ import { resolveContactChannels } from '../lib/contact';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { PayOrderAction } from '../components/shared/PayOrderAction';
 import { ReportPaymentAction } from '../components/shared/ReportPaymentAction';
+import { PayPalCheckout } from '../components/shared/PayPalCheckout';
 import { PayPalSandboxCheckout } from '../components/shared/PayPalSandboxCheckout';
 import { shouldOfferPaymentClaim } from '../components/shared/paymentClaimDomain';
 import { OrderJourneyStatus } from '../components/shared/OrderJourneyStatus';
@@ -307,6 +308,12 @@ const OrderStatusPage: React.FC = () => {
               so it was still promising it after the tea had been posted. The
               stage below says what is actually true, and says it once. */}
           {trackingToken && inquiry.order && <PayPalSandboxCheckout
+            key={`${trackingToken}:${inquiry.order.invoice_id || inquiry.invoice_id}`}
+            trackingToken={trackingToken}
+            invoiceId={inquiry.order.invoice_id || inquiry.invoice_id}
+            onConfirmed={() => setReloadKey(k => k + 1)}
+          />}
+          {trackingToken && inquiry.order && <PayPalCheckout
             key={`${trackingToken}:${inquiry.order.invoice_id || inquiry.invoice_id}`}
             trackingToken={trackingToken}
             invoiceId={inquiry.order.invoice_id || inquiry.invoice_id}

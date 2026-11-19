@@ -1,3 +1,4 @@
+import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
 import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from './paypalSandbox';
 import { listPrivateSessionReflections, readPrivateSessionReflection, writePrivateSessionReflection } from './privateSessionReflections';
 import { claimReceivedCard, listReceivedCards } from './memberReceivedCards';
@@ -181,7 +182,7 @@ import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
-interface Env extends WorkerReleaseEnv, PayPalSandboxEnv {
+interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv {
   DB: D1Database;
   SHOP_PICKUP_ACCOUNT_ID?: string;
   SHOP_US_SHIPPING_ACCOUNT_ID?: string;
@@ -5087,15 +5088,20 @@ const handleCreateOrderPaymentClaim: Handler = async (request, env, params) => {
 };
 
 // Sandbox credentials are separate and cannot be used on a non-loopback request.
-const handlePayPalSandbox: Handler = async (request, env, params) => {
-  if (!paypalSandboxEnabled(request, env)) return request.method === 'GET'
-    ? json({ enabled: false }) : json({ error: 'Sandbox checkout is not configured.' }, 404);
-  if (!isValidTrackingToken(params.ref)) return json({ error: 'Order not found.' }, 404);
+async function handlePayPalPayment(request: Request, env: Env, params: Record<string, string>, live = false, trustedInvoiceId?: string): Promise<Response> {
+  const enabled = live ? paypalLiveEnabled : paypalSandboxEnabled;
+  const accountId = live ? env.PAYPAL_LIVE_ACCOUNT_ID : env.PAYPAL_SANDBOX_ACCOUNT_ID;
+  const providerRoutes = live ? paypalLiveRoutes : paypalSandboxRoutes;
+  const table = live ? 'paypal_live_orders' : 'paypal_sandbox_orders';
+  if (!enabled(request, env)) return request.method === 'GET'
+    ? json({ enabled: false }) : json({ error: 'PayPal checkout is not configured.' }, 404);
+  if (!trustedInvoiceId && !isValidTrackingToken(params.ref)) return json({ error: 'Order not found.' }, 404);
   const input = request.method === 'POST' ? await request.clone().json().catch(() => null) as Record<string, unknown> | null : null;
   const selection = input?.invoice_id ?? new URL(request.url).searchParams.get('invoice');
   if (selection != null && (typeof selection !== 'string' || selection.length > 128)) return json({ error: 'Order not found.' }, 404);
-  const inquiry = await env.DB.prepare('SELECT id,account_id,converted_invoice_id FROM inquiries WHERE tracking_token_hash=? AND account_id=?')
-    .bind(await sha256Hex(params.ref), env.PAYPAL_SANDBOX_ACCOUNT_ID).first<{ id: string; account_id: string; converted_invoice_id: string }>();
+  const inquiry = trustedInvoiceId
+    ? await env.DB.prepare('SELECT q.id,q.account_id,q.converted_invoice_id FROM inquiries q JOIN invoices i ON i.source_inquiry_id=q.id AND i.account_id=q.account_id WHERE i.id=? AND q.account_id=?').bind(trustedInvoiceId, accountId).first<{id:string;account_id:string;converted_invoice_id:string}>()
+    : await env.DB.prepare('SELECT id,account_id,converted_invoice_id FROM inquiries WHERE tracking_token_hash=? AND account_id=?').bind(await sha256Hex(params.ref), accountId).first<{id:string;account_id:string;converted_invoice_id:string}>();
   if (!inquiry?.converted_invoice_id) return json({ error: 'Order not found.' }, 404);
   const invoiceId = String(selection || inquiry.converted_invoice_id);
   const associated = await env.DB.prepare(`SELECT id FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL AND (id=? OR source_inquiry_id=?)`)
@@ -5104,26 +5110,26 @@ const handlePayPalSandbox: Handler = async (request, env, params) => {
   const lease = request.method === 'POST' ? await claimInvoiceLinkLease(env, inquiry.account_id, invoiceId) : null;
   if (request.method === 'POST' && !lease) return json({ error: 'Order is being updated. Retry shortly.' }, 409);
   try {
-    return await paypalSandboxRoutes(request, env, params.ref, {
+    return await providerRoutes(request, env, params.ref, {
       load: async () => {
         const invoice = await loadLedgerInvoice(env, invoiceId, inquiry.account_id);
         if (!invoice) return json({ error: 'Order not found.' }, 404);
         const returningOrder = input?.order_id ?? new URL(request.url).searchParams.get('order_id');
-        const storedReceipt = typeof returningOrder === 'string' ? await env.DB.prepare(`SELECT capture_id FROM paypal_sandbox_orders
+        const storedReceipt = typeof returningOrder === 'string' ? await env.DB.prepare(`SELECT capture_id FROM ${table}
           WHERE paypal_order_id=? AND invoice_id=? AND account_id=?`)
           .bind(returningOrder, invoiceId, inquiry.account_id).first() : null;
-        if (!storedReceipt && invoice.status !== 'Pending') return json({ error: 'Confirm the tea order before test payment.' }, 409);
+        if (!storedReceipt && invoice.status !== 'Pending') return json({ error: 'Confirm the tea order before payment.' }, 409);
         const hold = (await loadCheckoutPaymentHolds(env, [invoiceId])).get(invoiceId);
-        const fulfillment = lease?.invoice ?? await env.DB.prepare('SELECT inventory_deducted,shipping_quote_status FROM invoices WHERE id=? AND account_id=?').bind(invoiceId, inquiry.account_id).first();
+        const fulfillment = lease?.invoice ?? await env.DB.prepare('SELECT inventory_deducted,shipping_quote_status,delivery_address,customer_name,fulfillment_method FROM invoices WHERE id=? AND account_id=?').bind(invoiceId, inquiry.account_id).first();
         const allocated = Number(fulfillment?.inventory_deducted) === 1;
-        if (!storedReceipt && !allocated && (!hold || checkoutPaymentRefusal(hold))) return json({ error: 'The order hold expired. Confirm availability before test payment.' }, 409);
+        if (!storedReceipt && !allocated && (!hold || checkoutPaymentRefusal(hold))) return json({ error: 'The order hold expired. Confirm availability before payment.' }, 409);
         const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
         const money = invoiceMoney(invoice.total_usd, invoice.payment_status, ledger.get(invoiceId));
         const items = await currentInvoiceItems(env, inquiry.account_id, invoiceId);
         // Prices, quantities and the original deadline all bind this provider order to a reviewed quote.
-        const quoteKey = await sha256Hex(JSON.stringify({ invoiceId, items: items.map(item => [item.id,item.product_id,item.quantity,item.quantity_unit,item.unit_price_usd]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))), total:invoice.total_usd, outstanding:money.outstanding_usd, deadline:hold?.payment_deadline }));
+        const quoteKey = await sha256Hex(JSON.stringify({ invoiceId, items: items.map(item => [item.id,item.product_id,item.quantity,item.quantity_unit,item.unit_price_usd]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))), total:invoice.total_usd, outstanding:money.outstanding_usd, ...(live?{shipping_address:fulfillment?.delivery_address,recipient:fulfillment?.customer_name}:{}), deadline:hold?.payment_deadline }));
         return { id: invoiceId, account_id: inquiry.account_id, invoice_number: invoice.invoice_number,
-          amount_usd: money.outstanding_usd, quote_key: quoteKey, deadline: hold?.payment_deadline || '', shipping_later: fulfillment?.shipping_quote_status === 'requested', capture_allowed: invoice.status === 'Pending' && (allocated || Boolean(hold && !checkoutPaymentRefusal(hold))) };
+          amount_usd: money.outstanding_usd, quote_key: quoteKey, deadline: hold?.payment_deadline || '', ...(live ? {pickup:fulfillment?.fulfillment_method === 'bali_pickup',shipping: paypalUSShipping(fulfillment?.customer_name as string|null, fulfillment?.delivery_address as string|null)} : {}), shipping_later: fulfillment?.shipping_quote_status === 'requested', capture_allowed: invoice.status === 'Pending' && (allocated || Boolean(hold && !checkoutPaymentRefusal(hold))) };
       },
       settle: async receipt => {
         const invoice = await loadLedgerInvoice(env, invoiceId, inquiry.account_id);
@@ -5131,8 +5137,8 @@ const handlePayPalSandbox: Handler = async (request, env, params) => {
         await reconcileLedgerWithColumn(env, invoice);
         const recorded = await insertInvoicePayment(env, { invoice, amount: receipt.amount_usd,
           fields: { amount: receipt.amount_usd, amountOriginal: receipt.amount_usd, currency: 'USD',
-            methodLabel: 'PayPal Sandbox · test only', reference: receipt.capture_id, note: 'Verified sandbox capture; no real money.' },
-          claimedBy: 'operator', status: 'confirmed', requestId: 'sandbox_paypal_' + receipt.capture_id });
+            methodLabel: live ? 'PayPal' : 'PayPal Sandbox · test only', reference: receipt.capture_id, note: live ? 'Verified PayPal capture.' : 'Verified sandbox capture; no real money.' },
+          claimedBy: 'operator', status: 'confirmed', requestId: (live ? 'live_paypal_' : 'sandbox_paypal_') + receipt.capture_id });
         const result = await recomputeInvoicePaymentStatus(env, invoice);
         // Stock confirmation owns the same lease, so give it back after the verified ledger write.
         if (lease) await releaseInvoiceLinkLease(env, inquiry.account_id, invoiceId, lease.claimToken);
@@ -5144,6 +5150,24 @@ const handlePayPalSandbox: Handler = async (request, env, params) => {
       },
     });
   } finally { if (lease) await releaseInvoiceLinkLease(env, inquiry.account_id, invoiceId, lease.claimToken); }
+};
+
+const handlePayPalSandbox: Handler = (request,env,params) => handlePayPalPayment(request,env,params);
+const handlePayPalLive: Handler = (request,env,params) => handlePayPalPayment(request,env,params,true);
+const handlePayPalLiveWebhook: Handler = async (request,env) => {
+ let event: Record<string,any>|null;
+ try { event=await verifyPayPalLiveWebhook(request,env); } catch { return json({error:'Verification unavailable.'},503); }
+ if(!event)return json({error:'Invalid webhook.'},400);
+ if(!['CHECKOUT.ORDER.APPROVED','PAYMENT.CAPTURE.COMPLETED','PAYMENT.CAPTURE.PENDING'].includes(event.event_type))return json({received:true});
+ const orderId=event.event_type==='CHECKOUT.ORDER.APPROVED'?event.resource?.id:event.resource?.supplementary_data?.related_ids?.order_id;
+ if(typeof orderId!=='string'||!/^[A-Z0-9]{8,32}$/.test(orderId))return json({error:'Missing provider order.'},400);
+ const attempt=await env.DB.prepare('SELECT invoice_id FROM paypal_live_orders WHERE paypal_order_id=? AND account_id=?').bind(orderId,env.PAYPAL_LIVE_ACCOUNT_ID).first<{invoice_id:string}>();
+ if(!attempt)return json({received:true});
+ const internal=new Request(new URL('/api/orders/webhook/paypal/capture',request.url),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice_id:attempt.invoice_id,order_id:orderId})});
+ const result=await handlePayPalPayment(internal,env,{ref:'webhook'},true,attempt.invoice_id);
+ // PayPal retries non-2xx, including an invoice lease held by a concurrent return.
+ // A quote/hold refusal always prevents a fresh charge.
+ return result;
 };
 
 // POST /api/me/orders/:id/payment-claim — signed in, scoped the way
@@ -14925,9 +14949,11 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
       const shipping = null as { usd: number; packedGrams: number } | null;
       const pickup = pickupRequested && accountId === env.SHOP_PICKUP_ACCOUNT_ID && !deliveryAddress;
+      const livePayPal = accountId === env.PAYPAL_LIVE_ACCOUNT_ID && paypalLiveEnabled(request,env);
+      const payableTea = livePayPal && (usShippingRequested || pickupRequested);
       let checkout: { ownerId: string; lines: Awaited<ReturnType<typeof authorizeInvoiceLines>> } | null = null;
       // Unpriced, unknown-stock and mixed-owner baskets go through review.
-      if ((pickup || shipping) && !whatsappHandoff &&
+      if ((pickup || shipping || payableTea) && !whatsappHandoff &&
           lines.length > 0 && lines.every(line => line.product_id && line.price_at_sale > 0)) {
         const owner = await env.DB.prepare(`SELECT a.owner_user_id FROM accounts a
           JOIN account_members m ON m.account_id=a.id AND m.user_id=a.owner_user_id
@@ -14947,7 +14973,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
               id: 'checkout-method-check', account_id: accountId, status: 'Pending',
               sold_by_user_id: owner.owner_user_id, total_usd: serverSubtotalUsd,
             }], true);
-            if (methods.get('checkout-method-check')?.has_methods) {
+            if (livePayPal || methods.get('checkout-method-check')?.has_methods) {
               checkout = { ownerId: owner.owner_user_id, lines: authorized };
             }
           }
@@ -14983,7 +15009,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'unpaid',?,?,?,?,?)`
           ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,buyerId,buyerLibrary,
             shipping ? shipping.usd : 0, checkout && pickup ? PICKUP_DESTINATION : location || null,
-            deliveryAddress || null, shipping?.packedGrams ?? null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? 'Awaiting bank transfer.' : 'Review prices and shipping before sending.'}`,
+            deliveryAddress || null, shipping?.packedGrams ?? null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? livePayPal ? 'Awaiting PayPal payment. Shipping quoted separately where applicable.' : 'Awaiting bank transfer.' : 'Review prices and availability before sending.'}`,
             checkout?.ownerId ?? null, checkout?.ownerId ?? null,
             pickupRequested ? 'bali_pickup' : usShippingRequested ? 'us_shipping' : null,
             pickupRequested ? null : 'requested', paymentDeadline),
@@ -30594,6 +30620,10 @@ const routes: [string, string, Handler][] = [
   ['POST','/api/inquiries/:ref/claim',handleClaimInquiry],
   ['GET', '/api/inquiries/:ref', handleGetInquiryByRef],
   ['POST', '/api/orders/:ref/payment-claim', handleCreateOrderPaymentClaim],
+  ['GET', '/api/orders/:ref/paypal', handlePayPalLive],
+  ['POST', '/api/orders/:ref/paypal', handlePayPalLive],
+  ['POST', '/api/orders/:ref/paypal/capture', handlePayPalLive],
+  ['POST', '/api/paypal/webhook', handlePayPalLiveWebhook],
   ['GET', '/api/orders/:ref/paypal-sandbox', handlePayPalSandbox],
   ['POST', '/api/orders/:ref/paypal-sandbox', handlePayPalSandbox],
   ['POST', '/api/orders/:ref/paypal-sandbox/capture', handlePayPalSandbox],
