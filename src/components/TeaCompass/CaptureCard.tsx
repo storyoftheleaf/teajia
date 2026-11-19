@@ -1053,7 +1053,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
         acquisition_kind: receiptAcquisition, product_name: entry.name || 'Unnamed',
         product_type: entry.category === 'teaware' ? 'Teaware' : entry.type,
       };
-      if (!(changes.quantity > 0) || !Number.isFinite(changes.quantity)) throw new Error('Record the weight of each piece before receiving this tea.');
+      if (receiptAcquisition !== 'purchase' && (!(changes.quantity > 0) || !Number.isFinite(changes.quantity))) throw new Error('Record the weight of each piece before receiving this tea.');
       const proposal = receiptAcquisition === 'purchase' ? null : receiptProposal?.status === 'pending'
         ? await api.compass.updateReceiptProposal(receiptProposal.id, changes)
         : await api.compass.proposeReceipt(entry.id, { ...changes, idempotency_key: `ledger-receipt:${txId}:${lineId}` });
