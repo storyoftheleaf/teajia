@@ -1,3 +1,4 @@
+import { useCaptureSave } from '../curate/useCaptureSave';
 import { TeaCupIcon } from '../shared/TeaCupIcon';
 import { CurateRecordTools } from '../curate/CurateRecordTools';
 import { TeawareSheets } from '../curate/TeawareSheets';
@@ -63,6 +64,7 @@ const CURRENCIES: { value: Currency; label: string }[] = [
 ];
 
 export interface CaptureCardActions {
+  save: () => Promise<void>;
   openTasting: () => void;
   toggleBuy: () => void;
   /** 'flow': open the Buy panel as a sample (the parent's laptop action bar). */
@@ -71,6 +73,7 @@ export interface CaptureCardActions {
 
 interface CaptureCardProps {
   entryId: string;
+  onSaveStateChange?: (state: { busy: boolean; error: string }) => void;
   voiceRecorder?: NoteThreadVoiceRecorder;
   /** Called when user adds an item to the ledger, to switch to ledger tab */
   onSwitchToLedger?: () => void;
@@ -190,7 +193,7 @@ const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, openPurchasePicker = false, onBuyExpandedChange, batchMode, onToggleBatchMode, layout }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateChange, voiceRecorder, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, openPurchasePicker = false, onBuyExpandedChange, batchMode, onToggleBatchMode, layout }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -744,18 +747,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
     setDuplicateMatch(null);
   }, [duplicateMatch]);
 
-  const handleCommit = useCallback(() => {
+  const { state: captureSave, save: handleCommit } = useCaptureSave(entryId, () => {
     commitEntry(entryId);
-    if (onReturnToLibrary) {
-      // Came from Library, return there rather than starting a new capture
-      onReturnToLibrary();
-    } else {
-      // The owning Curate shell alone chooses whether to resume another
-      // partial entry or create the one replacement draft. Keeping that
-      // decision here as well produced two blank drafts after Done.
-      onCommit?.();
-    }
-  }, [commitEntry, entryId, onCommit, onReturnToLibrary]);
+    if (onReturnToLibrary) onReturnToLibrary();
+    else onCommit?.();
+  }, onSaveStateChange);
 
   // ── Guard: entry must exist (after all hooks) ─────────────────────────
 
@@ -834,6 +830,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
   // ── Populate actionRef for parent-rendered action bar ───────────────────
   if (actionRef) {
     actionRef.current = {
+      save: handleCommit,
       openTasting: openTastingOverlay,
       toggleBuy: toggleBuyPicker,
       openSample: openSamplePicker,
@@ -1489,6 +1486,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
           onBuy={toggleBuyPicker}
           onDone={handleCommit}
           doneEnabled={entryHasContent(entry)}
+          saving={captureSave.busy}
+          saveError={captureSave.error}
           buyExpanded={showBuyPicker}
           purchasePickerId={purchasePickerId}
         />
@@ -1920,6 +1919,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, voiceRecorder
         onDone={handleCommit}
         onSample={primaryLast ? openSamplePicker : openTastingOverlay}
         doneEnabled={entryHasContent(entry)}
+          saving={captureSave.busy}
+          saveError={captureSave.error}
         buyExpanded={showBuyPicker}
         purchasePickerId={purchasePickerId}
       />

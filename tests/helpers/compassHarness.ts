@@ -115,6 +115,13 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     const scopedContext = options?.contextAfterInitial && counts.get(requestKey)! > 1
       ? options.contextAfterInitial
       : options?.contextByAccount?.[accountId];
+    if (route.request().method() === 'POST' && /^\/api\/compass\/entries\/[^/]+\/save$/.test(path)) {
+      const body = route.request().postDataJSON() as { entry: { id: string }; notes?: Array<{ id: string }>; sessions?: Array<{ id: string }> };
+      const index = compassEntries.findIndex(candidate => candidate.id === body.entry.id);
+      if (index >= 0) compassEntries[index] = { ...compassEntries[index], ...body.entry };
+      else compassEntries.push({ ...body.entry });
+      return route.fulfill({ json: { syncedIds: [body.entry.id], noteIds: (body.notes ?? []).map(note => note.id), sessionIds: (body.sessions ?? []).map(session => session.id) } });
+    }
     if (requestKey === 'POST /api/compass/sync') {
       const body = route.request().postDataJSON() as { entries?: Array<{ id: string }> };
       for (const entry of body.entries ?? []) {

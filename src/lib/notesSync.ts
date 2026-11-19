@@ -13,7 +13,7 @@ const scopedRequest = (accountId: string, userId: string) => ({
   background: true as const, expectedAuth: { accountId, userId },
 });
 
-function noteToPayload(n: Note) {
+export function noteToPayload(n: Note) {
   return {
     id: n.id,
     account_id: n.accountId,
@@ -32,7 +32,7 @@ function noteToPayload(n: Note) {
   };
 }
 
-function sessionToPayload(s: NoteSession) {
+export function sessionToPayload(s: NoteSession) {
   return {
     id: s.id,
     account_id: s.accountId,

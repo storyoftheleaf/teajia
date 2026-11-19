@@ -1,3 +1,5 @@
+import { useNotesStore, notesPersonKey } from './notesStore';
+import { noteToPayload, sessionToPayload } from './notesSync';
 import { canonicalCurrency } from './currency';
 import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
@@ -143,7 +145,15 @@ export async function retryPendingDeletes(accountId?: string): Promise<void> {
 
 // ── Sync unsynced entries to D1 ──
 
-const syncQueues = new Map<string, Promise<number>>();
+const syncQueues = new Map<string, Promise<unknown>>();
+function queueCompassWrite<T>(scope: string, work: () => Promise<T>): Promise<T> {
+  const previous = syncQueues.get(scope);
+  const next = (previous ? previous.catch(() => undefined) : Promise.resolve()).then(work);
+  syncQueues.set(scope, next);
+  const release = () => { if (syncQueues.get(scope) === next) syncQueues.delete(scope); };
+  void next.then(release, release);
+  return next;
+}
 
 /** Serialize writes for an account so a late request cannot overwrite a newer snapshot. */
 export function syncCompassEntries(accountId?: string): Promise<number> {
@@ -151,14 +161,10 @@ export function syncCompassEntries(accountId?: string): Promise<number> {
   const scope = accountId ?? initial.accountScopeId;
   if (!scope) return Promise.resolve(0);
   const revision = initial.accountScopeRevision;
-  const previous = syncQueues.get(scope);
-  const next = (previous ? previous.catch(() => 0) : Promise.resolve(0)).then(() => {
+  return queueCompassWrite(scope, () => {
     const current = useTeaCompassStore.getState();
-    return current.accountScopeId === scope && current.accountScopeRevision === revision ? pushCompassEntries(scope) : 0;
+    return current.accountScopeId === scope && current.accountScopeRevision === revision ? pushCompassEntries(scope) : Promise.resolve(0);
   });
-  syncQueues.set(scope, next);
-  void next.finally(() => { if (syncQueues.get(scope) === next) syncQueues.delete(scope); });
-  return next;
 }
 
 async function pushCompassEntries(accountId?: string): Promise<number> {
@@ -385,16 +391,57 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
   }
 }
 
-/** Acquisition must refer to an acknowledged encounter, without closing its capture editor. */
+/** Explicit Save and acquisition wait for this exact tea's server acknowledgement.
+ * Background synchronization retains its independent admission and retry policy. */
 export async function ensureCompassEncounterSaved(entryId: string): Promise<void> {
   const initial = useTeaCompassStore.getState();
-  const scope = initial.accountScopeId;
-  const revision = initial.accountScopeRevision;
-  if (!scope || !initial.userScopeId || !hasToken() || !isTokenScopedToAccount(scope, initial.userScopeId)) throw new Error('Sign in to save this purchase with the shop.');
+  const scope = initial.accountScopeId, user = initial.userScopeId, revision = initial.accountScopeRevision;
+  if (!scope || !user || !hasToken() || !isTokenScopedToAccount(scope, user)) throw new Error('Sign in to save this tea with the shop.');
   initial.retainEntry(entryId);
-  await syncCompassEntries(scope);
-  const current = useTeaCompassStore.getState();
-  if (current.accountScopeId !== scope || current.accountScopeRevision !== revision) throw new Error('The active shop changed. Open this purchase in its original shop.');
-  const entry = current.entries.find(entry => entry.id === entryId);
-  if (!entry?.synced) throw new Error('Your capture is kept on this device. Retry once its latest changes have saved.');
+  await queueCompassWrite(scope, async () => {
+    const currentScope = () => {
+      const current = useTeaCompassStore.getState();
+      if (current.accountScopeId !== scope || current.userScopeId !== user || current.accountScopeRevision !== revision || !isTokenScopedToAccount(scope, user)) {
+        throw new Error('The active shop changed. Open this tea in its original shop.');
+      }
+      return current;
+    };
+    const sent = currentScope().getEntry(entryId);
+    if (!sent) throw new Error('This tea is no longer in the capture.');
+    const notesState = useNotesStore.getState(), key = notesPersonKey(scope, user), notesRevision = notesState.scopeRevision;
+    const notes = notesState.personScopeKey === key ? notesState.notes.filter(note => !note.synced && note.accountId === scope && note.authorId === user && note.compassEntryId === entryId) : [];
+    const batches = Array.from({ length: Math.max(1, Math.ceil(notes.length / 10)) }, (_, i) => notes.slice(i * 10, i * 10 + 10));
+    const hint = changeHint(sent);
+    try {
+      for (const batch of batches) {
+        currentScope();
+        const sessionIds = new Set(batch.flatMap(note => note.sessionId ? [note.sessionId] : []));
+        const sessions = notesState.sessions.filter(session => !session.synced && session.accountId === scope && sessionIds.has(session.id));
+        const result = await api.compass.saveEncounter(entryId, {
+          entry: sent.synced ? { id: entryId } : toSnakeCase(sent), notes: batch.map(noteToPayload), sessions: sessions.map(sessionToPayload),
+          ...(hint ? { changes: { [entryId]: hint } } : {}),
+        }, { expectedAuth: { accountId: scope, userId: user } });
+        currentScope();
+        if (!result.syncedIds.includes(entryId) || batch.some(note => !result.noteIds.includes(note.id)) || sessions.some(session => !result.sessionIds.includes(session.id))) {
+          throw new Error('The tea or its notes were not acknowledged. Retry Save.');
+        }
+        useNotesStore.setState(state => state.personScopeKey === key && state.scopeRevision === notesRevision ? {
+          notes: state.notes.map(note => batch.includes(note) ? { ...note, synced: true } : note),
+          sessions: state.sessions.map(session => sessions.includes(session) ? { ...session, synced: true } : session),
+        } : state);
+      }
+      useTeaCompassStore.setState(state => ({
+        entries: state.entries.map(entry => entry.id !== entryId ? entry : entry === sent
+          ? { ...entry, synced: true, syncedGivenName: entry.givenName ?? null, unsyncedEdits: undefined }
+          : { ...entry, unsyncedEdits: editsAfterAcknowledgement(sent, entry) }), syncError: false,
+      }));
+      if (!currentScope().getEntry(entryId)?.synced) throw new Error('Your latest changes are kept here. Save again to finish.');
+      const remaining = useNotesStore.getState();
+      if (remaining.personScopeKey === key && remaining.notes.some(note => !note.synced && note.accountId === scope && note.authorId === user && note.compassEntryId === entryId)) throw new Error('Your latest changes to the notes are kept here. Save again to finish.');
+    } catch (error) {
+      const current = useTeaCompassStore.getState();
+      if (current.accountScopeId === scope && current.accountScopeRevision === revision) useTeaCompassStore.setState({ syncError: true });
+      throw error;
+    }
+  });
 }

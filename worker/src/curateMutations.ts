@@ -431,13 +431,17 @@ export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entit
  // A named tea starts at its indexed records, not at every mutation in the
  // account. Unary + keeps SQLite on the mutation-id lookup rather than its
  // account/date index. Keep both recorded parent snapshots so moving a note preserves
- // history for the old tea as well as the new one.
+ // history for the old tea as well as the new one. Pin the entity probes too:
+ // D1 otherwise prefers the mutation-order index for UNION's sort and scans
+ // every account record twice. CROSS JOIN keeps the exact attachment-parent
+ // lookup outside its matching audit-record probe.
  const teaId=entityType==='tea'?options.entity_id:undefined;
  const teaFilter=` AND m.id IN (
-  SELECT r.mutation_id FROM curate_mutation_records r WHERE r.account_id=? AND r.entity_type='tea' AND r.entity_id=?
-  UNION SELECT r.mutation_id FROM curate_attachments a JOIN curate_mutation_records r
-   ON r.account_id=a.account_id AND r.entity_type='attachment' AND r.entity_id=a.id
+  SELECT r.mutation_id FROM curate_mutation_records r INDEXED BY idx_curate_mutation_records_entity WHERE r.account_id=? AND r.entity_type='tea' AND r.entity_id=?
+  UNION SELECT r.mutation_id FROM curate_attachments a INDEXED BY idx_curate_attachment_entity
+   CROSS JOIN curate_mutation_records r INDEXED BY idx_curate_mutation_records_entity
    WHERE a.account_id=? AND a.entity_type='tea' AND a.entity_id=?
+   AND r.account_id=a.account_id AND r.entity_type='attachment' AND r.entity_id=a.id
   ${['before_json','after_json'].map(column=>`UNION SELECT r.mutation_id FROM curate_mutation_records r INDEXED BY idx_curate_records_tea_${column==='before_json'?'before':'after'}
    WHERE r.account_id=? AND json_extract(r.${column},'$.compass_entry_id')=?
    AND json_extract(r.${column},'$.account_id')=?
@@ -448,7 +452,18 @@ export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entit
   : options.entity_id?[options.entity_id,entityType,options.entity_id,entityType,...relationValues]:[];
  const rows=await env.DB.prepare(`SELECT m.*, (SELECT undone.id FROM curate_mutations undone WHERE undone.account_id=m.account_id AND undone.undo_of=m.id ORDER BY undone.confirmed_at DESC,undone.rowid DESC LIMIT 1) AS undone_by FROM curate_mutations m WHERE ${teaId?'+':''}m.account_id = ?${teaId?teaFilter:filter} ORDER BY m.confirmed_at DESC,m.rowid DESC LIMIT ?`)
  .bind(auth.accountId,...filterValues,Math.min(100,Math.max(1,options.limit??20))).all<Row>();
- return {history:await Promise.all((rows.results??[]).map(async m=>({...m,records:(await env.DB.prepare('SELECT entity_type,entity_id,before_json,after_json FROM curate_mutation_records WHERE mutation_id = ? AND account_id = ?').bind(m.id,auth.accountId).all()).results})))};
+ const mutations=rows.results??[];
+ if(!mutations.length)return {history:[]};
+ // One read for the returned mutations: five recent changes must not add five
+ // statements on top of MCP authentication and exhaust its 16-statement grant.
+ const records=await env.DB.prepare(`SELECT mutation_id,entity_type,entity_id,before_json,after_json
+  FROM curate_mutation_records WHERE account_id=? AND mutation_id IN (${mutations.map(()=>'?').join(',')}) ORDER BY rowid`)
+  .bind(auth.accountId,...mutations.map(m=>m.id)).all<Row>();
+ const byMutation=new Map<string,Row[]>();
+ for(const {mutation_id,...record} of records.results??[]) {
+  const list=byMutation.get(mutation_id)??[];list.push(record);byMutation.set(mutation_id,list);
+ }
+ return {history:mutations.map(m=>({...m,records:byMutation.get(m.id)??[]}))};
 }
 /** Discover product-reference columns rather than keeping a list that misses
  * the next receipt, listing or stock table. Existing tea's own link is the

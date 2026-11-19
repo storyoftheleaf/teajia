@@ -97,7 +97,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
-  const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const discardEntry = useTeaCompassStore((s) => s.discardEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const getEntry = useTeaCompassStore((s) => s.getEntry);
@@ -367,6 +366,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // ── Capture action footer state ─────────────────────────────────────────
   const captureCardActionsRef = useRef<CaptureCardActions | null>(null);
+  const [captureSaveState, setCaptureSaveState] = useState({ busy: false, error: '' });
   const [captureBuyExpanded, setCaptureBuyExpanded] = useState(false);
   // Done needs a photo OR a name, the promised saveable minimum.
   const captureDoneReady =
@@ -541,10 +541,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, setFromLibrary]);
 
   const handleDoneClick = useCallback(() => {
-    if (!activeEntryId) return;
-    commitEntry(activeEntryId);
-    handleCommitEntry();
-  }, [activeEntryId, commitEntry, handleCommitEntry]);
+    void captureCardActionsRef.current?.save();
+  }, []);
 
   const handleDiscardActive = useCallback(() => {
     if (!activeEntryId) return;
@@ -1696,6 +1694,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           onCommit={handleCommitEntry}
                           onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                           actionRef={captureCardActionsRef}
+                          onSaveStateChange={setCaptureSaveState}
                           onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                           purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}
                           openPurchasePicker={pendingLibraryAcquisitionId === activeEntryId}
@@ -1711,6 +1710,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             onSample={() => flowForm ? captureCardActionsRef.current?.openSample() : captureCardActionsRef.current?.openTasting()}
                             primaryLast={flowForm}
                             doneEnabled={!!activeEntryId && captureDoneReady}
+                            saving={captureSaveState.busy}
+                            saveError={captureSaveState.error}
                             doneTestId="compass-done-desktop"
                             buyExpanded={captureBuyExpanded}
                             purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}

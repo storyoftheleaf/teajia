@@ -18,6 +18,7 @@ function setup() {
  CREATE TABLE inventory_receipt_lines(id TEXT PRIMARY KEY,account_id TEXT,product_id TEXT,received_quantity REAL);
  CREATE TABLE stock_ledger(id TEXT PRIMARY KEY,account_id TEXT,product_id TEXT,quantity REAL);
  CREATE TABLE curate_attachments(id TEXT PRIMARY KEY,account_id TEXT,entity_id TEXT,entity_type TEXT);
+ CREATE INDEX idx_curate_attachment_entity ON curate_attachments(account_id,entity_type,entity_id);
  CREATE TABLE mcp_confirmation_tickets(token_hash TEXT PRIMARY KEY,account_id TEXT,kind TEXT,payload_json TEXT,expires_at INTEGER,token_id TEXT,consumed_at INTEGER);
  INSERT INTO account_members VALUES('a','owner','owner','{}','active');
  INSERT INTO account_members VALUES('b','owner','owner','{}','active');

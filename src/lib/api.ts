@@ -3142,6 +3142,8 @@ export const api = {
     order: (input: Record<string, unknown>): Promise<any> => authedFetch(`${API_URL}/api/curate/order`, { method: 'POST', body: JSON.stringify(input) }),
   },
   compass: {
+    saveEncounter: (id: string, payload: { entry: CompassWrite; notes: Record<string, unknown>[]; sessions: Record<string, unknown>[]; changes?: Record<string, unknown> }, options: ApiBackgroundOptions = {}): Promise<{ syncedIds: string[]; noteIds: string[]; sessionIds: string[] }> =>
+      authedFetch(`${API_URL}/api/compass/entries/${encodeURIComponent(id)}/save`, { ...options, method: 'POST', body: JSON.stringify(payload), retryTimeouts: true }),
     listReceiptProposals: async (params: { status?: 'pending' | 'accepted' | 'rejected'; compass_entry_id?: string } = {}): Promise<{ proposals: CurateReceiptProposal[] }> => {
       const query = new URLSearchParams();
       if (params.status) query.set('status', params.status);

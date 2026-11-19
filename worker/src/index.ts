@@ -17338,6 +17338,43 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
   return json({ synced: syncedIds.length, syncedIds, conflicts, ...(Object.keys(keptServer).length ? { kept_server: keptServer } : {}) });
 };
 
+/** An explicit user Save has a bounded foreground grant. Periodic sync keeps
+ * its background admission; neither path changes the shared allowance policy.
+ * Stable entry/note IDs make a retry after a partial failure safe. */
+const handleSaveCompassEntry: Handler = async (request, env, params, execCtx) => {
+  const body = await request.json() as { entry?: Record<string, any>; notes?: Record<string, any>[]; sessions?: Record<string, any>[]; changes?: unknown };
+  const notes = body.notes ?? [], sessions = body.sessions ?? [];
+  if (!body.entry || body.entry.id !== params.id || !Array.isArray(notes) || !Array.isArray(sessions)
+    || notes.length > 10 || sessions.length > 10
+    || notes.some(note => !note || note.compass_entry_id !== params.id || typeof note.id !== 'string' || typeof note.text !== 'string')
+    || sessions.some(session => !session || typeof session.id !== 'string' || !notes.some(note => note.session_id === session.id))) {
+    return json({ error: 'Save one tea and at most ten of its own notes and sessions.' }, 400);
+  }
+  const caller = await requireAccount(request, env);
+  if ('error' in caller) return caller.error;
+  for (const note of notes) {
+    const existing = await env.DB.prepare('SELECT account_id,author_id,compass_entry_id FROM notes WHERE id=?').bind(note.id).first<any>();
+    if (existing && (existing.account_id !== caller.accountId || existing.author_id !== caller.userId || existing.compass_entry_id !== params.id)) {
+      return json({ error: 'This note belongs to another tea or author. Reopen its original tea.' }, 409);
+    }
+  }
+  const headers = new Headers(request.headers); headers.delete('Content-Length');
+  const forward = (value: unknown) => new Request(request.url, { method: 'POST', headers, body: JSON.stringify(value) });
+  const teaResponse = await handleSyncCompassEntries(forward({ entries: [body.entry], changes: body.changes }), env, params, execCtx);
+  if (!teaResponse.ok) return teaResponse;
+  const tea = await teaResponse.json() as { syncedIds: string[] };
+  if (!tea.syncedIds.includes(params.id)) return json({ error: 'The tea changed or is unavailable in this shop. Reopen it before saving.' }, 409);
+  if (sessions.length) {
+    const result = await handleSyncNoteSessions(forward({ sessions }), env, params, execCtx);
+    if (!result.ok) return result;
+  }
+  if (notes.length) {
+    const result = await handleSyncNotes(forward({ notes }), env, params, execCtx);
+    if (!result.ok) return result;
+  }
+  return json({ syncedIds: [params.id], noteIds: notes.map(note => note.id), sessionIds: sessions.map(session => session.id) });
+};
+
 // ── Event System V2 Handlers ──
 
 type ApprovalAttendeeRow = {
@@ -30565,6 +30602,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/compass/entries', handleCreateCompassEntry],
   ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],
   ['DELETE', '/api/compass/entries/:id', handleDeleteCompassEntry],
+  ['POST', '/api/compass/entries/:id/save', handleSaveCompassEntry],
   ['POST', '/api/compass/sync', handleSyncCompassEntries],
   ['POST', '/api/compass/entries/:id/promote', handlePromoteCompassEntry],
   ['POST', '/api/compass/entries/:id/receipt-proposals', handleCreateReceiptProposal],

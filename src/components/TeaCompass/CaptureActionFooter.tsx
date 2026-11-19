@@ -7,6 +7,8 @@ interface CaptureActionFooterProps {
   onDone: () => void;
   onSample?: () => void;
   doneEnabled: boolean;
+  saving?: boolean;
+  saveError?: string;
   buyExpanded: boolean;
   purchasePickerId: string;
   doneTestId?: string;
@@ -21,6 +23,8 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   onDone,
   onSample,
   doneEnabled,
+  saving = false,
+  saveError = '',
   buyExpanded,
   purchasePickerId,
   doneTestId,
@@ -45,6 +49,8 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
     : { label: 'Sample', onClick: onSample, ariaLabel: 'Sample' });
 
   return (
+    <>
+    {saveError && <p role="alert" className="curate-support">{saveError}</p>}
     <CurateActionBand
       testId="capture-action-footer"
       className={className}
@@ -54,7 +60,9 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
       primary={{
         label: primaryLast ? saveLabel : 'Done',
         onClick: onDone,
-        disabled: !doneEnabled,
+        disabled: !doneEnabled || saving,
+        busy: saving,
+        busyLabel: 'Saving…',
         ariaLabel: primaryLast ? saveLabel : 'Done, commit this entry',
         buttonProps: {
           'data-testid': doneTestId,
@@ -62,6 +70,7 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
         },
       }}
     />
+    </>
   );
 };
 

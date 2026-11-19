@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { syncMock, listMock, samplesListMock, tokenAccount, tokenUser } = vi.hoisted(() => ({
+const { syncMock, saveMock, listMock, samplesListMock, tokenAccount, tokenUser } = vi.hoisted(() => ({
   syncMock: vi.fn(),
+  saveMock: vi.fn(),
   listMock: vi.fn(),
   samplesListMock: vi.fn(),
   tokenAccount: { current: 'acct-a' as string | null },
@@ -14,6 +15,7 @@ vi.mock('./api', () => ({
   api: {
     compass: {
       sync: syncMock,
+      saveEncounter: saveMock,
       remove: vi.fn(),
       promote: vi.fn(),
       list: listMock,
@@ -30,7 +32,8 @@ import { createEmptyEntry } from '../components/TeaCompass/types';
 import { useTeaCompassStore } from './teaCompassStore';
 import { compassPersonKey } from './teaCompassStore';
 import { useAppStore } from './store';
-import { hydrateCompassEntries, syncCompassEntries } from './teaCompassSync';
+import { useNotesStore, notesPersonKey } from './notesStore';
+import { hydrateCompassEntries, syncCompassEntries, ensureCompassEncounterSaved } from './teaCompassSync';
 
 function entry(id: string) {
   return { ...createEmptyEntry(), id, name: id, synced: false };
@@ -40,6 +43,8 @@ describe('Compass sync acknowledgements', () => {
   beforeEach(() => {
     useAppStore.setState({ activeUserId: 'user-a', activeAccountId: 'acct-a' });
     syncMock.mockReset();
+    saveMock.mockReset();
+    useNotesStore.setState({ notes: [], sessions: [], personScopeKey: notesPersonKey('acct-a', 'user-a'), scopeRevision: 0 });
     listMock.mockReset();
     listMock.mockResolvedValue({ entries: [] });
     samplesListMock.mockReset();
@@ -500,4 +505,35 @@ describe('Compass sync acknowledgements', () => {
       tastingHistory: [{ data: { flavor: ['floral'] }, date: '2026-10-27' }] });
   });
 
+});
+
+
+describe('explicit Source save acknowledgement',()=>{
+ beforeEach(()=>{
+  useAppStore.setState({activeUserId:'user-a',activeAccountId:'acct-a'});
+  tokenAccount.current='acct-a';tokenUser.current='user-a';saveMock.mockReset();syncMock.mockReset();
+  useTeaCompassStore.setState({entries:[{...entry('save-tea'),photos:['https://media.teajia.co/leaf.jpg']}],pendingEntries:[],accountScopeId:'acct-a',userScopeId:'user-a',syncError:false});
+  useNotesStore.setState({notes:[{id:'voice',accountId:'acct-a',compassEntryId:'save-tea',text:'Clear test phrase',sourceType:'voice',authorId:'user-a',authorName:'Owner',visibility:'private',createdAt:'2026-11-19',synced:false}],sessions:[],personScopeKey:notesPersonKey('acct-a','user-a'),scopeRevision:0});
+ });
+ it('uses foreground Save for the exact tea and voice note while background sync is paused',async()=>{
+  syncMock.mockRejectedValue(new Error('background_paused'));
+  saveMock.mockResolvedValue({syncedIds:['save-tea'],noteIds:['voice'],sessionIds:[]});
+  await ensureCompassEncounterSaved('save-tea');
+  expect(syncMock).not.toHaveBeenCalled();
+  expect(saveMock).toHaveBeenCalledWith('save-tea',expect.objectContaining({entry:expect.objectContaining({id:'save-tea',photos:JSON.stringify(['https://media.teajia.co/leaf.jpg'])}),notes:[expect.objectContaining({id:'voice',compass_entry_id:'save-tea',text:'Clear test phrase'})]}),{expectedAuth:{accountId:'acct-a',userId:'user-a'}});
+  expect(useTeaCompassStore.getState().getEntry('save-tea')?.synced).toBe(true);
+  expect(useNotesStore.getState().notes[0].synced).toBe(true);
+ });
+ it('retains the tea and note locally when the server refuses Save',async()=>{
+  saveMock.mockRejectedValue(new Error('Save unavailable'));
+  await expect(ensureCompassEncounterSaved('save-tea')).rejects.toThrow('Save unavailable');
+  expect(useTeaCompassStore.getState().getEntry('save-tea')?.synced).toBe(false);
+  expect(useNotesStore.getState().notes[0].synced).toBe(false);
+ });
+ it('keeps edits typed during Save dirty rather than acknowledging text the server never received',async()=>{
+  saveMock.mockImplementation(async()=>{useTeaCompassStore.getState().updateEntry('save-tea',{name:'Newer name'});useNotesStore.setState(s=>({notes:s.notes.map(n=>({...n,text:'Newer words',synced:false}))}));return{syncedIds:['save-tea'],noteIds:['voice'],sessionIds:[]}});
+  await expect(ensureCompassEncounterSaved('save-tea')).rejects.toThrow(/latest changes/);
+  expect(useTeaCompassStore.getState().getEntry('save-tea')).toMatchObject({name:'Newer name',synced:false});
+  expect(useNotesStore.getState().notes[0]).toMatchObject({text:'Newer words',synced:false});
+ });
 });
