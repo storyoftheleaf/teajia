@@ -602,9 +602,9 @@ test.describe('Curate Library decisions and retrieval', () => {
     });
     await page.getByTestId('library-entry-selected').filter({ visible: true }).getByRole('button', { name: 'Edit details for River Stone', exact: true }).click();
     await openRecordSection(page, 'Source material');
-    const trigger = page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Photo actions', exact: true }).first();
+    const trigger = page.getByTestId('library-entry-detail').filter({ visible: true }).getByRole('button', { name: 'Frame photo 1', exact: true }).first();
     await trigger.click();
-    await page.getByRole('button', { name: 'View full size', exact: true }).click();
+    await page.getByRole('button', { name: 'View original', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Photo viewer' });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Close photo viewer' })).toBeFocused();

@@ -1,11 +1,9 @@
 import { useCaptureSave } from '../curate/useCaptureSave';
 import { TeaCupIcon } from '../shared/TeaCupIcon';
-import { CurateRecordTools } from '../curate/CurateRecordTools';
 import { TeawareSheets } from '../curate/TeawareSheets';
 import { CaptureFlowLayout } from '../curate/CaptureFlowLayout';
 import { BUY_GRAM_CHIPS } from '../curate/samplePreset';
 import { CapturePurchaseResult } from '../curate/CapturePurchaseResult';
-import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { StructuredTeaFields } from './StructuredTeaFields';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -757,14 +755,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
 
   if (!entry) return null;
 
-  // A local capture ID is not proof that the record reached the server.
-  // Hydrated account ownership remains present while later edits are dirty.
-  const isPersistedRecord = entry.synced || Boolean((entry as TeaCompassEntry & { account_id?: string }).account_id);
-  const recordTools = isPersistedRecord ? <CurateRecordTools entityType="tea" entityId={entry.id} onChanged={() => {
-    const account = useTeaCompassStore.getState().accountScopeId;
-    if (account) void hydrateCompassEntries(account);
-  }} /> : null;
-
   const shellClass = 'surface-warm relative mx-auto w-full max-w-3xl space-y-2 px-3 md:px-5';
   // The capture itself stays tightly bounded; the owning mobile scroll region
   // supplies bottom-nav clearance so that space is not painted as part of the
@@ -1509,7 +1499,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
           band={<>{teawareCategoryButton}{teawareMaterialButton}{teawareEraButton}</>}
           subBand={<>{teawareOriginField}{teawareCapacityField}</>} subBandTestId="curate-teaware-provenance-row"
           purchase={teawarePurchaseInner} sheets={teawareSheets}
-          photo={photoCapture} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar} recordTools={recordTools}
+          photo={photoCapture} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar}
           decision={decisionControl} actions={teawareActionFooter(true)} buyPanel={<>{teawareReceiptError}{renderTeawarePurchaseSection()}</>}
         />
       );
@@ -1548,7 +1538,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
 
         {teawarePurchaseCluster}
 
-        {recordTools}
 
         <section className={`curate-cluster curate-zone-notes space-y-1 lg:space-y-1.5 ${phoneClusterPad}`} data-testid="curate-cluster-notes" data-zone="notes">
         {notesThread}
@@ -2137,7 +2126,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
         purchase={teaPurchaseInner} sheets={typeSheet} afterIdentity={<>{duplicateNudge}{extractionConfirmation}</>}
         photo={photoCapture} taste={tasteButton(true)} tastingSummary={qualityRow && <>{qualityRow}{tastingLine}</>} composer={noteThread('composer')} list={noteThread('list')} intent={intentBar}
         details={<>{teaDetailsWith(<div className="flex">{chineseNameField}</div>, true)}{storageSection}</>}
-        recordTools={recordTools} decision={decisionControl} actions={teaActionFooter(true)} buyPanel={teaBuySection} share={<CaptureShareButton onShare={onShare} />}
+        decision={decisionControl} actions={teaActionFooter(true)} buyPanel={teaBuySection} share={<CaptureShareButton onShare={onShare} />}
         outside={<>{teaReceiptError}{tastingOverlay}</>}
       />
     );
@@ -2182,7 +2171,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
       {teaPurchaseCluster}
 
       {teaDetailsWith()}
-      {recordTools}
 
       {duplicateNudge}
 
