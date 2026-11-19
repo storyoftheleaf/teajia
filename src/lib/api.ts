@@ -4955,7 +4955,7 @@ export const api = {
           display_name: String(row.display_name ?? ''),
           business_name: row.business_name ?? null,
           chinese_name: row.chinese_name ?? null,
-          role: row.role ?? null,
+          role: row.role ?? null, page_tier: row.page_tier ?? null,
           beginnings: row.beginnings ?? null,
           now_text: row.now_text ?? null,
           inspirations: row.inspirations ?? null,

@@ -229,6 +229,8 @@ CREATE TABLE IF NOT EXISTS contributors (
     links TEXT NOT NULL DEFAULT '[]',
     is_published INTEGER NOT NULL DEFAULT 0,
     unpublished_at TEXT,
+    -- 'family' | 'creator' | 'master'; NULL is a page from before the family. Migration 0070.
+    page_tier TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

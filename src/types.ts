@@ -507,6 +507,8 @@ export interface ContributorProfile {
 
 export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line' | 'links' | 'gallery_images' | 'tea_selection' | 'collection' | 'hosting'> {
   account_id: string;
+  /** The owner's word for this person: family, creator or master. Empty for a page from before the family. */
+  page_tier?: 'family' | 'creator' | 'master' | null;
   business_name?: string | null;
   links: AdminContributorLink[];
   gallery_images?: ContributorGalleryImage[];

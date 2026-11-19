@@ -179,6 +179,7 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
+import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv {
@@ -8693,8 +8694,11 @@ async function contributorWithDraft(env: Env, contributor: Record<string, any>) 
   const overlay = pending ? parseStoredProfileDraft(draft!.payload) : {};
   const liveProfile = parsedContributor(contributor);
   const pendingProfile = pending ? parsedContributor({ ...contributor, ...overlay }) : null;
+  const word = pageWord(contributor.page_tier);
   return {
     ...(pendingProfile ?? liveProfile),
+    ...(word ? { role: word } : {}),
+    page_tier: familyPageTierOf(contributor.page_tier),
     live_profile: liveProfile,
     pending_profile: pendingProfile,
     publication_state: livePublished
@@ -8972,6 +8976,12 @@ const handlePutMyPublicProfile: Handler = async (request, env) => {
     ]);
     contributor = await contributorForUser(env, ctx.userId);
     return json({ contributor: await contributorWithDraft(env, contributor!), can_create: false }, 201);
+  }
+  if (familyPageTierOf(contributor.page_tier) === 'family') {
+    // A family page goes live without review; every other page keeps the gate below.
+    await applyFamilyProfileWrite(env.DB, contributor.id, ctx.userId, parsed.values, PROFILE_SELF_FIELDS);
+    contributor = await contributorForUser(env, ctx.userId);
+    return json({ contributor: await contributorWithDraft(env, contributor!), can_create: false });
   }
   const existingDraft = await env.DB.prepare('SELECT payload, approval_status FROM contributor_profile_drafts WHERE contributor_id = ?')
     .bind(contributor.id).first<Record<string, any>>();
@@ -9505,6 +9515,7 @@ const handleListMyPaymentMethods: Handler = async (request, env) => {
 const handleCreateMyPaymentMethod: Handler = async (request, env) => {
   const owned = await requireOwnContributor(request, env);
   if ('error' in owned) return owned.error;
+  if (!familyPageAllowsPay(familyPageTierOf(owned.contributor.page_tier))) return restError(403, 'Pay is for tea masters.', 'pay_not_for_this_page');
   const bodyResult = await contributorJson(request);
   if (bodyResult instanceof Response) return bodyResult;
   const parsed = parsePaymentMethodWrite(bodyResult);
@@ -24848,7 +24859,7 @@ function firstSentenceOf(text: unknown): string | null {
 
 const handleListPublicContributors: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
-    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.business_name, c.location_line, c.avatar_url,
+    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.page_tier, c.business_name, c.location_line, c.avatar_url,
             c.now_text, c.beginnings, c.inspirations,
             (SELECT gi.image_url FROM contributor_gallery_images gi
               WHERE gi.contributor_id = c.id
@@ -24872,7 +24883,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     id: row.id,
     display_name: row.display_name,
     chinese_name: row.chinese_name ?? null,
-    role: row.role ?? null,
+    role: pageWord(row.page_tier) ?? row.role ?? null,
     business_name: row.business_name ?? null,
     location_line: row.location_line ?? null,
     avatar_url: row.avatar_url ?? null,
@@ -25190,7 +25201,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     display_name: row.display_name,
     business_name: row.business_name ?? null,
     chinese_name: row.chinese_name ?? null,
-    role: row.role ?? null,
+    role: pageWord(row.page_tier) ?? row.role ?? null,
     pronouns: row.pronouns ?? null,
     location_line: row.location_line ?? null,
     active_since: row.active_since ?? null,
@@ -25231,8 +25242,9 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     accounts: associationsRes.results ?? [],
     host_account: hostAccount,
     hosting: hostingRow,
-    has_payment_methods: paymentAvailability.hasAnyMethod,
-    payment_accounts: paymentAvailability.accounts,
+    // Pay shows for tea masters only; a page from before the family keeps its Pay.
+    has_payment_methods: familyPageAllowsPay(familyPageTierOf(row.page_tier)) && paymentAvailability.hasAnyMethod,
+    payment_accounts: familyPageAllowsPay(familyPageTierOf(row.page_tier)) ? paymentAvailability.accounts : [],
     seasonal_line: seasonalLine,
   });
 };
@@ -25377,9 +25389,9 @@ async function resolveLocalPaymentAmount(
 }
 
 const handleGetPublicPaymentMethods: Handler = async (request, env, params) => {
-  const contributor = await env.DB.prepare('SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url FROM contributors WHERE id = ? AND is_published = 1')
+  const contributor = await env.DB.prepare('SELECT id, user_id, account_id, display_name, business_name, portrait_url, avatar_url, page_tier FROM contributors WHERE id = ? AND is_published = 1')
     .bind(params.slug).first<Record<string, any>>();
-  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  if (!contributor || !familyPageAllowsPay(familyPageTierOf(contributor.page_tier))) return json({ error: 'Contributor not found' }, 404);
   const url = new URL(request.url);
   // Pay is private. The bank detail behind this route goes to an approved
   // account or to whoever holds a share link, and to nobody else. A stranger
@@ -30830,6 +30842,7 @@ routes.unshift(
   ['POST', '/api/transcribe', familyTranscribe(familyDeps, handleTranscribe)],
   ['POST', '/api/transcriptions/:id/retry', familyRetryTranscription(familyDeps, handleRetryTranscription)],
   ...familyRoutes(familyDeps),
+  ...familyPageRoutes<Env>({ requireContributorSteward: requireContributorEditorialSteward }),
 );
 
 // Simple in-memory rate limiter (per-isolate; resets on cold start — good enough for abuse deterrence)

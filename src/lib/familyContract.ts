@@ -139,3 +139,33 @@ export interface FamilyRefusal {
   error: string;
   code: string;
 }
+
+// ── The word on a person's page ───────────────────────────────────────────
+
+/** Who a person is on Teajia. Only the owner grants the last two. */
+export type FamilyPageTier = 'family' | 'creator' | 'master';
+export const FAMILY_PAGE_TIERS: readonly FamilyPageTier[] = ['family', 'creator', 'master'];
+
+/** The word printed on the page for each. The address and the content never change with it. */
+export const FAMILY_PAGE_WORDS: Record<FamilyPageTier, string> = {
+  family: 'Teajia family',
+  creator: 'Tea creator',
+  master: 'Tea master',
+};
+
+/**
+ * Pay shows for tea masters only. A page from before the family (no word
+ * stored) keeps its Pay exactly as it was.
+ */
+export function familyPageAllowsPay(tier: FamilyPageTier | null | undefined): boolean {
+  return tier == null || tier === 'master';
+}
+
+/** Family pages go live without review. Every other page keeps the draft-and-approve gate. */
+export function familyPageNeedsReview(tier: FamilyPageTier | null | undefined): boolean {
+  return tier !== 'family';
+}
+
+export function familyPageTierOf(value: unknown): FamilyPageTier | null {
+  return value === 'family' || value === 'creator' || value === 'master' ? value : null;
+}

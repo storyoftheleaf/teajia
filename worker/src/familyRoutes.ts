@@ -32,6 +32,7 @@ import {
   type FamilyShareState, type FamilySharedPhotograph, type FamilyTargetKind, type FamilyTeaPhotographs,
 } from '../../src/lib/familyContract';
 import { inspectJpeg } from './familyJpeg';
+import { ensureFamilyPage } from './familyPages';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError, type TeaVoiceEnvironment } from './curateVoiceTranscription';
 
 interface RateLimiter { limit: (opts: { key: string }) => Promise<{ success: boolean }> }
@@ -364,7 +365,9 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     ).bind(body.share_state, params.id, person.userId).run();
     if (!Number(result.meta?.changes ?? 0)) return refuse(404, 'That photograph is not one of yours.', 'photograph_not_found');
     const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(params.id).first<PhotoRow>();
-    return json({ photograph: ownPhoto(row!) });
+    // Putting a photograph on a page is what makes the page: on the first share it is created.
+    const page = body.share_state === 'private' ? null : await ensureFamilyPage(env.DB, person);
+    return json({ photograph: ownPhoto(row!), page_id: page?.id ?? null });
   };
 
   // POST /api/family/photographs/:id/remove: gone from the member's page and view.
@@ -418,7 +421,12 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
           WHERE author_user_id = ?3 AND product_id = ?4 AND removed_by_member_at IS NULL`,
       ).bind(state, journal.id, person.userId, product.id),
     ]);
-    return json({ product_id: product.id, journal_entry_id: journal.id, share_state: state, photographs_updated: Number(photos.meta?.changes ?? 0) });
+    // The first share makes the person's page (family, live without review); later ones leave it as it is.
+    const page = state === 'private' ? null : await ensureFamilyPage(env.DB, person);
+    return json({
+      product_id: product.id, journal_entry_id: journal.id, share_state: state, photographs_updated: Number(photos.meta?.changes ?? 0),
+      page_id: page?.id ?? null, page_path: page ? `/people/${encodeURIComponent(page.id)}` : null, page_created: page?.created ?? false,
+    });
   };
 
   // GET /api/family/teas/:productId/photographs: what a public tea page shows. Public.

@@ -9,7 +9,7 @@
  * (src/admin/guards/driftCeilings.test.ts). Import it from here.
  */
 import { API_URL, authedFetch, fetchWithTimeout, handleResponse } from './api';
-import type { FamilyMyTea, FamilyOfferedPhotograph, FamilyPhotoPage, FamilyPhotograph, FamilyReport, FamilyRestockRequest, FamilyShareState, FamilyShopUse, FamilyTargetKind, FamilyTeaPhotographs } from './familyContract';
+import type { FamilyMyTea, FamilyOfferedPhotograph, FamilyPageTier, FamilyPhotoPage, FamilyPhotograph, FamilyReport, FamilyRestockRequest, FamilyShareState, FamilyShopUse, FamilyTargetKind, FamilyTeaPhotographs } from './familyContract';
 
 export const familyApi = {
   /** Both copies of one photograph of a shop tea. `page` is the tasting page it was taken on. */
@@ -34,7 +34,7 @@ export const familyApi = {
   removePhotograph: (photographId: string): Promise<{ id: string; removed: true }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/remove`, { method: 'POST' }),
   /** The Share step after Save: the tasting and its photographs together. Save the tasting first. */
-  shareTasting: (productId: string, shareState: FamilyShareState): Promise<{ product_id: string; journal_entry_id: string; share_state: FamilyShareState; photographs_updated: number }> =>
+  shareTasting: (productId: string, shareState: FamilyShareState): Promise<{ product_id: string; journal_entry_id: string; share_state: FamilyShareState; photographs_updated: number; page_id: string | null; page_path: string | null; page_created: boolean }> =>
     authedFetch(`${API_URL}/api/family/teas/${encodeURIComponent(productId)}/share`, { method: 'PUT', body: JSON.stringify({ share_state: shareState }) }),
   /** What a public tea page shows: the lead picture, placed photographs and "From the family". No sign-in needed. */
   teaPhotographs: async (productId: string): Promise<FamilyTeaPhotographs> =>
@@ -57,6 +57,9 @@ export const familyApi = {
   },
 
   shop: {
+    /** The owner's word for a person: Teajia family, Tea creator or Tea master. The page itself does not change. */
+    setPageTier: (contributorId: string, tier: FamilyPageTier): Promise<{ id: string; page_tier: FamilyPageTier; word: string; pay: boolean }> =>
+      authedFetch(`${API_URL}/api/admin/family/pages/${encodeURIComponent(contributorId)}/tier`, { method: 'PUT', body: JSON.stringify({ tier }) }),
     /** Every photograph ever offered to the shop, newest first. */
     offered: (): Promise<{ photographs: Array<FamilyOfferedPhotograph & { hidden: boolean }> }> =>
       authedFetch(`${API_URL}/api/admin/family/photographs`),

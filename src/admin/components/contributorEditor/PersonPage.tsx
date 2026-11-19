@@ -89,6 +89,8 @@ type Props = {
   extraRows?: React.ReactNode;
   /** Offer a photo by web address. The shop can; a contributor places photos. */
   allowAddress?: boolean;
+  /** The word the page prints for this person, set by the shop. Shown, not editable. */
+  lockedRole?: string;
 };
 
 /**
@@ -97,7 +99,7 @@ type Props = {
  * where each goes.
  */
 export function personPageParts(props: Props): { card: React.ReactNode; sheets: React.ReactNode } {
-  const { value, onChange, onPortrait, onGallery, markBusy, sheet, openSheet, closeSheet, sheetMode = 'panel', takePortrait, takeGallery, afterName, extraRows, allowAddress = true } = props;
+  const { value, onChange, onPortrait, onGallery, markBusy, sheet, openSheet, closeSheet, sheetMode = 'panel', takePortrait, takeGallery, afterName, extraRows, allowAddress = true, lockedRole } = props;
   const links = value.links;
   const gallery = value.gallery_images;
   const began = value.beginnings.trim();
@@ -154,7 +156,9 @@ export function personPageParts(props: Props): { card: React.ReactNode; sheets: 
         {afterName}
         <Line label="Business name" id="f-business-name" value={value.business_name} onChange={event => onChange({ business_name: event.target.value })} placeholder="If you have one, the name you trade under" />
         <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-          <Line label="What you do" id="f-role" value={value.role} onChange={event => onChange({ role: event.target.value })} placeholder="Tea master, potter, grower" />
+          {lockedRole
+            ? <Line label="On Teajia as" id="f-role" value={lockedRole} disabled readOnly />
+            : <Line label="What you do" id="f-role" value={value.role} onChange={event => onChange({ role: event.target.value })} placeholder="Tea master, potter, grower" />}
           <Line label="Where you are" id="f-place" value={value.location_line} onChange={event => onChange({ location_line: event.target.value })} placeholder="City, country" />
         </div>
         <Line label="Name in Chinese" id="f-chinese-name" value={value.chinese_name} onChange={event => onChange({ chinese_name: event.target.value })} placeholder="Optional. Leave it empty if you don't have one." inputClassName={`${LINE_SANS} font-body text-ui-17`} />

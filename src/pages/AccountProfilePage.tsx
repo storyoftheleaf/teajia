@@ -11,6 +11,7 @@ import { ProfileShareLinks } from '../components/profile/ProfileShareLinks';
 import { canManageHostedMasterSelection, canStartProfileDraft, primaryTeaMasterAccount, profileReadiness } from '../components/profile/profileDomain';
 import type { FavoriteWrite, PaymentMethodWrite, SelfProfileUpdate } from '../components/profile/types';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
+import { familyPageAllowsPay, familyPageNeedsReview } from '../lib/familyContract';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { selectHasBundle, useAppStore } from '../lib/store';
@@ -27,7 +28,10 @@ export default function AccountProfilePage() {
   const canManageWriting = auth.isAdmin || selectHasBundle(accessState, 'publish');
   const profileQuery = useQuery({ queryKey: ['profile', 'self'], queryFn: api.profile.getSelf, enabled: auth.isAuthenticated });
   const favoritesQuery = useQuery({ queryKey: ['profile', 'favorites'], queryFn: api.profile.listFavorites, enabled: auth.isAuthenticated && Boolean(profileQuery.data?.profile) });
-  const paymentsQuery = useQuery({ queryKey: ['profile', 'payment-methods'], queryFn: api.profile.listPaymentMethods, enabled: auth.isAuthenticated && Boolean(profileQuery.data?.profile) });
+  // Pay is for tea masters only, so a family page never asks for payment details.
+  const showsPay = familyPageAllowsPay(profileQuery.data?.profile?.page_tier);
+  const isFamily = !familyPageNeedsReview(profileQuery.data?.profile?.page_tier);
+  const paymentsQuery = useQuery({ queryKey: ['profile', 'payment-methods'], queryFn: api.profile.listPaymentMethods, enabled: auth.isAuthenticated && Boolean(profileQuery.data?.profile) && showsPay });
 
   const refreshProfile = () => queryClient.invalidateQueries({ queryKey: ['profile'] });
   const updateProfile = useMutation({ mutationFn: (value: SelfProfileUpdate & { id?: string }) => api.profile.updateSelf(value), onSuccess: refreshProfile });
@@ -56,9 +60,9 @@ export default function AccountProfilePage() {
         <ArrowLeft size={16} aria-hidden="true" /> Back
       </button>
       <header className="mt-8 max-w-3xl">
-        <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-gold`}>Tea Master identity</p>
+        <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-gold`}>{isFamily ? 'Your page' : 'Tea Master identity'}</p>
         <h1 className={`${TYPOGRAPHY_CLASSES.h1} mt-3 text-tea-text`}>Your public profile</h1>
-        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-4 max-w-[62ch] text-tea-text-sec`}>One identity for your tea selections, writing, favorites, and payment destinations across every associated store.</p>
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-4 max-w-[62ch] text-tea-text-sec`}>{isFamily ? 'The tastings you share, a face if you want one, and where people can find you.' : 'One identity for your tea selections, writing, favorites, and payment destinations across every associated store.'}</p>
         <a href="/account/settings" className="tap-target mt-4 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Name, sign-in and appearance</a>
       </header>
 
@@ -69,26 +73,26 @@ export default function AccountProfilePage() {
       ) : (
         <div className="mt-14 space-y-20">
           <section aria-labelledby="profile-readiness-heading" className="space-y-5">
-            <div>
+            {!isFamily && <div>
               <h2 id="profile-readiness-heading" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Tea Master home</h2>
               {/* A tea master does not need a store, so the store sentence only
                   appears to someone who has one. */}
               <p className="mt-2 max-w-[64ch] text-ui-13 text-tea-text-sec">{profile.associations.length > 0
                 ? 'Your profile is the global identity. Your primary Tea Master account is the operational home for its own stock and public tea selection; guest associations remain collaborations.'
                 : 'Your profile is the global identity. It stands on its own: you can be found and paid here without selling anything. A store can be attached later.'}</p>
-            </div>
+            </div>}
             {/* A tea master with no store sees three items, not five, so the
                 wide layout follows the list rather than leaving two gaps. */}
-            <ul className={`grid gap-px overflow-hidden rounded-md border border-tea-border bg-tea-border sm:grid-cols-2 ${readiness.length > 3 ? 'lg:grid-cols-5' : 'lg:grid-cols-3'}`}>
+            {!isFamily && <ul className={`grid gap-px overflow-hidden rounded-md border border-tea-border bg-tea-border sm:grid-cols-2 ${readiness.length > 3 ? 'lg:grid-cols-5' : 'lg:grid-cols-3'}`}>
               {readiness.map(item => (
                 <li key={item.id} className="min-w-0 bg-tea-surface px-4 py-4">
                   <span className="flex items-center gap-2 text-ui-12 font-medium text-tea-text">{item.ready ? <CheckCircle size={16} className="shrink-0 text-tea-gold" aria-hidden="true" /> : <Circle size={16} className="shrink-0 text-tea-text-dim" aria-hidden="true" />}{item.label}</span>
                   <span className="mt-2 block text-ui-11 text-tea-text-sec">{item.detail}</span>
                 </li>
               ))}
-            </ul>
+            </ul>}
             {profile.is_published ? (
-              <ProfileShareLinks slug={profile.slug} accountSlug={primaryAccount?.account_slug} showPayment={publicPaymentCount > 0} />
+              <ProfileShareLinks slug={profile.slug} accountSlug={primaryAccount?.account_slug} showPayment={showsPay && publicPaymentCount > 0} />
             ) : (
               <p className="rounded-md border border-tea-border bg-tea-surface px-4 py-3 text-ui-12 text-tea-text-sec">Public links appear here after the profile is approved and published.</p>
             )}
@@ -119,7 +123,7 @@ export default function AccountProfilePage() {
             />
           )}
 
-          {paymentsQuery.isLoading ? (
+          {!showsPay ? null : paymentsQuery.isLoading ? (
             <ProfileSectionState title="Payment methods" loading />
           ) : paymentsQuery.isError ? (
             <ProfileSectionState title="Payment methods" message={paymentsQuery.error instanceof Error ? paymentsQuery.error.message : 'Payment methods could not be loaded.'} onRetry={() => paymentsQuery.refetch()} />
@@ -134,9 +138,9 @@ export default function AccountProfilePage() {
             />
           )}
 
-          <PayAccessPanel contributorName={profile.display_name} canShare={publicPaymentCount > 0} />
+          {showsPay && <PayAccessPanel contributorName={profile.display_name} canShare={publicPaymentCount > 0} />}
 
-          <section className="grid gap-5 border-t border-tea-border pt-8 md:grid-cols-2">
+          {!isFamily && <section className="grid gap-5 border-t border-tea-border pt-8 md:grid-cols-2">
             <div>
               <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Tea selection</h2>
               <p className="mt-2 text-ui-13 text-tea-text-sec">This is the visible selection from your hosted, public Tea Master home, not teas from stores where you are only a guest or collaborator.</p>
@@ -147,7 +151,7 @@ export default function AccountProfilePage() {
               <p className="mt-2 text-ui-13 text-tea-text-sec">Published articles attributed to this global profile appear automatically.</p>
               {canManageWriting ? <a href="/admin/magazine" className="tap-target mt-3 inline-flex text-ui-13 text-tea-gold hover:text-tea-gold-lt">Manage writing →</a> : <p className="mt-3 text-ui-12 text-tea-text-dim">Writing controls appear when your account has publishing access.</p>}
             </div>
-          </section>
+          </section>}
         </div>
       )}
     </main>

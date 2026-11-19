@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { api } from '../../lib/api';
+import { familyApi } from '../../lib/familyApi';
+import { FAMILY_PAGE_TIERS, FAMILY_PAGE_WORDS, type FamilyPageTier } from '../../lib/familyContract';
 import { useAppStore } from '../../lib/store';
 import {
   CONTRIBUTOR_LINK_PLATFORMS,
@@ -43,6 +45,8 @@ type Props = {
   contributor: AdminContributor | null;
   onClose: () => void;
   onSaved: () => void;
+  /** The owner changed the person's word. The list behind the panel reads it again. */
+  onWordChanged?: () => void;
 };
 
 const emptyWrite = (): ContributorWrite => ({
@@ -113,7 +117,7 @@ function statusWord(contributor: AdminContributor | null): string {
   return contributor.is_published === 1 ? 'Published' : 'Draft';
 }
 
-export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, onSaved }) => {
+export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, onSaved, onWordChanged }) => {
   const memberships = useAppStore(state => state.memberships);
   const activeAccountId = useAppStore(state => state.activeAccountId);
   const platformRole = useAppStore(state => state.platformRole);
@@ -133,6 +137,8 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const [requestingChanges, setRequestingChanges] = useState(false);
   const [reviewerNote, setReviewerNote] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [pageTier, setPageTier] = useState<FamilyPageTier | null>(contributor?.page_tier ?? null);
+  const [wordSaving, setWordSaving] = useState(false);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [sheet, setSheet] = useState<SheetId | null>(null);
   const sheetRef = useRef<SheetId | null>(null);
@@ -354,6 +360,22 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
     finally { setSaving(false); }
   };
 
+  // The owner's word for this person. Only the word changes: the address and the page stay as they are.
+  const chooseWord = async (tier: FamilyPageTier) => {
+    if (!persistedContributor || wordSaving || tier === pageTier) return;
+    setWordSaving(true);
+    setError(null);
+    try {
+      await familyApi.shop.setPageTier(persistedContributor.id, tier);
+      setPageTier(tier);
+      onWordChanged?.();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The word could not be changed. Try again.');
+    } finally {
+      setWordSaving(false);
+    }
+  };
+
   const unpublish = async () => {
     if (!persistedContributor || saving) return;
     setSaving(true); setError(null);
@@ -537,7 +559,24 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
           <EditorSheet id="behind" title="Page settings" note="Only you see this. Nothing here is printed on the page." open={sheet === 'behind'} onClose={closeSheet}>
             <div className="space-y-7">
               {!isNew && <p className="font-sans text-ui-13 text-tea-text-sec">teajia.com/people/<span className="text-tea-text">{slug}</span></p>}
-              <Line label="Their sign-in" id="f-their-sign-in" value={form.user_id ?? ''} onChange={event => setField('user_id', event.target.value)} autoCapitalize="none" placeholder="The account that may edit this page" hint="With it they can change their own page. Their changes come to you to approve." />
+              {!isNew && (
+                <div data-testid="section-page-word">
+                  <p className={LABEL}>On Teajia as</p>
+                  <div role="radiogroup" aria-label="On Teajia as" className="mt-1 flex flex-wrap items-baseline gap-x-5">
+                    {FAMILY_PAGE_TIERS.map(tier => {
+                      const on = pageTier === tier;
+                      return (
+                        <label key={tier} className={`tap-target inline-flex min-h-tap cursor-pointer items-center border-b font-display text-ui-17 transition-colors ${on ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}>
+                          <input type="radio" className="sr-only" name="page-word" value={tier} checked={on} disabled={wordSaving} onChange={() => void chooseWord(tier)} />
+                          {FAMILY_PAGE_WORDS[tier]}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1.5 font-sans text-ui-12 leading-relaxed text-tea-text-dim">{pageTier === null ? 'Not chosen yet. This page keeps what it had: its own words, its approval step and its Pay.' : 'Changes the word on the page. The address and everything written stay. Pay shows for tea masters only, and only family pages go live without your approval.'}</p>
+                </div>
+              )}
+              <Line label="Their sign-in" id="f-their-sign-in" value={form.user_id ?? ''} onChange={event => setField('user_id', event.target.value)} autoCapitalize="none" placeholder="The account that may edit this page" hint="With it they can change their own page. A family page takes their changes at once; any other page sends them to you to approve." />
               <div>
                 <label htmlFor="f-private-contact" className={LABEL}>Private contact</label>
                 <select id="f-private-contact" className={`mt-1 ${LINE_SANS}`} value={contactId} onFocus={loadCustomers} onChange={event => setContactId(event.target.value)}>
