@@ -522,6 +522,11 @@ describe('the shape a photograph is shown in', () => {
     expect(framed.status).toBe(200);
     expect(((await framed.json()) as any).photograph).toMatchObject({ shape: 'across', frame });
     expect(((await (await call(env, null, '/api/family/teas/tea-a/photographs')).json()) as any).family[0].frame).toEqual(frame);
+    // A straightened picture keeps its turn, in degrees.
+    const turned = { ...frame, rotation: -3.5 };
+    expect(((await (await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across', frame: turned } })).json()) as any).photograph.frame).toEqual(turned);
+    expect((await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across', frame: { ...frame, rotation: 999 } } })).status).toBe(400);
+    await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across', frame } });
     // A part outside the picture, a zoom outside the editor's range, or anything but numbers is refused and nothing changes.
     for (const bad of [
       { ...frame, area: { x: 60, y: 0, width: 62.5, height: 50 } },

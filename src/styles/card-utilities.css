@@ -7364,6 +7364,14 @@ body.cart-panel-open .commerce-dock {
 .photo-zoom__credit a { color:var(--tea-text); text-decoration:underline; text-underline-offset:4px; }
 .photo-zoom__actions { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-2); }
 .photo-zoom__note { margin:0; font-family:var(--font-body); font-size:var(--fs-ui-13); font-style:italic; color:var(--tea-text-dim); }
+/* The crop editor's bar: Cancel, the three shapes, Save, as icons along the foot of the photograph. */
+.crop-bar { display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); padding-inline:var(--space-3); padding-block:var(--space-1); background:var(--tea-surface); }
+.crop-bar__shapes { display:flex; align-items:center; gap:var(--space-1); }
+.crop-bar__shape[aria-pressed="true"], .photo-shape[aria-pressed="true"] { color:var(--tea-gold-lt); background:var(--tea-accent-sub); }
+.crop-bar__save { color:var(--tea-gold-lt); }
+.photo-zoom__shapes { display:flex; align-items:center; justify-content:center; gap:var(--space-1); }
+/* A turned photograph: the stage is the turned picture's outer box, placed so the framed part fills the shape. */
+.photo-stage { position:absolute; }
 .offered-photo { aspect-ratio:1; }
 .offered-photo[data-shape="upright"] { aspect-ratio:2 / 3; }
 .offered-photo[data-shape="across"] { aspect-ratio:3 / 2; }

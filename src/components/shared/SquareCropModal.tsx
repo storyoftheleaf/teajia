@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 import * as Dialog from '@radix-ui/react-dialog';
 import Cropper, { Area } from 'react-easy-crop';
-import { Loader2, RotateCw, X } from 'lucide-react';
+import { Check, Loader2, RectangleHorizontal, RectangleVertical, RotateCw, Square, X } from 'lucide-react';
 import { cropToSquareBlob, fileOrUrlToObjectUrl, type SquarePhotoFrame } from '../../lib/cropImage';
 import { clampPhotoFrameCrop, photoFrameSize } from '../../lib/photoFrameGeometry';
 
@@ -18,8 +18,6 @@ interface SquareCropModalProps {
   outputQuality?: number;
   initialFrame?: SquarePhotoFrame | null;
   allowAspectSelection?: boolean;
-  /** False where the saved frame is a part of the picture and cannot hold a turn. Default true. */
-  allowRotation?: boolean;
   /** 'takeover' when it opens over a full-screen layer such as the tasting. */
   layer?: 'popover' | 'takeover';
   loadError?: string;
@@ -28,9 +26,16 @@ interface SquareCropModalProps {
   onConfirm: (blob: Blob, frame: SquarePhotoFrame) => Promise<void> | void;
 }
 
+/** The three shapes, each drawn as its own outline. */
+const SHAPES = [
+  { label: 'Square', ratio: 1, Icon: Square },
+  { label: 'Portrait 2:3', ratio: 2 / 3, Icon: RectangleVertical },
+  { label: 'Landscape 3:2', ratio: 3 / 2, Icon: RectangleHorizontal },
+] as const;
+
 export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   isOpen, source, title = 'Crop photo', confirmLabel = 'Save',
-  outputSize, outputQuality, initialFrame, allowAspectSelection = false, allowRotation = true, layer = 'popover', loadError, onViewOriginal, onClose, onConfirm,
+  outputSize, outputQuality, initialFrame, allowAspectSelection = false, layer = 'popover', loadError, onViewOriginal, onClose, onConfirm,
 }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -198,46 +203,13 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   return <Dialog.Root open={isOpen} onOpenChange={open => { if (!open && !saving) onClose(); }}><Dialog.Portal>
     <Dialog.Content ref={dialogRef} aria-label={title} aria-describedby={undefined} onOpenAutoFocus={event => event.preventDefault()} className={`fixed inset-0 ${layer === 'takeover' ? 'z-takeover' : 'z-popover'} flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200`}>
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh]">
-        {/* Header, close on the left per project Cancel/Close rules.
-            Just one icon-button on the right (Rotate) so the toolbar reads
-            clearly; Reset moved to the slider row where it belongs. */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border">
-          <button
-            ref={closeRef}
-            onClick={onClose}
-            disabled={saving}
-            className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-          <Dialog.Title asChild><h3 className="text-base font-serif text-tea-text flex-1">{title}</h3></Dialog.Title>
-          {allowRotation && <button
-            onClick={handleRotate}
-            disabled={saving || !imageSrc || !imageLoaded}
-            className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-11 inline-flex items-center gap-1.5 tap-target disabled:opacity-40"
-            aria-label="Rotate 90° clockwise"
-            title="Rotate 90°"
-          >
-            <RotateCw size={14} />
-            <span className="hidden sm:inline">Rotate</span>
-          </button>}
+        <div className="px-5 py-3 border-b border-tea-border">
+          <Dialog.Title asChild><h3 className="text-base font-serif text-tea-text">{title}</h3></Dialog.Title>
         </div>
 
-        {/* Cropper viewport, square aspect ratio enforced. The image area
-            shows three layered states:
-              1. error: text on top of dim viewport
-              2. loading: spinner until the underlying <img> reports onLoad
-              3. ready: Cropper with full image
-            Layering means a transient load failure (CORS, 404) can't leave
-            the user staring at a blank square. */}
-        {allowAspectSelection && <div role="group" aria-label="Photo frame shape" className="flex flex-wrap justify-center gap-2 px-5 py-2">
-          {([{ label: 'Square', ratio: 1 }, { label: 'Portrait 2:3', ratio: 2 / 3 }, { label: 'Landscape 3:2', ratio: 3 / 2 }]).map(option => <Button
-            key={option.label} type="button" variant="chip" aria-pressed={aspect === option.ratio} disabled={saving}
-            onClick={() => { setAspect(option.ratio); setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, rotation, option.ratio)); }}>
-            {option.label}
-          </Button>)}
-        </div>}
+        {/* The photograph. Three layered states: an error in words, a spinner
+            until the picture reports its size, then the picture itself, so a
+            failed load can never leave a blank box. */}
         <div ref={setViewportNode} className="relative w-full aspect-square bg-black/60 overflow-hidden">
           {imageSrc && frameSize.width > 0 && (
             <Cropper
@@ -271,10 +243,47 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           )}
         </div>
 
-        {/* Zoom + Reset row, terse help, no run-on legalese */}
+        {/* One row of icons along the foot of the photograph: Cancel on the
+            left, the three shapes in the middle, Save on the right. */}
+        <div className="crop-bar" data-testid="crop-bar">
+          <Button ref={closeRef} type="button" variant="icon" onClick={onClose} disabled={saving} aria-label="Cancel" title="Cancel">
+            <X size={20} aria-hidden="true" />
+          </Button>
+          {allowAspectSelection && <div role="group" aria-label="Photo frame shape" className="crop-bar__shapes">
+            {SHAPES.map(option => <Button
+              key={option.label} type="button" variant="icon" aria-pressed={aspect === option.ratio} aria-label={option.label} title={option.label}
+              disabled={saving} className="crop-bar__shape"
+              onClick={() => { setAspect(option.ratio); setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, rotation, option.ratio)); }}>
+              <option.Icon size={20} aria-hidden="true" />
+            </Button>)}
+          </div>}
+          <Button
+            type="button" variant="icon" onClick={handleConfirm} aria-label={confirmLabel} title={confirmLabel} className="crop-bar__save"
+            disabled={saving || !imageSrc || !imageLoaded || !croppedAreaPixels || frameSize.width <= 0}
+          >
+            {saving ? <Loader2 className="animate-spin" size={20} aria-hidden="true" /> : <Check size={20} aria-hidden="true" />}
+          </Button>
+        </div>
+
+        {/* Rotate first: a crooked picture is the thing most worth fixing. Zoom under it. */}
         <div className="px-5 py-3 border-t border-tea-border">
           <div className="flex items-center gap-3">
-            <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-10 shrink-0">Zoom</span>
+            <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-12 shrink-0">Rotate</span>
+            <input type="range" min={-45} max={45} step={0.1} value={straighten}
+              aria-label="Rotation" disabled={!imageSrc || !imageLoaded || saving}
+              className="flex-1 accent-tea-gold"
+              onChange={event => {
+                const value = Number(event.target.value);
+                setStraighten(value);
+                setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, turns + value, aspect));
+              }} />
+            <output className="w-10 shrink-0 text-right text-ui-11 text-tea-text-sec tabular-nums" aria-label="Rotation angle">{Number(straighten.toFixed(1))}°</output>
+            <Button type="button" variant="icon" onClick={handleRotate} disabled={saving || !imageSrc || !imageLoaded} aria-label="Rotate 90° clockwise" title="Turn a quarter">
+              <RotateCw size={16} aria-hidden="true" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-12 shrink-0">Zoom</span>
             <input
               type="range"
               min={1}
@@ -286,53 +295,14 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               className="flex-1 accent-tea-gold"
               aria-label="Zoom"
             />
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={saving || !imageSrc || !!error}
-              className="shrink-0 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40"
-              title="Reset zoom, position and rotation"
-            >
-              Reset
-            </button>
+            <Button type="button" variant="quiet" size="sm" onClick={handleReset} disabled={saving || !imageSrc || !!error} title="Reset zoom, position and rotation">Reset</Button>
           </div>
-          {allowRotation && <div className="flex items-center gap-3 mt-2">
-            <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-10 shrink-0">Rotate</span>
-            <input type="range" min={-45} max={45} step={0.1} value={straighten}
-              aria-label="Rotation" disabled={!imageSrc || !imageLoaded || saving}
-              className="flex-1 accent-tea-gold"
-              onChange={event => {
-                const value = Number(event.target.value);
-                setStraighten(value);
-                setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, turns + value, aspect));
-              }} />
-            <output className="text-ui-11 text-tea-text-sec tabular-nums" aria-label="Rotation angle">{Number(straighten.toFixed(1))}°</output>
-          </div>}
-          <p className="text-ui-10 text-tea-text-sec mt-1.5">
-            {onViewOriginal ? 'Original kept. Drag to frame · pinch or scroll to zoom' : 'Drag to position · pinch or scroll to zoom'}
-          </p>
-        </div>
-
-        {/* Footer: Cancel left, Save right (project rule) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-tea-border">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="px-4 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors rounded-md tap-target"
-          >
-            Cancel
-          </button>
-          {onViewOriginal && <Button type="button" variant="ghost" className="btn-sm" disabled={saving} onClick={onViewOriginal}>View original</Button>}
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={saving || !imageSrc || !imageLoaded || !croppedAreaPixels || frameSize.width <= 0}
-            className="btn-primary hover:opacity-90 tap-target"
-          >
-            {saving && <Loader2 className="animate-spin" size={13} />}
-            {confirmLabel}
-          </button>
+          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-ui-10 text-tea-text-sec">
+              {onViewOriginal ? 'Original kept. Drag to frame · pinch to zoom' : 'Drag to position · pinch to zoom'}
+            </p>
+            {onViewOriginal && <Button type="button" variant="ghost" className="btn-sm" disabled={saving} onClick={onViewOriginal}>View original</Button>}
+          </div>
         </div>
       </div>
     </Dialog.Content>

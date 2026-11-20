@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
-import { PhotographCrop, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
+import { PhotographCrop, PhotographShapeChoice, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
 import type { FamilyPhotographFrame, FamilyPhotographShape } from '../../lib/familyContract';
 import { SoldOutLine } from '../people/PersonTastings';
 import { personPath, type TeaRowPhotograph } from './useTeaFamily';
@@ -69,6 +69,7 @@ export function TeaPhotographRow({
         )}
         {open?.mine && (
           <>
+            <PhotographShapeChoice shape={open.shape} onChoose={shape => onShape(open.id, shape, null)} />
             <div className="photo-zoom__actions">
               <PhotographCrop photo={toZoom(open)} onSave={(shape, frame) => onShape(open.id, shape, frame)} />
               {open.isCover ? (

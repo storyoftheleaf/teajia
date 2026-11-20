@@ -215,6 +215,16 @@ test('the tea page: plain when nobody has added anything, then the family strip,
       return Math.round((box.width / box.height) * 100) / 100;
     };
     expect(await thumbRatio(anaOrder[1])).toBe(1);
+    // One tap under the photograph: the three shapes as icons. Square is pressed to begin with.
+    await expect(zoom.getByTestId('photograph-shape-square')).toHaveAttribute('aria-pressed', 'true');
+    const tapped = page.waitForResponse(r => r.url().includes(`/photographs/${anaOrder[1]}/shape`) && r.request().method() === 'PUT');
+    await zoom.getByTestId('photograph-shape-upright').click();
+    expect((await tapped).status()).toBe(200);
+    expect(await thumbRatio(anaOrder[1])).toBe(0.67);
+    const back = page.waitForResponse(r => r.url().includes(`/photographs/${anaOrder[1]}/shape`) && r.request().method() === 'PUT');
+    await zoom.getByTestId('photograph-shape-square').click();
+    expect((await back).status()).toBe(200);
+    expect(await thumbRatio(anaOrder[1])).toBe(1);
     // "Crop" opens the editor Curate frames with: square first, 2:3 and 3:2 a tap away.
     // The practice shop's own photographs are files on this machine, so the editor may load them for real.
     await page.route(/\/api\/media\/family-photos\//, route => route.continue());
@@ -223,9 +233,16 @@ test('the tea page: plain when nobody has added anything, then the family strip,
       await zoom.getByTestId('photograph-crop').click();
       const editor = page.getByRole('dialog', { name: 'Crop photograph' });
       await expect(editor.getByRole('button', { name: 'Save' })).toBeEnabled({ timeout: 15_000 });
-      await expect(editor.getByRole('slider', { name: 'Rotation' }), 'a frame cannot hold a turn').toHaveCount(0);
+      // Cancel, the three shapes and Save are one row of icons under the photograph; Rotate sits above Zoom.
+      const bar = editor.getByTestId('crop-bar');
+      await expect(bar.getByRole('button')).toHaveCount(5);
+      const rotateY = (await editor.getByRole('slider', { name: 'Rotation' }).boundingBox())!.y;
+      const zoomY = (await editor.getByRole('slider', { name: 'Zoom' }).boundingBox())!.y;
+      expect((await bar.boundingBox())!.y).toBeLessThan(rotateY);
+      expect(rotateY, 'rotate comes before zoom').toBeLessThan(zoomY);
       await editor.getByRole('button', { name: shapeName }).click();
       await editor.getByRole('slider', { name: 'Zoom' }).fill('1.6');
+      await editor.getByRole('slider', { name: 'Rotation' }).fill('4');
       return editor;
     };
     let editor = await cropTo('Landscape 3:2');
@@ -236,12 +253,16 @@ test('the tea page: plain when nobody has added anything, then the family strip,
     expect(saved.status()).toBe(200);
     const frame = (await saved.json()).photograph.frame;
     expect(frame.zoom).toBe(1.6);
+    expect(frame.rotation, 'the straightening is kept').toBe(4);
+    // A turned picture sits in its stage, in the row and in the zoom.
+    await expect(row.locator(`li:has(img[src*="${anaOrder[1]}-small"]) .photo-stage img`)).toHaveCSS('transform', /matrix/);
+    await expect(zoom.locator('.photo-stage [data-testid="photograph-zoom-image"]')).toHaveCount(1);
     expect(frame.area.width, 'zoomed in, less than the whole picture shows').toBeLessThan(70);
     await expect(editor).toHaveCount(0);
     expect(await thumbRatio(anaOrder[1])).toBe(1.5);
     expect(await thumbRatio(anaOrder[0]), 'the other photograph stays square').toBe(1);
     // The thumbnail and the zoom show the framed part: the picture is larger than its box.
-    const pictureWider = async (selector: string) => page.locator(selector).evaluate(img => img.getBoundingClientRect().width / img.parentElement!.getBoundingClientRect().width);
+    const pictureWider = async (selector: string) => page.locator(selector).evaluate(img => img.getBoundingClientRect().width / img.closest('.photo-thumb, .photo-zoom__picture')!.getBoundingClientRect().width);
     expect(await pictureWider(`li:has(img[src*="${anaOrder[1]}-small"]) [data-testid="tea-photograph"] img`)).toBeGreaterThan(1.4);
     expect(await pictureWider('[data-testid="photograph-zoom-image"]')).toBeGreaterThan(1.4);
     await page.screenshot({ path: `${SHOTS}-4b-zoom-cropped.png` });

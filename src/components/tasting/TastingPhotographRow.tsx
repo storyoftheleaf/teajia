@@ -1,7 +1,7 @@
 import React from 'react';
 import type { FamilyPhotograph, FamilyPhotographFrame, FamilyPhotographShape } from '../../lib/familyContract';
 import { Button } from '../shared/Button';
-import { PhotographCrop, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
+import { PhotographCrop, PhotographShapeChoice, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
@@ -45,6 +45,7 @@ export function TastingPhotographRow({ photos, busy, onRemove, onShape }: {
       <a className={`${TYPOGRAPHY_CLASSES.accountMeta} tasting-photo-box-link`} href={HOW_WE_USE_PHOTOGRAPHS_PATH} target="_blank" rel="noopener noreferrer">How we use photographs</a>
     </div>
     <PhotographZoom photo={open ? toZoom(open) : null} onClose={() => setOpenId(null)}>
+      {open && onShape && <PhotographShapeChoice shape={open.shape} onChoose={shape => onShape(open.id, shape, null)} />}
       {open && (
         <div className="photo-zoom__actions">
           {onShape && <PhotographCrop photo={toZoom(open)} onSave={(shape, frame) => onShape(open.id, shape, frame)} />}

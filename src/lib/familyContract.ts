@@ -50,6 +50,8 @@ export function isFamilyPhotographShape(value: unknown): value is FamilyPhotogra
 export interface FamilyPhotographFrame {
   crop: { x: number; y: number };
   zoom: number;
+  /** Degrees the picture is turned, straightening included. Missing means none. */
+  rotation?: number;
   area: { x: number; y: number; width: number; height: number };
 }
 
@@ -57,14 +59,17 @@ export interface FamilyPhotographFrame {
 export function readFamilyPhotographFrame(value: unknown): FamilyPhotographFrame | null | undefined {
   if (value === null || value === undefined) return null;
   if (typeof value !== 'object') return undefined;
-  const v = value as { crop?: { x?: unknown; y?: unknown }; zoom?: unknown; area?: { x?: unknown; y?: unknown; width?: unknown; height?: unknown } };
+  const v = value as { rotation?: unknown; crop?: { x?: unknown; y?: unknown }; zoom?: unknown; area?: { x?: unknown; y?: unknown; width?: unknown; height?: unknown } };
   const numbers = [v.crop?.x, v.crop?.y, v.zoom, v.area?.x, v.area?.y, v.area?.width, v.area?.height];
   if (!numbers.every(n => typeof n === 'number' && Number.isFinite(n))) return undefined;
   const [cx, cy, zoom, x, y, width, height] = (numbers as number[]).map(n => Math.round(n * 1000) / 1000);
   // The part shown lies inside the picture, and the zoom is the editor's own range.
   const inside = x >= -0.5 && y >= -0.5 && width >= 1 && height >= 1 && x + width <= 100.5 && y + height <= 100.5;
   if (!inside || zoom < 1 || zoom > 4 || Math.abs(cx) > 10000 || Math.abs(cy) > 10000) return undefined;
-  return { crop: { x: cx, y: cy }, zoom, area: { x, y, width, height } };
+  const turn = v.rotation === undefined || v.rotation === null ? 0 : v.rotation;
+  if (typeof turn !== 'number' || !Number.isFinite(turn) || Math.abs(turn) > 360) return undefined;
+  const rotation = Math.round(turn * 10) / 10;
+  return { crop: { x: cx, y: cy }, zoom, ...(rotation ? { rotation } : {}), area: { x, y, width, height } };
 }
 
 /** Who can see a photograph or a tasting. Keep private is the default. */
