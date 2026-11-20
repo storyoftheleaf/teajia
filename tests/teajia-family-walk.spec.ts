@@ -391,7 +391,8 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       const notesY = (await page.getByText('Your notes', { exact: true }).boundingBox())!.y;
       seen.push(`"Your photographs" at y=${Math.round(rowY)}, "Your notes" at y=${Math.round(notesY)}`);
       expect(rowY).toBeLessThan(notesY);
-      await expect(page.getByText('Photographs you add may be shown on Teajia, with your name.')).toBeVisible();
+      await expect(page.getByRole('group', { name: 'Your photographs' }).locator('.tasting-photo-box').getByRole('link', { name: 'How we use photographs' })).toBeVisible();
+  await expect(page.getByText('may be shown on Teajia')).toHaveCount(0);
       await rowAgain.scrollIntoViewIfNeeded();
       await page.screenshot({ path: shot(4, 'two-photographs-above-notes') });
     });

@@ -7,7 +7,6 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 /** The short page Stage 7 writes. The link is a plain address so the tasting stays open behind it. */
 export const HOW_WE_USE_PHOTOGRAPHS_PATH = '/photographs';
-export const PHOTOGRAPH_NOTICE = 'Photographs you add may be shown on Teajia, with your name.';
 export const NOTES_NOTICE = 'Notes may be used to help describe the tea and help others learn about it.';
 
 /**
@@ -38,11 +37,9 @@ export function TastingPhotographRow({ photos, busy, onRemove }: {
       {photos.length === 0 && !busy && <p className={TYPOGRAPHY_CLASSES.accountMeta}>Tap the camera at the top to add one.</p>}
       {photos.map(photo => <PhotographThumb key={photo.id} photo={toZoom(photo)} size="tasting" onOpen={setOpenId} testId="tasting-photograph" />)}
       {busy && <p className={TYPOGRAPHY_CLASSES.accountMeta} role="status">Adding your photograph…</p>}
+      {/* The whole notice is this one link, inside the box the photographs sit in. */}
+      <a className={`${TYPOGRAPHY_CLASSES.accountMeta} tasting-photo-box-link`} href={HOW_WE_USE_PHOTOGRAPHS_PATH} target="_blank" rel="noopener noreferrer">How we use photographs</a>
     </div>
-    <p className={`${TYPOGRAPHY_CLASSES.accountMeta} tasting-impression-notice`}>
-      {PHOTOGRAPH_NOTICE}{' '}
-      <a href={HOW_WE_USE_PHOTOGRAPHS_PATH} target="_blank" rel="noopener noreferrer">How we use photographs</a>
-    </p>
     <PhotographZoom photo={open ? toZoom(open) : null} onClose={() => setOpenId(null)}>
       {open && (
         <div className="photo-zoom__actions">

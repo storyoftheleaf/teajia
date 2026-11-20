@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { TastingData } from '../../types';
 import { YourImpression, IMPRESSION_NOTE_ID, impressionNoteText, noteDateLabel, sealEarlierDraft, updateImpressionNote } from './YourImpression';
-import { TastingPhotographRow, PHOTOGRAPH_NOTICE, NOTES_NOTICE } from './TastingPhotographRow';
+import { TastingPhotographRow, NOTES_NOTICE } from './TastingPhotographRow';
 import type { FamilyPhotograph } from '../../lib/familyContract';
 
 const draftOn = (day: string): TastingData => ({ notes: [{ id: IMPRESSION_NOTE_ID, text: 'Sweet and deep', section: 'general', capturedAt: day }] });
@@ -44,7 +44,9 @@ describe('the photograph row', () => {
       photographRow={<TastingPhotographRow photos={[photo]} busy={false} onRemove={() => {}} />} notesNotice={NOTES_NOTICE} />);
     expect(html.indexOf('Your photographs')).toBeGreaterThan(-1);
     expect(html.indexOf('Your photographs')).toBeLessThan(html.indexOf('Your notes'));
-    expect(html).toContain(PHOTOGRAPH_NOTICE);
+    // The notice is the link alone, inside the box the photographs sit in.
+    expect(html).not.toContain('may be shown on Teajia');
+    expect(html).toMatch(/tasting-photo-box"[\s\S]*How we use photographs[\s\S]*<\/div>/);
     expect(html).toContain('How we use photographs');
     // Nothing is written under a thumbnail: "Remove from my page" is in the zoom.
     expect(html).not.toContain('Remove from my page');

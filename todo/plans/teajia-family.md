@@ -32,6 +32,7 @@ Anyone can join Teajia, taste a tea with voice notes and photographs in the one 
 - **One row under the plaque.** The shop's chosen picture, the family's shared photographs and the signed-in member's own sit in one small row. Nothing is written on or under a thumbnail and there is no "From the family" heading.
 - **The zoom says everything.** Tapping a photograph opens it. "Photograph by Name" shows only there. On a member's own photograph the zoom offers "Use as my cover" (their photograph goes first in their row, seen only by them) and "Remove from my page". No dragging.
 - **In the tasting** the thumbnails are smaller and bare; "Remove from my page" is in the zoom.
+- **The photograph notice is the link alone.** "How we use photographs" sits inside the box the photographs are shown in. The longer sentence lives on that page, not in the tasting. This replaces the one-line notice in decision 6.
 - **Three shapes only.** Every family photograph is shown square, 2:3 or 3:2, picked from the file's own proportions (`src/lib/photographShape.ts`). The thumbnail and zoom are one shared part (`src/components/shared/Photographs.tsx`).
 
 ## Not building

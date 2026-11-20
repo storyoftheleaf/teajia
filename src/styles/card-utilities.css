@@ -7292,6 +7292,7 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-photos-label { display:block; color:var(--tea-text-dim); margin-bottom:10px; }
 .tasting-photo-box { display:flex; flex-wrap:wrap; align-items:flex-start; gap:10px; min-height:var(--space-12); padding:var(--space-3); border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); }
 .tasting-photo-box > p { margin:0; align-self:center; color:var(--tea-text-dim); }
+.tasting-photo-box-link { flex-basis:100%; color:var(--tea-text-sec); text-decoration:underline; text-underline-offset:2px; }
 .tasting-impression-notice { margin:8px 0 0; color:var(--tea-text-dim); }
 .tasting-impression-notice a { color:var(--tea-text-sec); text-decoration:underline; text-underline-offset:2px; }
 .tasting-impression-history time { display:block; margin-top:8px; color:var(--tea-text-dim); }

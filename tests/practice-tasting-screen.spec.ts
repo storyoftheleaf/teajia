@@ -91,7 +91,8 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   await expect(row).toBeVisible();
   const notesLabel = page.getByText('Your notes', { exact: true });
   expect((await row.boundingBox())!.y, 'Your photographs sits above Your notes').toBeLessThan((await notesLabel.boundingBox())!.y);
-  await expect(page.getByText('Photographs you add may be shown on Teajia, with your name.')).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Your photographs' }).locator('.tasting-photo-box').getByRole('link', { name: 'How we use photographs' })).toBeVisible();
+  await expect(page.getByText('may be shown on Teajia')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'How we use photographs' })).toBeVisible();
   await expect(page.getByText('Notes may be used to help describe the tea and help others learn about it.')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}-1-impression-empty.png` });
