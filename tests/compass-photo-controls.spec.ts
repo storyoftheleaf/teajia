@@ -34,15 +34,15 @@ async function photoServer(page: Page) {
   return { photos, state };
 }
 
-async function uploadWidePhoto(page: Page) {
-  const data = await page.evaluate(() => {
-    const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 300;
+async function uploadWidePhoto(page: Page, portrait = false) {
+  const data = await page.evaluate(portrait => {
+    const canvas = document.createElement('canvas'); canvas.width = portrait ? 300 : 600; canvas.height = portrait ? 600 : 300;
     const context = canvas.getContext('2d')!;
-    context.fillStyle = '#607050'; context.fillRect(0, 0, 200, 300);
-    context.fillStyle = '#c9b78a'; context.fillRect(200, 0, 200, 300);
-    context.fillStyle = '#564530'; context.fillRect(400, 0, 200, 300);
+    context.fillStyle = '#607050'; context.fillRect(0, 0, canvas.width / 3, canvas.height);
+    context.fillStyle = '#c9b78a'; context.fillRect(canvas.width / 3, 0, canvas.width / 3, canvas.height);
+    context.fillStyle = '#564530'; context.fillRect(canvas.width * 2 / 3, 0, canvas.width / 3, canvas.height);
     return canvas.toDataURL('image/jpeg').split(',')[1];
-  });
+  }, portrait);
   await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: 'tea.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(data, 'base64') });
 }
 
@@ -168,4 +168,49 @@ test('square, portrait and landscape choices reopen after reload without changin
   }
   expect(server.state.uploads).toBe(1);
   expect(server.state.frameWrites).toBe(3);
+});
+
+
+test('new portrait uploads start square and mixed thumbnail shapes keep one height', async ({ page }, testInfo) => {
+  const server = await photoServer(page);
+  await openCompass(page);
+  await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Mixed thumbnail frames');
+  await uploadWidePhoto(page, true);
+  const first = frameButton(page);
+  await expect(first).toBeVisible();
+  await expect(first.locator('img')).toHaveJSProperty('naturalHeight', 600);
+  const square = (await first.boundingBox())!;
+  expect(square.width).toBeCloseTo(square.height, 1);
+  expect(await first.locator('img').evaluate(image => getComputedStyle(image).objectFit)).toBe('cover');
+  expect(server.state.frameWrites).toBe(0);
+  await first.click();
+  const dialog = page.getByRole('dialog', { name: 'Frame photo', exact: true });
+  await expect(dialog.getByRole('button', { name: 'Square', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(dialog.getByRole('button', { name: 'Save framing' })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Portrait 2:3', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save framing' }).click();
+  await expect(dialog).toHaveCount(0);
+  await uploadWidePhoto(page);
+  await frameButton(page, 2).click();
+  await expect(dialog.getByRole('button', { name: 'Save framing' })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Landscape 3:2', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save framing' }).click();
+  await expect(dialog).toHaveCount(0);
+  await uploadWidePhoto(page, true);
+  await expect(frameButton(page, 3)).toBeVisible();
+  await expect.poll(async () => {
+    const boxes = await Promise.all([1, 2, 3].map(index => frameButton(page, index).boundingBox()));
+    return boxes.map(box => Math.round(box!.width / box!.height * 100));
+  }).toEqual([67, 150, 100]);
+  const boxes = (await Promise.all([1, 2, 3].map(index => frameButton(page, index).boundingBox()))).map(box => box!);
+  expect(Math.max(...boxes.map(box => box.height)) - Math.min(...boxes.map(box => box.height))).toBeLessThan(0.5);
+  expect(Math.max(...boxes.map(box => box.y)) - Math.min(...boxes.map(box => box.y))).toBeLessThan(0.5);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('mixed-same-height-thumbnails.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Save changes to this tea' }).filter({ visible: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/, visible: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
+  const mini = page.getByRole('button', { name: 'Photos for Mixed thumbnail frames', exact: true }).getByTestId('library-photo-thumb');
+  await expect.poll(async () => { const box = await mini.boundingBox(); return Math.round(box!.width / box!.height * 100); }).toBe(67);
 });

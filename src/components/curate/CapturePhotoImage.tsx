@@ -65,6 +65,8 @@ export function useCapturePhotoFrame(src?: string | null) {
   return useQuery({
     queryKey: ['capture-photo-frame', accountId, userId, src],
     enabled: !!identity && !!accountId && !!userId && isTokenScopedToAccount(accountId, userId),
+    staleTime: 30_000,
+    gcTime: 30_000,
     retry: false,
     queryFn: () => capturePhotoApi.frame(identity!.entryId, identity!.photoId, { accountId: accountId!, userId: userId! }),
   });
@@ -82,4 +84,16 @@ export function CapturePhotoImage({ src, stockPreview = false, ...props }: Captu
     return <AuthenticatedCapturePhoto {...props} src={src} stockPreview={stockPreview} />;
   }
   return <img {...props} src={mediaUrl(src)} />;
+}
+
+/** Upload orientation never chooses a frame. Only a saved, explicit choice
+ * changes the width; every thumbnail in the same row keeps its height. */
+export function CapturePhotoThumbnail({ src, small = false, ...props }: CapturePhotoImageProps & { small?: boolean }) {
+  const saved = useCapturePhotoFrame(src).data?.frame?.aspect;
+  const aspect = saved === 2 / 3 || saved === 3 / 2 ? saved : 1;
+  const height = small ? 'var(--space-8)' : '(var(--space-12) + var(--space-8))';
+  return <span className={`block overflow-hidden rounded-md border border-tea-border ${small ? 'h-8' : 'h-[calc(var(--space-12)+var(--space-8))]'}`}
+    style={{ width: `calc(${height} * ${aspect})` }}>
+    <CapturePhotoImage {...props} src={src} className="w-full h-full object-cover pointer-events-none" />
+  </span>;
 }

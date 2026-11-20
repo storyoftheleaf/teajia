@@ -1,4 +1,4 @@
-import { CapturePhotoImage } from '../curate/CapturePhotoImage';
+import { CapturePhotoThumbnail } from '../curate/CapturePhotoImage';
 import { Button } from '../shared/Button';
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
@@ -157,8 +157,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
               {/* The tea's own photo stands where the camera is (not with
                   `?form=classic`): same footprint, the count inside it past one. */}
               {showPhotoThumb ? (
-                <span className="relative block h-8 w-8" data-testid="library-photo-thumb">
-                  <CapturePhotoImage src={validPhotos[0]} alt="" className="h-8 w-8 rounded-md border border-tea-border object-cover" />
+                <span className="relative inline-block align-middle" data-testid="library-photo-thumb">
+                  <CapturePhotoThumbnail src={validPhotos[0]} alt="" small />
                   {validPhotos.length > 1 && (
                     <span className="absolute bottom-0.5 right-0.5 rounded-md bg-tea-bg px-1 text-ui-10 tabular-nums leading-tight text-tea-text">{validPhotos.length}</span>
                   )}

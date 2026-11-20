@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 import * as Dialog from '@radix-ui/react-dialog';
 import Cropper, { Area } from 'react-easy-crop';
-import { Loader2, RotateCw, X } from 'lucide-react';
+import { Loader2, RotateCw, X, Square, RectangleVertical, RectangleHorizontal } from 'lucide-react';
 import { cropToSquareBlob, fileOrUrlToObjectUrl, type SquarePhotoFrame } from '../../lib/cropImage';
 import { clampPhotoFrameCrop, photoFrameSize } from '../../lib/photoFrameGeometry';
 
@@ -228,10 +228,10 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
             Layering means a transient load failure (CORS, 404) can't leave
             the user staring at a blank square. */}
         {allowAspectSelection && <div role="group" aria-label="Photo frame shape" className="flex flex-wrap justify-center gap-2 px-5 py-2">
-          {([{ label: 'Square', ratio: 1 }, { label: 'Portrait 2:3', ratio: 2 / 3 }, { label: 'Landscape 3:2', ratio: 3 / 2 }]).map(option => <Button
-            key={option.label} type="button" variant="chip" aria-pressed={aspect === option.ratio} disabled={saving}
+          {([{ label: 'Square', ratio: 1, text: '1:1', icon: Square }, { label: 'Portrait 2:3', ratio: 2 / 3, text: '2:3', icon: RectangleVertical }, { label: 'Landscape 3:2', ratio: 3 / 2, text: '3:2', icon: RectangleHorizontal }]).map(option => <Button
+            key={option.label} type="button" variant="chip" aria-label={option.label} title={option.label} icon={<option.icon size={14} aria-hidden="true" />} aria-pressed={aspect === option.ratio} disabled={saving}
             onClick={() => { setAspect(option.ratio); setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, rotation, option.ratio)); }}>
-            {option.label}
+            {option.text}
           </Button>)}
         </div>}
         <div ref={setViewportNode} className="relative w-full aspect-square bg-black/60 overflow-hidden">
