@@ -548,26 +548,26 @@ describe('the shape a photograph is shown in', () => {
     expect((await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across' } })).status).toBe(404);
   });
 
-  it('the frame comes from migration 0072: one empty column, no row touched', () => {
-    const sql = readFileSync(`${MIGRATIONS_DIR}/0072_member_photograph_frame.sql`, 'utf8');
+  it('the frame comes from migration 0076: one empty column, no row touched', () => {
+    const sql = readFileSync(`${MIGRATIONS_DIR}/0076_member_photograph_frame.sql`, 'utf8');
     const statements = splitStatements(sql);
     expect(statements).toHaveLength(1);
     expect(statements[0]).toMatch(/ALTER TABLE member_photographs ADD COLUMN frame TEXT$/);
     const { db, applied } = seedFromMigrations();
-    expect(applied).toContain('0072_member_photograph_frame.sql');
+    expect(applied).toContain('0076_member_photograph_frame.sql');
     const column = (db.prepare(`SELECT dflt_value, "notnull" AS required FROM pragma_table_info('member_photographs') WHERE name = 'frame'`).get()) as any;
     expect(column).toMatchObject({ dflt_value: null, required: 0 });
     db.close();
   });
 
-  it('comes from migration 0071, which adds one column with a default and touches no row', () => {
-    const sql = readFileSync(`${MIGRATIONS_DIR}/0071_member_photograph_shape.sql`, 'utf8');
+  it('comes from migration 0075, which adds one column with a default and touches no row', () => {
+    const sql = readFileSync(`${MIGRATIONS_DIR}/0075_member_photograph_shape.sql`, 'utf8');
     const statements = splitStatements(sql);
     expect(statements).toHaveLength(1);
     expect(statements[0]).toMatch(/ALTER TABLE member_photographs ADD COLUMN shape TEXT NOT NULL DEFAULT 'square'/);
     expect(sql).not.toMatch(/\b(UPDATE|DELETE|INSERT)\b/);
     const { db, applied } = seedFromMigrations();
-    expect(applied).toContain('0071_member_photograph_shape.sql');
+    expect(applied).toContain('0075_member_photograph_shape.sql');
     const column = (db.prepare(`SELECT dflt_value, "notnull" AS required FROM pragma_table_info('member_photographs') WHERE name = 'shape'`).get()) as any;
     expect(column).toMatchObject({ dflt_value: "'square'", required: 1 });
     db.close();
@@ -576,12 +576,12 @@ describe('the shape a photograph is shown in', () => {
 
 describe('migration 0069', () => {
   it('adds tables and indexes only, and applies on top of the migration ledger', () => {
-    const sql = readFileSync(`${MIGRATIONS_DIR}/0069_teajia_family.sql`, 'utf8');
+    const sql = readFileSync(`${MIGRATIONS_DIR}/0073_teajia_family.sql`, 'utf8');
     for (const statement of splitStatements(sql)) {
       expect(statement).toMatch(/^(--[^\n]*\n\s*)*CREATE (TABLE|INDEX|UNIQUE INDEX) IF NOT EXISTS/);
     }
     const { db, applied } = seedFromMigrations();
-    expect(applied).toContain('0069_teajia_family.sql');
+    expect(applied).toContain('0073_teajia_family.sql');
     const tables = (db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN
       ('member_photographs', 'member_tea_covers', 'member_tasting_shares', 'restock_requests', 'family_reports', 'family_hides') ORDER BY name`).all() as any[])
       .map(row => row.name);

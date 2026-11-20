@@ -18,6 +18,9 @@ interface SquareCropModalProps {
   outputQuality?: number;
   initialFrame?: SquarePhotoFrame | null;
   allowAspectSelection?: boolean;
+  /** The frame's shape, width over height. Alone it is fixed (a story frame's
+   *  4:5); with allowAspectSelection it is the shape the editor opens on. */
+  frameAspect?: number;
   /** 'takeover' when it opens over a full-screen layer such as the tasting. */
   layer?: 'popover' | 'takeover';
   loadError?: string;
@@ -84,7 +87,7 @@ const SHAPES = [
 
 export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   isOpen, source, title = 'Crop photo', confirmLabel = 'Save',
-  outputSize, outputQuality, initialFrame, allowAspectSelection = false, layer = 'popover', loadError, onViewOriginal, onClose, onConfirm,
+  outputSize, outputQuality, initialFrame, allowAspectSelection = false, frameAspect = 1, layer = 'popover', loadError, onViewOriginal, onClose, onConfirm,
 }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -167,7 +170,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     setError(null);
     setCrop(initialFrame?.crop ?? { x: 0, y: 0 });
     setZoom(initialFrame?.zoom ?? 1);
-    setAspect(allowAspectSelection ? initialFrame?.aspect ?? 1 : 1);
+    setAspect(allowAspectSelection ? initialFrame?.aspect ?? frameAspect : frameAspect);
     const angle = initialFrame?.rotation ?? 0;
     const base = Math.round(angle / 90) * 90;
     setTurns(base); setStraighten(angle - base);
@@ -210,7 +213,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
       cancelled = true;
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
-  }, [isOpen, source, initialFrame, allowAspectSelection]);
+  }, [isOpen, source, initialFrame, allowAspectSelection, frameAspect]);
 
   const onCropComplete = useCallback((areaPercent: Area, croppedPixels: Area) => {
     areaPercentRef.current = areaPercent;

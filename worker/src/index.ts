@@ -1,3 +1,5 @@
+import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
+import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
 import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
 import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from './paypalSandbox';
@@ -185,7 +187,7 @@ import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDe
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { familyMediaVerdict } from './familyMedia';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
-interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv {
+interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, ShippingNotificationEnv {
   DB: D1Database;
   SHOP_PICKUP_ACCOUNT_ID?: string;
   SHOP_US_SHIPPING_ACCOUNT_ID?: string;
@@ -5216,6 +5218,14 @@ async function applyConfirmedPaymentStock(
 }
 
 // GET /api/invoices/:id/payments — the payment history on one order.
+const handleGetShippingNotification: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const invoice = await env.DB.prepare('SELECT id FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL').bind(params.id, ctx.accountId).first();
+  if (!invoice) return json({ error: 'Order not found' }, 404);
+  return json(await getShippingQuoteNotificationStatus(env.DB, ctx.accountId, params.id));
+};
+
 const handleGetInvoicePayments: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
@@ -5972,7 +5982,7 @@ async function namesForLines(
   );
 }
 
-const handleUpdateInvoice: Handler = async (request, env, params) => {
+const handleUpdateInvoice: Handler = async (request, env, params, execution) => {
   const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
@@ -6038,6 +6048,9 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   const lease = await claimInvoiceLinkLease(env, accountId, params.id);
   if (!lease) return restError(409, 'Order is being changed elsewhere', 'invoice_busy');
   const editClaim = lease.claimToken;
+  const quoteChanged = Object.prototype.hasOwnProperty.call(body, 'shipping_cost_usd') &&
+    (Number(body.shipping_cost_usd) !== Number(lease.invoice.shipping_cost_usd) || lease.invoice.shipping_quote_status === 'requested');
+  const quoteRevision = Number(lease.invoice.shipping_quote_revision ?? 0) + (quoteChanged ? 1 : 0);
   if (lease.invoice.status !== invoice.status || Number(lease.invoice.inventory_deducted) !== Number(invoice.inventory_deducted)) {
     await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
     return restError(409, 'Order changed before editing', 'invoice_edit_conflict');
@@ -6111,9 +6124,10 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
         .bind(params.id, accountId, params.id, accountId, editClaim));
     }
     const updateIndex = statements.length;
-    statements.push(env.DB.prepare(`UPDATE invoices SET ${sets},fulfillment_claim_token=NULL,fulfillment_claimed_at=NULL
+    statements.push(env.DB.prepare(`UPDATE invoices SET ${sets}${quoteChanged ? ',shipping_quote_revision=shipping_quote_revision+1' : ''},fulfillment_claim_token=NULL,fulfillment_claimed_at=NULL
       WHERE id=? AND account_id=? AND fulfillment_claim_token=? AND status=? AND inventory_deducted=?`)
       .bind(...cols.map(c => body[c] ?? null), params.id, accountId, editClaim, invoice.status, invoice.inventory_deducted));
+    if (quoteChanged) statements.push(buildShippingQuoteNotificationInsert(env.DB, { accountId, invoiceId: params.id, expectedRevision: quoteRevision }));
     const results = await env.DB.batch(statements);
     if (!Number(results[updateIndex]?.meta?.changes || 0)) {
       await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
@@ -6132,7 +6146,14 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
     if (current) payment = await recomputeInvoicePaymentStatus(env, current);
   }
   await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
-  return json({ success: true, payment });
+  if (quoteChanged || body.status === 'Pending') {
+    const delivery = processPendingShippingQuoteNotifications(env.DB, env, { accountId, invoiceId: params.id, limit: 1 })
+      .catch(() => console.error('Shipping payment notification processing failed'));
+    if (execution?.waitUntil) execution.waitUntil(delivery); else await delivery;
+  }
+  const shipping_notification = invoice.source_inquiry_id
+    ? await getShippingQuoteNotificationStatus(env.DB, accountId, params.id) : undefined;
+  return json({ success: true, payment, ...(shipping_notification ? { shipping_notification } : {}) });
 };
 
 const handleDeleteInvoice: Handler = async (request, env, params) => {
@@ -15050,6 +15071,11 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       const handoffNote = whatsappHandoff ? 'Customer will start the WhatsApp chat; not yet contacted.' : '';
       const requestMessage = [location ? `Shipping location: ${location}` : '', handoffNote, notes].filter(Boolean).join('\n\n') || null;
       const customerPhone = inquiryPhone(phoneCandidate) || inquiryPhone(contact);
+      const shippingTarget = env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED === 'true' && env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID === accountId
+        ? await prepareShippingNotificationTarget(env.DB, env, { accountId, inquiryId: requestId,
+          trackingToken: normalized.value.trackingToken, email: inquiryEmail(contact) ? contact : null,
+          whatsappNumber: whatsappRecipient, whatsappConsentAt: whatsappRecipient ? new Date().toISOString() : null })
+        : null;
       let invoiceNumber = '';
       let committed = false;
       let lastError: unknown;
@@ -15100,6 +15126,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           })] : []),
         ];
         try {
+          if (shippingTarget) statements.push(shippingTarget);
           await env.DB.batch(statements);
           committed = true;
         } catch (error) {
@@ -15285,7 +15312,7 @@ const handleGetInquiries: Handler = async (request, env) => {
   return json({ inquiries: parsed });
 };
 
-const handleGetInquiryByRef: Handler = async (request, env, params) => {
+const handleGetInquiryByRef: Handler = async (request, env, params, execution) => {
   const token = params.ref;
   if (!isValidTrackingToken(token)) return json({ error: 'Not found' }, 404);
   const tokenHash = await sha256Hex(token);
@@ -15309,6 +15336,28 @@ const handleGetInquiryByRef: Handler = async (request, env, params) => {
     return json({ error: 'Not found' }, 404);
   }
   const selectedInvoiceId = requestedInvoiceId || row.converted_invoice_id;
+
+  // The capability has already resolved to this inquiry. Recover old customer
+  // links without rotating them or deriving an address from an untrusted caller.
+  if (env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED === 'true' && env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID === row.account_id) {
+    const target = await env.DB.prepare('SELECT tracking_token_sealed FROM order_shipping_notification_targets WHERE account_id=? AND inquiry_id=?')
+      .bind(row.account_id, row.id).first<{ tracking_token_sealed: string | null }>();
+    if (!target?.tracking_token_sealed) {
+      const identity = await env.DB.prepare(`SELECT q.email,
+        (SELECT n.recipient_number FROM order_whatsapp_outbox n WHERE n.account_id=q.account_id AND n.invoice_id=q.converted_invoice_id AND n.message_purpose='customer_confirmation' AND n.consent_at IS NOT NULL LIMIT 1) AS whatsapp_number,
+        (SELECT n.consent_at FROM order_whatsapp_outbox n WHERE n.account_id=q.account_id AND n.invoice_id=q.converted_invoice_id AND n.message_purpose='customer_confirmation' AND n.consent_at IS NOT NULL LIMIT 1) AS consent_at
+        FROM inquiries q WHERE q.id=? AND q.account_id=?`).bind(row.id,row.account_id).first<{email:string|null;whatsapp_number:string|null;consent_at:string|null}>();
+      if (identity) {
+        await (await prepareShippingNotificationTarget(env.DB, env, {accountId:row.account_id,inquiryId:row.id,trackingToken:token,
+          email:inquiryEmail(identity.email || '') ? identity.email : null,whatsappNumber:identity.whatsapp_number,whatsappConsentAt:identity.consent_at})).run();
+        if (selectedInvoiceId) {
+          const delivery=processPendingShippingQuoteNotifications(env.DB,env,{accountId:row.account_id,invoiceId:selectedInvoiceId,limit:1})
+            .catch(()=>console.error('Shipping payment notification recovery failed'));
+          if(execution?.waitUntil)execution.waitUntil(delivery);else await delivery;
+        }
+      }
+    }
+  }
 
   // There is nothing to pay until the request has been priced into an invoice,
   // so the pay link only appears once it has been converted.
@@ -30379,6 +30428,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/invoices/create-requests/:key', handleFindCreatedInvoice],
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
   ['GET', '/api/invoices/:id/payments', handleGetInvoicePayments],
+  ['GET', '/api/invoices/:id/shipping-notification', handleGetShippingNotification],
+  ['GET', '/api/public/shipping-notifications', async (_request, env) => json(await shippingNotificationReadiness(env.DB, env))],
   ['POST', '/api/invoices/:id/payments', handleRecordInvoicePayment],
   ['POST','/api/invoices/:id/refunds',handleRecordInvoiceRefund],
   ['POST', '/api/invoice-payments/:id/confirm', handleConfirmInvoicePayment],
@@ -31393,6 +31444,12 @@ const requestHandler = {
     } catch (error) {
       console.error('Customer order confirmation retry failed', error);
     }
+    // Metadata polling is independent of customer orders: approval can enable
+    // future WhatsApp shipping requests without another deploy or owner reply.
+    try { await refreshShippingWhatsAppApproval(env.DB, env); }
+    catch { console.error('Shipping WhatsApp template approval check failed'); }
+    try { await processPendingShippingQuoteNotifications(env.DB, env, { limit: 10 }); }
+    catch { console.error('Shipping payment notification retry failed'); }
     /* Rates first, and on their own.
      *
      * This used to be the last statement in the tick, after recording cleanup

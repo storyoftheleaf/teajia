@@ -1,7 +1,29 @@
 # Teajia family: member pages, photographs in the tasting, photographs on teas
 
-Status: built 2026-11-20 on the branch, all 19 lines passing in the practice shop. Not pushed, not live. Branch `claude/teajia-family` (cut from `origin/main` at `309ed992`).
+Status: built 2026-11-20, brought up to current main 2026-11-21, all 19 lines passing in the practice shop. Not live. Working branch `claude/teajia-family-current-b1158f` (the first build's branch `claude/teajia-family` is superseded by it).
 Picture of the plan on the real screens: https://claude.ai/artifact/XWhzBLWs9MY5Npv1GS5qTh
+
+## Where it stands (measured 2026-11-21 by the manager session)
+
+**Live on teajia.com.** Nothing of the family. The live site has the people list with two people (Adrian Rasmussen, Yan Jinwen), each person's page, a person's own editor and the shop's people editor. It also has the one shared photo editor and the calmer people-editor photo panel, which shipped on main while the family was being built.
+
+**Built and waiting for "ship".** Everything in this plan, merged with `origin/main` at `8c295582` on the working branch and pushed there (never to main). Measured on the merged branch:
+
+- `npm run lint`: passes. `npm run lint:colors`: passes. `npm run lint:worker-types`: 32 known errors, no drift.
+- `npm run test:src`: 3,527 passed, 11 skipped, 339 files. `npm run test:worker`: 3,261 passed, 255 files.
+- Practice-shop browser run: 9 of 9 specs passed, and the full walk passed lines 1 to 18. `npm run test:mobile`: 40 of 40. So all 19 "Done in full" lines still pass after the merge.
+- The merge had two conflicts. Main's shared photo editor was taken whole; the family's Crop button still opens it. One copy of the crop styles is kept (main's).
+- The four family migrations were renumbered from 0069 to 0072 up to **0073 to 0076**, because main took 0071 and 0072 for shipping notices. All four only add tables or one empty column; none reads, changes or adds a row, so no before-and-after page is needed.
+- The practice ports can now be set with `PRACTICE_API_PORT` and `PRACTICE_SITE_PORT`, because another session was holding 7813. This run used 8801 and 7821.
+
+**Open, in the order to take them.**
+
+1. Guest notes shows the middle of each offered picture, not the member's own crop.
+2. The family photograph zoom and the tasting's photograph row are not yet matched to the calmer people-editor photo panel that shipped on main.
+3. The storage reading in the i64os warning system (another repository) must land before launch.
+4. A lawyer's read of the "How we use photographs" page before launch.
+5. Adrian's own list for the member page and the tasting, asked for 2026-11-21, not yet received.
+6. Adrian says ship; then the live site is proven to carry it.
 
 ## What it is
 
@@ -33,7 +55,7 @@ Anyone can join Teajia, taste a tea with voice notes and photographs in the one 
 - **The zoom says everything.** Tapping a photograph opens it. "Photograph by Name" shows only there. On a member's own photograph the zoom offers "Use as my cover" (their photograph goes first in their row, seen only by them) and "Remove from my page". No dragging.
 - **In the tasting** the thumbnails are smaller and bare; "Remove from my page" is in the zoom.
 - **The photograph notice is the link alone.** "How we use photographs" sits inside the box the photographs are shown in. The longer sentence lives on that page, not in the tasting. This replaces the one-line notice in decision 6.
-- **Three shapes only, square by default.** Every family photograph is shown square. Its author can switch it to 2:3 or 3:2 with a button in the zoom (stored per photograph, migration 0071; `src/lib/photographShape.ts`). The thumbnail and zoom are one shared part (`src/components/shared/Photographs.tsx`).
+- **Three shapes only, square by default.** Every family photograph is shown square. Its author can switch it to 2:3 or 3:2 with a button in the zoom (stored per photograph, migration 0075; `src/lib/photographShape.ts`). The thumbnail and zoom are one shared part (`src/components/shared/Photographs.tsx`).
 
 ## Not building
 
@@ -98,6 +120,6 @@ Each line is checked by the walk, on a phone-sized screen, in the practice shop.
 ## If the night stops early
 
 Nothing half-built is merged. The last commit on the branch is the last stage that passed. The morning report says which checklist lines pass, which do not, and why.
-- **Crop, the way Curate does it.** A photograph is square to begin with. "Crop" in the zoom opens the editor Curate frames its photographs with (square, 2:3, 3:2, drag and pinch). Only the frame is saved, as numbers beside the photograph (migration 0072, one empty column); the stored picture is never changed, so a picture the shop approved cannot be swapped through a crop. The editor's turn control is off here, because a frame cannot hold a turn.
+- **Crop, the way Curate does it.** A photograph is square to begin with. "Crop" in the zoom opens the editor Curate frames its photographs with (square, 2:3, 3:2, drag and pinch). Only the frame is saved, as numbers beside the photograph (migration 0076, one empty column); the stored picture is never changed, so a picture the shop approved cannot be swapped through a crop. The editor's turn control is off here, because a frame cannot hold a turn.
 - **The tea's class is set into the plaque's border line.** "Dark tea" sits in the bottom line of the plaque, toward the right, in the line's own colour; the line stops for the word. It no longer sits above where the tea is from.
 - **No line about who sees a cover.** The button already says it.

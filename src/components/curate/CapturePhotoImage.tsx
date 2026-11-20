@@ -65,6 +65,8 @@ export function useCapturePhotoFrame(src?: string | null) {
   return useQuery({
     queryKey: ['capture-photo-frame', accountId, userId, src],
     enabled: !!identity && !!accountId && !!userId && isTokenScopedToAccount(accountId, userId),
+    staleTime: 30_000,
+    gcTime: 30_000,
     retry: false,
     queryFn: () => capturePhotoApi.frame(identity!.entryId, identity!.photoId, { accountId: accountId!, userId: userId! }),
   });
@@ -72,14 +74,39 @@ export function useCapturePhotoFrame(src?: string | null) {
 
 type CapturePhotoImageProps = ImgHTMLAttributes<HTMLImageElement> & { stockPreview?: boolean };
 
+/** Keep the reserved photo space quiet until the browser has decoded pixels.
+ * Remount on URL changes so an old photo's load state cannot reveal a new one. */
+function ReadyCapturePhoto({ style, onLoad, onError, ...props }: ImgHTMLAttributes<HTMLImageElement>) {
+  const [ready, setReady] = useState(false);
+  return <img {...props} style={{ ...style, visibility: ready ? style?.visibility : 'hidden' }}
+    onLoad={event => { setReady(event.currentTarget.naturalWidth > 0); onLoad?.(event); }}
+    onError={event => { setReady(false); onError?.(event); }} />;
+}
+
+function ResolvedCapturePhoto(props: ImgHTMLAttributes<HTMLImageElement>) {
+  return <ReadyCapturePhoto key={JSON.stringify([props.src, props.srcSet])} {...props} />;
+}
+
 function AuthenticatedCapturePhoto({ src, stockPreview, ...props }: CapturePhotoImageProps) {
   const url = useCapturePhotoUrl(src, stockPreview);
-  return <img {...props} src={url} />;
+  return <ResolvedCapturePhoto {...props} src={url} />;
 }
 
 export function CapturePhotoImage({ src, stockPreview = false, ...props }: CapturePhotoImageProps) {
   if (capturePhotoIdentity(src) || (stockPreview && getStockCapturePhotoId(src))) {
     return <AuthenticatedCapturePhoto {...props} src={src} stockPreview={stockPreview} />;
   }
-  return <img {...props} src={mediaUrl(src)} />;
+  return <ResolvedCapturePhoto {...props} src={mediaUrl(src)} />;
+}
+
+/** Upload orientation never chooses a frame. Only a saved, explicit choice
+ * changes the width; every thumbnail in the same row keeps its height. */
+export function CapturePhotoThumbnail({ src, small = false, ...props }: CapturePhotoImageProps & { small?: boolean }) {
+  const saved = useCapturePhotoFrame(src).data?.frame?.aspect;
+  const aspect = saved === 2 / 3 || saved === 3 / 2 ? saved : 1;
+  const height = small ? 'var(--space-8)' : 'var(--capture-photo-height)';
+  return <span className={small ? 'block overflow-hidden rounded-md border border-tea-border h-8' : 'capture-photo-thumbnail'}
+    style={{ width: `calc(${height} * ${aspect})` }}>
+    <CapturePhotoImage {...props} src={src} className="w-full h-full object-cover pointer-events-none" />
+  </span>;
 }

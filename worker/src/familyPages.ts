@@ -3,7 +3,7 @@
  * decisions 13 and 14.
  *
  * A member's person page is the same contributor row the tea masters use, with
- * one new word on it, `contributors.page_tier` (migration 0070):
+ * one new word on it, `contributors.page_tier` (migration 0074):
  *
  * - 'family'  anyone. Created on the first share. Live without review. No Pay.
  * - 'creator' only the owner grants it. The draft-and-approve gate. No Pay.

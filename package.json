@@ -50,7 +50,7 @@
     "tea-reference:teajia:preview": "node scripts/tea-reference-website-preview/teajia-preview.mjs",
     "sandbox:site:alt": "TEAJIA_API_PROXY=http://localhost:8787 VITE_API_URL=http://localhost:7788 vite --port 7788",
     "practice:api": "npm --prefix worker run practice",
-    "practice:site": "VITE_API_URL= TEAJIA_API_PROXY=http://127.0.0.1:8798 vite --host 127.0.0.1 --port 7813 --strictPort",
+    "practice:site": "VITE_API_URL= TEAJIA_API_PROXY=http://127.0.0.1:${PRACTICE_API_PORT:-8798} vite --host 127.0.0.1 --port ${PRACTICE_SITE_PORT:-7813} --strictPort",
     "practice": "concurrently --kill-others -n api,site -c magenta,cyan \"npm run practice:api\" \"npm run practice:site\"",
     "practice:seed": "npm --prefix worker run practice:seed"
   },

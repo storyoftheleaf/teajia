@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS contributors (
     links TEXT NOT NULL DEFAULT '[]',
     is_published INTEGER NOT NULL DEFAULT 0,
     unpublished_at TEXT,
-    -- 'family' | 'creator' | 'master'; NULL is a page from before the family. Migration 0070.
+    -- 'family' | 'creator' | 'master'; NULL is a page from before the family. Migration 0074.
     page_tier TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -295,6 +295,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     order_payment_deadline TEXT,
     fulfillment_method TEXT CHECK (fulfillment_method IS NULL OR fulfillment_method IN ('bali_pickup', 'us_shipping')),
     shipping_quote_status TEXT CHECK (shipping_quote_status IS NULL OR shipping_quote_status IN ('requested', 'confirmed')),
+    shipping_quote_revision INTEGER NOT NULL DEFAULT 0,
     tracking_number TEXT,
     stock_exception TEXT,
     source_inquiry_id TEXT,
@@ -3398,7 +3399,7 @@ CREATE TABLE IF NOT EXISTS private_session_reflections (
 );
 CREATE INDEX IF NOT EXISTS idx_session_reflections_owner ON private_session_reflections(account_id, user_id, updated_at);
 
--- Migration 0069: Teajia family (member photographs, covers, tasting shares,
+-- Migration 0073: Teajia family (member photographs, covers, tasting shares,
 -- restock requests, reports and hides). Copied from the migration verbatim.
 CREATE TABLE IF NOT EXISTS member_photographs (
   id TEXT PRIMARY KEY,
@@ -3540,3 +3541,51 @@ CREATE TABLE IF NOT EXISTS paypal_live_orders (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_paypal_live_active_quote
   ON paypal_live_orders(account_id, invoice_id, quote_key) WHERE state != 'failed';
+
+CREATE TABLE IF NOT EXISTS order_shipping_notification_targets (
+ account_id TEXT NOT NULL REFERENCES accounts(id),
+ inquiry_id TEXT NOT NULL REFERENCES inquiries(id),
+ channel TEXT CHECK(channel IS NULL OR channel IN ('email','whatsapp')),
+ recipient TEXT,
+ consent_at TEXT,
+ tracking_token_sealed TEXT,
+ unavailable_code TEXT,
+ created_at TEXT NOT NULL DEFAULT (datetime('now')),
+ PRIMARY KEY(account_id,inquiry_id)
+);
+CREATE TABLE IF NOT EXISTS shipping_payment_notifications (
+ id TEXT PRIMARY KEY,
+ account_id TEXT NOT NULL REFERENCES accounts(id),
+ invoice_id TEXT NOT NULL REFERENCES invoices(id),
+ quote_revision INTEGER NOT NULL,
+ quote_usd REAL NOT NULL CHECK(quote_usd > 0),
+ balance_usd REAL,
+ state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN ('pending','sending','accepted','retry_scheduled','config_required','review_required','suppressed','needs_contact')),
+ attempts INTEGER NOT NULL DEFAULT 0,
+ first_attempt_at TEXT,
+ next_attempt_at TEXT,
+ lease_token TEXT,
+ lease_expires_at TEXT,
+ provider_message_id TEXT,
+ accepted_at TEXT,
+ code TEXT,
+ created_at TEXT NOT NULL DEFAULT (datetime('now')),
+ updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+ UNIQUE(account_id,invoice_id,quote_revision)
+);
+CREATE INDEX IF NOT EXISTS idx_shipping_payment_notifications_pending
+ ON shipping_payment_notifications(state,next_attempt_at,created_at);
+-- Cached provider evidence only. No existing messages, contacts or settings are changed.
+CREATE TABLE IF NOT EXISTS shipping_whatsapp_approval (
+ account_id TEXT NOT NULL REFERENCES accounts(id),
+ template_name TEXT NOT NULL,
+ language TEXT NOT NULL,
+ business_account_id TEXT NOT NULL,
+ transport TEXT NOT NULL CHECK(transport IN ('kapso','meta')),
+ graph_version TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state IN ('approved','pending','rejected','unavailable','config_required')),
+ code TEXT,
+ checked_at TEXT NOT NULL,
+ last_approved_at TEXT,
+ PRIMARY KEY(account_id,template_name,language)
+);

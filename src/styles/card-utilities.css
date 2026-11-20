@@ -7364,10 +7364,11 @@ body.cart-panel-open .commerce-dock {
 .photo-zoom__credit a { color:var(--tea-text); text-decoration:underline; text-underline-offset:4px; }
 .photo-zoom__actions { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-2); }
 .photo-zoom__note { margin:0; font-family:var(--font-body); font-size:var(--fs-ui-13); font-style:italic; color:var(--tea-text-dim); }
+.photo-shape[aria-pressed="true"] { color:var(--tea-gold-lt); background:var(--tea-accent-sub); }
 /* The crop editor's bar: Cancel, the three shapes, Save, as icons along the foot of the photograph. */
 .crop-bar { display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); padding-inline:var(--space-3); padding-block:var(--space-1); background:var(--tea-surface); }
 .crop-bar__shapes { display:flex; align-items:center; gap:var(--space-1); }
-.crop-bar__shape[aria-pressed="true"], .photo-shape[aria-pressed="true"] { color:var(--tea-gold-lt); background:var(--tea-accent-sub); }
+.crop-bar__shape[aria-pressed="true"] { color:var(--tea-gold-lt); background:var(--tea-accent-sub); }
 .crop-bar__save { color:var(--tea-gold-lt); }
 /* The adjust tools under the bar: two round values and one ruler, as a phone's own photo editor has them. */
 .crop-tools { display:flex; flex-direction:column; gap:var(--space-2); padding-block:var(--space-3); border-top:var(--border-w) solid var(--tea-border); }

@@ -299,7 +299,7 @@ test.describe('guest public checkout', () => {
     await page.getByRole('radio', { name: 'WhatsApp', exact: true }).check();
     const contact = page.getByLabel('Your WhatsApp number', { exact: true });
     await contact.fill('+628111234567');
-    const consent = page.getByRole('checkbox', { name: /Send me a WhatsApp order confirmation/ });
+    const consent = page.getByRole('checkbox', { name: /Send me order and shipping payment updates/ });
     await expect(consent).not.toBeChecked();
     await consent.check();
     await contact.fill('+628111234568');

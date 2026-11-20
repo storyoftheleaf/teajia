@@ -1,7 +1,7 @@
 import { useAppStore } from '../../lib/store';
 import { CapturePhotoApproval } from '../curate/CapturePhotoApproval';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { capturePhotoIdentity, CapturePhotoImage, useCapturePhotoFrame, useCapturePhotoUpload, useCapturePhotoUrl } from '../curate/CapturePhotoImage';
+import { capturePhotoIdentity, CapturePhotoImage, CapturePhotoThumbnail, useCapturePhotoFrame, useCapturePhotoUpload, useCapturePhotoUrl } from '../curate/CapturePhotoImage';
 import { createPortal } from 'react-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useQueryClient } from '@tanstack/react-query';
@@ -773,16 +773,19 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <ChevronLeft size={20} />
             </button>
           )}
-          <motion.img
+          <motion.div
             key={lightboxIndex}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
-            src={selectedPhotoUrl}
-            alt={`Photo ${lightboxIndex + 1}`}
-            className={reviewPhoto === selectedPhoto ? 'hidden' : "max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"}
-            onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <CapturePhotoImage
+              src={selectedPhotoUrl}
+              alt={`Photo ${lightboxIndex + 1}`}
+              className={reviewPhoto === selectedPhoto ? 'hidden' : "max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
           {allowShopReview && selectedPhoto && <CapturePhotoApproval key={`${photoScope}:${selectedPhoto}`} src={selectedPhoto} imageUrl={selectedPhotoUrl} onReviewPhoto={setReviewPhoto} />}
           {lightboxIndex < allPhotos.length - 1 && (
             <button
@@ -856,25 +859,21 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                     lightboxTriggerRef.current = event.currentTarget;
                     if (onPhotoReplaced) setEditingPhotoUrl(url); else setLightboxIndex(i);
                   }}
-                  className="relative block w-[calc(var(--space-12)+var(--space-8))] aspect-square overflow-hidden rounded-md border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
+                  className="relative block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
                   aria-haspopup="dialog"
                   aria-label={onPhotoReplaced ? `Frame photo ${i + 1}` : `View photo ${i + 1}`}
-                  title={onPhotoReplaced ? 'Adjust square framing' : 'View photo'}
+                  title={onPhotoReplaced ? 'Adjust photo framing' : 'View photo'}
                 >
-                  <CapturePhotoImage
-                    src={url}
-                    alt={`Photo ${i + 1}`}
-                    className="w-full h-full object-contain pointer-events-none"
-                  />
+                  <CapturePhotoThumbnail src={url} alt={`Photo ${i + 1}`} />
                 </button>
                 {onRemovePhoto && photos && (
                   <button
                     type="button"
-                    className="btn-quiet btn-sm w-full"
+                    className="btn-icon tap-target capture-photo-remove"
                     aria-label={`Delete photo ${i + 1}`}
                     title="Delete photo"
                     onClick={() => onRemovePhoto(photos.indexOf(url))}
-                  >Delete</button>
+                  ><X aria-hidden /></button>
                 )}
               </div>
             )
@@ -885,7 +884,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <img
                   src={preview.localUrl}
                   alt={`Uploading ${i + 1}`}
-                  className={`w-[60px] h-[60px] rounded-md object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
+                  className={`capture-photo-thumbnail capture-photo-thumbnail-pending ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
                 />
                 {preview.uploading && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-md">
@@ -946,7 +945,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             className="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
             aria-haspopup="dialog"
             aria-label={onPhotoReplaced ? `Frame photo ${validPhotos.length}` : 'Photo actions'}
-            title={onPhotoReplaced ? 'Adjust square framing' : 'Photo actions'}
+            title={onPhotoReplaced ? 'Adjust photo framing' : 'Photo actions'}
           >
             <CapturePhotoImage
               src={heroValidUrl}
@@ -1082,7 +1081,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               aria-haspopup={onPhotoReplaced ? 'dialog' : 'menu'}
               aria-expanded={onPhotoReplaced ? !!editingPhotoUrl : menuPhotoIndex === 0}
               aria-label={onPhotoReplaced ? 'Frame photo 1' : 'Photo actions'}
-              title={onPhotoReplaced ? 'Adjust square framing' : 'Photo actions'}
+              title={onPhotoReplaced ? 'Adjust photo framing' : 'Photo actions'}
             >
               <CapturePhotoImage src={validPhotos[0]} alt="Photo 1" className="pointer-events-none h-full w-full object-cover" />
               {validPhotos.length > 1 && (

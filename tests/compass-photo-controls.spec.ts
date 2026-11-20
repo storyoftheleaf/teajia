@@ -6,7 +6,7 @@ type Photo = { original: Buffer; preview?: Buffer; frame: SquarePhotoFrame | nul
 async function photoServer(page: Page) {
   await installCompassHarness(page);
   const photos = new Map<string, Photo>();
-  const state = { refuse: false, uploads: 0, frameWrites: 0, originalReads: 0 };
+  const state = { refuse: false, uploads: 0, frameWrites: 0, originalReads: 0, readGate: null as Promise<void> | null, corrupt: false };
   await page.route('**/api/curate/capture/**', async route => {
     const request = route.request(), url = new URL(request.url());
     const match = url.pathname.match(/^(\/api\/curate\/capture\/[^/]+\/photos\/[^/]+)(\/frame)?$/);
@@ -29,41 +29,47 @@ async function photoServer(page: Page) {
       return route.fulfill({ json: { ok: true } });
     }
     if (url.searchParams.has('original')) state.originalReads += 1;
+    await state.readGate;
+    if (state.corrupt) return route.fulfill({ body: 'invalid image bytes', contentType: 'image/jpeg' });
     return route.fulfill({ body: url.searchParams.has('original') ? photo.original : photo.preview ?? photo.original, contentType: 'image/jpeg' });
   });
   return { photos, state };
 }
 
-async function uploadWidePhoto(page: Page) {
-  const data = await page.evaluate(() => {
-    const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 300;
+async function uploadWidePhoto(page: Page, portrait = false) {
+  const data = await page.evaluate(portrait => {
+    const canvas = document.createElement('canvas'); canvas.width = portrait ? 300 : 600; canvas.height = portrait ? 600 : 300;
     const context = canvas.getContext('2d')!;
-    context.fillStyle = '#607050'; context.fillRect(0, 0, 200, 300);
-    context.fillStyle = '#c9b78a'; context.fillRect(200, 0, 200, 300);
-    context.fillStyle = '#564530'; context.fillRect(400, 0, 200, 300);
+    context.fillStyle = '#607050'; context.fillRect(0, 0, canvas.width / 3, canvas.height);
+    context.fillStyle = '#c9b78a'; context.fillRect(canvas.width / 3, 0, canvas.width / 3, canvas.height);
+    context.fillStyle = '#564530'; context.fillRect(canvas.width * 2 / 3, 0, canvas.width / 3, canvas.height);
     return canvas.toDataURL('image/jpeg').split(',')[1];
-  });
+  }, portrait);
   await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: 'tea.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(data, 'base64') });
 }
 
 const frameButton = (page: Page, number = 1) => page.getByRole('button', { name: `Frame photo ${number}`, exact: true }).filter({ visible: true }).first();
 
-test('clicking a photo opens reversible square framing; Delete stays below the image', async ({ page }, testInfo) => {
+test('clicking a photo opens reversible square framing; a small corner X removes the photo', async ({ page }, testInfo) => {
   const server = await photoServer(page);
   await openCompass(page);
   await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Reversible photo framing');
   await uploadWidePhoto(page);
   const photo = frameButton(page);
   const deletion = page.getByRole('button', { name: 'Delete photo 1', exact: true }).filter({ visible: true });
-  await expect(photo).toBeVisible(); await expect(deletion).toHaveText('Delete');
+  await expect(photo).toBeVisible(); await expect(deletion).toHaveText('');
   const imageBox = await photo.boundingBox(), deleteBox = await deletion.boundingBox();
   expect(imageBox!.width).toBeCloseTo(imageBox!.height, 0);
-  expect(deleteBox!.y).toBeGreaterThanOrEqual(imageBox!.y + imageBox!.height);
+  expect(imageBox!.height).toBe(64);
+  expect(deleteBox!.width).toBe(20);
+  expect(deleteBox!.height).toBe(20);
+  expect(deleteBox!.y).toBeLessThan(imageBox!.y);
+  expect(deleteBox!.x + deleteBox!.width).toBeGreaterThan(imageBox!.x + imageBox!.width);
   await expect(page.getByRole('button', { name: /Remove photo|Crop photo/ })).toHaveCount(0);
   await uploadWidePhoto(page);
   await page.getByRole('button', { name: 'Delete photo 2', exact: true }).filter({ visible: true }).click();
   await expect(frameButton(page, 2)).toHaveCount(0);
-  await page.screenshot({ path: testInfo.outputPath('delete-under-photo.png') });
+  await page.screenshot({ path: testInfo.outputPath('small-corner-remove.png') });
   const [path, original] = [...server.photos.entries()][0];
   const originalBytes = Buffer.from(original.original);
   await page.getByRole('button', { name: 'Save changes to this tea' }).filter({ visible: true }).click();
@@ -168,4 +174,73 @@ test('square, portrait and landscape choices reopen after reload without changin
   }
   expect(server.state.uploads).toBe(1);
   expect(server.state.frameWrites).toBe(3);
+});
+
+
+test('new portrait uploads start square and mixed thumbnail shapes keep one height', async ({ page }, testInfo) => {
+  const server = await photoServer(page);
+  await openCompass(page);
+  await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Mixed thumbnail frames');
+  await uploadWidePhoto(page, true);
+  const first = frameButton(page);
+  await expect(first).toBeVisible();
+  await expect(first.locator('img')).toHaveJSProperty('naturalHeight', 600);
+  const square = (await first.boundingBox())!;
+  expect(square.width).toBeCloseTo(square.height, 1);
+  expect(await first.locator('img').evaluate(image => getComputedStyle(image).objectFit)).toBe('cover');
+  expect(server.state.frameWrites).toBe(0);
+  await first.click();
+  const dialog = page.getByRole('dialog', { name: 'Frame photo', exact: true });
+  await expect(dialog.getByRole('button', { name: 'Square', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(dialog.getByRole('button', { name: 'Save framing' })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Portrait 2:3', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save framing' }).click();
+  await expect(dialog).toHaveCount(0);
+  await uploadWidePhoto(page);
+  await frameButton(page, 2).click();
+  await expect(dialog.getByRole('button', { name: 'Save framing' })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Landscape 3:2', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save framing' }).click();
+  await expect(dialog).toHaveCount(0);
+  await uploadWidePhoto(page, true);
+  await expect(frameButton(page, 3)).toBeVisible();
+  await expect.poll(async () => {
+    const boxes = await Promise.all([1, 2, 3].map(index => frameButton(page, index).boundingBox()));
+    return boxes.map(box => Math.round(box!.width / box!.height * 100));
+  }).toEqual([67, 150, 100]);
+  const boxes = (await Promise.all([1, 2, 3].map(index => frameButton(page, index).boundingBox()))).map(box => box!);
+  expect(Math.max(...boxes.map(box => box.height)) - Math.min(...boxes.map(box => box.height))).toBeLessThan(0.5);
+  expect(Math.max(...boxes.map(box => box.y)) - Math.min(...boxes.map(box => box.y))).toBeLessThan(0.5);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('mixed-same-height-thumbnails.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Save changes to this tea' }).filter({ visible: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/, visible: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
+  const mini = page.getByRole('button', { name: 'Photos for Mixed thumbnail frames', exact: true }).getByTestId('library-photo-thumb');
+  await expect.poll(async () => { const box = await mini.boundingBox(); return Math.round(box!.width / box!.height * 100); }).toBe(67);
+});
+
+
+test('photo loading and failed image decoding never expose a broken image', async ({ page }, testInfo) => {
+  const server = await photoServer(page);
+  let release!: () => void;
+  server.state.readGate = new Promise<void>(resolve => { release = resolve; });
+  await openCompass(page);
+  await uploadWidePhoto(page, true);
+  const first = frameButton(page).locator('img');
+  await expect(frameButton(page)).toBeVisible();
+  await expect.poll(() => first.evaluate(image => getComputedStyle(image).visibility)).toBe('hidden');
+  await page.screenshot({ path: testInfo.outputPath('photo-loading-placeholder.png') });
+  release();
+  await expect(first).toBeVisible();
+  await expect(first).toHaveJSProperty('naturalHeight', 600);
+  server.state.corrupt = true;
+  await uploadWidePhoto(page);
+  const second = frameButton(page, 2).locator('img');
+  await expect(frameButton(page, 2)).toBeVisible();
+  await expect.poll(() => second.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 0)).toBe(true);
+  await expect.poll(() => second.evaluate(image => getComputedStyle(image).visibility)).toBe('hidden');
+  await expect(frameButton(page, 2)).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('photo-failed-placeholder.png') });
 });
