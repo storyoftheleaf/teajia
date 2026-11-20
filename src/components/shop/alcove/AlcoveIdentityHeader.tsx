@@ -128,6 +128,8 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   footNote,
 }) => {
   const onPlate = variant === 'plate';
+  const onTeaPlate = onPlate && item.category === 'tea';
+  const vintage = onTeaPlate ? String(item.year ?? '').trim() : '';
   const typeLabel = typeLabelProp ?? (teaType
     ? /tea/i.test(teaType) ? teaType : `${teaType} tea`
     : '');
@@ -137,15 +139,18 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   // not a real name. Hide it and use the product name.
   const hasGivenName = Boolean(givenName.trim()) && !/^unknown$/i.test(givenName.trim());
   const title = hasGivenName && givenName.trim() !== productName.trim() ? givenName : productName;
+  const plateProductName = onTeaPlate && title !== productName ? productName.trim() : '';
   // When the given name is not the title, keep it at the end of the sub-line so
   // the distinguishing descriptor is not lost.
   const subLine = [givenName.trim() !== productName.trim() ? givenName : '', typeLabel].filter(Boolean).join(' · ');
 
   return (
     <header
+      data-tea-class={onTeaPlate && typeLabel ? '' : undefined}
+      data-tea-vintage={vintage ? '' : undefined}
       className={
         onPlate
-          ? 'label-plate mx-5 mt-2 flex h-[396px] flex-col justify-end px-7 pb-[38px] text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 lg:pt-[clamp(120px,20vw,300px)]'
+          ? `label-plate mx-5 mt-2 flex h-[396px] flex-col justify-end px-7 pb-[38px] text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 lg:pt-[clamp(120px,20vw,300px)]${onTeaPlate ? ' label-plate--tea' : ''}`
           : 'px-5 pt-7 pb-5 text-center'
       }
     >
@@ -164,6 +169,11 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       >
         {title}
       </h1>
+      {plateProductName && (
+        <p className="plate-ink-body m-0 mt-3 font-display text-ui-20 italic leading-tight [text-wrap:balance] lg:mt-5 lg:text-ui-24">
+          {plateProductName}
+        </p>
+      )}
       {chineseCharacters && (
         <p
           lang="zh"
@@ -174,7 +184,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           {chineseCharacters}
         </p>
       )}
-      {subLine && (
+      {subLine && !onTeaPlate && (
         <p
           className={`m-0 flex flex-wrap items-center justify-center font-sans uppercase tracking-[0.22em] ${
             onPlate
@@ -188,6 +198,18 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
             style={{ background: typeColor }}
           />
           <span>{subLine}</span>
+        </p>
+      )}
+      {onTeaPlate && typeLabel && (
+        <p className="label-plate__edge label-plate__edge--class" data-testid="tea-classification">
+          <span>{typeLabel}</span>
+          <span className="label-plate__rule" aria-hidden="true" />
+        </p>
+      )}
+      {vintage && (
+        <p className="label-plate__edge label-plate__edge--vintage" data-testid="tea-vintage">
+          <span className="label-plate__rule" aria-hidden="true" />
+          <span>{vintage}</span>
         </p>
       )}
       {onPlate && footNote && (

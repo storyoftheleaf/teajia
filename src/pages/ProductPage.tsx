@@ -256,8 +256,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const contact = isSoldOut && soldOutStoreProfile ? resolveContactChannels({
     whatsappNumber: soldOutStoreProfile.whatsapp_number,
     email: soldOutStoreProfile.contact_email,
-    subject: `Restock alert for ${item.name}`,
-    message: `Hello ${soldOutStoreProfile.name}, please let me know when ${item.name} is back in stock.\n${siteOrigin}${buildPublicProductHref(item, activeStore)}`,
+    subject: item.category === 'tea' ? `Purchase inquiry for ${item.name}` : `Restock alert for ${item.name}`,
+    message: `Hello ${soldOutStoreProfile.name}, ${item.category === 'tea'
+      ? `I’m interested in purchasing more ${item.name}. Could you keep me in mind if you find it again or source something similar?`
+      : `please let me know when ${item.name} is back in stock.`}\n${siteOrigin}${buildPublicProductHref(item, activeStore)}`,
   }) : undefined;
   const availabilityContact = contact?.whatsapp
     ? { href: contact.whatsapp.href, opensNewTab: true }
@@ -441,11 +443,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           opens this tea's details inside the tasting overlay. */}
       {/* The page's own bar: where you came from on the left, where you are
           going on the right, one hairline under both. */}
-      <div className="mb-1 flex h-[60px] w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
+      <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
         <Link
           to={shopHref}
           aria-label="Back to shop"
-          className="tap-target inline-flex items-center gap-2 font-sans text-ui-12 uppercase tracking-[0.14em] text-tea-text-sec transition-colors hover:text-tea-text"
+          className="btn-quiet btn-sm"
         >
           <Icons.Back className="h-3.5 w-3.5" />
           <span>Shop</span>

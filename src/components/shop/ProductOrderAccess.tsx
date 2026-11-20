@@ -9,7 +9,7 @@ interface ProductOrderAccessProps {
 
 export function ProductOrderAccess({ onCartClick, cartItemCount }: ProductOrderAccessProps) {
   if (!onCartClick) return null;
-  if (cartItemCount <= 0) return <span className="shrink-0 text-ui-12 text-tea-text-sec">Order empty</span>;
+  if (cartItemCount <= 0) return <span className="shrink-0 text-tea-text-sec"><Icons.Bag className="mr-2 inline h-4 w-4" aria-hidden="true" />Order empty</span>;
 
   const itemLabel = cartItemCount === 1 ? 'item' : 'items';
   return (

@@ -28,13 +28,13 @@ test('the restock request fits the dock and drafts the selected tea', async ({ p
   await expect(page.getByRole('heading', { name: 'Winter Frost' })).toBeVisible({ timeout: 45_000 });
   const dock = page.locator('.alcove-dock-strip[data-sold-out=true]');
   const status = dock.getByText('Sold out', { exact: true });
-  const link = dock.getByRole('link', { name: 'Notify me when it’s back in stock', exact: true });
+  const link = dock.getByRole('link', { name: 'Inquire about purchasing more', exact: true });
   await expect(status).toBeVisible();
-  await expect(link).toHaveText('Notify me');
-  await expect(link.locator('span')).toHaveCSS('height', '28px');
+  await expect(dock.getByText(/Tea comes in limited batches/)).toBeVisible();
+  await expect(dock.getByRole('button', { name: /favorites|share/i })).toHaveCount(0);
   await expect(dock.getByRole('button', { name: 'Add', exact: true })).toHaveCount(0);
   const url = new URL((await link.getAttribute('href'))!);
-  const text = 'Hello Cloud Garden Tea, please let me know when Winter Frost is back in stock.\n' + new URL(page.url()).origin + route;
+  const text = 'Hello Cloud Garden Tea, I’m interested in purchasing more Winter Frost. Could you keep me in mind if you find it again or source something similar?\n' + new URL(page.url()).origin + route;
   expect(url.origin).toBe('https://wa.me');
   expect(url.pathname).toBe('/12025550143');
   expect(url.searchParams.get('text')).toBe(text);
@@ -44,12 +44,12 @@ test('the restock request fits the dock and drafts the selected tea', async ({ p
     const [bar, control, label] = await Promise.all([dock.boundingBox(), link.boundingBox(), status.boundingBox()]);
     expect(control!.height).toBeGreaterThanOrEqual(tapFloor());
     expect(control!.x + control!.width).toBeLessThanOrEqual(bar!.x + bar!.width);
-    expect(label!.x + label!.width).toBeLessThan(control!.x);
+    expect(label!.x + label!.width <= control!.x || label!.y + label!.height <= control!.y).toBe(true);
   }
   whatsapp = false;
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(link).toHaveAttribute('href', /^mailto:store@example\.test\?/);
   const email = new URL((await link.getAttribute('href'))!);
-  expect(email.searchParams.get('subject')).toBe('Restock alert for Winter Frost');
+  expect(email.searchParams.get('subject')).toBe('Purchase inquiry for Winter Frost');
   expect(email.searchParams.get('body')).toBe(text);
 });

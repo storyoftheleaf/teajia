@@ -370,7 +370,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       {/* The selected quantity, its total and the add action stay together. */}
       {isDocked && onChooseAmount ? (
         <div className="alcove-dock-strip" data-sold-out={dockedSoldOut || undefined}>
-          {dockedSoldOut && (
+          {dockedSoldOut && !isTea && (
             <div className="ml-auto flex shrink-0 items-center gap-3 pr-2.5 sm:pr-4">
               <span className="whitespace-nowrap text-ui-12 text-tea-text-sec">Sold out</span>
               {availabilityContact && (
@@ -382,6 +382,22 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                   <span className="inline-flex h-7 items-center rounded border border-tea-border px-2.5 text-ui-11 text-tea-text-sec transition-colors hover:border-tea-gold hover:text-tea-text">Notify me</span>
                 </a>
               )}
+            </div>
+          )}
+          {dockedSoldOut && isTea && (
+            <div className="tea-product-sold-out">
+              <div className="tea-product-sold-out-actions">
+                <strong>Sold out</strong>
+                {availabilityContact && (
+                  <a href={availabilityContact.href}
+                    target={availabilityContact.opensNewTab ? '_blank' : undefined}
+                    rel={availabilityContact.opensNewTab ? 'noopener noreferrer' : undefined}
+                    className="btn-secondary btn-sm">
+                    Inquire about purchasing more
+                  </a>
+                )}
+              </div>
+              <p>Tea comes in limited batches, and a sold-out tea may never return. On future sourcing trips, we can look for it again or find something similar.</p>
             </div>
           )}
           {!dockedSoldOut && <div className="alcove-dock-decision" role="group" aria-label="Choose and add a tea amount">
@@ -416,7 +432,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               {justAdded ? 'Added' : 'Add to order'}
             </button>
           </div>}
-          <div className="flex shrink-0 items-center">
+          {!(dockedSoldOut && isTea) && <div className="flex shrink-0 items-center">
             <button
               type="button"
               className="alcove-dock-icon tap-target"
@@ -430,7 +446,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <button type="button" className="alcove-dock-icon tap-target" onClick={handleShare} aria-label="Share">
               <Share size={17} strokeWidth={1.4} />
             </button>
-          </div>
+          </div>}
           {publicCart.length > 0 && (
             <button
               type="button"
