@@ -773,16 +773,19 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <ChevronLeft size={20} />
             </button>
           )}
-          <motion.img
+          <motion.div
             key={lightboxIndex}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
-            src={selectedPhotoUrl}
-            alt={`Photo ${lightboxIndex + 1}`}
-            className={reviewPhoto === selectedPhoto ? 'hidden' : "max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"}
-            onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <CapturePhotoImage
+              src={selectedPhotoUrl}
+              alt={`Photo ${lightboxIndex + 1}`}
+              className={reviewPhoto === selectedPhoto ? 'hidden' : "max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
           {allowShopReview && selectedPhoto && <CapturePhotoApproval key={`${photoScope}:${selectedPhoto}`} src={selectedPhoto} imageUrl={selectedPhotoUrl} onReviewPhoto={setReviewPhoto} />}
           {lightboxIndex < allPhotos.length - 1 && (
             <button

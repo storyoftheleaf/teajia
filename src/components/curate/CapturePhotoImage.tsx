@@ -74,16 +74,29 @@ export function useCapturePhotoFrame(src?: string | null) {
 
 type CapturePhotoImageProps = ImgHTMLAttributes<HTMLImageElement> & { stockPreview?: boolean };
 
+/** Keep the reserved photo space quiet until the browser has decoded pixels.
+ * Remount on URL changes so an old photo's load state cannot reveal a new one. */
+function ReadyCapturePhoto({ style, onLoad, onError, ...props }: ImgHTMLAttributes<HTMLImageElement>) {
+  const [ready, setReady] = useState(false);
+  return <img {...props} style={{ ...style, visibility: ready ? style?.visibility : 'hidden' }}
+    onLoad={event => { setReady(event.currentTarget.naturalWidth > 0); onLoad?.(event); }}
+    onError={event => { setReady(false); onError?.(event); }} />;
+}
+
+function ResolvedCapturePhoto(props: ImgHTMLAttributes<HTMLImageElement>) {
+  return <ReadyCapturePhoto key={JSON.stringify([props.src, props.srcSet])} {...props} />;
+}
+
 function AuthenticatedCapturePhoto({ src, stockPreview, ...props }: CapturePhotoImageProps) {
   const url = useCapturePhotoUrl(src, stockPreview);
-  return <img {...props} src={url} />;
+  return <ResolvedCapturePhoto {...props} src={url} />;
 }
 
 export function CapturePhotoImage({ src, stockPreview = false, ...props }: CapturePhotoImageProps) {
   if (capturePhotoIdentity(src) || (stockPreview && getStockCapturePhotoId(src))) {
     return <AuthenticatedCapturePhoto {...props} src={src} stockPreview={stockPreview} />;
   }
-  return <img {...props} src={mediaUrl(src)} />;
+  return <ResolvedCapturePhoto {...props} src={mediaUrl(src)} />;
 }
 
 /** Upload orientation never chooses a frame. Only a saved, explicit choice

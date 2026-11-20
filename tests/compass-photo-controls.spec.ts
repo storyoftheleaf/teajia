@@ -6,7 +6,7 @@ type Photo = { original: Buffer; preview?: Buffer; frame: SquarePhotoFrame | nul
 async function photoServer(page: Page) {
   await installCompassHarness(page);
   const photos = new Map<string, Photo>();
-  const state = { refuse: false, uploads: 0, frameWrites: 0, originalReads: 0 };
+  const state = { refuse: false, uploads: 0, frameWrites: 0, originalReads: 0, readGate: null as Promise<void> | null, corrupt: false };
   await page.route('**/api/curate/capture/**', async route => {
     const request = route.request(), url = new URL(request.url());
     const match = url.pathname.match(/^(\/api\/curate\/capture\/[^/]+\/photos\/[^/]+)(\/frame)?$/);
@@ -29,6 +29,8 @@ async function photoServer(page: Page) {
       return route.fulfill({ json: { ok: true } });
     }
     if (url.searchParams.has('original')) state.originalReads += 1;
+    await state.readGate;
+    if (state.corrupt) return route.fulfill({ body: 'invalid image bytes', contentType: 'image/jpeg' });
     return route.fulfill({ body: url.searchParams.has('original') ? photo.original : photo.preview ?? photo.original, contentType: 'image/jpeg' });
   });
   return { photos, state };
@@ -217,4 +219,28 @@ test('new portrait uploads start square and mixed thumbnail shapes keep one heig
   await page.getByRole('tab', { name: 'Library', exact: true }).filter({ visible: true }).click();
   const mini = page.getByRole('button', { name: 'Photos for Mixed thumbnail frames', exact: true }).getByTestId('library-photo-thumb');
   await expect.poll(async () => { const box = await mini.boundingBox(); return Math.round(box!.width / box!.height * 100); }).toBe(67);
+});
+
+
+test('photo loading and failed image decoding never expose a broken image', async ({ page }, testInfo) => {
+  const server = await photoServer(page);
+  let release!: () => void;
+  server.state.readGate = new Promise<void>(resolve => { release = resolve; });
+  await openCompass(page);
+  await uploadWidePhoto(page, true);
+  const first = frameButton(page).locator('img');
+  await expect(frameButton(page)).toBeVisible();
+  await expect.poll(() => first.evaluate(image => getComputedStyle(image).visibility)).toBe('hidden');
+  await page.screenshot({ path: testInfo.outputPath('photo-loading-placeholder.png') });
+  release();
+  await expect(first).toBeVisible();
+  await expect(first).toHaveJSProperty('naturalHeight', 600);
+  server.state.corrupt = true;
+  await uploadWidePhoto(page);
+  const second = frameButton(page, 2).locator('img');
+  await expect(frameButton(page, 2)).toBeVisible();
+  await expect.poll(() => second.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 0)).toBe(true);
+  await expect.poll(() => second.evaluate(image => getComputedStyle(image).visibility)).toBe('hidden');
+  await expect(frameButton(page, 2)).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('photo-failed-placeholder.png') });
 });
