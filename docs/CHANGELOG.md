@@ -1,5 +1,10 @@
 ## 2026-11-12: Curate's Source form follows the sitting
 
+## 2026-11-20: Automatic shipping payment requests
+
+New shipping quotes can queue the customer’s existing private payment link through consented WhatsApp, otherwise email. Duplicate saves do not resend. A revised quote creates a new request; stale quotes, free shipping, settled balances and closed orders are suppressed. Encrypted link targets and a durable outbox keep delivery failures visible and retry safe. The shipping panel shows send status separately from the saved quote. Activation requires the dedicated shipping switch and approved WhatsApp template.
+
+
 ## 2026-11-19: US checkout with tea paid first
 
 The flagship checkout collects a full US address or an explicitly arranged Bali pickup. Confirmed stock can proceed to PayPal immediately, with verified server receipts and payment notifications confirming the ledger automatically. Orders needing review retain the 24-hour window after acceptance. Shipping is quoted and charged separately later on the same private order page; dispatch requires a confirmed quote and paid balance. Sandbox receipts remain isolated from live payments. No outbound shipping rate or carrier label is assumed.
