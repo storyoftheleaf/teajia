@@ -115,7 +115,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
       >
         {asHeading ? (
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className={`library-supplier-name !flex-initial line-clamp-2 ${vendorName ? '' : 'text-tea-text-sec'}`}>{vendorName || 'Vendor'}</span>
+            <span className={`library-supplier-name !flex-initial truncate ${vendorName ? '' : 'text-tea-text-sec'}`}>{vendorName || 'Vendor'}</span>
             <ChevronDown
               size={14}
               className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
@@ -136,7 +136,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   const shareButton = <CaptureShareButton onShare={onShare} />;
 
   const newEntryButton = (
-      <span className="ml-auto shrink-0 md:hidden">
+      <span className="capture-context-new ml-auto shrink-0 md:hidden">
         <button
           type="button"
           onClick={() => startNewCapture(category)}
@@ -233,9 +233,9 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   );
 
   if (variant === 'supplier') {
-    // Let the vendor wrap within the row so the other controls stay beside it.
+    // Keep one clear row; long supplier names truncate before the controls.
     return (
-      <div className="library-supplier-header curate-flow-where" data-testid="curate-supplier-header">
+      <div className="library-supplier-header curate-flow-where capture-context-toolbar" data-testid="curate-supplier-header">
         {vendorButton(true)}
         {runChip}
         <div className="curate-flow-where-visit">{secondLine}</div>

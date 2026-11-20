@@ -8,9 +8,11 @@ test.describe('Curate acquisition repair', () => {
   test('saves a new quote before an explicit transfer receipt and resumes its failed review', async ({ page }, info) => {
     await installCompassHarness(page);
     const saved = new Set<string>();
-    await page.route('**/api/compass/sync', async route => {
-      for (const entry of route.request().postDataJSON().entries) saved.add(entry.id);
-      await route.fallback();
+    page.on('response', response => {
+      const request = response.request();
+      if (request.method() === 'POST' && /\/api\/compass\/entries\/[^/]+\/save$/.test(new URL(response.url()).pathname) && response.ok()) {
+        saved.add(request.postDataJSON().entry.id);
+      }
     });
     let proposal: Record<string, unknown> | null = null;
     let attempts = 0;
@@ -25,7 +27,8 @@ test.describe('Curate acquisition repair', () => {
     });
     await openCompass(page);
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Receipt retry tea');
-    await page.getByLabel('Currency', { exact: true }).filter({ visible: true }).selectOption('Yuan');
+    await page.getByRole('button', { name: 'Currency', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('dialog', { name: 'Quote currency', exact: true }).getByRole('button', { name: 'CN¥ · CNY', exact: true }).click();
     await page.getByLabel('Price', { exact: true }).filter({ visible: true }).fill('100');
     await page.getByRole('spinbutton', { name: 'Grams', exact: true }).filter({ visible: true }).fill('100');
     await page.getByRole('button', { name: 'Draft supplier order', exact: true }).filter({ visible: true }).first().click();

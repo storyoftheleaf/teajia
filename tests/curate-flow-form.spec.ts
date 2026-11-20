@@ -130,7 +130,7 @@ test.describe('Curate Source form, default layout', () => {
     const photo = page.waitForEvent('filechooser');
     await button(page, 'Add photo').click();
     await (await photo).setFiles(upload);
-    await expect(page.getByText('1 photo saved', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(button(page, 'Frame photo 1')).toBeVisible();
     expect(scans).toBe(0);
 
     await button(page, 'Scan label').click();
@@ -139,7 +139,7 @@ test.describe('Curate Source form, default layout', () => {
     await (await labelPhoto).setFiles(upload);
     await expect(page.getByText('Label scan unavailable', { exact: true }).filter({ visible: true })).toBeVisible();
     expect(scans).toBe(1);
-    await expect(page.getByText('2 photos saved', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(button(page, 'Frame photo 2')).toBeVisible();
   });
 
   test('the where header is one row, and Share sits on the details row', async ({ page }) => {
@@ -163,7 +163,7 @@ test.describe('Curate Source form, default layout', () => {
     await expect(share).toBeVisible();
   });
 
-  test('a Library photo opens the photo viewer, with a control to add another', async ({ page }) => {
+  test('a Library photo opens its reversible framing editor', async ({ page }) => {
     const now = new Date().toISOString();
     await page.route('https://img.test/**', (route) => route.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#8a6d4b"/></svg>' }));
     await installCompassHarness(page, { compassEntries: [{
@@ -174,14 +174,12 @@ test.describe('Curate Source form, default layout', () => {
     const card = page.getByTestId('library-entry-photo-tea').filter({ visible: true }).first();
     await expect(card.getByTestId('library-photo-thumb')).toContainText('2', { timeout: 15_000 });
     await card.getByRole('button', { name: /^Photos for/ }).click();
-    const viewer = page.getByRole('dialog', { name: 'Photo viewer' });
-    await expect(viewer).toBeVisible();
-    await expect(viewer.getByRole('button', { name: 'Add another photo' })).toBeVisible();
-    await expect(viewer.getByRole('button', { name: 'Next photo' })).toBeVisible();
-    const nav = page.getByTestId('bottom-tab-bar');
-    await expect(nav).toBeHidden();
-    await viewer.getByRole('button', { name: 'Close photo viewer' }).click();
-    if ((page.viewportSize()?.width ?? 0) < 1024) await expect(nav).toBeVisible();
+    const editor = page.getByRole('dialog', { name: 'Frame photo', exact: true });
+    await expect(editor).toBeVisible();
+    await expect(editor.getByRole('button', { name: 'Square', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(editor.locator('.reactEasyCrop_Image')).toHaveJSProperty('naturalWidth', 8);
+    await editor.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(editor).toHaveCount(0);
   });
 
   test('the earlier form is still there at its own address', async ({ page }) => {
