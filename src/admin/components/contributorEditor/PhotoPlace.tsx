@@ -11,26 +11,47 @@ const TOUCH = isTouch();
 /** A frame the page crops this photo into, drawn at a shared height so the crops read side by side. */
 export type Crop = { label: string; width: number; height: number; round?: boolean };
 
-/** Every crop preview is drawn this tall; widths keep each frame's real proportion. */
-const CROP_HEIGHT = 104;
-
+/**
+ * The cuts the page makes, in one row that is exactly as wide as the photo
+ * above it: each cut takes width in proportion to its shape, so they share one
+ * height and the row's edges meet the photo's. No frames; the photos are the row.
+ */
 export function CropStrip({ url, focus, crops }: { url: string; focus: string | null | undefined; crops: Crop[] }) {
+  if (!crops.length) return null;
+  const share = (crop: Crop): React.CSSProperties => ({ flex: `${crop.width / crop.height} 1 0`, minWidth: 0 });
   return (
-    <div className="flex flex-wrap items-end gap-x-4 gap-y-3" aria-label="How the page crops it">
-      {crops.map(crop => {
-        const scale = CROP_HEIGHT / crop.height;
-        return (
-          <figure key={crop.label} className="m-0">
-            <div
-              className={`relative overflow-hidden border border-tea-border bg-tea-surface ${crop.round ? 'rounded-full' : ''}`}
-              style={{ width: Math.round(crop.width * scale), height: CROP_HEIGHT }}
-            >
-              <img src={mediaUrl(url)} alt="" draggable={false} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: focus ?? undefined }} />
-            </div>
-            <figcaption className="mt-1.5 font-sans text-ui-10 uppercase tracking-caps text-tea-text-dim">{crop.label}</figcaption>
-          </figure>
-        );
-      })}
+    <div className="flex flex-col gap-2">
+      {/* The first cut sets the row's height; the rest stretch to it, so the feet line up to the pixel. */}
+      <div className="flex gap-2" aria-label="How the page crops it">
+        {crops.map((crop, index) => (
+          <div key={crop.label} className={`relative overflow-hidden bg-tea-surface ${crop.round ? 'rounded-full' : ''}`} style={{ ...share(crop), aspectRatio: index === 0 ? `${crop.width} / ${crop.height}` : undefined }}>
+            <img src={mediaUrl(url)} alt="" draggable={false} className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: focus ?? undefined }} />
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2" aria-hidden>
+        {crops.map(crop => <span key={crop.label} className="truncate font-sans text-ui-10 uppercase tracking-caps text-tea-text-dim" style={share(crop)}>{crop.label}</span>)}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A placed photo as one piece: the whole photo at the width of the column, one
+ * line saying what a tap does, and under it the cuts the page makes, their
+ * edges meeting the photo's. A photo the page never cuts (a QR code) is shown
+ * at its own size.
+ */
+export function PhotoProof({ url, focus, onFocus, crops, alt }: { url: string; focus: string | null | undefined; onFocus: (css: string) => void; crops: Crop[]; alt: string }) {
+  return (
+    <div className="flex max-w-[420px] flex-col gap-3" data-testid="photo-proof">
+      {crops.length > 0
+        ? <FocusPicker url={url} focus={focus} alt={alt} onFocus={onFocus} />
+        : <img src={mediaUrl(url)} alt={alt} draggable={false} className="block h-auto max-h-[240px] w-auto max-w-full" />}
+      {crops.length > 0 && (
+        <p className="font-body text-ui-14 italic leading-snug text-tea-text-sec">{TOUCH ? 'Tap' : 'Click'} the face. It stays in every cut.</p>
+      )}
+      <CropStrip url={url} focus={focus} crops={crops} />
     </div>
   );
 }
@@ -82,13 +103,13 @@ export function FocusPicker({ url, focus, onFocus, alt }: { url: string; focus: 
   };
 
   return (
-    <div className="relative inline-block max-w-full select-none align-top">
+    <div className="relative block w-full select-none">
       <img
         ref={imgRef}
         src={mediaUrl(url)}
         alt={alt}
         draggable={false}
-        className="block h-auto max-h-[360px] w-auto max-w-full cursor-crosshair"
+        className="block h-auto w-full cursor-crosshair"
         onPointerDown={event => { start.current = { x: event.clientX, y: event.clientY }; }}
         onPointerUp={event => {
           const origin = start.current;
@@ -222,7 +243,7 @@ export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHe
     </>
   );
 
-  const chooseLabel = url ? 'Replace' : TOUCH ? 'Choose from photos' : 'Choose a photo';
+  const chooseLabel = TOUCH ? 'Choose from photos' : 'Choose a photo';
 
   return (
     <div data-testid={testId} {...dropProps} className="min-w-0">
@@ -247,21 +268,7 @@ export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHe
           </div>
         </div>
       ) : url ? (
-        <div className="flex flex-col items-start gap-5">
-          <div className="min-w-0 max-w-full">
-            {crops.length > 0 ? (
-              <>
-                <FocusPicker url={url} focus={focus} alt={`${name}, whole photo`} onFocus={css => onChange({ url, focus: css })} />
-                <p className="mt-2 font-sans text-ui-12 leading-relaxed text-tea-text-dim">
-                  {TOUCH ? 'Tap the face' : 'Click the face'}, or drag the ring. That point stays in every cut. Edit photo straightens and crops it.
-                </p>
-              </>
-            ) : (
-              <img src={mediaUrl(url)} alt={`${name}, whole photo`} draggable={false} className="block h-auto max-h-[360px] w-auto max-w-full" />
-            )}
-          </div>
-          <CropStrip url={url} focus={focus} crops={crops} />
-        </div>
+        <PhotoProof url={url} focus={focus} crops={crops} alt={`${name}, whole photo`} onFocus={css => onChange({ url, focus: css })} />
       ) : (
         <div
           tabIndex={0}
@@ -279,13 +286,16 @@ export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHe
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-6">
-        {url && !busy && <label htmlFor={inputId} className={`${ACTION} cursor-pointer`}>{chooseLabel}</label>}
+      {/* One row, one voice: the one thing to do to this photo is a bronze word;
+          the rest are quiet. A web address is offered while the place is empty
+          (and stays open while one is being typed), so a placed photo carries
+          three actions, not five. */}
+      <div className="mt-4 flex max-w-[420px] flex-wrap items-center gap-x-6">
         {url && !busy && <PhotoEdit url={url} label={`Edit the ${noun ?? name.toLowerCase()}`} onEdited={next => onChange({ url: next, focus: null })} />}
-        {url && !busy && focus && <button type="button" onClick={() => onChange({ url, focus: null })} className={QUIET}>Centre the focus</button>}
+        {url && !busy && <label htmlFor={inputId} className={`${QUIET} cursor-pointer`}>Replace</label>}
         {extraActions}
-        {url && !busy && <button type="button" onClick={() => onChange({ url: null, focus: null })} className={QUIET}>Remove</button>}
-        {!busy && allowAddress && <button type="button" onClick={() => setByAddress(open => !open)} aria-expanded={byAddress} className={QUIET}>{byAddress ? 'Hide the web address' : 'Use a web address'}</button>}
+        {url && !busy && <button type="button" onClick={() => onChange({ url: null, focus: null })} className={`${QUIET} ml-auto`}>Remove</button>}
+        {(!url || byAddress) && !busy && allowAddress && <button type="button" onClick={() => setByAddress(open => !open)} aria-expanded={byAddress} className={QUIET}>{byAddress ? 'Hide the web address' : 'Use a web address'}</button>}
       </div>
       {byAddress && (
         <Line
