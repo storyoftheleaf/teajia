@@ -27,7 +27,7 @@ const DEFAULT_CROP = { scale: 1, x: 0.5, y: 0.5 };
 const TOUCH = isTouch();
 
 /** "4/5" as a number. A frame that fills its parent has no shape of its own. */
-function ratioOf(aspect: string): number {
+export function ratioOf(aspect: string): number {
   const [w, h] = aspect.split('/').map(Number);
   return w > 0 && h > 0 ? w / h : w > 0 ? w : 1;
 }

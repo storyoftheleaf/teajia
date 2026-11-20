@@ -2,7 +2,7 @@
 
 ## 2026-11-21: One photo editor everywhere
 
-The people editor (portrait, gallery, QR) and the photographs on the Read stories and the home page now open the same photo editor Curate uses: the ruler to straighten, the quarter turn, enlarge, and the frame shapes. Their own tools (a focus ring, a dot to drag, a zoom slider) are retired. The editor saves a new, already framed picture; a story keeps the untouched picture and the settings beside it so the editor reopens where it was left. Photographs placed with the old tools show exactly as before until they are edited. The editor takes a fixed frame shape (`frameAspect`), so a story frame is framed to its own proportions.
+The people editor (portrait, gallery, QR) and the photographs on the Read stories and the home page now open the same photo editor Curate uses: the ruler to straighten, the quarter turn, enlarge, and the frame shapes. The stories' own tools (a dot to drag, a zoom slider) are retired. The people editor keeps one small step beside the editor, a tap on the face, because the page cuts a portrait three ways. The editor saves a new, already framed picture; a story keeps the untouched picture and the settings beside it so the editor reopens where it was left. Photographs placed with the old tools show exactly as before until they are edited. The editor takes a fixed frame shape (`frameAspect`), so a story frame is framed to its own proportions.
 
 ## 2026-11-20: Automatic shipping payment requests
 

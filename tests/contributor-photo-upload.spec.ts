@@ -74,7 +74,6 @@ test('a contributor is created with an uploaded portrait, framed in the shared e
   await expect(dialog.getByText('No portrait yet')).toBeVisible();
   await dialog.getByTestId('photo-portrait-file').setInputFiles({ name: 'seated.png', mimeType: 'image/png', buffer: PHOTO });
   await expect(dialog.getByRole('button', { name: 'Edit the portrait' })).toBeVisible();
-  await expect(dialog.getByRole('button', { name: /Focal point/ }), 'the old focus ring is gone').toHaveCount(0);
   await expect(dialog.getByLabel('How the page crops it').first().locator('img')).toHaveCount(3);
   // The whole photo keeps its own width beside the crops. At a 1204px laptop
   // window it once collapsed to a sliver, too narrow to find a face in.
@@ -97,6 +96,15 @@ test('a contributor is created with an uploaded portrait, framed in the shared e
   const coverImage = dialog.getByLabel('How the page crops it').first().locator('img').first();
   await expect(coverImage).toHaveAttribute('src', /\/api\/media\/accounts\/acct-bali\/products\/upload-2\.jpg/);
   await expect(coverImage).toHaveCSS('object-position', '50% 50%');
+  // The page cuts the portrait three ways, so one step stays: mark the face,
+  // by keyboard here, the way that works everywhere. It stays in every cut.
+  const ring = dialog.getByRole('button', { name: /Focal point, 50% across and 50% down/ });
+  await ring.focus();
+  await page.keyboard.press('Shift+ArrowUp');
+  await page.keyboard.press('Shift+ArrowUp');
+  await page.keyboard.press('Shift+ArrowLeft');
+  await expect(dialog.getByRole('button', { name: /Focal point, 40% across and 30% down/ })).toBeVisible();
+  await expect(coverImage).toHaveCSS('object-position', '40% 30%');
   // Opened again in the same sitting, the editor is back on the untouched picture, where it was left.
   await dialog.getByRole('button', { name: 'Edit the portrait' }).click();
   await expect(editor.getByRole('button', { name: 'Save' })).toBeEnabled({ timeout: 15_000 });
@@ -131,7 +139,7 @@ test('a contributor is created with an uploaded portrait, framed in the shared e
     id: 'yan-jinwen',
     display_name: 'Yan Jinwen',
     portrait_url: 'https://media.teajia.co/accounts/acct-bali/products/upload-2.jpg?v=1',
-    portrait_focus: null,
+    portrait_focus: '40% 30%',
   });
   const gallery = network.writes.find(write => write.method === 'PUT' && write.path.endsWith('/gallery-images'))!.body.gallery_images;
   expect(gallery.map((image: any) => image.caption)).toEqual(['The second pour.', null]);

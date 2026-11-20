@@ -73,6 +73,7 @@ people, not computers."
 - Actions are Cormorant words in the reading bronze with a hairline under them,
   the same as the `/people` sheets (`GOLD_TEXT_*` in `components/people/immersive`).
 - Upload progress is a 2px bronze line along the bottom of the frame and a number.
-- Editing a photo: "Edit photo" opens the one shared photo editor (`components/shared/SquareCropModal`, the editor Curate uses). It saves a new, already framed picture, and the page centres on it. The focus ring is retired; a focus saved before still applies until that photo is edited.
+- Editing a photo: "Edit photo" opens the one shared photo editor (`components/shared/SquareCropModal`, the editor Curate uses). It saves a new, already framed picture, and its focus goes back to the middle.
+- Focal point: a small ring in the text colour on a dark halo, dragged or tapped. Kept for the portrait and gallery photos, which the page cuts several ways; it is not an editor, only the point that stays in every cut.
 - Phone: one column, 44px targets, Cancel on the left and Save on the right in a
   footer that clears the bottom nav (`pb-nav-gap`).

@@ -3,7 +3,7 @@ import { isTouch } from '../../../pages/read/imageUtils';
 import { galleryPlacement } from '../../../components/people/profileFormat';
 import type { ContributorGalleryImage } from '../../../types';
 import { ACTION, Count, Line, QUIET } from './parts';
-import { CropStrip, PhotoEdit, type Crop } from './PhotoPlace';
+import { CropStrip, FocusPicker, PhotoEdit, type Crop } from './PhotoPlace';
 import { imagesFrom, preparePhoto, usePhotoUploader } from './photoUpload';
 import { mediaUrl } from '../../../lib/mediaUrl';
 
@@ -146,7 +146,7 @@ export function GalleryPlace({ images, update, onBusy, takeRef }: Props) {
           >
             <button
               type="button"
-              aria-label={`Photo ${index + 1}${image.caption ? `, ${image.caption}` : ''}. ${selected === index ? 'Selected.' : 'Select to edit it, caption it and place it.'}`}
+              aria-label={`Photo ${index + 1}${image.caption ? `, ${image.caption}` : ''}. ${selected === index ? 'Selected.' : 'Select to edit it, set its focus, caption and place.'}`}
               aria-pressed={selected === index}
               onClick={() => setSelected(current => current === index ? null : index)}
               className="absolute inset-0 block h-full w-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/60"
@@ -189,13 +189,13 @@ export function GalleryPlace({ images, update, onBusy, takeRef }: Props) {
       </ul>
 
       {notice && <p className="mt-3 font-sans text-ui-12 text-tea-text-sec" role="status">{notice}</p>}
-      {images.length > 1 && !chosen && <p className="mt-3 font-sans text-ui-12 text-tea-text-dim">{TOUCH ? 'Tap a photo to edit it, caption it and place it.' : 'Drag a photo onto another to reorder. Click one to edit it and caption it.'}</p>}
+      {images.length > 1 && !chosen && <p className="mt-3 font-sans text-ui-12 text-tea-text-dim">{TOUCH ? 'Tap a photo to edit it, set its focus, caption and place.' : 'Drag a photo onto another to reorder. Click one to edit it, set its focus and caption.'}</p>}
 
       {chosen && selected !== null && (
         <div className="mt-6 border-l border-tea-gold/40 pl-4 sm:pl-6" data-testid="gallery-selected">
           <p className="font-display text-ui-20 text-tea-text">Photo {selected + 1} <span className="font-body text-ui-14 italic text-tea-text-sec">of {images.length}</span></p>
           <div className="mt-4 flex flex-col items-start gap-5">
-            <img src={mediaUrl(chosen.image_url)} alt={`Photo ${selected + 1}, whole`} draggable={false} className="block h-auto max-h-[360px] w-auto max-w-full" />
+            <FocusPicker url={chosen.image_url} focus={chosen.focus} alt={`Photo ${selected + 1}, whole`} onFocus={css => patch(selected, { focus: css })} />
             <CropStrip url={chosen.image_url} focus={chosen.focus} crops={cropsFor(selected)} />
           </div>
           <Line

@@ -32,6 +32,15 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/** The saved picture's pixel size for a frame shape (width over height). */
+export function framedOutputSize(size: number, aspect: number): { width: number; height: number } {
+  const unit = Math.max(1, Math.floor(size / 3));
+  if (aspect === 3 / 2) return { width: unit * 3, height: unit * 2 };
+  if (aspect === 2 / 3) return { width: unit * 2, height: unit * 3 };
+  const ratio = Number.isFinite(aspect) && aspect > 0 ? aspect : 1;
+  return ratio >= 1 ? { width: size, height: Math.round(size / ratio) } : { width: Math.round(size * ratio), height: size };
+}
+
 export async function cropToSquareBlob(
   imageSrc: string,
   pixelCrop: PixelCrop,
@@ -41,9 +50,7 @@ export async function cropToSquareBlob(
   const quality = options?.quality ?? QUALITY;
   const rotation = options?.rotation ?? 0;
   const aspect = options?.aspect ?? 1;
-  const unit = Math.max(1, Math.floor(size / 3));
-  const width = aspect === 3 / 2 ? unit * 3 : aspect === 2 / 3 ? unit * 2 : aspect >= 1 ? size : Math.round(size * aspect);
-  const height = aspect === 3 / 2 ? unit * 2 : aspect === 2 / 3 ? unit * 3 : aspect >= 1 ? Math.round(size / aspect) : size;
+  const { width, height } = framedOutputSize(size, aspect);
   const image = await loadImage(imageSrc);
 
   // When a rotation is applied, react-easy-crop reports pixelCrop relative
