@@ -1,5 +1,9 @@
 ## 2026-11-12: Curate's Source form follows the sitting
 
+## 2026-11-21: One photo editor everywhere
+
+The people editor (portrait, gallery, QR) and the photographs on the Read stories and the home page now open the same photo editor Curate uses: the ruler to straighten, the quarter turn, enlarge, and the frame shapes. Their own tools (a focus ring, a dot to drag, a zoom slider) are retired. The editor saves a new, already framed picture; a story keeps the untouched picture and the settings beside it so the editor reopens where it was left. Photographs placed with the old tools show exactly as before until they are edited. The editor takes a fixed frame shape (`frameAspect`), so a story frame is framed to its own proportions.
+
 ## 2026-11-20: Automatic shipping payment requests
 
 New shipping quotes can queue the customer’s existing private payment link through consented WhatsApp, otherwise email. Duplicate saves do not resend. A revised quote creates a new request; stale quotes, free shipping, settled balances and closed orders are suppressed. Encrypted link targets and a durable outbox keep delivery failures visible and retry safe. The shipping panel shows send status separately from the saved quote. Activation requires the dedicated shipping switch and approved WhatsApp template.

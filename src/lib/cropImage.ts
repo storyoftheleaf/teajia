@@ -1,5 +1,6 @@
 // Produces a framed JPEG from an unchanged source image and a pixel crop area.
-// Defaults to square; optional 2:3 or 3:2 preserves exact proportions.
+// Defaults to square; 2:3 and 3:2 keep exact proportions, and any other shape
+// (a story frame's 4:5, say) keeps its long edge at the output size.
 
 export interface PixelCrop {
   x: number;
@@ -41,8 +42,8 @@ export async function cropToSquareBlob(
   const rotation = options?.rotation ?? 0;
   const aspect = options?.aspect ?? 1;
   const unit = Math.max(1, Math.floor(size / 3));
-  const width = aspect === 3 / 2 ? unit * 3 : aspect === 2 / 3 ? unit * 2 : size;
-  const height = aspect === 3 / 2 ? unit * 2 : aspect === 2 / 3 ? unit * 3 : size;
+  const width = aspect === 3 / 2 ? unit * 3 : aspect === 2 / 3 ? unit * 2 : aspect >= 1 ? size : Math.round(size * aspect);
+  const height = aspect === 3 / 2 ? unit * 2 : aspect === 2 / 3 ? unit * 3 : aspect >= 1 ? Math.round(size / aspect) : size;
   const image = await loadImage(imageSrc);
 
   // When a rotation is applied, react-easy-crop reports pixelCrop relative

@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useState } from 'react';
 import { isTouch } from '../../../pages/read/imageUtils';
 import { ACTION, LABEL, Line, QUIET } from './parts';
-import { cssToFocus, focusToCss, imagesFrom, usePhotoUpload, type Focus, type UploadState } from './photoUpload';
+import { imagesFrom, usePhotoUpload, usePhotoUploader, type UploadState } from './photoUpload';
+import { SquareCropModal } from '../../../components/shared/SquareCropModal';
+import { recallPhotoEdit, rememberPhotoEdit } from '../../../lib/photoEditMemory';
 import { mediaUrl } from '../../../lib/mediaUrl';
 
 const TOUCH = isTouch();
@@ -34,77 +36,34 @@ export function CropStrip({ url, focus, crops }: { url: string; focus: string | 
 }
 
 /**
- * The whole photo, uncropped, with a ring on the point that must stay in
- * frame. Tap or click anywhere to move it; drag the ring; arrow keys nudge it.
- * The value is written as the page applies it (CSS object-position), which
- * keeps that point inside every crop the page makes.
+ * "Edit photo": the one shared photo editor, the same one Curate uses, opened
+ * on a placed photo to straighten, turn, enlarge and frame it. What it saves is
+ * a new picture, already framed, so the page centres on it. The untouched
+ * picture is kept for this sitting, so opening the editor again starts from it.
  */
-export function FocusPicker({ url, focus, onFocus, alt }: { url: string; focus: string | null | undefined; onFocus: (css: string) => void; alt: string }) {
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const start = useRef<{ x: number; y: number } | null>(null);
-  const point = cssToFocus(focus);
-
-  const place = useCallback((clientX: number, clientY: number) => {
-    const box = imgRef.current?.getBoundingClientRect();
-    if (!box || !box.width || !box.height) return;
-    const x = Math.min(100, Math.max(0, ((clientX - box.left) / box.width) * 100));
-    const y = Math.min(100, Math.max(0, ((clientY - box.top) / box.height) * 100));
-    onFocus(focusToCss({ x, y }));
-  }, [onFocus]);
-
-  useEffect(() => {
-    if (!dragging) return;
-    const move = (event: PointerEvent) => place(event.clientX, event.clientY);
-    const up = () => setDragging(false);
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-    return () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-    };
-  }, [dragging, place]);
-
-  const nudge = (event: React.KeyboardEvent) => {
-    const step = event.shiftKey ? 10 : 2;
-    const next: Focus = { ...point };
-    if (event.key === 'ArrowLeft') next.x -= step;
-    else if (event.key === 'ArrowRight') next.x += step;
-    else if (event.key === 'ArrowUp') next.y -= step;
-    else if (event.key === 'ArrowDown') next.y += step;
-    else return;
-    event.preventDefault();
-    onFocus(focusToCss({ x: Math.min(100, Math.max(0, next.x)), y: Math.min(100, Math.max(0, next.y)) }));
-  };
-
+export function PhotoEdit({ url, label, onEdited, className = ACTION }: { url: string; label: string; onEdited: (url: string) => void; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const send = usePhotoUploader();
+  const before = recallPhotoEdit(url);
+  const original = before?.original ?? url;
   return (
-    <div className="relative inline-block max-w-full select-none align-top">
-      <img
-        ref={imgRef}
-        src={mediaUrl(url)}
-        alt={alt}
-        draggable={false}
-        className="block h-auto max-h-[360px] w-auto max-w-full cursor-crosshair"
-        onPointerDown={event => { start.current = { x: event.clientX, y: event.clientY }; }}
-        onPointerUp={event => {
-          const origin = start.current;
-          start.current = null;
-          if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) < 8) place(event.clientX, event.clientY);
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={className} aria-label={label}>Edit photo</button>
+      <SquareCropModal
+        isOpen={open}
+        source={open ? mediaUrl(original) : null}
+        title="Edit photo"
+        initialFrame={before?.frame ?? null}
+        allowAspectSelection
+        onClose={() => setOpen(false)}
+        onConfirm={async (blob, frame) => {
+          const next = await send(new File([blob], 'photo.jpg', { type: 'image/jpeg' }), () => {});
+          rememberPhotoEdit(next, original, frame);
+          onEdited(next);
+          setOpen(false);
         }}
       />
-      <button
-        type="button"
-        aria-label={`Focal point, ${Math.round(point.x)}% across and ${Math.round(point.y)}% down. Arrow keys move it.`}
-        onKeyDown={nudge}
-        onPointerDown={event => { event.preventDefault(); event.currentTarget.focus(); setDragging(true); }}
-        className="absolute flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
-        style={{ left: `${point.x}%`, top: `${point.y}%`, touchAction: 'none' }}
-      >
-        <span aria-hidden className="block h-7 w-7 rounded-full border-2 border-tea-text" style={{ boxShadow: '0 0 0 2px rgb(var(--tea-bg-rgb) / 0.55), inset 0 0 0 2px rgb(var(--tea-bg-rgb) / 0.35)' }} />
-      </button>
-    </div>
+    </>
   );
 }
 
@@ -134,8 +93,8 @@ type Props = {
  * A place for one photo. Empty, it is a drop target that also takes a paste
  * and opens the file picker, and on a phone the camera. While the photo
  * travels it shows the photo itself, dimmed, with a bronze line filling along
- * the foot. Placed, it shows the whole photo with its focal point beside the
- * crops the page will make of it.
+ * the foot. Placed, it shows the whole photo beside the crops the page will
+ * make of it, and "Edit photo" opens the shared photo editor.
  */
 export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHeight = 240, onBusy, extraActions, testId, takeRef, noun, allowAddress = true }: Props) {
   const inputId = useId();
@@ -213,10 +172,7 @@ export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHe
       ) : url ? (
         <div className="flex flex-col items-start gap-5">
           <div className="min-w-0 max-w-full">
-            <FocusPicker url={url} focus={focus} alt={`${name}, whole photo`} onFocus={css => onChange({ url, focus: css })} />
-            <p className="mt-2 font-sans text-ui-12 leading-relaxed text-tea-text-dim">
-              {TOUCH ? 'Tap the face' : 'Click the face'}, or drag the ring. That point stays in every crop.
-            </p>
+            <img src={mediaUrl(url)} alt={`${name}, whole photo`} draggable={false} className="block h-auto max-h-[360px] w-auto max-w-full" />
           </div>
           <CropStrip url={url} focus={focus} crops={crops} />
         </div>
@@ -239,6 +195,7 @@ export function PhotoPlace({ name, url, focus, onChange, crops, purpose, emptyHe
 
       <div className="mt-3 flex flex-wrap items-center gap-x-6">
         {url && !busy && <label htmlFor={inputId} className={`${ACTION} cursor-pointer`}>{chooseLabel}</label>}
+        {url && !busy && <PhotoEdit url={url} label={`Edit the ${noun ?? name.toLowerCase()}`} onEdited={next => onChange({ url: next, focus: null })} />}
         {url && !busy && focus && <button type="button" onClick={() => onChange({ url, focus: null })} className={QUIET}>Centre the focus</button>}
         {extraActions}
         {url && !busy && <button type="button" onClick={() => onChange({ url: null, focus: null })} className={QUIET}>Remove</button>}

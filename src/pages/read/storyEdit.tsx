@@ -21,10 +21,18 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { api } from '../../lib/api';
+import type { SquarePhotoFrame } from '../../lib/cropImage';
 import { useAppStore, selectIsOwnerTier } from '../../lib/store';
 
 // ── content shape ────────────────────────────────────────────────────────────
-export interface PhotoVal { url: string; crop: { scale: number; x: number; y: number } }
+export interface PhotoVal {
+  url: string;
+  /** Where an older photo was centred and how far it was enlarged. A photo framed in the editor is stored already framed, so this rests at the middle. */
+  crop: { scale: number; x: number; y: number };
+  /** The untouched picture and the editor's settings on it, so the editor reopens where it was left. */
+  original?: string;
+  frame?: SquarePhotoFrame;
+}
 export interface StoryContent {
   text?: Record<string, string>;
   photos?: Record<string, PhotoVal>;

@@ -12,16 +12,28 @@
  * saved pan/zoom/focal crop) or a captioned placeholder if none is set.
  *
  * For the owner in edit mode: drag a photo file onto the frame (or paste from
- * clipboard, or pick) to upload it, drag the focal dot to choose what stays
- * centered, slider to zoom. Changes flow into the draft and save automatically.
+ * clipboard, or pick) to upload it, then "edit" opens the one shared photo
+ * editor (the same one Curate uses) to straighten, turn, enlarge and frame it
+ * to this frame's shape. Changes flow into the draft and save automatically.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
 import { useStoryEdit, type PhotoVal } from './storyEdit';
 import { shrinkImage, isTouch } from './imageUtils';
+import { SquareCropModal } from '../../components/shared/SquareCropModal';
+import type { SquarePhotoFrame } from '../../lib/cropImage';
 
 const DEFAULT_CROP = { scale: 1, x: 0.5, y: 0.5 };
 const TOUCH = isTouch();
+
+/** "4/5" as a number. A frame that fills its parent has no shape of its own. */
+function ratioOf(aspect: string): number {
+  const [w, h] = aspect.split('/').map(Number);
+  return w > 0 && h > 0 ? w / h : w > 0 ? w : 1;
+}
+/** The editor's three shapes; a filling frame opens on the nearest. */
+const SHAPES = [1, 2 / 3, 3 / 2];
+const QUIET_BUTTON: React.CSSProperties = { fontFamily: 'var(--font-sans)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', background: 'transparent', border: 'none', cursor: 'pointer', minHeight: 44 };
 
 interface Props {
   slot: string;
@@ -59,10 +71,10 @@ const EditablePhoto: React.FC<Props> = ({
   const [uploadError, setUploadError] = useState(false);
   const [lastFile, setLastFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [focusing, setFocusing] = useState(false);
+  const [framing, setFraming] = useState(false);
+  const [openShape, setOpenShape] = useState(1);
   const [showLibrary, setShowLibrary] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
-  const pinchRef = useRef<{ startDist: number; startScale: number } | null>(null);
 
   // Register this frame so the editor bar's "what needs a photo" list knows it.
   useEffect(() => {
@@ -111,55 +123,24 @@ const EditablePhoto: React.FC<Props> = ({
     }
   }, [liveEdit, upload]);
 
-  // Drag the focal dot to set what stays centered when the frame crops.
-  const moveFocal = useCallback((clientX: number, clientY: number) => {
-    if (!photo || !frameRef.current) return;
-    const r = frameRef.current.getBoundingClientRect();
-    const x = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
-    const y = Math.min(1, Math.max(0, (clientY - r.top) / r.height));
-    setPhoto(slot, { ...photo, crop: { ...photo.crop, x, y } });
-  }, [photo, slot, setPhoto]);
+  // "edit" opens the shared editor on the untouched picture. A frame with its
+  // own shape is framed to that shape; one that fills its parent changes shape
+  // with the screen, so it offers the three shapes and opens on the nearest.
+  const openEditor = useCallback(() => {
+    if (fill && frameRef.current) {
+      const box = frameRef.current.getBoundingClientRect();
+      const now = box.height ? box.width / box.height : 1;
+      setOpenShape(SHAPES.reduce((best, shape) => Math.abs(shape - now) < Math.abs(best - now) ? shape : best, 1));
+    }
+    setFraming(true);
+  }, [fill]);
 
-  const setScale = (scale: number) => {
+  const saveFramed = useCallback(async (blob: Blob, frame: SquarePhotoFrame) => {
     if (!photo) return;
-    setPhoto(slot, { ...photo, crop: { ...photo.crop, scale: Math.min(3, Math.max(1, scale)) } });
-  };
-
-  // Tap anywhere on the photo to place the focal point there (touch-friendly,
-  // no precise dragging needed). Ignored if the tap was a pinch.
-  const tapFocal = useCallback((e: React.PointerEvent) => {
-    if (!liveEdit || !photo || pinchRef.current) return;
-    // Don't hijack a tap on the dot itself (it has its own drag handler).
-    if ((e.target as HTMLElement).dataset.focalDot) return;
-    moveFocal(e.clientX, e.clientY);
-  }, [liveEdit, photo, moveFocal]);
-
-  // Pinch-to-zoom on touch.
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!liveEdit || !photo || e.touches.length !== 2) return;
-    const [a, b] = [e.touches[0], e.touches[1]];
-    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    pinchRef.current = { startDist: dist, startScale: photo.crop.scale };
-  }, [liveEdit, photo]);
-  const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!pinchRef.current || e.touches.length !== 2 || !photo) return;
-    e.preventDefault();
-    const [a, b] = [e.touches[0], e.touches[1]];
-    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    const next = pinchRef.current.startScale * (dist / pinchRef.current.startDist);
-    setScale(next);
-  }, [photo]); // eslint-disable-line react-hooks/exhaustive-deps
-  const onTouchEnd = useCallback(() => { pinchRef.current = null; }, []);
-
-  // Global pointer move while dragging the focal dot.
-  useEffect(() => {
-    if (!focusing) return;
-    const mv = (e: PointerEvent) => moveFocal(e.clientX, e.clientY);
-    const up = () => setFocusing(false);
-    window.addEventListener('pointermove', mv);
-    window.addEventListener('pointerup', up);
-    return () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
-  }, [focusing, moveFocal]);
+    const url = await api.uploadImageProgress(blob, () => {}, { filename: 'photo.jpg' });
+    setPhoto(slot, { url, crop: { ...DEFAULT_CROP }, original: photo.original ?? photo.url, frame });
+    setFraming(false);
+  }, [photo, slot, setPhoto]);
 
   const captionText = captionField ? text(captionField, caption || '') : caption;
 
@@ -170,10 +151,6 @@ const EditablePhoto: React.FC<Props> = ({
         data-frame-slot={slot}
         tabIndex={liveEdit ? 0 : -1}
         onPaste={onPaste}
-        onPointerUp={tapFocal}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
         onDragOver={(e) => { if (!liveEdit) return; e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
@@ -186,7 +163,6 @@ const EditablePhoto: React.FC<Props> = ({
           overflow: 'hidden',
           background: photo ? 'var(--tj-read-bg)' : placeholderBg,
           outline: 'none',
-          touchAction: liveEdit && photo ? 'none' : 'auto',
         }}
       >
         {photo ? (
@@ -212,32 +188,6 @@ const EditablePhoto: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Focal dot, drag OR tap the photo to set the crop center. Bigger
-            touch grab area; the visible ring stays small. */}
-        {liveEdit && photo && (
-          <div
-            data-focal-dot="1"
-            onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setFocusing(true); }}
-            style={{
-              position: 'absolute',
-              left: `${photo.crop.x * 100}%`,
-              top: `${photo.crop.y * 100}%`,
-              width: TOUCH ? 44 : 26, height: TOUCH ? 44 : 26,
-              marginLeft: TOUCH ? -22 : -13, marginTop: TOUCH ? -22 : -13,
-              borderRadius: '50%',
-              border: '2px solid var(--tj-read-cream)',
-              boxShadow: '0 0 0 2px rgb(var(--tj-read-bg-rgb) / 0.6), 0 0 8px rgba(0,0,0,0.5)',
-              background: 'rgb(var(--tj-read-gold-rgb) / 0.4)',
-              cursor: 'grab',
-              touchAction: 'none',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-            title="Drag or tap the photo to set the focal point"
-          >
-            <span data-focal-dot="1" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tj-read-cream)' }} />
-          </div>
-        )}
-
         {/* Upload progress bar */}
         {liveEdit && busy && (
           <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, background: 'rgb(var(--tj-read-gold-rgb) / 0.18)', zIndex: 6 }}>
@@ -256,7 +206,7 @@ const EditablePhoto: React.FC<Props> = ({
         {/* Owner hint / dropzone label */}
         {liveEdit && !busy && !uploadError && (
           <div style={{ position: 'absolute', top: 8, right: 8, fontFamily: 'var(--font-sans)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tj-read-taupe)', background: 'rgb(var(--tj-read-bg-rgb) / 0.72)', padding: '4px 8px', borderRadius: 2, pointerEvents: 'none' }}>
-            {photo ? (TOUCH ? 'tap to set focus' : 'drag focus · paste') : (TOUCH ? 'add a photo' : 'drop / paste / pick')}
+            {photo ? (TOUCH ? 'edit below' : 'drop or paste to replace') : (TOUCH ? 'add a photo' : 'drop / paste / pick')}
           </div>
         )}
 
@@ -298,19 +248,33 @@ const EditablePhoto: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Zoom + remove controls under the frame, owner editing only */}
+      {/* Edit + remove under the frame, owner editing only */}
       {liveEdit && photo && (
         <div style={fill
-          ? { position: 'absolute', left: 16, right: 16, bottom: 16, zIndex: 5, padding: 10, border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.3)', borderRadius: 4, background: 'rgb(var(--tj-read-bg-rgb) / 0.92)', display: 'flex', alignItems: 'center', gap: 10 }
-          : { marginTop: 8, padding: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--tj-read-taupe)' }}>Zoom</span>
-          <input type="range" min={1} max={3} step={0.02} value={photo.crop.scale}
-            onChange={(e) => setScale(parseFloat(e.target.value))} style={{ flex: 1, accentColor: 'var(--tj-gold, var(--tj-read-gold-default))' }} />
+          ? { position: 'absolute', left: 16, bottom: 16, zIndex: 5, padding: '0 12px', border: '1px solid rgb(var(--tj-read-gold-rgb) / 0.3)', borderRadius: 4, background: 'rgb(var(--tj-read-bg-rgb) / 0.92)', display: 'flex', alignItems: 'center', gap: 18 }
+          : { marginTop: 4, display: 'flex', alignItems: 'center', gap: 18 }}>
+          <button type="button" data-testid="story-photo-edit" onClick={openEditor}
+            style={{ ...QUIET_BUTTON, color: 'var(--tj-gold, var(--tj-read-gold-default))' }}>
+            edit
+          </button>
           <button type="button" onClick={() => setPhoto(slot, null)}
-            style={{ fontFamily: 'var(--font-sans)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--tj-read-dim)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            style={{ ...QUIET_BUTTON, color: 'var(--tj-read-dim)' }}>
             remove
           </button>
         </div>
+      )}
+      {liveEdit && photo && (
+        <SquareCropModal
+          isOpen={framing}
+          source={photo.original ?? photo.url}
+          title="Edit photo"
+          initialFrame={photo.frame ?? null}
+          allowAspectSelection={fill}
+          frameAspect={fill ? openShape : ratioOf(aspect)}
+          layer="takeover"
+          onClose={() => setFraming(false)}
+          onConfirm={saveFramed}
+        />
       )}
 
       {captionText && !liveEdit && (

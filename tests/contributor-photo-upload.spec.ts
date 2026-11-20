@@ -2,7 +2,8 @@ import { expect, test, type Page } from './fixtures';
 
 // Creating a contributor with photos placed, not linked: the portrait and two
 // gallery photos go through the real upload path (POST /api/upload-image),
-// the portrait gets a focal point, and the saved payloads carry both. Run on
+// the portrait is framed in the shared photo editor (the one Curate uses), and
+// the saved payloads carry the framed picture. Run on
 // Desktop Chrome and Mobile Chrome (390px), since the editor is a phone
 // surface too. See docs/CONTRIBUTOR_EDITOR.md.
 
@@ -54,7 +55,7 @@ async function install(page: Page) {
   return { writes, uploads: () => uploads };
 }
 
-test('a contributor is created with an uploaded portrait, its focal point, and gallery photos', async ({ page }, testInfo) => {
+test('a contributor is created with an uploaded portrait, framed in the shared editor, and gallery photos', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -72,25 +73,37 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   // The portrait: picked from a file, uploaded, then shown whole with its crops.
   await expect(dialog.getByText('No portrait yet')).toBeVisible();
   await dialog.getByTestId('photo-portrait-file').setInputFiles({ name: 'seated.png', mimeType: 'image/png', buffer: PHOTO });
-  const ring = dialog.getByRole('button', { name: /Focal point, 50% across and 50% down/ });
-  await expect(ring).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Edit the portrait' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /Focal point/ }), 'the old focus ring is gone').toHaveCount(0);
   await expect(dialog.getByLabel('How the page crops it').first().locator('img')).toHaveCount(3);
   // The whole photo keeps its own width beside the crops. At a 1204px laptop
   // window it once collapsed to a sliver, too narrow to find a face in.
   const whole = dialog.getByRole('img', { name: 'Portrait, whole photo' });
   await expect.poll(async () => (await whole.boundingBox())?.width ?? 0).toBeGreaterThan(150);
 
-  // Move the focal point up and left, by keyboard, the way that works everywhere.
-  await ring.focus();
-  await page.keyboard.press('Shift+ArrowUp');
-  await page.keyboard.press('Shift+ArrowUp');
-  await page.keyboard.press('Shift+ArrowLeft');
-  await expect(dialog.getByRole('button', { name: /Focal point, 40% across and 30% down/ })).toBeVisible();
+  // "Edit photo" opens the one shared editor: the ruler, the three shapes, the
+  // quarter turn. Straighten it, make it upright, save.
+  await dialog.getByRole('button', { name: 'Edit the portrait' }).click();
+  const editor = page.getByRole('dialog', { name: 'Edit photo' });
+  await expect(editor.getByRole('button', { name: 'Save' })).toBeEnabled({ timeout: 15_000 });
+  await expect(editor.getByTestId('crop-dial-rotation')).toBeVisible();
+  await editor.getByRole('button', { name: 'Portrait 2:3' }).click();
+  await editor.getByRole('slider', { name: 'Rotation' }).fill('4');
+  await page.screenshot({ path: testInfo.outputPath('contributor-photo-editor.png'), fullPage: false });
+  await editor.getByRole('button', { name: 'Save' }).click();
+  await expect(editor).toHaveCount(0);
 
-  // The crops redraw from what is in the editor, at the focal point.
+  // The framed picture is a new upload, and the crops redraw from it, centred.
   const coverImage = dialog.getByLabel('How the page crops it').first().locator('img').first();
-  await expect(coverImage).toHaveAttribute('src', /\/api\/media\/accounts\/acct-bali\/products\/upload-1\.jpg/);
-  await expect(coverImage).toHaveCSS('object-position', '40% 30%');
+  await expect(coverImage).toHaveAttribute('src', /\/api\/media\/accounts\/acct-bali\/products\/upload-2\.jpg/);
+  await expect(coverImage).toHaveCSS('object-position', '50% 50%');
+  // Opened again in the same sitting, the editor is back on the untouched picture, where it was left.
+  await dialog.getByRole('button', { name: 'Edit the portrait' }).click();
+  await expect(editor.getByRole('button', { name: 'Save' })).toBeEnabled({ timeout: 15_000 });
+  await expect(editor.getByRole('slider', { name: 'Rotation' })).toHaveValue('4');
+  await expect(editor.getByRole('button', { name: 'Portrait 2:3' })).toHaveAttribute('aria-pressed', 'true');
+  await editor.getByRole('button', { name: 'Cancel' }).click();
+  await expect(editor).toHaveCount(0);
 
   // Two gallery photos at once, in the Hands on sheet, laid out as the page lays them out.
   await dialog.getByTestId('row-hands').click();
@@ -101,6 +114,7 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   await expect(dialog.getByRole('button', { name: /^Photo 1\b/ })).toBeVisible();
   await expect(dialog.getByRole('button', { name: /^Photo 2\b/ })).toBeVisible();
   await dialog.getByRole('button', { name: /^Photo 2\b/ }).click();
+  await expect(dialog.getByRole('button', { name: 'Edit gallery photo 2' })).toBeVisible();
   await dialog.getByLabel('Gallery photo 2 caption').fill('The second pour.');
   await dialog.getByRole('button', { name: 'Move gallery photo 2 earlier' }).click();
   await expect(dialog.getByRole('button', { name: /^Photo 1, The second pour\./ })).toBeVisible();
@@ -111,13 +125,13 @@ test('a contributor is created with an uploaded portrait, its focal point, and g
   await dialog.getByRole('button', { name: 'Save draft' }).click();
   await expect(dialog).toHaveCount(0);
 
-  expect(network.uploads()).toBe(3);
+  expect(network.uploads()).toBe(4);
   const created = network.writes.find(write => write.method === 'POST')!.body;
   expect(created).toMatchObject({
     id: 'yan-jinwen',
     display_name: 'Yan Jinwen',
-    portrait_url: 'https://media.teajia.co/accounts/acct-bali/products/upload-1.jpg?v=1',
-    portrait_focus: '40% 30%',
+    portrait_url: 'https://media.teajia.co/accounts/acct-bali/products/upload-2.jpg?v=1',
+    portrait_focus: null,
   });
   const gallery = network.writes.find(write => write.method === 'PUT' && write.path.endsWith('/gallery-images'))!.body.gallery_images;
   expect(gallery.map((image: any) => image.caption)).toEqual(['The second pour.', null]);
@@ -153,6 +167,6 @@ test('a failed upload says so and can be tried again without choosing the file t
   await dialog.getByTestId('photo-portrait-file').setInputFiles({ name: 'seated.png', mimeType: 'image/png', buffer: PHOTO });
   await expect(dialog.getByText('The photo did not arrive.')).toBeVisible();
   await dialog.getByRole('button', { name: 'Try again' }).click();
-  await expect(dialog.getByRole('button', { name: /Focal point/ })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Edit the portrait' })).toBeVisible();
   expect(network.uploads()).toBe(1);
 });
