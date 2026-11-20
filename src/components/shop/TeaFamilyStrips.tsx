@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
-import { PhotographShapeChoice, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
-import type { FamilyPhotographShape } from '../../lib/familyContract';
+import { PhotographCrop, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
+import type { FamilyPhotographFrame, FamilyPhotographShape } from '../../lib/familyContract';
 import { SoldOutLine } from '../people/PersonTastings';
 import { personPath, type TeaRowPhotograph } from './useTeaFamily';
 
@@ -22,7 +22,7 @@ export function TeaPhotographRow({
   teaName: string;
   onChooseCover: (photographId: string | null) => void;
   onRemove: (photographId: string) => Promise<void>;
-  onShape: (photographId: string, shape: FamilyPhotographShape) => void;
+  onShape: (photographId: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null) => Promise<void> | void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -36,6 +36,7 @@ export function TeaPhotographRow({
     width: p.width,
     height: p.height,
     shape: p.shape,
+    frame: p.frame,
     alt: p.mine ? `Your photograph of ${teaName}` : `${teaName}, photographed by ${p.author?.name ?? 'the family'}`,
   });
   const shown = showAll ? photographs : photographs.slice(0, ROW_LIMIT);
@@ -68,8 +69,8 @@ export function TeaPhotographRow({
         )}
         {open?.mine && (
           <>
-            <PhotographShapeChoice shape={open.shape} onChoose={shape => onShape(open.id, shape)} />
             <div className="photo-zoom__actions">
+              <PhotographCrop photo={toZoom(open)} onSave={(shape, frame) => onShape(open.id, shape, frame)} />
               {open.isCover ? (
                 <Button variant="secondary" size="sm" type="button" onClick={() => onChooseCover(null)} data-testid="cover-clear">Stop using as my cover</Button>
               ) : (
@@ -88,9 +89,6 @@ export function TeaPhotographRow({
                 Remove from my page
               </Button>
             </div>
-            <p className="photo-zoom__note" data-testid="cover-note">
-              {open.isCover ? 'Your cover for this tea. Only you see it.' : 'Your photograph. A cover is seen only by you.'}
-            </p>
             {removeFailed && <p role="alert" className="photo-zoom__note">That did not go through. Try again.</p>}
           </>
         )}

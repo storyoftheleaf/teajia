@@ -109,18 +109,26 @@ test('the tea page: plain when nobody has added anything, then the family strip,
     const noOverflow = (p: Page) => p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
     // 1. Nobody has added anything: the plaque stands alone, with three lines at most
-    //    and no photograph in it. The tea's class is said under it, not on it.
+    //    and no photograph in it. The tea's class is set into its border line.
     await visitorPage.goto(teaPath);
     const plaque = visitorPage.locator('.label-plate');
     await expect(plaque).toBeVisible({ timeout: 30_000 });
     await expect(plaque.locator('img')).toHaveCount(0);
-    // The tea's class ("Dark tea") is under the plaque, with where it is from, and not on it.
-    const teaClass = (await visitorPage.getByTestId('tea-classification').innerText()).trim();
+    // The tea's class ("Dark tea") sits in the plaque's bottom border line, not among its lines.
+    const classMark = plaque.getByTestId('tea-classification');
+    const teaClass = (await classMark.innerText()).trim();
     expect(teaClass).toMatch(/ tea$/i);
-    const plaqueLines = (await plaque.locator('h1, p').allInnerTexts()).map(t => t.trim()).filter(Boolean);
+    const plaqueLines = (await plaque.locator('h1, p:not(.label-plate__class)').allInnerTexts()).map(t => t.trim()).filter(Boolean);
     expect(plaqueLines.length, 'the plaque holds three lines at most').toBeLessThanOrEqual(3);
     expect(plaqueLines.map(t => t.toLowerCase())).not.toContain(teaClass.toLowerCase());
-    expect((await plaque.boundingBox())!.height, 'the plaque is short on a phone').toBeLessThan(260);
+    const emptyPlaqueBox = (await plaque.boundingBox())!;
+    expect(emptyPlaqueBox.height, 'the plaque is short on a phone').toBeLessThan(260);
+    // The word is centred on the line: the line runs 12px in from the plaque's foot.
+    const markBox = (await classMark.locator('span').boundingBox())!;
+    const lineY = emptyPlaqueBox.y + emptyPlaqueBox.height - 12;
+    expect(Math.abs(markBox.y + markBox.height / 2 - lineY), 'the class sits on the border line').toBeLessThan(3);
+    // The line stops for the word: its bottom edge is not drawn under it.
+    expect(await plaque.evaluate(el => getComputedStyle(el, '::after').borderBottomColor)).toBe('rgba(0, 0, 0, 0)');
     await expect(visitorPage.getByTestId('tea-photographs')).toHaveCount(0);
     await expect(visitorPage.getByTestId('sold-out-line')).toHaveCount(0);
     await visitorPage.screenshot({ path: `${SHOTS}-1-plain.png` });
@@ -207,23 +215,48 @@ test('the tea page: plain when nobody has added anything, then the family strip,
       return Math.round((box.width / box.height) * 100) / 100;
     };
     expect(await thumbRatio(anaOrder[1])).toBe(1);
-    await expect(zoom.getByTestId('photograph-shape-square')).toHaveAttribute('aria-pressed', 'true');
+    // "Crop" opens the editor Curate frames with: square first, 2:3 and 3:2 a tap away.
+    // The practice shop's own photographs are files on this machine, so the editor may load them for real.
+    await page.route(/\/api\/media\/family-photos\//, route => route.continue());
+    await page.screenshot({ path: `${SHOTS}-4-zoom-own.png` });
+    const cropTo = async (shapeName: string) => {
+      await zoom.getByTestId('photograph-crop').click();
+      const editor = page.getByRole('dialog', { name: 'Crop photograph' });
+      await expect(editor.getByRole('button', { name: 'Save' })).toBeEnabled({ timeout: 15_000 });
+      await expect(editor.getByRole('slider', { name: 'Rotation' }), 'a frame cannot hold a turn').toHaveCount(0);
+      await editor.getByRole('button', { name: shapeName }).click();
+      await editor.getByRole('slider', { name: 'Zoom' }).fill('1.6');
+      return editor;
+    };
+    let editor = await cropTo('Landscape 3:2');
+    await page.screenshot({ path: `${SHOTS}-4a-crop-editor.png` });
     const reshaped = page.waitForResponse(r => r.url().includes(`/photographs/${anaOrder[1]}/shape`) && r.request().method() === 'PUT');
-    await zoom.getByTestId('photograph-shape-across').click();
-    expect((await reshaped).status()).toBe(200);
-    await expect(zoom.getByTestId('photograph-shape-across')).toHaveAttribute('aria-pressed', 'true');
+    await editor.getByRole('button', { name: 'Save' }).click();
+    const saved = await reshaped;
+    expect(saved.status()).toBe(200);
+    const frame = (await saved.json()).photograph.frame;
+    expect(frame.zoom).toBe(1.6);
+    expect(frame.area.width, 'zoomed in, less than the whole picture shows').toBeLessThan(70);
+    await expect(editor).toHaveCount(0);
     expect(await thumbRatio(anaOrder[1])).toBe(1.5);
     expect(await thumbRatio(anaOrder[0]), 'the other photograph stays square').toBe(1);
-    await page.screenshot({ path: `${SHOTS}-4-zoom-own.png` });
+    // The thumbnail and the zoom show the framed part: the picture is larger than its box.
+    const pictureWider = async (selector: string) => page.locator(selector).evaluate(img => img.getBoundingClientRect().width / img.parentElement!.getBoundingClientRect().width);
+    expect(await pictureWider(`li:has(img[src*="${anaOrder[1]}-small"]) [data-testid="tea-photograph"] img`)).toBeGreaterThan(1.4);
+    expect(await pictureWider('[data-testid="photograph-zoom-image"]')).toBeGreaterThan(1.4);
+    await page.screenshot({ path: `${SHOTS}-4b-zoom-cropped.png` });
+    // Opened again, the editor is where she left it, and 2:3 is one more tap.
+    editor = await cropTo('Portrait 2:3');
     const again = page.waitForResponse(r => r.url().includes(`/photographs/${anaOrder[1]}/shape`) && r.request().method() === 'PUT');
-    await zoom.getByTestId('photograph-shape-upright').click();
+    await editor.getByRole('button', { name: 'Save' }).click();
     expect((await again).status()).toBe(200);
+    await expect(editor).toHaveCount(0);
     expect(await thumbRatio(anaOrder[1])).toBe(0.67);
-    await page.screenshot({ path: `${SHOTS}-4a-zoom-own-upright.png` });
     const chosen = page.waitForResponse(r => r.url().includes('/cover') && r.request().method() === 'PUT');
     await zoom.getByRole('button', { name: 'Use as my cover' }).click();
     expect((await chosen).status()).toBe(200);
-    await expect(zoom.getByTestId('cover-note')).toContainText('Only you see it');
+    await expect(zoom.getByRole('button', { name: 'Stop using as my cover' })).toBeVisible();
+    await expect(zoom, 'no line says who sees a cover').not.toContainText('Only you');
     await page.keyboard.press('Escape');
     // Her cover is now first in her row.
     await expect(row.locator('li').first()).toHaveAttribute('data-cover', 'true');

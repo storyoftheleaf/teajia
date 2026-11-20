@@ -263,6 +263,14 @@
      as TEXTURES.alcoveGrain in designTokens, held here so CSS can reach it. */
   --alcove-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
+  /* The plaque's keyline: how far in it sits, its colour, and the ink of the
+     tea's class, which is set into the line and so is the line's own colour,
+     only strong enough to read. The desk plaque sets the inset wider. */
+  --plate-keyline-inset: 12px;
+  --plate-keyline-inset-desk: 24px;
+  --plate-keyline: rgb(var(--tea-gold-rgb) / 0.3);
+  --plate-keyline-ink: rgb(var(--tea-gold-rgb) / 0.72);
+
   /* Stand-in for the tea-label stock: soft warm strata in the same family.
      Set --label-plate-image to the real photograph and this sits under it. */
   --label-plate-wash:
@@ -325,6 +333,8 @@
 
 /* Light mode */
 :root.light, .light {
+  --plate-keyline: rgba(36, 29, 19, 0.26);
+  --plate-keyline-ink: rgba(36, 29, 19, 0.6);
   color-scheme: light;
   --tea-bg: #f4ece0;
   --tea-bg-rgb: 244 236 224;

@@ -3424,7 +3424,8 @@ CREATE TABLE IF NOT EXISTS member_photographs (
   removed_by_member_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  shape TEXT NOT NULL DEFAULT 'square' CHECK (shape IN ('square', 'upright', 'across'))
+  shape TEXT NOT NULL DEFAULT 'square' CHECK (shape IN ('square', 'upright', 'across')),
+  frame TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_member_photographs_author_product
   ON member_photographs(author_user_id, product_id, created_at);

@@ -9,7 +9,7 @@
  * (src/admin/guards/driftCeilings.test.ts). Import it from here.
  */
 import { API_URL, authedBlobFetch, authedFetch, fetchWithTimeout, handleResponse } from './api';
-import type { FamilyFeedbackNote, FamilySheetRange, FamilyMyTea, FamilyOfferedPhotograph, FamilyPageTier, FamilyPhotoPage, FamilyPhotograph, FamilyReport, FamilyRestockRequest, FamilyShareState, FamilyShopUse, FamilyTargetKind, FamilyTeaPhotographs, FamilyPhotographShape } from './familyContract';
+import type { FamilyFeedbackNote, FamilySheetRange, FamilyMyTea, FamilyOfferedPhotograph, FamilyPageTier, FamilyPhotoPage, FamilyPhotograph, FamilyReport, FamilyRestockRequest, FamilyShareState, FamilyShopUse, FamilyTargetKind, FamilyTeaPhotographs, FamilyPhotographShape, FamilyPhotographFrame } from './familyContract';
 
 export const familyApi = {
   /** Both copies of one photograph of a shop tea. `page` is the tasting page it was taken on. */
@@ -31,8 +31,8 @@ export const familyApi = {
   setPhotographShare: (photographId: string, shareState: FamilyShareState): Promise<{ photograph: FamilyPhotograph }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/share`, { method: 'PUT', body: JSON.stringify({ share_state: shareState }) }),
   /** How the author wants one photograph shown: square, upright (2:3) or across (3:2). */
-  setPhotographShape: (photographId: string, shape: FamilyPhotographShape): Promise<{ photograph: FamilyPhotograph }> =>
-    authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/shape`, { method: 'PUT', body: JSON.stringify({ shape }) }),
+  setPhotographShape: (photographId: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null = null): Promise<{ photograph: FamilyPhotograph }> =>
+    authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/shape`, { method: 'PUT', body: JSON.stringify({ shape, frame }) }),
   /** "Remove from my page". The shop keeps what was offered to it. */
   removePhotograph: (photographId: string): Promise<{ id: string; removed: true }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/remove`, { method: 'POST' }),

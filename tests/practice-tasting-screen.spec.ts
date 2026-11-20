@@ -138,8 +138,18 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   const firstThumb = page.getByTestId('tasting-photograph').first();
   await expect(firstThumb).toHaveAttribute('data-shape', 'square');
   const shaped = page.waitForResponse(r => r.url().includes('/shape') && r.request().method() === 'PUT');
-  await page.getByTestId('photograph-zoom').getByTestId('photograph-shape-across').click();
+  // The practice shop's own photographs are files on this machine, so the editor may load them for real.
+  await page.route(/\/api\/media\/family-photos\//, route => route.continue());
+  await page.getByTestId('photograph-zoom').getByTestId('photograph-crop').click();
+  const editor = page.getByRole('dialog', { name: 'Crop photograph' });
+  await expect(editor.getByRole('button', { name: 'Save' })).toBeEnabled({ timeout: 15_000 });
+  await editor.getByRole('button', { name: 'Landscape 3:2' }).click();
+  await editor.getByRole('slider', { name: 'Zoom' }).fill('1.5');
+  await expect.poll(() => editor.locator('.reactEasyCrop_Image').evaluate(img => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(100);
+  await page.screenshot({ path: `${SHOTS}-2a-crop-in-the-tasting.png` });
+  await editor.getByRole('button', { name: 'Save' }).click();
   expect((await shaped).status()).toBe(200);
+  await expect(editor).toHaveCount(0);
   await expect(firstThumb).toHaveAttribute('data-shape', 'across');
   await page.screenshot({ path: `${SHOTS}-2b-zoom-in-the-tasting.png` });
   await page.getByTestId('photograph-zoom').getByRole('button', { name: 'Remove from my page' }).click();

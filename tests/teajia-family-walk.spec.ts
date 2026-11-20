@@ -544,7 +544,7 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       const tapped = page.waitForResponse(r => r.url().includes('/cover') && r.request().method() === 'PUT');
       await zoom.getByRole('button', { name: 'Use as my cover' }).click();
       expect((await tapped).status()).toBe(200);
-      await expect(zoom.getByTestId('cover-note')).toContainText('Only you see it');
+      await expect(zoom.getByRole('button', { name: 'Stop using as my cover' })).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(row.locator('li').first()).toHaveAttribute('data-cover', 'true');
       expect(await row.getByTestId('tea-photograph').first().locator('img').getAttribute('src')).toBe(second);

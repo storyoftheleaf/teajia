@@ -30,7 +30,7 @@ import {
   FAMILY_VOICE_MAX_SECONDS, FAMILY_VOICE_NOTES_PER_DAY,
   type FamilyAuthor, type FamilyOfferedPhotograph, type FamilyPhotoPage, type FamilyPhotograph,
   type FamilyShareState, type FamilySharedPhotograph, type FamilyTargetKind, type FamilyTeaPhotographs,
-  isFamilyPhotographShape, type FamilyPhotographShape,
+  isFamilyPhotographShape, readFamilyPhotographFrame, type FamilyPhotographFrame, type FamilyPhotographShape,
 } from '../../src/lib/familyContract';
 import { inspectJpeg } from './familyJpeg';
 import { ensureFamilyPage } from './familyPages';
@@ -121,10 +121,15 @@ type PhotoRow = {
   page: FamilyPhotoPage | null; full_key: string; small_key: string; full_width: number; full_height: number;
   small_width: number; small_height: number; share_state: FamilyShareState; offered_at: string | null;
   shop_use: FamilyOfferedPhotograph['shop_use']; removed_by_member_at: string | null; created_at: string;
-  shape?: string | null;
+  shape?: string | null; frame?: string | null;
 };
 
 /** A row written before the column existed, or holding anything unexpected, reads as square. */
+/** The stored frame, or null when there is none or it does not read as one. */
+function frameOf(row: { frame?: string | null }): FamilyPhotographFrame | null {
+  if (!row.frame) return null;
+  try { return readFamilyPhotographFrame(JSON.parse(row.frame)) ?? null; } catch { return null; }
+}
 const shapeOf = (row: { shape?: string | null }): FamilyPhotographShape => (isFamilyPhotographShape(row.shape) ? row.shape : 'square');
 
 function ownPhoto(row: PhotoRow): FamilyPhotograph {
@@ -133,7 +138,7 @@ function ownPhoto(row: PhotoRow): FamilyPhotograph {
     full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
     small_width: Number(row.small_width), small_height: Number(row.small_height),
-    share_state: row.share_state, shape: shapeOf(row), created_at: row.created_at,
+    share_state: row.share_state, shape: shapeOf(row), frame: frameOf(row), created_at: row.created_at,
   };
 }
 
@@ -142,7 +147,7 @@ function sharedPhoto(row: PhotoRow & { author_name: string | null; page_id: stri
   return {
     id: row.id, full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
-    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), author,
+    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), frame: frameOf(row), author,
   };
 }
 
@@ -378,17 +383,21 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)), page_id: page?.id ?? null });
   };
 
-  // PUT /api/family/photographs/:id/shape { shape }: how the author wants it shown.
-  // Square is the default; upright (2:3) and across (3:2) are the only others.
+  // PUT /api/family/photographs/:id/shape { shape, frame? }: how the author wants it shown.
+  // Square is the default; upright (2:3) and across (3:2) are the only others. The
+  // frame is the part of the stored picture that shows; without one it is the middle.
+  // Only numbers are stored: the picture itself cannot be swapped through this door.
   const shapePhoto: FamilyHandler<E> = async (request, env, params) => {
     const person = await deps.requireAuthenticatedUser(request, env);
     if ('error' in person) return person.error;
     const body = await readBody(request);
     if (!body || !isFamilyPhotographShape(body.shape)) return refuse(400, 'Choose square, 2:3 or 3:2.', 'invalid_shape');
+    const frame = readFamilyPhotographFrame(body.frame);
+    if (frame === undefined) return refuse(400, 'That crop could not be read. Try it again.', 'invalid_frame');
     const result = await env.DB.prepare(
-      `UPDATE member_photographs SET shape = ?1, updated_at = datetime('now')
+      `UPDATE member_photographs SET shape = ?1, frame = ?4, updated_at = datetime('now')
         WHERE id = ?2 AND author_user_id = ?3 AND removed_by_member_at IS NULL`,
-    ).bind(body.shape, params.id, person.userId).run();
+    ).bind(body.shape, params.id, person.userId, frame ? JSON.stringify(frame) : null).run();
     if (!Number(result.meta?.changes ?? 0)) return refuse(404, 'That photograph is not one of yours.', 'photograph_not_found');
     const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(params.id).first<PhotoRow>();
     return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)) });

@@ -98,3 +98,6 @@ Each line is checked by the walk, on a phone-sized screen, in the practice shop.
 ## If the night stops early
 
 Nothing half-built is merged. The last commit on the branch is the last stage that passed. The morning report says which checklist lines pass, which do not, and why.
+- **Crop, the way Curate does it.** A photograph is square to begin with. "Crop" in the zoom opens the editor Curate frames its photographs with (square, 2:3, 3:2, drag and pinch). Only the frame is saved, as numbers beside the photograph (migration 0072, one empty column); the stored picture is never changed, so a picture the shop approved cannot be swapped through a crop. The editor's turn control is off here, because a frame cannot hold a turn.
+- **The tea's class is set into the plaque's border line.** "Dark tea" sits in the bottom line of the plaque, toward the right, in the line's own colour; the line stops for the word. It no longer sits above where the tea is from.
+- **No line about who sees a cover.** The button already says it.

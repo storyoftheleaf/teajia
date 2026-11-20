@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from './Button';
-import { PHOTOGRAPH_SHAPE_CHOICES, photographShape, type PhotographShape } from '../../lib/photographShape';
+import { SquareCropModal } from './SquareCropModal';
+import type { FamilyPhotographFrame } from '../../lib/familyContract';
+import { aspectOfShape, framedPictureStyle, photographShape, shapeOfAspect, type PhotographShape } from '../../lib/photographShape';
 
 // The two parts every family photograph is shown with, wherever it appears:
 // a small thumbnail with nothing written on or under it, and the zoom it opens,
@@ -20,6 +22,8 @@ export interface ZoomPhotograph {
   alt: string;
   /** The shape its author chose. Square when nothing was chosen. */
   shape?: PhotographShape | null;
+  /** The part of the picture its author framed. The middle when nothing was framed. */
+  frame?: FamilyPhotographFrame | null;
 }
 
 /** One thumbnail. `size` picks the row height: 'tasting' is the smallest, 'page' the largest. */
@@ -41,7 +45,7 @@ export function PhotographThumb({ photo, size = 'row', onOpen, testId, label }: 
       data-size={size}
       className="photo-thumb"
     >
-      <img src={photo.smallSrc} alt={photo.alt} width={photo.width} height={photo.height} loading="lazy" />
+      <img src={photo.smallSrc} alt={photo.alt} width={photo.width} height={photo.height} loading="lazy" style={framedPictureStyle(photo.frame)} />
     </Button>
   );
 }
@@ -59,7 +63,8 @@ export function PhotographZoom({ photo, onClose, children }: {
   const open = Boolean(photo);
   useEffect(() => {
     if (!open) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    // While the crop editor is open over the zoom, Escape belongs to the editor.
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.querySelector('[data-photograph-cropping]')) onClose(); };
     document.addEventListener('keydown', onKey);
     closeRef.current?.focus();
     return () => document.removeEventListener('keydown', onKey);
@@ -81,7 +86,9 @@ export function PhotographZoom({ photo, onClose, children }: {
         <X className="h-5 w-5" aria-hidden="true" />
       </Button>
       <figure className="photo-zoom__figure" data-shape={photographShape(photo.shape)}>
-        <img src={photo.fullSrc} alt={photo.alt} data-testid="photograph-zoom-image" />
+        <div className="photo-zoom__picture">
+          <img src={photo.fullSrc} alt={photo.alt} data-testid="photograph-zoom-image" style={framedPictureStyle(photo.frame)} />
+        </div>
         {children && <figcaption className="photo-zoom__under">{children}</figcaption>}
       </figure>
     </div>,
@@ -90,30 +97,42 @@ export function PhotographZoom({ photo, onClose, children }: {
 }
 
 /**
- * The three shape buttons, shown in the zoom on a person's own photograph.
- * Square is what every photograph starts as; the other two are a tap away.
+ * "Crop", shown in the zoom on a person's own photograph. It opens the same
+ * editor Curate frames its photographs with: square to begin with, 2:3 or 3:2
+ * a tap away, drag and pinch to choose the part that shows. The stored picture
+ * is never changed; only the frame is saved.
  */
-export function PhotographShapeChoice({ shape, onChoose }: {
-  shape: PhotographShape | null | undefined;
-  onChoose: (shape: PhotographShape) => void;
+export function PhotographCrop({ photo, onSave }: {
+  photo: ZoomPhotograph;
+  onSave: (shape: PhotographShape, frame: FamilyPhotographFrame) => Promise<void> | void;
 }) {
-  const current = photographShape(shape);
+  const [open, setOpen] = useState(false);
+  const shape = photographShape(photo.shape);
+  const frame = photo.frame ?? null;
+  const initialFrame = useMemo(
+    () => (frame ? { crop: frame.crop, zoom: frame.zoom, rotation: 0, areaPercent: frame.area, aspect: aspectOfShape(shape) } : null),
+    [frame, shape],
+  );
   return (
-    <div className="photo-zoom__actions" role="group" aria-label="Shape" data-testid="photograph-shapes">
-      {PHOTOGRAPH_SHAPE_CHOICES.map(choice => (
-        <Button
-          key={choice.shape}
-          variant="chip"
-          size="sm"
-          type="button"
-          aria-pressed={current === choice.shape}
-          aria-label={choice.says}
-          data-testid={`photograph-shape-${choice.shape}`}
-          onClick={() => { if (current !== choice.shape) onChoose(choice.shape); }}
-        >
-          {choice.label}
-        </Button>
-      ))}
-    </div>
+    <>
+      <Button variant="secondary" size="sm" type="button" data-testid="photograph-crop" onClick={() => setOpen(true)}>Crop</Button>
+      {open && <span hidden data-photograph-cropping="" />}
+      <SquareCropModal
+        isOpen={open}
+        source={open ? photo.fullSrc : null}
+        initialFrame={initialFrame}
+        allowAspectSelection
+        allowRotation={false}
+        layer="takeover"
+        title="Crop photograph"
+        confirmLabel="Save"
+        outputSize={240}
+        onClose={() => setOpen(false)}
+        onConfirm={async (_preview, framed) => {
+          await onSave(shapeOfAspect(framed.aspect), { crop: framed.crop, zoom: framed.zoom, area: framed.areaPercent });
+          setOpen(false);
+        }}
+      />
+    </>
   );
 }

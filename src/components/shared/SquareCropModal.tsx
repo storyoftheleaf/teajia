@@ -18,6 +18,10 @@ interface SquareCropModalProps {
   outputQuality?: number;
   initialFrame?: SquarePhotoFrame | null;
   allowAspectSelection?: boolean;
+  /** False where the saved frame is a part of the picture and cannot hold a turn. Default true. */
+  allowRotation?: boolean;
+  /** 'takeover' when it opens over a full-screen layer such as the tasting. */
+  layer?: 'popover' | 'takeover';
   loadError?: string;
   onViewOriginal?: () => void;
   onClose: () => void;
@@ -26,7 +30,7 @@ interface SquareCropModalProps {
 
 export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   isOpen, source, title = 'Crop photo', confirmLabel = 'Save',
-  outputSize, outputQuality, initialFrame, allowAspectSelection = false, loadError, onViewOriginal, onClose, onConfirm,
+  outputSize, outputQuality, initialFrame, allowAspectSelection = false, allowRotation = true, layer = 'popover', loadError, onViewOriginal, onClose, onConfirm,
 }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -192,7 +196,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   if (!isOpen) return null;
 
   return <Dialog.Root open={isOpen} onOpenChange={open => { if (!open && !saving) onClose(); }}><Dialog.Portal>
-    <Dialog.Content ref={dialogRef} aria-label={title} aria-describedby={undefined} onOpenAutoFocus={event => event.preventDefault()} className="fixed inset-0 z-popover flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <Dialog.Content ref={dialogRef} aria-label={title} aria-describedby={undefined} onOpenAutoFocus={event => event.preventDefault()} className={`fixed inset-0 ${layer === 'takeover' ? 'z-takeover' : 'z-popover'} flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200`}>
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh]">
         {/* Header, close on the left per project Cancel/Close rules.
             Just one icon-button on the right (Rotate) so the toolbar reads
@@ -208,7 +212,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
             <X size={18} />
           </button>
           <Dialog.Title asChild><h3 className="text-base font-serif text-tea-text flex-1">{title}</h3></Dialog.Title>
-          <button
+          {allowRotation && <button
             onClick={handleRotate}
             disabled={saving || !imageSrc || !imageLoaded}
             className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-11 inline-flex items-center gap-1.5 tap-target disabled:opacity-40"
@@ -217,7 +221,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           >
             <RotateCw size={14} />
             <span className="hidden sm:inline">Rotate</span>
-          </button>
+          </button>}
         </div>
 
         {/* Cropper viewport, square aspect ratio enforced. The image area
@@ -292,7 +296,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               Reset
             </button>
           </div>
-          <div className="flex items-center gap-3 mt-2">
+          {allowRotation && <div className="flex items-center gap-3 mt-2">
             <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-10 shrink-0">Rotate</span>
             <input type="range" min={-45} max={45} step={0.1} value={straighten}
               aria-label="Rotation" disabled={!imageSrc || !imageLoaded || saving}
@@ -303,7 +307,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
                 setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, turns + value, aspect));
               }} />
             <output className="text-ui-11 text-tea-text-sec tabular-nums" aria-label="Rotation angle">{Number(straighten.toFixed(1))}°</output>
-          </div>
+          </div>}
           <p className="text-ui-10 text-tea-text-sec mt-1.5">
             {onViewOriginal ? 'Original kept. Drag to frame · pinch or scroll to zoom' : 'Drag to position · pinch or scroll to zoom'}
           </p>

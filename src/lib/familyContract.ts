@@ -41,6 +41,32 @@ export function isFamilyPhotographShape(value: unknown): value is FamilyPhotogra
   return typeof value === 'string' && (FAMILY_PHOTOGRAPH_SHAPES as readonly string[]).includes(value);
 }
 
+/**
+ * How its author framed a photograph: the part of the stored picture that is
+ * shown, in percent of the picture, with the editor's own position and zoom so
+ * it reopens where it was left. Null means the middle of the picture. The
+ * stored file is never changed, so a frame can always be undone.
+ */
+export interface FamilyPhotographFrame {
+  crop: { x: number; y: number };
+  zoom: number;
+  area: { x: number; y: number; width: number; height: number };
+}
+
+/** A frame as it may be stored, or `undefined` when what was sent is not one. Null stays null. */
+export function readFamilyPhotographFrame(value: unknown): FamilyPhotographFrame | null | undefined {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'object') return undefined;
+  const v = value as { crop?: { x?: unknown; y?: unknown }; zoom?: unknown; area?: { x?: unknown; y?: unknown; width?: unknown; height?: unknown } };
+  const numbers = [v.crop?.x, v.crop?.y, v.zoom, v.area?.x, v.area?.y, v.area?.width, v.area?.height];
+  if (!numbers.every(n => typeof n === 'number' && Number.isFinite(n))) return undefined;
+  const [cx, cy, zoom, x, y, width, height] = (numbers as number[]).map(n => Math.round(n * 1000) / 1000);
+  // The part shown lies inside the picture, and the zoom is the editor's own range.
+  const inside = x >= -0.5 && y >= -0.5 && width >= 1 && height >= 1 && x + width <= 100.5 && y + height <= 100.5;
+  if (!inside || zoom < 1 || zoom > 4 || Math.abs(cx) > 10000 || Math.abs(cy) > 10000) return undefined;
+  return { crop: { x: cx, y: cy }, zoom, area: { x, y, width, height } };
+}
+
 /** Who can see a photograph or a tasting. Keep private is the default. */
 export type FamilyShareState = 'private' | 'page' | 'offered';
 export const FAMILY_SHARE_STATES: readonly FamilyShareState[] = ['private', 'page', 'offered'];
@@ -70,6 +96,7 @@ export interface FamilyPhotograph {
   small_height: number;
   share_state: FamilyShareState;
   shape: FamilyPhotographShape;
+  frame?: FamilyPhotographFrame | null;
   created_at: string;
 }
 
@@ -101,6 +128,7 @@ export interface FamilySharedPhotograph {
   small_width: number;
   small_height: number;
   shape: FamilyPhotographShape;
+  frame?: FamilyPhotographFrame | null;
   author: FamilyAuthor;
 }
 
@@ -240,6 +268,7 @@ export interface FamilyPersonPhotograph {
   small_height: number;
   full_url: string;
   shape: FamilyPhotographShape;
+  frame?: FamilyPhotographFrame | null;
 }
 
 /**

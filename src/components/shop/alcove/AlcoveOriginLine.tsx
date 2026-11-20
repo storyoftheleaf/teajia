@@ -16,11 +16,6 @@ interface AlcoveOriginLineProps {
   forestCover?: string;
   /** What the trees are: ancient stands, planted terraces, and so on. */
   treeCharacter?: string;
-  /**
-   * The tea's class ("Dark tea") with its colour dot. It used to sit on the
-   * plaque; the plaque now carries the name, the kind and its characters only.
-   */
-  classification?: { label: string; color: string } | null;
 }
 
 /**
@@ -45,7 +40,6 @@ export const AlcoveOriginLine: React.FC<AlcoveOriginLineProps> = ({
   elevation,
   forestCover,
   treeCharacter,
-  classification,
 }) => {
   // Everything short enough to sit on the tracked line, in the order the base
   // knows it. Absent facts simply do not appear; nothing is padded.
@@ -56,16 +50,10 @@ export const AlcoveOriginLine: React.FC<AlcoveOriginLineProps> = ({
     treeCharacter ?? '',
   ].filter(Boolean);
 
-  if (!origin && details.length === 0 && !classification?.label) return null;
+  if (!origin && details.length === 0) return null;
 
   return (
     <div className="px-5 pb-7 pt-7 text-center lg:pb-8 lg:pt-9">
-      {classification?.label && (
-        <p className={`m-0 flex flex-wrap items-center justify-center gap-x-2 font-sans text-ui-10 uppercase tracking-[0.22em] text-tea-text-sec lg:text-ui-11 ${origin || details.length > 0 ? 'mb-3' : ''}`} data-testid="tea-classification">
-          <span aria-hidden="true" className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: classification.color }} />
-          <span>{classification.label}</span>
-        </p>
-      )}
       {origin && (
         <p className="m-0 font-display text-ui-22 font-normal leading-[1.34] text-tea-text [text-wrap:balance] lg:text-ui-26">
           {origin}

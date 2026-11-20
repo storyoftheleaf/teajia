@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../lib/api';
 import { familyApi } from '../../lib/familyApi';
-import { FAMILY_PHOTOS_PER_TEA, type FamilyPhotoPage, type FamilyPhotograph, type FamilyPhotographShape } from '../../lib/familyContract';
+import { FAMILY_PHOTOS_PER_TEA, type FamilyPhotoPage, type FamilyPhotograph, type FamilyPhotographFrame, type FamilyPhotographShape } from '../../lib/familyContract';
 import { prepareFamilyPhotograph } from '../../lib/familyPhotographSizes';
 
 export const PHOTO_LIMIT_SENTENCE = 'You have six photographs of this tea. Remove one from your page to add another.';
@@ -73,19 +73,19 @@ export function useTastingPhotographs({ productId, enabled }: { productId: strin
   }, []);
 
   /** The shape answers at once; the server confirms, and a refusal puts it back. */
-  const reshape = useCallback(async (photographId: string, shape: FamilyPhotographShape) => {
+  const reshape = useCallback(async (photographId: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null = null) => {
     setError('');
-    let before: FamilyPhotographShape | undefined;
+    let before: FamilyPhotograph | undefined;
     setPhotos(current => current.map(p => {
       if (p.id !== photographId) return p;
-      before = p.shape;
-      return { ...p, shape };
+      before = p;
+      return { ...p, shape, frame };
     }));
     try {
-      await familyApi.setPhotographShape(photographId, shape);
+      await familyApi.setPhotographShape(photographId, shape, frame);
     } catch (err) {
       if (!mounted.current) return;
-      setPhotos(current => current.map(p => (p.id === photographId ? { ...p, shape: before ?? 'square' } : p)));
+      setPhotos(current => current.map(p => (p.id === photographId ? { ...p, shape: before?.shape ?? 'square', frame: before?.frame ?? null } : p)));
       setError(plainSentence(err));
     }
   }, []);

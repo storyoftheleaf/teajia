@@ -142,12 +142,13 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   const subLine = [givenName.trim() !== productName.trim() ? givenName : '', typeLabel].filter(Boolean).join(' · ');
   // The plate is a gallery plaque and carries three lines and no more: the name
   // the shop gave the tea (left out when there is none), the kind of tea, and
-  // that kind in Chinese. Its class ("Dark tea") is said under the plaque, with
-  // where the tea is from. No photograph ever sits in the plaque.
+  // that kind in Chinese. Its class ("Dark tea") is set into the plaque's border
+  // line, at the foot. No photograph ever sits in the plaque.
   const plateKind = title === productName ? '' : productName.trim();
 
   return (
     <header
+      data-classed={onPlate && typeLabel ? '' : undefined}
       className={
         onPlate
           ? 'label-plate mx-5 mt-2 flex flex-col px-7 pb-10 pt-11 text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 lg:pt-[clamp(120px,20vw,300px)]'
@@ -199,6 +200,9 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           />
           <span>{subLine}</span>
         </p>
+      )}
+      {onPlate && typeLabel && (
+        <p className="label-plate__class" data-testid="tea-classification"><span>{typeLabel}</span></p>
       )}
       {onPlate && footNote && (
         <p className="plate-ink-sec absolute inset-x-0 bottom-[58px] m-0 hidden font-sans text-ui-10 uppercase tracking-[0.22em] tabular-nums lg:block">

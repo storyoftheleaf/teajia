@@ -520,7 +520,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       elevation={ledgerElevation}
       forestCover={ledgerRegion?.forestCover}
       treeCharacter={ledgerRegion?.treeCharacter}
-      classification={teaType ? { label: /tea/i.test(teaType) ? teaType : `${teaType} tea`, color: typeColor } : null}
     />
   );
 

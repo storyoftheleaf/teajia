@@ -723,7 +723,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     sessionSharedNote={item.journalRecord?.sessionSharedNote}
                     notesLabel={eventTasting ? 'Personal notes' : structuredTasting ? 'Notes for the host' : undefined}
                     voiceState={silentVoice.state} voiceError={voiceError}
-                    photographRow={familyEnabled ? <TastingPhotographRow photos={photographs.photos} busy={photographs.busy} onRemove={id => { void photographs.remove(id); }} onShape={(id, shape) => { void photographs.reshape(id, shape); }} /> : undefined}
+                    photographRow={familyEnabled ? <TastingPhotographRow photos={photographs.photos} busy={photographs.busy} onRemove={id => { void photographs.remove(id); }} onShape={(id, shape, frame) => photographs.reshape(id, shape, frame)} /> : undefined}
                     notesNotice={isAuthenticated && !adminMode ? NOTES_NOTICE : undefined}
                     verdict={verdict} onVerdict={next => { setVerdict(next); handleTastingChange({...tastingData, impression:next ?? undefined}); }}
                     wouldBuy={wouldBuy} onWouldBuy={next => { setWouldBuy(next); handleTastingChange({...tastingData,wantToPurchase:next}); }}

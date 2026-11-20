@@ -2312,13 +2312,43 @@ input[type="number"]::-webkit-outer-spin-button {
 .label-plate::after {
   content: '';
   position: absolute;
-  inset: 12px;
-  border: 1px solid rgb(var(--tea-gold-rgb) / 0.3);
+  inset: var(--plate-keyline-inset);
+  border: 1px solid var(--plate-keyline);
 }
-.light .label-plate::after { border-color: rgba(36, 29, 19, 0.26); }
 @media (min-width: 1024px) {
-  .label-plate::after { inset: 24px; }
+  .label-plate { --plate-keyline-inset: var(--plate-keyline-inset-desk); }
 }
+/* The tea's class ("Dark tea") is set into the keyline itself, the way a
+   maker's mark sits in the rule of a printed label. The keyline's bottom edge
+   is not drawn; this row draws it instead, as rule, word, rule, so the line
+   truly stops for the word and nothing is painted over the stock. */
+.label-plate[data-classed]::after { border-bottom-color: transparent; }
+.label-plate__class {
+  position: absolute;
+  left: var(--plate-keyline-inset);
+  right: var(--plate-keyline-inset);
+  bottom: var(--plate-keyline-inset);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  transform: translateY(50%);
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-10);
+  line-height: normal;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--plate-keyline-ink);
+}
+.label-plate__class::before,
+.label-plate__class::after { content: ''; border-top: 1px solid var(--plate-keyline); }
+.label-plate__class::before { flex: 1 1 auto; }
+.label-plate__class::after { flex: 0 0 var(--space-6); }
+/* The tracking leaves a gap after the last letter; take it back so the word
+   sits evenly between its two rules. */
+.label-plate__class span { margin-right: -0.24em; }
 /* The rule above the shop's own sentence, which sits on the plate and so
    follows the plate's ink rather than the page's border token. */
 .plate-rule { background: rgb(var(--tea-gold-rgb) / 0.4); }
@@ -7313,7 +7343,7 @@ body.cart-panel-open .commerce-dock {
    the three shapes sit on one line; nothing is written on or under a thumbnail.
    Who took it, and what can be done with it, is in the zoom. */
 .photo-row { display:flex; flex-wrap:wrap; align-items:flex-start; gap:var(--space-2); margin:0; padding:0; list-style:none; }
-.photo-thumb { display:block; flex:none; height:calc(var(--space-12) * 1.5); aspect-ratio:1; padding:0; overflow:hidden; background:var(--tea-surface); cursor:zoom-in; }
+.photo-thumb { position:relative; display:block; flex:none; height:calc(var(--space-12) * 1.5); aspect-ratio:1; padding:0; overflow:hidden; background:var(--tea-surface); cursor:zoom-in; }
 .photo-thumb[data-size="tasting"] { height:calc(var(--space-12) + var(--space-2)); }
 .photo-thumb[data-size="page"] { height:calc(var(--space-12) * 2); }
 .photo-thumb[data-shape="upright"] { aspect-ratio:2 / 3; }
@@ -7325,9 +7355,10 @@ body.cart-panel-open .commerce-dock {
 .photo-zoom__figure { margin:0; width:min(100%, 64vh); }
 .photo-zoom__figure[data-shape="upright"] { width:min(100%, 44vh); }
 .photo-zoom__figure[data-shape="across"] { width:min(100%, 96vh); }
-.photo-zoom__figure img { display:block; width:100%; aspect-ratio:1; object-fit:cover; background:var(--tea-surface); }
-.photo-zoom__figure[data-shape="upright"] img { aspect-ratio:2 / 3; }
-.photo-zoom__figure[data-shape="across"] img { aspect-ratio:3 / 2; }
+.photo-zoom__picture { position:relative; overflow:hidden; aspect-ratio:1; background:var(--tea-surface); }
+.photo-zoom__figure[data-shape="upright"] .photo-zoom__picture { aspect-ratio:2 / 3; }
+.photo-zoom__figure[data-shape="across"] .photo-zoom__picture { aspect-ratio:3 / 2; }
+.photo-zoom__picture img { display:block; inline-size:100%; block-size:100%; object-fit:cover; }
 .photo-zoom__under { display:flex; flex-direction:column; align-items:center; gap:var(--space-2); margin-top:var(--space-4); text-align:center; color:var(--tea-text-sec); }
 .photo-zoom__credit { margin:0; font-family:var(--font-sans); font-size:var(--fs-ui-10); letter-spacing:0.2em; text-transform:uppercase; color:var(--tea-text-sec); }
 .photo-zoom__credit a { color:var(--tea-text); text-decoration:underline; text-underline-offset:4px; }

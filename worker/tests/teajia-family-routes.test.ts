@@ -516,10 +516,43 @@ describe('the shape a photograph is shown in', () => {
     const onTea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
     expect(onTea.family.map((p: any) => [p.id, p.shape])).toEqual([[mine.id, 'upright']]);
 
+    // A crop is the part of the picture that shows, kept as numbers beside the shape.
+    const frame = { crop: { x: 12.5, y: -4 }, zoom: 1.6, area: { x: 20, y: 18.75, width: 62.5, height: 62.5 } };
+    const framed = await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across', frame } });
+    expect(framed.status).toBe(200);
+    expect(((await framed.json()) as any).photograph).toMatchObject({ shape: 'across', frame });
+    expect(((await (await call(env, null, '/api/family/teas/tea-a/photographs')).json()) as any).family[0].frame).toEqual(frame);
+    // A part outside the picture, a zoom outside the editor's range, or anything but numbers is refused and nothing changes.
+    for (const bad of [
+      { ...frame, area: { x: 60, y: 0, width: 62.5, height: 50 } },
+      { ...frame, zoom: 9 },
+      { ...frame, area: { x: 0, y: 0, width: '100', height: 100 } },
+      'https://example.com/other.jpg',
+    ]) {
+      const refused = await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across', frame: bad } });
+      expect(refused.status).toBe(400);
+      expect(((await refused.json()) as any).code).toBe('invalid_frame');
+    }
+    expect(((await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).json()) as any).photographs[0].frame).toEqual(frame);
+    // A shape sent alone puts the photograph back to the middle of the picture.
+    expect(((await (await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'upright' } })).json()) as any).photograph.frame).toBeNull();
+
     // Back to square is one more choice, and a removed photograph can no longer be reshaped.
     expect(((await (await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'square' } })).json()) as any).photograph.shape).toBe('square');
     await call(env, MEMBER, `/api/family/photographs/${mine.id}/remove`, { method: 'POST' });
     expect((await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across' } })).status).toBe(404);
+  });
+
+  it('the frame comes from migration 0072: one empty column, no row touched', () => {
+    const sql = readFileSync(`${MIGRATIONS_DIR}/0072_member_photograph_frame.sql`, 'utf8');
+    const statements = splitStatements(sql);
+    expect(statements).toHaveLength(1);
+    expect(statements[0]).toMatch(/ALTER TABLE member_photographs ADD COLUMN frame TEXT$/);
+    const { db, applied } = seedFromMigrations();
+    expect(applied).toContain('0072_member_photograph_frame.sql');
+    const column = (db.prepare(`SELECT dflt_value, "notnull" AS required FROM pragma_table_info('member_photographs') WHERE name = 'frame'`).get()) as any;
+    expect(column).toMatchObject({ dflt_value: null, required: 0 });
+    db.close();
   });
 
   it('comes from migration 0071, which adds one column with a default and touches no row', () => {

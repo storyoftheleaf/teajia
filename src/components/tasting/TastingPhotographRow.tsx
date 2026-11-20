@@ -1,7 +1,7 @@
 import React from 'react';
-import type { FamilyPhotograph, FamilyPhotographShape } from '../../lib/familyContract';
+import type { FamilyPhotograph, FamilyPhotographFrame, FamilyPhotographShape } from '../../lib/familyContract';
 import { Button } from '../shared/Button';
-import { PhotographShapeChoice, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
+import { PhotographCrop, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
@@ -19,8 +19,8 @@ export function TastingPhotographRow({ photos, busy, onRemove, onShape }: {
   photos: FamilyPhotograph[];
   busy: boolean;
   onRemove: (id: string) => void;
-  /** Square is the default; the zoom offers 2:3 and 3:2. */
-  onShape?: (id: string, shape: FamilyPhotographShape) => void;
+  /** Square is the default; "Crop" in the zoom frames it and offers 2:3 and 3:2. */
+  onShape?: (id: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null) => Promise<void> | void;
 }) {
   const labelId = React.useId();
   const [openId, setOpenId] = React.useState<string | null>(null);
@@ -32,6 +32,7 @@ export function TastingPhotographRow({ photos, busy, onRemove, onShape }: {
     height: photo.small_height,
     alt: 'Your photograph of this tea',
     shape: photo.shape,
+    frame: photo.frame,
   });
   const open = photos.find(photo => photo.id === openId) ?? null;
   return <div className="tasting-impression-notes tasting-impression-photos" role="group" aria-labelledby={labelId}>
@@ -44,9 +45,9 @@ export function TastingPhotographRow({ photos, busy, onRemove, onShape }: {
       <a className={`${TYPOGRAPHY_CLASSES.accountMeta} tasting-photo-box-link`} href={HOW_WE_USE_PHOTOGRAPHS_PATH} target="_blank" rel="noopener noreferrer">How we use photographs</a>
     </div>
     <PhotographZoom photo={open ? toZoom(open) : null} onClose={() => setOpenId(null)}>
-      {open && onShape && <PhotographShapeChoice shape={open.shape} onChoose={shape => onShape(open.id, shape)} />}
       {open && (
         <div className="photo-zoom__actions">
+          {onShape && <PhotographCrop photo={toZoom(open)} onSave={(shape, frame) => onShape(open.id, shape, frame)} />}
           <Button variant="quiet" size="sm" type="button" data-testid="photograph-remove" onClick={() => { onRemove(open.id); setOpenId(null); }}>Remove from my page</Button>
         </div>
       )}
