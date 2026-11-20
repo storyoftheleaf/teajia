@@ -42,14 +42,14 @@ export function CropStrip({ url, focus, crops }: { url: string; focus: string | 
  * edges meeting the photo's. A photo the page never cuts (a QR code) is shown
  * at its own size.
  */
-export function PhotoProof({ url, focus, onFocus, crops, alt }: { url: string; focus: string | null | undefined; onFocus: (css: string) => void; crops: Crop[]; alt: string }) {
+export function PhotoProof({ url, focus, onFocus, crops, alt, subject = 'the face' }: { url: string; focus: string | null | undefined; onFocus: (css: string) => void; crops: Crop[]; alt: string; /** What a tap marks, as said in the line under the photo. A gallery photo is often hands or a pot, not a face. */ subject?: string }) {
   return (
     <div className="flex max-w-[420px] flex-col gap-3" data-testid="photo-proof">
       {crops.length > 0
         ? <FocusPicker url={url} focus={focus} alt={alt} onFocus={onFocus} />
         : <img src={mediaUrl(url)} alt={alt} draggable={false} className="block h-auto max-h-[240px] w-auto max-w-full" />}
       {crops.length > 0 && (
-        <p className="font-body text-ui-14 italic leading-snug text-tea-text-sec">{TOUCH ? 'Tap' : 'Click'} the face. It stays in every cut.</p>
+        <p className="font-body text-ui-14 italic leading-snug text-tea-text-sec">{TOUCH ? 'Tap' : 'Click'} {subject}. It stays in every cut.</p>
       )}
       <CropStrip url={url} focus={focus} crops={crops} />
     </div>
