@@ -34,10 +34,12 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
 }) => {
   const neutral: CurateActionSpec[] = [
     {
-      label: primaryLast ? 'Draft supplier order' : 'Buy',
+      label: primaryLast ? 'Order' : 'Buy',
+      ariaLabel: primaryLast ? 'Draft supplier order' : 'Buy',
       icon: primaryLast && <ClipboardList size={14} className="hidden shrink-0 lg:block" aria-hidden />,
       onClick: onBuy,
       buttonProps: {
+        title: primaryLast ? 'Draft supplier order' : 'Buy',
         'aria-expanded': buyExpanded,
         'aria-controls': purchasePickerId,
       },
@@ -45,7 +47,7 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   ];
 
   if (onSample) neutral.push(primaryLast
-    ? { label: 'Record received sample', icon: <FlaskConical size={14} className="hidden shrink-0 lg:block" aria-hidden />, onClick: onSample }
+    ? { label: 'Sample', ariaLabel: 'Record received sample', icon: <FlaskConical size={14} className="hidden shrink-0 lg:block" aria-hidden />, onClick: onSample, buttonProps: { title: 'Record received sample' } }
     : { label: 'Sample', onClick: onSample, ariaLabel: 'Sample' });
 
   return (
@@ -58,13 +60,14 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
       primaryIndex={primaryLast ? undefined : 1}
       withBandChrome={false}
       primary={{
-        label: primaryLast ? saveLabel : 'Done',
+        label: primaryLast ? 'Save' : 'Done',
         onClick: onDone,
         disabled: !doneEnabled || saving,
         busy: saving,
         busyLabel: 'Saving…',
         ariaLabel: primaryLast ? saveLabel : 'Done, commit this entry',
         buttonProps: {
+          title: primaryLast ? saveLabel : 'Done, commit this entry',
           'data-testid': doneTestId,
           'data-visual-state': doneEnabled ? 'primary' : 'disabled-neutral',
         },
