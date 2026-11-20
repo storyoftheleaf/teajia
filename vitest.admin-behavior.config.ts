@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     include: [
       'src/admin/components/OrdersView.behavior.test.ts',
+      'src/admin/components/OrderShipping.behavior.test.ts',
       'src/admin/components/QuickInvoiceModal.behavior.test.ts',
       'src/admin/components/SettlementLedger.behavior.test.ts',
       'src/admin/components/OrderAttribution.behavior.test.ts',

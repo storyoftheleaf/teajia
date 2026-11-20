@@ -1,11 +1,13 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { api, isTokenScopedToAccount } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
+import { shippingNotificationMessage, type ShippingPaymentNotification } from '../../lib/shippingNotification';
 
 interface ShippingOrder {
   id: string;
   status: string;
+  source_inquiry_id?: string | null;
   shipping_cost_usd?: number;
   shipping_destination?: string | null;
   delivery_address?: string | null;
@@ -24,10 +26,24 @@ export const OrderShipping: React.FC<{
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
+  const [notification, setNotification] = useState<ShippingPaymentNotification | null>(null);
+  const [notificationUnavailable, setNotificationUnavailable] = useState(false);
   const pending = useRef(false);
   const accountId = useAppStore(state => state.activeAccountId);
   const closed = order.status === 'Void';
   const quoteLocked = closed || order.status === 'Filled';
+  useEffect(() => {
+    let current = true;
+    setNotification(null);
+    setNotificationUnavailable(false);
+    if (order.source_inquiry_id && !closed && accountId && isTokenScopedToAccount(accountId)) {
+      api.invoices.getShippingNotification(order.id).then(result => {
+        if (current && useAppStore.getState().activeAccountId === accountId && isTokenScopedToAccount(accountId)) setNotification(result);
+      }).catch(() => { if (current) setNotificationUnavailable(true); });
+    }
+    return () => { current = false; };
+  }, [order.id, order.source_inquiry_id, closed, accountId]);
+  const notificationMessage = shippingNotificationMessage(notification);
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -47,15 +63,23 @@ export const OrderShipping: React.FC<{
     setError(null);
     const stillCurrent = () => useAppStore.getState().activeAccountId === accountId && isTokenScopedToAccount(accountId);
     try {
-      await api.invoices.update(order.id, {
+      const saved = await api.invoices.update(order.id, {
         ...(!quoteLocked ? { shipping_cost_usd: Math.round(amount * 100) / 100 } : {}),
         shipping_destination: destination.trim() || null,
         tracking_number: tracking.trim() || null,
       });
       if (!stillCurrent()) return;
+      if (order.source_inquiry_id) {
+        if (saved?.shipping_notification) setNotification(saved.shipping_notification);
+        try {
+          const latest = await api.invoices.getShippingNotification(order.id);
+          if (stillCurrent()) { setNotification(latest); setNotificationUnavailable(false); }
+        } catch { if (stillCurrent()) setNotificationUnavailable(true); }
+      }
+      if (!stillCurrent()) return;
       try {
         await onChanged();
-        if (stillCurrent()) setNotice('Shipping saved.');
+        if (stillCurrent()) setNotice(order.source_inquiry_id ? '' : 'Shipping saved.');
       } catch {
         if (stillCurrent()) setNotice('Shipping saved, but the balance could not refresh. Reload orders before recording payment.');
       }
@@ -77,7 +101,8 @@ export const OrderShipping: React.FC<{
   return (
     <section aria-label="Shipping" className="min-w-0">
       <h4 className={`${T.h3} text-tea-text mb-3`}>Shipping</h4>
-      {order.shipping_quote_status === 'requested' && <p className="mb-3 text-ui-13 text-tea-text-sec">Tea is paid separately. Enter the agreed shipping quote; the buyer pays the remaining balance on their existing order page before dispatch.</p>}
+      {order.shipping_quote_status === 'requested' && !order.source_inquiry_id && <p className="mb-3 text-ui-13 text-tea-text-sec">Tea is paid separately. Enter the agreed shipping quote; the buyer pays the remaining balance on their existing order page before dispatch.</p>}
+      {order.source_inquiry_id && !quoteLocked && <p className="mb-3 text-ui-13 text-tea-text-sec">Tea is paid separately. New shipping quotes send a payment link by agreed WhatsApp, otherwise email. Unchanged quotes are not resent.</p>}
       {order.delivery_address && <p className="mb-3 break-words whitespace-pre-line text-ui-13 text-tea-text-sec">{order.delivery_address}</p>}
       <form onSubmit={save} noValidate className="space-y-3">
         <div>
@@ -96,6 +121,8 @@ export const OrderShipping: React.FC<{
           <input id="shipping-tracking" type="text" maxLength={500} value={tracking} onChange={event => { setTracking(event.target.value); setNotice(''); }} disabled={closed || saving} className="checkout-input" />
         </div>
         {error && <p role="alert" className="text-ui-13 text-tea-text">{error}</p>}
+        {notificationMessage && <p role="status" className="text-ui-13 text-tea-text-sec">{notificationMessage}</p>}
+        {notificationUnavailable && <p role="status" className="text-ui-13 text-tea-text-sec">The payment request status could not be checked. Reload this order before sending another message.</p>}
         {notice && <p role="status" className="text-ui-13 text-tea-text-sec">{notice}</p>}
         {!closed && <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Save shipping'}</button>}
       </form>

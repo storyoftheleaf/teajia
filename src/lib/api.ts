@@ -1,3 +1,4 @@
+import type { ShippingPaymentNotification } from './shippingNotification';
 import type { TrackedOrder } from './orderTrackingTypes';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
@@ -2062,6 +2063,7 @@ export const api = {
   },
 
   invoices: {
+    getShippingNotification: (id: string): Promise<ShippingPaymentNotification> => authedFetch(`${API_URL}/api/invoices/${encodeURIComponent(id)}/shipping-notification`),
     list: async (limit = 50, offset = 0, includeDeleted = false): Promise<Array<Record<string, any> & { payment: InvoicePayment | null }>> => {
       const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
       if (includeDeleted) params.set('include_deleted', '1');

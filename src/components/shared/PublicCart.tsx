@@ -335,8 +335,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             {field('name', 'Your name', { autoComplete: 'name' })}
             {field('contact', replyMode === 'website' ? 'Your email address' : 'Your WhatsApp number', { type: replyMode === 'website' ? 'email' : 'tel', inputMode: replyMode === 'website' ? 'email' : 'tel', autoComplete: replyMode === 'website' ? 'email' : 'tel', placeholder: replyMode === 'website' ? 'you@example.com' : '+62… (optional)' })}
             {channel === 'whatsapp' && <div className="space-y-1">
-              <label className="checkout-channel font-body text-ui-13 text-tea-text"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} style={{ accentColor: 'rgb(var(--tea-gold-rgb))' }} />Send me a WhatsApp order confirmation from {storeName} (optional)</label>
-              <p className={`${T.bodyLight} text-tea-text-sec`}>I agree to receive a confirmation and replies about this order at this number. Automatic confirmations depend on availability; your order is saved even if a message does not arrive.</p>
+              <label className="checkout-channel font-body text-ui-13 text-tea-text"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} style={{ accentColor: 'rgb(var(--tea-gold-rgb))' }} />Send me order and shipping payment updates from {storeName} on WhatsApp (optional)</label>
+              <p className={`${T.bodyLight} text-tea-text-sec`}>I agree to receive confirmation, shipping payment links and replies about this order at this number. Automatic messages depend on availability; your order is saved even if a message does not arrive.</p>
             </div>}
             <details><summary className="checkout-text-action text-ui-13 cursor-pointer">Add a note (optional)</summary><label htmlFor="checkout-notes" className="sr-only">Order note</label><textarea id="checkout-notes" value={details.notes} onChange={event => updateDetail('notes', event.target.value)} className="checkout-input mt-2" rows={3} /></details>
           </fieldset>
