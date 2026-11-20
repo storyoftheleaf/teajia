@@ -492,6 +492,50 @@ describe('voice notes for members', () => {
   });
 });
 
+describe('the shape a photograph is shown in', () => {
+  it('is square until its author picks 2:3 or 3:2, and nobody else can change it', async () => {
+    const { env } = setup();
+    const mine = ((await (await upload(env, MEMBER)).json()) as any).photograph;
+    expect(mine.shape).toBe('square');
+    // Only the three, and only by the author, signed in.
+    expect((await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'panorama' } })).status).toBe(400);
+    expect((await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: {} })).status).toBe(400);
+    expect((await call(env, MEMBER_TWO, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across' } })).status).toBe(404);
+    expect((await call(env, null, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across' } })).status).toBe(401);
+    const stillSquare = await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).json() as any;
+    expect(stillSquare.photographs[0].shape).toBe('square');
+
+    const upright = await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'upright' } });
+    expect(upright.status).toBe(200);
+    expect(((await upright.json()) as any).photograph.shape).toBe('upright');
+    const view = await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).json() as any;
+    expect(view.photographs[0].shape).toBe('upright');
+
+    // Shared, the public tea page shows it in the shape its author chose.
+    await call(env, MEMBER, `/api/family/photographs/${mine.id}/share`, { method: 'PUT', body: { share_state: 'page' } });
+    const onTea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
+    expect(onTea.family.map((p: any) => [p.id, p.shape])).toEqual([[mine.id, 'upright']]);
+
+    // Back to square is one more choice, and a removed photograph can no longer be reshaped.
+    expect(((await (await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'square' } })).json()) as any).photograph.shape).toBe('square');
+    await call(env, MEMBER, `/api/family/photographs/${mine.id}/remove`, { method: 'POST' });
+    expect((await call(env, MEMBER, `/api/family/photographs/${mine.id}/shape`, { method: 'PUT', body: { shape: 'across' } })).status).toBe(404);
+  });
+
+  it('comes from migration 0071, which adds one column with a default and touches no row', () => {
+    const sql = readFileSync(`${MIGRATIONS_DIR}/0071_member_photograph_shape.sql`, 'utf8');
+    const statements = splitStatements(sql);
+    expect(statements).toHaveLength(1);
+    expect(statements[0]).toMatch(/ALTER TABLE member_photographs ADD COLUMN shape TEXT NOT NULL DEFAULT 'square'/);
+    expect(sql).not.toMatch(/\b(UPDATE|DELETE|INSERT)\b/);
+    const { db, applied } = seedFromMigrations();
+    expect(applied).toContain('0071_member_photograph_shape.sql');
+    const column = (db.prepare(`SELECT dflt_value, "notnull" AS required FROM pragma_table_info('member_photographs') WHERE name = 'shape'`).get()) as any;
+    expect(column).toMatchObject({ dflt_value: "'square'", required: 1 });
+    db.close();
+  });
+});
+
 describe('migration 0069', () => {
   it('adds tables and indexes only, and applies on top of the migration ledger', () => {
     const sql = readFileSync(`${MIGRATIONS_DIR}/0069_teajia_family.sql`, 'utf8');

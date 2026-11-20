@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
-import { PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
+import { PhotographShapeChoice, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
+import type { FamilyPhotographShape } from '../../lib/familyContract';
 import { SoldOutLine } from '../people/PersonTastings';
 import { personPath, type TeaRowPhotograph } from './useTeaFamily';
 
@@ -15,12 +16,13 @@ import { personPath, type TeaRowPhotograph } from './useTeaFamily';
 const ROW_LIMIT = 8;
 
 export function TeaPhotographRow({
-  photographs, teaName, onChooseCover, onRemove,
+  photographs, teaName, onChooseCover, onRemove, onShape,
 }: {
   photographs: TeaRowPhotograph[];
   teaName: string;
   onChooseCover: (photographId: string | null) => void;
   onRemove: (photographId: string) => Promise<void>;
+  onShape: (photographId: string, shape: FamilyPhotographShape) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -33,6 +35,7 @@ export function TeaPhotographRow({
     fullSrc: mediaUrl(p.full_url),
     width: p.width,
     height: p.height,
+    shape: p.shape,
     alt: p.mine ? `Your photograph of ${teaName}` : `${teaName}, photographed by ${p.author?.name ?? 'the family'}`,
   });
   const shown = showAll ? photographs : photographs.slice(0, ROW_LIMIT);
@@ -65,6 +68,7 @@ export function TeaPhotographRow({
         )}
         {open?.mine && (
           <>
+            <PhotographShapeChoice shape={open.shape} onChoose={shape => onShape(open.id, shape)} />
             <div className="photo-zoom__actions">
               {open.isCover ? (
                 <Button variant="secondary" size="sm" type="button" onClick={() => onChooseCover(null)} data-testid="cover-clear">Stop using as my cover</Button>

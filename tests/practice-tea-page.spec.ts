@@ -201,7 +201,25 @@ test('the tea page: plain when nobody has added anything, then the family strip,
     await expect(zoom.getByTestId('photograph-zoom-image')).toHaveAttribute('src', new RegExp(`${anaOrder[1]}-full`));
     await expect(zoom.getByTestId('photograph-credit')).toHaveCount(0);
     await expect(zoom.getByRole('button', { name: 'Remove from my page' })).toBeVisible();
+    // Square is the default. The zoom offers 2:3 and 3:2; picking one reshapes the thumbnail.
+    const thumbRatio = async (id: string) => {
+      const box = (await row.locator(`li:has(img[src*="${id}-small"]) [data-testid="tea-photograph"]`).boundingBox())!;
+      return Math.round((box.width / box.height) * 100) / 100;
+    };
+    expect(await thumbRatio(anaOrder[1])).toBe(1);
+    await expect(zoom.getByTestId('photograph-shape-square')).toHaveAttribute('aria-pressed', 'true');
+    const reshaped = page.waitForResponse(r => r.url().includes(`/photographs/${anaOrder[1]}/shape`) && r.request().method() === 'PUT');
+    await zoom.getByTestId('photograph-shape-across').click();
+    expect((await reshaped).status()).toBe(200);
+    await expect(zoom.getByTestId('photograph-shape-across')).toHaveAttribute('aria-pressed', 'true');
+    expect(await thumbRatio(anaOrder[1])).toBe(1.5);
+    expect(await thumbRatio(anaOrder[0]), 'the other photograph stays square').toBe(1);
     await page.screenshot({ path: `${SHOTS}-4-zoom-own.png` });
+    const again = page.waitForResponse(r => r.url().includes(`/photographs/${anaOrder[1]}/shape`) && r.request().method() === 'PUT');
+    await zoom.getByTestId('photograph-shape-upright').click();
+    expect((await again).status()).toBe(200);
+    expect(await thumbRatio(anaOrder[1])).toBe(0.67);
+    await page.screenshot({ path: `${SHOTS}-4a-zoom-own-upright.png` });
     const chosen = page.waitForResponse(r => r.url().includes('/cover') && r.request().method() === 'PUT');
     await zoom.getByRole('button', { name: 'Use as my cover' }).click();
     expect((await chosen).status()).toBe(200);

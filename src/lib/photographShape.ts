@@ -1,27 +1,20 @@
 // Every family photograph is shown in one of three shapes and no other:
-// square, upright (2:3) or across (3:2). The stored file keeps what the camera
-// gave; the shape is a crop at the moment of showing, picked from the file's
-// own proportions so the crop takes as little as it can.
+// square, upright (2:3) or across (3:2). Square is what a photograph gets
+// unless its author picks another from the zoom. The stored file keeps what
+// the camera gave; the shape is only a crop at the moment of showing.
 
-export type PhotographShape = 'square' | 'upright' | 'across';
+import { isFamilyPhotographShape, type FamilyPhotographShape } from './familyContract';
 
-/** Width over height for each shape. */
-export const PHOTOGRAPH_SHAPE_RATIO: Record<PhotographShape, number> = {
-  square: 1,
-  upright: 2 / 3,
-  across: 3 / 2,
-};
+export type PhotographShape = FamilyPhotographShape;
 
-/**
- * The nearest of the three shapes. The cut points sit halfway (in ratio terms)
- * between neighbours: below 0.82 is upright, above 1.22 is across.
- */
-export function photographShape(width: number | null | undefined, height: number | null | undefined): PhotographShape {
-  const w = Number(width);
-  const h = Number(height);
-  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return 'square';
-  const ratio = w / h;
-  if (ratio < 0.82) return 'upright';
-  if (ratio > 1.22) return 'across';
-  return 'square';
+/** The words on the three buttons in the zoom, in the order they are shown. */
+export const PHOTOGRAPH_SHAPE_CHOICES: ReadonlyArray<{ shape: PhotographShape; label: string; says: string }> = [
+  { shape: 'square', label: 'Square', says: 'Show square' },
+  { shape: 'upright', label: '2:3', says: 'Show upright, two by three' },
+  { shape: 'across', label: '3:2', says: 'Show across, three by two' },
+];
+
+/** Whatever is stored, the answer is one of the three; anything else is square. */
+export function photographShape(stored: unknown): PhotographShape {
+  return isFamilyPhotographShape(stored) ? stored : 'square';
 }

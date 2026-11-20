@@ -73,6 +73,7 @@ function PhotographGrid({ tasting }: { tasting: FamilyPersonTasting }) {
     fullSrc: mediaUrl(photo.full_url),
     width: photo.small_width,
     height: photo.small_height,
+    shape: photo.shape,
     alt: `${tasting.name}, photographed by the person on this page`,
   });
   const open = tasting.photographs.find(photo => photo.id === openId) ?? null;

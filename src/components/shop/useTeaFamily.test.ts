@@ -4,12 +4,12 @@ import { buildTeaRow, personPath, readPublicTeaPhotographs } from './useTeaFamil
 
 const shared = (id: string, name = 'Mei', pageId: string | null = 'c1'): FamilySharedPhotograph => ({
   id, full_url: `https://media.teajia.co/family-photos/a/p/${id}-full.jpg`, small_url: `https://media.teajia.co/family-photos/a/p/${id}-small.jpg`,
-  full_width: 2000, full_height: 1333, small_width: 480, small_height: 320, author: { name, page_id: pageId },
+  full_width: 2000, full_height: 1333, small_width: 480, small_height: 320, shape: 'square', author: { name, page_id: pageId },
 });
 const own = (id: string): FamilyPhotograph => ({
   id, product_id: 'p', journal_entry_id: null, page: null,
   full_url: `https://media.teajia.co/family-photos/a/p/${id}-full.jpg`, small_url: `https://media.teajia.co/family-photos/a/p/${id}-small.jpg`,
-  full_width: 2000, full_height: 1333, small_width: 480, small_height: 320, share_state: 'private', created_at: '2026-11-01',
+  full_width: 2000, full_height: 1333, small_width: 480, small_height: 320, share_state: 'private', shape: 'square', created_at: '2026-11-01',
 });
 
 const none = { product_id: 'p', lead: null, placed: [], family: [] };

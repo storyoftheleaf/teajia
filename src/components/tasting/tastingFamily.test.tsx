@@ -51,7 +51,8 @@ describe('the photograph row', () => {
     // Nothing is written under a thumbnail: "Remove from my page" is in the zoom.
     expect(html).not.toContain('Remove from my page');
     expect(html).toContain('data-testid="tasting-photograph"');
-    expect(html).toContain('data-shape="across"');
+    // A photograph is shown square until its author picks another shape, whatever the file's proportions.
+    expect(html).toContain('data-shape="square"');
     expect(html).toContain(NOTES_NOTICE);
     expect(html).not.toContain('Delete');
     expect(html).not.toContain('—');

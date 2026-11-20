@@ -30,6 +30,7 @@ import {
   FAMILY_VOICE_MAX_SECONDS, FAMILY_VOICE_NOTES_PER_DAY,
   type FamilyAuthor, type FamilyOfferedPhotograph, type FamilyPhotoPage, type FamilyPhotograph,
   type FamilyShareState, type FamilySharedPhotograph, type FamilyTargetKind, type FamilyTeaPhotographs,
+  isFamilyPhotographShape, type FamilyPhotographShape,
 } from '../../src/lib/familyContract';
 import { inspectJpeg } from './familyJpeg';
 import { ensureFamilyPage } from './familyPages';
@@ -120,7 +121,11 @@ type PhotoRow = {
   page: FamilyPhotoPage | null; full_key: string; small_key: string; full_width: number; full_height: number;
   small_width: number; small_height: number; share_state: FamilyShareState; offered_at: string | null;
   shop_use: FamilyOfferedPhotograph['shop_use']; removed_by_member_at: string | null; created_at: string;
+  shape?: string | null;
 };
+
+/** A row written before the column existed, or holding anything unexpected, reads as square. */
+const shapeOf = (row: { shape?: string | null }): FamilyPhotographShape => (isFamilyPhotographShape(row.shape) ? row.shape : 'square');
 
 function ownPhoto(row: PhotoRow): FamilyPhotograph {
   return {
@@ -128,7 +133,7 @@ function ownPhoto(row: PhotoRow): FamilyPhotograph {
     full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
     small_width: Number(row.small_width), small_height: Number(row.small_height),
-    share_state: row.share_state, created_at: row.created_at,
+    share_state: row.share_state, shape: shapeOf(row), created_at: row.created_at,
   };
 }
 
@@ -137,7 +142,7 @@ function sharedPhoto(row: PhotoRow & { author_name: string | null; page_id: stri
   return {
     id: row.id, full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
-    small_width: Number(row.small_width), small_height: Number(row.small_height), author,
+    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), author,
   };
 }
 
@@ -371,6 +376,22 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     // Putting a photograph on a page is what makes the page: on the first share it is created.
     const page = body.share_state === 'private' ? null : await ensureFamilyPage(env.DB, person);
     return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)), page_id: page?.id ?? null });
+  };
+
+  // PUT /api/family/photographs/:id/shape { shape }: how the author wants it shown.
+  // Square is the default; upright (2:3) and across (3:2) are the only others.
+  const shapePhoto: FamilyHandler<E> = async (request, env, params) => {
+    const person = await deps.requireAuthenticatedUser(request, env);
+    if ('error' in person) return person.error;
+    const body = await readBody(request);
+    if (!body || !isFamilyPhotographShape(body.shape)) return refuse(400, 'Choose square, 2:3 or 3:2.', 'invalid_shape');
+    const result = await env.DB.prepare(
+      `UPDATE member_photographs SET shape = ?1, updated_at = datetime('now')
+        WHERE id = ?2 AND author_user_id = ?3 AND removed_by_member_at IS NULL`,
+    ).bind(body.shape, params.id, person.userId).run();
+    if (!Number(result.meta?.changes ?? 0)) return refuse(404, 'That photograph is not one of yours.', 'photograph_not_found');
+    const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(params.id).first<PhotoRow>();
+    return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)) });
   };
 
   // POST /api/family/photographs/:id/remove: gone from the member's page and view.
@@ -669,6 +690,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
   return [
     ['POST', '/api/family/photographs', upload],
     ['PUT', '/api/family/photographs/:id/share', sharePhoto],
+    ['PUT', '/api/family/photographs/:id/shape', shapePhoto],
     ['POST', '/api/family/photographs/:id/remove', removePhoto],
     ['GET', '/api/family/teas/:productId/mine', myTea],
     ['PUT', '/api/family/teas/:productId/cover', setCover],

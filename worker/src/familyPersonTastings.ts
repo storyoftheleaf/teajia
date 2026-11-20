@@ -16,7 +16,7 @@
  * The SQL pieces are exported as strings so index.ts can use them on lines it
  * already has, without adding lines to the pinned worker type check.
  */
-import type { FamilyPersonPhotograph, FamilyPersonTasting, FamilyPersonWord } from '../../src/lib/familyContract';
+import { isFamilyPhotographShape, type FamilyPersonPhotograph, type FamilyPersonTasting, type FamilyPersonWord } from '../../src/lib/familyContract';
 
 const MEDIA_PREFIX = 'https://media.teajia.co/';
 const mediaUrl = (key: string) => `${MEDIA_PREFIX}${key}`;
@@ -72,7 +72,7 @@ export function wordsFromSittings(raw: unknown): FamilyPersonWord[] {
 
 type ShareRow = { product_id: string; journal_entry_id: string; tastings: string | null; at: string | null };
 type PhotoRow = {
-  id: string; product_id: string; small_key: string; full_key: string; small_width: number; small_height: number; at: string | null;
+  id: string; product_id: string; small_key: string; full_key: string; small_width: number; small_height: number; shape?: string | null; at: string | null;
 };
 type ProductRow = {
   id: string; name: string | null; chinese_name: string | null; slug: string | null; status: string | null;
@@ -92,7 +92,7 @@ export async function personTastings(db: D1Database, userId: string | null | und
         ORDER BY at DESC LIMIT ?`,
     ).bind(userId, MAX_TEAS).all<ShareRow>(),
     db.prepare(
-      `SELECT p.id, p.product_id, p.small_key, p.full_key, p.small_width, p.small_height, p.updated_at AS at
+      `SELECT p.id, p.product_id, p.small_key, p.full_key, p.small_width, p.small_height, p.shape, p.updated_at AS at
          FROM member_photographs p
         WHERE p.author_user_id = ? AND p.share_state IN ('page', 'offered')
           AND p.removed_by_member_at IS NULL AND ${PHOTO_NOT_HIDDEN}
@@ -115,6 +115,7 @@ export async function personTastings(db: D1Database, userId: string | null | und
     list.push({
       id: photo.id, small_url: mediaUrl(photo.small_key), full_url: mediaUrl(photo.full_key),
       small_width: Number(photo.small_width), small_height: Number(photo.small_height),
+      shape: isFamilyPhotographShape(photo.shape) ? photo.shape : 'square',
     });
     pictures.set(photo.product_id, list);
     if (!order.includes(photo.product_id)) order.push(photo.product_id);

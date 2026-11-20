@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { familyApi } from '../../lib/familyApi';
-import type { FamilyAuthor, FamilyMyTea, FamilyPhotograph, FamilySharedPhotograph, FamilyTeaPhotographs } from '../../lib/familyContract';
+import type { FamilyAuthor, FamilyMyTea, FamilyPhotograph, FamilyPhotographShape, FamilySharedPhotograph, FamilyTeaPhotographs } from '../../lib/familyContract';
 
 /**
  * One photograph in the row under the plaque. The reader's own and other
@@ -15,6 +15,8 @@ export interface TeaRowPhotograph {
   full_url: string;
   width: number;
   height: number;
+  /** The shape its author chose; square when nothing was chosen. */
+  shape: FamilyPhotographShape;
   /** True for the signed-in reader's own photograph. */
   mine: boolean;
   /** Who to credit in the zoom. Null on the reader's own. */
@@ -64,11 +66,11 @@ export function buildTeaRow(
   shared: FamilyTeaPhotographs,
 ): TeaRowPhotograph[] {
   const mine = (p: FamilyPhotograph): TeaRowPhotograph => ({
-    id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height,
+    id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height, shape: p.shape ?? 'square',
     mine: true, author: null, isCover: p.id === coverId, isLead: shared.lead?.id === p.id,
   });
   const theirs = (p: FamilySharedPhotograph): TeaRowPhotograph => ({
-    id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height,
+    id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height, shape: p.shape ?? 'square',
     mine: false, author: p.author, isCover: false, isLead: shared.lead?.id === p.id,
   });
   const ownIds = new Set(own.map(p => p.id));
@@ -138,5 +140,23 @@ export function useTeaFamily(productId: string | undefined) {
     ]);
   }, [productId, queryClient]);
 
-  return { row, coverId, chooseCover, removeOwn };
+  /** The reader's own photograph, shown square, 2:3 or 3:2. Answers at once; a refusal puts it back. */
+  const reshapeOwn = useCallback(async (photographId: string, shape: FamilyPhotographShape) => {
+    if (!productId) return;
+    const before = queryClient.getQueryData<FamilyMyTea | null>(mineKey);
+    if (before) {
+      queryClient.setQueryData<FamilyMyTea | null>(mineKey, {
+        ...before, photographs: before.photographs.map(p => (p.id === photographId ? { ...p, shape } : p)),
+      });
+    }
+    try {
+      await familyApi.setPhotographShape(photographId, shape);
+      await queryClient.invalidateQueries({ queryKey: ['family', 'tea-photographs', productId] });
+    } catch {
+      queryClient.setQueryData<FamilyMyTea | null>(mineKey, before ?? null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, queryClient]);
+
+  return { row, coverId, chooseCover, removeOwn, reshapeOwn };
 }

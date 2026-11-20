@@ -19,7 +19,7 @@ const tasting = (over: Partial<FamilyPersonTasting> = {}): FamilyPersonTasting =
   words: [{ date: '2026-11-10T08:05:00Z', text: 'Orchid and warm stone' }],
   photographs: [{
     id: 'p1', small_url: 'https://media.teajia.co/family-photos/bali/tea-a/p1-small.jpg',
-    full_url: 'https://media.teajia.co/family-photos/bali/tea-a/p1-full.jpg', small_width: 480, small_height: 360,
+    full_url: 'https://media.teajia.co/family-photos/bali/tea-a/p1-full.jpg', small_width: 480, small_height: 360, shape: 'square',
   }],
   ...over,
 });

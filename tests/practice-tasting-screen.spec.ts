@@ -135,6 +135,12 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   // Nothing is written under a thumbnail; tapping one opens it, and the zoom offers the one action.
   await expect(page.getByRole('group', { name: 'Your photographs' })).not.toContainText('Remove from my page');
   await page.getByTestId('tasting-photograph').first().click();
+  const firstThumb = page.getByTestId('tasting-photograph').first();
+  await expect(firstThumb).toHaveAttribute('data-shape', 'square');
+  const shaped = page.waitForResponse(r => r.url().includes('/shape') && r.request().method() === 'PUT');
+  await page.getByTestId('photograph-zoom').getByTestId('photograph-shape-across').click();
+  expect((await shaped).status()).toBe(200);
+  await expect(firstThumb).toHaveAttribute('data-shape', 'across');
   await page.screenshot({ path: `${SHOTS}-2b-zoom-in-the-tasting.png` });
   await page.getByTestId('photograph-zoom').getByRole('button', { name: 'Remove from my page' }).click();
   await expect(page.getByTestId('photograph-zoom')).toHaveCount(0);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../lib/api';
 import { familyApi } from '../../lib/familyApi';
-import { FAMILY_PHOTOS_PER_TEA, type FamilyPhotoPage, type FamilyPhotograph } from '../../lib/familyContract';
+import { FAMILY_PHOTOS_PER_TEA, type FamilyPhotoPage, type FamilyPhotograph, type FamilyPhotographShape } from '../../lib/familyContract';
 import { prepareFamilyPhotograph } from '../../lib/familyPhotographSizes';
 
 export const PHOTO_LIMIT_SENTENCE = 'You have six photographs of this tea. Remove one from your page to add another.';
@@ -72,5 +72,23 @@ export function useTastingPhotographs({ productId, enabled }: { productId: strin
     }
   }, []);
 
-  return { photos, remaining, busy, error, add, remove, clearError: () => setError('') };
+  /** The shape answers at once; the server confirms, and a refusal puts it back. */
+  const reshape = useCallback(async (photographId: string, shape: FamilyPhotographShape) => {
+    setError('');
+    let before: FamilyPhotographShape | undefined;
+    setPhotos(current => current.map(p => {
+      if (p.id !== photographId) return p;
+      before = p.shape;
+      return { ...p, shape };
+    }));
+    try {
+      await familyApi.setPhotographShape(photographId, shape);
+    } catch (err) {
+      if (!mounted.current) return;
+      setPhotos(current => current.map(p => (p.id === photographId ? { ...p, shape: before ?? 'square' } : p)));
+      setError(plainSentence(err));
+    }
+  }, []);
+
+  return { photos, remaining, busy, error, add, remove, reshape, clearError: () => setError('') };
 }

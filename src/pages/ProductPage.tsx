@@ -493,7 +493,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
         underPlate={(family.row.length > 0 || isSoldOut) ? (
           <>
-            <TeaPhotographRow photographs={family.row} teaName={item.name} onChooseCover={(id) => { void family.chooseCover(id); }} onRemove={family.removeOwn} />
+            <TeaPhotographRow photographs={family.row} teaName={item.name} onChooseCover={(id) => { void family.chooseCover(id); }} onRemove={family.removeOwn} onShape={(id, shape) => { void family.reshapeOwn(id, shape); }} />
             {isSoldOut && <SoldOutUnderPlate productId={item.id} name={item.name} />}
           </>
         ) : undefined}

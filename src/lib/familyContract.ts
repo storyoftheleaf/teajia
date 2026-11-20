@@ -31,6 +31,16 @@ export const FAMILY_MIN_LONG_EDGE = 64;
 /** The only type the door accepts. The phone re-encodes every picture to it. */
 export const FAMILY_PHOTO_TYPE = 'image/jpeg';
 
+/**
+ * The shape a photograph is shown in. Square unless its author picks another
+ * from the zoom. The stored file is never changed.
+ */
+export type FamilyPhotographShape = 'square' | 'upright' | 'across';
+export const FAMILY_PHOTOGRAPH_SHAPES: readonly FamilyPhotographShape[] = ['square', 'upright', 'across'];
+export function isFamilyPhotographShape(value: unknown): value is FamilyPhotographShape {
+  return typeof value === 'string' && (FAMILY_PHOTOGRAPH_SHAPES as readonly string[]).includes(value);
+}
+
 /** Who can see a photograph or a tasting. Keep private is the default. */
 export type FamilyShareState = 'private' | 'page' | 'offered';
 export const FAMILY_SHARE_STATES: readonly FamilyShareState[] = ['private', 'page', 'offered'];
@@ -59,6 +69,7 @@ export interface FamilyPhotograph {
   small_width: number;
   small_height: number;
   share_state: FamilyShareState;
+  shape: FamilyPhotographShape;
   created_at: string;
 }
 
@@ -89,6 +100,7 @@ export interface FamilySharedPhotograph {
   full_height: number;
   small_width: number;
   small_height: number;
+  shape: FamilyPhotographShape;
   author: FamilyAuthor;
 }
 
@@ -227,6 +239,7 @@ export interface FamilyPersonPhotograph {
   small_width: number;
   small_height: number;
   full_url: string;
+  shape: FamilyPhotographShape;
 }
 
 /**

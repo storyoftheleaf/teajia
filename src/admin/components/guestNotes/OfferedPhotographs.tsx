@@ -61,7 +61,7 @@ function PhotographRow({ photo }: { photo: Offered }) {
           height={photo.small_height}
           alt={`${photo.product_name ?? 'Tea'} by ${photo.author.name}`}
           loading="lazy"
-          data-shape={photographShape(photo.small_width, photo.small_height)}
+          data-shape={photographShape(photo.shape)}
           className="offered-photo h-24 object-cover"
         />
       </a>
