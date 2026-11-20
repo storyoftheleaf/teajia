@@ -91,8 +91,8 @@ export function CapturePhotoImage({ src, stockPreview = false, ...props }: Captu
 export function CapturePhotoThumbnail({ src, small = false, ...props }: CapturePhotoImageProps & { small?: boolean }) {
   const saved = useCapturePhotoFrame(src).data?.frame?.aspect;
   const aspect = saved === 2 / 3 || saved === 3 / 2 ? saved : 1;
-  const height = small ? 'var(--space-8)' : '(var(--space-12) + var(--space-8))';
-  return <span className={`block overflow-hidden rounded-md border border-tea-border ${small ? 'h-8' : 'h-[calc(var(--space-12)+var(--space-8))]'}`}
+  const height = small ? 'var(--space-8)' : 'var(--capture-photo-height)';
+  return <span className={small ? 'block overflow-hidden rounded-md border border-tea-border h-8' : 'capture-photo-thumbnail'}
     style={{ width: `calc(${height} * ${aspect})` }}>
     <CapturePhotoImage {...props} src={src} className="w-full h-full object-cover pointer-events-none" />
   </span>;

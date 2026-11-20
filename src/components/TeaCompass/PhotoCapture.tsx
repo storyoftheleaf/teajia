@@ -866,11 +866,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 {onRemovePhoto && photos && (
                   <button
                     type="button"
-                    className="btn-quiet btn-sm w-full"
+                    className="btn-icon tap-target capture-photo-remove"
                     aria-label={`Delete photo ${i + 1}`}
                     title="Delete photo"
                     onClick={() => onRemovePhoto(photos.indexOf(url))}
-                  >Delete</button>
+                  ><X aria-hidden /></button>
                 )}
               </div>
             )
@@ -881,7 +881,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <img
                   src={preview.localUrl}
                   alt={`Uploading ${i + 1}`}
-                  className={`w-[calc(var(--space-12)+var(--space-8))] h-[calc(var(--space-12)+var(--space-8))] rounded-md object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
+                  className={`capture-photo-thumbnail capture-photo-thumbnail-pending ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
                 />
                 {preview.uploading && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-md">

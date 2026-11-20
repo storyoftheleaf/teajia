@@ -48,22 +48,26 @@ async function uploadWidePhoto(page: Page, portrait = false) {
 
 const frameButton = (page: Page, number = 1) => page.getByRole('button', { name: `Frame photo ${number}`, exact: true }).filter({ visible: true }).first();
 
-test('clicking a photo opens reversible square framing; Delete stays below the image', async ({ page }, testInfo) => {
+test('clicking a photo opens reversible square framing; a small corner X removes the photo', async ({ page }, testInfo) => {
   const server = await photoServer(page);
   await openCompass(page);
   await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Reversible photo framing');
   await uploadWidePhoto(page);
   const photo = frameButton(page);
   const deletion = page.getByRole('button', { name: 'Delete photo 1', exact: true }).filter({ visible: true });
-  await expect(photo).toBeVisible(); await expect(deletion).toHaveText('Delete');
+  await expect(photo).toBeVisible(); await expect(deletion).toHaveText('');
   const imageBox = await photo.boundingBox(), deleteBox = await deletion.boundingBox();
   expect(imageBox!.width).toBeCloseTo(imageBox!.height, 0);
-  expect(deleteBox!.y).toBeGreaterThanOrEqual(imageBox!.y + imageBox!.height);
+  expect(imageBox!.height).toBe(64);
+  expect(deleteBox!.width).toBe(20);
+  expect(deleteBox!.height).toBe(20);
+  expect(deleteBox!.y).toBeLessThan(imageBox!.y);
+  expect(deleteBox!.x + deleteBox!.width).toBeGreaterThan(imageBox!.x + imageBox!.width);
   await expect(page.getByRole('button', { name: /Remove photo|Crop photo/ })).toHaveCount(0);
   await uploadWidePhoto(page);
   await page.getByRole('button', { name: 'Delete photo 2', exact: true }).filter({ visible: true }).click();
   await expect(frameButton(page, 2)).toHaveCount(0);
-  await page.screenshot({ path: testInfo.outputPath('delete-under-photo.png') });
+  await page.screenshot({ path: testInfo.outputPath('small-corner-remove.png') });
   const [path, original] = [...server.photos.entries()][0];
   const originalBytes = Buffer.from(original.original);
   await page.getByRole('button', { name: 'Save changes to this tea' }).filter({ visible: true }).click();

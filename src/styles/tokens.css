@@ -158,6 +158,9 @@
   --space-8: 32px;
   --space-12: 48px;
 
+  --capture-photo-height: calc(var(--space-8) * 2);
+  --capture-photo-remove-size: calc(var(--space-4) + var(--space-1));
+
   /* ---- Corners -------------------------------------------------------- */
   --radius-sm: 2px;
   --radius-base: 4px;
@@ -806,3 +809,37 @@ body {
 .btn-danger { color: var(--tea-error); }
 .btn-secondary.btn-danger { border-color: rgb(var(--tea-error-rgb) / 0.4); }
 .btn-danger:hover:not(:disabled) { background: rgb(var(--tea-error-rgb) / 0.1); color: var(--tea-error); }
+
+/* Compact private photo attachments. Saved aspect choices share one height. */
+.capture-photo-thumbnail {
+  display: block;
+  height: var(--capture-photo-height);
+  overflow: hidden;
+  border: var(--border-w) solid var(--tea-border);
+  border-radius: var(--radius-xl);
+  background: var(--tea-surface);
+}
+.capture-photo-thumbnail-pending { width: var(--capture-photo-height); object-fit: cover; }
+.btn-icon.capture-photo-remove {
+  position: absolute;
+  top: calc(var(--space-2) * -1);
+  right: calc(var(--space-2) * -1);
+  width: var(--capture-photo-remove-size);
+  height: var(--capture-photo-remove-size);
+  min-width: var(--capture-photo-remove-size);
+  min-height: var(--capture-photo-remove-size);
+  border-radius: 50%;
+  border-color: var(--tea-border);
+  background: var(--tea-surface);
+  z-index: 1;
+}
+.capture-photo-remove::after {
+  content: '';
+  position: absolute;
+  width: calc(var(--space-12) - var(--space-1));
+  height: calc(var(--space-12) - var(--space-1));
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.capture-photo-remove svg { width: var(--space-3); height: var(--space-3); }
