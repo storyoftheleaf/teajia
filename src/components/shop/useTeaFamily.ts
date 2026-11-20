@@ -2,20 +2,27 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { familyApi } from '../../lib/familyApi';
-import { mediaUrl } from '../../lib/mediaUrl';
-import type { FamilyMyTea, FamilyPhotograph, FamilySharedPhotograph, FamilyTeaPhotographs } from '../../lib/familyContract';
+import type { FamilyAuthor, FamilyMyTea, FamilyPhotograph, FamilySharedPhotograph, FamilyTeaPhotographs } from '../../lib/familyContract';
 
-/** The one drag type the member's own thumbnails carry onto the plate. */
-export const PHOTOGRAPH_DRAG_TYPE = 'application/x-teajia-photograph';
-
-/** What the plate shows in place of its bare label stock, and whose it is. */
-export interface TeaPlatePicture {
-  src: string;
-  alt: string;
-  /** 'cover' is the signed-in member's own choice, seen only by them. 'lead' is the shop's public pick. */
-  kind: 'cover' | 'lead';
-  /** The person credited under a lead picture. Never set for a member's own cover. */
-  credit?: { name: string; href: string | null };
+/**
+ * One photograph in the row under the plaque. The reader's own and other
+ * people's sit in the same row and look the same; whose it is, and what can be
+ * done with it, shows only in the zoom.
+ */
+export interface TeaRowPhotograph {
+  id: string;
+  small_url: string;
+  full_url: string;
+  width: number;
+  height: number;
+  /** True for the signed-in reader's own photograph. */
+  mine: boolean;
+  /** Who to credit in the zoom. Null on the reader's own. */
+  author: FamilyAuthor | null;
+  /** The reader's own cover for this tea: first in their row, seen only by them. */
+  isCover: boolean;
+  /** The shop's chosen picture for this tea: first in everyone else's row. */
+  isLead: boolean;
 }
 
 const NONE: FamilyTeaPhotographs = { product_id: '', lead: null, placed: [], family: [] };
@@ -46,33 +53,34 @@ export function personPath(pageId: string | null | undefined): string | null {
 
 
 /**
- * What the plate holds. The reader's own cover wins, and nobody else ever sees
- * it. Otherwise the shop's lead picture, credited. Otherwise nothing, which
- * leaves the plate exactly as it has always been.
+ * The row under the plaque, in order: the reader's own cover (only they ever
+ * see it first), then the shop's chosen picture, then the reader's other
+ * photographs, then what the shop placed and what the family shared. A
+ * photograph that is in more than one of those shows once.
  */
-export function pickPlatePicture(
-  teaName: string,
+export function buildTeaRow(
   own: FamilyPhotograph[],
   coverId: string | null,
-  lead: FamilySharedPhotograph | null,
-): TeaPlatePicture | null {
-  const cover = coverId ? own.find(p => p.id === coverId) : undefined;
-  if (cover) return { src: mediaUrl(cover.full_url), alt: `Your photograph of ${teaName}`, kind: 'cover' };
-  if (lead) {
-    return {
-      src: mediaUrl(lead.full_url),
-      alt: `${teaName}, photographed by ${lead.author.name}`,
-      kind: 'lead',
-      credit: { name: lead.author.name, href: personPath(lead.author.page_id) },
-    };
-  }
-  return null;
-}
-
-/** The shop's placed photographs and the family's shared ones read as one strip; one that is both shows once. */
-export function mergeStrip(placed: FamilySharedPhotograph[], family: FamilySharedPhotograph[]): FamilySharedPhotograph[] {
+  shared: FamilyTeaPhotographs,
+): TeaRowPhotograph[] {
+  const mine = (p: FamilyPhotograph): TeaRowPhotograph => ({
+    id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height,
+    mine: true, author: null, isCover: p.id === coverId, isLead: shared.lead?.id === p.id,
+  });
+  const theirs = (p: FamilySharedPhotograph): TeaRowPhotograph => ({
+    id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height,
+    mine: false, author: p.author, isCover: false, isLead: shared.lead?.id === p.id,
+  });
+  const ownIds = new Set(own.map(p => p.id));
+  const cover = own.find(p => p.id === coverId);
+  const ordered: TeaRowPhotograph[] = [
+    ...(cover ? [mine(cover)] : []),
+    ...(shared.lead && !ownIds.has(shared.lead.id) ? [theirs(shared.lead)] : []),
+    ...own.map(mine),
+    ...[...shared.placed, ...shared.family].filter(p => !ownIds.has(p.id)).map(theirs),
+  ];
   const seen = new Set<string>();
-  return [...placed, ...family].filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+  return ordered.filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)));
 }
 
 export { readPublic as readPublicTeaPhotographs };
@@ -82,7 +90,7 @@ export { readPublic as readPublicTeaPhotographs };
  * strip of other people's shared photographs, and, signed in, the reader's own
  * photographs of this tea with the one they have made their cover.
  */
-export function useTeaFamily(productId: string | undefined, teaName: string) {
+export function useTeaFamily(productId: string | undefined) {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
@@ -104,14 +112,13 @@ export function useTeaFamily(productId: string | undefined, teaName: string) {
   const publicSide = publicQuery.data ?? NONE;
   const mine = isAuthenticated ? mineQuery.data ?? null : null;
   const own: FamilyPhotograph[] = mine?.photographs ?? [];
-  const plate = pickPlatePicture(teaName, own, mine?.cover_photograph_id ?? null, publicSide.lead);
-  const strip = mergeStrip(publicSide.placed, publicSide.family);
-  const cover = own.find(p => p.id === mine?.cover_photograph_id) ?? null;
+  const coverId = own.find(p => p.id === mine?.cover_photograph_id)?.id ?? null;
+  const row = buildTeaRow(own, coverId, publicSide);
 
   const chooseCover = useCallback(async (photographId: string | null) => {
     if (!productId) return;
     const before = queryClient.getQueryData<FamilyMyTea | null>(mineKey);
-    // The plate answers at once; the server confirms, and a refusal puts it back.
+    // The row answers at once; the server confirms, and a refusal puts it back.
     if (before) queryClient.setQueryData<FamilyMyTea | null>(mineKey, { ...before, cover_photograph_id: photographId });
     try {
       await familyApi.setCover(productId, photographId);
@@ -121,11 +128,15 @@ export function useTeaFamily(productId: string | undefined, teaName: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, queryClient]);
 
-  return {
-    plate,
-    ownPhotographs: own,
-    coverId: cover?.id ?? null,
-    familyStrip: strip,
-    chooseCover,
-  };
+  /** "Remove from my page": gone from the reader's page and view at once. The shop keeps the file. */
+  const removeOwn = useCallback(async (photographId: string) => {
+    if (!productId) return;
+    await familyApi.removePhotograph(photographId);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['family', 'my-tea', productId] }),
+      queryClient.invalidateQueries({ queryKey: ['family', 'tea-photographs', productId] }),
+    ]);
+  }, [productId, queryClient]);
+
+  return { row, coverId, chooseCover, removeOwn };
 }

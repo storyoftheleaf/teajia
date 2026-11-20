@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
 import { Dek, GOLD_TEXT_INLINE, GOLD_TEXT_STYLE, GroupHead, IndexRow } from './immersive';
-import { galleryPlacement } from './profileFormat';
+import { PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
 
 // The Tastings section of a person's page: the teas they shared, in their own
 // words and photographs. Built from the page's existing parts: the group
@@ -65,19 +65,28 @@ export function SoldOutLine({ productId, name }: { productId: string | null | un
 }
 
 function PhotographGrid({ tasting }: { tasting: FamilyPersonTasting }) {
+  const [openId, setOpenId] = useState<string | null>(null);
   if (tasting.photographs.length === 0) return null;
+  const toZoom = (photo: FamilyPersonTasting['photographs'][number]): ZoomPhotograph => ({
+    id: photo.id,
+    smallSrc: mediaUrl(photo.small_url),
+    fullSrc: mediaUrl(photo.full_url),
+    width: photo.small_width,
+    height: photo.small_height,
+    alt: `${tasting.name}, photographed by the person on this page`,
+  });
+  const open = tasting.photographs.find(photo => photo.id === openId) ?? null;
   return (
-    <ul className="mt-3.5 grid grid-cols-2 auto-rows-[108px] gap-1 md:auto-rows-[170px]" aria-label={`Photographs of ${tasting.name}`} data-testid="tasting-photographs">
-      {tasting.photographs.map((photo, index) => {
-        const place = galleryPlacement(index);
-        return (
-          <li key={photo.id} style={{ gridColumn: place.columnSpan === 2 ? 'span 2' : undefined, gridRow: place.rowSpan === 2 ? 'span 2' : undefined }}>
-            {/* The small copy, always: a grid never asks for the large file. */}
-            <img src={mediaUrl(photo.small_url)} alt={`${tasting.name}, photographed by the person on this page`} width={photo.small_width} height={photo.small_height} loading="lazy" className="h-full w-full object-cover" />
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      {/* The small copy, always: a row never asks for the large file. Each is cropped
+          to one of the three shapes; the large copy is asked for only in the zoom. */}
+      <ul className="photo-row mt-3.5" aria-label={`Photographs of ${tasting.name}`} data-testid="tasting-photographs">
+        {tasting.photographs.map(photo => (
+          <li key={photo.id}><PhotographThumb photo={toZoom(photo)} size="page" onOpen={setOpenId} /></li>
+        ))}
+      </ul>
+      <PhotographZoom photo={open ? toZoom(open) : null} onClose={() => setOpenId(null)} />
+    </>
   );
 }
 

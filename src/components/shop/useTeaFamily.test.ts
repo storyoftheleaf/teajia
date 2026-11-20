@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyPhotograph, FamilySharedPhotograph } from '../../lib/familyContract';
-import { mergeStrip, personPath, pickPlatePicture, readPublicTeaPhotographs } from './useTeaFamily';
+import { buildTeaRow, personPath, readPublicTeaPhotographs } from './useTeaFamily';
 
 const shared = (id: string, name = 'Mei', pageId: string | null = 'c1'): FamilySharedPhotograph => ({
   id, full_url: `https://media.teajia.co/family-photos/a/p/${id}-full.jpg`, small_url: `https://media.teajia.co/family-photos/a/p/${id}-small.jpg`,
@@ -12,33 +12,31 @@ const own = (id: string): FamilyPhotograph => ({
   full_width: 2000, full_height: 1333, small_width: 480, small_height: 320, share_state: 'private', created_at: '2026-11-01',
 });
 
-describe('the plate picture', () => {
-  it('is nothing when there is no cover and no lead, so the page stays as it was', () => {
-    expect(pickPlatePicture('Liu Bao', [], null, null)).toBeNull();
-    expect(pickPlatePicture('Liu Bao', [own('a')], null, null)).toBeNull();
-  });
-  it('is the shop lead with a credit that links to the person', () => {
-    const picture = pickPlatePicture('Liu Bao', [], null, shared('x', 'Mei Lin', 'c9'));
-    expect(picture?.kind).toBe('lead');
-    expect(picture?.credit).toEqual({ name: 'Mei Lin', href: '/people/c9' });
-  });
-  it('credits without a link when the person has no page', () => {
-    expect(pickPlatePicture('Liu Bao', [], null, shared('x', 'Mei Lin', null))?.credit).toEqual({ name: 'Mei Lin', href: null });
-  });
-  it("is the reader's own cover over the lead, and carries no credit", () => {
-    const picture = pickPlatePicture('Liu Bao', [own('mine')], 'mine', shared('x'));
-    expect(picture?.kind).toBe('cover');
-    expect(picture?.credit).toBeUndefined();
-    expect(picture?.src).toContain('mine-full');
-  });
-  it("falls back to the lead when the chosen cover is no longer among the reader's photographs", () => {
-    expect(pickPlatePicture('Liu Bao', [own('other')], 'gone', shared('x'))?.kind).toBe('lead');
-  });
-});
+const none = { product_id: 'p', lead: null, placed: [], family: [] };
 
-describe('the family strip', () => {
-  it('shows a photograph once even when it is both placed and shared', () => {
-    expect(mergeStrip([shared('a'), shared('b')], [shared('b'), shared('c')]).map(p => p.id)).toEqual(['a', 'b', 'c']);
+describe('the row under the plaque', () => {
+  it('is empty when nobody has added anything, so the page stays as it was', () => {
+    expect(buildTeaRow([], null, none)).toEqual([]);
+  });
+  it("puts the shop's chosen picture first for a visitor, credited to its author", () => {
+    const row = buildTeaRow([], null, { ...none, lead: shared('l', 'Mei Lin', 'c9'), family: [shared('f')] });
+    expect(row.map(p => p.id)).toEqual(['l', 'f']);
+    expect(row[0]).toMatchObject({ isLead: true, mine: false, author: { name: 'Mei Lin', page_id: 'c9' } });
+  });
+  it("puts the reader's own cover ahead of the shop's picture, with no credit on it", () => {
+    const row = buildTeaRow([own('a'), own('mine')], 'mine', { ...none, lead: shared('l') });
+    expect(row.map(p => p.id)).toEqual(['mine', 'l', 'a']);
+    expect(row[0]).toMatchObject({ isCover: true, mine: true, author: null });
+  });
+  it('ignores a cover that is no longer among the reader\'s photographs', () => {
+    const row = buildTeaRow([own('a')], 'gone', { ...none, lead: shared('l') });
+    expect(row.map(p => p.id)).toEqual(['l', 'a']);
+    expect(row.some(p => p.isCover)).toBe(false);
+  });
+  it('shows a photograph once even when it is the reader\'s own, placed and shared', () => {
+    const row = buildTeaRow([own('a')], null, { ...none, placed: [shared('a'), shared('b')], family: [shared('b'), shared('c')] });
+    expect(row.map(p => p.id)).toEqual(['a', 'b', 'c']);
+    expect(row[0].mine).toBe(true);
   });
   it('builds a person link from the page id', () => {
     expect(personPath('c 1')).toBe('/people/c%201');

@@ -17,7 +17,7 @@ import { ContentType } from '../../types';
 
 import { AlcoveShell } from './alcove/AlcoveShell';
 import { AlcoveGallery } from './alcove/AlcoveGallery';
-import { AlcoveIdentityHeader, type PlateExtras } from './alcove/AlcoveIdentityHeader';
+import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
 import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
 import { AlcoveOriginLine } from './alcove/AlcoveOriginLine';
 import { AlcoveSectionHeading } from './alcove/AlcoveSectionHeading';
@@ -66,9 +66,7 @@ interface AlcoveCardProps {
    * Both layouts share the exact same state, handlers, and section blocks.
    */
   layout?: 'card' | 'page';
-  /** Page layout only: the family's picture in the plate, and a place to drop one of the member's own. */
-  plateExtras?: PlateExtras;
-  /** Page layout only: what sits directly under the plate (the member's thumbnails, the sold-out line). */
+  /** Page layout only: what sits directly under the plaque (the row of photographs, the sold-out line). */
   underPlate?: React.ReactNode;
 }
 
@@ -97,7 +95,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card', plateExtras, underPlate }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card', underPlate }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -469,7 +467,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             ? `One whole ${(wholePiece?.label ?? '').toLowerCase()} · ${wholePieceGrams}g`
             : undefined
         }
-        plateExtras={layout === 'page' ? plateExtras : undefined}
         productName={productName}
         givenName={givenName}
         teaType={teaType}
@@ -523,6 +520,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       elevation={ledgerElevation}
       forestCover={ledgerRegion?.forestCover}
       treeCharacter={ledgerRegion?.treeCharacter}
+      classification={teaType ? { label: /tea/i.test(teaType) ? teaType : `${teaType} tea`, color: typeColor } : null}
     />
   );
 

@@ -1,14 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
 import type { InventoryItem } from '../../../types';
-import { PHOTOGRAPH_DRAG_TYPE, type TeaPlatePicture } from '../useTeaFamily';
-
-/** What the family adds to the plate: a picture, and a place to drop a photograph. */
-export interface PlateExtras {
-  picture?: TeaPlatePicture | null;
-  /** Dropping one of the member's own thumbnails on the plate makes it their cover. */
-  onDropPhotograph?: (photographId: string) => void;
-}
 
 interface AlcoveIdentityHeaderProps {
   item: InventoryItem;
@@ -37,8 +28,6 @@ interface AlcoveIdentityHeaderProps {
   variant?: 'plain' | 'plate';
   /** How the tea is sold, at the foot of the plate. */
   footNote?: string;
-  /** Plate only: a photograph in the plate and a drop target for the member's own. */
-  plateExtras?: PlateExtras;
 }
 
 /**
@@ -137,30 +126,8 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   onNavigateSource,
   variant = 'plain',
   footNote,
-  plateExtras,
 }) => {
   const onPlate = variant === 'plate';
-  const picture = onPlate ? plateExtras?.picture ?? null : null;
-  const onDropPhotograph = onPlate ? plateExtras?.onDropPhotograph : undefined;
-  const [dragOver, setDragOver] = useState(false);
-  const dropHandlers = onDropPhotograph
-    ? {
-        onDragOver: (event: React.DragEvent) => {
-          if (!event.dataTransfer.types.includes(PHOTOGRAPH_DRAG_TYPE)) return;
-          event.preventDefault();
-          event.dataTransfer.dropEffect = 'copy';
-          setDragOver(true);
-        },
-        onDragLeave: () => setDragOver(false),
-        onDrop: (event: React.DragEvent) => {
-          const id = event.dataTransfer.getData(PHOTOGRAPH_DRAG_TYPE);
-          setDragOver(false);
-          if (!id) return;
-          event.preventDefault();
-          onDropPhotograph(id);
-        },
-      }
-    : {};
   const typeLabel = typeLabelProp ?? (teaType
     ? /tea/i.test(teaType) ? teaType : `${teaType} tea`
     : '');
@@ -173,16 +140,17 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   // When the given name is not the title, keep it at the end of the sub-line so
   // the distinguishing descriptor is not lost.
   const subLine = [givenName.trim() !== productName.trim() ? givenName : '', typeLabel].filter(Boolean).join(' · ');
+  // The plate is a gallery plaque and carries three lines and no more: the name
+  // the shop gave the tea (left out when there is none), the kind of tea, and
+  // that kind in Chinese. Its class ("Dark tea") is said under the plaque, with
+  // where the tea is from. No photograph ever sits in the plaque.
+  const plateKind = title === productName ? '' : productName.trim();
 
   return (
     <header
-      {...dropHandlers}
-      data-plate-picture={picture?.kind}
       className={
         onPlate
-          ? `label-plate mx-5 mt-2 flex flex-col justify-end px-7 pb-[38px] text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 ${
-              picture ? 'h-auto min-h-96 lg:pt-16' : 'h-[396px] lg:pt-[clamp(120px,20vw,300px)]'
-            }${dragOver ? ' ring-2 ring-inset ring-tea-text-sec' : ''}`
+          ? 'label-plate mx-5 mt-2 flex flex-col px-7 pb-10 pt-11 text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 lg:pt-[clamp(120px,20vw,300px)]'
           : 'px-5 pt-7 pb-5 text-center'
       }
     >
@@ -193,25 +161,6 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           <span aria-hidden="true" className="label-plate__veil" />
         </>
       )}
-      {picture && (
-        // The photograph sits in the top of the plate and the name stays on the
-        // bare stock beneath it: words never lie over the work.
-        <figure className="m-0 mb-5 mt-[34px] flex h-60 flex-none flex-col lg:mb-8 lg:mt-0 lg:h-auto lg:aspect-[4/5] lg:flex-none" data-testid="plate-picture">
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <img src={picture.src} alt={picture.alt} className="h-full w-full object-cover" />
-          </div>
-          {picture.credit && (
-            <figcaption className="plate-ink-sec relative z-10 mt-2 font-sans text-ui-10 uppercase tracking-[0.18em]" data-testid="plate-credit">
-              Photograph by{' '}
-              {picture.credit.href ? (
-                <Link to={picture.credit.href} className="tap-target relative z-10 inline-flex items-center underline underline-offset-4">{picture.credit.name}</Link>
-              ) : (
-                picture.credit.name
-              )}
-            </figcaption>
-          )}
-        </figure>
-      )}
       <h1
         id={`alcove-title-${item.id}`}
         className={`m-0 font-display font-normal leading-[1.02] tracking-[0.005em] [text-wrap:balance] lg:leading-none ${
@@ -220,6 +169,11 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       >
         {title}
       </h1>
+      {onPlate && plateKind && (
+        <p className="plate-ink-body m-0 mt-3 font-display text-ui-20 italic leading-[1.2] [text-wrap:balance] lg:mt-5 lg:text-ui-24" data-testid="plate-kind">
+          {plateKind}
+        </p>
+      )}
       {chineseCharacters && (
         <p
           lang="zh"
@@ -230,7 +184,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           {chineseCharacters}
         </p>
       )}
-      {subLine && (
+      {subLine && !onPlate && (
         <p
           className={`m-0 flex flex-wrap items-center justify-center font-sans uppercase tracking-[0.22em] ${
             onPlate

@@ -1,3 +1,4 @@
+import { photographShape } from '../../../lib/photographShape';
 import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { familyApi } from '../../../lib/familyApi';
@@ -60,7 +61,8 @@ function PhotographRow({ photo }: { photo: Offered }) {
           height={photo.small_height}
           alt={`${photo.product_name ?? 'Tea'} by ${photo.author.name}`}
           loading="lazy"
-          className="h-24 w-24 rounded-md object-cover"
+          data-shape={photographShape(photo.small_width, photo.small_height)}
+          className="offered-photo h-24 object-cover"
         />
       </a>
       <div className="min-w-0 flex-1">

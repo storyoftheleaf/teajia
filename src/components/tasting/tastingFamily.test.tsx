@@ -46,7 +46,10 @@ describe('the photograph row', () => {
     expect(html.indexOf('Your photographs')).toBeLessThan(html.indexOf('Your notes'));
     expect(html).toContain(PHOTOGRAPH_NOTICE);
     expect(html).toContain('How we use photographs');
-    expect(html).toContain('Remove from my page');
+    // Nothing is written under a thumbnail: "Remove from my page" is in the zoom.
+    expect(html).not.toContain('Remove from my page');
+    expect(html).toContain('data-testid="tasting-photograph"');
+    expect(html).toContain('data-shape="across"');
     expect(html).toContain(NOTES_NOTICE);
     expect(html).not.toContain('Delete');
     expect(html).not.toContain('—');

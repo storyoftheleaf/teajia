@@ -1,6 +1,6 @@
 # Teajia family: member pages, photographs in the tasting, photographs on teas
 
-Status: planned 2026-11-19, not built. Branch `claude/teajia-family` (cut from `origin/main` at `309ed992`).
+Status: built 2026-11-20 on the branch, all 19 lines passing in the practice shop. Not pushed, not live. Branch `claude/teajia-family` (cut from `origin/main` at `309ed992`).
 Picture of the plan on the real screens: https://claude.ai/artifact/XWhzBLWs9MY5Npv1GS5qTh
 
 ## What it is
@@ -25,6 +25,14 @@ Anyone can join Teajia, taste a tea with voice notes and photographs in the one 
 14. **Family pages are live without review.** The existing draft-and-approve gate stays for tea masters. Guards for family: confirmed email, limits, a report line on the page, one-tap hide for the owner (photograph, tasting or whole page).
 15. **Join at the tasting, and stay signed in.** The door stays where it is (tapping "Add your tasting" signed out). Shorten the join form to name, email, password and the Google button; everything else is asked later where it is needed (phone at first order). Sign-in must persist across visits. "Continue with Google" stays exactly as it is.
 16. **Limits:** six photographs per tea per person, voice notes up to two minutes, twenty a day per person, a daily photograph ceiling per person.
+
+## Changes after the first build (Adrian, 2026-11-20). These replace decisions 2, 10, 11 and 12 where they differ.
+
+- **The plaque.** The top of the tea page is a gallery plaque, short on a phone, with three lines and no more: the name given to the tea (left out when there is none), the kind of tea, its Chinese characters. No photograph ever sits in the plaque. The tea's class ("Dark tea") is said under it, with where the tea is from. The rest of the page is unchanged.
+- **One row under the plaque.** The shop's chosen picture, the family's shared photographs and the signed-in member's own sit in one small row. Nothing is written on or under a thumbnail and there is no "From the family" heading.
+- **The zoom says everything.** Tapping a photograph opens it. "Photograph by Name" shows only there. On a member's own photograph the zoom offers "Use as my cover" (their photograph goes first in their row, seen only by them) and "Remove from my page". No dragging.
+- **In the tasting** the thumbnails are smaller and bare; "Remove from my page" is in the zoom.
+- **Three shapes only.** Every family photograph is shown square, 2:3 or 3:2, picked from the file's own proportions (`src/lib/photographShape.ts`). The thumbnail and zoom are one shared part (`src/components/shared/Photographs.tsx`).
 
 ## Not building
 

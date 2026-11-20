@@ -38,6 +38,26 @@ async function signIn(page: Page): Promise<{ token: string; productId: string; p
   return { token, productId: product.id, productName: String(product.given_name || product.product_name || product.name) };
 }
 
+/**
+ * The fixture member is the same person on every run, and a person may add only
+ * so many photographs in a day. Earlier runs today would use the day up, so the
+ * practice database's rows for this fixture are moved two days back first.
+ * Local practice database only.
+ */
+async function freeTheDay(email: string) {
+  const { DatabaseSync } = await import('node:sqlite');
+  const { readdirSync, statSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const dir = join(process.cwd(), 'worker/.wrangler/state/v3/d1/miniflare-D1DatabaseObject');
+  const file = readdirSync(dir).filter(name => name.endsWith('.sqlite') && name !== 'metadata.sqlite')
+    .map(name => join(dir, name)).sort((a, b) => statSync(b).size - statSync(a).size)[0];
+  const db = new DatabaseSync(file);
+  db.exec('PRAGMA busy_timeout = 5000');
+  db.prepare(`UPDATE member_photographs SET created_at = datetime(created_at, '-2 days')
+    WHERE created_at >= datetime('now', '-1 day') AND author_user_id IN (SELECT id FROM users WHERE email = ?)`).run(email);
+  db.close();
+}
+
 async function clearMine(page: Page, token: string, productId: string) {
   const headers = { Authorization: `Bearer ${token}` };
   const mine = await (await page.request.get(`/api/family/teas/${productId}/mine`, { headers })).json();
@@ -48,6 +68,7 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   test.setTimeout(180_000);
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
+  await freeTheDay(MEMBER.identifier);
   const { token, productId, productName } = await signIn(page);
   await clearMine(page, token, productId);
 
@@ -110,7 +131,12 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   await page.screenshot({ path: `${SHOTS}-2-six-photographs-refused.png` });
 
   // Remove one from my page; the place is freed.
-  await page.getByRole('button', { name: 'Remove from my page' }).first().click();
+  // Nothing is written under a thumbnail; tapping one opens it, and the zoom offers the one action.
+  await expect(page.getByRole('group', { name: 'Your photographs' })).not.toContainText('Remove from my page');
+  await page.getByTestId('tasting-photograph').first().click();
+  await page.screenshot({ path: `${SHOTS}-2b-zoom-in-the-tasting.png` });
+  await page.getByTestId('photograph-zoom').getByRole('button', { name: 'Remove from my page' }).click();
+  await expect(page.getByTestId('photograph-zoom')).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Your photographs' }).locator('img')).toHaveCount(5);
 
   // A note, saved, then the Share step with private as the default.

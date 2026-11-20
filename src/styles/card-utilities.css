@@ -7292,9 +7292,6 @@ body.cart-panel-open .commerce-dock {
 .tasting-impression-photos-label { display:block; color:var(--tea-text-dim); margin-bottom:10px; }
 .tasting-photo-box { display:flex; flex-wrap:wrap; align-items:flex-start; gap:10px; min-height:var(--space-12); padding:var(--space-3); border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); }
 .tasting-photo-box > p { margin:0; align-self:center; color:var(--tea-text-dim); }
-.tasting-photo { margin:0; width:calc(var(--space-12) * 2 - var(--space-1) * 2); }
-.tasting-photo img { display:block; width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px; }
-.tasting-photo button { display:block; width:100%; min-height:var(--tap-min); padding:var(--space-1) 0 0; text-align:left; background:transparent; color:var(--tea-text-sec); font-size:var(--fs-ui-11); line-height:var(--lh-card-title); }
 .tasting-impression-notice { margin:8px 0 0; color:var(--tea-text-dim); }
 .tasting-impression-notice a { color:var(--tea-text-sec); text-decoration:underline; text-underline-offset:2px; }
 .tasting-impression-history time { display:block; margin-top:8px; color:var(--tea-text-dim); }
@@ -7307,4 +7304,34 @@ body.cart-panel-open .commerce-dock {
 .tasting-share-actions { display:flex; justify-content:space-between; gap:12px; margin-top:12px; }
 .tasting-share-actions button { min-height:var(--tap-min); padding:0 var(--space-3); color:var(--tea-text-sec); background:transparent; }
 .tasting-share-actions .tasting-share-primary { margin-left:auto; color:var(--tea-text); border:1px solid var(--tea-border); border-radius:11px; background:var(--tea-surface); }
-.tasting-share-step button:focus-visible, .tasting-photo button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
+.tasting-share-step button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
+
+/* Family photographs. One thumbnail and one zoom, used wherever a member's
+   photograph shows. Every photograph is cropped to one of three shapes and no
+   other: square, upright (2:3) or across (3:2). A row is set by its height, so
+   the three shapes sit on one line; nothing is written on or under a thumbnail.
+   Who took it, and what can be done with it, is in the zoom. */
+.photo-row { display:flex; flex-wrap:wrap; align-items:flex-start; gap:var(--space-2); margin:0; padding:0; list-style:none; }
+.photo-thumb { display:block; flex:none; height:calc(var(--space-12) * 1.5); aspect-ratio:1; padding:0; overflow:hidden; background:var(--tea-surface); cursor:zoom-in; }
+.photo-thumb[data-size="tasting"] { height:calc(var(--space-12) + var(--space-2)); }
+.photo-thumb[data-size="page"] { height:calc(var(--space-12) * 2); }
+.photo-thumb[data-shape="upright"] { aspect-ratio:2 / 3; }
+.photo-thumb[data-shape="across"] { aspect-ratio:3 / 2; }
+.photo-thumb img { display:block; inline-size:100%; block-size:100%; object-fit:cover; }
+.photo-thumb:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
+.photo-zoom { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:calc(var(--space-12) + env(safe-area-inset-top)) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom)); background:var(--tea-bg); overflow-y:auto; }
+.photo-zoom__close { position:absolute; top:calc(var(--space-2) + env(safe-area-inset-top)); right:var(--space-2); }
+.photo-zoom__figure { margin:0; width:min(100%, 64vh); }
+.photo-zoom__figure[data-shape="upright"] { width:min(100%, 44vh); }
+.photo-zoom__figure[data-shape="across"] { width:min(100%, 96vh); }
+.photo-zoom__figure img { display:block; width:100%; aspect-ratio:1; object-fit:cover; background:var(--tea-surface); }
+.photo-zoom__figure[data-shape="upright"] img { aspect-ratio:2 / 3; }
+.photo-zoom__figure[data-shape="across"] img { aspect-ratio:3 / 2; }
+.photo-zoom__under { display:flex; flex-direction:column; align-items:center; gap:var(--space-2); margin-top:var(--space-4); text-align:center; color:var(--tea-text-sec); }
+.photo-zoom__credit { margin:0; font-family:var(--font-sans); font-size:var(--fs-ui-10); letter-spacing:0.2em; text-transform:uppercase; color:var(--tea-text-sec); }
+.photo-zoom__credit a { color:var(--tea-text); text-decoration:underline; text-underline-offset:4px; }
+.photo-zoom__actions { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-2); }
+.photo-zoom__note { margin:0; font-family:var(--font-body); font-size:var(--fs-ui-13); font-style:italic; color:var(--tea-text-dim); }
+.offered-photo { aspect-ratio:1; }
+.offered-photo[data-shape="upright"] { aspect-ratio:2 / 3; }
+.offered-photo[data-shape="across"] { aspect-ratio:3 / 2; }

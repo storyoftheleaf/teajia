@@ -108,13 +108,20 @@ test('the tea page: plain when nobody has added anything, then the family strip,
     visitorPage.on('pageerror', e => errors.push(e.message));
     const noOverflow = (p: Page) => p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
-    // 1. Nobody has added anything: a signed-out reader sees the page exactly as it was.
+    // 1. Nobody has added anything: the plaque stands alone, with three lines at most
+    //    and no photograph in it. The tea's class is said under it, not on it.
     await visitorPage.goto(teaPath);
-    await expect(visitorPage.locator('.label-plate')).toBeVisible({ timeout: 30_000 });
-    await expect(visitorPage.locator('[data-plate-picture]')).toHaveCount(0);
-    await expect(visitorPage.getByTestId('plate-picture')).toHaveCount(0);
-    await expect(visitorPage.getByTestId('from-the-family')).toHaveCount(0);
-    await expect(visitorPage.getByTestId('own-photographs')).toHaveCount(0);
+    const plaque = visitorPage.locator('.label-plate');
+    await expect(plaque).toBeVisible({ timeout: 30_000 });
+    await expect(plaque.locator('img')).toHaveCount(0);
+    // The tea's class ("Dark tea") is under the plaque, with where it is from, and not on it.
+    const teaClass = (await visitorPage.getByTestId('tea-classification').innerText()).trim();
+    expect(teaClass).toMatch(/ tea$/i);
+    const plaqueLines = (await plaque.locator('h1, p').allInnerTexts()).map(t => t.trim()).filter(Boolean);
+    expect(plaqueLines.length, 'the plaque holds three lines at most').toBeLessThanOrEqual(3);
+    expect(plaqueLines.map(t => t.toLowerCase())).not.toContain(teaClass.toLowerCase());
+    expect((await plaque.boundingBox())!.height, 'the plaque is short on a phone').toBeLessThan(260);
+    await expect(visitorPage.getByTestId('tea-photographs')).toHaveCount(0);
     await expect(visitorPage.getByTestId('sold-out-line')).toHaveCount(0);
     await visitorPage.screenshot({ path: `${SHOTS}-1-plain.png` });
 
@@ -142,122 +149,139 @@ test('the tea page: plain when nobody has added anything, then the family strip,
     const boPageId: string = (await offered.json()).page_id;
     expect(boPageId).toBeTruthy();
 
-    // 3. Signed out: "From the family" shows Bo's photograph, small copy only, credited. No picture on the plate.
+    // 3. Signed out: Bo's photograph is in the row under the plaque, small copy only,
+    //    with nothing written on the page. Who took it shows only in the zoom.
     const mediaRequests: string[] = [];
     visitorPage.on('request', r => { if (r.url().includes('/api/media/')) mediaRequests.push(r.url()); });
     await visitorPage.goto(teaPath);
-    const strip = visitorPage.getByTestId('from-the-family');
-    await expect(strip).toBeVisible({ timeout: 30_000 });
-    await expect(strip.getByTestId('family-photograph')).toHaveCount(1);
-    await expect(strip.getByRole('link', { name: members[1].name })).toHaveAttribute('href', `/people/${boPageId}`);
-    await expect(visitorPage.getByTestId('plate-picture')).toHaveCount(0);
-    await expect(visitorPage.getByTestId('own-photographs')).toHaveCount(0);
+    const visitorRow = visitorPage.getByTestId('tea-photographs');
+    await expect(visitorRow).toBeVisible({ timeout: 30_000 });
+    await expect(visitorRow.getByTestId('tea-photograph')).toHaveCount(1);
+    await expect(visitorPage.getByText('Photograph by')).toHaveCount(0);
+    await expect(visitorPage.locator('.label-plate img')).toHaveCount(0);
     await visitorPage.waitForLoadState('networkidle');
     expect(mediaRequests.filter(url => url.includes('-full.jpg'))).toEqual([]);
     expect(await noOverflow(visitorPage)).toBe(true);
-    await strip.scrollIntoViewIfNeeded();
-    await visitorPage.screenshot({ path: `${SHOTS}-2-from-the-family.png` });
+    // Every thumbnail is one of the three shapes, and the row sits under the plaque.
+    const shapes = await visitorRow.getByTestId('tea-photograph').evaluateAll(els => els.map(el => {
+      const box = el.getBoundingClientRect();
+      return { shape: el.getAttribute('data-shape'), ratio: Math.round((box.width / box.height) * 100) / 100 };
+    }));
+    for (const one of shapes) expect([{ shape: 'square', ratio: 1 }, { shape: 'upright', ratio: 0.67 }, { shape: 'across', ratio: 1.5 }]).toContainEqual(one);
+    const plaqueBox = (await visitorPage.locator('.label-plate').boundingBox())!;
+    expect((await visitorRow.boundingBox())!.y).toBeGreaterThanOrEqual(plaqueBox.y + plaqueBox.height);
+    await visitorPage.screenshot({ path: `${SHOTS}-2-row-under-the-plaque.png` });
+    await visitorRow.getByTestId('tea-photograph').first().click();
+    const visitorZoom = visitorPage.getByTestId('photograph-zoom');
+    await expect(visitorZoom).toBeVisible();
+    await expect(visitorZoom.getByTestId('photograph-credit')).toContainText('Photograph by');
+    await expect(visitorZoom.getByRole('link', { name: members[1].name })).toHaveAttribute('href', `/people/${boPageId}`);
+    await expect(visitorZoom.getByTestId('cover-choose')).toHaveCount(0);
+    await expect(visitorZoom.getByTestId('photograph-remove')).toHaveCount(0);
+    await visitorPage.screenshot({ path: `${SHOTS}-2b-zoom-with-credit.png` });
+    await visitorPage.keyboard.press('Escape');
+    await expect(visitorZoom).toHaveCount(0);
 
-    // 4. Ana, signed in: her own thumbnails under the plate. Tap one: it is her cover.
+    // 4. Ana, signed in: her own two sit in the same row as Bo's. Nothing is under a
+    //    thumbnail. Tap one and the zoom offers "Use as my cover".
     await page.addInitScript((t) => { localStorage.setItem('teajia_token', t); }, ana.token);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(teaPath);
-    const row = page.getByTestId('own-photographs');
+    const row = page.getByTestId('tea-photographs');
     await expect(row).toBeVisible({ timeout: 30_000 });
-    const thumbs = row.getByTestId('own-photograph');
-    await expect(thumbs).toHaveCount(2);
-    await expect(page.getByTestId('plate-picture')).toHaveCount(0);
-    await page.screenshot({ path: `${SHOTS}-3-own-thumbnails.png` });
-    const tapped = page.waitForResponse(r => r.url().includes('/cover') && r.request().method() === 'PUT');
-    await thumbs.nth(0).click();
-    expect((await tapped).status()).toBe(200);
-    const picture = page.getByTestId('plate-picture');
-    await expect(picture).toBeVisible();
-    await expect(page.locator('[data-plate-picture="cover"]')).toHaveCount(1);
-    await expect(picture.locator('img')).toHaveAttribute('src', new RegExp(`${anaOrder[0]}-full`));
-    await expect(page.getByTestId('own-cover-note')).toContainText('seen only by you');
-    await expect(page.getByTestId('plate-credit')).toHaveCount(0);
+    await expect(row.getByTestId('tea-photograph')).toHaveCount(3);
+    await expect(row.locator('li[data-mine="true"]')).toHaveCount(2);
+    await expect(row.locator('li[data-cover="true"]')).toHaveCount(0);
+    await expect(row).not.toContainText(/remove|cover/i);
+    await page.screenshot({ path: `${SHOTS}-3-own-in-the-row.png` });
+    const rowIds = () => row.getByTestId('tea-photograph').locator('img').evaluateAll(imgs => imgs.map(i => (i as HTMLImageElement).src));
+    const openMine = async (id: string) => { await row.locator(`img[src*="${id}-small"]`).click(); };
+    await openMine(anaOrder[1]);
+    const zoom = page.getByTestId('photograph-zoom');
+    await expect(zoom.getByTestId('photograph-zoom-image')).toHaveAttribute('src', new RegExp(`${anaOrder[1]}-full`));
+    await expect(zoom.getByTestId('photograph-credit')).toHaveCount(0);
+    await expect(zoom.getByRole('button', { name: 'Remove from my page' })).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}-4-zoom-own.png` });
+    const chosen = page.waitForResponse(r => r.url().includes('/cover') && r.request().method() === 'PUT');
+    await zoom.getByRole('button', { name: 'Use as my cover' }).click();
+    expect((await chosen).status()).toBe(200);
+    await expect(zoom.getByTestId('cover-note')).toContainText('Only you see it');
+    await page.keyboard.press('Escape');
+    // Her cover is now first in her row.
+    await expect(row.locator('li').first()).toHaveAttribute('data-cover', 'true');
+    expect((await rowIds())[0]).toContain(`${anaOrder[1]}-small`);
     expect(await noOverflow(page)).toBe(true);
-    await page.screenshot({ path: `${SHOTS}-4-cover-by-tap.png` });
+    await page.screenshot({ path: `${SHOTS}-4b-cover-first.png` });
 
     // It stays on a reload, and nobody else sees it.
     await page.reload();
-    await expect(page.getByTestId('plate-picture').locator('img')).toHaveAttribute('src', new RegExp(`${anaOrder[0]}-full`), { timeout: 30_000 });
+    await expect(row.locator('li').first()).toHaveAttribute('data-cover', 'true', { timeout: 30_000 });
     await visitorPage.reload();
-    await expect(visitorPage.getByTestId('from-the-family')).toBeVisible({ timeout: 30_000 });
-    await expect(visitorPage.getByTestId('plate-picture')).toHaveCount(0);
+    await expect(visitorRow.getByTestId('tea-photograph')).toHaveCount(1, { timeout: 30_000 });
+    await expect(visitorRow.locator('li[data-cover="true"]')).toHaveCount(0);
 
-    // Dragging the other thumbnail onto the plate swaps the cover.
-    // A drag needs a mouse, which the phone emulation does not have, so this step
-    // runs in a desktop window (which also shows the wide layout with the strip).
+    // The wide layout: the same row under the plaque, no sideways scroll.
     const desk = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
     try {
       const deskPage = await desk.newPage();
       deskPage.on('pageerror', e => errors.push(e.message));
       await deskPage.addInitScript((t) => { localStorage.setItem('teajia_token', t); }, ana.token);
       await deskPage.goto(teaPath);
-      await expect(deskPage.getByTestId('plate-picture').locator('img')).toHaveAttribute('src', new RegExp(`${anaOrder[0]}-full`), { timeout: 30_000 });
-      await deskPage.screenshot({ path: `${SHOTS}-5a-desktop-before-drag.png` });
-      await deskPage.getByTestId('own-photograph').nth(1).scrollIntoViewIfNeeded();
-      const dragged = deskPage.waitForResponse(r => r.url().includes('/cover') && r.request().method() === 'PUT', { timeout: 15_000 });
-      const from = await deskPage.getByTestId('own-photograph').nth(1).boundingBox();
-      const to = await deskPage.locator('.label-plate').boundingBox();
-      await deskPage.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
-      await deskPage.mouse.down();
-      await deskPage.mouse.move(from!.x + 40, from!.y - 40, { steps: 5 });
-      await deskPage.mouse.move(to!.x + to!.width / 2, to!.y + 200, { steps: 15 });
-      await deskPage.mouse.up();
-      expect((await dragged).status()).toBe(200);
-      await expect(deskPage.getByTestId('plate-picture').locator('img')).toHaveAttribute('src', new RegExp(`${anaOrder[1]}-full`));
-      await deskPage.screenshot({ path: `${SHOTS}-5b-desktop-after-drag.png` });
+      await expect(deskPage.getByTestId('tea-photographs').getByTestId('tea-photograph')).toHaveCount(3, { timeout: 30_000 });
+      await expect(deskPage.locator('.label-plate img')).toHaveCount(0);
       expect(await noOverflow(deskPage)).toBe(true);
+      await deskPage.screenshot({ path: `${SHOTS}-5-desktop.png` });
     } finally {
       await desk.close();
     }
-    await page.reload();
-    await expect(page.getByTestId('plate-picture').locator('img')).toHaveAttribute('src', new RegExp(`${anaOrder[1]}-full`), { timeout: 30_000 });
-    await page.screenshot({ path: `${SHOTS}-5-cover-by-drag.png` });
 
-    // 5. The owner makes Bo's photograph the lead picture. Signed out, the plate shows it, credited, linking to Bo.
+    // 5. The owner makes Bo's photograph the shop's picture. Signed out it is first in
+    //    the row, credited in the zoom, linking to Bo. Still nothing in the plaque.
     const ownerPage = await owner.newPage();
     const ownerToken = await tokenFor(ownerPage, OWNER);
     const ownerHeaders = { Authorization: `Bearer ${ownerToken}` };
     const lead = await ownerPage.request.post(`/api/admin/family/photographs/${boPhoto}/lead`, { headers: ownerHeaders });
     expect(lead.status()).toBe(200);
     await visitorPage.reload();
-    const leadPicture = visitorPage.getByTestId('plate-picture');
-    await expect(leadPicture).toBeVisible({ timeout: 30_000 });
-    await expect(visitorPage.locator('[data-plate-picture="lead"]')).toHaveCount(1);
-    await expect(visitorPage.getByTestId('plate-credit')).toContainText('Photograph by');
-    await expect(visitorPage.getByTestId('plate-credit').getByRole('link', { name: members[1].name })).toHaveAttribute('href', `/people/${boPageId}`);
-    // The lead is not repeated in the family strip.
-    await expect(visitorPage.getByTestId('family-photograph')).toHaveCount(0);
+    await expect(visitorRow.locator('li[data-lead="true"]')).toHaveCount(1, { timeout: 30_000 });
+    // The shop's picture shows once, not again further along the row.
+    await expect(visitorRow.getByTestId('tea-photograph')).toHaveCount(1);
+    await expect(visitorPage.locator('.label-plate img')).toHaveCount(0);
     expect(await noOverflow(visitorPage)).toBe(true);
     await visitorPage.evaluate(() => window.scrollTo(0, 0));
-    await visitorPage.screenshot({ path: `${SHOTS}-6-lead-with-credit.png` });
-    await visitorPage.getByTestId('plate-credit').getByRole('link').click();
+    await visitorPage.screenshot({ path: `${SHOTS}-6-shop-picture-first.png` });
+    await visitorRow.getByTestId('tea-photograph').first().click();
+    await visitorPage.getByTestId('photograph-credit').getByRole('link', { name: members[1].name }).click();
     await expect(visitorPage).toHaveURL(new RegExp(`/people/${boPageId}`));
 
-    // Ana's own cover still outranks the lead for her.
+    // Ana's own cover still comes ahead of the shop's picture, for her.
     await page.reload();
-    await expect(page.getByTestId('plate-picture').locator('img')).toHaveAttribute('src', new RegExp(`${anaOrder[1]}-full`), { timeout: 30_000 });
-    await expect(page.getByTestId('plate-credit')).toHaveCount(0);
+    await expect(row.locator('li').first()).toHaveAttribute('data-cover', 'true', { timeout: 30_000 });
+    await expect(row.locator('li').nth(1)).toHaveAttribute('data-lead', 'true');
 
-    // 6. One tap restores the earlier state: no lead; Ana clears her cover; the page is plain again.
+    // 6. One tap restores the earlier state: no shop picture; Ana stops using her cover.
     const restored = await ownerPage.request.post(`/api/admin/family/photographs/${boPhoto}/restore`, { headers: ownerHeaders });
     expect(restored.status()).toBe(200);
+    await openMine(anaOrder[1]);
     const cleared = page.waitForResponse(r => r.url().includes('/cover') && r.request().method() === 'PUT');
-    await page.getByRole('button', { name: 'Back to the original' }).click();
+    await zoom.getByRole('button', { name: 'Stop using as my cover' }).click();
     expect((await cleared).status()).toBe(200);
+    await page.keyboard.press('Escape');
     // A reload, because the public answer is kept for a few minutes and still holds the lead.
     await page.reload();
-    await expect(page.locator('.label-plate')).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId('plate-picture')).toHaveCount(0);
-    await expect(page.getByTestId('own-photograph')).toHaveCount(2);
+    await expect(row.getByTestId('tea-photograph')).toHaveCount(3, { timeout: 30_000 });
+    await expect(row.locator('li[data-cover="true"]')).toHaveCount(0);
+
+    // "Remove from my page" is in the zoom. It leaves her row at once.
+    await openMine(anaOrder[0]);
+    const removed = page.waitForResponse(r => r.url().includes(`/photographs/${anaOrder[0]}/remove`));
+    await zoom.getByRole('button', { name: 'Remove from my page' }).click();
+    expect((await removed).status()).toBe(200);
+    await expect(zoom).toHaveCount(0);
+    await expect(row.getByTestId('tea-photograph')).toHaveCount(2);
+    await expect(row.locator('li[data-mine="true"]')).toHaveCount(1);
     await visitorPage.goto(teaPath);
-    await expect(visitorPage.locator('.label-plate')).toBeVisible({ timeout: 30_000 });
-    await expect(visitorPage.getByTestId('plate-picture')).toHaveCount(0);
-    await expect(visitorPage.getByTestId('from-the-family')).toBeVisible();
+    await expect(visitorPage.getByTestId('tea-photographs').getByTestId('tea-photograph')).toHaveCount(1, { timeout: 30_000 });
 
     // 7. A sold-out tea offers the restock request. Signed out it goes to sign in; signed in it files it.
     const gonePath = `/shop/product/${encodeURIComponent(goneId)}`;
