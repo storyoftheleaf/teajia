@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 import * as Dialog from '@radix-ui/react-dialog';
 import Cropper, { Area } from 'react-easy-crop';
-import { Loader2, RotateCw, X, Square, RectangleVertical, RectangleHorizontal } from 'lucide-react';
+import { Check, Loader2, RectangleHorizontal, RectangleVertical, RotateCw, Ruler, Square, X, ZoomIn } from 'lucide-react';
 import { cropToSquareBlob, fileOrUrlToObjectUrl, type SquarePhotoFrame } from '../../lib/cropImage';
 import { clampPhotoFrameCrop, photoFrameSize } from '../../lib/photoFrameGeometry';
 
@@ -18,15 +18,73 @@ interface SquareCropModalProps {
   outputQuality?: number;
   initialFrame?: SquarePhotoFrame | null;
   allowAspectSelection?: boolean;
+  /** 'takeover' when it opens over a full-screen layer such as the tasting. */
+  layer?: 'popover' | 'takeover';
   loadError?: string;
   onViewOriginal?: () => void;
   onClose: () => void;
   onConfirm: (blob: Blob, frame: SquarePhotoFrame) => Promise<void> | void;
 }
 
+/** How far apart the ruler's small ticks are, in CSS pixels. Five small ticks to a tall one. */
+const TICK = 8;
+
+/**
+ * A ruler you drag, with a fixed centre mark: the ticks move under the mark, so
+ * a long drag makes a small, exact change. The real control underneath is an
+ * ordinary range input, so arrow keys and screen readers work as they always did.
+ */
+function CropDial({ label, value, min, max, step, perTick, snapTo, hidden, disabled, onChange }: {
+  label: string; value: number; min: number; max: number; step: number; perTick: number; snapTo: number;
+  hidden: boolean; disabled: boolean; onChange: (value: number) => void;
+}) {
+  const drag = useRef<{ x: number; value: number } | null>(null);
+  const clamp = (next: number) => Math.min(max, Math.max(min, Math.round(next / step) * step));
+  const offset = -((value - snapTo) / perTick) * TICK;
+  return (
+    <div
+      className="crop-dial"
+      data-hidden={hidden ? '' : undefined}
+      data-disabled={disabled ? '' : undefined}
+      data-testid={`crop-dial-${label.toLowerCase()}`}
+      onPointerDown={event => {
+        if (disabled) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        drag.current = { x: event.clientX, value };
+      }}
+      onPointerMove={event => {
+        if (!drag.current) return;
+        onChange(clamp(drag.current.value - ((event.clientX - drag.current.x) / TICK) * perTick));
+      }}
+      onPointerUp={() => {
+        if (!drag.current) return;
+        drag.current = null;
+        // Close to the resting value, settle on it, the way a level finds true.
+        if (Math.abs(value - snapTo) < perTick * 0.4) onChange(snapTo);
+      }}
+      onPointerCancel={() => { drag.current = null; }}
+    >
+      <span aria-hidden="true" className="crop-dial__ticks" style={{ backgroundPositionX: `calc(50% + ${offset}px), calc(50% + ${offset}px)` }} />
+      <span aria-hidden="true" className="crop-dial__mark" />
+      <input
+        type="range" min={min} max={max} step={step} value={value} aria-label={label} disabled={disabled}
+        tabIndex={hidden ? -1 : 0} className="crop-dial__input"
+        onChange={event => onChange(Number(event.target.value))}
+      />
+    </div>
+  );
+}
+
+/** The three shapes, each drawn as its own outline. */
+const SHAPES = [
+  { label: 'Square', ratio: 1, Icon: Square },
+  { label: 'Portrait 2:3', ratio: 2 / 3, Icon: RectangleVertical },
+  { label: 'Landscape 3:2', ratio: 3 / 2, Icon: RectangleHorizontal },
+] as const;
+
 export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   isOpen, source, title = 'Crop photo', confirmLabel = 'Save',
-  outputSize, outputQuality, initialFrame, allowAspectSelection = false, loadError, onViewOriginal, onClose, onConfirm,
+  outputSize, outputQuality, initialFrame, allowAspectSelection = false, layer = 'popover', loadError, onViewOriginal, onClose, onConfirm,
 }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -35,6 +93,8 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   const [turns, setTurns] = useState(0);
   const [straighten, setStraighten] = useState(0);
   const rotation = turns + straighten;
+  /** Which of the two the ruler adjusts. Straighten first: a crooked picture is the thing most worth fixing. */
+  const [dial, setDial] = useState<'rotate' | 'zoom'>('rotate');
   const [natural, setNatural] = useState({ width: 0, height: 0 });
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [viewportNode, setViewportNode] = useState<HTMLDivElement | null>(null);
@@ -111,6 +171,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     const angle = initialFrame?.rotation ?? 0;
     const base = Math.round(angle / 90) * 90;
     setTurns(base); setStraighten(angle - base);
+    setDial('rotate');
     setCroppedAreaPixels(null);
     croppedAreaPixelsRef.current = null;
     areaPercentRef.current = null;
@@ -189,51 +250,24 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     changeRotation(rotation + 90);
   };
 
+  const controlsOff = !imageSrc || !imageLoaded || saving;
+  const changed = zoom !== 1 || rotation !== 0 || crop.x !== 0 || crop.y !== 0;
   if (!isOpen) return null;
 
   return <Dialog.Root open={isOpen} onOpenChange={open => { if (!open && !saving) onClose(); }}><Dialog.Portal>
-    <Dialog.Content ref={dialogRef} aria-label={title} aria-describedby={undefined} onOpenAutoFocus={event => event.preventDefault()} className="fixed inset-0 z-popover flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <Dialog.Content ref={dialogRef} aria-label={title} aria-describedby={undefined} onOpenAutoFocus={event => event.preventDefault()} className={`fixed inset-0 ${layer === 'takeover' ? 'z-takeover' : 'z-popover'} flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200`}>
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh]">
-        {/* Header, close on the left per project Cancel/Close rules.
-            Just one icon-button on the right (Rotate) so the toolbar reads
-            clearly; Reset moved to the slider row where it belongs. */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border">
-          <button
-            ref={closeRef}
-            onClick={onClose}
-            disabled={saving}
-            className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-          <Dialog.Title asChild><h3 className="text-base font-serif text-tea-text flex-1">{title}</h3></Dialog.Title>
-          <button
-            onClick={handleRotate}
-            disabled={saving || !imageSrc || !imageLoaded}
-            className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-11 inline-flex items-center gap-1.5 tap-target disabled:opacity-40"
-            aria-label="Rotate 90° clockwise"
-            title="Rotate 90°"
-          >
-            <RotateCw size={14} />
-            <span className="hidden sm:inline">Rotate</span>
-          </button>
+        <div className="flex items-center gap-2 border-b border-tea-border py-1 pl-5 pr-2">
+          <Dialog.Title asChild><h3 className="flex-1 text-base font-serif text-tea-text">{title}</h3></Dialog.Title>
+          {changed && <Button type="button" variant="quiet" size="sm" className="crop-reset" onClick={handleReset} disabled={saving || !imageSrc || !!error} title="Reset zoom, position and rotation">Reset</Button>}
+          <Button type="button" variant="icon" onClick={handleRotate} disabled={saving || !imageSrc || !imageLoaded} aria-label="Rotate 90° clockwise" title="Turn a quarter">
+            <RotateCw size={18} aria-hidden="true" />
+          </Button>
         </div>
 
-        {/* Cropper viewport, square aspect ratio enforced. The image area
-            shows three layered states:
-              1. error: text on top of dim viewport
-              2. loading: spinner until the underlying <img> reports onLoad
-              3. ready: Cropper with full image
-            Layering means a transient load failure (CORS, 404) can't leave
-            the user staring at a blank square. */}
-        {allowAspectSelection && <div role="group" aria-label="Photo frame shape" className="flex flex-wrap justify-center gap-2 px-5 py-2">
-          {([{ label: 'Square', ratio: 1, text: '1:1', icon: Square }, { label: 'Portrait 2:3', ratio: 2 / 3, text: '2:3', icon: RectangleVertical }, { label: 'Landscape 3:2', ratio: 3 / 2, text: '3:2', icon: RectangleHorizontal }]).map(option => <Button
-            key={option.label} type="button" variant="chip" aria-label={option.label} title={option.label} icon={<option.icon size={14} aria-hidden="true" />} aria-pressed={aspect === option.ratio} disabled={saving}
-            onClick={() => { setAspect(option.ratio); setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, rotation, option.ratio)); }}>
-            {option.text}
-          </Button>)}
-        </div>}
+        {/* The photograph. Three layered states: an error in words, a spinner
+            until the picture reports its size, then the picture itself, so a
+            failed load can never leave a blank box. */}
         <div ref={setViewportNode} className="relative w-full aspect-square bg-black/60 overflow-hidden">
           {imageSrc && frameSize.width > 0 && (
             <Cropper
@@ -267,68 +301,53 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           )}
         </div>
 
-        {/* Zoom + Reset row, terse help, no run-on legalese */}
-        <div className="px-5 py-3 border-t border-tea-border">
-          <div className="flex items-center gap-3">
-            <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-10 shrink-0">Zoom</span>
-            <input
-              type="range"
-              min={1}
-              max={4}
-              step={0.01}
-              value={zoom}
-              onChange={(e) => changeZoom(Number(e.target.value))}
-              disabled={!imageSrc || !imageLoaded || saving || !!error}
-              className="flex-1 accent-tea-gold"
-              aria-label="Zoom"
-            />
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={saving || !imageSrc || !!error}
-              className="shrink-0 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40"
-              title="Reset zoom, position and rotation"
-            >
-              Reset
-            </button>
+        {/* One row of icons along the foot of the photograph: Cancel on the
+            left, the three shapes in the middle, Save on the right. */}
+        <div className="crop-bar" data-testid="crop-bar">
+          <Button ref={closeRef} type="button" variant="icon" onClick={onClose} disabled={saving} aria-label="Cancel" title="Cancel">
+            <X size={20} aria-hidden="true" />
+          </Button>
+          {allowAspectSelection && <div role="group" aria-label="Photo frame shape" className="crop-bar__shapes">
+            {SHAPES.map(option => <Button
+              key={option.label} type="button" variant="icon" aria-pressed={aspect === option.ratio} aria-label={option.label} title={option.label}
+              disabled={saving} className="crop-bar__shape"
+              onClick={() => { setAspect(option.ratio); setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, rotation, option.ratio)); }}>
+              <option.Icon size={20} aria-hidden="true" />
+            </Button>)}
+          </div>}
+          <Button
+            type="button" variant="icon" onClick={handleConfirm} aria-label={confirmLabel} title={confirmLabel} className="crop-bar__save"
+            disabled={saving || !imageSrc || !imageLoaded || !croppedAreaPixels || frameSize.width <= 0}
+          >
+            {saving ? <Loader2 className="animate-spin" size={20} aria-hidden="true" /> : <Check size={20} aria-hidden="true" />}
+          </Button>
+        </div>
+
+        {/* The way a phone's own photo editor does it: two round values, Straighten
+            first, and one ruler under them that adjusts whichever is chosen. Drag
+            the ruler; the centre mark stays put. Pinching the photograph zooms too. */}
+        <div className="crop-tools">
+          <div className="crop-values" role="group" aria-label="Adjust">
+            <Button type="button" variant="icon" className="crop-value" aria-pressed={dial === 'rotate'} aria-label="Straighten" title="Straighten" disabled={controlsOff} onClick={() => setDial('rotate')}>
+              {straighten ? <span>{Math.round(straighten)}</span> : <Ruler size={18} aria-hidden="true" />}
+            </Button>
+            <Button type="button" variant="icon" className="crop-value" aria-pressed={dial === 'zoom'} aria-label="Enlarge" title="Enlarge" disabled={controlsOff} onClick={() => setDial('zoom')}>
+              {zoom > 1 ? <span>{zoom.toFixed(1)}×</span> : <ZoomIn size={18} aria-hidden="true" />}
+            </Button>
           </div>
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec w-10 shrink-0">Rotate</span>
-            <input type="range" min={-45} max={45} step={0.1} value={straighten}
-              aria-label="Rotation" disabled={!imageSrc || !imageLoaded || saving}
-              className="flex-1 accent-tea-gold"
-              onChange={event => {
-                const value = Number(event.target.value);
+          <div className="crop-dial-stack">
+            <CropDial
+              label="Rotation" hidden={dial !== 'rotate'} value={straighten} min={-45} max={45} step={0.1} perTick={1} snapTo={0} disabled={controlsOff}
+              onChange={value => {
                 setStraighten(value);
                 setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, turns + value, aspect));
               }} />
-            <output className="text-ui-11 text-tea-text-sec tabular-nums" aria-label="Rotation angle">{Number(straighten.toFixed(1))}°</output>
+            <CropDial label="Zoom" hidden={dial !== 'zoom'} value={zoom} min={1} max={4} step={0.01} perTick={0.05} snapTo={1} disabled={controlsOff || !!error} onChange={changeZoom} />
           </div>
-          <p className="text-ui-10 text-tea-text-sec mt-1.5">
-            {onViewOriginal ? 'Original kept. Drag to frame · pinch or scroll to zoom' : 'Drag to position · pinch or scroll to zoom'}
-          </p>
-        </div>
-
-        {/* Footer: Cancel left, Save right (project rule) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-tea-border">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="px-4 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors rounded-md tap-target"
-          >
-            Cancel
-          </button>
-          {onViewOriginal && <Button type="button" variant="ghost" className="btn-sm" disabled={saving} onClick={onViewOriginal}>View original</Button>}
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={saving || !imageSrc || !imageLoaded || !croppedAreaPixels || frameSize.width <= 0}
-            className="btn-primary hover:opacity-90 tap-target"
-          >
-            {saving && <Loader2 className="animate-spin" size={13} />}
-            {confirmLabel}
-          </button>
+          {onViewOriginal && <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-2">
+            <p className="text-ui-10 text-tea-text-sec">Original kept.</p>
+            <Button type="button" variant="ghost" className="btn-sm" disabled={saving} onClick={onViewOriginal}>View original</Button>
+          </div>}
         </div>
       </div>
     </Dialog.Content>
