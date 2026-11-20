@@ -1,5 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('../../context/ThemeContext', () => ({ useTheme: () => ({ theme: 'light' }) }));
 vi.mock('../../lib/teaCompassStore', () => ({ useTeaCompassStore: () => vi.fn() }));
@@ -11,7 +12,9 @@ import { BrowseCard } from './BrowseCard';
 import { createEmptyEntry } from './types';
 
 const entry = { ...createEmptyEntry(), name: 'Silver Needle', year: 2024, type: 'White' as const, originRegion: 'Fuding', priceAmount: 70, pricePerUnitGrams: 100, sampleState: 'received' as const };
-const render = (extra: Record<string, unknown> = {}) => renderToStaticMarkup(<BrowseCard entry={entry} onEdit={() => {}} onAcquire={() => {}} onOpenDetail={() => {}} rates={[{ currency: 'Yuan', rateToUSD: 7 }]} {...extra} />);
+// The row's photo reads its saved frame through React Query, as it does on the
+// live page, so the row is rendered inside the same provider the app gives it.
+const render = (extra: Record<string, unknown> = {}) => renderToStaticMarkup(<QueryClientProvider client={new QueryClient()}><BrowseCard entry={entry} onEdit={() => {}} onAcquire={() => {}} onOpenDetail={() => {}} rates={[{ currency: 'Yuan', rateToUSD: 7 }]} {...extra} /></QueryClientProvider>);
 
 describe('Library phone row', () => {
   it('renders a named source price, quiet harvest and preparation line, and three actions', () => {
@@ -35,7 +38,9 @@ describe('Library phone row', () => {
     expect(markup).not.toContain('Long story');
     // The tea's photo shows only where the camera stood, as the photo control itself.
     expect(markup.match(/<img/g)).toHaveLength(1);
-    expect(markup).toMatch(/aria-label="Photos for Silver Needle"[^>]*><span[^>]*><img/);
+    // Inside the control: its wrapper, then the thumbnail's own frame, then the photo.
+    expect(markup).toMatch(/aria-label="Photos for Silver Needle"[^>]*><span[^>]*><span[^>]*><img/);
+    expect(markup, 'the thumbnail is square until a shape is chosen').toMatch(/width:calc\(var\(--space-8\) \* 1\)/);
   });
   it('keeps the camera and no photo on the classic form (?form=classic)', () => {
     vi.stubGlobal('window', { location: { search: '?tab=library&form=classic' } });
