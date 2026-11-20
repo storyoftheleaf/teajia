@@ -7369,6 +7369,23 @@ body.cart-panel-open .commerce-dock {
 .crop-bar__shapes { display:flex; align-items:center; gap:var(--space-1); }
 .crop-bar__shape[aria-pressed="true"], .photo-shape[aria-pressed="true"] { color:var(--tea-gold-lt); background:var(--tea-accent-sub); }
 .crop-bar__save { color:var(--tea-gold-lt); }
+/* The adjust tools under the bar: two round values and one ruler, as a phone's own photo editor has them. */
+.crop-tools { display:flex; flex-direction:column; gap:var(--space-2); padding-block:var(--space-3); border-top:var(--border-w) solid var(--tea-border); }
+.crop-values { display:flex; justify-content:center; gap:var(--space-4); }
+.crop-value { border-radius:50%; border-color:var(--tea-border); font-size:var(--fs-ui-11); font-variant-numeric:tabular-nums; }
+.crop-value[aria-pressed="true"] { border-color:var(--tea-gold-lt); color:var(--tea-gold-lt); }
+.crop-reset { color:var(--tea-gold-lt); }
+.crop-dial-stack { display:grid; }
+.crop-dial-stack > * { grid-area:1 / 1; }
+.crop-dial { position:relative; block-size:var(--space-12); overflow:hidden; touch-action:none; cursor:ew-resize; user-select:none; mask-image:linear-gradient(90deg, transparent, var(--tea-bg) 30%, var(--tea-bg) 70%, transparent); }
+.crop-dial[data-hidden] { visibility:hidden; }
+.crop-dial[data-hidden] .crop-dial__input { visibility:visible; pointer-events:none; }
+.crop-dial[data-disabled] { opacity:var(--btn-disabled-opacity); cursor:default; }
+/* Small ticks, and a taller one every fifth. The row slides under the mark as the value changes. */
+.crop-dial__ticks { position:absolute; inset:0; background-image:linear-gradient(90deg, var(--tea-text) 1px, transparent 1px), linear-gradient(90deg, var(--tea-text-dim) 1px, transparent 1px); background-size:40px 44%, 8px 24%; background-repeat:repeat-x; background-position-y:center; }
+.crop-dial__mark { position:absolute; inset-block:var(--space-1); left:50%; inline-size:2px; margin-left:-1px; background:var(--tea-gold-lt); }
+.crop-dial__input { position:absolute; inset:0; inline-size:100%; margin:0; opacity:0; pointer-events:none; }
+.crop-dial:focus-within { outline:2px solid rgb(var(--tea-gold-rgb) / 0.5); outline-offset:-2px; }
 .photo-zoom__shapes { display:flex; align-items:center; justify-content:center; gap:var(--space-1); }
 /* A turned photograph: the stage is the turned picture's outer box, placed so the framed part fills the shape. */
 .photo-stage { position:absolute; }

@@ -233,13 +233,29 @@ test('the tea page: plain when nobody has added anything, then the family strip,
       await zoom.getByTestId('photograph-crop').click();
       const editor = page.getByRole('dialog', { name: 'Crop photograph' });
       await expect(editor.getByRole('button', { name: 'Save' })).toBeEnabled({ timeout: 15_000 });
-      // Cancel, the three shapes and Save are one row of icons under the photograph; Rotate sits above Zoom.
+      // Cancel, the three shapes and Save are one row of icons under the photograph. Under it,
+      // two round values and one ruler: Straighten is first and is what the ruler adjusts to begin with.
       const bar = editor.getByTestId('crop-bar');
       await expect(bar.getByRole('button')).toHaveCount(5);
-      const rotateY = (await editor.getByRole('slider', { name: 'Rotation' }).boundingBox())!.y;
-      const zoomY = (await editor.getByRole('slider', { name: 'Zoom' }).boundingBox())!.y;
-      expect((await bar.boundingBox())!.y).toBeLessThan(rotateY);
-      expect(rotateY, 'rotate comes before zoom').toBeLessThan(zoomY);
+      const straightenButton = editor.getByRole('button', { name: 'Straighten' });
+      const enlargeButton = editor.getByRole('button', { name: 'Enlarge' });
+      await expect(straightenButton).toHaveAttribute('aria-pressed', 'true');
+      expect((await straightenButton.boundingBox())!.x, 'straighten comes before zoom').toBeLessThan((await enlargeButton.boundingBox())!.x);
+      expect((await bar.boundingBox())!.y).toBeLessThan((await straightenButton.boundingBox())!.y);
+      // Dragging the ruler to the left turns the picture; the ticks move under a fixed mark.
+      const ruler = editor.getByTestId('crop-dial-rotation');
+      const rulerBox = (await ruler.boundingBox())!;
+      const turnBefore = Number(await editor.getByRole('slider', { name: 'Rotation' }).inputValue());
+      await page.mouse.move(rulerBox.x + rulerBox.width / 2, rulerBox.y + rulerBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(rulerBox.x + rulerBox.width / 2 - 48, rulerBox.y + rulerBox.height / 2, { steps: 6 });
+      await page.mouse.up();
+      await expect(editor.getByRole('slider', { name: 'Rotation' })).toHaveValue(String(turnBefore + 6));
+      await expect(straightenButton).toHaveText(String(turnBefore + 6));
+      // The other value takes the ruler over.
+      await enlargeButton.click();
+      await expect(editor.getByTestId('crop-dial-zoom')).toBeVisible();
+      await expect(ruler).toBeHidden();
       await editor.getByRole('button', { name: shapeName }).click();
       await editor.getByRole('slider', { name: 'Zoom' }).fill('1.6');
       await editor.getByRole('slider', { name: 'Rotation' }).fill('4');
