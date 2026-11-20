@@ -17,6 +17,7 @@ export function shippingNotificationMessage(notification: ShippingPaymentNotific
     case 'needs_contact': return 'Shipping saved. The customer needs an email address or an agreed WhatsApp number before the payment request can be sent.';
     case 'review_required': return 'Shipping saved. The payment request needs review; check its send status before sending another message.';
     case 'config_required':
+      if (notification.code === 'whatsapp_template_pending') return 'Shipping saved. WhatsApp approval is pending; this request will send automatically after approval.';
       if (notification.code === 'secure_link_unavailable') return 'Shipping saved. The private payment link is unavailable, so the request has not been sent.';
       return `Shipping saved. ${channel === 'WhatsApp' ? 'WhatsApp sending' : 'Automatic sending'} is not ready, so the payment request has not been sent.`;
     case 'suppressed': return 'No shipping payment request is needed for this order.';

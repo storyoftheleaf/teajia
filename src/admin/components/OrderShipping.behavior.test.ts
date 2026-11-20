@@ -4,7 +4,7 @@ import { createServer, type ViteDevServer } from 'vite';
 let server: ViteDevServer; let browser: Browser; let page: Page; let origin: string;
 beforeAll(async()=>{
  server=await createServer({root:process.cwd(),cacheDir:'/tmp/teajia-shipping-notice-ui-cache',logLevel:'silent',server:{host:'127.0.0.1',port:17943,strictPort:true,watch:{ignored:['**/outputs/**','**/.claude/**','**/.worktrees/**']}},plugins:[{name:'shipping-notice-test-page',configureServer(vite){vite.middlewares.use('/__shipping-notice-test',async(_req,res)=>{res.setHeader('Content-Type','text/html');res.end(await vite.transformIndexHtml('/__shipping-notice-test','<div id="root"></div><script type="module" src="/src/admin/components/OrderShipping.behavior.harness.tsx"></script>'));});}}]});
- await server.listen();origin='http://127.0.0.1:17943';browser=await chromium.launch({headless:true});
+ await server.listen();const address=server.httpServer!.address();if(!address||typeof address==='string')throw new Error('Missing owned shipping test port');origin=`http://127.0.0.1:${address.port}`;browser=await chromium.launch({headless:true});
 },30000);
 afterAll(async()=>{await page?.close();await browser?.close();await server?.close();},30000);
 beforeEach(async()=>{await page?.close();page=await browser.newPage({viewport:{width:390,height:844}});await page.route('**/api/**',route=>route.fulfill({json:[]}));await page.goto(origin+'/__shipping-notice-test');await page.waitForFunction(()=>!!(window as any).shippingTest);},30000);
@@ -29,4 +29,11 @@ it('discards a send status that arrives after switching the active account',asyn
  await page.evaluate(()=>(window as any).shippingTest.switchAccount());
  await page.evaluate(()=>(window as any).shippingTest.resolveStatus({state:'accepted',channel:'email'}));
  await expect.poll(()=>page.getByText('Shipping payment request sent by email.',{exact:true}).count()).toBe(0);
+});
+
+it('keeps a pending Meta approval unsent and explains the automatic follow-up',async()=>{
+ await save({state:'config_required',channel:'whatsapp',code:'whatsapp_template_pending'});
+ await expect.poll(()=>page.getByText('Shipping saved. WhatsApp approval is pending; this request will send automatically after approval.',{exact:true}).count()).toBe(1);
+ expect(await page.getByText('Shipping payment request sent by WhatsApp.',{exact:true}).count()).toBe(0);
+ await page.screenshot({path:'/Users/adrianrasmussen/.codex/visualizations/2026/11/20/shipping-notification-ui/whatsapp-pending-TEST-PREVIEW.png',fullPage:true});
 });

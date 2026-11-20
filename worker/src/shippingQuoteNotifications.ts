@@ -1,10 +1,11 @@
+import { refreshShippingWhatsAppApproval, type ShippingWhatsAppApprovalEnv } from './shippingWhatsAppApproval';
 import { encryptSecret, decryptSecret, type SealEnv } from './secretSeal';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 import { invoiceMoney, loadInvoiceLedgerTotals, loadLedgerInvoice, claimInvoiceLinkLease, releaseInvoiceLinkLease } from './invoiceDomain';
 import { suppressVerificationNotifications } from './liveVerificationPolicy';
 import type { WhatsAppOrderEnv } from './whatsappOrderNotifications';
 
-export interface ShippingNotificationEnv extends SealEnv, WhatsAppOrderEnv {
+export interface ShippingNotificationEnv extends SealEnv, WhatsAppOrderEnv, ShippingWhatsAppApprovalEnv {
  APP_URL?: string; RESEND_API_KEY?: string; SENDER_EMAIL?: string; SENDER_NAME?: string;
  SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED?: string;
  SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID?: string;
@@ -74,7 +75,7 @@ function appOrigin(env:ShippingNotificationEnv):string|null {
   if(url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname))return url.origin;
  }catch{}return null;
 }
-async function setupCode(db:D1Database,env:ShippingNotificationEnv,row:Notice,target:Target):Promise<string|null> {
+async function setupCode(db:D1Database,env:ShippingNotificationEnv,row:Notice,target:Target,fetcher?:typeof fetch):Promise<string|null> {
  if(env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED!=='true')return 'shipping_notifications_disabled';
  if(row.account_id!==env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID)return 'shipping_account_not_enabled';
  if(target.channel==='email')return env.RESEND_API_KEY&&emailAddress(env.SENDER_EMAIL)?null:'email_setup_required';
@@ -87,7 +88,9 @@ async function setupCode(db:D1Database,env:ShippingNotificationEnv,row:Notice,ta
   !/^v\d+\.\d+$/.test(env.WHATSAPP_GRAPH_API_VERSION||'')||!env.SHIPPING_PAYMENT_TEMPLATE_NAME?.trim()||
   !env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE?.trim()||!internationalWhatsAppNumber(env.WHATSAPP_SENDER_NUMBER)||
   digits(env.WHATSAPP_SENDER_NUMBER)!==digits(account.whatsapp_number))return 'whatsapp_setup_required';
- return digits(target.recipient)===digits(env.WHATSAPP_SENDER_NUMBER)?'customer_matches_sender':null;
+ if(digits(target.recipient)===digits(env.WHATSAPP_SENDER_NUMBER))return 'customer_matches_sender';
+ const approval=await refreshShippingWhatsAppApproval(db,env,{fetcher});
+ return approval.state==='approved'?null:approval.state==='pending'?'whatsapp_template_pending':approval.state==='rejected'?'whatsapp_template_rejected':'whatsapp_template_verification_unavailable';
 }
 
 /** Cron or waitUntil dispatcher. Provider acceptance is recorded; it is never reported as delivery. */
@@ -119,7 +122,7 @@ export async function processShippingQuoteNotifications(db:D1Database,env:Shippi
    const target=await db.prepare('SELECT channel,recipient,consent_at,tracking_token_sealed,unavailable_code FROM order_shipping_notification_targets WHERE account_id=? AND inquiry_id=?').bind(row.account_id,invoice.source_inquiry_id).first<Target>();
    if(!target?.channel||!target.recipient){await settle(db,row.id,claim,'needs_contact','customer_contact_missing');result.blocked++;continue;}
    if(!target.tracking_token_sealed||!env.KEY_ENCRYPTION_SECRET){await settle(db,row.id,claim,'config_required','secure_link_unavailable');result.blocked++;continue;}
-   const setup=await setupCode(db,env,row,target);if(setup){await settle(db,row.id,claim,'config_required',setup);result.blocked++;continue;}
+   const setup=await setupCode(db,env,row,target,options.fetcher);if(setup){await settle(db,row.id,claim,'config_required',setup);result.blocked++;continue;}
    const origin=appOrigin(env);if(!origin){await settle(db,row.id,claim,'config_required','customer_origin_unavailable');result.blocked++;continue;}
    let token:string;try{token=await decryptSecret(target.tracking_token_sealed,env);}catch{await settle(db,row.id,claim,'config_required','secure_link_unavailable');result.blocked++;continue;}
    const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token))),b=>b.toString(16).padStart(2,'0')).join('');
@@ -162,4 +165,22 @@ async function retryOrReview(db:D1Database,row:Notice,claim:string,retry:boolean
 /** Naming alias for the existing scheduled dispatcher integration. */
 export async function processPendingShippingQuoteNotifications(db:D1Database,env:ShippingNotificationEnv,options:Parameters<typeof processShippingQuoteNotifications>[2]={}) {
  return processShippingQuoteNotifications(db,env,options);
+}
+
+/** Coarse read-only availability for the release observer; no customer identifiers. */
+export async function shippingNotificationReadiness(db:D1Database,env:ShippingNotificationEnv) {
+ const enabled=env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED==='true'&&Boolean(env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID&&env.KEY_ENCRYPTION_SECRET);
+ const email_enabled=enabled&&Boolean(env.RESEND_API_KEY&&emailAddress(env.SENDER_EMAIL));
+ if(!enabled)return{email_enabled:false,whatsapp_state:'disabled',checked_at:null};
+ const account=await db.prepare('SELECT whatsapp_number,order_whatsapp_notifications_enabled FROM accounts WHERE id=?').bind(env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID).first<any>();
+ const transport=env.WHATSAPP_TRANSPORT||'meta';
+ const configured=env.WHATSAPP_ORDER_ACCOUNT_ID===env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID&&account?.order_whatsapp_notifications_enabled&&
+  digits(env.WHATSAPP_SENDER_NUMBER)===digits(account.whatsapp_number)&&Boolean(internationalWhatsAppNumber(env.WHATSAPP_SENDER_NUMBER))&&
+  /^\d+$/.test(env.WHATSAPP_PHONE_NUMBER_ID||'')&&Boolean(transport==='kapso'?env.KAPSO_API_KEY:transport==='meta'?env.WHATSAPP_ACCESS_TOKEN:false)&&
+  Boolean(env.SHIPPING_PAYMENT_TEMPLATE_NAME&&env.SHIPPING_PAYMENT_BUSINESS_ACCOUNT_ID&&env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE&&env.WHATSAPP_GRAPH_API_VERSION);
+ if(!configured)return{email_enabled,whatsapp_state:'config_required',checked_at:null};
+ const row=await db.prepare(`SELECT state,checked_at FROM shipping_whatsapp_approval WHERE account_id=? AND template_name=? AND language=? AND business_account_id=? AND transport=? AND graph_version=?`)
+  .bind(env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID,env.SHIPPING_PAYMENT_TEMPLATE_NAME,env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE,env.SHIPPING_PAYMENT_BUSINESS_ACCOUNT_ID,transport,env.WHATSAPP_GRAPH_API_VERSION).first<{state:string;checked_at:string}>();
+ const age=row?Date.now()-Date.parse(row.checked_at):NaN;
+ return{email_enabled,whatsapp_state:row&&Number.isFinite(age)&&age>=0&&age<15*60*1000?row.state:'unavailable',checked_at:row?.checked_at||null};
 }

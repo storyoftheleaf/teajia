@@ -1,4 +1,5 @@
-import { prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
+import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
+import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
 import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
 import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from './paypalSandbox';
@@ -30415,6 +30416,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
   ['GET', '/api/invoices/:id/payments', handleGetInvoicePayments],
   ['GET', '/api/invoices/:id/shipping-notification', handleGetShippingNotification],
+  ['GET', '/api/public/shipping-notifications', async (_request, env) => json(await shippingNotificationReadiness(env.DB, env))],
   ['POST', '/api/invoices/:id/payments', handleRecordInvoicePayment],
   ['POST','/api/invoices/:id/refunds',handleRecordInvoiceRefund],
   ['POST', '/api/invoice-payments/:id/confirm', handleConfirmInvoicePayment],
@@ -31415,6 +31417,10 @@ const requestHandler = {
     } catch (error) {
       console.error('Customer order confirmation retry failed', error);
     }
+    // Metadata polling is independent of customer orders: approval can enable
+    // future WhatsApp shipping requests without another deploy or owner reply.
+    try { await refreshShippingWhatsAppApproval(env.DB, env); }
+    catch { console.error('Shipping WhatsApp template approval check failed'); }
     try { await processPendingShippingQuoteNotifications(env.DB, env, { limit: 10 }); }
     catch { console.error('Shipping payment notification retry failed'); }
     /* Rates first, and on their own.
