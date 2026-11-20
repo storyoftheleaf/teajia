@@ -83,7 +83,7 @@ async function setupCode(db:D1Database,env:ShippingNotificationEnv,row:Notice,ta
  const provider=transport==='kapso'?Boolean(env.KAPSO_API_KEY):transport==='meta'?Boolean(env.WHATSAPP_ACCESS_TOKEN):false;
  if(!target.consent_at||!internationalWhatsAppNumber(target.recipient))return 'whatsapp_consent_required';
  if(!account?.order_whatsapp_notifications_enabled||env.WHATSAPP_ORDER_ACCOUNT_ID!==row.account_id||
-  env.WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED!=='true'||!provider||!/^\d+$/.test(env.WHATSAPP_PHONE_NUMBER_ID||'')||
+  !provider||!/^\d+$/.test(env.WHATSAPP_PHONE_NUMBER_ID||'')||
   !/^v\d+\.\d+$/.test(env.WHATSAPP_GRAPH_API_VERSION||'')||!env.SHIPPING_PAYMENT_TEMPLATE_NAME?.trim()||
   !env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE?.trim()||!internationalWhatsAppNumber(env.WHATSAPP_SENDER_NUMBER)||
   digits(env.WHATSAPP_SENDER_NUMBER)!==digits(account.whatsapp_number))return 'whatsapp_setup_required';

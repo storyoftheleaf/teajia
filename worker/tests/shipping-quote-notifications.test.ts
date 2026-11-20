@@ -55,7 +55,7 @@ describe('shipping payment notifications',()=>{
   f.db.exec("UPDATE invoices SET status='Pending'");await f.process();expect(JSON.parse(String((f.fetcher.mock.calls[0] as any)[1].body)).text).toContain('Total remaining balance: USD 22.00');
  });
  it('selects consented WhatsApp ahead of email and uses the dedicated five-variable template',async()=>{
-  const f=await fixture(true);await f.process();const [url,init]=f.fetcher.mock.calls[0] as any;
+  const f=await fixture(true);f.env.WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED='false';await f.process();const [url,init]=f.fetcher.mock.calls[0] as any;
   expect(url).toBe('https://api.kapso.ai/meta/whatsapp/v24.0/1234567890/messages');expect(init.headers['X-API-Key']).toBe('kapso-test-key');expect(init.headers.Authorization).toBeUndefined();
   const p=JSON.parse(init.body);expect(p.to).toBe('14155550100');expect(p.template.name).toBe('teajia_shipping_payment_v1');expect(p.template.components[0].parameters.map((p:any)=>p.text)).toEqual(['Test Buyer','TEST-001','USD 8.00','USD 8.00','https://www.teajia.com/order/'+token+'?invoice=invoice']);
  });
