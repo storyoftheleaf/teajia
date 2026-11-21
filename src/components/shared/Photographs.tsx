@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { RectangleHorizontal, RectangleVertical, Square, X } from 'lucide-react';
 import { Button } from './Button';
 import { SquareCropModal } from './SquareCropModal';
+import { PHOTO_ACTION } from './photoWords';
 import type { FamilyPhotographFrame } from '../../lib/familyContract';
 import { aspectOfShape, framedPicture, photographShape, shapeOfAspect, type PhotographShape } from '../../lib/photographShape';
 
@@ -161,7 +162,8 @@ export function PhotographCrop({ photo, onSave }: {
   );
   return (
     <>
-      <Button variant="secondary" size="sm" type="button" data-testid="photograph-crop" onClick={() => setOpen(true)}>Crop</Button>
+      {/* The one thing to do to this photograph, said as the people editor says it: a bronze word. */}
+      <Button variant="plain" type="button" className={PHOTO_ACTION} data-testid="photograph-crop" onClick={() => setOpen(true)}>Crop</Button>
       {open && <span hidden data-photograph-cropping="" />}
       <SquareCropModal
         isOpen={open}

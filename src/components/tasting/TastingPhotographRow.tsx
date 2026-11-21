@@ -2,6 +2,7 @@ import React from 'react';
 import type { FamilyPhotograph, FamilyPhotographFrame, FamilyPhotographShape } from '../../lib/familyContract';
 import { Button } from '../shared/Button';
 import { PhotographCrop, PhotographShapeChoice, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
+import { PHOTO_QUIET } from '../shared/photoWords';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
@@ -49,7 +50,7 @@ export function TastingPhotographRow({ photos, busy, onRemove, onShape }: {
       {open && (
         <div className="photo-zoom__actions">
           {onShape && <PhotographCrop photo={toZoom(open)} onSave={(shape, frame) => onShape(open.id, shape, frame)} />}
-          <Button variant="quiet" size="sm" type="button" data-testid="photograph-remove" onClick={() => { onRemove(open.id); setOpenId(null); }}>Remove from my page</Button>
+          <Button variant="plain" type="button" className={`${PHOTO_QUIET} photo-zoom__last`} data-testid="photograph-remove" onClick={() => { onRemove(open.id); setOpenId(null); }}>Remove from my page</Button>
         </div>
       )}
     </PhotographZoom>
