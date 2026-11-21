@@ -433,24 +433,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // 1. Identity: centered serif header, hanzi as real text
   const identityHeader = (
     <div className="relative lg:h-full">
-      {/* The one door for an admin standing on a tea: it opens the tasting
-          overlay on that tea's own details, with the tasting questions one
-          step across. There is deliberately no second Edit elsewhere. */}
-      {/* On the page the header is the label plate, which carries a keyline
-          inset 12px in the hand and 24px on the desk, so the mark has to sit
-          INSIDE that line rather than across it. At right-3 top-3 it did not:
-          it landed 22 to 46px in from the plate's edge and the desk keyline
-          runs at 24, so the line crossed the word.
-
-          Two things make the offsets below look arbitrary and both are real.
-          `tap-target` centres the label in a 44px box, so the visible text sits
-          9px in horizontally and 16px down from that box. And the button is
-          positioned against the wrapper, which the plate is inset 18px inside
-          at the sides below lg. Each number is the inset the plate wants, less
-          those. Measured, not derived: the text clears the keyline by 10px in
-          the hand and 14px on the desk. The card layout has no plate and keeps
-          the corner it always had. */}
-      {isAdmin && onEditProductTasting && (
+      {!(layout === 'page' && item.category === 'tea') && isAdmin && onEditProductTasting && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
@@ -727,6 +710,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   <Button variant="secondary" size="sm" aria-pressed={favorited} onClick={() => toggleFavoriteTea(item.id)}>
                     {favorited ? 'Collected' : '+ Collect'}
                   </Button>
+                  {isAdmin && onEditProductTasting && (
+                    <Button variant="secondary" size="sm" onClick={() => onEditProductTasting(item)}>
+                      Edit
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>

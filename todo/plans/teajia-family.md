@@ -22,7 +22,7 @@ Picture of the plan on the real screens: https://claude.ai/artifact/XWhzBLWs9MY5
 - The family's one row of photographs sits right under the plaque in the new layout. With nothing in the row the page is main's page, unchanged.
 - A signed-in member opens their tasting from the "Taste" button among their tea actions (main's). The older "Yours" row is gone from tea pages.
 - Signed out, the new page offered "Log in" only. "Add your tasting" is put back beside it, because decision 15 keeps the door there. Adrian has not yet seen this on the new page.
-- A sold-out tea carries main's "Inquire about purchasing more" in the order bar and the family's "find me more" under the plaque. Two asks on one page; Adrian to choose.
+- A sold-out tea page carries one ask, main's "Inquire about purchasing more" in the order bar (Adrian, 2026-11-21: "Inquire only"). The family's "find me more" is off the tea page and stays on a person's own page, where a tea they tasted has gone. This narrows decision 9 and the tea page part of build stage 5.
 
 **Done since.** Guest notes now shows each offered photograph in its member's own crop and shape (it showed the middle of the picture). Checked in `tests/practice-guest-notes.spec.ts`.
 

@@ -147,8 +147,7 @@ test.describe('Curate Source form, default layout', () => {
     const header = page.getByTestId('curate-supplier-header').filter({ visible: true }).first();
     const parts = [
       header.getByRole('button', { name: /^Vendor/ }),
-      header.getByRole('button', { name: /run/i }),
-      header.getByRole('button', { name: /journey or visit/i }),
+      header.getByRole('button', { name: 'Source context', exact: true }),
       header.getByRole('button', { name: 'Start a new entry', exact: true }),
     ];
     const middles: number[] = [];

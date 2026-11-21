@@ -371,27 +371,19 @@ test('the tea page: plain when nobody has added anything, then the family strip,
     await visitorPage.goto(teaPath);
     await expect(visitorPage.getByTestId('tea-photographs').getByTestId('tea-photograph')).toHaveCount(1, { timeout: 30_000 });
 
-    // 7. A sold-out tea offers the restock request. Signed out it goes to sign in; signed in it files it.
+    // 7. A sold-out tea carries one ask and no more: the shop's own, in the order bar.
+    //    The family's "find me more" is not on the tea page (Adrian, 2026-11-21: "Inquire only");
+    //    it stays on a person's own page, where practice-person-page.spec.ts walks it.
     const gonePath = `/shop/product/${encodeURIComponent(goneId)}`;
-    await visitorPage.goto(gonePath);
-    const goneLine = visitorPage.getByTestId('sold-out-line');
-    await expect(goneLine).toBeVisible({ timeout: 30_000 });
-    await expect(goneLine.getByText('Gone from the shop.')).toBeVisible();
-    expect(await noOverflow(visitorPage)).toBe(true);
-    await visitorPage.screenshot({ path: `${SHOTS}-7-sold-out-signed-out.png` });
-    await goneLine.getByTestId('find-me-more').click();
-    await expect(visitorPage).toHaveURL(/\/signin/);
-
-    await page.goto(gonePath);
-    const memberLine = page.getByTestId('sold-out-line');
-    await expect(memberLine).toBeVisible({ timeout: 30_000 });
-    const asked = page.waitForResponse(r => r.url().includes('/restock-request'));
-    await memberLine.getByTestId('find-me-more').click();
-    expect((await asked).status()).toBe(201);
-    await expect(memberLine.getByText('Asked. Teajia will look.')).toBeVisible();
-    await page.screenshot({ path: `${SHOTS}-8-sold-out-asked.png` });
-    const requests = await (await ownerPage.request.get('/api/admin/family/restock-requests?status=open', { headers: ownerHeaders })).json();
-    expect(JSON.stringify(requests)).toContain(goneId);
+    for (const who of [visitorPage, page]) {
+      await who.goto(gonePath);
+      await expect(who.locator('.label-plate')).toBeVisible({ timeout: 30_000 });
+      await expect(who.getByText('Sold out', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+      await expect(who.getByTestId('sold-out-line')).toHaveCount(0);
+      await expect(who.getByTestId('find-me-more')).toHaveCount(0);
+      expect(await noOverflow(who)).toBe(true);
+    }
+    await visitorPage.screenshot({ path: `${SHOTS}-7-sold-out-one-ask.png` });
 
     // An in-stock tea has no sold-out line.
     await page.goto(teaPath);

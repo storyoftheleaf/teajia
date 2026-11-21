@@ -1369,7 +1369,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     data-testid="curate-run-rail"
                   >
                     <div className="flex items-center justify-between border-b border-tea-border pb-2">
-                      <span className="text-ui-12 font-medium text-tea-text">Current run</span>
+                      <span className="text-ui-12 font-medium text-tea-text">Captures</span>
                       <span className="text-ui-11 tabular-nums text-tea-text-sec">{sessionEntries.length}</span>
                     </div>
 

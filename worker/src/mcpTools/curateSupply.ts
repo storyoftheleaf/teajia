@@ -1,5 +1,5 @@
 import { compassHolding, isCompassSample } from '../compassHoldings';
-import { requireCurateManager } from '../curateMutations';
+import { prepareCurateRecordedWrite, requireCurateManager } from '../curateMutations';
 import { capturedHoldingFields } from '../capturedHolding';
 import { nameProductColumns } from '../productDefaults';
 import { canonicalizeCostCurrency, stampCostCurrencySource } from '../costCurrency';
@@ -218,7 +218,9 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
     seenEntries.add(teaId);
     const e = await entryById(env, auth, teaId);
     if (!e) throw new Error(`lines[${i}]: no such tea in Curate.`);
-    const label = e.shop_name ? `${e.name} (${e.shop_name})` : (e.name ?? 'this tea');
+    const chosenName = str(e.given_name, 200) ?? str(e.shop_name, 200);
+    const name = chosenName ?? e.name ?? 'Unnamed tea';
+    const label = e.name && chosenName && e.name !== chosenName ? `${e.name} (${chosenName})` : name;
     const q = raw?.quantity;
     const qAmount = Number(q?.amount);
     const qUnit = str(q?.unit, 10)?.toLowerCase() ?? '';
@@ -255,7 +257,7 @@ const toolOrder: ToolHandler = async (env, auth, args) => {
     if (currency && currency !== price.price_currency) throw new Error(`One order is one currency: ${label} is in ${price.price_currency}, the rest in ${currency}. Split the order.`);
     currency = price.price_currency;
     lines.push({
-      entryId: e.id, productId: e.draft_product_id ?? null, name: e.shop_name ?? e.name ?? 'Unnamed tea', type: e.category === 'teaware' ? 'Teaware' : (e.type ?? null), grams,
+      entryId: e.id, productId: e.draft_product_id ?? null, name, type: e.category === 'teaware' ? 'Teaware' : (e.type ?? null), grams,
       quantity: teaware ? qAmount : grams, unit: teaware ? 'unit' : 'g',
       quantityWords: `${qAmount} ${qUnit}`, unitPrice: price.price_per_unit_grams != null ? `${money(price.price_amount, price.price_currency)} per ${price.price_per_unit_grams} g` : `${money(price.price_amount, price.price_currency)} per piece`,
       lineTotal,
@@ -324,10 +326,23 @@ async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
   const now = new Date().toISOString();
   const receiptId = `po_${poId}`;
   const statements: D1PreparedStatement[] = [];
+  const nameAssertions: D1PreparedStatement[] = [];
   const items: Array<Record<string, any>> = [];
   for (const l of t.lines) {
     const entry = await entryById(env, auth, l.entryId);
     if (!entry) throw new Error('Order item is no longer available');
+    const chosenName = str(entry.given_name, 200) ?? str(entry.shop_name, 200);
+    if (l.name !== (chosenName ?? entry.name ?? 'Unnamed tea')) throw new Error('The tea name changed after preview. Preview the order again.');
+    if ((entry.given_name ?? null) !== chosenName) {
+      // Normalize only this confirmed handoff, before the existing link trigger
+      // copies its chosen name into Stock. Source identity stays untouched.
+      const before = { id: entry.id, account_id: auth.accountId, given_name: entry.given_name ?? null,
+        name: entry.name, shop_name: entry.shop_name ?? null };
+      const write = prepareCurateRecordedWrite(env.DB, auth, { commandType: 'tea:order_name', agent: t.agent,
+        changes: [{ entityType: 'tea', entityId: entry.id, before, after: { ...before, given_name: chosenName } }] });
+      statements.push(...write.statements);
+      nameAssertions.push(write.assertion);
+    }
     let product = entry.draft_product_id
       ? await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(entry.draft_product_id,auth.accountId).first<Record<string, any>>()
       : await compassHolding(env.DB, auth.accountId, l.entryId);
@@ -346,7 +361,7 @@ async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
     if (!product) {
       const values: Record<string, any> = nameProductColumns({
         ...capturedHoldingFields(entry,l.quantity), id:productId,account_id:auth.accountId,
-        type:l.type || (l.unit==='unit'?'Teaware':'Misc'),product_name:l.name,given_name:l.name,
+        type:l.type || (l.unit==='unit'?'Teaware':'Misc'),product_name:l.name,given_name:chosenName,
         status:'Draft',stock_grams:l.unit==='g'?0:null,quantity_units:l.unit==='unit'?0:null,
         inventory_purpose:'working',is_sample:0,is_personal:0,is_public:0,shown_in_shop:0,
         source_compass_entry_id:l.entryId,owner_user_id:auth.userId,
@@ -380,7 +395,7 @@ async function commitOrder(env: ToolEnv, auth: ToolAuth, t: OrderTicket) {
       VALUES(?,?,?,?,?,?,'working','purchase_order',?,?,?,?)`)
       .bind(`${receiptId}_${index}`,receiptId,auth.accountId,item.product_id,item.quantity,item.unit,poId,item.total_cost,item.currency,item.unit_price));
   }
-  await env.DB.batch(statements);
+  await env.DB.batch([...statements, ...nameAssertions]);
   return {
     committed: true,
     purchase_order_id: poId, receipt_id: receiptId,

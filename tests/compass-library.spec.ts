@@ -11,20 +11,20 @@ test.describe('Curate context retrieval', () => {
   test('keeps context editable after the capture has other information', async ({ page }) => {
     await openCompass(page);
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Context tea');
-    await page.getByRole('button', { name: 'Add journey or visit context' }).click();
+    await page.getByRole('button', { name: 'Source context' }).click();
     await page.getByRole('button', { name: /Taiwan, Spring 2026/ }).click();
-    await page.getByRole('button', { name: 'Chen Family Taipei' }).click();
+    await page.getByRole('button', { name: 'Chen Family · Taipei' }).click();
     await page.getByRole('button', { name: 'Apply context' }).click();
-    await page.getByRole('button', { name: /Edit context:/ }).click();
+    await page.getByRole('button', { name: 'Source context' }).click();
     await expect(page.getByRole('button', { name: 'Clear context' })).toBeVisible();
   });
 
   test('reopens a committed Library entry and persists a later context edit', async ({ page }) => {
     await openCompass(page);
     await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Committed context tea');
-    await page.getByRole('button', { name: 'Add journey or visit context' }).click();
+    await page.getByRole('button', { name: 'Source context' }).click();
     await page.getByRole('button', { name: /Taiwan, Spring 2026/ }).click();
-    await page.getByRole('button', { name: 'Chen Family Taipei' }).click();
+    await page.getByRole('button', { name: 'Chen Family · Taipei' }).click();
     await page.getByRole('button', { name: 'Apply context' }).click();
     const entryId = await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
@@ -44,7 +44,7 @@ test.describe('Curate context retrieval', () => {
       useTeaCompassStore.getState().setActiveEntry(id);
     }, entryId);
     await page.getByRole('tab', { name: 'Source', exact: true }).click();
-    await page.getByRole('button', { name: /Edit context: Taiwan, Spring 2026 · Chen Family/ }).click();
+    await page.getByRole('button', { name: 'Source context' }).click();
     await page.getByRole('button', { name: 'Clear context' }).click();
 
     const persisted = await page.evaluate(async id => {
@@ -136,15 +136,15 @@ test.describe('Curate context recovery', () => {
 
   test('preserves a failed form for retry and prevents duplicate submissions', async ({ page }) => {
     await openCompass(page);
-    await page.getByRole('button', { name: 'Add journey or visit context' }).click();
-    await page.getByRole('button', { name: 'New journey' }).click();
-    await page.getByLabel('Journey name').fill('Yunnan');
-    await page.getByRole('button', { name: 'Save journey' }).dblclick();
+    await page.getByRole('button', { name: 'Source context' }).click();
+    await page.getByRole('button', { name: 'New trip' }).click();
+    await page.getByLabel('Trip name').fill('Yunnan');
+    await page.getByRole('button', { name: 'Save trip' }).dblclick();
     await expect(page.getByRole('alert')).toContainText('Could not save the journey');
-    await expect(page.getByLabel('Journey name')).toHaveValue('Yunnan');
+    await expect(page.getByLabel('Trip name')).toHaveValue('Yunnan');
     expect(compassRequestCount(page, 'POST /api/curate/journeys')).toBe(1);
-    await page.getByRole('button', { name: 'Save journey' }).click();
-    await expect(page.getByRole('button', { name: 'Edit journey Yunnan' })).toBeVisible();
+    await page.getByRole('button', { name: 'Save trip' }).click();
+    await expect(page.getByRole('button', { name: 'Edit trip Yunnan' })).toBeVisible();
     expect(compassRequestCount(page, 'POST /api/curate/journeys')).toBe(2);
   });
 });
@@ -155,17 +155,17 @@ test.describe('Curate context management', () => {
 
   test('creates, edits, and deletes Journeys and Visits from a useful empty state', async ({ page }) => {
     await openCompass(page);
-    await page.getByRole('button', { name: 'Add journey or visit context' }).click();
-    await expect(page.getByText('No journeys yet')).toBeVisible();
-    await expect(page.getByText('Visits can stand alone or belong to a journey.')).toBeVisible();
-    await page.getByRole('button', { name: 'New journey' }).click();
-    await page.getByLabel('Journey name').fill('Yunnan');
-    await page.getByLabel('Journey season').fill('Autumn');
-    await page.getByLabel('Journey year').fill('2026');
-    await page.getByRole('button', { name: 'Save journey' }).click();
-    await page.getByRole('button', { name: 'Edit journey Yunnan' }).click();
-    await page.getByLabel('Journey name').fill('Yunnan edited');
-    await page.getByRole('button', { name: 'Save journey' }).click();
+    await page.getByRole('button', { name: 'Source context' }).click();
+    await expect(page.getByText('No saved trips.')).toBeVisible();
+    await expect(page.getByText('A supplier visit can stand alone or belong to a trip.')).toBeVisible();
+    await page.getByRole('button', { name: 'New trip' }).click();
+    await page.getByLabel('Trip name').fill('Yunnan');
+    await page.getByLabel('Trip season').fill('Autumn');
+    await page.getByLabel('Trip year').fill('2026');
+    await page.getByRole('button', { name: 'Save trip' }).click();
+    await page.getByRole('button', { name: 'Edit trip Yunnan' }).click();
+    await page.getByLabel('Trip name').fill('Yunnan edited');
+    await page.getByRole('button', { name: 'Save trip' }).click();
     await page.getByRole('button', { name: 'New visit' }).click();
     await page.getByLabel('Visit vendor').selectOption('vendor-chen');
     await page.getByLabel('Visit place').fill('Kunming');
@@ -187,8 +187,8 @@ test.describe('Curate context management', () => {
       useTeaCompassStore.setState(current => ({ pendingEntries: [...current.pendingEntries, pending] }));
     });
     await page.getByRole('button', { name: 'Delete visit Chen Family' }).click();
-    await page.getByRole('button', { name: 'Delete journey Yunnan edited' }).click();
-    await expect(page.getByText('No journeys yet')).toBeVisible();
+    await page.getByRole('button', { name: 'Delete trip Yunnan edited' }).click();
+    await expect(page.getByText('No saved trips.')).toBeVisible();
     expect(await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');

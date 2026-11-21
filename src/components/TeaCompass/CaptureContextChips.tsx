@@ -4,8 +4,9 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { CompassCategory } from './types';
 import { BottomSheet } from '../shared/BottomSheet';
 import { SyncIndicator } from './SyncIndicator';
+import { Button } from '../shared/Button';
 
-/** Context chips row at the top of the capture card: Run + Vendor.
+/** Source header: vendor, one context action, new entry and save.
  *
  *  The Run chip binds to the EXISTING capture-session mechanism in the
  *  compass store (currentSessionId + sessionEntryIds). It replaces the old
@@ -51,7 +52,6 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   const pendingEntries = useTeaCompassStore((s) => s.pendingEntries);
   const entries = useTeaCompassStore((s) => s.entries);
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
-  const currentSessionId = useTeaCompassStore((s) => s.currentSessionId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
   const startNewRun = useTeaCompassStore((s) => s.startNewRun);
@@ -64,13 +64,6 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         .filter((e): e is NonNullable<typeof e> => e !== undefined),
     [sessionEntryIds, pendingEntries, entries]
   );
-
-  const runActive = currentSessionId != null;
-  const runLabel = !runActive
-    ? 'No run'
-    : sessionEntries.length > 1
-      ? `Run · ${sessionEntries.length}`
-      : 'Run';
 
   const handleDiscard = (id: string) => {
     if (id === activeEntryId) {
@@ -95,10 +88,12 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         onClick={() => setRunSheetOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={runSheetOpen}
+        aria-label="Source context"
+        title="Captures and optional sourcing context"
         className={`curate-support pill-quiet shrink-0 ${runSheetOpen ? 'pill-quiet-on' : ''}`}
         data-curate-action
       >
-        <span className="truncate">{runLabel}</span>
+        <span>Context</span>
         <ChevronDown size={12} className="shrink-0 text-tea-text-dim" />
       </button>
   );
@@ -162,10 +157,13 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
       <BottomSheet
         open={runSheetOpen}
         onOpenChange={setRunSheetOpen}
-        title="This run"
-        description="Captures from this sitting stay grouped together"
+        title="Source context"
+        description="Drafts, trips and supplier visits"
+        large
       >
-        <div className="flex flex-col gap-0.5 px-1 pb-1">
+        <section aria-label="Capture session" className="space-y-2 px-1 pb-3">
+          <h3 className="px-3 text-ui-14 font-medium text-tea-text">Captures from this sitting</h3>
+          <p className="px-3 text-ui-12 text-tea-text-sec">Switch drafts or start a fresh group.</p>
           {sessionEntries.map((entry) => {
             const isActive = entry.id === activeEntryId;
             return (
@@ -178,7 +176,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
                 <button
                   type="button"
                   onClick={() => { setActiveEntry(entry.id); setRunSheetOpen(false); }}
-                  className="flex min-w-0 flex-1 items-center gap-2 py-2 text-left text-base text-tea-text"
+                  className="btn-quiet min-w-0 flex-1 justify-start text-left"
                 >
                   {isActive && <Check size={13} strokeWidth={3} className="shrink-0 text-tea-gold" />}
                   <span className="truncate">{entry.name || 'Untitled'}</span>
@@ -187,7 +185,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
                   type="button"
                   onClick={() => handleDiscard(entry.id)}
                   aria-label={`Discard ${entry.name || 'untitled entry'}`}
-                  className="tap-target shrink-0 p-1.5 text-tea-text-dim transition-colors hover:text-tea-text-sec"
+                  className="btn-icon btn-sm tap-target shrink-0"
                 >
                   <X size={13} />
                 </button>
@@ -195,39 +193,30 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
             );
           })}
 
-          <div className="my-1.5 border-t border-tea-border" />
-
-          <button
+          <div className="flex flex-wrap items-center gap-2 px-3">
+          <Button variant="secondary" size="sm"
             type="button"
             onClick={() => { startNewCapture(category); setRunSheetOpen(false); }}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-base font-medium text-tea-text transition-colors hover:bg-tea-accent-sub"
-          >
-            <Plus size={16} className="shrink-0 text-tea-text-sec" />
-            New entry
-          </button>
+            icon={<Plus size={14} aria-hidden />}
+          >New entry</Button>
 
           {onToggleBatchMode && (
-            <button
+            <Button variant="secondary" size="sm"
               type="button"
               onClick={() => { onToggleBatchMode(); setRunSheetOpen(false); }}
               aria-pressed={batchMode}
-              className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-base font-medium text-tea-text transition-colors hover:bg-tea-accent-sub"
+              icon={<Zap size={14} aria-hidden />}
             >
-              <Zap size={16} className={`shrink-0 ${batchMode ? 'text-tea-gold' : 'text-tea-text-sec'}`} />
-              <span className="flex-1">Rapid entry</span>
-              {batchMode && <Check size={14} className="shrink-0 text-tea-gold" />}
-            </button>
+              {batchMode ? 'Rapid entry on' : 'Rapid entry'}
+            </Button>
           )}
 
-          <button
-            type="button"
-            onClick={handleStartNewRun}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-3 text-left text-base font-medium text-tea-text transition-colors hover:bg-tea-accent-sub"
-          >
-            <RotateCcw size={15} className="shrink-0 text-tea-text-sec" />
-            Start a new run
-          </button>
-        </div>
+          <Button type="button" variant="quiet" size="sm" onClick={handleStartNewRun} icon={<RotateCcw size={14} aria-hidden />}>New session</Button>
+          </div>
+        </section>
+        {variant === 'supplier' && React.isValidElement<{ inline?: boolean; onClose?: () => void }>(secondLine)
+          ? React.cloneElement(secondLine, { inline: true, onClose: () => setRunSheetOpen(false) })
+          : null}
       </BottomSheet>
     </>
   );
@@ -238,7 +227,6 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
       <div className="library-supplier-header curate-flow-where capture-context-toolbar" data-testid="curate-supplier-header">
         {vendorButton(true)}
         {runChip}
-        <div className="curate-flow-where-visit">{secondLine}</div>
         {newEntryButton}
         {syncIndicator}
         {runSheet}

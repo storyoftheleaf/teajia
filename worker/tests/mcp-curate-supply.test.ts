@@ -209,3 +209,55 @@ describe('against the live database shape (migration ledger through 0032)', () =
     expect(result.committed).toBe(true);
   });
 });
+
+
+describe('chosen tea name follows the MCP order into Stock', () => {
+  it.each([
+    { givenName: 'Current name', shopName: 'Legacy name', expected: 'Current name' },
+    { givenName: null, shopName: 'Legacy name', expected: 'Legacy name' },
+    { givenName: '  ', shopName: ' Legacy name ', expected: 'Legacy name' },
+    { givenName: '  ', shopName: null, expected: '2008 Shou' },
+    { givenName: null, shopName: null, expected: '2008 Shou' },
+  ])('previews and records $expected without renaming the supplier tea', async ({ givenName, shopName, expected }) => {
+    const db = makeDb();
+    const tea = await deepForest(db);
+    db.sqlite.prepare('UPDATE tea_compass_entries SET given_name=?, shop_name=? WHERE id=?').run(givenName, shopName, tea.id);
+    const { preview, result } = await confirm(db, 'curate_order', {
+      vendor_name: 'Yee On Tea', lines: [{ tea_id: tea.id, quantity: { amount: 100, unit: 'g' } }],
+    });
+    expect(preview.preview.read_back).toContain(`100 g of ${expected}`);
+    expect(result.committed).toBe(true);
+    const canonical = givenName?.trim() || shopName?.trim() || null;
+    expect(db.sqlite.prepare('SELECT given_name FROM products WHERE source_compass_entry_id=?').get(tea.id)).toEqual({ given_name: canonical });
+    expect(db.sqlite.prepare('SELECT given_name FROM tea_compass_entries WHERE id=?').get(tea.id)).toEqual({ given_name: canonical });
+    const normalization = db.sqlite.prepare(`SELECT r.before_json,r.after_json FROM curate_mutation_records r
+      JOIN curate_mutations m ON m.id=r.mutation_id WHERE r.entity_id=? AND m.command_type='tea:order_name'`).get(tea.id) as R | undefined;
+    if (givenName !== canonical) {
+      expect(normalization).toBeDefined();
+      expect(JSON.parse(normalization!.before_json)).toMatchObject({ name: '2008 Shou', given_name: givenName, shop_name: shopName });
+      expect(JSON.parse(normalization!.after_json)).toMatchObject({ name: '2008 Shou', given_name: canonical, shop_name: shopName });
+    } else expect(normalization).toBeUndefined();
+    const order = db.sqlite.prepare('SELECT items_json FROM purchase_orders').get() as R;
+    expect(JSON.parse(order.items_json)[0].product_name).toBe(expected);
+    expect(db.sqlite.prepare('SELECT name FROM tea_compass_entries WHERE id=?').get(tea.id)).toEqual({ name: '2008 Shou' });
+  });
+});
+
+
+it('rolls back the handoff if its recorded name normalization becomes stale', async () => {
+  const db = makeDb();
+  const tea = await deepForest(db);
+  db.sqlite.prepare('UPDATE tea_compass_entries SET given_name=? WHERE id=?').run('  ', tea.id);
+  const preview = await call(db, 'curate_order', {
+    vendor_name: 'Yee On Tea', lines: [{ tea_id: tea.id, quantity: { amount: 100, unit: 'g' } }],
+  });
+  const batch = db.batch.bind(db);
+  db.batch = async statements => {
+    db.sqlite.prepare('UPDATE tea_compass_entries SET given_name=? WHERE id=?').run('Changed independently', tea.id);
+    return batch(statements);
+  };
+  await expect(call(db, 'curate_order', { confirm: preview.confirmation_token })).rejects.toThrow(/malformed JSON/);
+  expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM purchase_orders').get()).toEqual({ n: 0 });
+  expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM products').get()).toEqual({ n: 0 });
+  expect(db.sqlite.prepare('SELECT given_name FROM tea_compass_entries WHERE id=?').get(tea.id)).toEqual({ given_name: 'Changed independently' });
+});

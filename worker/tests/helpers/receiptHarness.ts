@@ -159,9 +159,12 @@ class ReceiptStatement {
       return updateRow(this.db.listings, this.sql, this.values);
     }
     if (sql.startsWith('update tea_compass_entries set') && sql.includes('select id from products')) {
-      const product = [...this.db.products.values()].find(row => row.account_id === this.values[0] && row.source_compass_entry_id === this.values[1]);
-      const entry = this.db.entries.get(String(this.values[2]));
-      if (!product || !entry || entry.user_id !== this.values[3] || entry.account_id !== this.values[4]) return { success: true, meta: { changes: 0 } };
+      const naming = sql.includes('given_name = ?');
+      const offset = naming ? 1 : 0;
+      const product = [...this.db.products.values()].find(row => row.account_id === this.values[offset] && row.source_compass_entry_id === this.values[offset + 1]);
+      const entry = this.db.entries.get(String(this.values[offset + 2]));
+      if (!product || !entry || entry.user_id !== this.values[offset + 3] || entry.account_id !== this.values[offset + 4]) return { success: true, meta: { changes: 0 } };
+      if (naming) entry.given_name = this.values[0];
       entry.draft_product_id = product.id;
       return { success: true, meta: { changes: 1 } };
     }

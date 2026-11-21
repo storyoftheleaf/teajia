@@ -98,11 +98,3 @@ export function TeaPhotographRow({
   );
 }
 
-/** "Gone from the shop." with its one action, under the plaque on a sold-out tea. */
-export function SoldOutUnderPlate({ productId, name }: { productId: string; name: string }) {
-  return (
-    <div className="mx-5 mt-3 lg:mx-6">
-      <SoldOutLine productId={productId} name={name} />
-    </div>
-  );
-}

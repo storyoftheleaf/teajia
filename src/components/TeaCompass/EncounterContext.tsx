@@ -5,6 +5,9 @@ import { JourneyVisitSheet } from './JourneyVisitSheet';
 import { api } from '../../lib/api';
 
 interface EncounterContextProps {
+  inline?: boolean;
+  onClose?: () => void;
+  vendorId?: string;
   journeyId?: string | null;
   visitId?: string | null;
   onChange: (journeyId: string | null, visitId: string | null) => void;
@@ -15,7 +18,7 @@ function journeyLabel(journey?: CurateJourney): string | null {
   return [journey.name, journey.season && journey.year ? `${journey.season} ${journey.year}` : journey.year].filter(Boolean).join(', ');
 }
 
-export const EncounterContext: React.FC<EncounterContextProps> = ({ journeyId, visitId, onChange }) => {
+export const EncounterContext: React.FC<EncounterContextProps> = ({ journeyId, visitId, onChange, inline = false, onClose, vendorId }) => {
   const [open, setOpen] = useState(false);
   const [journeys, setJourneys] = useState<CurateJourney[]>([]);
   const [visits, setVisits] = useState<CurateVisit[]>([]);
@@ -24,7 +27,7 @@ export const EncounterContext: React.FC<EncounterContextProps> = ({ journeyId, v
     setVisits(nextVisits);
   }, []);
   useEffect(() => {
-    if (!journeyId && !visitId) return;
+    if (inline || (!journeyId && !visitId)) return;
     let active = true;
     Promise.all([api.curateContext.listJourneys(), api.curateContext.listVisits()])
       .then(([journeyData, visitData]) => {
@@ -32,11 +35,14 @@ export const EncounterContext: React.FC<EncounterContextProps> = ({ journeyId, v
       })
       .catch(() => { /* IDs remain attached even when context labels are offline. */ });
     return () => { active = false; };
-  }, [journeyId, visitId, onLoaded]);
+  }, [inline, journeyId, visitId, onLoaded]);
   const journey = journeys.find(item => item.id === journeyId);
   const visit = visits.find(item => item.id === visitId);
   const label = [journeyLabel(journey), visit?.vendor_name || visit?.place].filter(Boolean).join(' · ');
   const ariaLabel = label ? `Edit context: ${label}` : 'Add journey or visit context';
+
+  if (inline) return <JourneyVisitSheet inline open journeyId={journeyId} visitId={visitId} defaultVendorId={vendorId}
+    onOpenChange={next => { if (!next) onClose?.(); }} onApply={onChange} onLoaded={onLoaded} />;
 
   return (
     <>

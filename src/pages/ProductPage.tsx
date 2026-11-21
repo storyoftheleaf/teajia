@@ -27,7 +27,7 @@ import { api } from '../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { GroupHead, IndexRow, SplitName } from '../components/people/immersive';
 import { useTeaFamily } from '../components/shop/useTeaFamily';
-import { SoldOutUnderPlate, TeaPhotographRow } from '../components/shop/TeaFamilyStrips';
+import { TeaPhotographRow } from '../components/shop/TeaFamilyStrips';
 
 
 interface ProductPageProps {
@@ -459,8 +459,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
-      {/* Back: page nav, top-left. Editing lives on the card's own Edit, which
-          opens this tea's details inside the tasting overlay. */}
       {/* The page's own bar: where you came from on the left, where you are
           going on the right, one hairline under both. */}
       <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
@@ -493,11 +491,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         onOpenOrder={onCartClick}
         isAdmin={isAdmin}
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
-        underPlate={(family.row.length > 0 || isSoldOut) ? (
-          <>
-            <TeaPhotographRow photographs={family.row} teaName={item.name} onChooseCover={(id) => { void family.chooseCover(id); }} onRemove={family.removeOwn} onShape={(id, shape, frame) => family.reshapeOwn(id, shape, frame)} />
-            {isSoldOut && <SoldOutUnderPlate productId={item.id} name={item.name} />}
-          </>
+        underPlate={family.row.length > 0 ? (
+          <TeaPhotographRow photographs={family.row} teaName={item.name} onChooseCover={(id) => { void family.chooseCover(id); }} onRemove={family.removeOwn} onShape={(id, shape, frame) => family.reshapeOwn(id, shape, frame)} />
         ) : undefined}
       />
 

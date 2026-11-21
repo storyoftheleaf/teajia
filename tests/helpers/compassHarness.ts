@@ -44,6 +44,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     id: po.id, account_id: 'acct-bali', vendor_name: po.vendor_name ?? null, vendor_id: po.vendor_id ?? null, vendor_contact: po.vendor_contact ?? null,
     items_json: po.items_json ?? '[]', total_usd: typeof po.total_usd === 'number' && Number.isFinite(po.total_usd) ? po.total_usd : null, display_currency: po.display_currency || 'USD', status: po.status || 'pending',
     message_text: po.message_text ?? null, notes: po.notes ?? null, freight_estimate_json: null,
+    ship_mode: po.ship_mode ?? null, tracking_number: po.tracking_number ?? null,
     created_at: po.created_at ?? new Date().toISOString(), updated_at: po.updated_at ?? po.created_at ?? new Date().toISOString(),
   });
   const receiptProposals: Array<Record<string, any>> = [];

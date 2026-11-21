@@ -28,7 +28,7 @@ export function promotionCapture(entry:Row):{name:string;photos:string[]} {
 
   // Photo + vendor is a complete capture; the name can come later. Auto-name
   // from vendor + capture date so the record can enter the library unnamed.
-  let name = (entry.name as string | null)?.trim() || (entry.given_name as string | null)?.trim();
+  let name = (entry.name as string | null)?.trim() || (entry.given_name as string | null)?.trim() || (entry.shop_name as string | null)?.trim();
   if (!name) {
     const vendor = (entry.vendor_name as string | null)?.trim();
     if (!vendor && photos.length === 0) {
@@ -66,6 +66,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
   const isTeaware = entry.category === 'teaware';
 
   const {name}=promotionCapture(entry);
+  const chosenName = (entry.given_name as string | null)?.trim() || (entry.shop_name as string | null)?.trim() || null;
   // Only words the shop can print reach the product, and the page drops its
   // "potential profile" note only when there are such words: a score or a note
   // alone is not the shop's tasting.
@@ -88,7 +89,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     account_id: accountId,
     type: productType,
     form: entry.form ?? null,
-    given_name: entry.given_name ?? name,
+    given_name: chosenName,
     chinese_name: entry.chinese_name ?? null,
     product_name: name,
     year: entry.year != null ? String(entry.year) : null,
@@ -142,7 +143,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     const selected = linked ?? identityProduct;
     const id = selected?.id ?? productId;
     const write=prepareCurateRecordedWrite(db, approval.auth, {commandType:'tea:promote',agent:approval.agent,idempotencyKey:approval.key,guards:approval.guards.map(guard=>({...guard,confirmationOnly:true})),
-      changes:[{entityType:'tea',entityId:entry.id,before:entry,after:{...entry,given_name:entry.given_name ?? selected?.given_name ?? cols.given_name,draft_product_id:id,updated_at:new Date().toISOString()}}]});
+      changes:[{entityType:'tea',entityId:entry.id,before:entry,after:{...entry,given_name:chosenName ?? selected?.given_name ?? null,draft_product_id:id,updated_at:new Date().toISOString()}}]});
     const insert = selected ? [] : [db.prepare(`INSERT OR IGNORE INTO products (${colNames.join(', ')}) SELECT ${placeholders} WHERE EXISTS(SELECT 1 FROM curate_mutations WHERE id = ? AND account_id = ?)`)
       .bind(...colNames.map(c=>cols[c]),write.mutationId,accountId)];
     const productColumns=(await db.prepare('PRAGMA table_info(products)').all<{name:string}>()).results.map(column=>column.name);
@@ -152,7 +153,13 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     const record=selected?[]:[db.prepare(`INSERT INTO curate_mutation_records(mutation_id,account_id,entity_type,entity_id,before_json,after_json)
       SELECT ?,?,'promotion_product',p.id,'null',${snapshot} FROM products p WHERE p.id=? AND p.account_id=? AND EXISTS(SELECT 1 FROM curate_mutations WHERE id=?)`)
       .bind(write.mutationId,accountId,id,accountId,write.mutationId)];
-    try { await db.batch([write.statements[0],...insert,...write.statements.slice(1),...record,write.assertion]); }
+    // Naming/link triggers can update the encounter timestamp too. Record the
+    // settled row, as with the product snapshot, so undo compares real bytes.
+    const teaSnapshot=`(SELECT json_group_object(k,v) FROM (${Object.keys(entry).map(column=>`SELECT '${column}' AS k,e."${column}" AS v`).join(' UNION ALL ')}))`;
+    const recordTea=db.prepare(`UPDATE curate_mutation_records SET after_json=(SELECT ${teaSnapshot} FROM tea_compass_entries e WHERE e.id=? AND e.account_id=?)
+      WHERE mutation_id=? AND account_id=? AND entity_type='tea' AND entity_id=? AND EXISTS(SELECT 1 FROM curate_mutations WHERE id=?)`)
+      .bind(entry.id,accountId,write.mutationId,accountId,entry.id,write.mutationId);
+    try { await db.batch([write.statements[0],...insert,...write.statements.slice(1),recordTea,...record,write.assertion]); }
     catch(error) {
       if(String(error).includes('malformed JSON')) throw new CompassPromotionError('stale_preview',409);
       throw error;
@@ -163,8 +170,8 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
   }
   await db.batch([
     db.prepare(`INSERT OR IGNORE INTO products (${colNames.join(', ')}) VALUES (${placeholders})`).bind(...colNames.map(c=>cols[c])),
-    db.prepare(`UPDATE tea_compass_entries SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ? ORDER BY ${COMPASS_SAMPLE_HOLDING} LIMIT 1), updated_at = datetime('now') WHERE id = ? AND user_id = ? AND account_id = ?`)
-      .bind(accountId,entry.id,entry.id,entry.user_id,accountId),
+    db.prepare(`UPDATE tea_compass_entries SET given_name = ?, draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ? ORDER BY ${COMPASS_SAMPLE_HOLDING} LIMIT 1), updated_at = datetime('now') WHERE id = ? AND user_id = ? AND account_id = ?`)
+      .bind(chosenName,accountId,entry.id,entry.id,entry.user_id,accountId),
   ]);
 
   const canonical = await compassHolding(db, accountId, entry.id);
