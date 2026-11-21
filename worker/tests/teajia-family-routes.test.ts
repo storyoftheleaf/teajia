@@ -446,7 +446,9 @@ describe('voice notes for members', () => {
     expect(await spoken.json()).toMatchObject({ text: 'Orchid and honey.' });
     const row = db.sqlite.prepare('SELECT account_id, user_id, status, object_key FROM private_recordings').get() as any;
     expect(row).toMatchObject({ account_id: SHOP, user_id: 'member-one', status: 'completed' });
-    expect(bucket.objects.has(row.object_key)).toBe(true);
+    // The words are kept; the audio is deleted once they are saved.
+    expect(db.sqlite.prepare('SELECT transcript FROM private_recordings').get()).toMatchObject({ transcript: 'Orchid and honey.' });
+    expect(bucket.objects.has(row.object_key)).toBe(false);
 
     expect((await call(env, null, '/api/transcribe', { method: 'POST', form: voiceForm() })).status).toBe(401);
     const long = await call(env, MEMBER, '/api/transcribe', { method: 'POST', form: voiceForm(WEBM, 150) });
@@ -480,15 +482,19 @@ describe('voice notes for members', () => {
   });
 
   it('retries a member\'s own failed note and nobody else\'s', async () => {
-    const { env } = setup();
+    const { env, db, bucket } = setup();
     vi.stubGlobal('fetch', vi.fn(async () => new Response('busy', { status: 503 })));
     const failed = await call(env, MEMBER, '/api/transcribe', { method: 'POST', form: voiceForm(WEBM, 5) });
     expect(failed.status).toBe(502);
     const { recording_id } = await failed.json() as any;
+    const { object_key } = db.sqlite.prepare('SELECT object_key FROM private_recordings WHERE id = ?').get(recording_id) as any;
+    // A failed note keeps its audio so it can be tried again.
+    expect(bucket.objects.has(object_key)).toBe(true);
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ text: 'Second time.' })));
     expect((await call(env, MEMBER_TWO, `/api/transcriptions/${recording_id}/retry`, { method: 'POST' })).status).toBe(404);
     const retried = await call(env, MEMBER, `/api/transcriptions/${recording_id}/retry`, { method: 'POST' });
     expect(await retried.json()).toMatchObject({ text: 'Second time.', recording_id });
+    expect(bucket.objects.has(object_key)).toBe(false);
   });
 });
 

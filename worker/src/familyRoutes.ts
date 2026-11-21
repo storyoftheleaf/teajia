@@ -773,7 +773,7 @@ export function familyTranscribe<E extends FamilyEnv>(deps: FamilyDeps<E>, staff
       `INSERT INTO private_recordings (id, account_id, user_id, object_key, mime_type, size_bytes, status, expires_at)
        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
     ).bind(recordingId, accountId, member.userId, key, file.type, file.size, expiresAt).run();
-    return finishTranscription(env, recordingId, new File([bytes], file.name || `recording.${ext}`, { type: file.type }));
+    return finishTranscription(env, recordingId, key, new File([bytes], file.name || `recording.${ext}`, { type: file.type }));
   };
 }
 
@@ -796,7 +796,7 @@ export function familyRetryTranscription<E extends FamilyEnv>(deps: FamilyDeps<E
     const object = await env.MEDIA_BUCKET?.get(row.object_key);
     if (!object) return refuse(410, 'That voice note is no longer kept.', 'recording_expired');
     const bytes = await object.arrayBuffer();
-    return finishTranscription(env, row.id, new File([bytes], `recording.${deps.safeUploadExtension(row.mime_type)}`, { type: row.mime_type }));
+    return finishTranscription(env, row.id, row.object_key, new File([bytes], `recording.${deps.safeUploadExtension(row.mime_type)}`, { type: row.mime_type }));
   };
 }
 
@@ -813,13 +813,21 @@ async function memberOnly<E extends FamilyEnv>(deps: FamilyDeps<E>, request: Req
   return deps.requireAuthenticatedUser(request, env);
 }
 
-async function finishTranscription(env: FamilyEnv, recordingId: string, file: File): Promise<Response> {
+/**
+ * A member's voice note is only a way to write: once its words are saved the
+ * audio is deleted (Adrian, 2026-11-21). The row stays, holding the words and
+ * counting toward the day's limit. A failed note keeps its audio so it can be
+ * retried, until the usual seven-day expiry removes it.
+ */
+async function finishTranscription(env: FamilyEnv, recordingId: string, objectKey: string, file: File): Promise<Response> {
   try {
     const raw = await transcribeTeaVoice(env, await file.arrayBuffer(), file.type, file.name);
     const fixed = fixTeaVoiceText(raw);
     await env.DB.prepare(
       "UPDATE private_recordings SET status = 'completed', transcript = ?, last_error_code = NULL, updated_at = datetime('now') WHERE id = ?",
     ).bind(raw, recordingId).run();
+    // The words are saved; a failed delete leaves the audio to the expiry sweep.
+    try { await env.MEDIA_BUCKET?.delete(objectKey); } catch { /* expiry removes it */ }
     return json({
       text: fixed.text,
       recording_id: recordingId,
