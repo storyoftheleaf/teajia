@@ -40,6 +40,31 @@ export function appendImpressionTranscript(value: TastingData, transcript: strin
   return updateImpressionNote(value, current ? `${current.trimEnd()}\n\n${addition}` : addition);
 }
 
+/**
+ * One tasting per tea, as many notes as the person likes. The draft being
+ * written is the note with IMPRESSION_NOTE_ID. When a tasting is opened on a
+ * later day, the earlier draft is sealed under its own id, so it stays as a
+ * dated note and today's words start a new one.
+ */
+export function sealEarlierDraft(value: TastingData, now: Date = new Date()): TastingData {
+  const notes = impressionNotes(value);
+  const index = notes.findIndex(note => typeof note !== 'string' && note.id === IMPRESSION_NOTE_ID);
+  if (index < 0) return value;
+  const draft = notes[index] as NoteEntry;
+  const written = draft.capturedAt ? new Date(draft.capturedAt) : null;
+  if (!written || Number.isNaN(written.getTime()) || written.toDateString() === now.toDateString()) return value;
+  const sealed = { ...draft, id: `${IMPRESSION_NOTE_ID}-${draft.capturedAt}` };
+  return { ...value, notes: notes.map((note, i) => i === index ? sealed : note) };
+}
+
+/** "12 November 2026", or nothing when the note carries no usable date. */
+export function noteDateLabel(capturedAt?: string): string {
+  if (!capturedAt) return '';
+  const date = new Date(capturedAt);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function TastingRatingRow({ label, rating, onChange }: {
   label: string;
   rating?: number;
@@ -128,9 +153,13 @@ export interface YourImpressionProps extends ImpressionControlsProps {
   notesSaveHint?: string;
   voiceState?: 'idle' | 'recording' | 'transcribing';
   voiceError?: string;
+  /** The "Your photographs" row, placed above the notes in the same label and box style. */
+  photographRow?: React.ReactNode;
+  /** One line under the notes box. */
+  notesNotice?: string;
 }
 
-export function YourImpression({ value, ratingLabel, collectionUnavailable, sessionSharedNote, notesLabel = 'Your notes', onChange, verdict, onVerdict, wouldBuy, onWouldBuy, inCollection, onCollection, selections, onResume, onSaveNotes, canSaveNotes = false, savingNotes = false, notesSaveError = false, notesSaveHint, voiceState = 'idle', voiceError }: YourImpressionProps) {
+export function YourImpression({ value, ratingLabel, collectionUnavailable, sessionSharedNote, notesLabel = 'Your notes', onChange, verdict, onVerdict, wouldBuy, onWouldBuy, inCollection, onCollection, selections, onResume, onSaveNotes, canSaveNotes = false, savingNotes = false, notesSaveError = false, notesSaveHint, voiceState = 'idle', voiceError, photographRow, notesNotice }: YourImpressionProps) {
   const historical = impressionNotes(value).filter(note => typeof note === 'string' || note.id !== IMPRESSION_NOTE_ID);
   const groups = selections.filter(group => group.words.length > 0);
   return <section className="tasting-impression" aria-label="Your impression">
@@ -143,14 +172,22 @@ export function YourImpression({ value, ratingLabel, collectionUnavailable, sess
         <p className={TYPOGRAPHY_CLASSES.bodyLight}>{sessionSharedNote}</p>
       </section>
     )}
+    {photographRow}
     <ImpressionNoteField label={notesLabel} value={impressionNoteText(value)} onChange={text => onChange(updateImpressionNote(value, text))}>
+      {notesNotice && <p className={`${TYPOGRAPHY_CLASSES.accountMeta} tasting-impression-notice`}>{notesNotice}</p>}
       {(voiceError || voiceState !== 'idle') && <p className={TYPOGRAPHY_CLASSES.accountMeta} role={voiceError ? 'alert' : 'status'}>{voiceError || (voiceState === 'recording' ? 'Recording… Tap the microphone to finish.' : 'Adding your words…')}</p>}
       {onSaveNotes && <div className="tasting-notes-save-row">
         <span className={TYPOGRAPHY_CLASSES.accountMeta} role={notesSaveError ? 'alert' : undefined}>{notesSaveError ? 'Could not save. Please try again.' : notesSaveHint}</span>
         <button type="button" className="tap-target tasting-notes-save" onClick={onSaveNotes} disabled={!canSaveNotes || savingNotes}>{savingNotes ? 'Saving…' : notesSaveError ? 'Retry save notes' : 'Save notes'}</button>
       </div>}
     </ImpressionNoteField>
-    {historical.length > 0 && <section className="tasting-impression-history" aria-label="Earlier notes"><h3 className={TYPOGRAPHY_CLASSES.label}>Earlier notes</h3>{historical.map((note, index) => <p className={TYPOGRAPHY_CLASSES.bodyLight} key={typeof note === 'string' ? `legacy-${index}` : note.id}>{typeof note === 'string' ? note : note.text}</p>)}</section>}
+    {historical.length > 0 && <section className="tasting-impression-history" aria-label="Earlier notes"><h3 className={TYPOGRAPHY_CLASSES.label}>Earlier notes</h3>{historical.map((note, index) => {
+      const date = typeof note === 'string' ? '' : noteDateLabel(note.capturedAt);
+      return <div key={typeof note === 'string' ? `legacy-${index}` : note.id}>
+        {date && <time className={TYPOGRAPHY_CLASSES.accountMeta} dateTime={(note as NoteEntry).capturedAt}>{date}</time>}
+        <p className={TYPOGRAPHY_CLASSES.bodyLight}>{typeof note === 'string' ? note : note.text}</p>
+      </div>;
+    })}</section>}
     {groups.length > 0 && <section className="tasting-impression-recap" aria-label="Your tasting selections">
       <h3 className={TYPOGRAPHY_CLASSES.label}>Your tasting selections</h3>
       {groups.map(group => <div className="tasting-impression-recap-group" key={group.id}>

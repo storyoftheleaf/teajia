@@ -3,6 +3,7 @@
 // here so existing consumers keep working without importing from ../wisdom
 // directly. Do not redeclare this list.
 import { NON_TEA_TYPES, type TeaType } from './wisdom';
+import type { FamilyPageTier, FamilyPersonTasting } from './lib/familyContract';
 export { TEA_TYPES, type TeaType, NON_TEA_TYPES } from './wisdom';
 
 /**
@@ -335,6 +336,12 @@ export interface ContributorListItem {
   own_line?: string | null;
   is_host?: boolean;
   article_count?: number;
+  /** The owner's word for this person. 'family' pages are listed under The family. */
+  page_tier?: FamilyPageTier | null;
+  /** The newest moment they shared a tasting or photograph; null when they have shared none. */
+  family_last_active?: string | null;
+  /** Where the people list puts them: This season, Founding members or The family. */
+  list_group?: 'season' | 'founding' | 'family' | null;
 }
 
 export interface ContributorPullQuote {
@@ -388,6 +395,10 @@ export interface ContributorTeaSelectionRef {
   year?: string | null;
   chinese_name?: string | null;
   origin?: string | null;
+  /** The shop tea this row stands for, so "find me more" can ask for it. */
+  product_id?: string | null;
+  /** The tea has sold out. It stays on the page, marked as gone. */
+  sold_out?: boolean;
 }
 
 export interface ContributorHostingRef {
@@ -503,10 +514,19 @@ export interface ContributorProfile {
   payment_accounts?: Array<{ slug: string; name: string }>;
   host_account: ContributorHostAccount | null;
   seasonal_line: string | null;
+  page_tier?: FamilyPageTier | null;
+  /** Teas this person shared: words and photographs only, never a score. */
+  tastings?: FamilyPersonTasting[];
 }
 
 export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line' | 'links' | 'gallery_images' | 'tea_selection' | 'collection' | 'hosting'> {
   account_id: string;
+  /** The owner's word for this person: family, creator or master. Empty for a page from before the family. */
+  page_tier?: 'family' | 'creator' | 'master' | null;
+  /** The people list: 1 when the owner named them a founding member. */
+  founding_member?: number | null;
+  /** The people list: when the owner pinned them to the top of their group. Empty when not pinned. */
+  list_pinned_at?: string | null;
   business_name?: string | null;
   links: AdminContributorLink[];
   gallery_images?: ContributorGalleryImage[];

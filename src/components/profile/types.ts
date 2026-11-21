@@ -31,8 +31,12 @@ export interface ProfileAssociation {
   account_kind?: 'platform' | 'location' | 'master';
 }
 
+import type { FamilyPageTier } from '../../lib/familyContract';
+
 export interface SelfProfile {
   id: string;
+  /** Teajia family, tea creator or tea master. Family pages go live without review and have no Pay. Empty for a page from before the family. */
+  page_tier?: FamilyPageTier | null;
   slug: string;
   display_name: string;
   business_name: string | null;
@@ -93,6 +97,9 @@ export interface FavoriteTea {
   origin?: string | null;
   image_url?: string | null;
   public_path?: string | null;
+  /** The shop tea behind this favourite, and whether it has sold out. */
+  product_id?: string | null;
+  sold_out?: boolean;
   is_public: boolean;
   source_account_id?: string | null;
   source_product_id?: string | null;

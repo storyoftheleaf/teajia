@@ -2,6 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { DaySheetButton } from './guestNotes/DaySheetButton';
+import { FeedbackList } from './guestNotes/FeedbackList';
+import { OfferedPhotographs } from './guestNotes/OfferedPhotographs';
+import { ReportsAndRequests } from './guestNotes/ReportsAndRequests';
 
 /**
  * Everything customers have written about the shop's teas, and the shop's
@@ -171,7 +175,7 @@ function NoteRow({ note }: { note: CustomerTastingNote }) {
   );
 }
 
-export function CustomerNotesReview() {
+function NotesWaiting() {
   const [showDecided, setShowDecided] = useState(false);
   const query = useQuery<CustomerTastingNote[]>({
     queryKey: ['customer-tasting-notes'],
@@ -232,6 +236,26 @@ export function CustomerNotesReview() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/**
+ * The whole Guest notes screen: the notes the shop reads and decides on, with
+ * the photographs members offered beside them, what has been reported or
+ * asked for, the feedback list with ratings, and today's sheet to download.
+ */
+export function CustomerNotesReview() {
+  return (
+    // pb-nav-gap keeps the last section clear of the phone's bottom bar.
+    <div className="pb-nav-gap">
+      <DaySheetButton />
+      <ReportsAndRequests />
+      <OfferedPhotographs />
+      <section aria-label="Notes" className="mt-8">
+        <NotesWaiting />
+      </section>
+      <FeedbackList />
     </div>
   );
 }

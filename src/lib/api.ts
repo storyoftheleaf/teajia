@@ -1293,7 +1293,7 @@ export function isTransientApiError(error: unknown): boolean {
   return /timed out|couldn.t reach the server|network|offline|failed to fetch/i.test(error.message);
 }
 
-async function handleResponse(res: Response, requestToken?: string | null) {
+export async function handleResponse(res: Response, requestToken?: string | null) {
   const incidentContext = responseIncidentContext.get(res) ?? {
     route: routeFromUrl(res.url || '/unknown'),
     method: 'GET',
@@ -1539,7 +1539,7 @@ function normalizeProfileFavorite(row: any, publicResponse = false): ProfileFavo
       year: row?.harvest_year ?? row?.year ?? row?.tea?.year ?? null,
       origin: [row?.origin_region, row?.origin_country].filter(Boolean).join(', ') || row?.tea?.origin || null,
       image_url: row?.image_url ?? row?.tea?.image_url ?? null,
-      public_path: row?.public_path ?? row?.tea?.public_path ?? null,
+      public_path: row?.public_path ?? row?.tea?.public_path ?? null, product_id: row?.product_id ?? null, sold_out: row?.sold_out === 1 || row?.sold_out === true,
       is_public: publicResponse || Boolean(row?.tea?.is_public ?? statusPublic),
     },
   };
@@ -4920,7 +4920,7 @@ export const api = {
           display_name: String(row.display_name ?? ''),
           business_name: row.business_name ?? null,
           chinese_name: row.chinese_name ?? null,
-          role: row.role ?? null,
+          role: row.role ?? null, page_tier: row.page_tier ?? null,
           beginnings: row.beginnings ?? null,
           now_text: row.now_text ?? null,
           inspirations: row.inspirations ?? null,

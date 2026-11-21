@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  Check, Leaf, Sparkles, Mic, Loader2,
+  Check, Leaf, Sparkles, Mic, Camera, Loader2,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
   X, ChevronLeft, ChevronRight,
 } from 'lucide-react';
@@ -18,7 +18,12 @@ import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
-import { YourImpression, appendImpressionTranscript } from './YourImpression';
+import { YourImpression, appendImpressionTranscript, sealEarlierDraft } from './YourImpression';
+import { TastingPhotographRow, NOTES_NOTICE } from './TastingPhotographRow';
+import { Button } from '../shared/Button';
+import { TastingShareStep } from './TastingShareStep';
+import { useTastingPhotographs } from './useTastingPhotographs';
+import type { FamilyPhotoPage } from '../../lib/familyContract';
 import { tastingNoteText } from './tastingNoteText';
 import { freshTastingState } from './freshTasting';
 import { hasJournalItemId } from './journalItemId';
@@ -197,7 +202,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     return previousSource === 'session' || previousSource === 'event' ? null : entry ?? null;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
 
-  const openedWith = item.journalRecord?.tasting ?? initialData ?? existingEntry?.note.tasting ?? {};
+  // One tasting per tea with notes as a dated list: a draft left from an earlier day is sealed as that day's note.
+  const openedWith = sealEarlierDraft(item.journalRecord?.tasting ?? initialData ?? existingEntry?.note.tasting ?? {});
   const [tastingData, setTastingData] = useState<TastingData>(openedWith);
   // The opened or most recently saved state. Closing compares against this, not against
   // "is there any data at all", so a tea you have tasted before closes on the
@@ -217,6 +223,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
    * asked, and signing in merges it up, so nobody loses a tasting by saying no.
    */
   const guestTasting = !adminMode && !isAuthenticated;
+
+  // Photographs belong to the signed-in person and to a shop tea. The same
+  // camera, row and Share step serve every place this screen is opened.
+  const familyEnabled = isAuthenticated && !previewOnly && hasJournalItemId(item.id);
+  const photographs = useTastingPhotographs({ productId: item.id, enabled: familyEnabled });
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareAskedRef = useRef(false);
 
   const [phase, setPhase] = useState<'tasting' | 'saved' | 'details'>(
     detailsPanel && startOnDetails ? 'details' : 'tasting',
@@ -457,6 +471,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     return true;
   }, [previewOnly, item, tastingData, verdict, wouldBuy, onSave, onAfterSave, adminMode, activeAccountId, activeUserId, activeAccount, canSave, onWriteDescription, freshReason, isFreshTasting, upsertTastingByProductId, favoriteTeas, toggleFavoriteTea]);
 
+  // After an explicit Save, a signed-in person is offered the Share step once. Keep private is its default.
+  const handleSaveThenShare = useCallback(async () => {
+    const saved = await handleSave();
+    if (saved && familyEnabled && !adminMode && !shareAskedRef.current) {
+      shareAskedRef.current = true;
+      setShareOpen(true);
+    }
+  }, [handleSave, familyEnabled, adminMode]);
+
   // The prompt's Save is a way OUT, so a successful write closes rather than
   // landing on the confirmation screen the person was already trying to leave.
   const handleSaveAndClose = useCallback(async () => {
@@ -530,6 +553,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     setReveal(word ? { word, sense: section === 'aroma' ? 'aroma' : 'taste', stamp: Date.now() } : undefined);
   };
 
+  // Which page of the tasting a photograph was taken on.
+  const photoPage: FamilyPhotoPage = showNote ? 'impression'
+    : activeSectionId === 'body' ? 'texture' : activeSectionId === 'state' ? 'effect' : activeSectionId === 'flavor' ? 'taste' : 'storage';
+
   return createPortal(
     <div data-tasting-session-overlay className={`fixed inset-0 z-takeover${className ? ` ${className}` : ''}`}>
     <motion.div
@@ -553,13 +580,20 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           <span className="tasting-heading-name">{item.name}</span>
           <span className="tasting-heading-summary">Impression <ChevronRight size={14} aria-hidden="true" /></span>
         </button>
-        {adminMode && <button type="button" className="tasting-heading-mic tap-target" disabled={silentVoice.state === 'transcribing'} aria-label={silentVoice.state === 'recording' ? 'Stop recording' : 'Record into your notes'} aria-pressed={silentVoice.state === 'recording'} onClick={() => { setVoiceError(''); setPhase('tasting'); setShowNote(true); if(silentVoice.state === 'recording') silentVoice.stop(); else void silentVoice.start(); }}>
+        {(adminMode || isAuthenticated) && <button type="button" className="tasting-heading-mic tap-target" disabled={silentVoice.state === 'transcribing'} aria-label={silentVoice.state === 'recording' ? 'Stop recording' : 'Record into your notes'} aria-pressed={silentVoice.state === 'recording'} onClick={() => { setVoiceError(''); setPhase('tasting'); setShowNote(true); if(silentVoice.state === 'recording') silentVoice.stop(); else void silentVoice.start(); }}>
           {silentVoice.state === 'transcribing' ? <Loader2 size={18} className="animate-spin"/> : <Mic size={18}/>}
         </button>}
+        {familyEnabled && <>
+          <Button variant="plain" type="button" className="tasting-heading-mic tasting-heading-camera tap-target" disabled={photographs.busy} aria-label="Add a photograph" onClick={() => { photographs.clearError(); photoInputRef.current?.click(); }}>
+            {photographs.busy ? <Loader2 size={18} className="animate-spin" aria-hidden="true"/> : <Camera size={18} aria-hidden="true"/>}
+          </Button>
+          <input ref={photoInputRef} type="file" accept="image/*" multiple hidden tabIndex={-1} aria-hidden="true" data-testid="tasting-photo-input"
+            onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ''; void photographs.add(files, photoPage); }} />
+        </>}
         </div>
         <div className="tasting-save-control" role="group" aria-label="Save tasting controls" data-pending={isDirty && canSave && silentVoice.state === 'idle'}>
         <button type="button" className="tasting-heading-save tap-target" aria-label={saveState === 'saving' ? 'Saving tasting' : saveState === 'saved' ? 'Tasting saved' : 'Save tasting'} disabled={saveState === 'saving' || saveState === 'saved' || silentVoice.state !== 'idle'} onClick={() => {
-          if (canSave) { setShowSaveGuidance(false); void handleSave(); }
+          if (canSave) { setShowSaveGuidance(false); void handleSaveThenShare(); }
           else { setPhase('tasting'); setShowNote(true); setShowSaveGuidance(true); }
         }}>{saveState === 'saving' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : null}{saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving' : saveState === 'error' ? 'Retry' : 'Save'}</button>
         </div>
@@ -570,6 +604,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         </div>}
       </div>
       {showSaveGuidance && !canSave && saveState === 'idle' && <p role="status" className="tasting-save-guidance">{verdictRequired && verdict === null ? 'Choose your impression to save this tasting.' : 'Add a note, rating or tasting observation to save.'}</p>}
+      {photographs.error && <p role="alert" className="tasting-save-guidance">{photographs.error}</p>}
       {saveState === 'error' && <p role="alert" className="tasting-save-guidance">Could not save. Your edits are still here. Try Save again.</p>}
 
       {/* Details sits OUTSIDE the transition group below. Adding a third branch
@@ -688,12 +723,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     sessionSharedNote={item.journalRecord?.sessionSharedNote}
                     notesLabel={eventTasting ? 'Personal notes' : structuredTasting ? 'Notes for the host' : undefined}
                     voiceState={silentVoice.state} voiceError={voiceError}
+                    photographRow={familyEnabled ? <TastingPhotographRow photos={photographs.photos} busy={photographs.busy} onRemove={id => { void photographs.remove(id); }} onShape={(id, shape, frame) => photographs.reshape(id, shape, frame)} /> : undefined}
+                    notesNotice={isAuthenticated && !adminMode ? NOTES_NOTICE : undefined}
                     verdict={verdict} onVerdict={next => { setVerdict(next); handleTastingChange({...tastingData, impression:next ?? undefined}); }}
                     wouldBuy={wouldBuy} onWouldBuy={next => { setWouldBuy(next); handleTastingChange({...tastingData,wantToPurchase:next}); }}
                     inCollection={tastingData.inCollection ?? favoriteTeas.includes(item.id)}
                     onCollection={() => handleTastingChange({...tastingData,inCollection:!(tastingData.inCollection ?? favoriteTeas.includes(item.id))})}
                     selections={tastingRecap(tastingData)} onResume={resumeSelection}
-                    onSaveNotes={() => { void handleSave(); }} canSaveNotes={canSave && silentVoice.state === 'idle'}
+                    onSaveNotes={() => { void handleSaveThenShare(); }} canSaveNotes={canSave && silentVoice.state === 'idle'}
                     savingNotes={saveState === 'saving'} notesSaveError={saveState === 'error'}
                     notesSaveHint={verdictRequired && verdict === null ? 'Choose an impression above to save.' : undefined}/>
                 </div>
@@ -1101,6 +1138,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      {shareOpen && <TastingShareStep productId={item.id} photographCount={photographs.photos.length} onClose={() => setShareOpen(false)} />}
     </div>,
     document.body
   );

@@ -16,6 +16,7 @@ import { EmblemLoader } from '../components/shared/EmblemLoader';
 import type { InventoryItem } from '../types';
 import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
+import { tastingReturnPath } from '../lib/authNavigation';
 import { buildPublicProductHref, findProductByRouteParam, resolveInventoryStoreSlug } from '../lib/publicProductNavigation';
 import { fetchStore, fetchStoreProduct } from '../lib/storefrontApi';
 import { resolveContactChannels } from '../lib/contact';
@@ -25,6 +26,8 @@ import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { GroupHead, IndexRow, SplitName } from '../components/people/immersive';
+import { useTeaFamily } from '../components/shop/useTeaFamily';
+import { TeaPhotographRow } from '../components/shop/TeaFamilyStrips';
 
 
 interface ProductPageProps {
@@ -65,7 +68,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // links and a legacy UUID on old ones. The resolver accepts either.
   const { id: routeKey } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const persistedStoreSlug = useAppStore(state => state.shopStoreSlug);
   const storeSlug = searchParams.get('store')?.trim() || persistedStoreSlug;
   const shopHref = storeSlug ? `/shop?store=${encodeURIComponent(storeSlug)}` : '/shop';
@@ -112,6 +115,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   });
   const selectedBy = selectedByQuery.data?.selected_by ?? [];
 
+  // The family's photographs of this tea, as one row under the plaque: the
+  // shop's chosen picture, other people's shared ones and, signed in, the
+  // reader's own with their cover first.
+  const family = useTeaFamily(item?.id);
+
   // Tasting session (customers) / product tasting editor (admins): same
   // behaviors the shop grids attach to the modal card.
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
@@ -151,12 +159,24 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
      * sent to a sign-up form mid-session.
      */
     if (!isAuthenticated) {
-      const back = `${window.location.pathname}${window.location.search}`;
+      const back = tastingReturnPath(window.location.pathname, window.location.search);
       navigate(`/signup?returnTo=${encodeURIComponent(back)}`);
       return;
     }
     setTastingItem(tasteItem);
   }, [isAdmin, isAuthenticated, navigate]);
+
+  // Coming back from joining at "Add your tasting": open the tasting they asked for
+  // and take the marker out of the address so a reload does not open it again.
+  const wantsTasting = searchParams.get('taste') === '1';
+  useEffect(() => {
+    if (!wantsTasting || !isAuthenticated || isAdmin || !item) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('taste');
+    setSearchParams(next, { replace: true });
+    setTastingOpensOnNotes(false);
+    setTastingItem(item);
+  }, [wantsTasting, isAuthenticated, isAdmin, item, searchParams, setSearchParams]);
 
   // Tasting-term cross-reference: send the reader into the filtered shop.
   const handleTermClick = useCallback((termId: string, categoryId: string) => {
@@ -471,6 +491,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         onOpenOrder={onCartClick}
         isAdmin={isAdmin}
         onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
+        underPlate={family.row.length > 0 ? (
+          <TeaPhotographRow photographs={family.row} teaName={item.name} onChooseCover={(id) => { void family.chooseCover(id); }} onRemove={family.removeOwn} onShape={(id, shape, frame) => family.reshapeOwn(id, shape, frame)} />
+        ) : undefined}
       />
 
       {/* Tasting session (customers) */}

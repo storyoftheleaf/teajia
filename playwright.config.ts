@@ -11,7 +11,13 @@ export default defineConfig({
   // shell, and failed parsing HTML as JSON. They run under
   // `npm run test:tea-reference-browser` and
   // `npm run test:tea-reference-revision-browser`.
-  testIgnore: ['tea-reference-preview.spec.ts', 'tea-reference-revision-workflow.spec.ts'],
+  //
+  // The practice-shop specs and the family walk are left out for the same kind
+  // of reason: they need the practice API and its local database, which only
+  // `playwright.practice.config.ts` starts. Run here they got the application
+  // shell where they asked for JSON, and found no database file. The pattern
+  // is the one that config selects, so the two can never both claim a spec.
+  testIgnore: ['tea-reference-preview.spec.ts', 'tea-reference-revision-workflow.spec.ts', /(practice-.*|teajia-family-walk)\.spec\.ts/],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

@@ -61,10 +61,12 @@ function seedContributor(db: SqliteD1, options: {
   const accountId = options.accountId ?? 'acc-one';
   seedAccount(db, accountId);
   db.sqlite.prepare(`INSERT INTO contributors
-    (id, account_id, display_name, business_name, is_published, links)
-    VALUES (?, ?, ?, ?, ?, ?)`).run(
+    (id, account_id, display_name, business_name, is_published, links, portrait_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
       options.id, accountId, `Display ${options.id}`, options.businessName ?? null,
       options.isPublished === false ? 0 : 1, JSON.stringify(options.links ?? []),
+      // A photograph each: the people list leaves out anyone without one (people-list.test.ts).
+      `${options.id}.jpg`,
     );
 }
 

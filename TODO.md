@@ -4,6 +4,8 @@
 
 ## Soon
 
+- [ ] Teajia family: anyone can join, add voice notes and photographs in the tasting, share to a page of their own, and have a photograph chosen for a tea, planned and ready for an overnight build on branch claude/teajia-family _(band: agent-runnable)_ _(effort: deep)_ → Plan: [teajia-family.md](todo/plans/teajia-family.md)
+
 - [ ] Supply the US outbound shipping rate per kilo and currency, packed-weight allowance, minimum charge and covered destinations before enabling automatic shipping fees; keep customer shipping quoted separately and never reuse the shop’s inbound freight rate _(band: you-required)_ _(effort: quick)_
 
 - [ ] Rebuild Manage (Curate, Stock, Purchases, Sales, Sessions) as new versions beside the old, finished and connected, with no function lost; wave 1 of invisible fixes has landed on the working branch _(band: you-required)_ _(effort: deep)_ → Plan: [manage-rebuild.md](todo/plans/manage-rebuild.md) · Report: [Teajia Manage: audit and rebuild plan](https://claude.ai/artifact/YBTipCxwkRVTbKPiahXcrr)

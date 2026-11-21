@@ -2,6 +2,7 @@ import { ArrowRight } from '@phosphor-icons/react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { visiblePublicFavorites } from './profileDomain';
 import type { ProfileFavorite } from './types';
+import { SoldOutLine } from '../people/PersonTastings';
 
 interface PublicFavoritesCollectionProps {
   contributorName: string;
@@ -51,6 +52,7 @@ export function PublicFavoritesCollection({ contributorName, favorites, compact 
                 <h3 className={`${TYPOGRAPHY_CLASSES.h2} mt-2 truncate text-tea-text`}>{tea.name}</h3>
               )}
               {tea.chinese_name && <p className="mt-1 font-display text-ui-17 text-tea-text-sec">{tea.chinese_name}</p>}
+              {tea.sold_out && <div className="mt-3"><SoldOutLine productId={tea.product_id} name={tea.name} /></div>}
               {favorite.note && (
                 <blockquote className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-4 max-w-[54ch] border-l border-tea-gold pl-4 text-tea-text-sec`}>
                   {favorite.note}

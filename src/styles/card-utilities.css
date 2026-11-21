@@ -2307,17 +2307,16 @@ input[type="number"]::-webkit-outer-spin-button {
    label came out looking like putty. Overlay moves lightness, leaves the hue. */
 .light .label-plate::before { opacity: 0.34; mix-blend-mode: overlay; }
 /* The keyline is inset 12px on the phone board and 24px on the desktop one:
-   the panel is 396px tall in the hand and full-column on the desk, so a single
+   the panel is short in the hand and full-column on the desk, so a single
    inset would crowd one and float in the other. */
 .label-plate::after {
   content: '';
   position: absolute;
-  inset: 12px;
-  border: 1px solid rgb(var(--tea-gold-rgb) / 0.3);
+  inset: var(--plate-keyline-inset);
+  border: 1px solid var(--plate-keyline);
 }
-.light .label-plate::after { border-color: rgba(36, 29, 19, 0.26); }
 @media (min-width: 1024px) {
-  .label-plate::after { inset: 24px; }
+  .label-plate { --plate-keyline-inset: var(--plate-keyline-inset-desk); }
 }
 /* The rule above the shop's own sentence, which sits on the plate and so
    follows the plate's ink rather than the page's border token. */
@@ -7285,6 +7284,60 @@ body.cart-panel-open .commerce-dock {
 .stock-tea-open { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:var(--tap-min); padding:0 6px; color:var(--tea-text-sec); font-size: var(--fs-ui-12); }
 .stock-tea-open:hover { color:var(--tea-gold-lt); }
 
+/* Tasting: photographs beside the notes, and the Share step after Save. */
+.tasting-header-controls .tasting-impression-control .tasting-heading-mic:has(+ .tasting-heading-camera) { border-radius:0; }
+.tasting-header-controls .tasting-impression-control .tasting-heading-camera { border-radius:0 9px 9px 0; }
+.tasting-impression-photos { margin-bottom:16px; }
+.tasting-impression-photos-label { display:block; color:var(--tea-text-dim); margin-bottom:10px; }
+.tasting-photo-box { display:flex; flex-wrap:wrap; align-items:flex-start; gap:10px; min-height:var(--space-12); padding:var(--space-3); border:1px solid var(--tea-border); border-radius:4px; background:var(--tea-surface); color:var(--tea-text); }
+.tasting-photo-box > p { margin:0; align-self:center; color:var(--tea-text-dim); }
+.tasting-photo-box-link { flex-basis:100%; color:var(--tea-text-sec); text-decoration:underline; text-underline-offset:2px; }
+.tasting-impression-notice { margin:8px 0 0; color:var(--tea-text-dim); }
+.tasting-impression-notice a { color:var(--tea-text-sec); text-decoration:underline; text-underline-offset:2px; }
+.tasting-impression-history time { display:block; margin-top:8px; color:var(--tea-text-dim); }
+.tasting-impression-history time + p { margin-top:2px; }
+.tasting-share-step { position:absolute; left:0; right:0; bottom:0; z-index:10; padding:var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom)); border-top:1px solid var(--tea-border); background:var(--tea-elevated); color:var(--tea-text); }
+.tasting-share-step h3 { margin:0 0 10px; color:var(--tea-text-dim); }
+.tasting-share-options { display:grid; gap:6px; }
+.tasting-share-options button { min-height:var(--tap-min); padding:var(--space-2) var(--space-3); text-align:left; border:1px solid var(--tea-border); border-radius:var(--radius-xl); background:var(--tea-surface); color:var(--tea-text); }
+.tasting-share-options button[aria-pressed="true"] { background:var(--tea-accent-sub); }
+.tasting-share-actions { display:flex; justify-content:space-between; gap:12px; margin-top:12px; }
+.tasting-share-actions button { min-height:var(--tap-min); padding:0 var(--space-3); color:var(--tea-text-sec); background:transparent; }
+.tasting-share-actions .tasting-share-primary { margin-left:auto; color:var(--tea-text); border:1px solid var(--tea-border); border-radius:11px; background:var(--tea-surface); }
+.tasting-share-step button:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
+
+/* Family photographs. One thumbnail and one zoom, used wherever a member's
+   photograph shows. Every photograph is cropped to one of three shapes and no
+   other: square, upright (2:3) or across (3:2). A row is set by its height, so
+   the three shapes sit on one line; nothing is written on or under a thumbnail.
+   Who took it, and what can be done with it, is in the zoom. */
+.photo-row { display:flex; flex-wrap:wrap; align-items:flex-start; gap:var(--space-2); margin:0; padding:0; list-style:none; }
+.photo-thumb { position:relative; display:block; flex:none; height:calc(var(--space-12) * 1.5); aspect-ratio:1; padding:0; overflow:hidden; background:var(--tea-surface); cursor:zoom-in; }
+.photo-thumb[data-size="tasting"] { height:calc(var(--space-12) + var(--space-2)); }
+.photo-thumb[data-size="page"] { height:calc(var(--space-12) * 2); }
+.photo-thumb[data-shape="upright"] { aspect-ratio:2 / 3; }
+.photo-thumb[data-shape="across"] { aspect-ratio:3 / 2; }
+.photo-thumb img { display:block; inline-size:100%; block-size:100%; object-fit:cover; }
+.photo-thumb:focus-visible { outline:2px solid var(--tea-gold); outline-offset:2px; }
+.photo-zoom { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:calc(var(--space-12) + env(safe-area-inset-top)) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom)); background:var(--tea-bg); overflow-y:auto; }
+.photo-zoom__close { position:absolute; top:calc(var(--space-2) + env(safe-area-inset-top)); right:var(--space-2); }
+.photo-zoom__figure { margin:0; width:min(100%, 64vh); }
+.photo-zoom__figure[data-shape="upright"] { width:min(100%, 44vh); }
+.photo-zoom__figure[data-shape="across"] { width:min(100%, 96vh); }
+.photo-zoom__picture { position:relative; overflow:hidden; aspect-ratio:1; background:var(--tea-surface); }
+.photo-zoom__figure[data-shape="upright"] .photo-zoom__picture { aspect-ratio:2 / 3; }
+.photo-zoom__figure[data-shape="across"] .photo-zoom__picture { aspect-ratio:3 / 2; }
+.photo-zoom__picture img { display:block; inline-size:100%; block-size:100%; object-fit:cover; }
+/* Under the photograph everything keeps to the photograph's own edges, the way the
+   people editor's photo panel does: one row of words, never a cluster of boxes. */
+.photo-zoom__under { display:flex; flex-direction:column; align-items:stretch; gap:var(--space-1); margin-top:var(--space-3); text-align:left; color:var(--tea-text-sec); }
+.photo-zoom__credit { text-align:center; margin:0; font-family:var(--font-sans); font-size:var(--fs-ui-10); letter-spacing:0.2em; text-transform:uppercase; color:var(--tea-text-sec); }
+.photo-zoom__credit a { color:var(--tea-text); text-decoration:underline; text-underline-offset:4px; }
+.photo-zoom__actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-start; column-gap:var(--space-6); }
+/* Taking a photograph away sits apart, at the far edge. */
+.photo-zoom__last { margin-inline-start:auto; }
+.photo-zoom__note { margin:0; font-family:var(--font-body); font-size:var(--fs-ui-13); font-style:italic; color:var(--tea-text-dim); }
+.photo-shape[aria-pressed="true"] { color:var(--tea-gold-lt); background:var(--tea-accent-sub); }
 /* The crop editor's bar: Cancel, the three shapes, Save, as icons along the foot of the photograph. */
 .crop-bar { display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); padding-inline:var(--space-3); padding-block:var(--space-1); background:var(--tea-surface); }
 .crop-bar__shapes { display:flex; align-items:center; gap:var(--space-1); }
@@ -7307,6 +7360,16 @@ body.cart-panel-open .commerce-dock {
 .crop-dial__mark { position:absolute; inset-block:var(--space-1); left:50%; inline-size:2px; margin-left:-1px; background:var(--tea-gold-lt); }
 .crop-dial__input { position:absolute; inset:0; inline-size:100%; margin:0; opacity:0; pointer-events:none; }
 .crop-dial:focus-within { outline:2px solid rgb(var(--tea-gold-rgb) / 0.5); outline-offset:-2px; }
+/* The shapes start at the photograph's left edge: the icon, not its tap area, meets the edge. */
+.photo-zoom__shapes { display:flex; align-items:center; justify-content:flex-start; gap:var(--space-1); margin-inline-start:calc(-1 * var(--space-2)); }
+/* Under a photograph the chosen shape is said by its colour alone; a filled box would hang past the photograph's edge. */
+.photo-zoom__shapes .photo-shape[aria-pressed="true"] { background:transparent; }
+/* A turned photograph: the stage is the turned picture's outer box, placed so the framed part fills the shape. */
+.photo-stage { position:absolute; }
+.offered-photo { position:relative; display:block; block-size:calc(var(--space-12) * 2); aspect-ratio:1; overflow:hidden; background:var(--tea-surface); }
+.offered-photo img { display:block; inline-size:100%; block-size:100%; object-fit:cover; }
+.offered-photo[data-shape="upright"] { aspect-ratio:2 / 3; }
+.offered-photo[data-shape="across"] { aspect-ratio:3 / 2; }
 
 /* Standalone tea pages share the shop's label stock and order dock. */
 .tea-product-nav { min-block-size: var(--space-12); margin-inline: auto; }
@@ -7410,6 +7473,14 @@ body.cart-panel-open .commerce-dock {
   }
   .tea-product-plaque { padding-block-start: var(--space-3); }
   .tea-product-plaque > div { position: sticky; inset-block-start: var(--tea-product-plaque-top); block-size: auto; }
+  /* With the family's row under it, the plaque and the row share the height the plaque had alone. */
+  .tea-product-plaque > .tea-product-plaque-stack {
+    display: flex;
+    flex-direction: column;
+    block-size: calc(100svh - var(--tea-product-plaque-top) - var(--tea-product-dock-clearance) - env(safe-area-inset-bottom));
+  }
+  .tea-product-plaque-stack > div:first-child { flex: 1 1 auto; min-block-size: 0; }
+  .tea-product-plaque-stack .label-plate--tea { block-size: 100%; }
   .tea-product-plaque .label-plate--tea {
     block-size: calc(100svh - var(--tea-product-plaque-top) - var(--tea-product-dock-clearance) - env(safe-area-inset-bottom));
     min-block-size: 0;

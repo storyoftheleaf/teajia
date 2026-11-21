@@ -131,6 +131,8 @@ See `docs/CONSOLIDATED_DIRECTION.md` (single directional list) and `docs/tracks/
 ## DO NOT build
 Streak trackers, gamification, engagement notifications, algorithmic recommendations, social feeds/likes/followers, auto-replenish subscriptions.
 
+**One exception, order only (Adrian, 2026-11-21).** The people list may place the people who use the site most nearer the top of "The family". Position is the whole of it: no badges, counts, streaks, nudges or notifications, and no wording that says why anyone sits where they do. The method lives in `worker/src/peopleList.ts`; the plan is `todo/plans/teajia-family.md`, "The people list".
+
 ## NEVER change without explicit confirmation
 - Navigation links, tab labels, or routing in `src/components/BottomTabBar.tsx` or any nav component — ask first, do not assume.
 

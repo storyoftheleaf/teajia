@@ -45,6 +45,42 @@ storage, which is faster and repeatable:
 
 Storage survives reloads, so this is normally a once-per-browser step.
 
+## The practice shop (ports 8798 and 7813)
+
+Current main refuses every request in a local run (503 `shared_allowance_paused`)
+because the worker wants the shared allowance governor, which only exists in the
+separate `i64os-quota-guard` script. The practice shop gets around that without
+touching the committed `wrangler.toml` or the deploy path: `practice-config.mjs`
+writes `worker/wrangler.practice.toml` (gitignored, generated, never deployed),
+a copy with the `SHARED_ALLOWANCE` binding removed and `SHARED_ALLOWANCE_REQUIRED`
+set to `"false"`. It also writes a throwaway `worker/.dev.vars` (JWT secret only)
+if none exists, so no Infisical login is needed.
+
+It uses ports 8798 (API) and 7813 (site) so it never collides with `npm run
+sandbox` on 8787/7777 in another session. Same local database as the sandbox.
+
+```bash
+cd "$(git rev-parse --show-toplevel)"
+npm run practice            # API 8798 + site 7813 together (stop with ctrl-c)
+npm run practice:api        # API only: config, check-db, migrations, wrangler dev --local
+npm run practice:site       # site only, proxied to the API on 8798
+npm run practice:seed       # operator "sandbox"/"sandbox" + the three creator fixtures
+npm --prefix worker run practice:migrate   # just bring the local database up to date
+```
+
+`practice:migrate` runs before every API start. It applies this checkout's
+`worker/migrations/` to the LOCAL database file only (no network, never live),
+one statement at a time, skipping "duplicate column" and "already exists", and
+records each finished file in `practice_migrations_applied` so a second run does
+nothing. It needs an existing local database; on a fresh worktree run
+`npm run sandbox:refresh` once first (that read from live is the only live
+contact anywhere in this flow).
+
+Browser specs: `npx playwright test --config playwright.practice.config.ts`
+starts both servers itself, runs `tests/practice-*.spec.ts` at 390 wide, and
+stops them. `tests/practice-shop.spec.ts` is the smoke check: sign-in 200, people
+200, a tea page renders its tea.
+
 ## A new worktree starts with nothing
 
 The local database is not in git, so a fresh clone or a new worktree has no
@@ -153,6 +189,8 @@ otherwise, and the rebuild now runs that comparison for you.
 - `refresh.mjs`: pulls a fresh copy from live and rebuilds everything
 - `check-db.mjs`: refuses to start the API against an empty database (run by `npm run sandbox`)
 - `seed-operator.mjs`: creates the sandbox operator (run by refresh; also standalone)
+- `practice-config.mjs`: writes the gitignored practice wrangler config (`practice-config.test.mjs` guards it)
+- `migrate-local.mjs`: applies pending migrations to the local database only
 - `seed-creator-fixtures.mjs`: creates three placeholder creator profiles (standalone, run after refresh)
 - `*.sql`, `*.json`: the pulled dumps, gitignored and disposable
 

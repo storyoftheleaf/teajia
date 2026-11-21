@@ -72,6 +72,8 @@ interface AlcoveCardProps {
    * Both layouts share the exact same state, handlers, and section blocks.
    */
   layout?: 'card' | 'page';
+  /** Page layout only: what sits directly under the plaque (the row of photographs, the sold-out line). */
+  underPlate?: React.ReactNode;
 }
 
 /** Returns stock status info for display */
@@ -99,7 +101,7 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card' }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card', underPlate }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -643,8 +645,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     return (
       <article className="mx-auto w-full max-w-[1280px]">
         <div className="lg:grid lg:grid-cols-[minmax(0,min(36%,520px))_minmax(0,1fr)] lg:items-stretch lg:gap-0">
-          <div className="lg:h-full lg:border-r lg:border-tea-border">
+          {/* With something under it the plate gives up its full-height stretch
+              to the column, so the strip sits below it instead of past the end. */}
+          <div className={`lg:h-full lg:border-r lg:border-tea-border${underPlate ? ' lg:flex lg:flex-col lg:[&>header]:h-auto lg:[&>header]:flex-1' : ''}`}>
             {identityHeader}
+            {/* The plate fills the column, which on a long tea is far taller than the
+                window, so the strip stays in view at the foot of the window. */}
+            {underPlate && <div className="lg:sticky lg:bottom-0 lg:z-10 lg:bg-tea-bg lg:pb-3">{underPlate}</div>}
           </div>
 
           {/* The reading, with what the shop knows at the top of it */}
@@ -690,7 +697,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     return (
       <article className="tea-product-page mx-auto w-full max-w-screen-xl" data-sold-out={isSoldOut || undefined}>
         <div className="tea-product-layout">
-          <div className="tea-product-plaque">{identityHeader}</div>
+          {/* The family's row sits right under the plaque. With nothing in it the
+              plaque stands exactly as it does without the family. */}
+          <div className="tea-product-plaque">
+            {underPlate
+              ? <div className="tea-product-plaque-stack">{identityHeader}<div className="tea-product-under-plaque">{underPlate}</div></div>
+              : identityHeader}
+          </div>
           <div className="tea-product-reading">
             {gallery}
             <div className="tea-product-account" role="group" aria-label="Your tea actions">
@@ -710,7 +723,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   )}
                 </>
               ) : (
-                <Button variant="secondary" size="sm" onClick={() => navigate(authPagePath('signin', window.location.pathname + window.location.search))}>Log in</Button>
+                <>
+                  <Button variant="secondary" size="sm" onClick={() => navigate(authPagePath('signin', window.location.pathname + window.location.search))}>Log in</Button>
+                  {/* The family's door: a stranger joins from here and lands back in the tasting. */}
+                  {onTaste && <Button variant="secondary" size="sm" onClick={() => onTaste(item, 'notes')}>Add your tasting</Button>}
+                </>
               )}
             </div>
             {facts.length > 0 && (

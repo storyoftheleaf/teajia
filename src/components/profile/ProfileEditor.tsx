@@ -5,6 +5,7 @@ import type { ContributorGalleryImage } from '../../types';
 import { personPageParts, MISSING_BEGINNINGS, tidyLinks, type PersonValue } from '../../admin/components/contributorEditor/PersonPage';
 import { PhotoUploadContext, type PhotoUploader } from '../../admin/components/contributorEditor/photoUpload';
 import type { SheetId } from '../../admin/components/contributorEditor/CardParts';
+import { FAMILY_PAGE_WORDS, familyPageNeedsReview } from '../../lib/familyContract';
 
 // The tea master's own page, filled in by the tea master. The same card and
 // rows as the shop's editor, in the same words, so what they see is what the
@@ -63,14 +64,24 @@ export function ProfileEditor({ profile, onSave, onSaveGallery, onUnpublish, onU
     || profile.approval_state === 'pending'
     || profile.approval_state === 'changes_requested'
   );
-  const saveLabel = profile.is_published
+  // A family page goes live without review: saving puts the change on the page at once.
+  const goesLive = !familyPageNeedsReview(profile.page_tier);
+  const saveLabel = goesLive
+    ? 'Save'
+    : profile.is_published
     ? hasPendingDraft ? 'Update pending draft' : 'Save for review'
     : profile.approval_state === 'changes_requested'
       ? 'Save revision'
       : isPendingDraft
         ? 'Save draft'
         : 'Save profile';
-  const saveStateCopy = saved
+  const saveStateCopy = goesLive
+    ? saved
+      ? 'Saved. It is on your page.'
+      : profile.is_published
+        ? 'Your page is live. What you save goes on it at once.'
+        : 'Your page is down. Saving puts it back.'
+    : saved
     ? profile.is_published
       ? 'Sent. Teajia will look it over before it goes on your page.'
       : isPendingDraft
@@ -169,6 +180,7 @@ export function ProfileEditor({ profile, onSave, onSaveGallery, onUnpublish, onU
     closeSheet,
     sheetMode: 'page',
     allowAddress: false,
+    lockedRole: profile.page_tier ? FAMILY_PAGE_WORDS[profile.page_tier] : undefined,
     takePortrait,
     takeGallery,
   });
@@ -177,7 +189,7 @@ export function ProfileEditor({ profile, onSave, onSaveGallery, onUnpublish, onU
     event.preventDefault();
     if (uploading) { setError('A photo is still arriving. Save once it has landed.'); return; }
     if (!draft.display_name.trim()) { setError('Write your name before saving.'); return; }
-    if (!draft.beginnings?.trim()) { setError(MISSING_BEGINNINGS); openSheet('words', null); return; }
+    if (!goesLive && !draft.beginnings?.trim()) { setError(MISSING_BEGINNINGS); openSheet('words', null); return; }
     setSaving(true);
     setError(null);
     try {

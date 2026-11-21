@@ -229,6 +229,13 @@ CREATE TABLE IF NOT EXISTS contributors (
     links TEXT NOT NULL DEFAULT '[]',
     is_published INTEGER NOT NULL DEFAULT 0,
     unpublished_at TEXT,
+    -- 'family' | 'creator' | 'master'; NULL is a page from before the family. Migration 0074.
+    page_tier TEXT,
+    -- The people list. founding_member = 1 is the owner's pick for "Founding
+    -- members"; list_pinned_at is when he pinned them to the top of their group.
+    -- Migration 0077.
+    founding_member INTEGER NOT NULL DEFAULT 0,
+    list_pinned_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -3396,6 +3403,117 @@ CREATE TABLE IF NOT EXISTS private_session_reflections (
   FOREIGN KEY(attendee_id, event_id, account_id) REFERENCES event_attendees(id, event_id, account_id)
 );
 CREATE INDEX IF NOT EXISTS idx_session_reflections_owner ON private_session_reflections(account_id, user_id, updated_at);
+
+-- Migration 0073: Teajia family (member photographs, covers, tasting shares,
+-- restock requests, reports and hides). Copied from the migration verbatim.
+CREATE TABLE IF NOT EXISTS member_photographs (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  product_id TEXT NOT NULL REFERENCES products(id),
+  author_user_id TEXT NOT NULL REFERENCES users(id),
+  journal_entry_id TEXT,
+  page TEXT CHECK (page IS NULL OR page IN ('impression', 'texture', 'effect', 'taste', 'storage', 'notes', 'other')),
+  full_key TEXT NOT NULL UNIQUE,
+  small_key TEXT NOT NULL UNIQUE,
+  full_bytes INTEGER NOT NULL CHECK (full_bytes > 0),
+  small_bytes INTEGER NOT NULL CHECK (small_bytes > 0),
+  full_width INTEGER NOT NULL CHECK (full_width > 0),
+  full_height INTEGER NOT NULL CHECK (full_height > 0),
+  small_width INTEGER NOT NULL CHECK (small_width > 0),
+  small_height INTEGER NOT NULL CHECK (small_height > 0),
+  share_state TEXT NOT NULL DEFAULT 'private' CHECK (share_state IN ('private', 'page', 'offered')),
+  offered_at TEXT,
+  shop_use TEXT NOT NULL DEFAULT 'none' CHECK (shop_use IN ('none', 'placed', 'lead', 'passed')),
+  shop_use_before_lead TEXT CHECK (shop_use_before_lead IS NULL OR shop_use_before_lead IN ('none', 'placed', 'passed')),
+  shop_decided_at TEXT,
+  shop_decided_by TEXT REFERENCES users(id),
+  removed_by_member_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  shape TEXT NOT NULL DEFAULT 'square' CHECK (shape IN ('square', 'upright', 'across')),
+  frame TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_member_photographs_author_product
+  ON member_photographs(author_user_id, product_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_member_photographs_author_created
+  ON member_photographs(author_user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_member_photographs_account_product
+  ON member_photographs(account_id, product_id, share_state);
+CREATE INDEX IF NOT EXISTS idx_member_photographs_account_offered
+  ON member_photographs(account_id, offered_at);
+-- One lead picture per tea.
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_member_photographs_one_lead
+  ON member_photographs(account_id, product_id) WHERE shop_use = 'lead';
+
+-- The member's own cover for one tea. Only they see it.
+CREATE TABLE IF NOT EXISTS member_tea_covers (
+  author_user_id TEXT NOT NULL REFERENCES users(id),
+  product_id TEXT NOT NULL REFERENCES products(id),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  photograph_id TEXT NOT NULL REFERENCES member_photographs(id),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (author_user_id, product_id)
+);
+
+-- Whether a tasting is shared. Words and photographs only: the score stays in
+-- the private journal and no route reads it from here.
+CREATE TABLE IF NOT EXISTS member_tasting_shares (
+  journal_entry_id TEXT PRIMARY KEY REFERENCES customer_tasting_journal(id),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  product_id TEXT NOT NULL REFERENCES products(id),
+  author_user_id TEXT NOT NULL REFERENCES users(id),
+  share_state TEXT NOT NULL DEFAULT 'private' CHECK (share_state IN ('private', 'page', 'offered')),
+  shared_at TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_member_tasting_shares_author
+  ON member_tasting_shares(author_user_id, share_state);
+CREATE INDEX IF NOT EXISTS idx_member_tasting_shares_account_product
+  ON member_tasting_shares(account_id, product_id, share_state);
+
+-- "Find me more" on a sold-out tea. Lands with the shop.
+CREATE TABLE IF NOT EXISTS restock_requests (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  product_id TEXT NOT NULL REFERENCES products(id),
+  requester_user_id TEXT NOT NULL REFERENCES users(id),
+  note TEXT CHECK (note IS NULL OR length(note) <= 500),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'answered', 'closed')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  answered_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_restock_requests_one_open
+  ON restock_requests(requester_user_id, product_id) WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS idx_restock_requests_account_status
+  ON restock_requests(account_id, status, created_at);
+
+-- A visitor's report on a page, photograph or tasting. A visitor may be signed
+-- out; no address or device detail is kept.
+CREATE TABLE IF NOT EXISTS family_reports (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  target_kind TEXT NOT NULL CHECK (target_kind IN ('page', 'photograph', 'tasting')),
+  target_id TEXT NOT NULL,
+  reason TEXT CHECK (reason IS NULL OR length(reason) <= 1000),
+  reporter_user_id TEXT REFERENCES users(id),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'acted', 'dismissed')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_at TEXT,
+  resolved_by TEXT REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_family_reports_account_status
+  ON family_reports(account_id, status, created_at);
+
+-- The owner's one-tap hide. A page is addressed by its contributor id, a
+-- tasting by its journal entry id. Removing the row is the restore.
+CREATE TABLE IF NOT EXISTS family_hides (
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  target_kind TEXT NOT NULL CHECK (target_kind IN ('page', 'photograph', 'tasting')),
+  target_id TEXT NOT NULL,
+  hidden_by TEXT NOT NULL REFERENCES users(id),
+  hidden_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (account_id, target_kind, target_id)
+);
 
 -- Local PayPal sandbox attempts only. No live payment configuration or backfill.
 CREATE TABLE IF NOT EXISTS paypal_sandbox_orders (

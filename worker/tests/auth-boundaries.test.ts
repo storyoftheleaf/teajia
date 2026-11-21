@@ -266,7 +266,6 @@ describe('worker authorization boundaries', () => {
   });
   it.each([
     ['/api/generate-chinese-name', 'catalog'],
-    ['/api/transcribe', 'catalog'],
     ['/api/extract-from-image', 'catalog'],
     ['/api/upload-image', 'catalog'],
     ['/api/upload-flyer', 'gather'],
@@ -275,6 +274,17 @@ describe('worker authorization boundaries', () => {
     const denied = await worker.fetch(request, makeEnv({ role: 'staff', bundles: [] }));
     expect(denied.status).toBe(403);
     expect(await denied.json()).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: bundle } });
+  });
+
+  // Teajia family (todo/plans/teajia-family.md): voice notes are open to any
+  // signed-in member. Without the catalog bundle the caller is not refused but
+  // taken down the member path, with member limits under its own limiter key.
+  it('opens /api/transcribe to a signed-in member without the catalog bundle, under member limits', async () => {
+    const keys: string[] = [];
+    const env = { ...makeEnv({ role: 'staff', bundles: [] }), PROVIDER_LIMITER: { limit: async ({ key }: { key: string }) => { keys.push(key); return { success: false }; } } };
+    const response = await worker.fetch(await authedRequest('/api/transcribe', { method: 'POST', body: '{}' }), env);
+    expect(response.status).toBe(429);
+    expect(keys).toEqual(['family:user_test:transcribe']);
   });
 
   it.each([
