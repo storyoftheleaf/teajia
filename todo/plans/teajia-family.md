@@ -79,6 +79,10 @@ His words: "We don't want ever a place where people have no profile picture in t
 
 Built in `worker/src/peopleList.ts`, migration 0077 (two empty columns), `src/pages/ContributorsIndexPage.tsx`. Tests: `worker/tests/people-list.test.ts`.
 
+## Voice notes keep words, not audio (Adrian, 2026-11-21)
+
+A member's voice note is only a way to write. Once its transcript is saved the audio file is deleted from storage; the row keeps the words and still counts toward the day's twenty. A note whose transcription failed keeps its audio so it can be retried, until the usual seven-day expiry. Shop staff recordings are unchanged (Curate can attach audio to a tea). `worker/src/familyRoutes.ts` `finishTranscription`; checked in `worker/tests/teajia-family-routes.test.ts`.
+
 ## Not building
 
 No likes, followers, counts, streaks, comments or feed. Quiet ordering of the people list is the one exception (see "The people list"): order only, with no badges, counts, streaks, nudges or notifications. No live Instagram feed. No change to navigation words, tab labels or routes in the nav components. No AI feature. No deploy: nothing here goes live until Adrian says ship.
