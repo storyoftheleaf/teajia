@@ -3,7 +3,9 @@
  * Plan: todo/plans/teajia-family.md, "The people list" (Adrian, 2026-11-21).
  *
  * 1. No photograph, no place on the list. The person's page still answers at
- *    its own address; only the list leaves them out.
+ *    its own address; only the list leaves them out. A photograph placed on
+ *    their page counts, and so does one they shared from a tasting: the newest
+ *    of those stands as their picture on the list until they place their own.
  * 2. Three groups, in this order: This season (tea creators, tea masters and
  *    the pages from before the family), Founding members (the owner's pick,
  *    made once), The family.
@@ -26,6 +28,7 @@ export const PEOPLE_LIST_SHOP_PICK_WEIGHT = 3;
 export { PEOPLE_LIST_FAMILY_SHOWN } from '../../src/lib/familyContract';
 import type { PeopleListGroup } from '../../src/lib/familyContract';
 
+const MEDIA_PREFIX = 'https://media.teajia.co/';
 const WINDOW = `datetime('now', '-${PEOPLE_LIST_WINDOW_DAYS} days')`;
 
 /**
@@ -41,7 +44,11 @@ export const PEOPLE_LIST_COLUMNS =
        AND COALESCE(s.shared_at, s.updated_at) >= ${WINDOW} AND ${TASTING_NOT_HIDDEN}) AS list_days_shared,
    (SELECT COUNT(*) FROM member_photographs p
      WHERE p.author_user_id = c.user_id AND p.shop_use IN ('placed', 'lead')
-       AND p.shop_decided_at >= ${WINDOW} AND ${PHOTO_NOT_HIDDEN}) AS list_shop_picks`;
+       AND p.shop_decided_at >= ${WINDOW} AND ${PHOTO_NOT_HIDDEN}) AS list_shop_picks,
+   (SELECT p.small_key FROM member_photographs p
+     WHERE p.author_user_id = c.user_id AND p.share_state IN ('page', 'offered')
+       AND p.removed_by_member_at IS NULL AND ${PHOTO_NOT_HIDDEN}
+     ORDER BY p.created_at DESC, p.id DESC LIMIT 1) AS list_tasting_photo_key`;
 
 type Listed = {
   display_name: string;
@@ -53,6 +60,7 @@ type Listed = {
   list_pinned_at?: unknown;
   list_days_shared?: unknown;
   list_shop_picks?: unknown;
+  list_tasting_photo_key?: unknown;
 };
 
 const GROUP_ORDER: Record<PeopleListGroup, number> = { season: 0, founding: 1, family: 2 };
@@ -81,8 +89,12 @@ const quietScore = (person: Listed) =>
  * The list as the page shows it: only people with a photograph, grouped and
  * ordered, each carrying its group and nothing that says why it sits where it does.
  */
-export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 'founding_member' | 'list_pinned_at' | 'list_days_shared' | 'list_shop_picks'> & { list_group: PeopleListGroup }> {
+export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 'founding_member' | 'list_pinned_at' | 'list_days_shared' | 'list_shop_picks' | 'list_tasting_photo_key'> & { list_group: PeopleListGroup }> {
   return people
+    // A photograph on their page stands first; without one, the newest they shared from a tasting.
+    .map(person => (person.card_image_url || person.avatar_url || typeof person.list_tasting_photo_key !== 'string' || !person.list_tasting_photo_key
+      ? person
+      : { ...person, card_image_url: `${MEDIA_PREFIX}${person.list_tasting_photo_key}` }))
     .filter(person => Boolean(person.card_image_url || person.avatar_url))
     .map(person => ({ person, group: groupOf(person) }))
     .sort((a, b) =>
@@ -94,7 +106,7 @@ export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 
         : 0)
       || byName(a.person, b.person))
     .map(({ person, group }) => {
-      const { founding_member: _f, list_pinned_at: _p, list_days_shared: _d, list_shop_picks: _s, ...shown } = person;
+      const { founding_member: _f, list_pinned_at: _p, list_days_shared: _d, list_shop_picks: _s, list_tasting_photo_key: _k, ...shown } = person;
       return { ...shown, list_group: group };
     });
 }

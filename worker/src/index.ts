@@ -25091,7 +25091,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // The directory's two filters. A host runs a room or is about to: a hosted
     // account, or a public lead/co-host role on any event. A writer has at
     // least one published article of their own.
-    is_host: Number(row.is_host) === 1, family_last_active: row.family_last_active ?? null, page_tier: familyPageTierOf(row.page_tier), founding_member: row.founding_member, list_pinned_at: row.list_pinned_at, list_days_shared: row.list_days_shared, list_shop_picks: row.list_shop_picks,
+    is_host: Number(row.is_host) === 1, family_last_active: row.family_last_active ?? null, page_tier: familyPageTierOf(row.page_tier), founding_member: row.founding_member, list_pinned_at: row.list_pinned_at, list_days_shared: row.list_days_shared, list_shop_picks: row.list_shop_picks, list_tasting_photo_key: row.list_tasting_photo_key,
     article_count: Number(row.article_count || 0),
   }));
 

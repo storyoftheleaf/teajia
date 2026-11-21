@@ -607,7 +607,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                       );
                     })}
                   </div>
-                  <p className="mt-1.5 font-sans text-ui-12 leading-relaxed text-tea-text-dim">A person shows on the list once their page has a photograph. Nothing on the list says why anyone sits where they do.</p>
+                  <p className="mt-1.5 font-sans text-ui-12 leading-relaxed text-tea-text-dim">A person shows on the list once they have a photograph: one on their page, or one they shared from a tasting. Nothing on the list says why anyone sits where they do.</p>
                 </div>
               )}
               <Line label="Their sign-in" id="f-their-sign-in" value={form.user_id ?? ''} onChange={event => setField('user_id', event.target.value)} autoCapitalize="none" placeholder="The account that may edit this page" hint="With it they can change their own page. A family page takes their changes at once; any other page sends them to you to approve." />

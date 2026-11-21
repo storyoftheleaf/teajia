@@ -54,7 +54,16 @@ function setup() {
       full_width, full_height, small_width, small_height, share_state, shop_use, shop_decided_at, offered_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, 900000, 90000, 2000, 1500, 480, 360, 'offered', 'placed', ?, ?, ?)`).run(`p-${n}`, SHOP, tea, `user-${id}`, `f-${n}`, `s-${n}`, at, at, at);
   };
-  return { db, env: { DB: db as any, JWT_SECRET: SECRET }, person, share, picked };
+  /** A photograph taken in a tasting. `state` is the author's choice: private, page or offered. */
+  const tastingPhoto = (id: string, tea: string, state: string, opts: { removed?: boolean; at?: string } = {}) => {
+    n += 1;
+    const at = opts.at ?? ago(1);
+    db.sqlite.prepare(`INSERT INTO member_photographs (id, account_id, product_id, author_user_id, full_key, small_key, full_bytes, small_bytes,
+      full_width, full_height, small_width, small_height, share_state, removed_by_member_at, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 900000, 90000, 2000, 1500, 480, 360, ?, ?, ?, ?)`).run(`t-${n}`, SHOP, tea, `user-${id}`, `full-${n}.jpg`, `small-${n}.jpg`, state, opts.removed ? at : null, at, at);
+    return { id: `t-${n}`, small: `small-${n}.jpg` };
+  };
+  return { db, env: { DB: db as any, JWT_SECRET: SECRET }, person, share, picked, tastingPhoto };
 }
 
 const get = (env: any, path: string) => worker.fetch(new Request(`https://worker.test${path}`), env);
@@ -89,6 +98,39 @@ describe('no photograph, no place on the list', () => {
     person('old-no-photo', null, null);
     person('master', 'master', 'portrait');
     expect(await ids(env)).toEqual(['master']);
+  });
+});
+
+describe('a photograph shared from a tasting counts', () => {
+  it('lists a person whose only photograph is one they shared, and uses the newest as their picture', async () => {
+    const { env, person, tastingPhoto } = setup();
+    person('taster', 'family', null);
+    tastingPhoto('taster', 'tea-a', 'page', { at: ago(5) });
+    const newest = tastingPhoto('taster', 'tea-b', 'offered', { at: ago(1) });
+    const list = ((await (await get(env, '/api/people')).json()) as any).contributors;
+    expect(list.map((c: any) => c.id)).toEqual(['taster']);
+    expect(list[0].card_image_url).toBe(`https://media.teajia.co/${newest.small}`);
+    expect(list[0]).not.toHaveProperty('list_tasting_photo_key');
+  });
+
+  it('does not count one kept private, one they removed, or one the owner hid', async () => {
+    const { db, env, person, tastingPhoto } = setup();
+    person('private', 'family', null);
+    person('removed', 'family', null);
+    person('hidden', 'family', null);
+    tastingPhoto('private', 'tea-a', 'private');
+    tastingPhoto('removed', 'tea-a', 'page', { removed: true });
+    const hidden = tastingPhoto('hidden', 'tea-a', 'page');
+    db.sqlite.prepare(`INSERT INTO family_hides (account_id, target_kind, target_id, hidden_by) VALUES (?, 'photograph', ?, 'owner')`).run(SHOP, hidden.id);
+    expect(await ids(env)).toEqual([]);
+  });
+
+  it("keeps the photograph on their page as their picture when they have both", async () => {
+    const { env, person, tastingPhoto } = setup();
+    person('both', 'family', 'portrait');
+    tastingPhoto('both', 'tea-a', 'page');
+    const [row] = ((await (await get(env, '/api/people')).json()) as any).contributors;
+    expect(row.card_image_url).toBe('both.jpg');
   });
 });
 

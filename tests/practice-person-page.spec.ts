@@ -190,10 +190,13 @@ test('a shared tasting shows on the person page, the family is listed, sold-out 
     expect(JSON.stringify(requests)).toContain(goneId);
 
     // The people list: under "This season", "The family", this person in it, no counts.
-    // No photograph, no place on the list; then they place one of their own.
-    const unlisted = await (await page.request.get('/api/people')).json();
-    expect(unlisted.contributors.some((c: any) => c.id === slug)).toBe(false);
+    // They placed nothing on their page: a photograph they shared from a tasting is their picture on the list.
+    const listedWith = (await (await page.request.get('/api/people')).json()).contributors.find((c: any) => c.id === slug);
+    expect(String(listedWith?.card_image_url ?? '')).toContain('family-photos/');
+    // Placing one of their own takes its place.
     expect(await placeOwnPhoto(page, token)).toEqual({ upload: 201, save: 200 });
+    const listedOwn = (await (await page.request.get('/api/people')).json()).contributors.find((c: any) => c.id === slug);
+    expect(String(listedOwn?.card_image_url ?? '')).toContain(`people/${slug}/`);
     const people = await visitor.newPage();
     await people.goto('/people');
     const family = people.getByTestId('people-family');
