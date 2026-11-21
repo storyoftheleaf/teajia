@@ -82,3 +82,17 @@ describe('sample graduation keeps the quote basis without inventing stock', () =
     expect(acquired).toMatchObject({ cost_amount: 200, quantity_purchased: 500, stock_grams: 0 });
   });
 });
+
+
+describe('Stock handoff uses the chosen tea name without replacing source identity', () => {
+  it.each([
+    { givenName: 'Current name', shopName: 'Legacy name', expected: 'Current name' },
+    { givenName: null, shopName: 'Legacy name', expected: 'Legacy name' },
+    { givenName: '  ', shopName: ' Legacy name ', expected: 'Legacy name' },
+    { givenName: null, shopName: null, expected: null },
+  ])('carries chosen name $expected while preserving source identity', ({ givenName, shopName, expected }) => {
+    const entry = { ...createEmptyEntry(), name: 'Supplier name', givenName, shopName };
+    expect(compassEntryToProductDraft(entry)).toMatchObject({ given_name: expected, product_name: 'Supplier name' });
+    expect(entry.name).toBe('Supplier name');
+  });
+});

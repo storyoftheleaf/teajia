@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import React from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+vi.mock('./TeaSourcingConnections', () => ({ useTeaSupplierQuote: () => ({ quoteLine: undefined }), TeaSourcingConnections: () => <section aria-label="Connected sourcing" /> }));
 import { StructuredTeaFields } from './StructuredTeaFields';
 import { createEmptyEntry } from './types';
 
@@ -14,11 +16,13 @@ describe('structured tea fields presentation', () => {
     expect(html).toContain('aria-label="Pack weight (g)"');
     expect(html).toContain('value="500"');
     expect(html).toContain('value="A-12"');
-    expect(html).toContain('Add route quote</button>');
+    expect(html).toContain('Connected sourcing');
+    for (const label of ['Shop name','Shipping method','Pu-erh processing','Discount (%)']) expect(html).not.toContain(`aria-label="${label}"`);
   });
-  it('preserves collapsible sourcing for existing callers', () => {
+  it('uses a focused details action instead of an accordion', () => {
     const html = renderToStaticMarkup(<StructuredTeaFields entry={createEmptyEntry('tea')} onChange={() => {}} />);
-    expect(html).toContain('<details');
-    expect(html).toContain('<summary');
+    expect(html).not.toContain('<details');
+    expect(html).not.toContain('<summary');
+    expect(html).toContain('Tea details</span>');
   });
 });

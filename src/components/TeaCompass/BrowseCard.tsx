@@ -146,7 +146,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         title={<LibraryInlineValue multiline className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />}
         trailing={<Button variant="plain" type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></Button>}
         meta={<>
-          <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null })} />
+          <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null, shopName: null })} />
           {entry.category !== 'teaware' && (readOnly ? <span className="library-card-type">{entry.type || 'Type not set'}</span> : <Button variant="plain" type="button" className="tap-target library-card-type" aria-label={`Choose tea type for ${title}`} aria-haspopup="dialog" onClick={() => { setTypeError(''); setTypeOpen(true); }}>{entry.type || 'Choose type'}</Button>)}
           {rating != null && Number.isFinite(rating) && <span className="text-ui-11 text-tea-text-dim whitespace-nowrap" aria-label={`Rating ${rating} out of 10`}>{rating}/10</span>}
           <LibraryInlineValue className="library-card-year text-ui-13 text-tea-text-sec" value={identity.year} display={identity.year || 'Add year'} label={`Edit year for ${title}`} readOnly={readOnly} onSave={saveField('year')} />

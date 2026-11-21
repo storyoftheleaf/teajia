@@ -28,6 +28,18 @@ test('Source controls fit, currency keeps the quote, and any quoted weight can b
     await weight.getByRole('button', { name: 'Use weight', exact: true }).click();
     const grams = visible(page.getByRole('spinbutton', { name: 'Grams', exact: true }));
     await expect(grams).toHaveValue('1250');
+    const sizing = await grams.evaluate(input => {
+      const grid=input.closest('.capture-quote-grid') as HTMLElement;
+      const form=grid.querySelector('[aria-label="Tea form"]')!;
+      const measured=()=>({grams:input.parentElement!.getBoundingClientRect().width,form:form.getBoundingClientRect().width});
+      const current=measured();
+      grid.style.gridTemplateColumns='minmax(0, 1.5fr) minmax(0, 1.25fr) minmax(calc(var(--space-8) * 2), .8fr)';
+      const before=measured();grid.style.removeProperty('grid-template-columns');
+      return {current,before};
+    });
+    expect(sizing.current.grams).toBeGreaterThan(sizing.before.grams);
+    expect(sizing.current.form).toBeLessThan(sizing.before.form);
+    await info.attach(`gram-space-${width}`,{body:JSON.stringify(sizing),contentType:'application/json'});
     // Inputs must have room for four digits, and all top controls stay in bounds.
     for (const input of [grams, price]) {
       expect(await input.evaluate((e: HTMLInputElement) => {

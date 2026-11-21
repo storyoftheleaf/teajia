@@ -252,7 +252,7 @@ export const TeaFace: React.FC<TeaFaceProps> = ({ entryId, onEdit, onBack, onTas
           entry={entry}
           emptyLabel="add"
           className={entry.givenName?.trim() ? 'font-display text-ui-17 text-tea-text' : 'font-mono text-ui-13 text-tea-text-sec'}
-          onSave={(value) => savePatch({ givenName: value.trim() || null })}
+          onSave={(value) => savePatch({ givenName: value.trim() || null, shopName: null })}
         />
       </Row>
       <Row label="Cost" onClick={onEdit} testId="tea-face-cost">

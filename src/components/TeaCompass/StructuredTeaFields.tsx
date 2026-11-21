@@ -2,8 +2,11 @@ import React, { useEffect, useId, useState } from 'react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { readRouteQuotes, type RouteQuote } from '../../lib/curateStructuredFields';
 import type { TeaCompassEntry } from './types';
+import { Modal } from '../shared/Modal';
+import { Button } from '../shared/Button';
+import { TeaSourcingConnections, useTeaSupplierQuote } from './TeaSourcingConnections';
 
-type StructuredTeaEntry = Pick<TeaCompassEntry, 'id' | 'type' | 'ageQuoted' | 'grade' | 'packSizeGrams' | 'packSizeLabel' | 'vendorItemNumber' | 'discountPercent' | 'shopName' | 'transportMode' | 'routeQuotes'>;
+type StructuredTeaEntry = Pick<TeaCompassEntry, 'id'> & Partial<TeaCompassEntry>;
 const inputClass = 'input-field min-h-tap min-w-0 px-3 py-2 text-ui-16';
 const buttonClass = 'tap-target min-h-tap px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text';
 
@@ -38,19 +41,13 @@ function Field({ label, value, number, minimum, maximum, onCommit }: {
 type RouteDraft = { id: string; mode: string; label: string; amount: string; currency: string; basis: string; quantity: string; priceKind: string; destination: string };
 const newRoute = (): RouteDraft => ({ id: crypto.randomUUID(), mode: '', label: '', amount: '', currency: '', basis: '', quantity: '', priceKind: '', destination: '' });
 
-/** Shared by both Curate editors and private detail panels. Quotes record
- * evidence only; nothing here changes retail pricing, freight or inventory. */
-/** `tightTop` (the Source form on a phone): the space above the heading moves inside
- * its 44px tap row, so the row is no taller and the label sits in its middle.
- * `leading` is drawn first inside the open disclosure (the Source form's 'flow'
- * order puts the Chinese name there). `bare` drops the rule above it, for a
- * disclosure that sits between cards rather than inside one. */
-export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat = false, tightTop = false, leading, bare = false }: { entry: StructuredTeaEntry; onChange: (patch: Partial<StructuredTeaEntry>) => void; routeOnly?: boolean; flat?: boolean; tightTop?: boolean; leading?: React.ReactNode; bare?: boolean }) {
-  const Group = flat ? 'section' : 'details';
-  const Heading = flat ? 'h3' : 'summary';
+/** Tea-specific facts stay here; vendor, order, freight and quote facts are read from shared records. */
+export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat = false, leading }: { entry: StructuredTeaEntry; onChange: (patch: Partial<StructuredTeaEntry>) => void; routeOnly?: boolean; flat?: boolean; tightTop?: boolean; leading?: React.ReactNode; bare?: boolean }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const { quoteLine } = useTeaSupplierQuote(entry);
   const [draft, setDraft] = useState<RouteDraft | null>(null);
   const [error, setError] = useState('');
-  useEffect(() => { setDraft(null); setError(''); }, [entry.id]);
+  useEffect(() => { setDraft(null); setError(''); setDetailsOpen(false); }, [entry.id]);
   const routes = entry.routeQuotes ?? [];
   const set = (key: keyof RouteDraft, value: string) => setDraft(current => current ? { ...current, [key]: value } : current);
   const editRoute = (quote: RouteQuote) => {
@@ -86,8 +83,7 @@ export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat =
       <option value="">Choose</option>{options.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
     </select>
   </label>;
-  return <Group className={bare ? '' : `border-t border-tea-border ${tightTop ? 'lg:pt-3' : 'pt-3'}`} data-testid="structured-tea-fields">
-    <Heading className={`${TYPOGRAPHY_CLASSES.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-tap'} ${bare ? 'pt-3.5' : tightTop ? 'pt-3.5 lg:pt-0' : ''} text-tea-text-sec`}>{routeOnly ? 'Route price quotes' : 'Tea details & sourcing'}</Heading>
+  const content = <section data-testid="structured-tea-fields" aria-label={routeOnly ? 'Route price quotes' : 'Tea details'}>
     <div className="space-y-4 pb-3">
       {leading}
       {!routeOnly && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -95,19 +91,15 @@ export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat =
         <Field label="Grade" value={entry.grade} onCommit={value => onChange({ grade: value as string | null })} />
         <Field label="Pack weight (g)" value={entry.packSizeGrams} number minimum={0} onCommit={value => onChange({ packSizeGrams: value as number | null })} />
         <Field label="Pack description" value={entry.packSizeLabel} onCommit={value => onChange({ packSizeLabel: value as string | null })} />
-        <Field label="Vendor item number" value={entry.vendorItemNumber} onCommit={value => onChange({ vendorItemNumber: value as string | null })} />
-        <Field label="Discount (%)" value={entry.discountPercent} number minimum={0} maximum={100} onCommit={value => onChange({ discountPercent: value as number | null })} />
-        <Field label="Shop name" value={entry.shopName} onCommit={value => onChange({ shopName: value as string | null })} />
-        <Field label="Shipping method" value={entry.transportMode} onCommit={value => onChange({ transportMode: value as string | null })} />
-        <label className="block min-w-0 space-y-1">
-          <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Pu-erh processing</span>
-          <select className={inputClass} value={entry.type === 'Sheng' || entry.type === 'Shou' ? entry.type : ''}
-            onChange={event => { if (event.target.value) onChange({ type: event.target.value as TeaCompassEntry['type'] }); }}>
-            <option value="">Use the tea type selected above</option><option value="Sheng">Sheng (raw)</option><option value="Shou">Shou (ripe)</option>
-          </select>
-        </label>
+        {!quoteLine && <Field label="Vendor item number" value={entry.vendorItemNumber} onCommit={value => onChange({ vendorItemNumber: value as string | null })} />}
+
       </div>}
-      <div className="space-y-2">
+      {!routeOnly && <>
+        <p className="text-ui-12 text-tea-text-sec">Pack weight is per cake, can or piece. The quoted weight above is what the supplier price covers.</p>
+        <TeaSourcingConnections entry={entry} />
+
+      </>}
+      {routeOnly && <div className="space-y-2">
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Route price quotes</p>
         {routes.map(quote => <div key={quote.id} className="flex flex-wrap items-center gap-2 border-b border-tea-border py-2">
           <p className={`${TYPOGRAPHY_CLASSES.body} min-w-0 flex-1 text-tea-text-sec`}>
@@ -132,7 +124,14 @@ export function StructuredTeaFields({ entry, onChange, routeOnly = false, flat =
             <button type="button" className={`${buttonClass} text-tea-gold`} onClick={saveRoute}>Save route quote</button>
           </div>
         </div>}
-      </div>
+      </div>}
     </div>
-  </Group>;
+  </section>;
+  if (flat || routeOnly) return content;
+  return <>
+    <Button type="button" variant="quiet" size="sm" className="tap-target" aria-haspopup="dialog" onClick={() => setDetailsOpen(true)}>Tea details</Button>
+    <Modal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} title="Tea details">
+      <div className="px-4 pb-4">{content}</div>
+    </Modal>
+  </>;
 }

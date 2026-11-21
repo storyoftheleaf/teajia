@@ -12,6 +12,7 @@ import { LibrarySupplierActions } from './LibrarySupplierActions';
 import { libraryIdentity, libraryInlinePatch, libraryCardAmounts, type LibraryInlineField } from './libraryCardWorkflow';
 import { BottomSheet } from '../shared/BottomSheet';
 import { StructuredTeaFields } from './StructuredTeaFields';
+import { useTeaSupplier } from './TeaSourcingConnections';
 import React, { useEffect, useRef, useState } from 'react';
 import { TeaRecordFields, RecordVoice } from './TeaRecordFields';
 import { TeaRecordAssistant } from './TeaRecordAssistant';
@@ -53,6 +54,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const navigate = useNavigate();
   const storedEntry = useTeaCompassStore(s => s.pendingEntries.find(e => e.id === entryId) ?? s.entries.find(e => e.id === entryId));
   const entry = previewEntry ?? storedEntry;
+  const linkedSupplier = useTeaSupplier(previewEntry ? undefined : entry);
   const syncError = useTeaCompassStore(s => s.syncError);
   const accountScopeId = useTeaCompassStore(s => s.accountScopeId);
   const accountScopeRevision = useTeaCompassStore(s => s.accountScopeRevision);
@@ -142,9 +144,9 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
     if (current.accountScopeId !== accountScopeId || current.accountScopeRevision !== accountScopeRevision || !current.getEntry(entry.id)?.synced) throw new Error('Saved on this device; sync is pending. Retry.');
   };
   const saveField = (field: LibraryInlineField) => (value: string) => savePatch(libraryInlinePatch(entry, field, value));
-  const chosenName = entry.givenName?.trim();
+  const chosenName = (entry.givenName ?? entry.shopName)?.trim();
   const hasChosenName = !!chosenName && chosenName !== entry.name.trim();
-  const editChosenName = <LibraryGivenName entry={entry} emptyLabel="Add name" className={hasChosenName ? 'text-ui-17 font-medium text-tea-text' : undefined} onSave={value => savePatch({ givenName: value.trim() || null })} />;
+  const editChosenName = <LibraryGivenName entry={entry} emptyLabel="Add name" className={hasChosenName ? 'text-ui-17 font-medium text-tea-text' : undefined} onSave={value => savePatch({ givenName: value.trim() || null, shopName: null })} />;
   const editSourceName = <LibraryInlineValue multiline value={identity.name} display={identity.name || 'Name this tea'} label="Tea name" onSave={saveField('name')} />;
   return <div className="tea-record-panel flex h-full min-w-0 flex-col" data-testid="library-entry-detail">
     {!embedded && <header className="shrink-0 flex min-h-14 items-center gap-2 border-b border-tea-border px-3 py-1" data-testid="tea-record-header">
@@ -159,12 +161,12 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           title={hasChosenName ? editChosenName : editSourceName}
           subtitle={hasChosenName ? editSourceName : undefined}
           metadata={<>
-            <span className="break-words">{entry.vendorName || 'Supplier not recorded'}</span>
+            <span className="break-words">{linkedSupplier.name || entry.vendorName || 'Supplier not recorded'}</span>
             {entry.type && <span>· {entry.type}</span>}
             <LibraryInlineValue value={identity.year} display={identity.year ? `· ${identity.year}` : 'Add year'} label="Year" onSave={saveField('year')} />
             {!hasChosenName && editChosenName}
           </>}
-          trailing={<LibrarySupplierActions supplierId={entry.vendorId} supplierName={entry.vendorName || 'Supplier'} onRenamed={() => { if (accountScopeId) void hydrateCompassEntries(accountScopeId); }} />}
+          trailing={<LibrarySupplierActions supplierId={linkedSupplier.id ?? entry.vendorId} supplierName={linkedSupplier.name || entry.vendorName || 'Supplier'} onRenamed={() => { if (accountScopeId) void hydrateCompassEntries(accountScopeId); }} />}
         />
       </div>
       <div className="tea-panel-metrics flex flex-wrap items-center gap-x-2">
@@ -203,7 +205,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       </>}
       <RecordGroup title="About this tea" active={activeSection === 'tea'}>
         <TeaRecordFields key={`${entry.id}:identity`} entry={entry} section="attributes" flat onChange={patch => updateEntry(entry.id, patch)} />
-        {entry.category === 'tea' && <button type="button" className={actionClass} onClick={() => setMoreFieldsOpen(true)}>Grade, packaging & sourcing ↗</button>}
+        {entry.category === 'tea' && <button type="button" className={actionClass} onClick={() => setMoreFieldsOpen(true)}>Tea details</button>}
       </RecordGroup>
       <RecordGroup title="Story & description" active={activeSection === 'notes'}>
         <p className="text-ui-12 text-tea-text-sec">Your working description stays separate from source notes.</p>
@@ -303,7 +305,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
     <BottomSheet open={quoteOpen} onOpenChange={setQuoteOpen} title="Supplier quote">
       <div className="px-3"><TeaRecordFields key={`${entry.id}:quote`} entry={entry} section="quote" flat onChange={patch => updateEntry(entry.id, patch)} /></div>
     </BottomSheet>
-    <BottomSheet open={moreFieldsOpen} onOpenChange={setMoreFieldsOpen} title="Tea details & sourcing"><StructuredTeaFields flat entry={entry} onChange={patch => updateEntry(entry.id, patch)} /></BottomSheet>
+    <BottomSheet open={moreFieldsOpen} onOpenChange={setMoreFieldsOpen} title="Tea details"><StructuredTeaFields flat entry={{ ...entry, draftProductId: stockProductId ?? entry.draftProductId }} onChange={patch => updateEntry(entry.id, patch)} /></BottomSheet>
     {tastingOpen && <TastingSession initialData={entry.tasting ?? entry.tastingHistory?.at(-1)?.data} item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }} onClose={() => setTastingOpen(false)} onAfterSave={(data: TastingData, verdict, _wouldBuy, record) => updateEntry(entry.id, curateTastingUpdate(useTeaCompassStore.getState().getEntry(entry.id) ?? entry, data, verdict, { record }))} />}
   </div>;
 };

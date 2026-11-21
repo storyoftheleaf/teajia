@@ -5,6 +5,8 @@ import { CaptureFlowLayout } from '../curate/CaptureFlowLayout';
 import { BUY_GRAM_CHIPS } from '../curate/samplePreset';
 import { CapturePurchaseResult } from '../curate/CapturePurchaseResult';
 import { StructuredTeaFields } from './StructuredTeaFields';
+import { useTeaSupplier } from './TeaSourcingConnections';
+import { LibraryGivenName } from './LibraryGivenName';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -193,6 +195,7 @@ const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateChange, voiceRecorder, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, openPurchasePicker = false, onBuyExpandedChange, batchMode, onToggleBatchMode, layout }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
+  const linkedSupplier = useTeaSupplier(entry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
@@ -1217,7 +1220,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
           <CaptureContextChips
             entryId={entryId}
             category={entry.category}
-            vendorName={entry.vendorName}
+            vendorName={linkedSupplier.name ?? entry.vendorName}
             vendorOpen={vendorOpen}
             onToggleVendor={() => setVendorOpen((v) => !v)}
             batchMode={batchMode}
@@ -1230,7 +1233,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
           {vendorOpen && (
             <div className="mt-2.5">
               <VendorStrip
-                vendorName={entry.vendorName}
+                vendorName={linkedSupplier.name ?? entry.vendorName}
                 vendorId={entry.vendorId}
                 vendorDetails={entry.vendorDetails}
                 onVendorSelect={handleVendorSelect}
@@ -1244,7 +1247,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
     </>
   );
   const encounterContext = (
-              <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
+              <EncounterContext vendorId={entry.linkedCustomerId ?? entry.vendorId} journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
   );
   const photoCapture = (
             <PhotoCapture entryId={entryId}
@@ -1283,7 +1286,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
           <CaptureContextChips
             entryId={entryId}
             category={entry.category}
-            vendorName={entry.vendorName}
+            vendorName={linkedSupplier.name ?? entry.vendorName}
             vendorOpen={vendorOpen}
             onToggleVendor={() => setVendorOpen((v) => !v)}
             batchMode={batchMode}
@@ -1577,6 +1580,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
     </>
   );
   const teaNameInput = (
+        <>
         <AutocompleteInput
           value={entry.name}
           onChange={(val) => update({ name: val })}
@@ -1587,6 +1591,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
           itemData={{ ...varietyNameMap, ...productNameMap }}
           hintSuggestions={hintSuggestions}
         />
+          {(entry.givenName || entry.shopName) && <LibraryGivenName entry={entry} emptyLabel="Name for Shop" onSave={async value => {
+            update({ givenName: value.trim() || null, shopName: null });
+            await ensureCompassEncounterSaved(entry.id);
+          }} />}
+        </>
   );
   const originField = (
           <div className={flowLayout ? 'curate-flow-cell relative min-w-0 flex-1' : 'relative min-w-0 flex-1'}>

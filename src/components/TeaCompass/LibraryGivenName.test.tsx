@@ -21,7 +21,13 @@ describe('encounter given name', () => {
     const save = vi.fn();
     const markup = renderToStaticMarkup(<LibraryGivenName entry={{ name: 'Source tea', givenName: ' Source tea ' }} onSave={save} />);
     expect(markup).toContain('Name of the tea');
-    expect(mocks.editor!.value).toBe(' Source tea ');
+    expect(mocks.editor!.value).toBe('Source tea');
+    expect(save).not.toHaveBeenCalled();
+  });
+  it('shows a legacy chosen tea name through the shared name control without writing it', () => {
+    const save = vi.fn();
+    expect(renderToStaticMarkup(<LibraryGivenName entry={{ shopName: 'Old chosen name' }} onSave={save} />)).toContain('Old chosen name');
+    expect(mocks.editor!.value).toBe('Old chosen name');
     expect(save).not.toHaveBeenCalled();
   });
   it('shows and edits the same stored name', async () => {

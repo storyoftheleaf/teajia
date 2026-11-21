@@ -386,7 +386,7 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
   return {
     type: entry.category === 'teaware' ? 'Teaware' : (entry.type || 'Misc'),
     form: entry.form || null,
-    given_name: entry.givenName ?? entry.name ?? '',
+    given_name: entry.givenName?.trim() || entry.shopName?.trim() || null,
     chinese_name: entry.chineseName || '',
     product_name: entry.name || '',
     year: entry.year || null,

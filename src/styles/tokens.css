@@ -864,7 +864,7 @@ body {
 [data-form-layout='flow'] .capture-context-toolbar .capture-context-new { margin-left: 0; }
 [data-form-layout='flow'] .capture-context-toolbar .btn-sm { padding-inline: var(--space-2); }
 .capture-quote-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
-.capture-quote-grid.capture-quote-with-form { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.25fr) minmax(calc(var(--space-8) * 2), .8fr); }
+.capture-quote-grid.capture-quote-with-form { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.65fr) minmax(calc(var(--space-12) + var(--space-3)), .55fr); }
 .capture-quote .capture-quote-field {
   display: flex; align-items: center; min-width: 0;
   border: var(--border-w) solid var(--tea-border); border-radius: var(--radius-md); background: transparent;
@@ -874,7 +874,7 @@ body {
 .capture-quote .capture-currency-trigger > span { display: inline-flex; align-items: center; }
 .capture-quote .capture-weight-input { text-align: left; padding-inline: var(--space-1); }
 .capture-quote .capture-weight-picker { padding: 0; }
-.capture-quote .capture-form-trigger { min-width: 0; width: 100%; justify-content: space-between; padding-inline: var(--space-1); gap: var(--space-1); font-size: var(--fs-ui-13); }
+.capture-quote .capture-form-trigger { min-width: 0; width: 100%; justify-content: space-between; padding-inline: var(--space-1); gap: 0; font-size: var(--fs-ui-13); }
 .capture-other-weight { display: grid; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); color: var(--tea-text-sec); font-size: var(--fs-ui-14); }
 @media (max-width: 479px) {
   .capture-quote .capture-quote-field input { font-size: var(--fs-ui-16); }

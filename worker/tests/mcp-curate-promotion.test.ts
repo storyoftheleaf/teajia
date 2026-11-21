@@ -6,8 +6,8 @@ import { previewCurateUndo,confirmCurateMutation } from '../src/curateMutations'
 
 const auth={accountId:'a',userId:'owner',userEmail:'owner@test.dev',tokenId:'token',creatorTier:'account_owner'};
 const call=(db:SqliteD1,args:any,who=auth)=>curatePromotionTools.handlers.curate_promote_tea({DB:db} as any,who,args) as Promise<any>;
-function setup() {
-  const db=new SqliteD1();
+function setup(schema: 'schema' | 'migrations' = 'schema') {
+  const db=new SqliteD1(schema);
   seedIdentity(db,{accountId:'a',userId:'owner',role:'owner'});
   seedIdentity(db,{accountId:'b',userId:'other',role:'owner'});
   db.sqlite.prepare("INSERT INTO customers(id,account_id,name,type,tags) VALUES ('vendor','a','Wang','vendor','[\"vendor\"]')").run();
@@ -140,4 +140,48 @@ describe('last confirmed promotion can be safely undone',()=>{
     expect(await confirmCurateMutation({DB:db} as any,auth,undo.confirmation_token)).toMatchObject({confirmed:true});
     expect(one(db,'products')).toEqual(before);expect(one(db,'products').id).toBe(original.id);expect(one(db,'tea_compass_entries').draft_product_id).toBeNull();
   });
+});
+
+
+describe('promotion preserves one chosen name and separate supplier identity', () => {
+  const names = [
+    { givenName: 'Current name', shopName: 'Legacy name', expected: 'Current name' },
+    { givenName: null, shopName: 'Legacy name', expected: 'Legacy name' },
+    { givenName: '  ', shopName: ' Legacy name ', expected: 'Legacy name' },
+    { givenName: '  ', shopName: null, expected: null },
+    { givenName: null, shopName: null, expected: null },
+  ];
+  it.each(names.flatMap(name => [true, false].map(audited => ({ ...name, audited }))))(
+    'records chosen name $expected through audited=$audited promotion', async ({ givenName, shopName, expected, audited }) => {
+      const db = setup();
+      db.sqlite.prepare('UPDATE tea_compass_entries SET given_name=?,shop_name=? WHERE id=?').run(givenName, shopName, 'tea');
+      const before = one(db, 'tea_compass_entries');
+      const preview = audited ? await call(db, { tea_id: 'tea' }) : null;
+      const result = audited ? await call(db, { confirm: preview.confirmation_token })
+        : await promoteCompassEntry(db as any, 'a', before);
+      expect(result.product).toMatchObject({ given_name: expected, product_name: 'Old tea' });
+      expect(one(db, 'tea_compass_entries')).toMatchObject({ given_name: expected, name: 'Old tea' });
+      if (audited) {
+        const history = db.sqlite.prepare("SELECT before_json,after_json FROM curate_mutation_records WHERE entity_type='tea'").get() as any;
+        expect(JSON.parse(history.before_json)).toEqual(before);
+        expect(JSON.parse(history.after_json)).toEqual(one(db, 'tea_compass_entries'));
+        const productHistory = db.sqlite.prepare("SELECT after_json FROM curate_mutation_records WHERE entity_type='promotion_product'").get() as any;
+        expect(JSON.parse(productHistory.after_json)).toEqual(one(db, 'products'));
+      }
+    });
+});
+
+
+it.each([true, false])('keeps live-migration naming triggers and guards on during audited=%s handoff', async audited => {
+  const db = setup('migrations');
+  db.sqlite.prepare('UPDATE tea_compass_entries SET given_name=?,shop_name=? WHERE id=?').run('  ', 'Legacy choice', 'tea');
+  const before = one(db, 'tea_compass_entries');
+  const preview = audited ? await call(db, { tea_id: 'tea' }) : null;
+  const result = audited ? await call(db, { confirm: preview.confirmation_token }) : await promoteCompassEntry(db as any, 'a', before);
+  expect(result.product).toMatchObject({ given_name: 'Legacy choice', product_name: 'Old tea' });
+  expect(one(db, 'tea_compass_entries')).toMatchObject({ given_name: 'Legacy choice', name: 'Old tea' });
+  if (audited) {
+    const history = db.sqlite.prepare("SELECT after_json FROM curate_mutation_records WHERE entity_type='tea'").get() as any;
+    expect(JSON.parse(history.after_json)).toEqual(one(db, 'tea_compass_entries'));
+  }
 });
