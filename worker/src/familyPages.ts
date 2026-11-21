@@ -23,6 +23,8 @@ import {
   type FamilyPageTier,
 } from '../../src/lib/familyContract';
 
+import { peopleListPlace } from './peopleList';
+
 export { familyPageAllowsPay, familyPageNeedsReview, familyPageTierOf };
 
 type Person = { userId: string; email: string; name: string };
@@ -178,5 +180,30 @@ export function familyPageRoutes<E extends FamilyPageEnv>(deps: FamilyPageDeps<E
     await env.DB.prepare(`UPDATE contributors SET page_tier = ?, updated_at = datetime('now') WHERE id = ?`).bind(tier, params.id).run();
     return json({ id: params.id, page_tier: tier, word: FAMILY_PAGE_WORDS[tier], pay: familyPageAllowsPay(tier) });
   };
-  return [['PUT', '/api/admin/family/pages/:id/tier', setTier]];
+  // PUT /api/admin/family/pages/:id/list { founding?, pinned? }: the owner's hand on the people list.
+  // A founding member sits in "Founding members"; a pin puts a person at the top of their group.
+  // Only these two columns change. Hiding a page is the existing one-tap hide.
+  const setListPlace: Handler<E> = async (request, env, params) => {
+    const owned = await deps.requireContributorSteward(request, env, params.id);
+    if ('error' in owned) return owned.error;
+    let body: Record<string, unknown> | null = null;
+    try { body = await request.json() as Record<string, unknown>; } catch { body = null; }
+    const founding = typeof body?.founding === 'boolean' ? body.founding : undefined;
+    const pinned = typeof body?.pinned === 'boolean' ? body.pinned : undefined;
+    if (founding === undefined && pinned === undefined) return json({ error: 'Say whether they are a founding member, or pinned.', code: 'validation_failed' }, 400);
+    if (founding !== undefined) {
+      await env.DB.prepare(`UPDATE contributors SET founding_member = ?, updated_at = datetime('now') WHERE id = ?`).bind(founding ? 1 : 0, params.id).run();
+    }
+    if (pinned !== undefined) {
+      // Pinning someone already pinned keeps their place among the pinned.
+      await env.DB.prepare(
+        pinned
+          ? `UPDATE contributors SET list_pinned_at = COALESCE(list_pinned_at, datetime('now')), updated_at = datetime('now') WHERE id = ?`
+          : `UPDATE contributors SET list_pinned_at = NULL, updated_at = datetime('now') WHERE id = ?`,
+      ).bind(params.id).run();
+    }
+    const row = await env.DB.prepare('SELECT founding_member, list_pinned_at FROM contributors WHERE id = ?').bind(params.id).first<Record<string, unknown>>();
+    return json({ id: params.id, ...peopleListPlace(row ?? {}) });
+  };
+  return [['PUT', '/api/admin/family/pages/:id/tier', setTier], ['PUT', '/api/admin/family/pages/:id/list', setListPlace]];
 }

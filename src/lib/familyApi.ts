@@ -63,6 +63,9 @@ export const familyApi = {
     /** The owner's word for a person: Teajia family, Tea creator or Tea master. The page itself does not change. */
     setPageTier: (contributorId: string, tier: FamilyPageTier): Promise<{ id: string; page_tier: FamilyPageTier; word: string; pay: boolean }> =>
       authedFetch(`${API_URL}/api/admin/family/pages/${encodeURIComponent(contributorId)}/tier`, { method: 'PUT', body: JSON.stringify({ tier }) }),
+    /** The owner's hand on the people list: name a founding member, or pin a person to the top of their group. */
+    setListPlace: (contributorId: string, place: { founding?: boolean; pinned?: boolean }): Promise<{ id: string; founding: boolean; pinned: boolean }> =>
+      authedFetch(`${API_URL}/api/admin/family/pages/${encodeURIComponent(contributorId)}/list`, { method: 'PUT', body: JSON.stringify(place) }),
     /** Every photograph ever offered to the shop, newest first. */
     offered: (): Promise<{ photographs: Array<FamilyOfferedPhotograph & { hidden: boolean }> }> =>
       authedFetch(`${API_URL}/api/admin/family/photographs`),

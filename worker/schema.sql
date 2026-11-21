@@ -231,6 +231,11 @@ CREATE TABLE IF NOT EXISTS contributors (
     unpublished_at TEXT,
     -- 'family' | 'creator' | 'master'; NULL is a page from before the family. Migration 0074.
     page_tier TEXT,
+    -- The people list. founding_member = 1 is the owner's pick for "Founding
+    -- members"; list_pinned_at is when he pinned them to the top of their group.
+    -- Migration 0077.
+    founding_member INTEGER NOT NULL DEFAULT 0,
+    list_pinned_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

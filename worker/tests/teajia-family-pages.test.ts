@@ -239,6 +239,8 @@ describe('the owner\'s word for a person', () => {
       const { page_tier, updated_at, ...rest } = row;
       return rest;
     };
+    // The list shows a person once their page has a photograph.
+    db.sqlite.prepare(`UPDATE contributors SET portrait_url = 'mei.jpg' WHERE id = 'mei-lin'`).run();
     const before = written(pageOf(db, 'member-one')!);
 
     const creator = await call(env, OWNER, '/api/admin/family/pages/mei-lin/tier', { method: 'PUT', body: { tier: 'creator' } });

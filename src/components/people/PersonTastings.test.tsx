@@ -54,32 +54,51 @@ const person = (over: Partial<ContributorListItem>): ContributorListItem => ({
   id: 'x', display_name: 'Person X', role: 'Tea master', page_tier: null, family_last_active: null, own_line: null, ...over,
 });
 
+// The list as the worker sends it: only people with a photograph, already grouped and ordered.
 vi.mock('../../hooks/useContributor', () => ({
   useContributors: () => ({
     isLoading: false,
     data: [
-      person({ id: 'master', display_name: 'Ada Master', role: 'Tea master' }),
-      person({ id: 'old', display_name: 'Old Family', role: 'Teajia family', page_tier: 'family', family_last_active: '2026-11-10 10:00:00' }),
-      person({ id: 'new', display_name: 'New Family', role: 'Teajia family', page_tier: 'family', family_last_active: '2026-11-16 10:00:00' }),
-      person({ id: 'quiet', display_name: 'Quiet Family', role: 'Teajia family', page_tier: 'family', family_last_active: null }),
+      person({ id: 'master', display_name: 'Ada Master', role: 'Tea master', list_group: 'season', card_image_url: 'master.jpg' }),
+      person({ id: 'founder', display_name: 'Early Founder', role: 'Teajia family', page_tier: 'family', list_group: 'founding', card_image_url: 'founder.jpg' }),
+      person({ id: 'first', display_name: 'First Family', role: 'Teajia family', page_tier: 'family', list_group: 'family', card_image_url: 'first.jpg' }),
+      person({ id: 'second', display_name: 'Second Family', role: 'Teajia family', page_tier: 'family', list_group: 'family', avatar_url: 'second.jpg' }),
+      ...Array.from({ length: 24 }, (_, i) => person({ id: `more-${i}`, display_name: `More ${String(i).padStart(2, '0')} Family`, role: 'Teajia family', page_tier: 'family', list_group: 'family', card_image_url: `more-${i}.jpg` })),
     ],
   }),
 }));
 
 describe('the people list', () => {
-  it('lists the family under This season, most recently active first, with no counts', () => {
+  it('prints three groups in order, and the family in the order it arrived, with no counts or ranking words', () => {
     const html = render(<ContributorsIndexPage />);
     const season = html.indexOf('This season');
+    const founding = html.indexOf('Founding members');
     const family = html.indexOf('The family');
     expect(season).toBeGreaterThan(-1);
-    expect(family).toBeGreaterThan(season);
+    expect(founding).toBeGreaterThan(season);
+    expect(family).toBeGreaterThan(founding);
+    expect(html.slice(season, founding)).toContain('Master');
+    expect(html.slice(founding, family)).toContain('Founder');
     const familyHtml = html.slice(family);
-    expect(familyHtml.indexOf('New')).toBeGreaterThan(-1);
-    expect(familyHtml.indexOf('New')).toBeLessThan(familyHtml.indexOf('Old'));
-    // Someone who shared nothing is in neither group; a family page never takes a cover card.
-    expect(html).not.toContain('Quiet');
-    expect(html.slice(season, family)).not.toContain('New');
-    expect(html.slice(season, family)).toContain('Master');
+    expect(familyHtml.indexOf('First')).toBeGreaterThan(-1);
+    expect(familyHtml.indexOf('First')).toBeLessThan(familyHtml.indexOf('Second'));
     expect(html).not.toMatch(/\b\d+ (tastings|teas|people)\b/);
+    expect(html).not.toMatch(/most active|top member|rank|score/i);
+  });
+
+  it('gives every person a photograph, whichever group they are in', () => {
+    const html = render(<ContributorsIndexPage />);
+    const rows = html.match(/data-testid="(people-card|family-row)"/g) ?? [];
+    const pictures = html.match(/<img /g) ?? [];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(pictures.length).toBe(rows.length);
+  });
+
+  it('keeps the family past the first twenty-four behind See everyone', () => {
+    const html = render(<ContributorsIndexPage />);
+    expect((html.match(/data-testid="family-row"/g) ?? []).length).toBe(24);
+    expect(html).toContain('See everyone');
+    expect(html).toContain('More 21 Family');
+    expect(html).not.toContain('More 22 Family');
   });
 });

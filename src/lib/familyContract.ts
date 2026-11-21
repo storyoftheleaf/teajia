@@ -73,6 +73,11 @@ export function readFamilyPhotographFrame(value: unknown): FamilyPhotographFrame
 }
 
 /** Who can see a photograph or a tasting. Keep private is the default. */
+/** How many of the family the people list shows before "See everyone". */
+export const PEOPLE_LIST_FAMILY_SHOWN = 24;
+/** The group a person sits in on the people list. */
+export type PeopleListGroup = 'season' | 'founding' | 'family';
+
 export type FamilyShareState = 'private' | 'page' | 'offered';
 export const FAMILY_SHARE_STATES: readonly FamilyShareState[] = ['private', 'page', 'offered'];
 

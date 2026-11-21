@@ -340,6 +340,8 @@ export interface ContributorListItem {
   page_tier?: FamilyPageTier | null;
   /** The newest moment they shared a tasting or photograph; null when they have shared none. */
   family_last_active?: string | null;
+  /** Where the people list puts them: This season, Founding members or The family. */
+  list_group?: 'season' | 'founding' | 'family' | null;
 }
 
 export interface ContributorPullQuote {
@@ -521,6 +523,10 @@ export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 
   account_id: string;
   /** The owner's word for this person: family, creator or master. Empty for a page from before the family. */
   page_tier?: 'family' | 'creator' | 'master' | null;
+  /** The people list: 1 when the owner named them a founding member. */
+  founding_member?: number | null;
+  /** The people list: when the owner pinned them to the top of their group. Empty when not pinned. */
+  list_pinned_at?: string | null;
   business_name?: string | null;
   links: AdminContributorLink[];
   gallery_images?: ContributorGalleryImage[];

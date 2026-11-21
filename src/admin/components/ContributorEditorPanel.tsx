@@ -139,6 +139,8 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pageTier, setPageTier] = useState<FamilyPageTier | null>(contributor?.page_tier ?? null);
   const [wordSaving, setWordSaving] = useState(false);
+  // The owner's hand on the people list: a founding member, and a pin to the top of their group.
+  const [listPlace, setListPlace] = useState({ founding: Number(contributor?.founding_member) === 1, pinned: Boolean(contributor?.list_pinned_at) });
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [sheet, setSheet] = useState<SheetId | null>(null);
   const sheetRef = useRef<SheetId | null>(null);
@@ -360,6 +362,21 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
     finally { setSaving(false); }
   };
 
+  const chooseListPlace = async (change: { founding?: boolean; pinned?: boolean }) => {
+    if (!persistedContributor || wordSaving) return;
+    setWordSaving(true);
+    setError(null);
+    try {
+      const saved = await familyApi.shop.setListPlace(persistedContributor.id, change);
+      setListPlace({ founding: saved.founding, pinned: saved.pinned });
+      onWordChanged?.();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'That could not be changed. Try again.');
+    } finally {
+      setWordSaving(false);
+    }
+  };
+
   // The owner's word for this person. Only the word changes: the address and the page stay as they are.
   const chooseWord = async (tier: FamilyPageTier) => {
     if (!persistedContributor || wordSaving || tier === pageTier) return;
@@ -574,6 +591,23 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                     })}
                   </div>
                   <p className="mt-1.5 font-sans text-ui-12 leading-relaxed text-tea-text-dim">{pageTier === null ? 'Not chosen yet. This page keeps what it had: its own words, its approval step and its Pay.' : 'Changes the word on the page. The address and everything written stay. Pay shows for tea masters only, and only family pages go live without your approval.'}</p>
+                </div>
+              )}
+{!isNew && (
+                <div data-testid="section-people-list">
+                  <p className={LABEL}>On the people list</p>
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-5">
+                    {([['founding', 'Founding member'], ['pinned', 'Pinned to the top']] as const).map(([key, says]) => {
+                      const on = listPlace[key];
+                      return (
+                        <label key={key} className={`tap-target inline-flex min-h-tap cursor-pointer items-center border-b font-display text-ui-17 transition-colors ${on ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}>
+                          <input type="checkbox" className="sr-only" checked={on} disabled={wordSaving} onChange={() => void chooseListPlace({ [key]: !on })} data-testid={`people-list-${key}`} />
+                          {says}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1.5 font-sans text-ui-12 leading-relaxed text-tea-text-dim">A person shows on the list once their page has a photograph. Nothing on the list says why anyone sits where they do.</p>
                 </div>
               )}
               <Line label="Their sign-in" id="f-their-sign-in" value={form.user_id ?? ''} onChange={event => setField('user_id', event.target.value)} autoCapitalize="none" placeholder="The account that may edit this page" hint="With it they can change their own page. A family page takes their changes at once; any other page sends them to you to approve." />

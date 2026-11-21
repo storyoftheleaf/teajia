@@ -50,6 +50,27 @@ async function tokenFor(page: Page, credentials: { identifier: string; password:
 }
 
 /** Both copies of one photograph, made in the browser as a real JPEG (the canvas drops camera data). */
+/** The member places a photograph on their own page, the way /account/profile does: upload, then save. */
+async function placeOwnPhoto(page: Page, bearer: string): Promise<{ upload: number; save: number }> {
+  return page.evaluate(async ({ t }) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 600; canvas.height = 800;
+    const ctx = canvas.getContext('2d')!;
+    const fill = ctx.createLinearGradient(0, 0, 600, 800);
+    fill.addColorStop(0, 'hsl(28 45% 38%)'); fill.addColorStop(1, 'hsl(40 40% 62%)');
+    ctx.fillStyle = fill; ctx.fillRect(0, 0, 600, 800);
+    const blob: Blob = await new Promise(resolve => canvas.toBlob(b => resolve(b!), 'image/jpeg', 0.85));
+    const form = new FormData();
+    form.append('file', blob, 'hands.jpg');
+    form.append('slot', 'portrait');
+    const headers = { Authorization: `Bearer ${t}` };
+    const uploaded = await fetch('/api/me/public-profile/image', { method: 'POST', headers, body: form });
+    const url = uploaded.ok ? String((await uploaded.json()).url) : '';
+    const saved = await fetch('/api/me/public-profile', { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ portrait_url: url }) });
+    return { upload: uploaded.status, save: saved.status };
+  }, { t: bearer });
+}
+
 async function uploadPhotograph(page: Page, token: string, productId: string, hue: number) {
   return page.evaluate(async ({ token, productId, hue }) => {
     const make = async (w: number, h: number, quality: number) => {
@@ -169,6 +190,10 @@ test('a shared tasting shows on the person page, the family is listed, sold-out 
     expect(JSON.stringify(requests)).toContain(goneId);
 
     // The people list: under "This season", "The family", this person in it, no counts.
+    // No photograph, no place on the list; then they place one of their own.
+    const unlisted = await (await page.request.get('/api/people')).json();
+    expect(unlisted.contributors.some((c: any) => c.id === slug)).toBe(false);
+    expect(await placeOwnPhoto(page, token)).toEqual({ upload: 201, save: 200 });
     const people = await visitor.newPage();
     await people.goto('/people');
     const family = people.getByTestId('people-family');

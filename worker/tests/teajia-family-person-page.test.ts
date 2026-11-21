@@ -26,8 +26,8 @@ function setup() {
   product('tea-gone', { status: 'Sold Out', stock: 0 });
   product('tea-unlisted', { isPublic: 0 });
   const contributor = (id: string, userId: string, tier: string | null) =>
-    db.sqlite.prepare(`INSERT INTO contributors (id, account_id, user_id, display_name, is_published, page_tier) VALUES (?, ?, ?, ?, 1, ?)`)
-      .run(id, SHOP, userId, `Name ${id}`, tier);
+    db.sqlite.prepare(`INSERT INTO contributors (id, account_id, user_id, display_name, is_published, page_tier, portrait_url) VALUES (?, ?, ?, ?, 1, ?, ?)`)
+      .run(id, SHOP, userId, `Name ${id}`, tier, `${id}.jpg`); // a photograph each: the list leaves out people without one
   contributor('mei', 'member-one', 'family');
   contributor('li', 'member-two', 'family');
   contributor('quiet', 'member-three', 'family');

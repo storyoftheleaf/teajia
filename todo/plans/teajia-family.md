@@ -10,8 +10,8 @@ Picture of the plan on the real screens: https://claude.ai/artifact/XWhzBLWs9MY5
 **Built and waiting for "ship".** Everything in this plan, merged with `origin/main` at `88176e52` on the working branch and pushed there (never to main). Measured on the merged branch:
 
 - `npm run lint`: passes. `npm run lint:colors`: passes. `npm run lint:worker-types`: 32 known errors, no drift.
-- `npm run test:src`: 3,527 passed, 11 skipped, 339 files. `npm run test:worker`: 3,261 passed, 255 files.
-- Practice-shop browser run: 9 of 9 specs passed, and the full walk passed lines 1 to 18. `npm run test:mobile`: 40 of 40. Main's own tea page specs (`sold-out-restock`, `shop-refinement`): 8 of 8. So all 19 "Done in full" lines still pass after the merge.
+- `npm run test:src`: 3,529 passed, 11 skipped, 339 files. `npm run test:worker`: 3,275 passed, 256 files.
+- Practice-shop browser run: 10 of 10 specs passed (the tenth is the people list), and the full walk passed lines 1 to 18. `npm run test:mobile`: 40 of 40. Main's own tea page specs (`sold-out-restock`, `shop-refinement`): 8 of 8. So all 19 "Done in full" lines still pass after the merge.
 - The merge had two conflicts. Main's shared photo editor was taken whole; the family's Crop button still opens it. One copy of the crop styles is kept (main's).
 - The four family migrations were renumbered from 0069 to 0072 up to **0073 to 0076**, because main took 0071 and 0072 for shipping notices. All four only add tables or one empty column; none reads, changes or adds a row, so no before-and-after page is needed.
 - The practice ports can now be set with `PRACTICE_API_PORT` and `PRACTICE_SITE_PORT`, because another session was holding 7813. This run used 8801 and 7821.
@@ -26,7 +26,7 @@ Picture of the plan on the real screens: https://claude.ai/artifact/XWhzBLWs9MY5
 
 **Done since.** Guest notes now shows each offered photograph in its member's own crop and shape (it showed the middle of the picture). Checked in `tests/practice-guest-notes.spec.ts`.
 
-**Waiting on Adrian's own word.** The people list rule passed on from the photo editor session on 2026-11-21 (no photo, no place on the list; This season, Founding members, The family; the family ordered quietly by use; owner can pin or hide). It changes the "no gamification" rule to "order only", so it is not built until he says go in the manager session.
+**The people list is built** (Adrian said go on 2026-11-21): see "The people list" below. With it the "no gamification" rule became "order only", in this plan and in the project rules, on his word. Migration 0077 only adds two empty columns. One thing to know before shipping: anyone on the live list without a photograph leaves the list the moment this ships.
 
 **Open, in the order to take them.**
 
@@ -68,9 +68,20 @@ Anyone can join Teajia, taste a tea with voice notes and photographs in the one 
 - **The photograph notice is the link alone.** "How we use photographs" sits inside the box the photographs are shown in. The longer sentence lives on that page, not in the tasting. This replaces the one-line notice in decision 6.
 - **Three shapes only, square by default.** Every family photograph is shown square. Its author can switch it to 2:3 or 3:2 with a button in the zoom (stored per photograph, migration 0075; `src/lib/photographShape.ts`). The thumbnail and zoom are one shared part (`src/components/shared/Photographs.tsx`).
 
+## The people list (Adrian, 2026-11-21). This replaces "a face is optional" in decision 13, for the list only.
+
+His words: "We don't want ever a place where people have no profile picture in the people." "When it starts to get over a certain amount, it can be by who is the most active, plus some key selected early adopters who helped build it." "We don't have to say most active, but we want to highlight the people who really like to use the site. It's called quiet gamification."
+
+1. **No photo, no place on the list.** A person's page still exists at its own address, but they appear on the list only once a photograph is placed on their page (portrait, small round photo or a photo of their work). Hands or the practice count; a face is not required.
+2. **Three groups, in this order:** "This season" (tea creators, tea masters and the pages from before the family, as before), "Founding members" (picked once by the owner for the early people who helped build it), "The family".
+3. **The family is ordered quietly.** Position is the only reward: no badge, no number, no label, no "most active" wording anywhere, and the figures never leave the worker. The method, which he saw and did not change: one credit for each day a person shared a tasting (so posting more in a day earns nothing extra); the shop choosing someone's photograph for a tea page weighs three credits; a rolling 90 days, so old activity fades and a newcomer can rise. Past 24 people the rest sit behind "See everyone".
+4. **The owner's hand stays on it.** In a person's Page settings: "Founding member" and "Pinned to the top". Hiding is the existing one-tap hide.
+
+Built in `worker/src/peopleList.ts`, migration 0077 (two empty columns), `src/pages/ContributorsIndexPage.tsx`. Tests: `worker/tests/people-list.test.ts`.
+
 ## Not building
 
-No likes, followers, counts, streaks, comments or feed. No live Instagram feed. No change to navigation words, tab labels or routes in the nav components. No AI feature. No deploy: nothing here goes live until Adrian says ship.
+No likes, followers, counts, streaks, comments or feed. Quiet ordering of the people list is the one exception (see "The people list"): order only, with no badges, counts, streaks, nudges or notifications. No live Instagram feed. No change to navigation words, tab labels or routes in the nav components. No AI feature. No deploy: nothing here goes live until Adrian says ship.
 
 ## Known facts from the survey (measured 2026-11-19)
 
@@ -109,7 +120,7 @@ Each line is checked by the walk, on a phone-sized screen, in the practice shop.
 5. A seventh photograph for that tea is refused in a plain sentence.
 6. They add a second note on another day's sitting. Both notes are there, under one tasting.
 7. They save and share. Their page exists at its own address with the tasting, and no score anywhere on it.
-8. They appear under "The family" on the people list.
+8. They place a photograph on their page and then appear under "The family" on the people list. Before the photograph they are not on it.
 9. Back on the tea, they see their own thumbnails, make one their cover, and it shows on the plate for them only. Signed out, the plate is as it was.
 10. A second member who shared a photograph of the same tea appears in "From the family".
 11. The shop signs in. The offered photographs and all notes are in Guest notes. The daily sheet downloads.

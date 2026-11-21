@@ -184,7 +184,7 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
-import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { familyMediaVerdict } from './familyMedia';
+import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, ShippingNotificationEnv {
@@ -25049,7 +25049,7 @@ function firstSentenceOf(text: unknown): string | null {
 
 const handleListPublicContributors: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
-    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.page_tier, ${FAMILY_LAST_ACTIVE_COLUMN}, c.business_name, c.location_line, c.avatar_url,
+    `SELECT c.id, c.display_name, c.chinese_name, c.role, c.page_tier, ${FAMILY_LAST_ACTIVE_COLUMN}, ${PEOPLE_LIST_COLUMNS}, c.business_name, c.location_line, c.avatar_url,
             c.now_text, c.beginnings, c.inspirations,
             (SELECT gi.image_url FROM contributor_gallery_images gi
               WHERE gi.contributor_id = c.id
@@ -25091,11 +25091,11 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // The directory's two filters. A host runs a room or is about to: a hosted
     // account, or a public lead/co-host role on any event. A writer has at
     // least one published article of their own.
-    is_host: Number(row.is_host) === 1, family_last_active: row.family_last_active ?? null, page_tier: familyPageTierOf(row.page_tier),
+    is_host: Number(row.is_host) === 1, family_last_active: row.family_last_active ?? null, page_tier: familyPageTierOf(row.page_tier), founding_member: row.founding_member, list_pinned_at: row.list_pinned_at, list_days_shared: row.list_days_shared, list_shop_picks: row.list_shop_picks,
     article_count: Number(row.article_count || 0),
   }));
 
-  return json({ contributors });
+  return json({ contributors: arrangePeopleList(contributors) });
 };
 
 async function publicPaymentAvailability(env: Env, contributorId: string): Promise<{

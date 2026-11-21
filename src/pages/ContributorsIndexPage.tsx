@@ -1,45 +1,116 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '../components/shared/Button';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
-import { Cover, Dek, GroupHead, IndexRow, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
+import { Cover, Dek, GroupHead, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
 import { coverKicker } from '../components/people/profileFormat';
 import { useContributors } from '../hooks/useContributor';
+import { PEOPLE_LIST_FAMILY_SHOWN, type PeopleListGroup } from '../lib/familyContract';
 import { mediaUrl } from '../lib/mediaUrl';
+import type { ContributorListItem } from '../types';
 
 // /people. The directory, in the Read section's language: the sticky Teajia
 // nav with the eyebrow "People", "The People of Tea" with the italic gold
-// second word, an italic dek, then one cover card per person: a 140px image
-// on the left (or the identity mark), the name with its italic gold surname,
-// and one line in their own words. No caps labels anywhere but the "This
-// season" divider (canvas version 24, 2026-09-20): the role and place still
-// name the card for a screen reader, not for the eye.
+// second word, an italic dek, then the people in three groups.
 //
-// Under it, "The family": everyone who has shared a tasting, most recently
-// active first, as plain rows. No counts, no dates, no ranking words. A person
-// whose page is a family page has only this row; the cover cards stay for the
-// people the owner has made tea creators and tea masters, and for pages that
-// were here before the family.
+// "This season" and "Founding members" are cover cards: a 140px image on the
+// left, the name with its italic gold surname, and one line in their own
+// words. "The family" is a row each: a small square of their photograph, the
+// name and the line.
+//
+// Who is here and in what order is the worker's answer (worker/src/peopleList.ts):
+// nobody without a photograph, and the family in a quiet order. This page
+// prints that order as it arrives. No counts, no dates, no ranking words, no
+// badge: where a person sits is all it says. Past the first
+// PEOPLE_LIST_FAMILY_SHOWN the rest of the family wait behind "See everyone".
+
+/** The group a person sits in. The worker says; an answer without it falls back to the word on their page. */
+function groupOf(person: ContributorListItem): PeopleListGroup {
+  return person.list_group ?? (person.page_tier === 'family' ? 'family' : 'season');
+}
+
+function PersonCard({ person }: { person: ContributorListItem }) {
+  return (
+    <Cover
+      to={`/people/${encodeURIComponent(person.id)}`}
+      height={180}
+      className="!flex-row !items-stretch !justify-start"
+      testId="people-card"
+      ariaLabel={`${person.display_name}, ${coverKicker(person.role, person.location_line) || 'tea master'}`}
+    >
+      <span className="-m-6 flex h-[180px]">
+        <span className="relative w-[140px] flex-none overflow-hidden bg-tea-elevated">
+          {person.card_image_url ? (
+            <img src={mediaUrl(person.card_image_url)} alt={person.display_name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: person.card_image_focus ?? undefined }} />
+          ) : (
+            <ContributorIdentityMark name={person.display_name} decorative={false} />
+          )}
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col justify-end px-[18px] py-4">
+          <span className="block font-display text-ui-26 leading-none text-tea-text"><SplitName name={person.display_name} /></span>
+          {person.own_line && (
+            /* Three lines at most, so a long first sentence never pushes the kicker off the top of the card. */
+            <Dek className="mt-2 text-[12.5px]" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{person.own_line}</Dek>
+          )}
+        </span>
+      </span>
+    </Cover>
+  );
+}
+
+function CardGroup({ label, people, testId }: { label: string; people: ContributorListItem[]; testId?: string }) {
+  if (people.length === 0) return null;
+  return (
+    <div data-reveal data-testid={testId}>
+      <GroupHead label={label} />
+      <ul className="mt-3.5 flex flex-col gap-3.5" aria-label={label === 'This season' ? 'People' : label}>
+        {people.map(person => <li key={person.id}><PersonCard person={person} /></li>)}
+      </ul>
+    </div>
+  );
+}
+
+function FamilyRow({ person }: { person: ContributorListItem }) {
+  const image = person.card_image_url ?? person.avatar_url;
+  return (
+    <Link
+      to={`/people/${encodeURIComponent(person.id)}`}
+      data-testid="family-row"
+      aria-label={`${person.display_name}, ${person.role || 'Teajia family'}`}
+      className="tj-people-row grid w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-4 border-b border-tea-border py-3 text-left text-tea-text"
+    >
+      <span className="relative block h-16 w-16 flex-none overflow-hidden bg-tea-elevated">
+        {image ? (
+          <img src={mediaUrl(image)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: person.card_image_url ? person.card_image_focus ?? undefined : undefined }} />
+        ) : (
+          <ContributorIdentityMark name={person.display_name} decorative />
+        )}
+      </span>
+      <span className="min-w-0">
+        <span className="tj-people-title block font-display text-ui-24 leading-[1.08] transition-colors"><SplitName name={person.display_name} /></span>
+        {person.own_line && <Dek className="mt-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{person.own_line}</Dek>}
+      </span>
+    </Link>
+  );
+}
 
 export default function ContributorsIndexPage() {
   const { data, isLoading } = useContributors();
-  const rootRef = useReveals([data?.length]);
+  const [everyone, setEveryone] = useState(false);
+  const rootRef = useReveals([data?.length, everyone]);
   const progress = useReadingProgress();
 
-  const people = useMemo(
-    () => [...(data ?? [])]
-      .filter(person => person.page_tier !== 'family')
-      .sort((a, b) => a.display_name.localeCompare(b.display_name)),
-    [data],
-  );
-  const family = useMemo(
-    () => (data ?? [])
-      .filter(person => Boolean(person.family_last_active))
-      .sort((a, b) => String(b.family_last_active).localeCompare(String(a.family_last_active)) || a.display_name.localeCompare(b.display_name)),
-    [data],
-  );
+  // The order inside each group is the order the list arrived in.
+  const groups = useMemo(() => {
+    const sorted: Record<PeopleListGroup, ContributorListItem[]> = { season: [], founding: [], family: [] };
+    for (const person of data ?? []) sorted[groupOf(person)].push(person);
+    return sorted;
+  }, [data]);
 
   if (isLoading) return null;
 
-  const count = people.length + family.length;
+  const count = groups.season.length + groups.founding.length + groups.family.length;
+  const family = everyone ? groups.family : groups.family.slice(0, PEOPLE_LIST_FAMILY_SHOWN);
 
   return (
     <PeopleRoot rootRef={rootRef} testId="people-directory">
@@ -57,57 +128,21 @@ export default function ContributorsIndexPage() {
             <p className="subtitle mt-10 py-16 text-center text-tea-text-sec">The first pages are being set in type. Come back soon.</p>
           ) : (
             <>
-            {people.length > 0 && <div data-reveal>
-              <GroupHead label="This season" />
-              <ul className="mt-3.5 flex flex-col gap-3.5" aria-label="People">
-                {people.map(person => (
-                  <li key={person.id}>
-                    <Cover
-                      to={`/people/${encodeURIComponent(person.id)}`}
-                      height={180}
-                      className="!flex-row !items-stretch !justify-start"
-                      testId="people-card"
-                      ariaLabel={`${person.display_name}, ${coverKicker(person.role, person.location_line) || 'tea master'}`}
-                    >
-                      <span className="-m-6 flex h-[180px]">
-                        <span className="relative w-[140px] flex-none overflow-hidden bg-tea-elevated">
-                          {person.card_image_url ? (
-                            <img src={mediaUrl(person.card_image_url)} alt={person.display_name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: person.card_image_focus ?? undefined }} />
-                          ) : (
-                            <ContributorIdentityMark name={person.display_name} decorative={false} />
-                          )}
-                        </span>
-                        <span className="flex min-w-0 flex-1 flex-col justify-end px-[18px] py-4">
-                          <span className="block font-display text-ui-26 leading-none text-tea-text"><SplitName name={person.display_name} /></span>
-                          {person.own_line && (
-                            /* Three lines at most, so a long first sentence never pushes the kicker off the top of the card. */
-                            <Dek className="mt-2 text-[12.5px]" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{person.own_line}</Dek>
-                          )}
-                        </span>
-                      </span>
-                    </Cover>
-                  </li>
-                ))}
-              </ul>
-            </div>}
-            {family.length > 0 && (
-              <div data-reveal data-testid="people-family">
-                <GroupHead label="The family" />
-                <ul aria-label="The family">
-                  {family.map(person => (
-                    <li key={person.id}>
-                      <IndexRow
-                        to={`/people/${encodeURIComponent(person.id)}`}
-                        testId="family-row"
-                        title={<SplitName name={person.display_name} />}
-                        dek={person.own_line}
-                        ariaLabel={`${person.display_name}, ${person.role || 'Teajia family'}`}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              <CardGroup label="This season" people={groups.season} />
+              <CardGroup label="Founding members" people={groups.founding} testId="people-founding" />
+              {groups.family.length > 0 && (
+                <div data-reveal data-testid="people-family">
+                  <GroupHead label="The family" />
+                  <ul aria-label="The family">
+                    {family.map(person => <li key={person.id}><FamilyRow person={person} /></li>)}
+                  </ul>
+                  {!everyone && groups.family.length > family.length && (
+                    <Button variant="quiet" size="sm" type="button" className="mt-4" onClick={() => setEveryone(true)} data-testid="people-see-everyone">
+                      See everyone
+                    </Button>
+                  )}
+                </div>
+              )}
             </>
           )}
         </main>

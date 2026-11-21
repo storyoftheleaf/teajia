@@ -25,9 +25,9 @@ const mediaUrl = (key: string) => `${MEDIA_PREFIX}${key}`;
 export const FAMILY_PAGE_NOT_HIDDEN_SQL =
   `NOT EXISTS (SELECT 1 FROM family_hides fh WHERE fh.target_kind = 'page' AND fh.target_id = c.id AND fh.account_id = c.account_id)`;
 
-const TASTING_NOT_HIDDEN =
+export const TASTING_NOT_HIDDEN =
   `NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = s.account_id AND h.target_kind = 'tasting' AND h.target_id = s.journal_entry_id)`;
-const PHOTO_NOT_HIDDEN =
+export const PHOTO_NOT_HIDDEN =
   `NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)`;
 
 /** The newest moment a person shared a tasting or a photograph. Needs the contributors row aliased `c`. */

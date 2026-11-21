@@ -140,6 +140,27 @@ function locationData(jpg: Buffer): { exif: boolean; gps: boolean } {
 /** The same-origin address the site uses for a stored file (src/lib/mediaUrl.ts). */
 const localMedia = (url: string) => url.replace(/^https:\/\/media\.teajia\.co\//, '/api/media/');
 
+/** The member places a photograph on their own page, the way /account/profile does: upload, then save. */
+async function placeOwnPhoto(page: Page, bearer: string): Promise<{ upload: number; save: number }> {
+  return page.evaluate(async ({ t }) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 600; canvas.height = 800;
+    const ctx = canvas.getContext('2d')!;
+    const fill = ctx.createLinearGradient(0, 0, 600, 800);
+    fill.addColorStop(0, 'hsl(28 45% 38%)'); fill.addColorStop(1, 'hsl(40 40% 62%)');
+    ctx.fillStyle = fill; ctx.fillRect(0, 0, 600, 800);
+    const blob: Blob = await new Promise(resolve => canvas.toBlob(b => resolve(b!), 'image/jpeg', 0.85));
+    const form = new FormData();
+    form.append('file', blob, 'hands.jpg');
+    form.append('slot', 'portrait');
+    const headers = { Authorization: `Bearer ${t}` };
+    const uploaded = await fetch('/api/me/public-profile/image', { method: 'POST', headers, body: form });
+    const url = uploaded.ok ? String((await uploaded.json()).url) : '';
+    const saved = await fetch('/api/me/public-profile', { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ portrait_url: url }) });
+    return { upload: uploaded.status, save: saved.status };
+  }, { t: bearer });
+}
+
 /** Opens the member's own tasting from the tea page: the Taste button among their tea actions. */
 async function openMyTasting(p: Page) {
   await p.getByRole('group', { name: 'Your tea actions' }).getByRole('button', { name: 'Taste', exact: true }).click({ timeout: 30_000 });
@@ -514,10 +535,19 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
     await line(8, 'They appear under "The family" on the people list', async (seen) => {
       const people = await visitor.newPage();
       current = people;
+      // No photograph, no place: their page is live, and the list does not show them yet.
+      const before = await (await page.request.get('/api/people')).json();
+      expect(before.contributors.some((c: { display_name: string }) => c.display_name.includes(tag))).toBe(false);
+      seen.push('before a photograph: page live, not on the list');
+      const placed = await placeOwnPhoto(page, strangerToken);
+      seen.push(`their own photograph placed: upload ${placed.upload}, save ${placed.save}`);
+      expect(placed).toEqual({ upload: 201, save: 200 });
       await people.goto('/people');
       const family = people.getByTestId('people-family');
       const rowEl = family.getByTestId('family-row').filter({ hasText: tag });
       await expect(rowEl).toBeVisible({ timeout: 30_000 });
+      await expect(rowEl.locator('img')).toHaveCount(1);
+      await expect(family.getByText(/most active|\b\d+ (tastings|teas|credits)\b/i)).toHaveCount(0);
       seen.push(`family row: "${(await rowEl.innerText()).replace(/\s+/g, ' ').trim()}"`);
       await rowEl.scrollIntoViewIfNeeded();
       await people.screenshot({ path: shot(8, 'the-family-on-people') });
