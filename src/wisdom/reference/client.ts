@@ -34,25 +34,25 @@ async function fetchTeaReferencePreview(): Promise<WebsiteReceivingPublicTranspo
  * Joins the preview's public-only transport to the existing public storefront.
  * The raw handoff and receiving report never enter this module or the browser.
  */
-export function useTeaReferenceCatalogue() {
+export function useTeaReferenceCatalogue(enabled = true) {
   const previewQuery = useQuery({
     queryKey: TEA_REFERENCE_PREVIEW_QUERY_KEY,
     queryFn: fetchTeaReferencePreview,
-    enabled: TEA_REFERENCE_PREVIEW_ENABLED,
+    enabled: enabled && TEA_REFERENCE_PREVIEW_ENABLED,
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
   });
-  const productsQuery = usePublicProducts();
+  const productsQuery = usePublicProducts(enabled);
   const products = productsQuery.data ?? [];
   const catalogue = useMemo(
     () => {
-      if (!productsQuery.data) return null;
+      if (!enabled || !productsQuery.data) return null;
       if (TEA_REFERENCE_PREVIEW_ENABLED && previewQuery.data) {
         return buildTeaReferenceCatalogue(previewQuery.data.publicPreview, products);
       }
       return TEA_REFERENCE_PREVIEW_ENABLED ? null : buildGeneratedTeaReferenceCatalogue(products);
     },
-    [previewQuery.data, productsQuery.data, products],
+    [enabled, previewQuery.data, productsQuery.data, products],
   );
 
   return {

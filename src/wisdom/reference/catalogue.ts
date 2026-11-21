@@ -1,5 +1,5 @@
 import type { PublicProduct } from '../../types';
-import { isTeaType, normalizeTeaType, TEA_TYPES } from '../vocabulary';
+import { normalizeTeaType, TEA_TYPES } from '../vocabulary';
 import type {
   PublicReferenceEntry,
   PublicReferencePreview,
@@ -102,13 +102,31 @@ function productMatches(product: PublicProduct, label: string): boolean {
   return searchableProductFields(product).some(value => matchesAtTokenBoundary(value, label));
 }
 
-function productMatchesPlace(product: PublicProduct, label: string): boolean {
+function placeAliases(label: string): string[] {
   const words = normalizedWords(label).split(' ').filter(Boolean);
   const concise = words.filter(word => !PLACE_DESCRIPTOR_WORDS.has(word)).join(' ');
-  const aliases = new Set([label, concise].filter(alias => [...normalizedWords(alias)].length >= 2));
-  return [...aliases].some(alias => (
+  return [...new Set([label, concise])].filter(alias => [...normalizedWords(alias)].length >= 2);
+}
+
+function productMatchesPlace(product: PublicProduct, label: string): boolean {
+  return placeAliases(label).some(alias => (
     searchableProductFields(product).some(value => matchesAtTokenBoundary(value, alias))
   ));
+}
+
+/** Link to the first recorded place that can link back to this listing. */
+export function findProductOriginReference(
+  catalogue: TeaReferenceCatalogue | null,
+  productId: string,
+  recordedOrigin: string,
+): PublicTeaOrigin | undefined {
+  const origins = catalogue?.origins.filter(origin => origin.productIds.includes(productId)) ?? [];
+  for (const place of recordedOrigin.split(',')) {
+    const name = normalizedWords(place);
+    const matches = origins.filter(origin => placeAliases(origin.name).some(alias => normalizedWords(alias) === name));
+    if (matches.length === 1) return matches[0];
+  }
+  return undefined;
 }
 
 function hasPositiveRetail(product: PublicProduct): boolean {
@@ -123,7 +141,7 @@ function isSellableActiveTea(product: PublicProduct): boolean {
 
 /** Only public catalogue records can be shown; active records alone qualify a reference entry. */
 function isEligiblePublicTeaProduct(product: PublicProduct): boolean {
-  if (product.isPersonal || !isTeaType(product.type)) return false;
+  if (product.isPersonal || !normalizeTeaType(product.type)) return false;
   return product.status === 'Sold Out' || isSellableActiveTea(product);
 }
 

@@ -14,13 +14,11 @@ it('shows an accepted email request after saving the quote',async()=>{
  await expect.poll(()=>page.getByText('Shipping payment request sent by email.',{exact:true}).count()).toBe(1);
  expect(await page.evaluate(()=>(window as any).shippingTest.calls())).toEqual([{shipping_cost_usd:8,shipping_destination:null,tracking_number:null}]);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:'/Users/adrianrasmussen/.codex/visualizations/2026/11/20/shipping-notification-ui/email-accepted-TEST-PREVIEW.png',fullPage:true});
 });
 it('keeps a blocked WhatsApp request explicitly unsent after the quote is saved',async()=>{
  await save({state:'config_required',channel:'whatsapp',code:'whatsapp_setup_required'});
  await expect.poll(()=>page.getByText('Shipping saved. WhatsApp sending is not ready, so the payment request has not been sent.',{exact:true}).count()).toBe(1);
  expect(await page.getByText('Shipping payment request sent by WhatsApp.',{exact:true}).count()).toBe(0);
- await page.screenshot({path:'/Users/adrianrasmussen/.codex/visualizations/2026/11/20/shipping-notification-ui/whatsapp-unavailable-TEST-PREVIEW.png',fullPage:true});
 });
 it('discards a send status that arrives after switching the active account',async()=>{
  await page.evaluate(()=>(window as any).shippingTest.mount({state:'accepted',channel:'whatsapp'}));
@@ -35,5 +33,4 @@ it('keeps a pending Meta approval unsent and explains the automatic follow-up',a
  await save({state:'config_required',channel:'whatsapp',code:'whatsapp_template_pending'});
  await expect.poll(()=>page.getByText('Shipping saved. WhatsApp approval is pending; this request will send automatically after approval.',{exact:true}).count()).toBe(1);
  expect(await page.getByText('Shipping payment request sent by WhatsApp.',{exact:true}).count()).toBe(0);
- await page.screenshot({path:'/Users/adrianrasmussen/.codex/visualizations/2026/11/20/shipping-notification-ui/whatsapp-pending-TEST-PREVIEW.png',fullPage:true});
 });
