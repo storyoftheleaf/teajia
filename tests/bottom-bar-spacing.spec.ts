@@ -13,9 +13,11 @@ test('bottom bar preserves narrow fit and restores balanced wider spacing', asyn
       const center=nav.querySelector('.bottom-nav-center')!;
       const labels=[...nav.querySelectorAll('.bottom-nav-label')];
       return {nav:rect(nav), center:rect(center), labels:labels.map(rect), spacers:[...nav.querySelectorAll('.bottom-nav-spacer')].map(el=>({width:el.getBoundingClientRect().width,display:getComputedStyle(el).display})),
+        dividers:['::before','::after'].map(pseudo=>getComputedStyle(center,pseudo).content),
         overflow:document.documentElement.scrollWidth>innerWidth};
     });
     expect(metrics.overflow).toBe(false);
+    expect(metrics.dividers.every(content=>content==='none'||content==='normal')).toBe(true);
     expect(Math.abs(metrics.center.x + metrics.center.width / 2 - width / 2)).toBeLessThan(1);
     for (let i=1;i<metrics.labels.length;i++) expect(metrics.labels[i].x).toBeGreaterThan(metrics.labels[i-1].right);
     if(width>=400) {

@@ -308,7 +308,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
-            className="bottom-nav-center flex-none h-full flex items-center justify-center relative transition-all duration-300 select-none before:hidden sm:before:block before:absolute before:left-0 before:h-4 before:w-px before:bg-tea-border after:hidden sm:after:block after:absolute after:right-0 after:h-4 after:w-px after:bg-tea-border"
+            className="bottom-nav-center flex-none h-full flex items-center justify-center relative transition-all duration-300 select-none"
             style={{
               WebkitTouchCallout: 'none',
               WebkitUserSelect: 'none',
