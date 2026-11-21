@@ -1,4 +1,5 @@
 import { expect, test, type Page } from './fixtures';
+import { injectAuth } from './helpers/inventoryMocks';
 
 const PRODUCTS = [
   {
@@ -77,6 +78,39 @@ async function mockPublicShop(page: Page, products = PRODUCTS, rates = [
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
 }
+
+test('puts the signed-in owner’s Edit after Taste and Collect on the tea page', async ({ page, isMobile }) => {
+  await mockPublicShop(page);
+  await injectAuth(page);
+  await page.route('**/api/products', route => route.fulfill({ json: PRODUCTS }));
+  const ownerName = 'Adrian Rasmussen with a deliberately long display name';
+  await page.route('**/api/auth/me', route => route.fulfill({
+    json: { id: 'test-admin-uid', name: ownerName, role: 'owner' },
+  }));
+  if (isMobile) await page.setViewportSize({ width: 320, height: 800 });
+
+  await page.goto('/shop/product/tea-1');
+  const actions = page.getByRole('group', { name: 'Your tea actions' });
+  await expect(actions.getByRole('button')).toHaveText([ownerName, 'Taste', '+ Collect', 'Edit']);
+  await expect(page.locator('.tea-product-plaque').getByRole('button', { name: /edit/i })).toHaveCount(0);
+  const layout = await actions.evaluate(strip => {
+    const [profile, taste, collect, edit] = Array.from(strip.querySelectorAll('button'));
+    const icon = profile.querySelector('svg')!.getBoundingClientRect();
+    const name = profile.lastElementChild!.getBoundingClientRect();
+    return {
+      iconLeftOfName: icon.right <= name.left,
+      iconCenterOffset: Math.abs((icon.top + icon.bottom - name.top - name.bottom) / 2),
+      actionTops: [profile, taste, collect, edit].map(button => button.getBoundingClientRect().top),
+      overflow: strip.scrollWidth - strip.clientWidth,
+    };
+  });
+  expect(layout.iconLeftOfName).toBe(true);
+  expect(layout.iconCenterOffset).toBeLessThan(1);
+  expect(new Set(layout.actionTops).size).toBe(1);
+  expect(layout.overflow).toBeLessThanOrEqual(1);
+  await actions.getByRole('button', { name: 'Edit', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Tea name', exact: true })).toHaveValue('Moonlight White');
+});
 
 test('loads stored product photos in the gallery and enlarged viewer', async ({ page }) => {
   const galleryImages: Record<string, { image_url: string; additional_images?: string[] }> = {
@@ -188,6 +222,7 @@ test.describe('refined public shop', () => {
     await expect(page).toHaveURL(/\/shop\/product\/tea-1$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('.label-plate')).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Your tea actions' }).getByRole('button')).toHaveText(['Log in']);
     const purchase = page.getByRole('group', { name: 'Choose and add a tea amount' });
     await expect(purchase.getByRole('button', { name: 'Add to order', exact: true })).toBeVisible();
     await expect(page.getByText('Order empty', { exact: true })).toBeVisible();
@@ -239,6 +274,7 @@ test.describe('refined public shop', () => {
     await expect(page).toHaveURL(/\/shop\/product\/ware-1$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('.label-plate')).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Your tea actions' }).getByRole('button')).toHaveText(['Log in']);
 
     // Back is a real history step now rather than a modal dismissal, and it
     // still has to land on the shop with the right tab showing. The tab is in

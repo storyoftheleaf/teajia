@@ -7320,13 +7320,12 @@ body.cart-panel-open .commerce-dock {
 .tea-product-reading { padding-inline: var(--space-4); }
 .tea-product-account {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   gap: var(--space-2);
   margin-block-start: var(--space-6);
 }
-.tea-product-profile { max-inline-size: 100%; }
+.tea-product-profile { min-inline-size: 0; max-inline-size: 100%; }
 .tea-product-profile > span:first-child { flex-shrink: 0; }
 .tea-product-profile > span:last-child { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; }
 .tea-product-profile svg { display: block; inline-size: var(--space-4); block-size: var(--space-4); }
