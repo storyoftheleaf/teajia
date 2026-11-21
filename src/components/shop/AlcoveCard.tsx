@@ -31,6 +31,8 @@ import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import { AlcoveTableSection } from './alcove/AlcoveTableSection';
 import { AlcoveCommerceFooter, wholePieceOf } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
+import { findProductOriginReference } from '../../wisdom/reference/catalogue';
+import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
 import { TeaReference, recordFacts, resolveRecord, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import type { ProductImpression } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
@@ -526,6 +528,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     type: item.type,
     year: item.year,
   };
+  const { catalogue: referenceCatalogue } = useTeaReferenceCatalogue(layout === 'page' && item.category === 'tea');
   const potentialResearch = item.category === 'tea'
     ? resolveProductResearch(referenceProduct)
     : null;
@@ -669,9 +672,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   if (layout === 'page') {
     const regionName = ledgerRegion?.province || ledgerRegion?.name;
+    const originReference = findProductOriginReference(referenceCatalogue, item.id, item.origin);
     const facts = [
       { label: 'Vintage', value: item.year },
-      { label: 'Region', value: regionName && regionName !== item.origin ? regionName : '' },
+      originReference
+        ? { label: 'Region', value: originReference.name, to: `/wisdom/region/${originReference.id}` }
+        : { label: 'Region', value: regionName && regionName !== item.origin ? regionName : '' },
       { label: 'Location', value: item.origin },
       { label: 'Leaf cultivar', value: item.cultivar ?? '' },
       { label: 'Format', value: item.form ?? '' },

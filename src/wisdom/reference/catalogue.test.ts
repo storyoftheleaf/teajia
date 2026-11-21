@@ -10,6 +10,7 @@ import {
   buildGeneratedTeaReferenceCatalogue,
   buildInventoryBackedReferenceCandidates,
   buildTeaReferenceCatalogue,
+  findProductOriginReference,
 } from './catalogue';
 
 const statement = (id: string): PublicReferenceStatement => ({
@@ -210,6 +211,25 @@ describe('sellable Tea Reference catalogue', () => {
       "A millennium in one leaf: a history of Yunnan Pu'er tea",
     );
     expect(JSON.stringify(result)).not.toMatch(/evidenceId|excerptSha256|translation|holdReason|candidateValue/i);
+  });
+
+  it('links a public Shou Puer lot to its most specific recorded origin and back', () => {
+    const naka = product({
+      id: 'naka-gushu',
+      productName: 'Naka Gushu',
+      type: 'Shou Puer' as PublicProduct['type'],
+      originRegion: 'Mengsong, Menghai, Yunnan',
+    });
+    const soldOut: PublicProduct = { ...naka, id: 'sold-out', status: 'Sold Out' };
+    const personal = { ...naka, id: 'personal', isPersonal: true };
+    const result = buildGeneratedTeaReferenceCatalogue([naka, soldOut, personal]);
+
+    expect(result.origins.find(origin => origin.id === 'menghai-county')?.productIds)
+      .toEqual(['naka-gushu', 'sold-out']);
+    expect(findProductOriginReference(result, naka.id, naka.originRegion)?.id).toBe('menghai-county');
+    expect(findProductOriginReference(result, personal.id, personal.originRegion)).toBeUndefined();
+    expect(findProductOriginReference(result, naka.id, 'Unknown')).toBeUndefined();
+    expect(buildGeneratedTeaReferenceCatalogue([soldOut, personal]).origins).toEqual([]);
   });
 
   it('derives sellable Sheng and Shou types and keeps their Pu’er family through its children', () => {
