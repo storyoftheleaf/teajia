@@ -5,7 +5,7 @@ import { CaptureFlowLayout } from '../curate/CaptureFlowLayout';
 import { BUY_GRAM_CHIPS } from '../curate/samplePreset';
 import { CapturePurchaseResult } from '../curate/CapturePurchaseResult';
 import { StructuredTeaFields } from './StructuredTeaFields';
-import { useTeaSupplier } from './TeaSourcingConnections';
+import { useTeaSupplier } from '../curate/TeaSourcingConnections';
 import { LibraryGivenName } from './LibraryGivenName';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';

@@ -4,7 +4,7 @@ import { readRouteQuotes, type RouteQuote } from '../../lib/curateStructuredFiel
 import type { TeaCompassEntry } from './types';
 import { Modal } from '../shared/Modal';
 import { Button } from '../shared/Button';
-import { TeaSourcingConnections, useTeaSupplierQuote } from './TeaSourcingConnections';
+import { TeaSourcingConnections, useTeaSupplierQuote } from '../curate/TeaSourcingConnections';
 
 type StructuredTeaEntry = Pick<TeaCompassEntry, 'id'> & Partial<TeaCompassEntry>;
 const inputClass = 'input-field min-h-tap min-w-0 px-3 py-2 text-ui-16';
