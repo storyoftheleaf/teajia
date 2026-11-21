@@ -748,7 +748,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             Always visible, one tap between screens. The capture-type
             sub-tabs (Tea / Teaware / Samples) moved to Row 2 so this row
             stays single-purpose: which screen am I on. */}
-        <div className="flex h-11 items-center gap-1 border-b border-tea-border px-2 sm:px-4" role="tablist" aria-label="Screen">
+        <div className="curate-screen-nav border-b border-tea-border" role="tablist" aria-label="Screen">
           <button
             type="button"
             onClick={handleHeaderBack}
@@ -761,7 +761,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           {/* Segmented control, the three Curate screens as peers. The
               active segment carries a gold-tinted fill + gold hairline so
               it reads at a glance; inactive segments stay quiet. */}
-          <div className="flex min-w-0 flex-1 items-center lg:flex-none">
+          <div className="curate-screen-tabs">
             {tabs.map((tab) => {
               const active = mode === tab.id;
               return (

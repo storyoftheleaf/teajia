@@ -108,7 +108,7 @@ test('a stranger joins from Add your tasting with three fields, lands in the tas
       expect(me.status).toBe(200);
       expect(me.body.email).toBe(email);
       // The page itself treats them as signed in: Add your tasting opens the tasting, not the join form.
-      await again.getByRole('button', { name: 'Add your tasting' }).first().click();
+      await again.getByRole('button', { name: /Add your tasting|^Taste$/ }).first().click();
       await expect(again.locator('.tasting-header-controls')).toBeVisible();
       expect(again.url()).not.toContain('/signup');
       await again.screenshot({ path: `${SHOTS}/after-restart.png` });

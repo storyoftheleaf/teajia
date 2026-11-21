@@ -97,6 +97,9 @@ test('loads stored product photos in the gallery and enlarged viewer', async ({ 
   for (const photo of photos) {
     await page.goto(`/shop/product/${photo.id}`);
     const thumbnail = page.getByRole('button', { name: photo.label });
+    if (photo.label.includes('image 2') && (page.viewportSize()?.width ?? 0) < 768) {
+      await page.getByRole('button', { name: 'View photo 2 of 2', exact: true }).click();
+    }
     const source = new URL(photo.path, page.url()).href;
     const image = thumbnail.getByRole('img');
     await thumbnail.scrollIntoViewIfNeeded();

@@ -45,6 +45,6 @@ describe('Source save status belongs to its tea', () => {
 
   it('offers saving for the current tea with deliberate unsaved input', () => {
     useTeaCompassStore.setState({ entries: [{ ...createEmptyEntry(), id: 'edited', name: 'Edited tea', synced: false }], activeEntryId: 'edited' });
-    expect(renderToStaticMarkup(<SyncIndicator />)).toContain('Save changes');
+    expect(renderToStaticMarkup(<SyncIndicator />)).toContain('>Save</button>');
   });
 });

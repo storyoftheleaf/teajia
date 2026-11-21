@@ -40,9 +40,9 @@ export const EncounterContext: React.FC<EncounterContextProps> = ({ journeyId, v
 
   return (
     <>
-      <button type="button" aria-label={ariaLabel} onClick={() => setOpen(true)} className="curate-support tap-target flex min-h-tap w-full items-center gap-2 text-left text-tea-text-sec hover:text-tea-text" data-curate-action>
+      <button type="button" aria-label={ariaLabel} title={label || 'Journey or visit'} onClick={() => setOpen(true)} className="curate-support tap-target flex min-h-tap w-full items-center gap-2 text-left text-tea-text-sec hover:text-tea-text" data-curate-action>
         <MapPin size={14} className="shrink-0 text-tea-gold" aria-hidden />
-        <span className="flex-1 truncate">{label || 'Journey / visit'}</span>
+        <span className="flex-1 truncate">{label || 'Visit'}</span>
         <ChevronRight size={14} aria-hidden />
       </button>
       <JourneyVisitSheet open={open} onOpenChange={setOpen} journeyId={journeyId} visitId={visitId} onApply={onChange} onLoaded={onLoaded} />

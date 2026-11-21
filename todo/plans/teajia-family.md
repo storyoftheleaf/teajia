@@ -7,23 +7,34 @@ Picture of the plan on the real screens: https://claude.ai/artifact/XWhzBLWs9MY5
 
 **Live on teajia.com.** Nothing of the family. The live site has the people list with two people (Adrian Rasmussen, Yan Jinwen), each person's page, a person's own editor and the shop's people editor. It also has the one shared photo editor and the calmer people-editor photo panel, which shipped on main while the family was being built.
 
-**Built and waiting for "ship".** Everything in this plan, merged with `origin/main` at `8c295582` on the working branch and pushed there (never to main). Measured on the merged branch:
+**Built and waiting for "ship".** Everything in this plan, merged with `origin/main` at `88176e52` on the working branch and pushed there (never to main). Measured on the merged branch:
 
 - `npm run lint`: passes. `npm run lint:colors`: passes. `npm run lint:worker-types`: 32 known errors, no drift.
 - `npm run test:src`: 3,527 passed, 11 skipped, 339 files. `npm run test:worker`: 3,261 passed, 255 files.
-- Practice-shop browser run: 9 of 9 specs passed, and the full walk passed lines 1 to 18. `npm run test:mobile`: 40 of 40. So all 19 "Done in full" lines still pass after the merge.
+- Practice-shop browser run: 9 of 9 specs passed, and the full walk passed lines 1 to 18. `npm run test:mobile`: 40 of 40. Main's own tea page specs (`sold-out-restock`, `shop-refinement`): 8 of 8. So all 19 "Done in full" lines still pass after the merge.
 - The merge had two conflicts. Main's shared photo editor was taken whole; the family's Crop button still opens it. One copy of the crop styles is kept (main's).
 - The four family migrations were renumbered from 0069 to 0072 up to **0073 to 0076**, because main took 0071 and 0072 for shipping notices. All four only add tables or one empty column; none reads, changes or adds a row, so no before-and-after page is needed.
 - The practice ports can now be set with `PRACTICE_API_PORT` and `PRACTICE_SITE_PORT`, because another session was holding 7813. This run used 8801 and 7821.
 
+**The tea page was rebuilt on main the same day (`88176e52`), and the family was fitted into it.** Main's page wins wherever the two differed:
+
+- The tea's class sits in the head of the plaque's border line and the year in the foot (main's), not in the foot toward the right (the 2026-11-20 change here). The plaque stays short on a phone and still never holds a photograph.
+- The family's one row of photographs sits right under the plaque in the new layout. With nothing in the row the page is main's page, unchanged.
+- A signed-in member opens their tasting from the "Taste" button among their tea actions (main's). The older "Yours" row is gone from tea pages.
+- Signed out, the new page offered "Log in" only. "Add your tasting" is put back beside it, because decision 15 keeps the door there. Adrian has not yet seen this on the new page.
+- A sold-out tea carries main's "Inquire about purchasing more" in the order bar and the family's "find me more" under the plaque. Two asks on one page; Adrian to choose.
+
+**Done since.** Guest notes now shows each offered photograph in its member's own crop and shape (it showed the middle of the picture). Checked in `tests/practice-guest-notes.spec.ts`.
+
+**Waiting on Adrian's own word.** The people list rule passed on from the photo editor session on 2026-11-21 (no photo, no place on the list; This season, Founding members, The family; the family ordered quietly by use; owner can pin or hide). It changes the "no gamification" rule to "order only", so it is not built until he says go in the manager session.
+
 **Open, in the order to take them.**
 
-1. Guest notes shows the middle of each offered picture, not the member's own crop.
-2. The family photograph zoom and the tasting's photograph row are not yet matched to the calmer people-editor photo panel that shipped on main.
-3. The storage reading in the i64os warning system (another repository) must land before launch.
-4. A lawyer's read of the "How we use photographs" page before launch.
-5. Adrian's own list for the member page and the tasting, asked for 2026-11-21, not yet received.
-6. Adrian says ship; then the live site is proven to carry it.
+1. The family photograph zoom and the tasting's photograph row are not yet matched to the calmer people-editor photo panel that shipped on main.
+2. The storage reading in the i64os warning system (another repository) must land before launch.
+3. A lawyer's read of the "How we use photographs" page before launch.
+4. Adrian's own list for the member page and the tasting: he chose "continue from plan" on 2026-11-21, so none is expected.
+5. Adrian says ship; then the live site is proven to carry it.
 
 ## What it is
 

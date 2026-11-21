@@ -27,7 +27,7 @@ export interface ZoomPhotograph {
 }
 
 /** The picture, placed so the part its author framed fills the shape; turned when they straightened it. */
-function FramedImage({ photo, src, lazy, testId }: { photo: ZoomPhotograph; src: string; lazy?: boolean; testId?: string }) {
+export function FramedImage({ photo, src, lazy, testId }: { photo: ZoomPhotograph; src: string; lazy?: boolean; testId?: string }) {
   const framed = framedPicture(photo.frame, photo.width, photo.height);
   const image = (
     <img src={src} alt={photo.alt} width={photo.width} height={photo.height} loading={lazy ? 'lazy' : undefined} data-testid={testId} style={framed?.picture} />

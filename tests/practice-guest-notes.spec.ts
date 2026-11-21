@@ -120,6 +120,12 @@ test('the owner reads the notes, uses and restores photographs, hides, answers, 
       expect(result.status).toBe(201);
       photoIds.push(result.body.photograph.id);
     }
+    // The member frames the first one: upright, the right-hand half of the picture.
+    const framed = await page.request.put(`/api/family/photographs/${photoIds[0]}/shape`, {
+      headers: memberHeaders,
+      data: { shape: 'upright', frame: { crop: { x: 0, y: 0 }, zoom: 2, area: { x: 50, y: 0, width: 50, height: 100 } } },
+    });
+    expect(framed.status()).toBe(200);
     const shared = await page.request.put(`/api/family/teas/${product.id}/share`, { headers: memberHeaders, data: { share_state: 'offered' } });
     expect(shared.status()).toBe(200);
     const slug = (await shared.json()).page_id as string;
@@ -145,6 +151,26 @@ test('the owner reads the notes, uses and restores photographs, hides, answers, 
     // The practice shop may hold other people's offered photographs; only this run's three are counted.
     for (const id of photoIds) await expect(row(id)).toHaveCount(1, { timeout: 20_000 });
     await expect(photos.getByText(/\d+ photographs? waiting\./)).toBeVisible();
+    // The owner sees the member's own crop, not the middle of the picture: the
+    // framed one is upright and its picture is drawn twice as wide, shifted left.
+    const framedBox = row(photoIds[0]).locator('.offered-photo');
+    await expect(framedBox).toHaveAttribute('data-shape', 'upright');
+    const drawn = await framedBox.evaluate(box => {
+      const image = box.querySelector('img')!.getBoundingClientRect();
+      const frame = box.getBoundingClientRect();
+      return { ratio: image.width / frame.width, left: (image.left - frame.left) / frame.width, shape: frame.width / frame.height };
+    });
+    expect(drawn.ratio).toBeCloseTo(2, 1);
+    expect(drawn.left).toBeCloseTo(-1, 1);
+    expect(drawn.shape).toBeCloseTo(2 / 3, 1);
+    // One nobody framed still shows the middle, square.
+    const plain = await row(photoIds[1]).locator('.offered-photo').evaluate(box => {
+      const image = box.querySelector('img')!.getBoundingClientRect();
+      const frame = box.getBoundingClientRect();
+      return { ratio: image.width / frame.width, shape: frame.width / frame.height };
+    });
+    expect(plain.ratio).toBeCloseTo(1, 1);
+    expect(plain.shape).toBeCloseTo(1, 1);
     await ownerPage.screenshot({ path: `${SHOTS}-1-top.png` });
     await row(photoIds[0]).scrollIntoViewIfNeeded();
     // The thumbnails really load (a broken picture is not a decision the owner can make).

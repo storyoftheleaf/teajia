@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { Cloud, Loader2 } from 'lucide-react';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
 import { ensureCompassEncounterSaved } from '../../lib/teaCompassSync';
@@ -40,7 +40,7 @@ export const SyncIndicator: React.FC<{ entryId?: string }> = ({ entryId }) => {
   return <span className="inline-flex flex-wrap items-center gap-1.5">
     <button type="button" onClick={() => void handleSave()} className="btn-quiet btn-sm tap-target"
       aria-label={current?.error ? 'Retry saving this tea' : 'Save changes to this tea'}>
-      <CloudOff size={12} />{current?.error ? 'Not saved. Retry' : 'Save changes'}
+      {current?.error ? 'Retry' : 'Save'}
     </button>
     {current?.error && <span role="alert" className="text-ui-11 text-tea-text-sec">{current.error}</span>}
   </span>;

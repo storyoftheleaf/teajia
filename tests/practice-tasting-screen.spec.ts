@@ -74,7 +74,7 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
 
   await page.goto(`/shop/product/${productId}`);
   await expect(page.getByText(productName).first()).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: /Add your tasting|your tasting/i }).first().click();
+  await page.getByRole('button', { name: /Add your tasting|your tasting|^Taste$/i }).first().click();
 
   // The header: microphone and camera side by side.
   const mic = page.getByRole('button', { name: 'Record into your notes' });
@@ -111,7 +111,8 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   await expect(row.locator('img')).toHaveCount(1);
 
   // The taste page: the same camera, then back to the row.
-  await page.getByRole('button', { name: /^Taste/ }).first().click();
+  // The tea page under the tasting has a Taste button of its own; the tasting's tab is the last one showing.
+  await page.getByRole('button', { name: /^Taste/ }).filter({ visible: true }).last().click();
   await expect(page.getByRole('group', { name: 'Your photographs' })).toHaveCount(0);
   await input.setInputFiles({ name: 'tea2.jpg', mimeType: 'image/jpeg', buffer: await jpeg(page, 800, 600) });
   await expect.poll(async () => (await (await page.request.get(`/api/family/teas/${productId}/mine`, { headers: { Authorization: `Bearer ${token}` } })).json()).photographs.length).toBe(2);

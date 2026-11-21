@@ -15,11 +15,15 @@ import { useSampleCartStore } from '../../samples/sampleCartStore';
 import type { InventoryItem } from '../../types';
 import { ContentType } from '../../types';
 
+import { Icons } from '../Icons';
+import { Button } from '../shared/Button';
+import { FactGrid } from '../wisdom/FactGrid';
+import { authPagePath } from '../../lib/authNavigation';
 import { AlcoveShell } from './alcove/AlcoveShell';
 import { AlcoveGallery } from './alcove/AlcoveGallery';
 import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
-import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
 import { AlcoveOriginLine } from './alcove/AlcoveOriginLine';
+import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
 import { AlcoveSectionHeading } from './alcove/AlcoveSectionHeading';
 import { AlcoveTastingPlate } from './alcove/AlcoveTastingPlate';
 import { AlcoveCharacterBand } from './alcove/AlcoveCharacterBand';
@@ -27,7 +31,7 @@ import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import { AlcoveTableSection } from './alcove/AlcoveTableSection';
 import { AlcoveCommerceFooter, wholePieceOf } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
-import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
+import { TeaReference, recordFacts, resolveRecord, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import type { ProductImpression } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
@@ -127,7 +131,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [sampleDone, setSampleDone] = useState(false);
   const [sampleError, setSampleError] = useState<string | null>(null);
 
-  const { isAuthenticated: isLoggedIn } = useAuth();
+  const { isAuthenticated: isLoggedIn, user } = useAuth();
 
   const handleSampleClick = () => {
     setSampleModalOpen(true);
@@ -276,7 +280,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const warmthRGB = liquorHex ? hexToRgbString(liquorHex) : undefined;
 
   // Collect all available images (main + additional), max 3
-  const allImages = [photoUrl, ...(item.additionalImages || [])].filter(Boolean).slice(0, 3);
+  const photos = [photoUrl, ...(item.additionalImages || [])].filter(Boolean);
+  const allImages = layout === 'page' && item.category === 'tea' ? photos : photos.slice(0, 3);
 
   /**
    * Choosing an amount on the page bar puts it straight in the order.
@@ -508,21 +513,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       }
     : null;
 
-  /*
-   * The page states where the tea is from as one floating block under the
-   * label; the card still states it as a ledger, because a glance wants rows
-   * and a page wants a place. Same facts, same source, two registers.
-   */
-  const originLine = (
-    <AlcoveOriginLine
-      origin={item.origin}
-      harvest={item.year}
-      elevation={ledgerElevation}
-      forestCover={ledgerRegion?.forestCover}
-      treeCharacter={ledgerRegion?.treeCharacter}
-    />
-  );
-
   const factsLedger = (
     <AlcoveFactsLedger
       origin={item.origin}
@@ -540,6 +530,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       allImages={allImages}
       itemName={item.name}
       layout={layout}
+      squarePage={item.category === 'tea'}
       onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
     />
   );
@@ -571,22 +562,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       open={layout === 'page'}
     />
   );
-
-  /*
-   * Your own tasting, on the page. It used to live inside the character band,
-   * which put your words inside the shop's claim about the tea. It stands on
-   * its own now, directly above the reading, so the record says what the tea
-   * is and this says what you did with it.
-   */
-  const tastingRow = onTaste ? (
-    <div className="mx-5 mt-6">
-      <AlcoveTastingPlate
-        variant="standalone"
-        entry={tastingEntry}
-        onTaste={intent => onTaste(item, intent)}
-      />
-    </div>
-  ) : null;
 
   // 5. About this tea: story + terroir + craft as one reading chapter
   const aboutSection = (
@@ -674,22 +649,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
-  if (layout === 'page') {
+  if (layout === 'page' && item.category !== 'tea') {
+    const originLine = <AlcoveOriginLine origin={item.origin} harvest={item.year} />;
+    const tastingRow = onTaste && (
+      <div className="mx-5 mt-6">
+        <AlcoveTastingPlate variant="standalone" entry={tastingEntry} onTaste={intent => onTaste(item, intent)} />
+      </div>
+    );
     return (
       <article className="mx-auto w-full max-w-[1280px]">
-        {/* Two columns on lg: the label standing full height, and the reading
-            taking everything else. There was a third, a narrow order rail, and
-            it was the page's weakest idea: it gave one tea two places to buy
-            it and took 320px off the reading to do so. Ordering is the bar at
-            the foot now, the same object the phone gets. The label is a panel
-            rather than a header here, which is what lets this page hold up on
-            a tea with no photograph at all. */}
-        {/* The label takes a SHARE of the page, not a fixed 520px. 520 is what
-            the design file draws at 1440, where it is 36% and reads as an
-            accent beside the reading; pinned, the same number is 57% of a
-            900px window and the tea's own words end up in a gutter. As a
-            percentage it stays 520 at 1440 and gets out of the way below it,
-            capped so it never grows past what the file draws. */}
         <div className="lg:grid lg:grid-cols-[minmax(0,min(36%,520px))_minmax(0,1fr)] lg:items-stretch lg:gap-0">
           {/* With something under it the plate gives up its full-height stretch
               to the column, so the strip sits below it instead of past the end. */}
@@ -718,7 +686,72 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         </div>
 
         <div aria-hidden="true" className="h-40 lg:h-8" />
+        {modals}
+      </article>
+    );
+  }
 
+  if (layout === 'page') {
+    const regionName = ledgerRegion?.province || ledgerRegion?.name;
+    const facts = [
+      { label: 'Vintage', value: item.year },
+      { label: 'Region', value: regionName && regionName !== item.origin ? regionName : '' },
+      { label: 'Location', value: item.origin },
+      { label: 'Leaf cultivar', value: item.cultivar ?? '' },
+      { label: 'Format', value: item.form ?? '' },
+      { label: ledgerElevation?.label ?? 'Elevation', value: ledgerElevation?.value ?? '' },
+      { label: 'Forest cover', value: ledgerRegion?.forestCover ?? '' },
+      { label: 'Tree character', value: ledgerRegion?.treeCharacter ?? '' },
+      ...recordFacts(resolveRecord(referenceProduct)),
+    ].filter(fact => fact.value?.trim());
+
+    return (
+      <article className="tea-product-page mx-auto w-full max-w-screen-xl" data-sold-out={isSoldOut || undefined}>
+        <div className="tea-product-layout">
+          {/* The family's row sits right under the plaque. With nothing in it the
+              plaque stands exactly as it does without the family. */}
+          <div className="tea-product-plaque">
+            {underPlate
+              ? <div className="tea-product-plaque-stack">{identityHeader}<div className="tea-product-under-plaque">{underPlate}</div></div>
+              : identityHeader}
+          </div>
+          <div className="tea-product-reading">
+            {gallery}
+            <div className="tea-product-account" role="group" aria-label="Your tea actions">
+              {isLoggedIn ? (
+                <>
+                  <Button variant="secondary" size="sm" className="tea-product-profile" icon={<Icons.User aria-hidden="true" />} onClick={() => navigate('/account')}>
+                    {user?.name?.trim() || 'My account'}
+                  </Button>
+                  {onTaste && <Button variant="secondary" size="sm" onClick={() => onTaste(item, 'notes')}>Taste</Button>}
+                  <Button variant="secondary" size="sm" aria-pressed={favorited} onClick={() => toggleFavoriteTea(item.id)}>
+                    {favorited ? 'Collected' : '+ Collect'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="secondary" size="sm" onClick={() => navigate(authPagePath('signin', window.location.pathname + window.location.search))}>Log in</Button>
+                  {/* The family's door: a stranger joins from here and lands back in the tasting. */}
+                  {onTaste && <Button variant="secondary" size="sm" onClick={() => onTaste(item, 'notes')}>Add your tasting</Button>}
+                </>
+              )}
+            </div>
+            {facts.length > 0 && (
+              <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">
+                <h2 id="tea-product-provenance-title" className="m-0 font-display text-ui-20 text-tea-text">Provenance</h2>
+                <FactGrid facts={facts} />
+              </section>
+            )}
+            <div data-page-order data-tea-product-order className="commerce-dock commerce-price-surface paper-surface dark z-nav">
+              {commerceFooter('docked')}
+            </div>
+            {characterBand}
+            <div className="mt-10 lg:mt-12">{aboutSection}</div>
+            {tableSection}
+            {threadSection}
+          </div>
+        </div>
+        <div aria-hidden="true" className="h-40 lg:h-8" />
         {modals}
       </article>
     );

@@ -59,6 +59,9 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
   if (!hasAny && !hasBrewing) return null;
 
   const onPage = variant === 'page';
+  const [processingCopy, styleAroma] = onPage
+    ? processing.split(/\n\s*## Style aroma reference\s*\n/, 2)
+    : [processing];
 
   const paragraphClass = onPage
     ? 'm-0 whitespace-pre-line font-body text-[16.5px] font-normal leading-[1.82] text-tea-text-sec [text-wrap:pretty] [&+p]:mt-3 lg:text-ui-17'
@@ -141,9 +144,10 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
           </div>
         )}
         {labeledSection('Terroir', terroir)}
-        {labeledSection('Processing', processing)}
+        {labeledSection('Processing', processingCopy)}
         {labeledSection('Mood', mood)}
         {labeledSection('Experience', feelingDescription)}
+        {styleAroma && labeledSection('Flavor & Aroma Profile', styleAroma)}
       </div>
 
       {hasBrewing && (

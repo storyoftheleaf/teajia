@@ -114,21 +114,21 @@ test('the tea page: plain when nobody has added anything, then the family strip,
     const plaque = visitorPage.locator('.label-plate');
     await expect(plaque).toBeVisible({ timeout: 30_000 });
     await expect(plaque.locator('img')).toHaveCount(0);
-    // The tea's class ("Dark tea") sits in the plaque's bottom border line, not among its lines.
+    // The tea's class ("Dark tea") sits in the head of the plaque's border line, not among its lines.
     const classMark = plaque.getByTestId('tea-classification');
     const teaClass = (await classMark.innerText()).trim();
     expect(teaClass).toMatch(/ tea$/i);
-    const plaqueLines = (await plaque.locator('h1, p:not(.label-plate__class)').allInnerTexts()).map(t => t.trim()).filter(Boolean);
+    const plaqueLines = (await plaque.locator('h1, p:not(.label-plate__edge)').allInnerTexts()).map(t => t.trim()).filter(Boolean);
     expect(plaqueLines.length, 'the plaque holds three lines at most').toBeLessThanOrEqual(3);
     expect(plaqueLines.map(t => t.toLowerCase())).not.toContain(teaClass.toLowerCase());
     const emptyPlaqueBox = (await plaque.boundingBox())!;
     expect(emptyPlaqueBox.height, 'the plaque is short on a phone').toBeLessThan(260);
-    // The word is centred on the line: the line runs 12px in from the plaque's foot.
-    const markBox = (await classMark.locator('span').boundingBox())!;
-    const lineY = emptyPlaqueBox.y + emptyPlaqueBox.height - 12;
+    // The word is centred on the line: the line runs 12px in from the plaque's head.
+    const markBox = (await classMark.locator('span').first().boundingBox())!;
+    const lineY = emptyPlaqueBox.y + 12;
     expect(Math.abs(markBox.y + markBox.height / 2 - lineY), 'the class sits on the border line').toBeLessThan(3);
-    // The line stops for the word: its bottom edge is not drawn under it.
-    expect(await plaque.evaluate(el => getComputedStyle(el, '::after').borderBottomColor)).toBe('rgba(0, 0, 0, 0)');
+    // The line stops for the word: its top edge is not drawn under it.
+    expect(await plaque.evaluate(el => getComputedStyle(el, '::after').borderTopColor)).toBe('rgba(0, 0, 0, 0)');
     await expect(visitorPage.getByTestId('tea-photographs')).toHaveCount(0);
     await expect(visitorPage.getByTestId('sold-out-line')).toHaveCount(0);
     await visitorPage.screenshot({ path: `${SHOTS}-1-plain.png` });

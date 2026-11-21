@@ -6,6 +6,7 @@ import { BottomSheet } from '../shared/BottomSheet';
 import { Modal } from '../shared/Modal';
 import { GramSlider } from './GramSlider';
 import { Button } from '../shared/Button';
+import { isoCurrencyCode } from '../../lib/currency';
 
 /**
  * PricingRow, the shared "what does this cost and how much of it"
@@ -73,13 +74,12 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   unit,
 }) => {
   const [formSheetOpen, setFormSheetOpen] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [otherWeight, setOtherWeight] = useState('');
   const [weightPresetsOpen, setWeightPresetsOpen] = useState(false);
   const gramPresets = unit.mode === 'grams' ? (GRAM_PRESETS[unit.form || 'Loose'] ?? []) : [];
-  // Underline shell, matches the identity fields above (CaptureCard's
-  // underlineFieldClass): bottom hairline only, no fill, warms to gold on
-  // focus. focus-within so the hairline lights up whether the currency
-  // <select> or the price <input> inside it has focus.
-  const underlineShellClass = 'bg-transparent border-0 border-b border-tea-border focus-within:border-tea-gold transition-colors';
+  // Shared outlined fields match the photo and tasting controls.
+  const fieldShellClass = 'capture-quote-field';
 
   const handlePriceInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,34 +90,22 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   );
 
   return (
-    <div className="space-y-1 lg:space-y-2">
+    <div className="capture-quote space-y-1 lg:space-y-2">
       {showQuoteLabels && unit.mode === 'grams' && (
-        <div aria-hidden className={`hidden gap-4 text-ui-10 text-tea-text-sec lg:grid ${unit.onFormChange ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <div aria-hidden className={`capture-quote-grid capture-quote-labels text-ui-10 text-tea-text-sec ${unit.onFormChange ? 'capture-quote-with-form' : ''}`}>
           <span>Supplier quote</span>
-          <span className="text-right">Quoted weight</span>
+          <span>Quoted weight</span>
           {unit.onFormChange && <span>Form</span>}
         </div>
       )}
-      {/* Top row.
-          - grams mode: [Currency + Price] [Grams · g] [Form ▾].
-            All three flex-1 / equal sizes so the row reads as one
-            grouped pricing unit instead of "primary input + sidekick".
-          - count mode: [Currency + Price flex-1] [− qty + ct].
-            The counter stays a compact pill on the right since there's
-            no form picker to balance it. */}
-      <div className="flex items-stretch gap-4">
-        <div className={`min-h-tap flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
-          <select
-            value={priceCurrency}
-            onChange={(e) => onCurrencyChange(e.target.value as Currency)}
-            className="curate-primary min-h-tap self-center shrink-0 cursor-pointer appearance-none border-none bg-transparent py-2.5 pl-1 pr-1 text-tea-text-dim outline-none tabular-nums"
-            style={{ backgroundImage: 'none' }}
-            aria-label="Currency"
-          >
-            {Object.entries(CURRENCY_LABELS).filter(([k]) => k !== 'UNK').map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
+      {/* Quote, measured weight and form share one responsive row. */}
+      <div className={unit.mode === 'grams' ? `capture-quote-grid ${unit.onFormChange ? 'capture-quote-with-form' : ''}` : 'flex min-w-0 items-stretch gap-2'}>
+        <div className={`min-h-tap flex-1 min-w-0 flex items-center ${fieldShellClass}`}>
+          <Button type="button" variant="quiet" size="sm" className="capture-currency-trigger"
+            aria-label="Currency" title={`Quote currency: ${isoCurrencyCode(priceCurrency)}`} aria-haspopup="dialog"
+            aria-expanded={currencyOpen} onClick={() => setCurrencyOpen(true)}>
+            {CURRENCY_LABELS[priceCurrency]}<ChevronDown size={12} aria-hidden />
+          </Button>
           <input
             type="number"
             inputMode="decimal"
@@ -134,7 +122,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             sizes); +/- counter pill in count mode. */}
         {unit.mode === 'grams' ? (
           <>
-            <div className={`min-h-tap flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
+            <div className={`min-h-tap flex-1 min-w-0 flex items-center ${fieldShellClass}`}>
               <input
                 type="number"
                 inputMode="numeric"
@@ -145,7 +133,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                   unit.onGramsChange(val === '' ? undefined : Number(val));
                 }}
                 style={noSpinnerStyle}
-                className="curate-primary min-h-tap flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="capture-weight-input curate-primary min-h-tap flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 aria-label="Grams"
               />
               <span
@@ -154,9 +142,9 @@ export const PricingRow: React.FC<PricingRowProps> = ({
               >
                 g
               </span>
-              {showQuoteLabels && gramPresets.length > 0 && <Button type="button" variant="plain" onClick={() => setWeightPresetsOpen(true)}
+              {showQuoteLabels && gramPresets.length > 0 && <Button type="button" variant="icon" size="sm" onClick={() => { setOtherWeight(unit.pricePerUnitGrams == null ? '' : String(unit.pricePerUnitGrams)); setWeightPresetsOpen(true); }}
                 aria-label="Choose preset weight" title="Choose preset weight"
-                className="tap-target hidden h-11 w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text lg:flex">
+                className="capture-weight-picker tap-target hidden shrink-0 lg:inline-flex">
                 <Ruler size={14} aria-hidden />
               </Button>}
             </div>
@@ -165,7 +153,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
               <button
                 type="button"
                 onClick={() => setFormSheetOpen(true)}
-                className={`curate-action flex-1 min-w-0 justify-between gap-1 bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 transition-colors focus:border-tea-gold focus:outline-none ${
+                className={`btn-field capture-form-trigger ${
                   unit.form ? 'text-tea-text font-medium' : 'text-tea-text-sec'
                 }`}
                 aria-label="Tea form"
@@ -214,17 +202,47 @@ export const PricingRow: React.FC<PricingRowProps> = ({
 
       {unit.mode === 'grams' && gramPresets.length > 0 && (
         <>
-          <GramSlider presets={gramPresets} value={unit.pricePerUnitGrams} onChange={unit.onGramsChange}
-            className={showQuoteLabels ? 'lg:hidden' : undefined} />
+          <div className={showQuoteLabels ? 'capture-mobile-weight-tools min-w-0 items-center gap-2' : undefined}>
+            <GramSlider presets={gramPresets} value={unit.pricePerUnitGrams} onChange={unit.onGramsChange} className="min-w-0 flex-1" />
+            {showQuoteLabels && <Button type="button" variant="icon" size="sm" className="tap-target shrink-0"
+              aria-label="Choose preset weight" title="Quoted weight"
+              onClick={() => { setOtherWeight(unit.pricePerUnitGrams == null ? '' : String(unit.pricePerUnitGrams)); setWeightPresetsOpen(true); }}>
+              <Ruler size={14} aria-hidden />
+            </Button>}
+          </div>
           {showQuoteLabels && <Modal isOpen={weightPresetsOpen} onClose={() => setWeightPresetsOpen(false)} title="Quoted weight">
             <div className="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
               {gramPresets.map(grams => <Button key={grams} type="button" size="sm"
                 variant={grams === unit.pricePerUnitGrams ? 'secondary' : 'ghost'} aria-pressed={grams === unit.pricePerUnitGrams}
                 onClick={() => { unit.onGramsChange(grams); setWeightPresetsOpen(false); }}>{grams} g</Button>)}
             </div>
+            <form className="capture-other-weight" onSubmit={event => {
+              event.preventDefault();
+              if (otherWeight.trim() === '' || !Number.isFinite(Number(otherWeight)) || Number(otherWeight) < 0) return;
+              unit.onGramsChange(Number(otherWeight)); setWeightPresetsOpen(false);
+            }}>
+              <label htmlFor="capture-other-quoted-weight">Other weight</label>
+              <div className="flex min-w-0 items-center gap-2">
+                <input id="capture-other-quoted-weight" type="number" inputMode="decimal" min="0" step="any"
+                  value={otherWeight} onChange={event => setOtherWeight(event.target.value)} className="btn-field min-w-0 flex-1" />
+                <span>g</span>
+                <Button type="submit" size="sm" disabled={otherWeight.trim() === '' || !Number.isFinite(Number(otherWeight)) || Number(otherWeight) < 0}>Use weight</Button>
+              </div>
+            </form>
           </Modal>}
         </>
       )}
+
+      <Modal isOpen={currencyOpen} onClose={() => setCurrencyOpen(false)} title="Quote currency">
+        <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+          {Object.entries(CURRENCY_LABELS).filter(([key]) => key !== 'UNK').map(([value, label]) => (
+            <Button key={value} type="button" variant="secondary" aria-pressed={priceCurrency === value} className={priceCurrency === value ? 'border-tea-gold' : ''}
+              onClick={() => { onCurrencyChange(value as Currency); setCurrencyOpen(false); }}>
+              {label} · {isoCurrencyCode(value)}
+            </Button>
+          ))}
+        </div>
+      </Modal>
 
       {/* Form picker, compact 2-column grid, name only. */}
       {unit.mode === 'grams' && unit.onFormChange && (

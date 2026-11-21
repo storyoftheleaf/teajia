@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { familyApi } from '../../../lib/familyApi';
 import type { FamilyOfferedPhotograph } from '../../../lib/familyContract';
 import { mediaUrl } from '../../../lib/mediaUrl';
+import { FramedImage } from '../../../components/shared/Photographs';
 import { Chip, SectionHeading, TextAction, dayLabel, errorSentence } from './parts';
 
 /**
@@ -55,15 +56,24 @@ function PhotographRow({ photo }: { photo: Offered }) {
   return (
     <li data-testid="offered-photograph" data-photograph-id={photo.id} className="flex gap-3 border-b border-tea-border py-4 last:border-b-0">
       <a href={mediaUrl(photo.full_url)} target="_blank" rel="noreferrer" className="block shrink-0" aria-label={`Open the photograph of ${photo.product_name ?? 'this tea'}`}>
-        <img
-          src={mediaUrl(photo.small_url)}
-          width={photo.small_width}
-          height={photo.small_height}
-          alt={`${photo.product_name ?? 'Tea'} by ${photo.author.name}`}
-          loading="lazy"
-          data-shape={photographShape(photo.shape)}
-          className="offered-photo h-24 object-cover"
-        />
+        {/* The part its author framed, in the shape they chose: what the tea page would show. */}
+        <span data-shape={photographShape(photo.shape)} data-framed={photo.frame ? '' : undefined} className="offered-photo">
+          <FramedImage
+            photo={{
+              id: photo.id,
+              smallSrc: mediaUrl(photo.small_url),
+              fullSrc: mediaUrl(photo.full_url),
+              width: photo.small_width,
+              height: photo.small_height,
+              alt: `${photo.product_name ?? 'Tea'} by ${photo.author.name}`,
+              shape: photo.shape,
+              frame: photo.frame,
+            }}
+            src={mediaUrl(photo.small_url)}
+            lazy
+            testId="offered-photograph-image"
+          />
+        </span>
       </a>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">

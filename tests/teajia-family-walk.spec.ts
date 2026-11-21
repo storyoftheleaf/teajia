@@ -140,13 +140,9 @@ function locationData(jpg: Buffer): { exif: boolean; gps: boolean } {
 /** The same-origin address the site uses for a stored file (src/lib/mediaUrl.ts). */
 const localMedia = (url: string) => url.replace(/^https:\/\/media\.teajia\.co\//, '/api/media/');
 
-/** Opens the member's own tasting from the tea page: the written row opens onto Note and Edit. */
+/** Opens the member's own tasting from the tea page: the Taste button among their tea actions. */
 async function openMyTasting(p: Page) {
-  const note = p.getByRole('button', { name: 'Note', exact: true }).first();
-  if (!(await note.isVisible().catch(() => false))) {
-    await p.getByRole('button').filter({ hasText: 'Yours' }).first().click({ timeout: 30_000 });
-  }
-  await note.click();
+  await p.getByRole('group', { name: 'Your tea actions' }).getByRole('button', { name: 'Taste', exact: true }).click({ timeout: 30_000 });
   await expect(p.locator('.tasting-header-controls')).toBeVisible({ timeout: 20_000 });
 }
 
@@ -311,7 +307,7 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
         seen.push(`after a fresh browser: /api/auth/me ${me.status} as ${me.email}; token in session storage: ${me.inSession}`);
         expect(me.status).toBe(200);
         expect(me.email).toBe(strangerEmail);
-        await again.getByRole('button', { name: /Add your tasting|Note/ }).first().click();
+        await again.getByRole('button', { name: /Add your tasting|Note|^Taste$/ }).first().click();
         await expect(again.locator('.tasting-header-controls')).toBeVisible();
         expect(again.url()).not.toContain('/signup');
         await again.screenshot({ path: shot(2, 'still-signed-in-after-restart') });
@@ -341,7 +337,7 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ text: SPOKEN, recording_id: `stub-${tag}` }) });
       });
       await page.goto(teaPath);
-      await page.getByRole('button', { name: /Add your tasting|Note/ }).first().click();
+      await page.getByRole('button', { name: /Add your tasting|Note|^Taste$/ }).first().click();
       const mic = page.getByRole('button', { name: 'Record into your notes' });
       await expect(mic).toBeVisible();
       await mic.click();
@@ -376,7 +372,8 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       bigPhoto = (await response.json()).photograph;
       await expect(row.locator('img')).toHaveCount(1, { timeout: 20_000 });
       // The taste page: the same camera in the header.
-      await page.getByRole('button', { name: /^Taste/ }).first().click();
+      // The tea page under the tasting has a Taste button of its own; the tasting's tab is the last one showing.
+      await page.getByRole('button', { name: /^Taste/ }).filter({ visible: true }).last().click();
       await expect(camera).toBeVisible();
       const second = page.waitForResponse(r => r.url().includes('/api/family/photographs') && r.request().method() === 'POST');
       await input.setInputFiles({ name: 'IMG_0002.jpg', mimeType: 'image/jpeg', buffer: await jpeg(page, 1600, 1200) });
@@ -854,7 +851,7 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       current = ownerPage;
       await ownerPage.goto(teaPath);
       await expect(ownerPage.getByText(teaName).first()).toBeVisible({ timeout: 30_000 });
-      await ownerPage.getByRole('button', { name: /Add your tasting|Note/ }).first().click();
+      await ownerPage.getByRole('button', { name: /Add your tasting|Note|^Taste$/ }).first().click();
       await expect(ownerPage.locator('.tasting-header-controls')).toBeVisible({ timeout: 20_000 });
       const mic = ownerPage.getByRole('button', { name: 'Record into your notes' });
       const camera = ownerPage.getByRole('button', { name: 'Add a photograph' });

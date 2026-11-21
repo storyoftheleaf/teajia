@@ -2307,7 +2307,7 @@ input[type="number"]::-webkit-outer-spin-button {
    label came out looking like putty. Overlay moves lightness, leaves the hue. */
 .light .label-plate::before { opacity: 0.34; mix-blend-mode: overlay; }
 /* The keyline is inset 12px on the phone board and 24px on the desktop one:
-   the panel is 396px tall in the hand and full-column on the desk, so a single
+   the panel is short in the hand and full-column on the desk, so a single
    inset would crowd one and float in the other. */
 .label-plate::after {
   content: '';
@@ -2318,37 +2318,6 @@ input[type="number"]::-webkit-outer-spin-button {
 @media (min-width: 1024px) {
   .label-plate { --plate-keyline-inset: var(--plate-keyline-inset-desk); }
 }
-/* The tea's class ("Dark tea") is set into the keyline itself, the way a
-   maker's mark sits in the rule of a printed label. The keyline's bottom edge
-   is not drawn; this row draws it instead, as rule, word, rule, so the line
-   truly stops for the word and nothing is painted over the stock. */
-.label-plate[data-classed]::after { border-bottom-color: transparent; }
-.label-plate__class {
-  position: absolute;
-  left: var(--plate-keyline-inset);
-  right: var(--plate-keyline-inset);
-  bottom: var(--plate-keyline-inset);
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0;
-  transform: translateY(50%);
-  font-family: var(--font-sans);
-  font-size: var(--fs-ui-10);
-  line-height: normal;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: var(--plate-keyline-ink);
-}
-.label-plate__class::before,
-.label-plate__class::after { content: ''; border-top: 1px solid var(--plate-keyline); }
-.label-plate__class::before { flex: 1 1 auto; }
-.label-plate__class::after { flex: 0 0 var(--space-6); }
-/* The tracking leaves a gap after the last letter; take it back so the word
-   sits evenly between its two rules. */
-.label-plate__class span { margin-right: -0.24em; }
 /* The rule above the shop's own sentence, which sits on the plate and so
    follows the plate's ink rather than the page's border token. */
 .plate-rule { background: rgb(var(--tea-gold-rgb) / 0.4); }
@@ -7281,15 +7250,15 @@ body.cart-panel-open .commerce-dock {
   .alcove-dock-decision .alcove-dock-amount { padding-inline: 0.375rem; }
 }
 @media (min-width: 1024px) {
-  .commerce-dock[data-page-order] {
+  .commerce-dock[data-page-order]:not([data-tea-product-order]) {
     position: relative;
     inset: auto;
     width: auto;
     margin: 0.75rem;
     border-radius: 0.5rem;
   }
-  .commerce-dock[data-page-order] .alcove-dock-strip { border-radius: 0.5rem; }
-  body:has(.commerce-dock[data-page-order]) .site-footer {
+  .commerce-dock[data-page-order]:not([data-tea-product-order]) .alcove-dock-strip { border-radius: 0.5rem; }
+  body:has(.commerce-dock[data-page-order]:not([data-tea-product-order])) .site-footer {
     padding-bottom: clamp(28px, 4vw, 40px) !important;
   }
 }
@@ -7390,6 +7359,136 @@ body.cart-panel-open .commerce-dock {
 .photo-zoom__shapes { display:flex; align-items:center; justify-content:center; gap:var(--space-1); }
 /* A turned photograph: the stage is the turned picture's outer box, placed so the framed part fills the shape. */
 .photo-stage { position:absolute; }
-.offered-photo { aspect-ratio:1; }
+.offered-photo { position:relative; display:block; block-size:calc(var(--space-12) * 2); aspect-ratio:1; overflow:hidden; background:var(--tea-surface); }
+.offered-photo img { display:block; inline-size:100%; block-size:100%; object-fit:cover; }
 .offered-photo[data-shape="upright"] { aspect-ratio:2 / 3; }
 .offered-photo[data-shape="across"] { aspect-ratio:3 / 2; }
+
+/* Standalone tea pages share the shop's label stock and order dock. */
+.tea-product-nav { min-block-size: var(--space-12); margin-inline: auto; }
+.tea-product-nav > :is(a, :last-child) {
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-10);
+  letter-spacing: var(--ls-nav);
+  text-transform: uppercase;
+}
+.tea-product-layout, .tea-product-reading, .tea-product-plaque { min-inline-size: 0; }
+.tea-product-reading { padding-inline: var(--space-4); }
+.tea-product-account {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-6);
+}
+.tea-product-profile { max-inline-size: 100%; }
+.tea-product-profile > span:first-child { flex-shrink: 0; }
+.tea-product-profile > span:last-child { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; }
+.tea-product-profile svg { display: block; inline-size: var(--space-4); block-size: var(--space-4); }
+
+.tea-product-provenance {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-6) var(--space-4) 0;
+  padding-block: var(--space-4);
+  border-block-start: var(--border-w) solid var(--tea-border);
+}
+.tea-product-provenance dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+.tea-product-provenance dt, .tea-product-provenance dd { margin: 0; }
+
+.label-plate--tea {
+  --tea-product-frame-inset: var(--space-3);
+  --tea-product-frame-ink: var(--tea-keyline);
+}
+.label-plate--tea::after { inset: var(--tea-product-frame-inset); border-color: var(--tea-product-frame-ink); }
+.light .label-plate--tea::after { border-color: var(--tea-product-frame-ink); }
+.label-plate--tea[data-tea-class]::after { border-top-color: transparent; }
+.label-plate--tea[data-tea-vintage]::after { border-bottom-color: transparent; }
+.label-plate__edge {
+  position: absolute;
+  inset-inline: var(--tea-product-frame-inset);
+  block-size: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  z-index: 1;
+  font: var(--fs-ui-10)/1.3 var(--font-sans);
+  letter-spacing: var(--ls-nav);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--tea-gold);
+}
+.label-plate__edge--class { inset-block-start: var(--tea-product-frame-inset); }
+.label-plate__edge--vintage { inset-block-end: var(--tea-product-frame-inset); }
+.label-plate__edge--class::before, .label-plate__edge--vintage::after, .label-plate__rule {
+  content: '';
+  align-self: flex-start;
+  border-block-start: var(--border-w) solid var(--tea-product-frame-ink);
+}
+.label-plate__edge--class::before, .label-plate__edge--vintage::after { flex: 0 0 var(--space-3); }
+.label-plate__rule { flex: 1 1 auto; }
+.label-plate__edge--vintage::after, .label-plate__edge--vintage .label-plate__rule {
+  transform: translateY(calc(-1 * var(--border-w)));
+}
+
+.tea-product-sold-out {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  text-align: center;
+  padding: var(--space-1) var(--space-2);
+}
+.tea-product-sold-out-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--fs-ui-13);
+  color: var(--tea-text);
+}
+.tea-product-sold-out p {
+  margin: var(--space-1) 0 0;
+  color: var(--tea-text-sec);
+  font: var(--fs-ui-13)/1.4 var(--font-body);
+}
+@media (min-width: 48rem) {
+  .tea-product-layout {
+    --tea-product-plaque-top: calc(var(--space-12) + var(--space-4));
+    --tea-product-dock-clearance: calc(var(--space-12) * 3 + var(--space-6));
+    display: grid;
+    grid-template-columns: minmax(0, 36%) minmax(0, 1fr);
+    margin-inline: var(--space-4);
+  }
+  .tea-product-plaque { padding-block-start: var(--space-3); }
+  .tea-product-plaque > div { position: sticky; inset-block-start: var(--tea-product-plaque-top); block-size: auto; }
+  /* With the family's row under it, the plaque and the row share the height the plaque had alone. */
+  .tea-product-plaque > .tea-product-plaque-stack {
+    display: flex;
+    flex-direction: column;
+    block-size: calc(100svh - var(--tea-product-plaque-top) - var(--tea-product-dock-clearance) - env(safe-area-inset-bottom));
+  }
+  .tea-product-plaque-stack > div:first-child { flex: 1 1 auto; min-block-size: 0; }
+  .tea-product-plaque-stack .label-plate--tea { block-size: 100%; }
+  .tea-product-plaque .label-plate--tea {
+    block-size: calc(100svh - var(--tea-product-plaque-top) - var(--tea-product-dock-clearance) - env(safe-area-inset-bottom));
+    min-block-size: 0;
+    margin: 0;
+    padding: var(--space-8);
+    justify-content: center;
+  }
+  .tea-product-reading { padding: var(--space-4) var(--space-6) 0; }
+}
+@media (min-width: 64rem) {
+  .tea-product-layout { --tea-product-dock-clearance: calc(var(--space-12) + var(--space-6) * 2 + var(--space-2)); margin: 0; }
+  .tea-product-page:not([data-sold-out]) .tea-product-layout {
+    --tea-product-dock-clearance: calc(var(--space-12) + var(--space-6) + var(--space-2));
+  }
+  .tea-product-provenance dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .label-plate--tea { --tea-product-frame-inset: var(--space-6); }
+}
