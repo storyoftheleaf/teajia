@@ -883,10 +883,23 @@ body {
 
 [data-form-layout='flow'] .capture-context-toolbar > .pill-quiet { text-transform: none; letter-spacing: normal; font-size: var(--fs-ui-13); }
 .capture-mobile-weight-tools { display: flex; }
-@media (max-width: 1023px) { .capture-quote .capture-weight-picker { display: none; } }
-@media (min-width: 1024px) { .capture-quote .capture-mobile-weight-tools { display: none; } }
 
 [data-form-layout='flow'] .capture-context-toolbar.curate-flow-where > .library-supplier-heading svg { display: block; }
 
 .capture-quote .capture-quote-labels { display: none; }
 @media (min-width: 1024px) { .capture-quote .capture-quote-labels { display: grid; } }
+
+/* Bottom capsule: keep the compact phone fit, then recover the balanced
+   half-share spacing established in October as the bar grows. */
+.bottom-nav-label { font-size: var(--fs-ui-14); }
+.bottom-nav-menu { padding-left: var(--space-2); }
+.bottom-nav-account { padding-right: var(--space-2); }
+.bottom-nav-center { padding-inline: var(--space-1); }
+.bottom-nav-spacer { display: none; }
+@media (min-width: 400px) {
+  .bottom-nav-label { font-size: var(--fs-ui-15); }
+  .bottom-nav-menu { padding-left: calc(var(--space-3) + var(--space-1) / 2); }
+  .bottom-nav-account { padding-right: calc(var(--space-3) + var(--space-1) / 2); }
+  .bottom-nav-center { padding-inline: calc(var(--space-1) * 1.5); }
+  .bottom-nav-spacer { display: block; flex: .5 1 0; }
+}

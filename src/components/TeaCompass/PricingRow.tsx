@@ -142,11 +142,6 @@ export const PricingRow: React.FC<PricingRowProps> = ({
               >
                 g
               </span>
-              {showQuoteLabels && gramPresets.length > 0 && <Button type="button" variant="icon" size="sm" onClick={() => { setOtherWeight(unit.pricePerUnitGrams == null ? '' : String(unit.pricePerUnitGrams)); setWeightPresetsOpen(true); }}
-                aria-label="Choose preset weight" title="Choose preset weight"
-                className="capture-weight-picker tap-target hidden shrink-0 lg:inline-flex">
-                <Ruler size={14} aria-hidden />
-              </Button>}
             </div>
 
             {unit.onFormChange && (

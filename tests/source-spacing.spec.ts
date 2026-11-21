@@ -21,8 +21,10 @@ test('Source controls fit, currency keeps the quote, and any quoted weight can b
     await picker.getByRole('button', { name: '$ · USD', exact: true }).click();
     await expect(currency).toHaveText('$');
     await expect(price).toHaveValue('1250');
+    await expect(visible(page.getByRole('slider', { name: 'Grams', exact: true }))).toBeVisible();
     await visible(page.getByRole('button', { name: 'Choose preset weight', exact: true })).click();
     const weight = page.getByRole('dialog', { name: 'Quoted weight', exact: true });
+    await expect(weight.getByRole('button', { name: '150 g', exact: true })).toBeVisible();
     await weight.getByLabel('Other weight', { exact: true }).fill('1250');
     await page.screenshot({ animations: 'disabled', path: info.outputPath(`other-weight-${width}.png`) });
     await weight.getByRole('button', { name: 'Use weight', exact: true }).click();
