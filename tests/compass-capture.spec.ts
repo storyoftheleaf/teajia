@@ -395,7 +395,8 @@ test.describe('Curate field capture preservation', () => {
     await expect(name).toHaveValue('Second field tea');
     const firstEntry = page.getByRole('button', { name: 'First field tea', exact: true }).filter({ visible: true });
     if (!(await firstEntry.isVisible().catch(() => false))) {
-      await page.getByRole('button', { name: /^Run(?: · \d+)?$/ }).filter({ visible: true }).click();
+      // The session's drafts are listed in the Source context sheet.
+      await page.getByRole('button', { name: 'Source context', exact: true }).filter({ visible: true }).click();
     }
     await firstEntry.click();
     await expect(name).toHaveValue('First field tea');
@@ -641,7 +642,7 @@ test.describe('Curate field capture preservation', () => {
     await openCompass(page, 'classic');
     await page.getByRole('button', { name: 'Add journey or visit context' }).click();
     await page.getByRole('button', { name: /Taiwan, Spring 2026/ }).click();
-    await page.getByRole('button', { name: 'Chen Family Taipei' }).click();
+    await page.getByRole('button', { name: 'Chen Family · Taipei', exact: true }).click();
     await page.getByRole('button', { name: 'Apply context' }).click();
     await expect(page.getByRole('button', { name: /Edit context: Taiwan, Spring 2026 · Chen Family/ })).toBeVisible();
 

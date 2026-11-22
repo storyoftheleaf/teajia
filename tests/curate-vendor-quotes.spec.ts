@@ -66,7 +66,7 @@ test('vendor people, contact channels, addresses and quote lines stay structured
   await quotes.getByLabel('Line 1 unit weight (g)').fill('1000');
   await quotes.getByLabel('Line 1 discount (%)').fill('25');
   const routes = quotes.getByTestId('structured-tea-fields');
-  await routes.locator('summary').click();
+  // Route quotes stand open inside a quote line; there is no fold to open first.
   await routes.getByRole('button', { name: 'Add route quote', exact: true }).click();
   const route = routes.getByRole('group', { name: 'Route quote editor' });
   await route.getByRole('combobox', { name: 'Route', exact: true }).selectOption('air');

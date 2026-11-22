@@ -256,7 +256,8 @@ test.describe('Curate compact sourcing canvas', () => {
       });
     });
 
-    await expect(photoSlot.getByRole('button', { name: 'Photo actions' })).toBeVisible();
+    // A filled slot opens the shared photo editor on its photograph.
+    await expect(photoSlot.getByRole('button', { name: 'Frame photo 1' }).first()).toBeVisible();
     await expect(photoSlot.getByRole('button', { name: 'Add another photo' })).toBeVisible();
     const filledBox = await photoSlot.boundingBox();
     expect(filledBox).not.toBeNull();

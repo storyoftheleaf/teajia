@@ -275,7 +275,9 @@ test.describe('refined public shop', () => {
     await expect(page).toHaveURL(/\/shop\/product\/ware-1$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('.label-plate')).toBeVisible();
-    await expect(page.getByRole('group', { name: 'Your tea actions' }).getByRole('button')).toHaveText(['Log in']);
+    // Teaware keeps the earlier page, which has no account strip; its door for a
+    // visitor is the tasting plate.
+    await expect(page.getByRole('button', { name: 'Add your tasting', exact: true })).toBeVisible();
 
     // Back is a real history step now rather than a modal dismissal, and it
     // still has to land on the shop with the right tab showing. The tab is in

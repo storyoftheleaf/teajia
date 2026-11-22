@@ -140,7 +140,7 @@ test.describe('Curate context recovery', () => {
     await page.getByRole('button', { name: 'New trip' }).click();
     await page.getByLabel('Trip name').fill('Yunnan');
     await page.getByRole('button', { name: 'Save trip' }).dblclick();
-    await expect(page.getByRole('alert')).toContainText('Could not save the journey');
+    await expect(page.getByRole('alert')).toContainText('Could not save the trip');
     await expect(page.getByLabel('Trip name')).toHaveValue('Yunnan');
     expect(compassRequestCount(page, 'POST /api/curate/journeys')).toBe(1);
     await page.getByRole('button', { name: 'Save trip' }).click();

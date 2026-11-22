@@ -15,7 +15,12 @@ async function state(page: Page) {
   }, entryId);
 }
 
-test('phone shared tea recording stores one canonical voice note without rewriting source fields', async ({ page }) => {
+// The shop keeps each recording and answers with its id. Attaching that id to
+// the tea is what saves the audio and its private voice note together, and the
+// note's id comes from the recording, so one recording can never leave two notes.
+const recordingId = (count: number) => `00000000-0000-4000-8000-${String(count).padStart(12, '0')}`;
+
+test('phone shared tea recording stores one voice note per recording without rewriting source fields', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 851 });
   await installCompassHarness(page, { compassEntries: [source] });
   await page.addInitScript(() => {
@@ -52,11 +57,26 @@ test('phone shared tea recording stores one canonical voice note without rewriti
       };
     })));
     expect(route.request().headers()['x-teajia-account']).toBe('acct-bali');
-    await route.fulfill({ json: { text: transcript, recording_id: `recording-${transcriptions}` } });
+    const id = recordingId(transcriptions);
+    await route.fulfill({ json: { text: transcript, recording_id: id, audio_url: `/api/transcriptions/${id}/audio` } });
   });
-  await page.route('**/api/transcriptions/*', async route => {
-    expect(route.request().method()).toBe('DELETE');
-    await route.fulfill({ json: { ok: true } });
+  const attached: Array<{ recording: string; body: unknown }> = [];
+  await page.route('**/api/transcriptions/**', async route => {
+    const request = route.request();
+    const [, id, action] = new URL(request.url()).pathname.match(/\/api\/transcriptions\/([^/]+)\/([^/]+)$/) ?? [];
+    if (request.method() === 'GET' && action === 'audio') return route.fulfill({ contentType: 'audio/webm', body: Buffer.alloc(512) });
+    expect(request.method()).toBe('POST');
+    expect(action).toBe('attach');
+    expect(request.headers()['x-teajia-account']).toBe('acct-bali');
+    attached.push({ recording: id, body: request.postDataJSON() });
+    const audioUrl = `/api/transcriptions/${id}/audio`;
+    const createdAt = new Date().toISOString();
+    await route.fulfill({ json: {
+      recording_id: id, audio_url: audioUrl,
+      clip: { url: audioUrl, transcript, timestamp: createdAt, recordingId: id },
+      note: { id: `recording-${id}`, account_id: 'acct-bali', compass_entry_id: entryId, text: transcript, source_type: 'voice', author_id: 'test-admin-uid', author_name: 'You', visibility: 'private', created_at: createdAt },
+      entry: source,
+    } });
   });
   await page.route('**/api/notes/sync', async route => {
     const input = route.request().postDataJSON();
@@ -83,20 +103,25 @@ test('phone shared tea recording stores one canonical voice note without rewriti
     await microphone.click();
     await expect(microphone).toBeEnabled();
     await expect.poll(() => transcriptions).toBe(attempt + 1);
-    await expect.poll(async () => (await state(page)).notes.length).toBe(1);
+    await expect.poll(async () => (await state(page)).notes.length).toBe(attempt + 1);
   }
+  expect(attached).toEqual([1, 2].map(count => ({ recording: recordingId(count), body: { compass_entry_id: entryId } })));
   expect(capturedContexts).toEqual([`curate:test-admin-uid:acct-bali:${entryId}`, `curate:test-admin-uid:acct-bali:${entryId}`]);
   const saved = await state(page);
   expect(saved.notes[0]).toMatchObject({ accountId: 'acct-bali', authorId: 'test-admin-uid', compassEntryId: entryId, sourceType: 'voice', visibility: 'private', text: transcript });
   expect(saved.entry).toMatchObject({ id: entryId, notes: source.notes, description: source.description, type: source.type, year: source.year, priceAmount: source.price_amount });
-  await expect.poll(() => synchronized.filter(note => note.compass_entry_id === entryId).length).toBeGreaterThan(0);
-  expect(new Set(synchronized.filter(note => note.compass_entry_id === entryId).map(note => note.id)).size).toBe(1);
+  expect(saved.notes.map((note: any) => note.id).sort()).toEqual([1, 2].map(count => `recording-${recordingId(count)}`));
+  expect(saved.entry.audioClips.map((clip: any) => clip.recordingId)).toEqual([1, 2].map(recordingId));
+  // The shop wrote both notes when it attached the recordings; the device does
+  // not send a second copy of either through the notes sync.
+  expect(synchronized.filter(note => note.compass_entry_id === entryId)).toEqual([]);
   expect(extractionCalls).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await openRecordSection(page, 'Source material');
-  await expect(record.getByRole('textbox', { name: 'Voice note from You', exact: true })).toHaveValue(transcript);
+  await expect(record.getByRole('textbox', { name: 'Voice note from You', exact: true })).toHaveCount(2);
+  await expect(record.getByRole('textbox', { name: 'Voice note from You', exact: true }).first()).toHaveValue(transcript);
   await page.screenshot({ path: test.info().outputPath('tea-record-phone-voice-source.png'), fullPage: true, animations: 'disabled' });
-  await record.getByRole('textbox', { name: 'Voice note from You', exact: true }).scrollIntoViewIfNeeded();
+  await record.getByRole('textbox', { name: 'Voice note from You', exact: true }).first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: test.info().outputPath('tea-record-phone-voice-note.png'), fullPage: true, animations: 'disabled' });
   await expectNoUnhandledCompassApi(page);
 });

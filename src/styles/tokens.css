@@ -880,11 +880,12 @@ body {
   border: var(--border-w) solid var(--tea-border); border-radius: var(--radius-md); background: transparent;
 }
 .capture-quote .capture-quote-field:focus-within { border-color: var(--tea-gold); }
-.capture-quote .capture-currency-trigger { flex-shrink: 0; padding-inline: var(--space-1); gap: 0; font-size: var(--fs-ui-13); }
+/* Source has one scale: 11 labels, 12 buttons and choices, 16 typed (Adrian, 2026-10-10). */
+.capture-quote .capture-currency-trigger { flex-shrink: 0; padding-inline: var(--space-1); gap: 0; font-size: var(--fs-ui-12); }
 .capture-quote .capture-currency-trigger > span { display: inline-flex; align-items: center; }
 .capture-quote .capture-weight-input { text-align: left; padding-inline: var(--space-1); }
 .capture-quote .capture-weight-picker { padding: 0; }
-.capture-quote .capture-form-trigger { min-width: 0; width: 100%; justify-content: space-between; padding-inline: var(--space-1); gap: 0; font-size: var(--fs-ui-13); }
+.capture-quote .capture-form-trigger { min-width: 0; width: 100%; justify-content: space-between; padding-inline: var(--space-1); gap: 0; font-size: var(--fs-ui-12); }
 .capture-other-weight { display: grid; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); color: var(--tea-text-sec); font-size: var(--fs-ui-14); }
 @media (max-width: 479px) {
   .capture-quote .capture-quote-field input { font-size: var(--fs-ui-16); }
