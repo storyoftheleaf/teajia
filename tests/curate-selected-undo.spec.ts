@@ -12,8 +12,9 @@ for (const [tree, path] of [['Curate', '/admin/compass'], ['CurateV2', '/admin/c
       const input=route.request().postDataJSON();writes.push(input);
       return route.fulfill({ json: {confirmation_token:'chosen-token',preview:{changes:[{entity:'tea',id:'undo-tea',before:{name:'Sample for undo'},after:{name:'Old name'}}]}} });
     });
-    await page.goto(`${path}?entry=undo-tea`);
+    await page.goto(`${path}?${tree==='Curate'?'tab=library&':''}entry=undo-tea`);
     if(tree==='CurateV2') await page.getByRole('button',{name:'Edit all fields',exact:true}).click();
+    else await page.getByRole('tablist',{name:'Tea workspace'}).getByRole('tab',{name:'Files',exact:true}).click();
     const tools=page.getByRole('region',{name:'Files and change history'}).filter({visible:true}).first();
     await tools.getByText('Change history (1)',{exact:true}).click();
     await tools.getByRole('button',{name:'Preview undo',exact:true}).click();

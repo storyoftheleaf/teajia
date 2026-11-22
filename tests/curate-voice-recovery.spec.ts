@@ -11,6 +11,7 @@ test('the Source Notes microphone retries the same audio after reload and saves 
   const entryId = 'voice-recovery-oolong';
   const teaName = 'Charcoal Oolong';
   const transcript = 'The supplier said this tea was charcoal roasted.';
+  const recordingId = '00000000-0000-4000-8000-000000000001';
   const uploadedAudio: Buffer[] = [];
   const savedNotes = new Map<string, { id: string; compass_entry_id: string; source_type: string; text: string }>();
   await installCompassHarness(page, { compassEntries: [{
@@ -26,7 +27,22 @@ test('the Source Notes microphone retries the same audio after reload and saves 
     uploadedAudio.push(Buffer.from(await file.arrayBuffer()));
     return uploadedAudio.length === 1
       ? route.fulfill({ status: 503, json: { error: 'Transcription provider unavailable', code: 'provider_unavailable' } })
-      : route.fulfill({ json: { text: transcript } });
+      : route.fulfill({ json: { text: transcript, recording_id: recordingId, audio_url: `/api/transcriptions/${recordingId}/audio` } });
+  });
+  // The shop saves the audio and its private voice note together when the
+  // recording is attached to the tea; the note's id comes from the recording.
+  const attached: unknown[] = [];
+  await page.route('**/api/transcriptions/**', route => {
+    const request = route.request();
+    const audioUrl = `/api/transcriptions/${recordingId}/audio`;
+    if (request.method() === 'GET' && request.url().endsWith(audioUrl)) return route.fulfill({ contentType: 'audio/webm', body: uploadedAudio[0] });
+    expect(request.method()).toBe('POST');
+    expect(new URL(request.url()).pathname).toBe(`/api/transcriptions/${recordingId}/attach`);
+    attached.push(request.postDataJSON());
+    const createdAt = new Date().toISOString();
+    const note = { id: `recording-${recordingId}`, account_id: 'acct-bali', compass_entry_id: entryId, source_type: 'voice', text: transcript, author_id: 'test-admin-uid', author_name: 'You', visibility: 'private', created_at: createdAt };
+    savedNotes.set(note.id, note);
+    return route.fulfill({ json: { recording_id: recordingId, audio_url: audioUrl, clip: { url: audioUrl, transcript, timestamp: createdAt, recordingId }, note, entry: {} } });
   });
   await page.route('**/api/notes', route => route.fulfill({ json: { notes: [...savedNotes.values()] } }));
   await page.route('**/api/notes/sync', route => {
@@ -72,5 +88,6 @@ test('the Source Notes microphone retries the same audio after reload and saves 
   await expect.poll(() => [...savedNotes.values()]).toEqual([
     expect.objectContaining({ compass_entry_id: entryId, source_type: 'voice', text: transcript }),
   ]);
+  expect(attached).toEqual([{ compass_entry_id: entryId }]);
   await expectNoUnhandledCompassApi(page);
 });
