@@ -222,7 +222,8 @@ test.describe('refined public shop', () => {
     await expect(page).toHaveURL(/\/shop\/product\/tea-1$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('.label-plate')).toBeVisible();
-    await expect(page.getByRole('group', { name: 'Your tea actions' }).getByRole('button')).toHaveText(['Log in']);
+    // Signed out: the way in, and the family's door into a tasting (plan decision 15).
+    await expect(page.getByRole('group', { name: 'Your tea actions' }).getByRole('button')).toHaveText(['Log in', 'Add your tasting']);
     const purchase = page.getByRole('group', { name: 'Choose and add a tea amount' });
     await expect(purchase.getByRole('button', { name: 'Add to order', exact: true })).toBeVisible();
     await expect(page.getByText('Order empty', { exact: true })).toBeVisible();

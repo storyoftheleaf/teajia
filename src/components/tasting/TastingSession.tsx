@@ -226,8 +226,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   // Photographs belong to the signed-in person and to a shop tea. The same
   // camera, row and Share step serve every place this screen is opened.
-  const familyEnabled = isAuthenticated && !previewOnly && hasJournalItemId(item.id);
-  const photographs = useTastingPhotographs({ productId: item.id, enabled: familyEnabled });
+  // A tasting opened on a Curate entry, a session, an event or a sample is not on a
+  // shop tea, so the shop is not even asked: asking only earned a refusal.
+  const onShopTea = item.sourceType === undefined || item.sourceType === 'product';
+  const familyAsked = isAuthenticated && !previewOnly && onShopTea && hasJournalItemId(item.id);
+  const photographs = useTastingPhotographs({ productId: item.id, enabled: familyAsked });
+  // Only a shop tea takes photographs and can be shared (plan decision 8). The
+  // worker says which teas those are; until it has, nothing of the family shows.
+  const familyEnabled = familyAsked && photographs.inShop;
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const shareAskedRef = useRef(false);

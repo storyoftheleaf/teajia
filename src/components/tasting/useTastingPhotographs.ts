@@ -13,6 +13,19 @@ function plainSentence(error: unknown): string {
 }
 
 /**
+ * The worker's answer for "my photographs of this tea", or null when what came
+ * back is not that answer. Only the worker's own answer counts: anything else
+ * (a stand-in server, a page served where JSON was asked for) means "not a shop
+ * tea", and is never handed to the row, which would fall over on it.
+ */
+export function readMyTea(answer: unknown): { photos: FamilyPhotograph[]; remaining: number } | null {
+  if (!answer || typeof answer !== 'object') return null;
+  const { photographs, remaining } = answer as { photographs?: unknown; remaining?: unknown };
+  if (!Array.isArray(photographs)) return null;
+  return { photos: photographs as FamilyPhotograph[], remaining: typeof remaining === 'number' ? remaining : FAMILY_PHOTOS_PER_TEA };
+}
+
+/**
  * The person's own photographs of one tea, for the tasting screen. Each file is
  * re-encoded on the phone (both sizes, no location data) before it is sent.
  * The tasting itself stays one record; photographs are stored by tea.
@@ -22,6 +35,10 @@ export function useTastingPhotographs({ productId, enabled }: { productId: strin
   const [remaining, setRemaining] = useState(FAMILY_PHOTOS_PER_TEA);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // True once the worker has answered for this tea, which it does only for a tea
+  // in the shop. A tea from Curate that is not a shop tea, or a session's tea,
+  // is refused there, and so has no camera, no row and no Share step here.
+  const [inShop, setInShop] = useState(false);
   const remainingRef = useRef(FAMILY_PHOTOS_PER_TEA);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -29,11 +46,18 @@ export function useTastingPhotographs({ productId, enabled }: { productId: strin
   const setLeft = (n: number) => { remainingRef.current = n; setRemaining(n); };
 
   useEffect(() => {
+    setInShop(false);
     if (!enabled) return;
     let live = true;
     familyApi.myTea(productId)
-      .then(mine => { if (live) { setPhotos(mine.photographs); setLeft(mine.remaining); } })
-      .catch(() => { /* the row simply starts empty; adding still works */ });
+      .then(answer => {
+        const mine = readMyTea(answer);
+        if (!live || !mine) return;
+        setPhotos(mine.photos);
+        setLeft(mine.remaining);
+        setInShop(true);
+      })
+      .catch(() => { /* not a shop tea, or the shop could not be reached: no photographs here */ });
     return () => { live = false; };
   }, [productId, enabled]);
 
@@ -90,5 +114,5 @@ export function useTastingPhotographs({ productId, enabled }: { productId: strin
     }
   }, []);
 
-  return { photos, remaining, busy, error, add, remove, reshape, clearError: () => setError('') };
+  return { photos, remaining, busy, error, inShop, add, remove, reshape, clearError: () => setError('') };
 }
