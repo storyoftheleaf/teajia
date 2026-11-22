@@ -96,6 +96,13 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     // shared browser fixture instead of treating this unrelated check as an
     // unhandled Compass API request.
     if (requestKey === 'POST /api/read/session') return route.fulfill({ json: { editor: false } });
+    // Every tasting screen asks whether the tea it opened on is a shop tea that
+    // takes the person's photographs (the Teajia family). The teas in these
+    // tests are Curate's and a session's, not shop teas, so the answer is the
+    // worker's own refusal, and the tasting shows no camera, row or Share step.
+    if (route.request().method() === 'GET' && /^\/api\/family\/teas\/[^/]+\/mine$/.test(path)) {
+      return route.fulfill({ status: 404, json: { error: 'This tea is not in the shop.', code: 'product_not_found' } });
+    }
     if (requestKey === 'GET /api/curate/ar-create/status') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ connected: false }) });
     if (requestKey === 'GET /api/curate/ar-create/links') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ links: [] }) });
     if (options?.contextFailOnce && requestKey === 'POST /api/curate/journeys' && counts.get(requestKey) === 1) {

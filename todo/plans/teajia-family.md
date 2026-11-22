@@ -28,6 +28,10 @@ Picture of the plan on the real screens: https://claude.ai/artifact/XWhzBLWs9MY5
 
 **The people list is built** (Adrian said go on 2026-11-21): see "The people list" below. With it the "no gamification" rule became "order only", in this plan and in the project rules, on his word. Migration 0077 only adds two empty columns. One thing to know before shipping: anyone on the live list without a photograph leaves the list the moment this ships.
 
+**Live since 2026-11-21** (merged to main as pull request 452; the worker deployed and the live people list answers with its groups).
+
+**Found the day after, fixed on `claude/family-e2e-fixes`.** The full browser run on main went red with the merge: 35 checks failed that had passed before it. Cause: the tasting screen asked the shop for "my photographs of this tea" on every tea it opened on, shop tea or not. On a Curate entry or a session's tea the shop refuses, yet the camera and photograph row still showed, and after Save the Share step came up over the Save notes button. Now the tasting does not ask about a tea that is not a shop tea, and shows the camera, the row and the Share step only once the shop has answered for that tea (decision 8: only Teajia teas). An answer in the wrong shape no longer takes the screen down. The pull-request check only runs the specs a branch changed, which is why none of this showed before the merge.
+
 **Open, in the order to take them.**
 
 1. The storage reading in the i64os warning system (another repository) must land before launch.
