@@ -382,3 +382,28 @@ describe('the sample shelf', () => {
       .toEqual({ error: 'not_found' });
   });
 });
+
+describe('Wisdom claim uses follow their blocks through a body rewrite', () => {
+  it('moves each use to its paragraph’s new place and drops one whose paragraph is gone', async () => {
+    const created = await run('create_article_draft', auth, {
+      title: 'Grades', body: [
+        { type: 'paragraph', text: 'Gong Ting names fine, tender leaf.' },
+        { type: 'paragraph', text: 'Brew them side by side.' },
+        { type: 'paragraph', text: 'A paragraph that will be cut.' },
+      ],
+    });
+    const id = created.article.id;
+    // Block 0 is the cover; the body starts at 1.
+    db.exec(`INSERT INTO article_wisdom_claim_uses (account_id, article_id, block_index, claim_id, rev_used, use_kind) VALUES
+      ('${ACCOUNT}', '${id}', 1, 'gong-ting:definition', 1, 'prose'),
+      ('${ACCOUNT}', '${id}', 3, 'gong-ting:blending', 1, 'prose')`);
+    await run('update_article_draft', auth, {
+      article_id: id, body: [
+        { type: 'paragraph', text: 'Brew them side by side.' },
+        { type: 'paragraph', text: 'Gong Ting names fine, tender leaf.' },
+      ],
+    });
+    const rows = db.sqlite.prepare('SELECT block_index, claim_id FROM article_wisdom_claim_uses WHERE article_id = ?').all(id);
+    expect(rows).toEqual([{ block_index: 2, claim_id: 'gong-ting:definition' }]);
+  });
+});

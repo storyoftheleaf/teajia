@@ -4,6 +4,7 @@ import { sha256Hex } from '../inquiryDomain';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET, PENDING_TTL_MS, consumeTicket as consumeShared, issueTicket } from './tickets';
 import { isWordforgeManagedArticle } from '../wordforgeArticleDraft';
+import { moveClaimUsesWithBlocks } from '../articleWisdomClaimUses';
 import { buildEventArticleDraft } from '../eventArticleDraft';
 
 /**
@@ -560,10 +561,16 @@ const toolUpdateArticleDraft: ToolHandler = async (env, auth, args) => {
     && await isWordforgeManagedArticle(env.DB, m.accountId, m.articleId)) {
     return { error: 'externally_managed_article' };
   }
+  // A body rewrite replaces every block: read the old ones so Wisdom claim uses can follow theirs.
+  const previousBlocks = cols.includes('blocks')
+    ? (await env.DB.prepare('SELECT blocks FROM articles WHERE id = ? AND account_id = ?')
+        .bind(m.articleId, m.accountId).first<{ blocks: string | null }>())?.blocks ?? '[]'
+    : null;
   await env.DB.prepare(
     `UPDATE articles SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = datetime('now')
       WHERE id = ? AND account_id = ?`
   ).bind(...cols.map(c => m.fields[c]), m.articleId, m.accountId).run();
+  if (previousBlocks !== null) await moveClaimUsesWithBlocks(env.DB, m.accountId, m.articleId, previousBlocks, m.fields.blocks);
 
   await logWriting(env, m.accountId, m.userEmail, 'ARTICLE_UPDATED_MCP',
     `Article updated via MCP: ${cols.join(', ')}`, 'article', m.articleId);

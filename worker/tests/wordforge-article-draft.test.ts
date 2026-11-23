@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import worker from '../src/index';
-import { decodeWordforgeDraft } from '../src/wordforgeArticleDraft';
+import { decodeWordforgeDraft, upsertWordforgeDraft } from '../src/wordforgeArticleDraft';
 import { seedIdentity, signedToken, SqliteD1 } from './helpers/sqliteD1';
 
 const fixture = JSON.parse(readFileSync(join(process.cwd(), 'worker/tests/fixtures/teajia-wordforge-draft.v1.json'), 'utf8'));
@@ -166,5 +166,30 @@ describe('WordForge-managed article administration', () => {
     expect((await admin(`/api/admin/articles/${articleId}/unpublish`, 'POST')).status).toBe(200);
     expect(db.sqlite.prepare('SELECT status FROM articles WHERE id = ?').get(articleId)).toMatchObject({ status: 'draft' });
     db.close();
+  });
+});
+
+describe('a WordForge re-sync keeps Wisdom claim uses on their blocks', () => {
+  it('moves each use with its block when the sync reorders the story', async () => {
+    const db = new SqliteD1();
+    seedIdentity(db, { userId: 'editor', accountId: 'acc-one' });
+    const first = decodeWordforgeDraft(structuredClone(fixture));
+    const { article_id } = await upsertWordforgeDraft(db as any, 'acc-one', first);
+    const blocks = first.article.blocks;
+    // The intro (block 1) and the quote (block 5) each carry a claim.
+    db.exec(`INSERT INTO article_wisdom_claim_uses (account_id, article_id, block_index, claim_id, rev_used, use_kind) VALUES
+      ('acc-one', '${article_id}', 1, 'shou:wet-piling', 1, 'prose'),
+      ('acc-one', '${article_id}', 5, 'gong-ting:definition', 1, 'prose')`);
+    const next = structuredClone(first);
+    next.source.revision = 2;
+    next.source.content_hash = 'b'.repeat(64);
+    // Move the quote to directly after the cover; everything else shifts down one.
+    next.article.blocks = [blocks[0], blocks[5], ...blocks.slice(1, 5), ...blocks.slice(6)];
+    await upsertWordforgeDraft(db as any, 'acc-one', next);
+    const rows = db.sqlite.prepare('SELECT block_index, claim_id FROM article_wisdom_claim_uses ORDER BY block_index').all();
+    expect(rows).toEqual([
+      { block_index: 1, claim_id: 'gong-ting:definition' },
+      { block_index: 2, claim_id: 'shou:wet-piling' },
+    ]);
   });
 });

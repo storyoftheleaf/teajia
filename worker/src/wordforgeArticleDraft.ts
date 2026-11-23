@@ -1,3 +1,4 @@
+import { moveClaimUsesWithBlocks } from './articleWisdomClaimUses';
 export const WORDFORGE_DRAFT_MAX_BYTES = 256 * 1024;
 
 type JsonObject = Record<string, unknown>;
@@ -186,6 +187,9 @@ export async function upsertWordforgeDraft(
     if (payload.source.revision === current.source_revision) {
       return { article_id: current.article_id, created: false, unchanged: true, source_revision: current.source_revision };
     }
+    // A re-sync replaces every block: read the old ones so Wisdom claim uses can follow theirs.
+    const previous = await db.prepare('SELECT blocks FROM articles WHERE id = ? AND account_id = ?')
+      .bind(current.article_id, accountId).first<{ blocks: string | null }>();
     await db.batch([
       db.prepare(
         `UPDATE articles SET title = ?, subtitle = ?, author_id = ?, slug = ?, status = 'draft', category = ?, tags = ?,
@@ -199,6 +203,7 @@ export async function upsertWordforgeDraft(
           WHERE account_id = ? AND source_system = 'wordforge' AND source_id = ?`,
       ).bind(payload.source.revision, payload.source.content_hash, accountId, payload.source.id),
     ]);
+    await moveClaimUsesWithBlocks(db, accountId, current.article_id, previous?.blocks ?? '[]', payload.article.blocks);
     return { article_id: current.article_id, created: false, unchanged: false, source_revision: payload.source.revision };
   }
 
