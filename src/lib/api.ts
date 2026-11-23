@@ -2,6 +2,8 @@ import type { ShippingPaymentNotification } from './shippingNotification';
 import type { TrackedOrder } from './orderTrackingTypes';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
+import type { VendorProductSale } from './vendorSalesTypes';
+export type { VendorProductSale } from './vendorSalesTypes';
 import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput, StudioReceiptReferral, StudioReceiptReferralInput } from './logisticsTypes';
 import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
@@ -2207,6 +2209,8 @@ export const api = {
     getOrders: async (id: string) => {
       return authedFetch(`${API_URL}/api/customers/${id}/orders`)
     },
+    /** Every sale of this vendor's teas: who bought which, when. */
+    getProductSales: async (id: string): Promise<VendorProductSale[]> => authedFetch(`${API_URL}/api/customers/${encodeURIComponent(id)}/product-sales`),
     getTeas: async (id: string) => {
       return authedFetch(`${API_URL}/api/customers/${id}/teas`)
     },

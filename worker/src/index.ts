@@ -36,6 +36,7 @@ import {
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
 import { tastingForShop, tastingHasTerms } from './curateImportTasting';
+import { listVendorProductSales } from './vendorProductSales';
 import { customerTagList, customerTagsForStore, foldHandlesIntoContacts, HANDLE_CHANNELS, withContactHandles } from './customerContactHandles';
 import {
   abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportManualItems, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
@@ -10294,6 +10295,12 @@ const handleGetCustomerOrders: Handler = async (request, env, params) => {
   } catch {
     return json([]);
   }
+};
+
+const handleGetVendorProductSales: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  return json(await listVendorProductSales(env.DB, ctx.accountId, params.id));
 };
 
 const handleGetCustomerTeas: Handler = async (request, env, params) => {
@@ -30494,6 +30501,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/customers/:id', handleUpdateCustomer],
   ['DELETE', '/api/customers/:id', handleDeleteCustomer],
   ['GET', '/api/customers/:id/orders', handleGetCustomerOrders],
+  ['GET', '/api/customers/:id/product-sales', handleGetVendorProductSales],
   ['GET', '/api/customers/:id/teas', handleGetCustomerTeas],
   ['GET', '/api/customers/:id/events', handleGetCustomerEvents],
   ['GET', '/api/customers/:id/products', handleGetVendorProducts],

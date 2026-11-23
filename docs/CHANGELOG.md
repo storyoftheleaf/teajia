@@ -4,6 +4,10 @@ Scan in Curate sends the package photo to OpenAI first, using the shop's own key
 
 ## 2026-11-12: Curate's Source form follows the sitting
 
+## 2026-11-23: Vendor page you can edit, and what sold
+
+The vendor page (`/admin/vendors/:id`) is now edited where it is read: tap the name, Chinese name, shop, address, city or country to change it, and add, change or remove contacts (WeChat, WhatsApp, phone, email and the rest; the old single email, phone and WhatsApp columns are kept in step). Renaming goes through the supplier rename, so the vendor's teas follow. Notes read one thought per line with any label ("WeChat:", "Prices:") set apart, and open as plain text to edit; the stored text is never rewritten. A new "Their teas, sold" list shows every real sale of that vendor's teas and who bought it (`GET /api/customers/:id/product-sales`, `worker/src/vendorProductSales.ts`; drafts, cancelled and deleted invoices left out), and "Bought from you" shows the vendor's own orders when they are a customer too. Products supplied stack stock and cost so the row fits a phone.
+
 ## 2026-11-23: Vendor faces
 
 Each vendor can carry a photo of their face (`customers.face_photo`, migration 0082), added or changed from the vendor's page or from the camera on any tile in People > Suppliers > Faces, a gallery of every vendor as a face. Wherever a vendor is picked (the Curate vendor strip, Curate v2, the stock editor's supplier field, Add tea), the list shows each vendor's face beside the name and a Faces button opens the same grid to pick by sight. A vendor with no face falls back to their storefront photo, then their business card, then their initials. The customer list now also carries the storefront and business-card photos, which the Suppliers avatars were asking for and never got.
