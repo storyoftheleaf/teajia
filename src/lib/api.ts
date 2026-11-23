@@ -530,7 +530,10 @@ export interface CellarItem {
   placementStatus: 'private' | 'requested' | 'placed';
   placementAccountId?: string | null;
   linkedProductId?: string | null;
+  label?: string | null;
   shelfPublished: boolean;
+  shelfNeedsReview?: boolean;
+  shelfOffer?: ShelfOfferInput | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -546,6 +549,14 @@ export interface ShelfSettings {
   slug: string | null;
   title: string | null;
   whatsapp: string | null;
+}
+
+export interface ShelfOfferInput {
+  name: string;
+  grams: number;
+  type?: string | null;
+  year?: number | null;
+  origin?: string | null;
 }
 
 // One item on a public shelf, public-safe fields only.
@@ -4699,8 +4710,8 @@ export const api = {
     updateShelf: async (data: { title?: string; whatsapp?: string }): Promise<{ ok: boolean }> => {
       return authedFetch(`${API_URL}/api/me/shelf`, { method: 'PUT', body: JSON.stringify(data) });
     },
-    publishToShelf: async (id: string): Promise<{ ok: boolean }> => {
-      return authedFetch(`${API_URL}/api/me/cellar/${id}/publish-shelf`, { method: 'POST' });
+    publishToShelf: async (id: string, offer: ShelfOfferInput): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/publish-shelf`, { method: 'POST', body: JSON.stringify(offer) });
     },
     unpublishFromShelf: async (id: string): Promise<{ ok: boolean }> => {
       return authedFetch(`${API_URL}/api/me/cellar/${id}/unpublish-shelf`, { method: 'POST' });
