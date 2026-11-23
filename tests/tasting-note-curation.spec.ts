@@ -258,25 +258,25 @@ test('a guest excerpt requires approval and an independent public placement', as
   expect(state.placements).toEqual([{ show_on_listing: true }]);
   await showPublic('listing', true);
   const journalSection = page.getByRole('region', { name: 'From the tasting journal' });
-  const about = page.getByRole('region', { name: 'About this tea' });
-  const descriptorBox = page.getByRole('region', { name: 'Character', exact: true }).locator('.alcove-record');
+  const provenance = page.getByRole('region', { name: 'Provenance' });
+  const descriptorBox = page.getByRole('region', { name: 'Taste', exact: true }).locator('.alcove-record');
   await expect(descriptorBox.getByText('Honey', { exact: true })).toBeVisible();
   await expect(descriptorBox.getByRole('region', { name: 'From the tasting journal' })).toHaveCount(0);
   const box = await descriptorBox.boundingBox();
   const journal = await journalSection.boundingBox();
   expect(journal!.y).toBeGreaterThan(box!.y + box!.height);
-  const expectJournalBeforeAbout = async () => {
-    await expect(about).toBeVisible();
-    const aboutElement = await about.elementHandle();
+  const expectJournalBeforeFacts = async () => {
+    await expect(provenance).toBeVisible();
+    const factsElement = await provenance.elementHandle();
     expect(await journalSection.evaluate((journal, section) =>
-      Boolean(journal.compareDocumentPosition(section!) & Node.DOCUMENT_POSITION_FOLLOWING), aboutElement)).toBe(true);
+      Boolean(journal.compareDocumentPosition(section!) & Node.DOCUMENT_POSITION_FOLLOWING), factsElement)).toBe(true);
   };
-  await expectJournalBeforeAbout();
+  await expectJournalBeforeFacts();
 
   state.clearDescriptors();
   await showPublic('listing', true);
   await expect(page.getByText('Honey', { exact: true })).toHaveCount(0);
-  await expectJournalBeforeAbout();
+  await expectJournalBeforeFacts();
   await showPublic('homepage', false);
 
   await page.goto(reviewedPath);

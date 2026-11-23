@@ -7,6 +7,29 @@ import { resolveProductResearch } from '../../../wisdom/productResearch';
 import type { PublicResearchBundle } from '../../../wisdom/research';
 
 describe('AlcoveCharacterBand tasting attribution', () => {
+  it.each([undefined, 'common', 'source', 'community'])('withholds unverified lot words from a public listing (%s)', source => {
+    const markup = renderToStaticMarkup(<AlcoveCharacterBand verifiedOnly
+      item={{ id: 'lot', tastingSource: source, tasting: { flavor: ['honey'], notes: [{ text: 'Unverified', starred: true }] } } as never}
+      legacyNotes={['Legacy honey']} />);
+    expect(markup).toBe('');
+  });
+
+  it('shows each offered passage once under its chosen byline and respects withdrawal of historical copies', () => {
+    const item = { id: 'lot', tastingSource: 'owner', tasting: { flavor: ['honey'], aroma: ['orchid'], notes: [
+      { id: '1', text: 'Honey', starred: true },
+      { id: '2', text: 'Withdrawn text', starred: true, sourceJournalEntryId: 'journal' },
+    ] } } as never;
+    const note = { id: 'excerpt', productId: 'lot', text: 'Honey', attributionName: 'Guest',
+      attributionDetail: null, publishedAt: '2026-10-01' };
+    const render = (impressions: (typeof note)[]) => renderToStaticMarkup(<AlcoveCharacterBand verifiedOnly item={item}
+      legacyNotes={[]} impressions={impressions} />);
+    const published = render([note, { ...note, productId: 'another', text: 'Another lot' }]);
+    expect(published.match(/Honey/g)).toHaveLength(1);
+    expect(published).toContain('Guest');
+    expect(published).toContain('Orchid');
+    expect(published).not.toMatch(/Withdrawn text|Another lot/);
+    expect(render([])).not.toMatch(/From the tasting journal|Withdrawn text/);
+  });
   it('labels common imported potential without attributing it to Adrian', () => {
     const markup = renderToStaticMarkup(<AlcoveCharacterBand
       item={{ tasting: { flavor: ['honey'] }, tastingSource: 'common' } as never}

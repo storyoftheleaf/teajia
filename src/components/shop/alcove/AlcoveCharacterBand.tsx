@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import type { CustomerTasting, InventoryItem } from '../../../types';
 import { resolveTermLabel, TASTING_CATEGORY_ORDER } from '../../../data/tastingTaxonomy';
+import { BODY, HEADING, LABEL } from '../../shared/typeRoles';
 import { starredNotes } from '../../../lib/noteEntries';
 import { ProductImpressions, type ProductImpression } from '../ProductImpressions';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
@@ -44,8 +45,8 @@ interface AlcoveCharacterBandProps {
    * one page does not open two identical requests.
    */
   impressions?: ProductImpression[];
-  /** The standalone page sets the character in air rather than in a panel. */
-  open?: boolean;
+  /** Public listings and their quick views use only authored lot tasting. */
+  verifiedOnly?: boolean;
 }
 
 const POTENTIAL_LABELS: Record<string, string> = {
@@ -112,6 +113,47 @@ function TermLine({ label, terms, onTermClick }: {
   );
 }
 
+// Only the owner's product tasting carries exact-lot authorization. Guest words
+// come from the placement endpoint so withdrawing an excerpt also removes it here.
+function LotTasting({ item, impressions, onTermClick }: Pick<AlcoveCharacterBandProps, 'item' | 'onTermClick'> & {
+  impressions: ProductImpression[];
+}) {
+  const tasting = item.tastingSource === 'owner' ? item.tasting : undefined;
+  const journal = impressions.filter(note => note.productId === item.id);
+  const textKey = (text: string) => text.trim().toLowerCase().replace(/[\s·,.;!?]+/g, ' ').trim();
+  const published = new Set(journal.map(note => textKey(note.text)));
+  const quotes = starredNotes(tasting).filter(note => {
+    const key = textKey(note.text);
+    if (!key || note.sourceAuthor || note.sourceJournalEntryId || published.has(key)) return false;
+    published.add(key);
+    return true;
+  });
+  const categories = [
+    ['flavor', 'Taste'], ['aroma', 'Aroma'], ['body', 'Body'], ['finish', 'Finish'], ['feeling', 'Feeling'],
+  ] as const;
+  const lines = categories.flatMap(([id, label]) => {
+    const terms = [...new Set(tasting?.[id] ?? [])].filter(term => term.trim() && !published.has(textKey(resolveTermLabel(term))));
+    if (!terms.length || published.has(textKey(terms.map(resolveTermLabel).join(' ')))) return [];
+    return [{ id, label, terms }];
+  });
+  return <>
+    {(lines.length > 0 || quotes.length > 0) && <section aria-label="Taste" className="mx-5 mt-[var(--space-4)]">
+      <div className="alcove-record grid gap-[var(--space-3)] p-[var(--space-4)] text-center">
+        {lines.map(({ id, label, terms }) => <div key={id}>
+          <p className={`${LABEL} text-tea-text-sec`}>{label}</p>
+          <CharacterTerms className={`${HEADING} text-tea-text`} labels={terms.map(resolveTermLabel)}
+            onChoose={onTermClick && (index => onTermClick(terms[index], id))} />
+        </div>)}
+        {quotes.map(note => <figure key={note.id}>
+          <blockquote className={`${BODY} italic text-tea-text`}>{note.text}</blockquote>
+          <figcaption className={`${LABEL} text-tea-text-sec`}>Teajia</figcaption>
+        </figure>)}
+      </div>
+    </section>}
+    {journal.length > 0 && <div className="mx-5"><ProductImpressions impressions={journal} /></div>}
+  </>;
+}
+
 /**
  * "Character": the one chapter that gathers everything sensory: the taste
  * line, the feel line, and Adrian's starred notes together in a faint tonal
@@ -126,8 +168,12 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   onTaste,
   tastingEntry = null,
   impressions = [],
-  open = false,
+  verifiedOnly = false,
 }) => {
+  if (verifiedOnly) return <>
+    <LotTasting item={item} impressions={impressions} onTermClick={onTermClick} />
+    {onTaste && <AlcoveTastingPlate entry={tastingEntry} onTaste={intent => onTaste(item, intent)} />}
+  </>;
   const tasting = item.tasting;
 
   // Shopper-facing terms: flavor → TASTE, feeling → FEEL. Body / finish /
@@ -181,161 +227,25 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
     detail: impression.attributionDetail,
     key: `said-${impression.id}`,
   }));
-  const quotes = open ? shopStarred : [...shopStarred, ...promoted];
+  const quotes = [...shopStarred, ...promoted];
   const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
   const hasCharacterContent = hasTerms || quotes.length > 0;
   const hasAny = hasCharacterContent || Boolean(potentialResearch) || Boolean(onTaste);
-  const journal = open && impressions.length > 0 ? (
-    <div className="mx-5">
-      <ProductImpressions impressions={impressions} />
-    </div>
-  ) : null;
-
-  // With no descriptors or other character content, the journal can stand on its own.
-  if (!hasAny) return journal;
-
-  /*
-   * The page's record card.
-   *
-   * What the tea IS, held in one keyline: what it tastes of, what it feels
-   * like, and what has been said about it, each on its own band.
-   *
-   * No TASTE and FEEL labels. They were 9px caps sitting inline in front of a
-   * 21px serif line, which collapsed into a ragged hanging indent the moment
-   * the terms wrapped on a phone. Size and colour separate the two lines now:
-   * taste leads, feel follows a hairline at a smaller size in a quieter ink.
-   * The words are the point, so the words are all that is there.
-   *
-   * Your own tasting is NOT in here. It sits on its own above the reading,
-   * because this card is the shop's claim about the tea and that is yours.
-   */
-  if (open) {
-    const termLine = (terms: TermRef[], className: string) => (
-      <CharacterTerms className={className} labels={terms.map(term => term.label)}
-        onChoose={onTermClick && (i => onTermClick(terms[i].termId, terms[i].categoryId))} />
-    );
-
-    const sourceNote =
-      item.tastingSource === 'common' && hasVisibleStructuredTerms
-        ? 'Potential profile'
-        : item.tastingSource === 'source' && hasVisibleStructuredTerms
-          ? 'Source-described profile'
-          : null;
-
-    const character = (
-      <section aria-label="Character" className="mx-5 mt-7">
-        {/*
-          Two things, not a stack of boxes.
-
-          The character is ONE block: what it tastes of, and under it what it
-          feels like. They are two readings of a single cup, so a keyline
-          between them made the record look like a form with two fields. Size
-          and ink separate them instead, the way the card already did.
-
-          Under that, one rule, and then what has been said about it. Everything
-          below the rule is somebody's sentence with a name under it, which is a
-          different kind of claim from a term and deserves the only division on
-          the card.
-        */}
-        <div className="alcove-record">
-          {hasTerms && (
-            <div className="px-4 py-[18px] text-center lg:px-6 lg:py-6">
-              {tasteTerms.length > 0 &&
-                termLine(
-                  tasteTerms,
-                  'font-display text-ui-19 leading-[1.3] text-tea-text lg:text-[25px]',
-                )}
-              {feelingTerms.length > 0 && (
-                <div className={tasteTerms.length > 0 ? 'mt-2.5 lg:mt-3' : ''}>
-                  {termLine(
-                    feelingTerms,
-                    'font-display text-ui-16 leading-[1.3] text-tea-text-dim lg:text-ui-19',
-                  )}
-                </div>
-              )}
-              {sourceNote && (
-                <p className="m-0 mt-3 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">
-                  {sourceNote}
-                </p>
-              )}
-            </div>
-          )}
-          {quotes.length > 0 && (
-            <div className={`px-4 py-[18px] lg:px-6 lg:py-6 ${hasTerms ? 'alcove-record-said' : ''}`}>
-              {quotes.map(({ text, attribution, detail, key }, i) => (
-                <figure key={key} className={`m-0 text-center ${i > 0 ? 'mt-5 lg:mt-6' : ''}`}>
-                  <blockquote className="m-0 font-body text-[15.5px] italic leading-[1.66] text-tea-text-sec lg:text-ui-16">
-                    &ldquo;{text}&rdquo;
-                  </blockquote>
-                  <figcaption className="mt-[7px] font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
-                    {attribution}
-                    {detail && <span className="normal-case tracking-[0.06em]">{`, ${detail}`}</span>}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          )}
-          {potentialResearch && (
-            <div className="alcove-record-band px-4 py-4 text-center lg:px-6">
-              <p className="m-0 font-sans text-ui-9 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
-                Potential character
-              </p>
-              <div className="mt-2.5 flex flex-wrap justify-center gap-x-6 gap-y-3">
-                {TASTING_CATEGORY_ORDER.map(category => {
-                  const terms = potentialResearch.profile.tasting[category];
-                  if (!terms?.length) return null;
-                  return (
-                    <div key={category} className="max-w-full">
-                      <p className="font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
-                        {POTENTIAL_LABELS[category]}
-                      </p>
-                      <CharacterTerms className="mt-1 font-display text-ui-17 leading-[1.4] text-tea-text" labels={terms.map(resolveTermLabel)} />
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="mt-3 font-sans text-ui-11 leading-relaxed text-tea-text-sec">
-                Cited shared research
-                {potentialResearch.sources.length > 0 && ` from ${potentialResearch.sources.map(source => source.publisher).join(', ')}`}
-                {'. '}
-                <a
-                  href={wisdomEntryPath(potentialResearch)}
-                  className="inline-flex min-h-tap items-center rounded-md underline decoration-tea-text-dim underline-offset-4 transition-colors hover:text-tea-gold hover:decoration-tea-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
-                >
-                  Research context
-                </a>
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-    );
-
-    return <>{character}{journal}</>;
-  }
+  if (!hasAny) return null;
 
   return (
     <section
       aria-label="Character"
-      className={`alcove-band relative px-5 ${
-        open
-          ? `alcove-band--open mt-9 pt-0 ${onTaste ? 'pb-5' : 'pb-2'}`
-          : `mt-[22px] pt-4 ${onTaste ? 'pb-6' : 'pb-[18px]'}`
-      }`}
+      className={`alcove-band relative mt-[22px] px-5 pt-4 ${onTaste ? 'pb-6' : 'pb-[18px]'}`}
     >
       {/* The rule and the heading separate the character from the ledger above.
           With no terms and no starred note there is nothing to separate, and the
           page was drawing a 26px hairline over a bare invitation. */}
-      {hasCharacterContent &&
-        (open ? (
-          <div aria-hidden="true" className="alcove-rule mb-3.5" />
-        ) : (
-          <AlcoveSectionHeading label="Character" className="mb-3" />
-        ))}
+      {hasCharacterContent && <AlcoveSectionHeading label="Character" className="mb-3" />}
 
       {hasTerms && (
-        <div className={open ? "text-center [&_.grp+.grp]:mt-1.5" : "text-center [&_.grp+.grp]:mt-3"}>
+        <div className="text-center [&_.grp+.grp]:mt-3">
           {tasteTerms.length > 0 && (
             <TermLine label="Taste" terms={tasteTerms} onTermClick={onTermClick} />
           )}
