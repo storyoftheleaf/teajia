@@ -1,0 +1,73 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-23T11:47:17.132Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "8c24430b-49d5-4c9d-9ea8-2d353057e2b9",
+    "name": "Nanqiao Ruigong Brick",
+    "chineseName": "南峤瑞贡金砖",
+    "type": "Shou Puer",
+    "form": "Brick",
+    "year": 2009,
+    "origin": "Menghai, Yunnan, China",
+    "stockGrams": 1750,
+    "pricePerGramUsd": 0.28,
+    "tags": [
+      "aged sweetness",
+      "clean earth",
+      "dried dates",
+      "smooth wood",
+      "warm finish"
+    ]
+  },
+  "entry": {
+    "productId": "8c24430b-49d5-4c9d-9ea8-2d353057e2b9",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "A brick of [ripe pu’er](shou:definition) pressed in Menghai, Yunnan, in 2009. Before pressing, the leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling), the method Yunnan’s state factories brought into production in 1973."
+      },
+      {
+        "layer": "age",
+        "text": "At seventeen years it is well past the ten-year mark for what the trade counts as [aged ripe pu’er](shou:age-aged). From here, how it is kept matters as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ease a piece off the brick along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. It gives eight or more good cups."
+    },
+    "notice": {
+      "styleName": "aged ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
+      "words": "A smooth, deep cup with woody, date-like or medicinal notes",
+      "why": "The notice is meant to be a general style sentence, but it is written as a description of the cup and is not clearly labelled as general; the claim says a well-kept ripe pu’er grows these notes, conditional on storage, which is unknown for this lot."
+    }
+  ]
+}

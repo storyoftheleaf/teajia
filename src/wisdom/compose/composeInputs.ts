@@ -149,6 +149,9 @@ export function entryProblems(entry: ComposedEntry, inputs: ComposeInputs): Entr
   if (entry.paragraphs.length < 1 || entry.paragraphs.length > 3) problems.push({ where: 'entry', problem: `${entry.paragraphs.length} story paragraphs; write one to three` });
   if (entry.notice && !inputs.allowNotice) problems.push({ where: 'notice', problem: 'this listing carries no taste copy' });
   if (entry.notice && !inputs.layers.notice) problems.push({ where: 'notice', problem: 'no notice claim was supplied' });
+  if (entry.notice && /\b(it|its|this (brick|cake|tea|lot|tuo|leaf))\b/i.test(entry.notice.text)) {
+    problems.push({ where: 'notice', problem: 'the notice speaks of this lot ("it", "this"); describe the style instead' });
+  }
   for (const part of parts) {
     const plain = entrySegments(part.text).map(segment => segment.text).join('');
     for (const segment of entrySegments(part.text)) {

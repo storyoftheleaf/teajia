@@ -22,6 +22,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const ENTRIES = path.join(ROOT, 'data', 'tea-reference', 'entries');
 const RULES = JSON.parse(await fs.readFile(path.join(ROOT, 'scripts', 'tea-wisdom-compose', 'rules.json'), 'utf8'));
 const STYLE = await fs.readFile(path.join(ROOT, 'docs', 'PRODUCT_DESCRIPTION_STYLE.md'), 'utf8');
+const EXAMPLES = await fs.readFile(path.join(ROOT, 'scripts', 'tea-wisdom-compose', 'examples.md'), 'utf8');
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, all) => (
   value.startsWith('--') ? [...pairs, [value.slice(2), all[index + 1]?.startsWith('--') ? 'true' : all[index + 1] ?? 'true']] : pairs
@@ -52,11 +53,14 @@ function claude(model, prompt) {
   });
 }
 
+/** The first complete JSON object in a reply, ignoring any text after it. */
 function jsonFrom(text) {
   const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start < 0 || end < start) throw new Error('no JSON object in the reply');
-  return JSON.parse(text.slice(start, end + 1));
+  if (start < 0) throw new Error('no JSON object in the reply');
+  for (let end = text.indexOf('}', start); end >= 0; end = text.indexOf('}', end + 1)) {
+    try { return JSON.parse(text.slice(start, end + 1)); } catch { /* keep extending */ }
+  }
+  throw new Error('no complete JSON object in the reply');
 }
 
 const claimBrief = (claim) => ({ id: claim.claimId, label: claim.label, text: claim.text, terms: claim.terms });
@@ -73,11 +77,18 @@ HOW AN ENTRY IS BUILT
 - The reader may already know the tea's type. Put general knowledge in a clause and lead with what is specific to this tea.
 - Story paragraphs carry place, craft, history and how the tea has changed with age. No taste or texture words in them at all (no sweet, smooth, woody, earthy, aroma, notes). Those go only in the notice.
 - Then one brewing paragraph, from the brewing claim, fitted to this tea's form.
-- Then, only if a notice layer is supplied, one short sentence of what people often notice in the style (not this lot), from the notice claims, and a styleName such as "ripe pu’er" or "aged ripe pu’er".
+- Then, only if a notice layer is supplied, one short sentence of what people often notice in the style (not this lot; never "it" or "this tea", name or describe the style), from the notice claims, and a styleName such as "ripe pu’er" or "aged ripe pu’er".
 - Mark each term you take from a claim as [shown words](claim-id), using only the claim ids supplied, once per claim at most. Mark the words a reader would want to learn more about.
 - From the record notes, keep only statements about this lot's own history, storage or making. Ignore tree age, altitude and anything about taste in them.
 - Every number you write must come from the inputs. Write ages in words where it reads better. No dashes of any kind, no superlatives, no exclamation marks.
 - Write in your own words; do not copy claim sentences whole.
+- Add no general tea knowledge of your own: every general statement must come from a claim supplied. If it is not in a claim, leave it out, even if you believe it is true.
+- The product name is a name, not evidence. Never say what a name refers to (a village, a mountain, a maker, a grade) unless the record's origin or a claim says so.
+- Link only words a reader would want to learn about: the tea type, a process, a place, a grade, a term of art. Never link ordinary words such as "a pick" or "boiling water".
+- Let the story flow: one to two paragraphs usually, joined by sense rather than by layer label. Write ages and counts in words ("thirty-six years").
+
+TWO APPROVED ENTRIES, FOR THE VOICE (do not reuse their facts)
+${EXAMPLES}
 
 THE TEA
 ${JSON.stringify(inputs.record, null, 2)}
@@ -90,7 +101,13 @@ Reply with one JSON object and nothing else:
 }
 
 function checkPrompt(inputs, entry) {
-  return `You are checking a tea product description before a shop owner approves it. The description may only state what the inputs support. List every sentence that says something the inputs do not support, and every sentence that describes how this particular lot tastes. Wording and style are not your concern.
+  return `You are checking a tea product description before a shop owner approves it. The description may only state what the inputs support.
+
+What counts as support: the record (its name, type, form, year, origin and notes are the owner's own record of this lot and count as fact), and the claims. Plain arithmetic from them (an age from a year) and a type's general process applied to a tea of that type are supported. The notice is a sentence about the style in general, clearly labelled as such; flag it only if it says something about this lot.
+
+List every sentence that states something beyond that support: an invented place, date, maker, tree age, process step, or a taste or texture claimed for this lot; any general statement about tea that no claim makes, even if it is true; and anything read from the product name alone (for example calling a name a village when the origin field does not say so). Wording and style are not your concern.
+
+List only sentences you would flag. Leave supported sentences out entirely; an empty list is the expected answer for a good entry.
 
 INPUTS
 ${JSON.stringify({ record: inputs.record, claims: Object.values(inputs.layers).flat().map(claimBrief) }, null, 2)}
@@ -98,7 +115,24 @@ ${JSON.stringify({ record: inputs.record, claims: Object.values(inputs.layers).f
 DESCRIPTION
 ${JSON.stringify(entry, null, 2)}
 
-Reply with one JSON object and nothing else: {"unsupported":[{"sentence":"...","why":"..."}]}`;
+For each flag, quote the exact unsupported words. If you cannot point to words that go beyond the inputs, do not flag the sentence.
+
+Reply with one JSON object and nothing else: {"unsupported":[{"sentence":"...","words":"the exact unsupported words","why":"..."}]}`;
+}
+
+/** The model sometimes answers a part as a bare string; accept that, drop anything without text. */
+function normalised(draft, productId, missing) {
+  const part = (value, layer) => {
+    if (!value) return undefined;
+    // The page prints the labels; a copied "Brewing:" or "What people often notice…:" would print twice.
+    const bare = text => text.replace(/^\s*(brewing|what people often notice[^:]*):\s*/i, '').trim();
+    if (typeof value === 'string') return { layer, text: bare(value) };
+    return typeof value.text === 'string' && value.text.trim() ? { ...value, text: bare(value.text), layer: value.layer ?? layer } : undefined;
+  };
+  const paragraphs = (Array.isArray(draft.paragraphs) ? draft.paragraphs : []).map(value => part(value, 'type')).filter(Boolean);
+  const brewing = part(draft.brewing, 'brewing');
+  const notice = part(draft.notice, 'notice');
+  return { productId, paragraphs, ...(brewing ? { brewing } : {}), ...(notice ? { notice: { styleName: notice.styleName ?? 'this style', ...notice } } : {}), missing };
 }
 
 async function composeOne(product) {
@@ -107,15 +141,18 @@ async function composeOne(product) {
   let problems = [];
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     log(`${product.product_name}: writing (attempt ${attempt})`);
-    const draft = jsonFrom(await claude('opus', writePrompt(inputs, problems)));
-    entry = { productId: product.id, paragraphs: draft.paragraphs ?? [], ...(draft.brewing ? { brewing: draft.brewing } : {}), ...(draft.notice ? { notice: draft.notice } : {}), missing: inputs.missing };
+    const reply = await claude('opus', writePrompt(inputs, problems));
+    await fs.writeFile(path.join(os.tmpdir(), `tea-wisdom-reply-${product.id}.txt`), reply);
+    entry = normalised(jsonFrom(reply), product.id, inputs.missing);
     problems = entryProblems(entry, inputs);
     if (!problems.length) break;
     log(`${product.product_name}: ${problems.length} check(s) failed: ${problems.map(p => p.problem).join('; ')}`);
   }
   log(`${product.product_name}: checking against the inputs`);
   const check = jsonFrom(await claude('sonnet', checkPrompt(inputs, entry)));
-  const unsupported = check.unsupported ?? [];
+  // A flag must quote words that appear in the entry; anything else is the checker thinking aloud.
+  const entryText = [...entry.paragraphs, entry.brewing, entry.notice].filter(Boolean).map(part => part.text).join(' ');
+  const unsupported = (check.unsupported ?? []).filter(flag => typeof flag.words === 'string' && flag.words.trim() && entryText.includes(flag.words.trim()));
   const ready = problems.length === 0 && unsupported.length === 0;
   const claimUses = [...new Set([...entry.paragraphs, entry.brewing, entry.notice].filter(Boolean)
     .flatMap(part => [...part.text.matchAll(/\]\(([a-z0-9-]+:[a-z0-9-]+)\)/g)].map(match => match[1])))]

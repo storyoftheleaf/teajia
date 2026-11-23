@@ -1,0 +1,61 @@
+{
+  "status": "draft",
+  "composedAt": "2026-11-23T11:45:09.251Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "dac9d851-44ca-4789-b561-01bc3dc9a6ae",
+    "name": "Small Tuo",
+    "chineseName": "98小沱",
+    "type": "Shou Puer",
+    "form": "Tuo",
+    "year": 1998,
+    "origin": "Yunnan, China",
+    "stockGrams": 500,
+    "pricePerGramUsd": 0.58,
+    "tags": []
+  },
+  "entry": {
+    "productId": "dac9d851-44ca-4789-b561-01bc3dc9a6ae",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A small tuo of [ripe pu’er](shou:definition) made in Yunnan in 1998. The leaf went through [wet piling](shou:wet-piling), heaped warm and damp so that heat and microbes could ferment it, then was steamed and pressed into its small bowl shape."
+      },
+      {
+        "layer": "age",
+        "text": "At twenty-eight years it has long since passed into what the trade counts as [aged ripe pu’er](shou:age-aged), where storage shapes the tea as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ease a piece off the tuo along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Old ripe tea like this gives eight or more good cups."
+    },
+    "notice": {
+      "styleName": "aged ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": []
+}

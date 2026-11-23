@@ -1,0 +1,76 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-23T11:45:46.069Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "cb7efd7b-9da6-4dc8-be76-3c7e69bdb02e",
+    "name": "Y562 (Jixing) Black Box",
+    "chineseName": "中茶吉幸Y562",
+    "type": "Shou",
+    "form": "Loose",
+    "year": 1993,
+    "origin": "Yunnan, China",
+    "stockGrams": 2000,
+    "pricePerGramUsd": 0.31,
+    "tags": []
+  },
+  "entry": {
+    "productId": "cb7efd7b-9da6-4dc8-be76-3c7e69bdb02e",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "Y562 is a named export recipe from the Yunnan Tea Import and Export Company, sold under its Jixing brand, a word meaning fortune. In the old coding the Y marks the company and the number stands for leaf grade and factory. Grade 5 to 6 points to fine, tender leaf, here from Menghai in southern Yunnan."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was made into [ripe pu’er](shou:definition) by [wet piling](shou:wet-piling), a method Yunnan’s state factories brought into production in 1973, which puts this lot in the style’s second decade. Rather than being pressed, it was kept loose in a 100 gram box, and it has sat in Hong Kong dry storage since around 1993."
+      },
+      {
+        "layer": "age",
+        "text": "At thirty-three years it falls among what the trade counts as [aged ripe pu’er](shou:age-aged), where clean, dry keeping shapes the leaf as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "The leaf is loose, so there is nothing to break off. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe tea forgives a heavy hand, and gives eight or more good cups."
+    },
+    "notice": {
+      "styleName": "aged ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "The leaf was made into [ripe pu’er](shou:definition) by [wet piling](shou:wet-piling), a method Yunnan’s state factories brought into production in 1973, which puts this lot in the style’s second decade.",
+      "words": "which puts this lot in the style’s second decade",
+      "why": "Inference not made by any claim or the record. The lot is dated 1993 and the claim gives 1973, but 'second decade' is a characterization of the lot's place in the style's history that neither the record nor a claim states, and it is a questionable reading of 1993 as well."
+    },
+    {
+      "sentence": "Y562 is a named export recipe from the Yunnan Tea Import and Export Company, sold under its Jixing brand, a word meaning fortune. In the old coding the Y marks the company and the number stands for leaf grade and factory. Grade 5 to 6 points to fine, tender leaf, here from Menghai in southern Yunnan.",
+      "words": "Grade 5 to 6 points to fine, tender leaf",
+      "why": "This comes from the record notes, which the owner's record counts as fact, so it is supported. It is flagged only if you consider the 'grade 5 to 6' reading to be unsourced by a claim; no claim backs it, but the record does."
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-23T11:46:13.981Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "6876236c-bcc5-49d8-b918-5c5db02ca2a5",
+    "name": "Ripe Puerh Loose",
+    "chineseName": "熟普散茶",
+    "type": "Shou Puer",
+    "form": "Loose Leaf",
+    "year": "1990s",
+    "origin": "Yunnan, China",
+    "stockGrams": 1000,
+    "pricePerGramUsd": 0.22,
+    "tags": []
+  },
+  "entry": {
+    "productId": "6876236c-bcc5-49d8-b918-5c5db02ca2a5",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "[Ripe pu’er](shou:definition) from Yunnan, made in the 1990s and never pressed into a cake. It has stayed as open leaf through its years in storage in Guangzhou, with more air moving through it than a pressed tea would have. The [wet-pile method](shou:wet-piling) behind it only reached production in 1973, so this lot comes from the style’s early decades."
+      },
+      {
+        "layer": "age",
+        "text": "At thirty-one years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). Where and how it was kept has shaped the leaf as much as time has."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Loose leaf needs no breaking apart, so measure it straight into the pot. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Old ripe tea like this gives eight or more good cups."
+    },
+    "notice": {
+      "styleName": "aged ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "The [wet-pile method](shou:wet-piling) behind it only reached production in 1973, so this lot comes from the style’s early decades.",
+      "words": "so this lot comes from the style’s early decades",
+      "why": "The claim says Yunnan's state factories brought the method into production in 1973, but nothing says the 1990s are the style's 'early decades'. That is a characterisation not made by any input."
+    },
+    {
+      "sentence": "It has stayed as open leaf through its years in storage in Guangzhou, with more air moving through it than a pressed tea would have.",
+      "words": "with more air moving through it than a pressed tea would have",
+      "why": "The record notes say this about loose leaf (the owner's own note), so this is mostly supported. It is weakly supported at most, and left here only as a borderline case."
+    },
+    {
+      "sentence": "Where and how it was kept has shaped the leaf as much as time has.",
+      "words": "Where and how it was kept has shaped the leaf as much as time has.",
+      "why": "The claim says storage matters as much as age in general. Stating that it has shaped this lot's leaf is a statement about this lot that no claim or record makes."
+    },
+    {
+      "sentence": "Old ripe tea like this gives eight or more good cups.",
+      "words": "Old ripe tea like this gives eight or more good cups.",
+      "why": "The claim gives 'eight or more good cups' for ripe pu'er in general. Applying it to this aged lot is a yield promise about this lot, which the claims do not support."
+    }
+  ]
+}

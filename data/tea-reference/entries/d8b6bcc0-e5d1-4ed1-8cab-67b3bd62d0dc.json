@@ -1,0 +1,73 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-23T11:42:59.348Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "d8b6bcc0-e5d1-4ed1-8cab-67b3bd62d0dc",
+    "name": "Aged Ripe Pu-erh Tea",
+    "chineseName": "陈年旧熟普",
+    "type": "Shou Puer",
+    "form": "Loose Leaf",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 1000,
+    "pricePerGramUsd": 0.4,
+    "tags": [
+      "mineral",
+      "woody",
+      "smooth"
+    ]
+  },
+  "entry": {
+    "productId": "d8b6bcc0-e5d1-4ed1-8cab-67b3bd62d0dc",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [ripe pu’er](shou:definition) from Yunnan, left to age as loose leaf rather than pressed into a cake or brick. Before that, the leaf went through the [wet pile](shou:wet-piling). Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it, and the pile is turned for a month or two before the leaf is dried. Yunnan’s state factories brought the method into production in 1973."
+      },
+      {
+        "layer": "type",
+        "text": "Ripe tea is ready to drink soon after it is made, so the years this lot has spent loose are time on top of that, not a wait it needed."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Loose leaf needs no pick, and ripe tea forgives a heavy hand. Expect eight or more good cups."
+    },
+    "notice": {
+      "styleName": "ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, sweet cup with earthy or woody notes, and in younger ripe tea a faint smell of the pile that fades with airing or in the first steeps."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "A [ripe pu’er](shou:definition) from Yunnan, left to age as loose leaf rather than pressed into a cake or brick.",
+      "words": "left to age as loose leaf rather than pressed into a cake or brick",
+      "why": "The record says 'Then aged loose' and form is Loose Leaf, so aging loose is supported. But 'rather than pressed into a cake or brick' is a mild inference. The definition claim says it is pressed or sold loose, so this is acceptable. Flagging only the weaker inference that it was a choice made against pressing."
+    },
+    {
+      "sentence": "Ripe tea is ready to drink soon after it is made, so the years this lot has spent loose are time on top of that, not a wait it needed.",
+      "words": "the years this lot has spent loose",
+      "why": "No year is given in the record, and the 'missing' list says the year is unknown. 'Years' of aging for this lot is asserted without support, although the name says 'Aged' and the notes say 'Then aged loose.' The number of years is not supported."
+    }
+  ]
+}

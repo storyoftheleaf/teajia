@@ -1,0 +1,78 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-23T11:49:18.926Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "dfb90ef0-fe35-4bc2-a1c5-17084f1f66d4",
+    "name": "Yiwu Gushu",
+    "chineseName": "易武古树熟茶",
+    "type": "Shou Puer",
+    "form": "Cake",
+    "year": 2008,
+    "origin": "Yiwu, Yunnan, China",
+    "stockGrams": 1071,
+    "pricePerGramUsd": 0.24,
+    "tags": [
+      "evolving honey",
+      "camphor",
+      "dried apricot",
+      "mineral sweetness",
+      "thick body"
+    ]
+  },
+  "entry": {
+    "productId": "dfb90ef0-fe35-4bc2-a1c5-17084f1f66d4",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A cake of [ripe pu’er](shou:definition) from Yiwu, in Yunnan, made from leaf dated to 2008. That leaf had already been aging before it was pressed, so the cake started further along than one pressed from fresh material. It was made by the [wet-pile method](shou:wet-piling), which Yunnan’s factories brought into production in 1973."
+      },
+      {
+        "layer": "age",
+        "text": "At eighteen years, it belongs to what the trade counts as [aged ripe pu’er](shou:age-aged). Storage shapes a tea like this as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ease a piece off the cake along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe tea like this gives eight or more good cups."
+    },
+    "notice": {
+      "styleName": "aged ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "At eighteen years, it belongs to what the trade counts as [aged ripe pu’er](shou:age-aged).",
+      "words": "it belongs to what the trade counts as [aged ripe pu’er]",
+      "why": "The claim says aged aroma applies to a well-kept ripe pu’er after ten years or more. Nothing says this lot was well kept, and nothing says the trade counts it as aged ripe pu’er."
+    },
+    {
+      "sentence": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
+      "words": "A smooth, deep cup with woody, date-like or medicinal notes",
+      "why": "The claim describes a well-kept ripe pu’er in general. This sentence states it as the cup of this lot, and its storage is unknown. The record's own notes say full-bodied and earthy, not date-like or medicinal."
+    }
+  ]
+}

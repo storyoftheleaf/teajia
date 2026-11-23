@@ -66,10 +66,10 @@ export const COMPOSED_FIXTURES: Record<ComposedFixture['slug'], ComposedFixture>
       productId: RIPE_BRICK_ITEM.id,
       paragraphs: [
         { layer: 'lot', text: 'A brick of [ripe pu’er](shou:definition) pressed in Yunnan in 1990, which spent the decades since in Guangzhou’s tea trade. That puts it in the style’s first two decades: the [wet-pile method](shou:wet-piling) only reached production in 1973.' },
-        { layer: 'age', text: 'At thirty-five years the [smell of the pile](shou:age-young) is long gone. Ripe tea of this age, kept well, grows smooth and deep, with woody, date-like or medicinal notes the trade calls [aged aroma](shou:age-aged), chén xiāng. Storage shapes it as much as the years do.' },
+        { layer: 'age', text: 'At thirty-six years the [smell of the pile](shou:age-young) is long gone, and the tea has settled into what the trade counts as [aged ripe pu’er](shou:age-aged). Storage shapes it as much as the years do.' },
       ],
       brewing: { layer: 'brewing', text: 'Ease a piece off the brick along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Old ripe tea like this gives eight or more good cups.' },
-      notice: { layer: 'notice', styleName: 'aged ripe pu’er', text: 'A smooth, sweet cup with a dark red liquor and woody notes.' },
+      notice: { layer: 'notice', styleName: 'aged ripe pu’er', text: 'A smooth, deep cup with a dark red liquor and woody, date-like or medicinal notes, which the trade calls aged aroma.' },
       missing: ['A voice note on how it drank for you', 'Photos of the brick and the liquor'],
     },
   },

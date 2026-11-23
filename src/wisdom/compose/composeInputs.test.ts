@@ -43,6 +43,8 @@ describe('composeInputs', () => {
     expect(problems).toEqual(expect.arrayContaining([
       'links sheng:definition, which was not supplied', 'uses a dash; the house style has none', 'taste word "sweet" belongs in the notice', 'the number 1991 is in no input',
     ]));
+    expect(entryProblems({ productId: 'brick', missing: [], paragraphs: [{ layer: 'lot', text: 'A brick from 1990.' }], notice: { layer: 'notice', styleName: 'aged ripe pu’er', text: 'People often find it smooth.' } }, inputs)
+      .map(problem => problem.problem)).toContain('the notice speaks of this lot ("it", "this"); describe the style instead');
     expect(entryProblems({ productId: 'brick', missing: [], paragraphs: [{ layer: 'lot', text: 'A [ripe pu’er](shou:definition) brick from 1990, kept in Guangzhou.' }] }, inputs)).toEqual([]);
   });
 });

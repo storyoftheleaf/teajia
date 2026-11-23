@@ -1,0 +1,66 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-23T11:48:48.120Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "e5e7c9ec-d66b-48de-9197-272ffdb638e0",
+    "name": "Xiniu Tang Gushu",
+    "chineseName": "犀牛塘古树熟茶",
+    "type": "Shou Puer",
+    "form": "Cake",
+    "year": null,
+    "origin": "Yiwu, Yunnan, China",
+    "stockGrams": 714,
+    "pricePerGramUsd": 0.24,
+    "tags": [
+      "thick honey",
+      "aged earth",
+      "camphor",
+      "smooth mineral",
+      "long finish"
+    ]
+  },
+  "entry": {
+    "productId": "e5e7c9ec-d66b-48de-9197-272ffdb638e0",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A cake of [ripe pu’er](shou:definition) from Yiwu, in Yunnan. The leaf was sun dried, then wetted and heaped in a [fermenting pile](shou:wet-piling) that was turned as it warmed and held below about 65°C for a month or two. After that it was dried and pressed, so the tea is ready to drink now rather than after years of keeping."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ease a piece off the cake along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe tea forgives a heavy hand and gives eight or more good cups."
+    },
+    "notice": {
+      "styleName": "ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, sweet cup with earthy or woody notes, and in a young ripe tea a faint smell of the pile that fades with airing or in the first steeps."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "After that it was dried and pressed, so the tea is ready to drink now rather than after years of keeping.",
+      "words": "After that it was dried and pressed, so the tea is ready to drink now rather than after years of keeping.",
+      "why": "The claims say ripe pu’er is ready to drink soon after it is made. They do not say this cake was dried then pressed in that order, and 'ready to drink now' is asserted for this lot without a made year to support it."
+    }
+  ]
+}

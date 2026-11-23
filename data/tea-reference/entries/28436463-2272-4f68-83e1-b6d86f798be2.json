@@ -1,0 +1,76 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-23T11:44:06.238Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "28436463-2272-4f68-83e1-b6d86f798be2",
+    "name": "Ripe Puerh Brick",
+    "chineseName": "1990年砖熟普",
+    "type": "Shou Puer",
+    "form": "Brick",
+    "year": 1990,
+    "origin": "Yunnan, China",
+    "stockGrams": 500,
+    "pricePerGramUsd": 0.84,
+    "tags": [
+      "mineral",
+      "woody",
+      "smooth"
+    ]
+  },
+  "entry": {
+    "productId": "28436463-2272-4f68-83e1-b6d86f798be2",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "This [ripe pu’er](shou:definition) brick was pressed in Yunnan in 1990 and has been kept in Guangzhou’s tea trade in the decades since. It dates from the early years of the style: Yunnan’s state factories only brought [wet piling](shou:wet-piling) into production in 1973, after a joint team studied faster piling in Guangdong."
+      },
+      {
+        "layer": "age",
+        "text": "Thirty-six years on, it belongs to [aged ripe pu’er](shou:age-aged), where the place a tea was kept shapes it as much as the years it has spent there."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Work a piece loose from the edge of the brick with a pick instead of breaking it off. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that grow longer as the leaf opens. Ripe tea forgives a heavy hand, and an old brick like this gives eight or more good cups."
+    },
+    "notice": {
+      "styleName": "aged ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "This [ripe pu’er](shou:definition) brick was pressed in Yunnan in 1990 and has been kept in Guangzhou’s tea trade in the decades since.",
+      "words": "was pressed in Yunnan in 1990",
+      "why": "The record gives origin Yunnan and year 1990, but the year is not stated as the pressing year, and the place of pressing is not given. Origin does not say where it was pressed."
+    },
+    {
+      "sentence": "Thirty-six years on, it belongs to [aged ripe pu’er](shou:age-aged), where the place a tea was kept shapes it as much as the years it has spent there.",
+      "words": "where the place a tea was kept shapes it as much as the years it has spent there",
+      "why": "The claim says storage matters as much as age, which supports this. However, nothing flagged here beyond that; this is supported, so it is not an issue."
+    }
+  ]
+}

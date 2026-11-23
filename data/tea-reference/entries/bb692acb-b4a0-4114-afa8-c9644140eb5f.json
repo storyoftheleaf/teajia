@@ -1,0 +1,64 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-23T11:43:34.070Z",
+  "writer": "claude opus",
+  "checker": "claude sonnet",
+  "record": {
+    "id": "bb692acb-b4a0-4114-afa8-c9644140eb5f",
+    "name": "Aged Northern Vietnam Ripe Pu-erh Tea",
+    "chineseName": "北越旧熟普",
+    "type": "Shou Puer",
+    "form": "Loose Leaf",
+    "year": null,
+    "origin": "Northern Vietnam highlands, on the Yunnan border, Vietnam",
+    "stockGrams": 2000,
+    "pricePerGramUsd": 0.29,
+    "tags": [
+      "mineral",
+      "woody",
+      "smooth"
+    ]
+  },
+  "entry": {
+    "productId": "bb692acb-b4a0-4114-afa8-c9644140eb5f",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "This tea comes from the highlands of northern Vietnam, on the border with Yunnan, and was made into [ripe pu’er](shou:definition) the classic way. The leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling) so that heat, moisture and microbes could work through it. It was then left loose rather than pressed, and aged in that form."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Use boiling water, about 7 grams of the loose leaf to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe tea forgives a heavy hand and gives eight or more good cups."
+    },
+    "notice": {
+      "styleName": "ripe pu’er",
+      "layer": "notice",
+      "text": "A smooth, sweet cup with earthy or woody notes. Younger ripe teas can carry a faint smell of the pile, which fades with airing or in the first steeps."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": null
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "The leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling) so that heat, moisture and microbes could work through it. It was then left loose rather than pressed, and aged in that form.",
+      "words": "and aged in that form",
+      "why": "The notes say \"then aged loose\", but no year is recorded and the record gives no age. This is supported by the notes, so it is a weak flag. The more serious issue is that it presents the aging as fact for this lot beyond the owner's notes; if the notes are accepted as fact, this should not be flagged."
+    }
+  ]
+}
