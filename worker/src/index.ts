@@ -31478,17 +31478,25 @@ const requestHandler = {
     }
   },
 
-  async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    // The scheduled jobs share one allowance. Record approval before cleanup or
+    // outbox work can spend it, including when a database failure consumes it.
+    if (env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED === 'true') {
+      try {
+        const approval = await refreshShippingWhatsAppApproval(env.DB, env);
+        console.info('Scheduled shipping approval', {
+          scheduledTime: event.scheduledTime, state: approval.state, code: approval.code, checkedAt: approval.checked_at,
+        });
+      } catch {
+        console.warn('Scheduled shipping approval', { scheduledTime: event.scheduledTime, state: 'check_failed' });
+      }
+    }
     try { await expireArBridgeRequests(env.DB); } catch { console.error('Archive request cleanup failed'); }
     try {
       await processPendingCustomerOrderNotifications(env.DB, env, { limit: 10 });
     } catch (error) {
       console.error('Customer order confirmation retry failed', error);
     }
-    // Metadata polling is independent of customer orders: approval can enable
-    // future WhatsApp shipping requests without another deploy or owner reply.
-    try { await refreshShippingWhatsAppApproval(env.DB, env); }
-    catch { console.error('Shipping WhatsApp template approval check failed'); }
     try { await processPendingShippingQuoteNotifications(env.DB, env, { limit: 10 }); }
     catch { console.error('Shipping payment notification retry failed'); }
     /* Rates first, and on their own.
@@ -31711,6 +31719,12 @@ export default {
       return new Response(null, {status:204});
     }};
     const response = await guardFetch(new Request('https://scheduled.internal/cron', {method:'POST'}), env, ctx, handler, {project:'teajia', classify:()=>({priority:'background',feature:'scheduled'})});
-    if (!response.ok) console.warn('Scheduled database work paused by shared allowance');
+    if (!response.ok) {
+      const refusal = await response.json<{ reason?: string }>().catch(() => null);
+      console.warn('Scheduled database work paused by shared allowance', {
+        scheduledTime: event.scheduledTime,
+        reason: /^[a-z_]{1,64}$/.test(refusal?.reason ?? '') ? refusal?.reason : 'unknown',
+      });
+    }
   },
 };
