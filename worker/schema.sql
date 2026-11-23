@@ -114,6 +114,11 @@ CREATE TABLE IF NOT EXISTS products (
     vendor TEXT,
     stock_grams INTEGER DEFAULT 0,
     stock_movement_guard TEXT,
+    personal_offer_source_id TEXT REFERENCES products(id),
+    personal_offer_pack_price_usd REAL,
+    personal_offer_price_amount REAL,
+    personal_offer_price_currency TEXT,
+    personal_offer_withdrawn_at TEXT,
     cost_amount REAL, -- migration 0018: no default. 0 here is a free tea, not an unrecorded one
     cost_currency TEXT DEFAULT 'USD',
     cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
@@ -165,6 +170,9 @@ CREATE TABLE IF NOT EXISTS products (
     last_synced_at TEXT                         -- Last time markdown sync touched this row
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_products_open_personal_offer
+  ON products(account_id, personal_offer_source_id)
+  WHERE personal_offer_source_id IS NOT NULL AND personal_offer_withdrawn_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_account_compass_identity
   ON products(account_id, source_compass_entry_id,
     (CASE WHEN inventory_purpose IS NOT NULL THEN inventory_purpose = 'sample' ELSE COALESCE(is_sample, 0) = 1 END))

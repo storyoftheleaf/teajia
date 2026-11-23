@@ -59,6 +59,7 @@ export function mapAdminProduct(p: any): Product {
         isPublic: p.is_public == null ? true : !!p.is_public,
         shownInShop: p.shown_in_shop == null ? true : !!p.shown_in_shop,
         ownerUserId: p.owner_user_id ?? null,
+        personalOfferSourceId: p.personal_offer_source_id ?? undefined,
         isFeatured: !!p.is_featured,
         isSample: !!p.is_sample,
         inventoryPurpose: p.inventory_purpose || null,

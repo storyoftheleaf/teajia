@@ -77,6 +77,7 @@ export const useContributor = (slug: string | undefined) => {
         // The public contributor API may set this from getOrderableShelfSlug(DB, row.user_id).
         // The earlier shelf_slug only identifies a grant and cannot enable offer discovery.
         orderable_shelf_slug: typeof data.orderable_shelf_slug === 'string' ? data.orderable_shelf_slug : null,
+        personal_store_slug: typeof data.personal_store_slug === 'string' ? data.personal_store_slug : undefined,
         has_payment_methods: data.has_payment_methods === true,
         payment_accounts: arrayOf(data.payment_accounts),
         host_account: data.host_account ?? null,

@@ -14,16 +14,35 @@ import { productToInventoryItem } from '../../utils';
 import type { Product } from '../../types';
 import { ShopIntroductionReview } from './ShopIntroductionReview';
 import { StockPublication, stockPublicationState } from './StockPublication';
+import { StockPersonalOffer } from './StockPersonalOffer';
+import { useTeaChestStockAccount } from '../../../components/AccountPanel/TeaChestStockLinks';
+import { useAppStore } from '../../../lib/store';
+import { effectivePurpose } from './domain';
 
 type PublicationProps = Omit<ComponentProps<typeof StockPublication>, 'product'>;
 
-export function StockListingReview({ product, entryId, applyWording, openRequested = false, onOpenHandled, ...publication }: PublicationProps & {
+type StockListingReviewProps = PublicationProps & {
   product: Product;
   entryId?: string;
   applyWording: (text: string) => Promise<void>;
   openRequested?: boolean;
   onOpenHandled?: () => void;
-}) {
+};
+
+export function StockListingReview(props: StockListingReviewProps) {
+  const { product, isOwner } = props;
+  const accountId = useAppStore(state => state.activeAccountId);
+  const { data, isPending } = useTeaChestStockAccount(isOwner && Boolean(accountId));
+  if (isOwner && accountId && isPending) return null;
+  if (data?.account?.id === accountId) {
+    return isOwner && !product.isPublic && product.type !== 'Teaware' && product.type !== 'Misc' && effectivePurpose(product) !== 'sample'
+      ? <StockPersonalOffer product={product} account={data.account} />
+      : null;
+  }
+  return effectivePurpose(product) === 'working' ? <StandardStockListingReview {...props} /> : null;
+}
+
+function StandardStockListingReview({ product, entryId, applyWording, openRequested = false, onOpenHandled, ...publication }: StockListingReviewProps) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (openRequested) {

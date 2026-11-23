@@ -680,6 +680,7 @@ export interface CartItem {
    */
   lineKey?: string;
   pricePerGram: number;
+  exactPackPriceUsd?: number;
   totalPrice: number;
   /**
    * The weight of one unbroken piece of this tea, when it is pressed into one.
@@ -752,6 +753,8 @@ export interface InventoryItem {
    * weighed out on the shop's usual ladder.
    */
   soldInWholeUnits?: boolean;
+  /** Seller-set price of the complete fixed-weight pack, in USD. */
+  exactPackPriceUsd?: number;
   name: string;
   year: string;
   origin: string;
@@ -827,6 +830,8 @@ export interface PublicProduct {
    * because it decides which amounts a reader may choose at all.
    */
   soldInWholeUnits?: boolean;
+  /** Seller-set price of the complete fixed-weight pack, in USD. */
+  exactPackPriceUsd?: number;
   givenName: string;
   chineseName?: string;
   productName: string;

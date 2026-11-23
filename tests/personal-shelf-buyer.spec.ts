@@ -37,6 +37,8 @@ async function fixtures(page: Page, shelfContributor = () => lin) {
           : [spring, autumn],
         ...(standalone ? {} : { contributor_slug: shelfContributor() }),
       } });
+    } else if (path.endsWith('/impressions')) {
+      await route.fulfill({ json: [] });
     } else {
       await route.fulfill({ json: {} });
     }
@@ -194,4 +196,73 @@ test('an existing personal shelf address opens the standard account storefront a
   const standardRow = page.locator('[data-tea-ledger-row]');
   await expect(standardRow.getByRole('heading', { name: autumn.name })).toBeVisible();
   await expect(standardRow.getByRole('button', { name: /add.*autumn oolong to cart/i })).toBeVisible();
+});
+
+test('an anonymous buyer orders the exact seller pack through the standard cart', async ({ page }, testInfo) => {
+  const store = 'lin-tea-chest';
+  const otherStore = 'another-tea-chest';
+  const offerId = 'lin-pack-001';
+  const fixedPrice = 25.37;
+  const product = {
+    id: offerId, slug: 'autumn-pack', product_name: autumn.name, type: autumn.type, stock_grams: 50,
+    fixed_retail_price_usd: fixedPrice / 50, exact_pack_price_usd: fixedPrice, given_name: autumn.name,
+    form: 'Bag', piece_weight_g: 50, sold_in_whole_units: 1, year: autumn.year,
+  };
+  let withdrawn = false;
+  const storeProduct = (seller: string) => `/api/s/${seller}/products/${offerId}`;
+  await fixtures(page);
+  await page.route(`**/api/people/${lin}`, route => route.fulfill({ json: {
+    id: lin, display_name: 'Lin Chen', role: 'Tea Master', page_tier: 'master', personal_store_slug: store,
+  } }));
+  await page.route(`**/api/s/${store}/products`, route => route.fulfill({ json: withdrawn ? [] : [product] }));
+  await page.route('**/api/s/*/products/*', route => new URL(route.request().url()).pathname === storeProduct(store) && !withdrawn
+    ? route.fulfill({ json: product }) : route.fulfill({ status: 404, json: { error: 'Product not found' } }));
+  await page.route(`**/api/s/${store}`, route => route.fulfill({ json: {
+    id: store, slug: store, name: 'Lin Chen’s Tea Chest', public_enabled: true, can_be_paid: true, currency_default: 'USD',
+  } }));
+  await page.route('**/api/inquiries', route => {
+    const payload = route.request().postDataJSON();
+    expect(payload).toMatchObject({ store_slug: store, currency: 'USD', total_estimate_usd: fixedPrice, source: 'website' });
+    expect(JSON.parse(payload.items_json)).toEqual([expect.objectContaining({
+      id: offerId, storeSlug: store, quantityGrams: 50, packGrams: 50, packs: 1, totalPrice: fixedPrice,
+    })]);
+    return route.fulfill({ status: 201, json: {
+      success: true, id: 'inquiry-synthetic', ref_number: payload.ref_number, tracking_token: payload.tracking_token,
+    } });
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(`/people/${lin}`);
+  const listing = page.getByRole('region', { name: 'Teas for sale' }).getByRole('link', { name: /Autumn oolong/ });
+  const exactPath = `/shop/product/${offerId}?store=${store}`;
+  await expect(listing).toHaveAttribute('href', exactPath);
+  await expect(listing).toContainText(/50 g · USD\s25\.37/);
+  await page.screenshot({ path: testInfo.outputPath('seller-profile.png'), fullPage: true });
+  await listing.click();
+  await expect(page).toHaveURL(new RegExp(`\\?store=${store}$`));
+  await page.locator('button.alcove-order-btn:visible, button.alcove-dock-add:visible').first().click();
+  await page.getByRole('button', { name: /Added Autumn oolong, 50 g\. Open order/ }).click();
+  const cart = page;
+  await expect(cart.getByRole('heading', { name: 'Your order' })).toBeVisible();
+  await expect(cart.getByText('Order from Lin Chen’s Tea Chest')).toBeVisible();
+  await expect(cart.getByText('50 g pack')).toBeVisible();
+  await expect(cart.getByRole('link', { name: autumn.name })).toHaveAttribute('href', exactPath);
+  await expect(cart.getByRole('button', { name: 'A different weight' })).toHaveCount(0);
+  await expect(cart.getByRole('button', { name: /One more pack/ })).toHaveCount(0);
+  await expect(cart.getByRole('article', { name: autumn.name }).getByText(/USD\s25\.37/)).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('seller-cart.png') });
+  await cart.getByLabel('Town or city').fill('Edinburgh');
+  await cart.getByLabel('Country', { exact: true }).fill('United Kingdom');
+  await cart.getByLabel('Your name').fill('Guest Buyer');
+  await cart.getByLabel('Your email address').fill('testbuyer@example.test');
+  await cart.getByRole('button', { name: 'Place order request' }).click();
+  await expect(cart.getByText('Your request is saved with Lin Chen’s Tea Chest.')).toBeVisible();
+  await expect(cart.getByRole('link', { name: /View order status/ })).toHaveAttribute('href', /^\/order\/[\w-]{43}$/);
+
+  await page.goto(`/shop/product/${offerId}?store=${otherStore}`);
+  await expect(page.getByRole('heading', { name: 'Not Found' })).toBeVisible();
+  withdrawn = true;
+  await page.goto(exactPath);
+  await expect(page.getByRole('heading', { name: 'Not Found' })).toBeVisible();
+  await page.goto(`/people/${lin}`);
+  await expect(page.getByRole('region', { name: 'Teas for sale' })).toHaveCount(0);
 });

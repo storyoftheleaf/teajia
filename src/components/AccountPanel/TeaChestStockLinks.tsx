@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { api, type TeaChestAccount } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
 
-export function useTeaChestStockAccount() {
+export function useTeaChestStockAccount(enabled = true) {
+  const userId = useAppStore(state => state.activeUserId);
   return useQuery({
-    queryKey: ['tea-chest-stock-account'],
+    queryKey: ['tea-chest-stock-account', userId],
+    enabled,
     queryFn: api.cellar.getStockAccount,
     staleTime: 60_000,
     retry: false,

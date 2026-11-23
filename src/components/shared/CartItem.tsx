@@ -5,6 +5,8 @@ import { minimumOrderGrams, offeredSizes } from '../../lib/teaPricing';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useShopPrice } from '../shop/shopPrice';
 import { lineKeyOf, normalizeCartPackGrams } from '../../lib/store';
+import { buildPublicProductHref, DEFAULT_PUBLIC_STORE_SLUG } from '../../lib/publicProductNavigation';
+import { formatPersonalTeaMoney } from '../../lib/personalTeaMoney';
 
 interface CartItemProps {
   item: PublicCartItemType;
@@ -32,7 +34,9 @@ interface CartItemProps {
  * aligns on the baseline, so a price never sits lower than the name beside it.
  */
 export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity, onUpdatePacks, onNavigate }) => {
-  const { total: displayPrice, plainTotal, symbol, perGramExact } = useShopPrice();
+  const { total, plainTotal, symbol, perGramExact } = useShopPrice();
+  const fixedPack = item.exactPackPriceUsd != null;
+  const displayPrice = fixedPack ? (usd: number) => formatPersonalTeaMoney(usd, 'USD') : total;
   /* The size tiles carry the bare mark of the money, "¥142" or "$15", not the
      country-qualified one ("CN¥", "NT$") the rest of the panel uses: the
      picker above already says which yuan or dollar it is, and six tiles in a
@@ -54,7 +58,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
   const [customGrams, setCustomGrams] = useState(String(packGrams));
   const lineKey = lineKeyOf(item);
   const photo = photoFailed ? undefined : mediaUrl(item.image);
-  const productPath = `/shop/product/${item.id}`;
+  const productPath = buildPublicProductHref({ id: item.id }, item.storeSlug === DEFAULT_PUBLIC_STORE_SLUG ? null : item.storeSlug);
 
   // Suppress the variant when it only repeats the product name.
   const showVariant =
@@ -130,11 +134,11 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
         <p className="flex items-baseline gap-1.5 font-body text-ui-13 text-tea-text-sec">
           {meta && <span>{meta}</span>}
           {meta && isTea && <span aria-hidden="true">·</span>}
-          {isTea && <span className="num">{perGramExact(effectivePerGram)} per gram</span>}
+          {isTea && <span className="num">{fixedPack ? `${packGrams} g pack` : `${perGramExact(effectivePerGram)} per gram`}</span>}
         </p>
       </div>
 
-      {isTea && (
+      {isTea && !fixedPack && (
         <div
           role="group"
           aria-label={`Pack size for ${item.name}`}
@@ -177,7 +181,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
         </div>
       )}
 
-      {isTea && otherIsLive && (
+      {isTea && !fixedPack && otherIsLive && (
         <div className="flex flex-wrap items-baseline gap-x-3">
             <span className="flex items-baseline gap-2">
               <label htmlFor={`grams-${lineKey}`} className="font-body text-ui-13 text-tea-text-sec">Grams per pack</label>
@@ -204,7 +208,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
       )}
 
       <div className="flex items-center gap-3">
-        <div className="flex items-center bg-tea-surface">
+        {!fixedPack && <div className="flex items-center bg-tea-surface">
           <button
             type="button"
             onClick={() => (isTea ? setPacks(packs - 1) : setGrams(item.quantityGrams - 1))}
@@ -225,7 +229,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
           >
             +
           </button>
-        </div>
+        </div>}
         <span className="flex-1 num text-ui-13 text-tea-text-sec">
           {isTea && packs > 1 ? `${packGrams * packs}g in all` : ''}
         </span>

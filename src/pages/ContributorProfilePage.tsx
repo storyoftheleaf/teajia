@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { PersonTastingsSection, SoldOutLine } from '../components/people/PersonTastings';
 import { ReportPageLine } from '../components/people/ReportPageLine';
@@ -33,6 +34,10 @@ import {
 import { useContributor } from '../hooks/useContributor';
 import { usePublicShelf } from '../hooks/usePublicShelf';
 import { publicShelfPath, shelfAmount, shelfPrice, shelfWhatsAppHref } from '../lib/publicShelf';
+import { formatPersonalTeaMoney } from '../lib/personalTeaMoney';
+import { buildPublicProductHref } from '../lib/publicProductNavigation';
+import { fetchStoreProducts } from '../lib/storefrontApi';
+import { teaPurchaseQuote } from '../lib/shopPurchase';
 import type {
   ContributorArticleRef,
   ContributorFeaturedRef,
@@ -205,11 +210,33 @@ function Section({ id, children, testId }: { id?: string; children: ReactNode; t
 export default function ContributorProfilePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError, error, refetch } = useContributor(slug);
-  const { data: shelf, isError: shelfError, isFetchedAfterMount: shelfRead } = usePublicShelf(data?.orderable_shelf_slug);
-  const offers = !shelfError && shelfRead && shelf && shelf.contributor_slug === data?.id
-    && shelf.slug === data?.orderable_shelf_slug && shelf.seller_name?.trim()
-    ? shelf.items.filter(item => shelfWhatsAppHref(shelf, item)).slice(0, 2)
-    : [];
+  const storeSlug = data?.personal_store_slug;
+  const storeOffers = useQuery({
+    queryKey: ['storefront', 'products', storeSlug],
+    queryFn: () => fetchStoreProducts(storeSlug!),
+    enabled: Boolean(storeSlug),
+    refetchOnMount: 'always',
+    retry: false,
+  });
+  const { data: shelf, isError: shelfError, isFetchedAfterMount: shelfRead } = usePublicShelf(
+    storeSlug ? null : data?.orderable_shelf_slug,
+  );
+  const legacyShelf = !shelfError && shelfRead && shelf && !shelf.store_slug && shelf.contributor_slug === data?.id
+    && shelf.slug === data?.orderable_shelf_slug && shelf.seller_name?.trim() ? shelf : null;
+  const offers = storeSlug
+    ? (!storeOffers.isError && storeOffers.isFetchedAfterMount ? storeOffers.data ?? [] : []).flatMap(item => {
+      if (item.category !== 'tea' || item.exactPackPriceUsd == null) return [];
+      const pack = teaPurchaseQuote(item);
+      if (!pack) return [];
+      return [{ id: item.id, name: item.name, href: buildPublicProductHref({ id: item.id }, storeSlug),
+        detail: `${pack.grams} g · ${formatPersonalTeaMoney(pack.totalUsd, 'USD')}` }];
+    }).slice(0, 2)
+    : (legacyShelf?.items ?? []).filter(item => shelfWhatsAppHref(legacyShelf!, item)).slice(0, 2).map(item => ({
+      id: item.id, name: item.name, href: publicShelfPath(legacyShelf!.slug, item.id),
+      detail: `${shelfAmount(item.grams)} · ${shelfPrice(item)}`,
+    }));
+  const allOffersHref = storeSlug ? `/store/${encodeURIComponent(storeSlug)}`
+    : legacyShelf ? publicShelfPath(legacyShelf.slug) : null;
   const showOffers = offers.length > 0;
   const rootRef = useReveals([data?.id, showOffers]);
   // A Read story published or taken down from its own page, once this browser knows.
@@ -346,24 +373,19 @@ export default function ContributorProfilePage() {
             {data.chinese_name && <p className="mt-2 text-ui-22 leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>
-          {data.personal_store_slug && (
-            <Link to={`/store/${encodeURIComponent(data.personal_store_slug)}`} className="btn-secondary">
-              Shop {data.display_name}’s teas
-            </Link>
-          )}
-          {showOffers && shelf && (
+          {showOffers && allOffersHref && (
             <section aria-label="Teas for sale">
               <GroupHead label="Teas for sale" />
               {offers.map(offer => (
                 <IndexRow
                   key={offer.id}
-                  to={publicShelfPath(shelf.slug, offer.id)}
+                  to={offer.href}
                   state={{ sellerProfile: data.id }}
                   title={<span className="break-words">{offer.name}</span>}
-                  dek={`${shelfAmount(offer.grams)} · ${shelfPrice(offer)}`}
+                  dek={offer.detail}
                 />
               ))}
-              <Link to={publicShelfPath(shelf.slug)} state={{ sellerProfile: data.id }} className="btn-quiet mt-2">
+              <Link to={allOffersHref} state={{ sellerProfile: data.id }} className="btn-quiet mt-2">
                 View all teas for sale
               </Link>
             </section>

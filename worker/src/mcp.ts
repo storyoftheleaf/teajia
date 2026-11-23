@@ -1,4 +1,5 @@
 import { hasPublicStatus } from '../../src/lib/productPublication';
+import { personalInventoryAccessSql } from './personalShelf';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, writeProductPublication } from './productPublication';
 import { logisticsTrackingTools } from './mcpTools/logisticsTracking';
 import { logisticsTools } from './mcpTools/logistics';
@@ -309,10 +310,10 @@ async function resolveOAuthApprovalContext(
 
   const platformRole = user.platform_role || null;
   if (platformRole === 'platform_owner' || platformRole === 'platform_admin') {
-    const account = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?')
-      .bind(accountId)
-      .first() as { status: string | null } | null;
-    if (!account) return corsJson({ error: 'access_denied', error_description: 'Account not found' }, 403);
+    const account = await env.DB.prepare(`SELECT status FROM accounts WHERE id = ? AND ${personalInventoryAccessSql}`)
+      .bind(accountId, user.id)
+      .first();
+    if (!account) return corsJson({ error: 'access_denied', error_description: 'Account access denied' }, 403);
     if (account.status === 'suspended') {
       return corsJson({ error: 'access_denied', error_description: 'Account is suspended' }, 403);
     }
@@ -326,7 +327,9 @@ async function resolveOAuthApprovalContext(
     `SELECT am.role, a.status
      FROM account_members am
      JOIN accounts a ON a.id = am.account_id
-     WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'`,
+     WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'
+       AND (a.personal_inventory_user_id IS NULL OR
+         (a.personal_inventory_user_id = am.user_id AND a.owner_user_id = am.user_id))`,
   ).bind(user.id, accountId).first() as { role: string; status: string | null } | null;
 
   if (!membership) {
@@ -484,8 +487,8 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
   try {
     user = await env.DB.prepare('SELECT id, email, platform_role FROM users WHERE id = ?')
       .bind(row.user_id).first() as CurrentUserRow | null;
-    account = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?')
-      .bind(row.account_id).first() as { status: string | null } | null;
+    account = await env.DB.prepare(`SELECT status FROM accounts WHERE id = ? AND ${personalInventoryAccessSql}`)
+      .bind(row.account_id, row.user_id).first<{ status: string | null }>();
   } catch (error) {
     return authenticationDependencyFailure(error);
   }

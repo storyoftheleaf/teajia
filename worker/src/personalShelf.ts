@@ -65,6 +65,14 @@ export const shelfContactSql = `
   AND u.shelf_whatsapp NOT GLOB '*[^0-9]*'
 `;
 
+// Account lookup predicate for elevated REST access and MCP credentials.
+// accounts is the outer row; the parameter is the authenticated person.
+export const personalInventoryAccessSql = `(personal_inventory_user_id IS NULL OR (
+  personal_inventory_user_id = ? AND owner_user_id = personal_inventory_user_id
+  AND EXISTS (SELECT 1 FROM account_members m WHERE m.account_id = accounts.id
+    AND m.user_id = accounts.personal_inventory_user_id AND m.role = 'owner' AND m.status = 'active')
+))`;
+
 export async function getOrderableShelfSlug(db: D1Database, userId: string | null | undefined): Promise<string | null> {
   if (!userId) return null;
   const seller = await db.prepare(`

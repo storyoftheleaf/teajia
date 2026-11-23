@@ -13,7 +13,7 @@ export default function ShelfPage() {
   const { data, isLoading, isError, refetch, isFetchedAfterMount } = usePublicShelf(slug);
   const expectedSeller = typeof state?.sellerProfile === 'string' ? state.sellerProfile : null;
   const sellerChanged = Boolean(expectedSeller && data && data.contributor_slug !== expectedSeller);
-  const items = data?.items.filter(item => hasShelfAmount(item) && shelfPrice(item)) ?? [];
+  const items = !data?.store_slug ? data?.items.filter(item => hasShelfAmount(item) && shelfPrice(item)) ?? [] : [];
   const offerLink = hash.startsWith(`#${SHELF_OFFER_ANCHOR}`);
   const selected = offerLink
     ? data && items.find(item => publicShelfPath(data.slug, item.id).endsWith(hash))
@@ -51,7 +51,8 @@ export default function ShelfPage() {
     );
   }
 
-  if (data.store_slug) return <Navigate replace to={`/store/${encodeURIComponent(data.store_slug)}`} />;
+  const sellerStorePath = data.store_slug ? `/store/${encodeURIComponent(data.store_slug)}` : null;
+  if (sellerStorePath && !offerLink) return <Navigate replace to={sellerStorePath} />;
 
   const seller = data.seller_name?.trim();
   const heading = data.title || (seller ? `${seller}’s tea shop` : 'Tea shop');
@@ -72,7 +73,9 @@ export default function ShelfPage() {
           </p>
         )}
 
-        {items.length === 0 ? (
+        {sellerStorePath ? (
+          <Link to={sellerStorePath} className="btn-secondary">View current teas for sale</Link>
+        ) : items.length === 0 ? (
           <p className={T.bodyLight}>No teas are currently for sale.</p>
         ) : (
           <>

@@ -105,6 +105,7 @@ export interface Product {
   isPublic: boolean; // Publicly visible flag (operator's "list this at all")
   shownInShop: boolean; // Stock spine step 2, location owner's curation gate; storefront requires isPublic && shownInShop
   ownerUserId?: string | null; // Stock spine step 1, whose stock this is; null = owned by the location
+  personalOfferSourceId?: string;
   isFeatured?: boolean; // Suggested/Featured flag
   isCurated?: boolean; // Curated selection flag
   isSample?: boolean; // Sample/trial tea not yet committed to inventory

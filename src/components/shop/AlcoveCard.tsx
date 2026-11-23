@@ -33,6 +33,7 @@ import { useProductImpressions } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 import { minimumOrderGrams, quoteGrams, sellUnitOf } from '../../lib/teaPricing';
+import { formatPersonalTeaMoney } from '../../lib/personalTeaMoney';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, useWisdomListing } from './alcove/AlcoveWisdomPassages';
@@ -227,7 +228,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const grams = purchase?.grams ?? sliderMin;
   // Numeric total (base currency), passed to onAddToCart. Display strings
   // are formatted separately; never parse a formatted string back to a number.
-  const numericTotal = Math.ceil(quoteGrams(pricePerGram, grams, { wholePieceGrams }).totalUsd);
+  const numericTotal = purchase?.totalUsd ?? 0;
 
   /**
    * Every figure on this card, in the currency the reader chose.
@@ -244,9 +245,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // The shop's own formatter is where the pricing curve is applied, because
   // every surface reads its total through here. An admin override formats
   // against its own rate table and keeps that job untouched.
+  const formatTotal = item.exactPackPriceUsd == null ? shopPrice.total : (usd: number) => formatPersonalTeaMoney(usd, 'USD');
   const resolvedFormatPrice = formatPrice
     ?? ((usdPerGram: number, g: number) =>
-      shopPrice.total(quoteGrams(usdPerGram, g, { wholePieceGrams }).totalUsd));
+      formatTotal(item.exactPackPriceUsd ?? quoteGrams(usdPerGram, g, { wholePieceGrams }).totalUsd));
   const total = resolvedFormatPrice(pricePerGram, grams);
   // A rate is a complete display value. Public prices use the rate formatter;
   // admin overrides add their unit here, at the card boundary, exactly once.
@@ -376,7 +378,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       formatPrice={resolvedFormatPrice}
       formatPerGram={shopPrice.perGram}
       formatRate={shopPrice.rate}
-      formatTotal={shopPrice.total}
+      formatTotal={formatTotal}
       /* Only on the public path. An admin override formats against its own
          rate table and keeps naming its currency on every figure; the price
          list strips the name only when it is the one naming it, once, in the
