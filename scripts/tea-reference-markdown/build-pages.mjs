@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   buildWisdom,
+  DRAFT_PARTS_DIRECTORY,
   renderGeneratedClaims,
   renderGeneratedDraftClaims,
   renderGeneratedRegistry,
@@ -41,7 +42,7 @@ const articleClaims = built.draftClaims
 const outputs = [
   ['generatedPages.ts', renderGeneratedRegistry(built.registry)],
   ['generatedClaims.ts', renderGeneratedClaims(built.claims)],
-  ['generatedDraftClaims.ts', renderGeneratedDraftClaims(built)],
+  ...renderGeneratedDraftClaims(built),
   [path.join(REPO_ROOT, 'worker/src/articleWisdomClaimIndex.json'), JSON.stringify(articleClaims, null, 2) + '\n'],
 ];
 
@@ -58,6 +59,25 @@ for (const [fileName, output] of outputs) {
       throw new Error(`Generated ${fileName} is stale; run npm run tea-reference:pages`);
     }
   } else {
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, output);
   }
+}
+
+// The parts directory holds only what this run wrote; a leftover part is stale.
+const partsDirectory = path.join(REFERENCE_DIRECTORY, DRAFT_PARTS_DIRECTORY);
+const written = new Set(outputs.map(([fileName]) => path.resolve(REFERENCE_DIRECTORY, fileName)));
+let present = [];
+try {
+  present = await fs.readdir(partsDirectory);
+} catch (error) {
+  if (error?.code !== 'ENOENT') throw error;
+}
+for (const name of present) {
+  const partPath = path.join(partsDirectory, name);
+  if (written.has(partPath)) continue;
+  if (args.has('--check')) {
+    throw new Error(`Generated ${DRAFT_PARTS_DIRECTORY}/${name} is stale; run npm run tea-reference:pages`);
+  }
+  await fs.rm(partPath);
 }
