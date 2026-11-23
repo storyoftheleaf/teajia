@@ -1,3 +1,4 @@
+import { serveTeaDecisions } from './catalogTeaDecisions';
 /** Owner-only reading packets live in the private Atlas bucket, separate from Stock. */
 type ReadingIndex = {
   ownerUserId: string;
@@ -14,7 +15,9 @@ export async function serveCatalogTeaReading(
   const reply = (status: number, body?: BodyInit | null) => new Response(head ? null : body, {
     status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' },
   });
-  if (!head && request.method !== 'GET') return reply(405);
+  const suffix = new URL(request.url).pathname.slice(PATH.length);
+  const editorial = suffix === '/decisions' || suffix.startsWith('/decisions/');
+  if (!head && request.method !== 'GET' && !(editorial && request.method === 'PUT')) return reply(405);
   const scope = await activeAccount();
   if ('error' in scope) return reply(scope.error.status);
   const member = await env.DB.prepare(
@@ -30,7 +33,7 @@ export async function serveCatalogTeaReading(
   if (!object) return reply(404);
   const index = await object.json<ReadingIndex>();
   if (index.ownerUserId !== scope.userId) return reply(403);
-  const suffix = new URL(request.url).pathname.slice(PATH.length);
+  if (editorial) return serveTeaDecisions(request, bucket, root, scope.userId, suffix, reply);
   if (!suffix) return reply(200, JSON.stringify(index.items.map(({ id, title, status }) => ({ id, title, status }))));
   const item = index.items.find(row => suffix === '/' + row.id);
   if (!item || !/^[a-f0-9]{64}$/.test(item.digest)) return reply(404);

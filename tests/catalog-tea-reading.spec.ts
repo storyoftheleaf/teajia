@@ -15,6 +15,7 @@ test('owner can read each intake description next to its leaf or labelled refere
   await page.route('**/api/admin/catalog-review/teas**', route => {
     expect(route.request().headers().authorization).toMatch(/^Bearer /);
     const id = new URL(route.request().url()).pathname.split('/').at(-1);
+    if (id === 'decisions') return route.fulfill({json:{intake:{},passages:[],holds:[],histories:[],verdicts:{}}});
     if (id === 'teas') return route.fulfill({ json: items });
     const entry = items.find(item => item.id === id)!;
     const isPackage = entry.id === 'tea-21';
@@ -37,4 +38,41 @@ test('owner can read each intake description next to its leaf or labelled refere
     await expect(page.getByRole('link', { name: 'Open Stock record' })).toHaveCount(entry.id === 'tea-10' ? 1 : 0);
     await page.getByRole('link', { name: 'All tea write-ups' }).click();
   }
+});
+
+test('owner can decide exact wording and distinguish sourcing from named histories', async ({ page }) => {
+  await injectAuth(page);
+  await mockInventoryApi(page);
+  const passage={id:'history-basket',revision:'source-revision',kind:'Shared history',title:'River packing',text:'Packers lined baskets.',
+    scope:'Historical trade in Wuzhou.',sources:[{title:'Oral history',url:'https://example.org/source'}],lots:[{title:'Basket tea',url:'/shop/product/basket'}]};
+  let verdicts: Record<string,{decision:string; version:number}> = {};
+  await page.route('**/api/admin/catalog-review/teas**',async route=>{
+    const suffix=new URL(route.request().url()).pathname.split('/teas')[1];
+    if (!suffix) return route.fulfill({json:items});
+    if (suffix==='/decisions') return route.fulfill({json:{passages:[{...passage,id:'lot-1',title:'Basket tea',kind:'Lot opening'},passage],
+      intake:{'tea-10':{nextCheck:'Count the tea.'}},holds:[{title:'Ginseng Puer',url:'/shop/product/ginseng',locator:'Check the ingredient label.'}],
+      histories:[{title:'Y562',url:'/shop/product/y562',wisdom:'/wisdom/named/y562'}],verdicts}});
+    expect(route.request().method()).toBe('PUT');
+    const {decision,revision,version}=route.request().postDataJSON();
+    expect(revision).toBe(passage.revision);
+    verdicts={...verdicts,[passage.id]:{decision,version:version+1}};
+    return route.fulfill({json:verdicts[passage.id]});
+  });
+  await page.goto(root);
+  await expect(page.getByText('Count the tea.')).toBeVisible();
+  await page.getByRole('button',{name:'Editorial review'}).click();
+  await page.getByRole('button',{name:/Shared passages/}).click();
+  await expect(page.getByText(passage.text)).toBeVisible();
+  await page.getByRole('button',{name:'Decline',exact:true}).click();
+  await expect(page.getByRole('status',{name:''}).filter({hasText:'Declined'})).toBeVisible();
+  await page.reload();
+  await page.getByRole('button',{name:/Shared passages/}).click();
+  await expect(page.getByRole('button',{name:'Decline',exact:true})).toBeDisabled();
+  await page.getByRole('button',{name:'Approve wording'}).click();
+  await expect(page.getByText('Approved',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Identity checks'}).click();
+  await expect(page.getByText('Check the ingredient label.')).toBeVisible();
+  await page.getByRole('button',{name:'Named histories'}).click();
+  await expect(page.getByRole('link',{name:'Tea Wisdom'})).toHaveAttribute('href','/wisdom/named/y562');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });

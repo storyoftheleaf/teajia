@@ -44,3 +44,46 @@ it('serves the packet only to its named owner and scopes every read to the activ
     db.close();
   }
 });
+
+it('binds decisions to the owner, exact passage revision and current verdict without publishing', async () => {
+  const db = new SqliteD1('schema');
+  try {
+    seedIdentity(db,{accountId:'bali',userId:'adrian',role:'owner'});
+    seedIdentity(db,{accountId:'bali',userId:'colleague',role:'owner'});
+    const prefix='owner-review/bali/catalog-reading/';
+    const files=new Map<string,string>();
+    files.set(prefix+'index.json',JSON.stringify({ownerUserId:'adrian',items:[]}));
+    const packet=(revision:string)=>JSON.stringify({passages:[{id:'lot-1',revision}],histories:[],holds:[],intake:{}});
+    files.set(prefix+'editorial.json',packet('one'));
+    let writes=0;
+    const bucket={
+      get:async(key:string)=>files.has(key)?Object.assign(new Response(files.get(key)),{etag:'v'+writes}):null,
+      put:async(key:string,value:string,opts:{onlyIf:{etagMatches?:string;etagDoesNotMatch?:string}})=>{
+        if (files.has(key)?opts.onlyIf.etagMatches!=='v'+writes:opts.onlyIf.etagDoesNotMatch!=='*') return null;
+        files.set(key,value);writes++;return {};
+      },
+    };
+    const env={DB:db,ATLAS_BUCKET:bucket} as unknown as Parameters<typeof serveCatalogTeaReading>[1];
+    const call=(path:string,body?:object,user='adrian')=>serveCatalogTeaReading(
+      new Request('https://example.org/api/admin/catalog-review/teas/decisions'+path,body?{
+        method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
+      }:{}),env,async()=>({userId:user,accountId:'bali'}));
+    const proposal={revision:'one',version:0,decision:'declined'};
+    expect((await call('/lot-1',proposal,'colleague')).status).toBe(403);
+    expect((await call('/lot-1',{...proposal,revision:'wrong'})).status).toBe(409);
+    expect((await call('/absent',proposal)).status).toBe(404);
+    expect((await call('/lot-1',{...proposal,decision:'publish'})).status).toBe(400);
+    expect(await (await call('/lot-1',proposal)).json()).toEqual({version:1,decision:'declined'});
+    expect((await call('/lot-1',proposal)).status).toBe(200);
+    expect((await call('/lot-1',{...proposal,decision:'approved'})).status).toBe(409);
+    expect(writes).toBe(1);
+    expect((await (await call('')).json() as any).verdicts['lot-1'].decision).toBe('declined');
+    files.set(prefix+'editorial.json',packet('two'));
+    expect((await (await call('')).json() as any).verdicts).toEqual({});
+    expect((await call('/lot-1',{revision:'two',version:0,decision:'approved'})).status).toBe(200);
+    expect((await call('/lot-1',{revision:'two',version:1,decision:'withdrawn'})).status).toBe(200);
+    const decisions=JSON.parse(files.get(prefix+'editorial-decisions/adrian.json')!);
+    expect(decisions['lot-1/one'].decision).toBe('declined');
+    expect(decisions['lot-1/two'].decision).toBe('withdrawn');
+  } finally {db.close();}
+});

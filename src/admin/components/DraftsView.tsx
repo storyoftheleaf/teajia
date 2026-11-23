@@ -35,7 +35,7 @@ function TeaReadingLink() {
     retry: false,
   });
   return scope.ready && reading.data ? <div className="flex shrink-0 px-4 md:px-6">
-    <Link to="/admin/catalog-review/teas" className="btn-quiet btn-sm">Tea write-ups</Link>
+    <Link to="/admin/catalog-review/teas?view=editorial" className="btn-quiet btn-sm">Tea decisions</Link>
   </div> : null;
 }
 
