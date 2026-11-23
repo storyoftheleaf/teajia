@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type {
-  ClaimSourceRole,
   ListingFacts,
   ListingPassages,
   PublicClaim,
@@ -96,6 +95,12 @@ export const AlcoveWisdomPassages: React.FC<{ listing: ListingPassages }> = ({ l
           <p className={`${BODY} m-0 mt-2 text-tea-text-sec`}>
             <span className="text-tea-text-dim">Scope: </span>{claim.scope}
           </p>
+          {/* Trade knowledge is written in our own words and carries no citation. */}
+          {claim.sourceIds.length > 0 && (
+            <p className={`${BODY} m-0 mt-1 text-tea-text-dim`} data-citation-line>
+              Sources are listed in Wisdom.
+            </p>
+          )}
           <Link to={wisdomHref} className={`${BODY} ${LINK} tap-target mt-1 inline-flex items-center text-tea-text-sec`}>
             Read more in Wisdom
           </Link>
@@ -105,43 +110,26 @@ export const AlcoveWisdomPassages: React.FC<{ listing: ListingPassages }> = ({ l
   );
 };
 
-const ROLE_WORDS: Record<ClaimSourceRole, string> = {
-  standard: 'a published standard',
-  producer: 'the producer',
-  seller_own_batch: 'the seller, describing its own batch',
-  study: 'a published study',
-  specialist_editorial: 'a specialist writer',
-  taster: 'a named taster',
-};
-
-/** "Reported by …, about …": the attribution sentence for one observation. */
-export function attributionSentence(claim: PublicClaim): string {
-  const attribution = claim.attribution;
-  if (!attribution) return '';
-  return `Reported by ${ROLE_WORDS[attribution.sourceRole]}, about ${attribution.sample}. It describes that sample, not this tea.`;
-}
-
 /**
- * "Style reference": attributed sensory observations, after About. Each one
- * is a separate account with its own attribution sentence, and none of them
- * describes this lot. Renders nothing when there are none.
+ * "What people often notice": one sentence per style or grade, in our own
+ * words, naming no seller or study. Always last, always about the style or
+ * grade, never offered as the taste of this lot. Renders nothing when empty.
  */
 export const AlcoveWisdomStyleReferences: React.FC<{ listing: ListingPassages }> = ({ listing }) => {
-  const observations = listing.styleReferences.filter(claim => claim.attribution);
-  if (observations.length === 0) return null;
+  if (listing.styleReferences.length === 0) return null;
   return (
     <section
-      className="mx-4 mt-8 grid gap-4 border-t border-tea-border py-4"
+      className="mx-4 mt-8 grid gap-3 border-t border-tea-border py-4"
       aria-labelledby="wisdom-style-reference-title"
       data-wisdom-style-references
     >
-      <h2 id="wisdom-style-reference-title" className={`${LABEL} m-0 text-tea-text-dim`}>Style reference</h2>
-      {observations.map(claim => (
-        <div key={claim.claimId} className="min-w-0" data-claim-id={claim.claimId}>
-          <p className={`${BODY} m-0 text-tea-text-sec [overflow-wrap:anywhere]`}>{claim.text}</p>
-          <p className={`${BODY} m-0 mt-1 text-tea-text-dim [overflow-wrap:anywhere]`}>{attributionSentence(claim)}</p>
-        </div>
+      <h2 id="wisdom-style-reference-title" className={`${LABEL} m-0 text-tea-text-dim`}>What people often notice</h2>
+      {listing.styleReferences.map(claim => (
+        <p key={claim.claimId} className={`${BODY} m-0 text-tea-text-sec [overflow-wrap:anywhere]`} data-claim-id={claim.claimId}>
+          {claim.text}
+        </p>
       ))}
+      <p className={`${BODY} m-0 text-tea-text-dim`}>About the style in general, not a tasting of this tea.</p>
     </section>
   );
 };

@@ -2,7 +2,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, attributionSentence } from './AlcoveWisdomPassages';
+import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences } from './AlcoveWisdomPassages';
+import type { PublicClaim } from '../../../wisdom/reference/claims';
 import { EMPTY_LISTING_PASSAGES, resolveListingPassages } from '../../../wisdom/reference/listingPassages';
 import { PILOT_FIXTURE_CLAIMS } from '../../../pages/preview/wisdomPilot/fixtureClaims';
 import { PILOT_FIXTURES } from '../../../pages/preview/wisdomPilot/fixtureProducts';
@@ -25,17 +26,22 @@ describe('AlcoveWisdomPassages', () => {
     expect(markup).toContain('href="/wisdom/grade/gong-ting#definition"');
     expect(markup).toContain('Read more in Wisdom');
     expect(markup).toContain('tap-target');
-    expect(markup).not.toContain('Style reference');
+    expect(markup).not.toContain('What people often notice');
+    expect(markup).not.toContain('data-citation-line');
   });
 
-  it('puts each observation in the style reference block with its own attribution sentence', () => {
+  it('adds a citation line only when the claim has sources', () => {
+    const listing = resolveListingPassages(PILOT_FIXTURES['gong-ting-external'].facts, PILOT_FIXTURE_CLAIMS);
+    const cited = { ...listing, passages: [{ ...listing.passages[0], claim: { ...listing.passages[0].claim, basis: 'sourced', sourceIds: ['s'] } as PublicClaim }] };
+    expect(render(<AlcoveWisdomPassages listing={cited} />)).toContain('data-citation-line');
+  });
+
+  it('shows the taste sentence under "What people often notice", naming no source, framed as the style', () => {
     const listing = resolveListingPassages(PILOT_FIXTURES['gong-ting-external'].facts, PILOT_FIXTURE_CLAIMS);
     const markup = render(<AlcoveWisdomStyleReferences listing={listing} />);
-    expect(markup).toContain('Style reference');
-    for (const reference of listing.styleReferences) {
-      expect(markup).toContain(reference.text);
-      expect(attributionSentence(reference)).toMatch(/^Reported by the seller, describing its own batch, about .+ It describes that sample, not this tea\.$/);
-    }
-    expect(markup.match(/Reported by/g)).toHaveLength(2);
+    expect(markup).toContain('What people often notice');
+    expect(markup).toContain('People often notice dried fruit and a creamy sweetness in Gong Ting ripe pu&#x27;er.');
+    expect(markup).toContain('not a tasting of this tea');
+    expect(markup).not.toMatch(/Reported by|Yunnan Sourcing|Style reference/);
   });
 });

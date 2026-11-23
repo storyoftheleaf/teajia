@@ -106,8 +106,8 @@ export function passageAnchorId(claimId: string): string {
 /**
  * At most two passages, ranked grade > place > type > process, the second on a
  * different axis from the first. Only approved, listing-eligible claims lead.
- * Attributed sensory observations come back separately as style references,
- * and never describe the lot.
+ * Sensory claims (what people often notice in the style or grade) come back
+ * separately as style references, and never describe the lot.
  *
  * `claims` is the claim set in use: GENERATED_CLAIMS in production, a fixture
  * or an overridden draft set on the pilot preview.
@@ -133,9 +133,7 @@ export function resolveListingPassages(
   }
 
   const styleReferences = live
-    .filter(claim => claim.axis === 'sensory_observation'
-      && claim.attribution
-      && appliesTo(claim.appliesWhen, facts))
+    .filter(claim => claim.axis === 'sensory_observation' && appliesTo(claim.appliesWhen, facts))
     .sort((left, right) => codePointCompare(left.claimId, right.claimId));
 
   if (chosen.length === 0 && styleReferences.length === 0) return EMPTY_LISTING_PASSAGES;

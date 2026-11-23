@@ -13,7 +13,7 @@ const passageIds = (claims: readonly PublicClaim[], facts = PILOT_FIXTURES.naka.
 function claim(partial: Partial<PublicClaim> & Pick<PublicClaim, 'claimId' | 'axis' | 'appliesWhen'>): PublicClaim {
   const [pageId, sectionKey] = partial.claimId.split(':');
   return {
-    pageId, sectionKey, label: partial.claimId, listingEligible: true, terms: [], rev: 1,
+    pageId, sectionKey, label: partial.claimId, basis: 'sourced', listingEligible: true, terms: [], rev: 1,
     scope: 'test', text: partial.claimId, sourceIds: [], reviewState: 'approved', ...partial,
   };
 }
@@ -23,7 +23,7 @@ describe('resolveListingPassages: the pilot cases', () => {
     const listing = resolveListingPassages(PILOT_FIXTURES.naka.facts, PILOT_FIXTURE_CLAIMS);
     const [first] = listing.passages;
     expect(first.claim.claimId).toBe('menghai-county:mengsong-naka');
-    expect(first.claim.text).toContain('TeaDB places Naka in Mengsong');
+    expect(first.claim.text).toContain('Naka is a village in Mengsong');
     expect(first.gridField).toBe('location');
     expect(first.wisdomHref).toBe('/wisdom/region/menghai-county#mengsong-naka');
     expect(listing.styleReferences).toEqual([]);
@@ -55,11 +55,12 @@ describe('resolveListingPassages: the pilot cases', () => {
     expect(listing.styleReferences).toEqual([]);
   });
 
-  it('gives the explicit-grade fixture the Gong Ting passage first and both seller observations', () => {
+  it('gives the explicit-grade fixture the Gong Ting passage first and one Gong Ting taste sentence', () => {
     const listing = resolveListingPassages(PILOT_FIXTURES['gong-ting-external'].facts, PILOT_FIXTURE_CLAIMS);
     expect(ids(listing.passages.map(passage => passage.claim))).toEqual(['gong-ting:definition', 'shou:wet-piling']);
-    expect(ids(listing.styleReferences)).toEqual(['gong-ting:seller-jingmai-loose', 'gong-ting:seller-nannuo-2006-cake']);
-    expect(listing.styleReferences.every(reference => reference.attribution?.sourceRole === 'seller_own_batch')).toBe(true);
+    expect(ids(listing.styleReferences)).toEqual(['gong-ting:what-people-notice']);
+    expect(listing.styleReferences[0].attribution).toBeUndefined();
+    expect(listing.styleReferences[0].text).not.toMatch(/Yunnan Sourcing|Yang|study/);
   });
 });
 
@@ -137,14 +138,14 @@ describe('resolveListingPassages: contract rules', () => {
       .toEqual(['a:type', 'p:process']);
   });
 
-  it('returns sensory observations only as style references, and only with attribution', () => {
+  it('returns sensory claims only as style references, with or without attribution', () => {
     const attribution = { sourceId: 's', sourceRole: 'taster' as const, sample: 'one cup' };
     const claims = [
       claim({ claimId: 's:attributed', axis: 'sensory_observation', appliesWhen: { type: 'Shou' }, listingEligible: false, attribution }),
-      claim({ claimId: 's:unattributed', axis: 'sensory_observation', appliesWhen: { type: 'Shou' }, listingEligible: true }),
+      claim({ claimId: 's:common', axis: 'sensory_observation', appliesWhen: { type: 'Shou' }, listingEligible: true, basis: 'trade_knowledge' }),
     ];
     const listing = resolveListingPassages(facts, claims);
     expect(listing.passages).toEqual([]);
-    expect(ids(listing.styleReferences)).toEqual(['s:attributed']);
+    expect(ids(listing.styleReferences)).toEqual(['s:attributed', 's:common']);
   });
 });
