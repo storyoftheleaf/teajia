@@ -5,8 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../hooks/useAuth';
-import { Icons } from '../components/Icons';
-import { AlcoveCard } from '../components/shop/AlcoveCard';
+import { ProductDetailContent } from '../components/shop/AlcoveCard';
 import { normalizeTeaType } from '../wisdom';
 import { cultivarPath, resolveLineage } from '../components/wisdom/TeaLineage';
 import type { TeaReferenceProduct } from '../components/wisdom/TeaReference';
@@ -20,14 +19,12 @@ import { tastingReturnPath } from '../lib/authNavigation';
 import { buildPublicProductHref, findProductByRouteParam, resolveInventoryStoreSlug } from '../lib/publicProductNavigation';
 import { fetchStore, fetchStoreProduct } from '../lib/storefrontApi';
 import { resolveContactChannels } from '../lib/contact';
-import { ProductOrderAccess } from '../components/shop/ProductOrderAccess';
+import { teawareOrderSizes, teawareUnitPrice } from '../lib/teawareOrder';
 import { quoteGrams, sellUnitOf, wholePieceOf } from '../lib/teaPricing';
 import { useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
-import { GroupHead, IndexRow, SplitName } from '../components/people/immersive';
-import { useTeaFamily } from '../components/shop/useTeaFamily';
-import { TeaPhotographRow } from '../components/shop/TeaFamilyStrips';
+import { ProductDetailPageContext } from '../components/shop/ProductDetailLayout';
 
 
 interface ProductPageProps {
@@ -115,11 +112,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   });
   const selectedBy = selectedByQuery.data?.selected_by ?? [];
 
-  // The family's photographs of this tea, as one row under the plaque: the
-  // shop's chosen picture, other people's shared ones and, signed in, the
-  // reader's own with their cover first.
-  const family = useTeaFamily(item?.id);
-
   // Tasting session (customers) / product tasting editor (admins): same
   // behaviors the shop grids attach to the modal card.
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
@@ -144,10 +136,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
 
   const handleTaste = useCallback((tasteItem: InventoryItem, intent?: 'edit' | 'notes') => {
     setTastingOpensOnNotes(intent === 'notes');
-    if (isAdmin) {
-      setAdminTastingItem(tasteItem);
-      return;
-    }
     /*
      * A tasting is kept, so it needs somewhere to be kept. Signed out there is
      * no journal to write into: the entry would live in this browser, never
@@ -164,19 +152,19 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
       return;
     }
     setTastingItem(tasteItem);
-  }, [isAdmin, isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate]);
 
   // Coming back from joining at "Add your tasting": open the tasting they asked for
   // and take the marker out of the address so a reload does not open it again.
-  const wantsTasting = searchParams.get('taste') === '1';
+  const wantsTasting = searchParams.get('taste') === '1' || window.location.hash === '#private-tasting';
   useEffect(() => {
-    if (!wantsTasting || !isAuthenticated || isAdmin || !item) return;
+    if (!wantsTasting || !isAuthenticated || item?.category !== 'tea') return;
     const next = new URLSearchParams(searchParams);
     next.delete('taste');
     setSearchParams(next, { replace: true });
-    setTastingOpensOnNotes(false);
+    setTastingOpensOnNotes(true);
     setTastingItem(item);
-  }, [wantsTasting, isAuthenticated, isAdmin, item, searchParams, setSearchParams]);
+  }, [wantsTasting, isAuthenticated, item, searchParams, setSearchParams]);
 
   // Tasting-term cross-reference: send the reader into the filtered shop.
   const handleTermClick = useCallback((termId: string, categoryId: string) => {
@@ -245,11 +233,15 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   }
 
   const pricePerGram = parseFloat(item.price_per_gram ?? '');
-  const priceKnown = Number.isFinite(pricePerGram) && pricePerGram >= 0;
+  const isWare = item.category === 'ware';
+  const unitPrice = isWare ? teawareUnitPrice(item) : null;
+  const priceKnown = isWare ? unitPrice != null : Number.isFinite(pricePerGram) && pricePerGram >= 0;
   const isSoldOut = (item.stock_g ?? 0) <= 0;
   const introduction = item.description || '';
   const mainStory = item.lore || '';
-  const metaDescription = (introduction || mainStory || `${item.type} tea from ${item.origin}`).slice(0, 160);
+  const fallbackDescription = [item.type || item.name, item.origin && `from ${item.origin}`].filter(Boolean).join(' ');
+  const description = introduction || mainStory || fallbackDescription;
+  const metaDescription = description.slice(0, 160);
 
   // One shape for everything the wisdom base is asked about this product, built
   // exactly the way AlcoveCard builds it, so the page body and the structured
@@ -263,7 +255,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     type: item.type,
     year: item.year,
   };
-  const { cultivar: lineageCultivar, region: lineageRegion } = resolveLineage(referenceProduct);
+  const { cultivar: lineageCultivar, region: lineageRegion } = item.category === 'tea'
+    ? resolveLineage(referenceProduct) : { cultivar: null, region: null };
 
   // The plant's public page. One address, so a machine and a reader follow the
   // same door. `#taxon` matches the id CultivarPage publishes for the same
@@ -312,9 +305,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const sellUnit = item.category === 'tea'
     ? sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits)
     : undefined;
-  const presets = sellUnit
-    ? [1, 2, 3, 4].map(n => n * sellUnit.grams).filter(p => p <= sliderMax)
-    : [25, 50, 100, 250].filter(p => p <= sliderMax);
+  const presets = isWare
+    ? teawareOrderSizes(Math.max(1, Math.floor(item.stock_g || 0)))
+    : sellUnit
+      ? [1, 2, 3, 4].map(n => n * sellUnit.grams).filter(p => p <= sliderMax)
+      : [25, 50, 100, 250].filter(p => p <= sliderMax);
   // A sealed unit is a whole piece from the curve's own side; a pressed cake,
   // brick or tuo that is not sold in units is the same fact by weight. Either
   // way this is the figure `quoteGrams` needs to know when a preset carries no
@@ -328,17 +323,15 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // used to state cost times grams with no handling fee, so a crawler quoted
   // a price the page itself does not charge, which is the mismatch schema.org
   // rich results are built to flag.
-  const quotedTotal = (gramsOffered: number) =>
-    quoteGrams(pricePerGram, gramsOffered, { wholePieceGrams: wholePiece?.grams }).totalUsd;
+  const quotedTotal = (quantity: number) => unitPrice != null ? unitPrice * quantity :
+    quoteGrams(pricePerGram, quantity, { wholePieceGrams: wholePiece?.grams }).totalUsd;
   const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
-  const quantityOffers = (priceKnown ? presets : []).map(gramsOffered => ({
+  const quantityOffers = (priceKnown ? presets : []).map(quantity => ({
     '@type': 'Offer',
-    '@id': `${productUrl}#offer-${gramsOffered}g`,
-    price: offerPrice(quotedTotal(gramsOffered)),
+    '@id': `${productUrl}#offer-${quantity}${isWare ? '-piece' : 'g'}`,
+    price: offerPrice(quotedTotal(quantity)),
     priceCurrency: offerCurrency,
-    // GRM is the UN/CEFACT code for a gram, the unit every control on this
-    // page is denominated in.
-    eligibleQuantity: { '@type': 'QuantitativeValue', value: gramsOffered, unitCode: 'GRM' },
+    eligibleQuantity: { '@type': 'QuantitativeValue', value: quantity, unitCode: isWare ? 'H87' : 'GRM' },
     availability,
     seller: { '@type': 'Organization', name: 'Teajia' },
     url: productUrl,
@@ -356,7 +349,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         '@type': 'Product',
         '@id': `${productUrl}#product`,
         name: item.name,
-        description: introduction || mainStory || `${item.type} tea from ${item.origin}`,
+        description,
         image: item.image || undefined,
         brand: { '@type': 'Brand', name: 'Teajia' },
         category: item.category === 'ware' ? 'Teaware' : `${item.type} Tea`,
@@ -449,7 +442,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         <title>{`${item.name} · Teajia`}</title>
         <meta name="description" content={metaDescription} />
         <meta property="og:title" content={`${item.name} · Teajia`} />
-        <meta property="og:description" content={(introduction || mainStory || '').slice(0, 160)} />
+        <meta property="og:description" content={metaDescription} />
         {item.image && <meta property="og:image" content={item.image} />}
         <meta property="og:type" content="product" />
         {/* The smallest quantity the page will actually sell, in the currency
@@ -459,48 +452,26 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
-      {/* The page's own bar: where you came from on the left, where you are
-          going on the right, one hairline under both. */}
-      <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
-        <Link
-          to={shopHref}
-          aria-label="Back to shop"
-          className="btn-quiet btn-sm"
-        >
-          <Icons.Back className="h-3.5 w-3.5" />
-          <span>Shop</span>
-          {crumbType && (
-            <>
-              <span aria-hidden="true" className="text-tea-text-dim">/</span>
-              <span>{crumbType}</span>
-            </>
-          )}
-        </Link>
-        <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
-      </div>
-
-      {/* The quiet page: same blocks and behaviors as the modal card */}
-      <AlcoveCard
-        item={item}
-        layout="page"
-        onAddToCart={onAddToCart}
-        onTermClick={handleTermClick}
-        onTaste={handleTaste}
-        publicHref={productHref}
-        availabilityContact={availabilityContact || undefined}
-        onOpenOrder={onCartClick}
-        isAdmin={isAdmin}
-        onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
-        underPlate={family.row.length > 0 ? (
-          <TeaPhotographRow photographs={family.row} teaName={item.name} onChooseCover={(id) => { void family.chooseCover(id); }} onRemove={family.removeOwn} onShape={(id, shape, frame) => family.reshapeOwn(id, shape, frame)} />
-        ) : undefined}
-      />
+      <ProductDetailPageContext.Provider value={{ shopHref, crumbType, selectedBy, onCartClick, cartItemCount }}>
+        <ProductDetailContent
+          key={item.id}
+          item={item}
+          onAddToCart={onAddToCart}
+          onTermClick={handleTermClick}
+          onTaste={handleTaste}
+          publicHref={productHref}
+          availabilityContact={availabilityContact || undefined}
+          onOpenOrder={onCartClick}
+          isAdmin={isAdmin}
+          onEditProductTasting={isAdmin ? (editItem) => setAdminTastingItem(editItem) : undefined}
+        />
+      </ProductDetailPageContext.Provider>
 
       {/* Tasting session (customers) */}
       <AnimatePresence>
         {tastingItem && (
           <TastingSession
-            item={tastingItem}
+            item={{ ...tastingItem, sourceType: 'product' }}
             startOnNotes={tastingOpensOnNotes}
             onClose={() => setTastingItem(null)}
             onOrderTea={(ordered: TastingItem) => {
@@ -516,28 +487,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
           />
         )}
       </AnimatePresence>
-
-      {/* Selected by: quiet, text-only, and absent entirely when nobody has
-          publicly favorited this tea -- never a placeholder section. */}
-      {selectedBy.length > 0 && (
-        <section aria-label="Selected by" className="mx-5 mt-4 lg:mx-10" data-testid="product-selected-by">
-          {/* The profile page's own row (2026-09-21): the spaced-caps divider,
-              the name with its italic gold surname, the tea master's own note
-              as the dek, a hairline under. It reads as the person's voice on
-              the tea, which is the whole point of the line. */}
-          <GroupHead label="Selected by" />
-          {selectedBy.map(creator => (
-            <IndexRow
-              key={creator.slug}
-              to={`/people/${encodeURIComponent(creator.slug)}`}
-              title={<SplitName name={creator.display_name} />}
-              dek={creator.why ?? (creator.business_name ? `At ${creator.business_name}.` : undefined)}
-              testId="product-selected-by-row"
-              ariaLabel={`${creator.display_name}, who selected this tea`}
-            />
-          ))}
-        </section>
-      )}
 
       {/* Admin: product tasting editor, same modal used from the admin panel */}
       {adminTastingItem && adminTastingProductShim && (

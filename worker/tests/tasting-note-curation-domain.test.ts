@@ -10,6 +10,6 @@ describe('tasting-note curation domain', () => {
 
   it('serializes private candidate state without leaking source tasting JSON', () => {
     expect(candidateToApi({ id: 'c', journal_entry_id: 'j', note_key: 'aroma', product_id: 'p', status: 'starred', source_text: 'orchid', source_tasting: '{"private":true}', edited_text: null, attribution_name: null, attribution_detail: null, created_at: 'now', updated_at: 'now' } as any))
-      .toEqual({ id: 'c', journalEntryId: 'j', noteKey: 'aroma', productId: 'p', status: 'starred', sourceText: 'orchid', finalText: 'orchid', attributionName: null, attributionDetail: null, createdAt: 'now', updatedAt: 'now' });
+      .toEqual({ id: 'c', journalEntryId: 'j', noteKey: 'aroma', productId: 'p', status: 'starred', sourceText: 'orchid', finalText: 'orchid', attributionName: null, attributionDetail: null, offeredAt: null, createdAt: 'now', updatedAt: 'now' });
   });
 });

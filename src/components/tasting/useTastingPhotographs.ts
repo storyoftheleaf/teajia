@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../lib/api';
-import { familyApi } from '../../lib/familyApi';
+import { addProductPhotograph, familyApi } from '../../lib/familyApi';
 import { FAMILY_PHOTOS_PER_TEA, type FamilyPhotoPage, type FamilyPhotograph, type FamilyPhotographFrame, type FamilyPhotographShape } from '../../lib/familyContract';
-import { prepareFamilyPhotograph } from '../../lib/familyPhotographSizes';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const PHOTO_LIMIT_SENTENCE = 'You have six photographs of this tea. Remove one from your page to add another.';
 
@@ -31,6 +31,7 @@ export function readMyTea(answer: unknown): { photos: FamilyPhotograph[]; remain
  * The tasting itself stays one record; photographs are stored by tea.
  */
 export function useTastingPhotographs({ productId, enabled }: { productId: string; enabled: boolean }) {
+  const queryClient = useQueryClient();
   const [photos, setPhotos] = useState<FamilyPhotograph[]>([]);
   const [remaining, setRemaining] = useState(FAMILY_PHOTOS_PER_TEA);
   const [busy, setBusy] = useState(false);
@@ -69,8 +70,8 @@ export function useTastingPhotographs({ productId, enabled }: { productId: strin
       for (const file of files) {
         if (remainingRef.current <= 0) { if (mounted.current) setError(PHOTO_LIMIT_SENTENCE); break; }
         try {
-          const prepared = await prepareFamilyPhotograph(file);
-          const result = await familyApi.uploadPhotograph({ productId, full: prepared.full, small: prepared.small, page });
+          const result = await addProductPhotograph(productId, file, page);
+          void queryClient.invalidateQueries({ queryKey: ['family', 'my-tea', productId] });
           if (!mounted.current) return;
           setPhotos(current => [...current, result.photograph]);
           setLeft(result.remaining);
@@ -82,7 +83,7 @@ export function useTastingPhotographs({ productId, enabled }: { productId: strin
     } finally {
       if (mounted.current) setBusy(false);
     }
-  }, [enabled, productId]);
+  }, [enabled, productId, queryClient]);
 
   const remove = useCallback(async (photographId: string) => {
     setError('');

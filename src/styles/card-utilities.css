@@ -2383,6 +2383,34 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-term-btn:hover { color: var(--tea-gold-lt); }
 .alcove-term-btn:active { color: var(--tea-gold); }
 
+/* Character descriptors wrap as whole terms. Separators occupy only the gap
+   shared by two neighbouring items on the same rendered line. */
+.alcove-character-terms {
+  --descriptor-gap: calc(var(--space-4) + var(--space-1));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  column-gap: var(--descriptor-gap);
+  list-style: none;
+  padding: 0;
+}
+.alcove-character-terms > li {
+  position: relative;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.alcove-character-dot {
+  display: none;
+  position: absolute;
+  inset-inline-end: 100%;
+  width: var(--descriptor-gap);
+  text-align: center;
+  pointer-events: none;
+  color: var(--tea-gold-lt);
+}
+.alcove-character-terms > [data-joined] > .alcove-character-dot { display: block; }
+
 /* "From the table" row: hairline-separated text row with a gold arrow. */
 .alcove-row-btn {
   display: flex;

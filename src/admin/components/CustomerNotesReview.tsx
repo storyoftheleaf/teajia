@@ -1,250 +1,158 @@
-import React, { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
+
 import { DaySheetButton } from './guestNotes/DaySheetButton';
 import { FeedbackList } from './guestNotes/FeedbackList';
 import { OfferedPhotographs } from './guestNotes/OfferedPhotographs';
 import { ReportsAndRequests } from './guestNotes/ReportsAndRequests';
 
-/**
- * Everything customers have written about the shop's teas, and the shop's
- * decision on each.
- *
- * The shop reads all of it and picks. A customer writes a note in their own
- * tasting and that is the end of their part: they do not nominate it, and they
- * are not told it is being read here. Publishing one is entirely the shop's
- * act, which is why the wording and the name it goes out under are set on this
- * screen rather than carried over from whatever the customer typed.
- *
- * Decided notes stay in the list, marked, rather than disappearing. A decision
- * you cannot see is a decision you cannot revisit, and half of curating is
- * remembering what you already passed on.
- */
-export interface CustomerTastingNote {
-  journalEntryId: string;
-  noteKey: string;
+interface GuestExcerpt {
+  id: string;
   productId: string;
   productName: string;
-  authorUserId: string | null;
-  authorName: string;
-  text: string;
-  writtenAt: string;
-  status: 'open' | 'promoted' | 'dismissed';
+  sourceText: string;
+  attributionName: string;
+  impressionId: string | null;
+  showOnListing: boolean;
+  showOnMainPage: boolean;
 }
 
-const FIELD =
-  'w-full rounded-md border border-tea-border bg-tea-bg px-3 py-2 text-ui-13 text-tea-text focus:border-tea-gold focus:outline-none focus:ring-2 focus:ring-tea-gold/30';
+const views = [
+  { id: 'starred', label: 'Offered', empty: 'No excerpts are waiting for review.' },
+  { id: 'promoted', label: 'Approved', empty: 'No excerpts have been approved yet.' },
+  { id: 'dismissed', label: 'Passed', empty: 'No excerpts have been passed on.' },
+] as const;
 
-function writtenLabel(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-}
+type View = typeof views[number];
+type Action =
+  | { kind: 'approve' }
+  | { kind: 'pass' }
+  | { kind: 'place'; impressionId: string; surface: 'show_on_listing' | 'show_on_main_page'; visible: boolean };
 
-function NoteRow({ note }: { note: CustomerTastingNote }) {
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  // The name defaults to how the customer is known to the shop, and is meant to
-  // be edited: what someone is called on a public product page is a different
-  // decision from what they are called in the customer list.
-  const [name, setName] = useState(note.authorName);
-  const [detail, setDetail] = useState('');
-  const [text, setText] = useState(note.text);
-  const [error, setError] = useState<string | null>(null);
-
-  const settled = () => {
-    setOpen(false);
-    return Promise.all([
-      qc.invalidateQueries({ queryKey: ['customer-tasting-notes'] }),
-      qc.invalidateQueries({ queryKey: ['product-impressions', note.productId] }),
-    ]);
-  };
-  const fail = (fallback: string) => (cause: unknown) =>
-    setError(cause instanceof Error ? cause.message : fallback);
-
-  const source = { journal_entry_id: note.journalEntryId, note_key: note.noteKey, source_text: note.text };
-  const promote = useMutation({
-    mutationFn: () => {
-      setError(null);
-      return api.customerTastingNotes.promote({
-        ...source,
-        edited_text: text.trim(),
-        attribution_name: name.trim(),
-        attribution_detail: detail.trim() || undefined,
-      });
+function ExcerptRow({ excerpt, view, onUpdate, onError }: {
+  excerpt: GuestExcerpt;
+  view: View['id'];
+  onUpdate: (action: Action, productId: string) => Promise<void>;
+  onError: (error: Error) => void;
+}) {
+  const mutation = useMutation({
+    mutationFn: (action: Action) => {
+      if (action.kind === 'approve') return api.tastingNoteCandidates.approve(excerpt.id);
+      if (action.kind === 'pass') return api.tastingNoteCandidates.dismiss(excerpt.id);
+      return api.tastingNoteCandidates.setPlacements(action.impressionId, { [action.surface]: action.visible });
     },
-    onSuccess: settled,
-    onError: fail('Could not publish this note.'),
+    onSuccess: (_result, action) => onUpdate(action, excerpt.productId),
+    onError,
   });
-  const dismiss = useMutation({
-    mutationFn: () => {
-      setError(null);
-      return api.customerTastingNotes.dismiss(source);
-    },
-    onSuccess: settled,
-    onError: fail('Could not pass on this note.'),
-  });
-  const pending = promote.isPending || dismiss.isPending;
-  const decided = note.status !== 'open';
 
+  const impressionId = excerpt.impressionId;
   return (
-    <li className="border-b border-tea-border py-4 last:border-b-0">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-ui-12 font-medium text-tea-text">{note.productName}</span>
-        <span className="text-ui-11 text-tea-text-sec">{note.authorName}</span>
-        {writtenLabel(note.writtenAt) && (
-          <span className="text-ui-10 uppercase tracking-[0.14em] text-tea-text-dim">
-            {writtenLabel(note.writtenAt)}
-          </span>
-        )}
-        {decided && (
-          <span className="rounded-full bg-tea-gold/10 px-2 py-0.5 text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec">
-            {note.status === 'promoted' ? 'On the tea' : 'Passed'}
-          </span>
-        )}
+    <li className="grid min-w-0 gap-2 border-b border-tea-border py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+      <div className="min-w-0">
+        <p className={TYPOGRAPHY_CLASSES.label}>{excerpt.productName}</p>
+        <figure className="mt-1 min-w-0">
+          <blockquote className={`${TYPOGRAPHY_CLASSES.body} whitespace-pre-wrap break-words italic text-tea-text`}>
+            {excerpt.sourceText}
+          </blockquote>
+          <figcaption className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 break-words text-tea-text-sec`}>
+            {excerpt.attributionName}
+          </figcaption>
+        </figure>
       </div>
-      <p className="mt-2 text-ui-13 italic leading-relaxed text-tea-text-sec">{note.text}</p>
-
-      {!decided && !open && (
-        <div className="mt-3 flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="tap-target text-ui-12 text-tea-gold transition-colors hover:text-tea-gold-lt"
-          >
-            Put this on the tea
+      {view === 'starred' && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="btn-quiet" disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ kind: 'pass' })}>Pass</button>
+          <button type="button" className="btn-primary" disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ kind: 'approve' })}>Approve excerpt</button>
+        </div>
+      )}
+      {view === 'promoted' && impressionId && (
+        <div role="group" aria-label="Public placements" className="flex flex-wrap items-center gap-2">
+          <button type="button" aria-pressed={excerpt.showOnListing} className="btn-chip"
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ kind: 'place', impressionId, surface: 'show_on_listing', visible: !excerpt.showOnListing })}>
+            Show on listing
           </button>
-          <button
-            type="button"
-            onClick={() => dismiss.mutate()}
-            disabled={pending}
-            className="tap-target text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50"
-          >
-            Pass
+          <button type="button" aria-pressed={excerpt.showOnMainPage} className="btn-chip"
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ kind: 'place', impressionId, surface: 'show_on_main_page', visible: !excerpt.showOnMainPage })}>
+            Show on homepage
           </button>
         </div>
       )}
-
-      {!decided && open && (
-        <div className="mt-3 space-y-3">
-          <label className="block space-y-1">
-            <span className="text-ui-11 text-tea-text-dim">How it reads on the tea</span>
-            <textarea
-              aria-label="How it reads on the tea"
-              value={text}
-              onChange={event => setText(event.target.value)}
-              rows={3}
-              className={`${FIELD} resize-y`}
-            />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block space-y-1">
-              <span className="text-ui-11 text-tea-text-dim">Name it goes out under</span>
-              <input aria-label="Name it goes out under" value={name} onChange={event => setName(event.target.value)} className={FIELD} />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-ui-11 text-tea-text-dim">Where they are, or what they do</span>
-              <input aria-label="Where they are, or what they do" value={detail} onChange={event => setDetail(event.target.value)} className={FIELD} />
-            </label>
-          </div>
-          {error && <p role="alert" className="text-ui-11 text-tea-text-sec">{error}</p>}
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-              className="tap-target text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => promote.mutate()}
-              disabled={pending || !text.trim() || !name.trim()}
-              className="btn-primary tap-target"
-            >
-              {promote.isPending && <Loader2 size={13} className="animate-spin" />}
-              Publish on the tea
-            </button>
-          </div>
-        </div>
-      )}
-      {decided && error && <p role="alert" className="mt-2 text-ui-11 text-tea-text-sec">{error}</p>}
     </li>
   );
 }
 
-function NotesWaiting() {
-  const [showDecided, setShowDecided] = useState(false);
-  const query = useQuery<CustomerTastingNote[]>({
-    queryKey: ['customer-tasting-notes'],
-    queryFn: () => api.customerTastingNotes.list(),
+function OfferedTastingExcerpts() {
+  const accountId = useAppStore(state => state.activeAccountId);
+  const client = useQueryClient();
+  const [view, setView] = useState<View>(views[0]);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const query = useQuery<GuestExcerpt[]>({
+    queryKey: ['guest-tasting-excerpts', accountId, view.id],
+    queryFn: () => api.tastingNoteCandidates.list(view.id),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
+  const refresh = () => client.invalidateQueries({ queryKey: ['guest-tasting-excerpts', accountId] });
 
-  const notes = query.data ?? [];
-  const openNotes = useMemo(() => notes.filter(note => note.status === 'open'), [notes]);
-  const decidedNotes = useMemo(() => notes.filter(note => note.status !== 'open'), [notes]);
-  const shown = showDecided ? notes : openNotes;
-
-  if (query.isLoading) {
-    return (
-      <div className="flex items-center gap-2 py-4 text-ui-12 text-tea-text-sec">
-        <Loader2 size={14} className="animate-spin" />
-        Reading what people wrote…
-      </div>
-    );
-  }
-  if (query.isError) {
-    return (
-      <div role="alert" className="rounded-md border border-tea-border bg-tea-surface p-4">
-        <p className="text-ui-12 text-tea-text-sec">Could not read the notes.</p>
-        <button type="button" onClick={() => { void query.refetch(); }} className="tap-target mt-2 text-ui-12 text-tea-gold hover:text-tea-gold-lt">
-          Try again
-        </button>
-      </div>
-    );
-  }
+  const handleUpdate = async (action: Action, productId: string) => {
+    setError('');
+    if (action.kind === 'place') {
+      await Promise.all([
+        refresh(),
+        client.invalidateQueries({ queryKey: ['product-impressions', productId] }),
+        client.invalidateQueries({ queryKey: ['main-tasting-excerpts'] }),
+      ]);
+      setMessage('Placement saved.');
+      return;
+    }
+    await refresh();
+    if (action.kind === 'approve') {
+      setView(views[1]);
+      setMessage('Excerpt approved. Choose where it appears.');
+    } else {
+      setMessage('Excerpt passed.');
+    }
+  };
 
   return (
     <div>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-ui-12 text-tea-text-sec">
-          {openNotes.length === 0
-            ? 'Nothing new to read.'
-            : `${openNotes.length} note${openNotes.length === 1 ? '' : 's'} waiting to be read.`}
-        </p>
-        {decidedNotes.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowDecided(value => !value)}
-            className="tap-target text-ui-11 text-tea-text-sec transition-colors hover:text-tea-text"
-          >
-            {showDecided ? 'Hide decided' : `Show ${decidedNotes.length} already decided`}
+      <div role="group" aria-label="Excerpt status" className="flex flex-wrap items-center gap-4 border-b border-tea-border">
+        {views.map(option => (
+          <button key={option.id} type="button" aria-pressed={view.id === option.id} className="btn-tab"
+            onClick={() => { setView(option); setMessage(''); setError(''); }}>
+            {option.label}
           </button>
-        )}
+        ))}
       </div>
-
-      {shown.length === 0 ? (
-        <p className="mt-4 text-ui-12 text-tea-text-dim">
-          Notes appear here as customers write them in their own tastings.
-        </p>
-      ) : (
-        <ul className="mt-2">
-          {shown.map(note => (
-            <NoteRow key={`${note.journalEntryId}::${note.noteKey}`} note={note} />
+      {message && <p role="status" className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-3 text-tea-text-sec`}>{message}</p>}
+      {error && <p role="alert" className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-3 text-tea-text-sec`}>{error}</p>}
+      {query.isPending && <p role="status" className={`${TYPOGRAPHY_CLASSES.bodyLight} py-4 text-tea-text-sec`}>Loading excerpts…</p>}
+      {query.isError && (
+        <div className="flex flex-wrap items-center gap-2 py-4">
+          <p role="alert" className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>Could not load excerpts.</p>
+          <button type="button" className="btn-secondary" onClick={() => void query.refetch()}>Try again</button>
+        </div>
+      )}
+      {query.isSuccess && (query.data.length ? (
+        <ul>
+          {query.data.map(excerpt => (
+            <ExcerptRow key={excerpt.id} excerpt={excerpt} view={view.id} onUpdate={handleUpdate}
+              onError={cause => { setMessage(''); setError(cause.message); void refresh(); }} />
           ))}
         </ul>
-      )}
+      ) : <p className={`${TYPOGRAPHY_CLASSES.bodyLight} py-4 text-tea-text-sec`}>{view.empty}</p>)}
     </div>
   );
 }
 
-/**
- * The whole Guest notes screen: the notes the shop reads and decides on, with
- * the photographs members offered beside them, what has been reported or
- * asked for, the feedback list with ratings, and today's sheet to download.
- */
 export function CustomerNotesReview() {
   return (
     // pb-nav-gap keeps the last section clear of the phone's bottom bar.
@@ -253,7 +161,7 @@ export function CustomerNotesReview() {
       <ReportsAndRequests />
       <OfferedPhotographs />
       <section aria-label="Notes" className="mt-8">
-        <NotesWaiting />
+        <OfferedTastingExcerpts />
       </section>
       <FeedbackList />
     </div>

@@ -1,3 +1,4 @@
+import { attachPublicTeawareDetails } from './teawareDetails';
 import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
 import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
@@ -122,7 +123,7 @@ import {
   type ReservePartySeatsInput,
   type ReservePartySeatsResult,
 } from './eventDomain';
-import { candidateToApi, impressionToApi, journalRowToNotes, parseCandidateInput } from './tastingNoteCuration';
+import { candidateToApi, impressionToApi, journalContainsExcerpt, parseCandidateInput, parseExcerptOffer } from './tastingNoteCuration';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { handoffToRepair } from './problemAlerts';
 import { isRetryableProviderStatus, parseExtractReply } from './extractImageReply';
@@ -2720,9 +2721,10 @@ const handleGetPublicProduct: Handler = async (_request, env, params) => {
 const handleProductSitemap: Handler = async (_request, env) => {
   const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
   const { results } = await env.DB.prepare(
-    `SELECT COALESCE(slug, id) AS id, updated_at FROM products
-     WHERE is_public = 1 AND shown_in_shop = 1 AND status IN ('Active', 'Sold Out') AND account_id = ?
-     ORDER BY created_at DESC`
+    `SELECT COALESCE(p.slug, p.id) AS id, p.updated_at FROM products p
+     JOIN accounts a ON a.id = p.account_id AND a.status = 'active' AND a.public_enabled = 1
+     WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status IN ('Active', 'Sold Out') AND p.account_id = ?
+     ORDER BY p.created_at DESC`
   ).bind(BALI_ACCOUNT_ID).all();
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const urls = (results as { id: string; updated_at?: string }[]).map(p => {
@@ -9754,10 +9756,15 @@ async function enrichWisdomRelation(env: Env, row: Record<string, any>, viewerAc
   }
   if (row.target_type === 'promoted_tasting_note') {
     const target = await env.DB.prepare(
-      `SELECT source_text, edited_text, status, product_id FROM tasting_note_candidates
-        WHERE id = ? AND (status = 'promoted' OR (? = 1 AND account_id = ?))`
-    ).bind(row.target_id, canSeePrivate ? 1 : 0, viewerAccountId || '').first<Record<string, any>>();
-    return { ...base, target_state: !target ? 'missing' : target.status === 'promoted' ? 'public' : 'unpublished', target_label: target ? (target.edited_text || target.source_text) : null, target_href: target?.status === 'promoted' ? `/shop/product/${target.product_id}` : null };
+      `SELECT source_text, product_id FROM tasting_note_candidates
+        WHERE id = ? AND account_id = ? AND offered_at IS NOT NULL AND status = 'promoted'`
+    ).bind(row.target_id, row.account_id).first<Record<string, any>>();
+    const listing = target && await env.DB.prepare(`
+      SELECT 1 ${PUBLIC_TASTING_EXCERPTS_FROM} AND i.candidate_id = ? AND i.show_on_listing = 1
+    `).bind(row.target_id).first();
+    return { ...base, target_state: !target ? 'missing' : listing ? 'public' : 'unpublished',
+      target_label: canSeePrivate || listing ? target?.source_text ?? null : null,
+      target_href: listing ? `/shop/product/${target?.product_id}` : null };
   }
   const nodePath: Record<string, string> = { cultivar: 'cultivar', region: 'region', producer: 'producer', mark: 'mark', style: 'style', named_tea: 'named' };
   const path = row.target_subtype ? nodePath[row.target_subtype] : null;
@@ -9778,7 +9785,7 @@ async function wisdomTargetAccessible(env: Env, ctx: AccountCtx, input: { target
   if (input.target_type === 'product_tasting') {
     return Boolean(await env.DB.prepare('SELECT 1 FROM products WHERE id = ? AND account_id = ?').bind(input.target_id, ctx.accountId).first());
   }
-  return Boolean(await env.DB.prepare('SELECT 1 FROM tasting_note_candidates WHERE id = ? AND account_id = ?')
+  return Boolean(await env.DB.prepare(`SELECT 1 FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND status = 'promoted' AND offered_at IS NOT NULL`)
     .bind(input.target_id, ctx.accountId).first());
 }
 
@@ -9927,7 +9934,14 @@ const handleGetAdminWisdomFindings: Handler = async (request, env) => {
     env.DB.prepare(`SELECT id, status FROM articles WHERE account_id = ?`).bind(ctx.accountId).all(),
     env.DB.prepare(`SELECT id, status, network_visible FROM tea_profiles`).all(),
     env.DB.prepare(`SELECT id, status, is_public, shown_in_shop FROM products WHERE account_id = ?`).bind(ctx.accountId).all(),
-    env.DB.prepare(`SELECT id, status FROM tasting_note_candidates WHERE account_id = ?`).bind(ctx.accountId).all(),
+    env.DB.prepare(`
+      SELECT candidate.id, EXISTS (
+        SELECT 1 ${PUBLIC_TASTING_EXCERPTS_FROM}
+        AND i.candidate_id = candidate.id AND i.show_on_listing = 1
+      ) AS is_public
+      FROM tasting_note_candidates candidate
+      WHERE candidate.account_id = ? AND candidate.offered_at IS NOT NULL AND candidate.status = 'promoted'
+    `).bind(ctx.accountId).all(),
     env.DB.prepare(
       `SELECT ap.article_id, ap.product_id, p.cultivar,
               COUNT(DISTINCT pl.profile_id) AS profile_count
@@ -9954,8 +9968,8 @@ const handleGetAdminWisdomFindings: Handler = async (request, env) => {
     ...(productResult.results as Array<{ id: string; status: string; is_public: number; shown_in_shop: number }>).map(product => ({
       id: product.id, target_type: 'product_tasting', is_public: product.status === 'Active' && product.is_public === 1 && product.shown_in_shop === 1,
     })),
-    ...(candidateResult.results as Array<{ id: string; status: string }>).map(candidate => ({
-      id: candidate.id, target_type: 'promoted_tasting_note', is_public: candidate.status === 'promoted',
+    ...(candidateResult.results as Array<{ id: string; is_public: number }>).map(candidate => ({
+      id: candidate.id, target_type: 'promoted_tasting_note', is_public: candidate.is_public === 1,
     })),
     ...relationRows.filter(relation => relation.target_type === 'wisdom_node'
       && wisdomNodeExists(relation.target_subtype || '', relation.target_id)).map(relation => ({
@@ -19351,13 +19365,13 @@ const handleStarTastingNote: Handler = async (request, env, params) => {
       source_text = excluded.source_text,
       source_tasting = excluded.source_tasting,
       updated_at = excluded.updated_at
-    WHERE tasting_note_candidates.status = 'starred'
+    WHERE tasting_note_candidates.status = 'starred' AND tasting_note_candidates.offered_at IS NULL
   `).bind(id, ctx.accountId, journal.id, params.noteKey, journal.product_id, ctx.userId, input.sourceText, input.sourceTasting, now, now).run();
   const candidate = await env.DB.prepare(
     `SELECT * FROM tasting_note_candidates WHERE account_id = ? AND author_user_id = ? AND journal_entry_id = ? AND note_key = ?`
   ).bind(ctx.accountId, ctx.userId, journal.id, params.noteKey).first<Record<string, any>>();
   if (!candidate) return json({ error: 'Candidate could not be saved' }, 409);
-  if (candidate.status !== 'starred') return json({ error: 'Promoted or dismissed candidates cannot be changed' }, 409);
+  if (candidate.status !== 'starred' || candidate.offered_at != null) return json({ error: 'Promoted or dismissed candidates cannot be changed' }, 409);
   return json(candidateToApi(candidate));
 };
 
@@ -19371,259 +19385,301 @@ const handleUnstarTastingNote: Handler = async (request, env, params) => {
       AND c.note_key = ? AND j.account_id = c.account_id AND j.user_id = ?
   `).bind(ctx.accountId, ctx.userId, params.id, params.noteKey, ctx.email).first<Record<string, any>>();
   if (!candidate) return json({ error: 'Candidate not found' }, 404);
-  if (candidate.status !== 'starred') return json({ error: 'Promoted or dismissed candidates cannot be removed' }, 409);
-  await env.DB.prepare(`DELETE FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND author_user_id = ? AND status = 'starred'`)
+  if (candidate.status !== 'starred' || candidate.offered_at != null) return json({ error: 'Promoted or dismissed candidates cannot be removed' }, 409);
+  await env.DB.prepare(`DELETE FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND author_user_id = ? AND status = 'starred' AND offered_at IS NULL`)
     .bind(candidate.id, ctx.accountId, ctx.userId).run();
   return json({ success: true });
 };
 
-/**
- * Everything customers have written about this shop's teas, in one place.
- *
- * The shop reads all of it and chooses; a customer does not nominate their own
- * writing. That is the whole difference between this and the candidates list
- * below it, which only ever held notes someone put forward themselves.
- *
- * Notes already promoted or dismissed come back marked rather than hidden, so
- * a decision is visible and reversible in the reading rather than silently
- * vanishing from the list.
- */
+const handleGetTastingExcerptOffer: Handler = async (request, env, params) => {
+  const user = await requireAuthenticatedUser(request, env);
+  if ('error' in user) return user.error;
+  const offer = await env.DB.prepare(`
+    SELECT c.* FROM tasting_note_candidates c
+    JOIN customer_tasting_journal j ON j.id = c.journal_entry_id
+    WHERE c.journal_entry_id = ? AND c.note_key = ? AND c.author_user_id = ?
+      AND j.user_id = ? AND c.offered_at IS NOT NULL
+  `).bind(params.id, params.noteKey, user.userId, user.email).first<Record<string, any>>();
+  return json(offer ? candidateToApi(offer) : null);
+};
+
+const handleOfferTastingExcerpt: Handler = async (request, env, params) => {
+  const user = await requireAuthenticatedUser(request, env);
+  if ('error' in user) return user.error;
+  let input;
+  try { input = parseExcerptOffer(await request.json()); }
+  catch { return json({ error: 'Excerpt and byline are required' }, 400); }
+
+  // The saved product ID identifies the exact lot and its shop. Guests may
+  // taste a public lot while their journal is scoped to another account.
+  const journal = await env.DB.prepare(`
+    SELECT j.id, p.account_id, j.product_id, j.note, j.tasting, j.personal_note, j.tastings
+    FROM customer_tasting_journal j
+    JOIN products p ON p.id = j.product_id
+    JOIN accounts a ON a.id = p.account_id
+    WHERE j.id = ? AND j.user_id = ? AND COALESCE(j.archived, 0) = 0
+      AND (j.account_id = p.account_id OR (${TASTING_LOT_IS_PUBLIC}))
+  `).bind(params.id, user.email).first<Record<string, any>>();
+  if (!journal) return json({ error: 'Exact-lot journal entry not found' }, 404);
+  if (!journalContainsExcerpt(journal, params.noteKey, input.excerpt)) {
+    return json({ error: 'Select an excerpt from the saved note' }, 422);
+  }
+
+  const now = new Date().toISOString();
+  await env.DB.prepare(`
+    INSERT INTO tasting_note_candidates
+      (id, account_id, journal_entry_id, note_key, product_id, author_user_id,
+       source_text, status, attribution_name, offered_at, created_at, updated_at)
+    SELECT ?, p.account_id, j.id, ?, j.product_id, ?, ?, 'starred', ?, ?, ?, ?
+    FROM customer_tasting_journal j
+    JOIN products p ON p.id = j.product_id
+    JOIN accounts a ON a.id = p.account_id
+    WHERE j.id = ? AND j.user_id = ? AND p.account_id = ? AND j.product_id = ?
+      AND COALESCE(j.archived, 0) = 0
+      AND (j.account_id = p.account_id OR (${TASTING_LOT_IS_PUBLIC}))
+      AND j.note IS ? AND j.tasting IS ? AND j.personal_note IS ? AND j.tastings IS ?
+    ON CONFLICT(author_user_id, journal_entry_id, note_key) DO UPDATE SET
+      product_id = excluded.product_id, account_id = excluded.account_id,
+      source_text = excluded.source_text, source_tasting = NULL, status = 'starred',
+      edited_text = NULL, attribution_name = excluded.attribution_name, attribution_detail = NULL,
+      offered_at = excluded.offered_at, updated_at = excluded.updated_at,
+      promoted_at = NULL, promoted_by = NULL, dismissed_at = NULL, dismissed_by = NULL
+    WHERE tasting_note_candidates.offered_at IS NULL
+  `).bind(crypto.randomUUID(), params.noteKey, user.userId, input.excerpt, input.byline, now, now, now,
+    journal.id, user.email, journal.account_id, journal.product_id,
+    journal.note, journal.tasting, journal.personal_note, journal.tastings).run();
+
+  const offer = await env.DB.prepare(`
+    SELECT * FROM tasting_note_candidates
+    WHERE account_id = ? AND product_id = ? AND journal_entry_id = ? AND note_key = ?
+      AND author_user_id = ? AND offered_at IS NOT NULL
+  `).bind(journal.account_id, journal.product_id, journal.id, params.noteKey, user.userId).first<Record<string, any>>();
+  if (!offer || offer.source_text !== input.excerpt || offer.attribution_name !== input.byline) {
+    return json({ error: 'The note changed or already has an offer. Withdraw an existing offer before replacing it.' }, 409);
+  }
+  return json(candidateToApi(offer));
+};
+
+const handleWithdrawTastingExcerptOffer: Handler = async (request, env, params) => {
+  const user = await requireAuthenticatedUser(request, env);
+  if ('error' in user) return user.error;
+  const ownedOffer = `SELECT c.id FROM tasting_note_candidates c
+    JOIN customer_tasting_journal j ON j.id = c.journal_entry_id
+    WHERE c.journal_entry_id = ? AND c.note_key = ? AND c.author_user_id = ?
+      AND j.user_id = ? AND c.offered_at IS NOT NULL`;
+  const keys = [params.id, params.noteKey, user.userId, user.email];
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM product_impressions WHERE candidate_id IN (${ownedOffer})`).bind(...keys),
+    env.DB.prepare(`DELETE FROM tasting_note_candidates WHERE id IN (${ownedOffer})`).bind(...keys),
+  ]);
+  return json({ success: true });
+};
+
+// Keep the older review client usable while restricting it to explicit offers.
 const handleListCustomerTastingNotes: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  const [journals, decided] = await Promise.all([
-    env.DB.prepare(
-      `SELECT j.id, j.product_id, j.user_id, j.note, j.tasting, j.personal_note, j.created_at,
-              COALESCE(p.given_name, p.product_name, j.product_name) AS product_name,
-              u.id AS author_user_id,
-              COALESCE(NULLIF(u.name, ''), u.username, j.user_id) AS author_name
-         FROM customer_tasting_journal j
-         LEFT JOIN products p ON p.id = j.product_id AND p.account_id = j.account_id
-         LEFT JOIN users u ON u.email = j.user_id
-        WHERE j.account_id = ?1 AND COALESCE(j.archived, 0) = 0 AND j.product_id IS NOT NULL
-        ORDER BY j.created_at DESC
-        LIMIT 500`
-    ).bind(ctx.accountId).all<Record<string, any>>(),
-    env.DB.prepare(
-      `SELECT journal_entry_id, note_key, status FROM tasting_note_candidates
-        WHERE account_id = ?1 AND status IN ('promoted', 'dismissed')`
-    ).bind(ctx.accountId).all<Record<string, any>>(),
-  ]);
-  const resolved = new Map<string, 'promoted' | 'dismissed'>();
-  for (const row of decided.results) {
-    resolved.set(`${row.journal_entry_id}::${row.note_key}`, row.status);
-  }
-  const notes = journals.results.flatMap(row => journalRowToNotes(row, resolved));
-  return json(notes);
+  const { results } = await env.DB.prepare(`
+    SELECT c.*, COALESCE(p.given_name, p.product_name) AS product_name
+    FROM tasting_note_candidates c
+    JOIN products p ON p.id = c.product_id AND p.account_id = c.account_id
+    WHERE c.account_id = ? AND c.offered_at IS NOT NULL
+    ORDER BY c.offered_at DESC LIMIT 500
+  `).bind(ctx.accountId).all<Record<string, any>>();
+  return json(results.map(row => ({
+    ...candidateToApi(row),
+    productName: row.product_name,
+    authorUserId: row.author_user_id,
+    authorName: row.attribution_name,
+    text: row.source_text,
+    writtenAt: row.offered_at,
+    status: row.status === 'starred' ? 'open' : row.status,
+  })));
 };
 
-/**
- * Publishes one customer note as an impression, straight from the journal.
- *
- * A candidate row is still written, because it is the record of the decision:
- * who wrote it, which note it was, what it was edited to, and who published it.
- * The difference from the older path is that the shop creates it at the moment
- * of promoting rather than the customer creating it by offering.
- */
-const handlePromoteCustomerTastingNote: Handler = async (request, env) => {
-  const ctx = await requireBundle(request, env, 'publish');
-  if ('error' in ctx) return ctx.error;
-  let body: Record<string, unknown>;
-  try {
-    const parsed = await request.json();
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
-    body = parsed as Record<string, unknown>;
-  } catch {
-    return json({ error: 'Invalid JSON body' }, 400);
-  }
-  const journalEntryId = typeof body.journal_entry_id === 'string' ? body.journal_entry_id : '';
-  const noteKey = typeof body.note_key === 'string' ? body.note_key : '';
-  const sourceText = typeof body.source_text === 'string' ? body.source_text.trim() : '';
-  const text = typeof body.edited_text === 'string' ? body.edited_text.trim() : sourceText;
-  const attributionName = typeof body.attribution_name === 'string' ? body.attribution_name.trim() : '';
-  const attributionDetail = typeof body.attribution_detail === 'string' && body.attribution_detail.trim()
-    ? body.attribution_detail.trim() : null;
-  const dismiss = body.dismiss === true;
-  if (!journalEntryId || !noteKey || !sourceText) return json({ error: 'journal_entry_id, note_key and source_text are required' }, 400);
-  if (!dismiss && (!text || !attributionName)) return json({ error: 'Final text and attribution name are required' }, 400);
+function matchesTastingOffer(body: Record<string, unknown>, offer: Record<string, any>) {
+  return (body.edited_text === undefined || body.edited_text === offer.source_text)
+    && (body.attribution_name === undefined || body.attribution_name === offer.attribution_name)
+    && (body.attribution_detail === undefined || body.attribution_detail === null
+      || body.attribution_detail === '');
+}
 
-  const journal = await env.DB.prepare(
-    `SELECT j.id, j.product_id, u.id AS author_user_id
-       FROM customer_tasting_journal j
-       LEFT JOIN users u ON u.email = j.user_id
-      WHERE j.id = ? AND j.account_id = ?`
-  ).bind(journalEntryId, ctx.accountId).first<Record<string, any>>();
-  if (!journal?.product_id) return json({ error: 'Journal entry not found' }, 404);
-  // The candidate table records who wrote the note, so a journal whose author
-  // no longer resolves to a user cannot be published under anyone's name.
-  if (!journal.author_user_id) return json({ error: 'This note has no author on file and cannot be published' }, 409);
-
-  const existing = await env.DB.prepare(
-    `SELECT id, status FROM tasting_note_candidates
-      WHERE account_id = ? AND journal_entry_id = ? AND note_key = ?`
-  ).bind(ctx.accountId, journalEntryId, noteKey).first<Record<string, any>>();
-  if (existing && existing.status !== 'starred') return json({ error: 'This note has already been decided' }, 409);
+async function approveTastingExcerpt(env: Env, ctx: AccountCtx, id: string, body: Record<string, unknown>) {
+  const offer = await env.DB.prepare(`
+    SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND offered_at IS NOT NULL
+  `).bind(id, ctx.accountId).first<Record<string, any>>();
+  if (!offer) return json({ error: 'Offer not found' }, 404);
+  if (!matchesTastingOffer(body, offer)) return json({ error: 'Approval must use the offered excerpt and byline' }, 422);
+  if (offer.status !== 'starred') return json({ error: 'Offer already resolved' }, 409);
 
   const now = new Date().toISOString();
-  const candidateId = existing?.id ?? crypto.randomUUID();
-  if (dismiss) {
-    await env.DB.prepare(`
-      INSERT INTO tasting_note_candidates
-        (id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, status, created_at, updated_at, dismissed_at, dismissed_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'dismissed', ?, ?, ?, ?)
-      ON CONFLICT(author_user_id, journal_entry_id, note_key) DO UPDATE SET
-        status = 'dismissed', dismissed_at = excluded.dismissed_at, dismissed_by = excluded.dismissed_by, updated_at = excluded.updated_at
-    `).bind(candidateId, ctx.accountId, journalEntryId, noteKey, journal.product_id, journal.author_user_id, sourceText, now, now, now, ctx.userId).run();
-    return json({ status: 'dismissed', journalEntryId, noteKey });
-  }
-
   const impressionId = crypto.randomUUID();
-  const results = await env.DB.batch([
-    env.DB.prepare(`
-      INSERT INTO tasting_note_candidates
-        (id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, status, created_at, updated_at, edited_text, attribution_name, attribution_detail, promoted_at, promoted_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'promoted', ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(author_user_id, journal_entry_id, note_key) DO UPDATE SET
-        status = 'promoted', edited_text = excluded.edited_text, attribution_name = excluded.attribution_name,
-        attribution_detail = excluded.attribution_detail, promoted_at = excluded.promoted_at,
-        promoted_by = excluded.promoted_by, updated_at = excluded.updated_at
-    `).bind(candidateId, ctx.accountId, journalEntryId, noteKey, journal.product_id, journal.author_user_id, sourceText, now, now, text, attributionName, attributionDetail, now, ctx.userId),
-    env.DB.prepare(`
-      INSERT INTO product_impressions
-        (id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at)
-      SELECT ?, ?, ?, c.id, ?, ?, ?, ?, ?, ?
-        FROM tasting_note_candidates c
-       WHERE c.account_id = ? AND c.journal_entry_id = ? AND c.note_key = ? AND c.status = 'promoted'
-      ON CONFLICT(candidate_id) DO UPDATE SET
-        text = excluded.text, attribution_name = excluded.attribution_name, attribution_detail = excluded.attribution_detail
-    `).bind(impressionId, ctx.accountId, journal.product_id, text, attributionName, attributionDetail, now, ctx.userId, now, ctx.accountId, journalEntryId, noteKey),
-  ]);
-  if (!results[1]?.meta.changes) return json({ error: 'Promotion could not be completed', retryable: true }, 500);
-  return json({ status: 'promoted', productId: journal.product_id, text, attributionName, attributionDetail, publishedAt: now }, 201);
+  try {
+    const [impression] = await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO product_impressions
+          (id, account_id, product_id, candidate_id, text, attribution_name, published_at, published_by, created_at)
+        SELECT ?, account_id, product_id, id, source_text, attribution_name, ?, ?, ?
+        FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND offered_at = ? AND status = 'starred'
+        ON CONFLICT(candidate_id) DO UPDATE SET id = excluded.id, product_id = excluded.product_id,
+          account_id = excluded.account_id, text = excluded.text, attribution_name = excluded.attribution_name,
+          attribution_detail = NULL, published_at = excluded.published_at, published_by = excluded.published_by,
+          show_on_listing = 0, show_on_main_page = 0
+      `).bind(impressionId, now, ctx.userId, now, id, ctx.accountId, offer.offered_at),
+      env.DB.prepare(`
+        UPDATE tasting_note_candidates SET status = 'promoted', promoted_at = ?, promoted_by = ?, updated_at = ?
+        WHERE id = ? AND account_id = ? AND status = 'starred'
+          AND EXISTS (SELECT 1 FROM product_impressions WHERE id = ? AND candidate_id = tasting_note_candidates.id)
+      `).bind(now, ctx.userId, now, id, ctx.accountId, impressionId),
+    ]);
+    if (!impression.meta.changes) return json({ error: 'Offer already resolved or withdrawn' }, 409);
+  } catch {
+    return json({ error: 'Approval could not be completed', retryable: true }, 500);
+  }
+  return json({
+    id: impressionId, status: 'promoted', productId: offer.product_id, text: offer.source_text,
+    attributionName: offer.attribution_name, attributionDetail: null, publishedAt: now,
+    showOnListing: false, showOnMainPage: false,
+  }, 201);
+}
+
+async function dismissTastingExcerpt(env: Env, ctx: AccountCtx, id: string) {
+  const now = new Date().toISOString();
+  const result = await env.DB.prepare(`
+    UPDATE tasting_note_candidates SET status = 'dismissed', dismissed_at = ?, dismissed_by = ?, updated_at = ?
+    WHERE id = ? AND account_id = ? AND status = 'starred' AND offered_at IS NOT NULL
+  `).bind(now, ctx.userId, now, id, ctx.accountId).run();
+  return result.meta.changes ? json({ success: true }) : json({ error: 'Pending offer not found' }, 409);
+}
+
+const handleDecideCustomerTastingNote: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  if (typeof body?.journal_entry_id !== 'string' || typeof body.note_key !== 'string') {
+    return json({ error: 'Journal entry and note key are required' }, 400);
+  }
+  const offer = await env.DB.prepare(`
+    SELECT id, source_text FROM tasting_note_candidates
+    WHERE journal_entry_id = ? AND note_key = ? AND account_id = ? AND offered_at IS NOT NULL
+  `).bind(body.journal_entry_id, body.note_key, ctx.accountId).first<{ id: string; source_text: string }>();
+  if (!offer) return json({ error: 'Offer not found' }, 404);
+  if (body.source_text !== offer.source_text) return json({ error: 'The offer changed' }, 409);
+  return body.dismiss === true ? dismissTastingExcerpt(env, ctx, offer.id) : approveTastingExcerpt(env, ctx, offer.id, body);
 };
 
 const handleListTastingNoteCandidates: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  const requested = new URL(request.url).searchParams.get('status') || 'starred';
-  if (!['starred', 'promoted', 'dismissed'].includes(requested)) return json({ error: 'Invalid status' }, 400);
-  const { results } = await env.DB.prepare(
-    `SELECT * FROM tasting_note_candidates WHERE account_id = ? AND status = ? ORDER BY created_at DESC`
-  ).bind(ctx.accountId, requested).all<Record<string, any>>();
-  return json(results.map(candidateToApi));
+  const status = new URL(request.url).searchParams.get('status') || 'starred';
+  if (!['starred', 'promoted', 'dismissed'].includes(status)) return json({ error: 'Invalid status' }, 400);
+  const { results } = await env.DB.prepare(`
+    SELECT c.*, i.id AS impression_id, i.show_on_listing, i.show_on_main_page,
+           COALESCE(p.given_name, p.product_name) AS product_name
+    FROM tasting_note_candidates c
+    JOIN products p ON p.id = c.product_id AND p.account_id = c.account_id
+    LEFT JOIN product_impressions i ON i.candidate_id = c.id AND i.account_id = c.account_id AND c.status = 'promoted'
+    WHERE c.account_id = ? AND c.status = ? AND c.offered_at IS NOT NULL
+    ORDER BY c.offered_at DESC
+  `).bind(ctx.accountId, status).all<Record<string, any>>();
+  return json(results.map(row => ({
+    ...candidateToApi(row), productName: row.product_name, impressionId: row.impression_id,
+    showOnListing: row.show_on_listing === 1, showOnMainPage: row.show_on_main_page === 1,
+  })));
 };
 
 const handleUpdateTastingNoteCandidate: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  const existing = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
-    .bind(params.id, ctx.accountId).first<Record<string, any>>();
-  if (!existing) return json({ error: 'Candidate not found' }, 404);
-  if (existing.status !== 'starred') return json({ error: 'Candidate is no longer editable' }, 409);
-  let body: Record<string, unknown>;
-  try {
-    const parsed = await request.json();
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
-    body = parsed as Record<string, unknown>;
-  } catch {
-    return json({ error: 'Invalid JSON body' }, 400);
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'Invalid JSON body' }, 400);
+  const offer = await env.DB.prepare(`
+    SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND offered_at IS NOT NULL
+  `).bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!offer) return json({ error: 'Offer not found' }, 404);
+  if (offer.status !== 'starred') return json({ error: 'Offer already resolved' }, 409);
+  if (!matchesTastingOffer(body as Record<string, unknown>, offer)) {
+    return json({ error: 'Only the author can replace the offered excerpt or byline' }, 422);
   }
-  const editedText = typeof body.edited_text === 'string' ? body.edited_text.trim() : existing.edited_text;
-  const attributionName = typeof body.attribution_name === 'string' ? body.attribution_name.trim() : existing.attribution_name;
-  const attributionDetail = body.attribution_detail === null || typeof body.attribution_detail === 'string' ? body.attribution_detail : existing.attribution_detail;
-  const result = await env.DB.prepare(`UPDATE tasting_note_candidates SET edited_text = ?, attribution_name = ?, attribution_detail = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
-    .bind(editedText || null, attributionName || null, attributionDetail, new Date().toISOString(), params.id, ctx.accountId).run();
-  if (!result.meta.changes) {
-    const current = await env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
-      .bind(params.id, ctx.accountId).first<Record<string, any>>();
-    return json({ error: current ? 'Candidate is no longer editable' : 'Candidate not found' }, current ? 409 : 404);
-  }
-  const updated = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
-    .bind(params.id, ctx.accountId).first<Record<string, any>>();
-  return json(candidateToApi(updated!));
+  return json(candidateToApi(offer));
 };
 
 const handleDismissTastingNoteCandidate: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  const result = await env.DB.prepare(`UPDATE tasting_note_candidates SET status = 'dismissed', dismissed_at = ?, dismissed_by = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
-    .bind(new Date().toISOString(), ctx.userId, new Date().toISOString(), params.id, ctx.accountId).run();
-  if (!result.meta.changes) {
-    const exists = await env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first();
-    return json({ error: exists ? 'Candidate already resolved' : 'Candidate not found' }, exists ? 409 : 404);
-  }
-  return json({ success: true });
+  return dismissTastingExcerpt(env, ctx, params.id);
 };
 
 const handlePromoteTastingNoteCandidate: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  const candidate = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
-    .bind(params.id, ctx.accountId).first<Record<string, any>>();
-  if (!candidate) return json({ error: 'Candidate not found' }, 404);
-  if (candidate.status !== 'starred') return json({ error: 'Candidate already resolved' }, 409);
-  let body: Record<string, unknown> = {};
-  try {
-    const raw = await request.text();
-    if (raw.trim()) {
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
-      body = parsed as Record<string, unknown>;
-    }
-  } catch {
-    return json({ error: 'Invalid JSON body' }, 400);
-  }
-  const owns = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
-  if ((owns('edited_text') && typeof body.edited_text !== 'string')
-      || (owns('attribution_name') && typeof body.attribution_name !== 'string')
-      || (owns('attribution_detail') && body.attribution_detail !== null && typeof body.attribution_detail !== 'string')) {
-    return json({ error: 'Invalid promotion fields' }, 400);
-  }
-  const text = String(owns('edited_text') ? body.edited_text : (candidate.edited_text || candidate.source_text || '')).trim();
-  const attributionName = String(owns('attribution_name') ? body.attribution_name : (candidate.attribution_name || '')).trim();
-  const attributionDetail = owns('attribution_detail')
-    ? (typeof body.attribution_detail === 'string' ? body.attribution_detail.trim() || null : null)
-    : (candidate.attribution_detail || null);
-  if (!text || !attributionName) return json({ error: 'Final text and attribution name are required' }, 400);
-  const now = new Date().toISOString();
-  const impressionId = crypto.randomUUID();
-  try {
-    const results = await env.DB.batch([
-      env.DB.prepare(`UPDATE tasting_note_candidates SET edited_text = ?, attribution_name = ?, attribution_detail = ?, status = 'promoted', promoted_at = ?, promoted_by = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
-        .bind(text, attributionName, attributionDetail, now, ctx.userId, now, params.id, ctx.accountId),
-      env.DB.prepare(`
-        INSERT INTO product_impressions
-          (id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at)
-        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-        FROM tasting_note_candidates
-        WHERE id = ? AND account_id = ? AND status = 'promoted' AND promoted_at = ? AND promoted_by = ?
-      `).bind(impressionId, ctx.accountId, candidate.product_id, candidate.id, text, attributionName, attributionDetail, now, ctx.userId, now, candidate.id, ctx.accountId, now, ctx.userId),
-    ]);
-    if (!results[0]?.meta.changes && !results[1]?.meta.changes) return json({ error: 'Candidate already resolved' }, 409);
-    if (!results[0]?.meta.changes || !results[1]?.meta.changes) {
-      return json({ error: 'Promotion could not be completed', retryable: true }, 500);
-    }
-  } catch {
-    try {
-      const [current, impression] = await Promise.all([
-        env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first<Record<string, any>>(),
-        env.DB.prepare(`SELECT id FROM product_impressions WHERE candidate_id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first(),
-      ]);
-      if (impression || (current && current.status !== 'starred')) return json({ error: 'Candidate already resolved' }, 409);
-    } catch { /* Preserve the original failure as retryable. */ }
-    return json({ error: 'Promotion could not be completed', retryable: true }, 500);
-  }
-  return json({ id: impressionId, productId: candidate.product_id, text, attributionName, attributionDetail, publishedAt: now }, 201);
+  const raw = await request.text();
+  let body;
+  try { body = raw.trim() ? JSON.parse(raw) : {}; } catch { body = null; }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'Invalid JSON body' }, 400);
+  return approveTastingExcerpt(env, ctx, params.id, body);
 };
+
+const handleUpdateTastingExcerptPlacements: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const listing = body?.show_on_listing;
+  const mainPage = body?.show_on_main_page;
+  if ((listing === undefined && mainPage === undefined)
+      || (listing !== undefined && typeof listing !== 'boolean')
+      || (mainPage !== undefined && typeof mainPage !== 'boolean')) {
+    return json({ error: 'Provide one or both placement booleans' }, 400);
+  }
+  const row = await env.DB.prepare(`
+    UPDATE product_impressions SET show_on_listing = COALESCE(?, show_on_listing),
+      show_on_main_page = COALESCE(?, show_on_main_page)
+    WHERE id = ? AND account_id = ? AND EXISTS (
+      SELECT 1 FROM tasting_note_candidates c WHERE c.id = product_impressions.candidate_id
+        AND c.account_id = product_impressions.account_id AND c.product_id = product_impressions.product_id
+        AND c.offered_at IS NOT NULL AND c.status = 'promoted'
+    )
+    RETURNING show_on_listing, show_on_main_page
+  `).bind(listing === undefined ? null : Number(listing), mainPage === undefined ? null : Number(mainPage),
+    params.id, ctx.accountId).first<{ show_on_listing: number; show_on_main_page: number }>();
+  return row
+    ? json({ showOnListing: row.show_on_listing === 1, showOnMainPage: row.show_on_main_page === 1 })
+    : json({ error: 'Approved excerpt not found' }, 404);
+};
+
+const TASTING_LOT_IS_PUBLIC = `
+  p.is_public = 1 AND p.shown_in_shop = 1 AND p.status IN ('Active', 'Sold Out')
+  AND a.status = 'active' AND a.public_enabled = 1
+`;
+
+const PUBLIC_TASTING_EXCERPTS_FROM = `
+  FROM product_impressions i
+  JOIN tasting_note_candidates c ON c.id = i.candidate_id AND c.product_id = i.product_id AND c.account_id = i.account_id
+  JOIN products p ON p.id = i.product_id AND p.account_id = i.account_id
+  JOIN accounts a ON a.id = i.account_id
+  WHERE c.offered_at IS NOT NULL AND c.status = 'promoted' AND ${TASTING_LOT_IS_PUBLIC}
+`;
+
+function tastingExcerptResponse(rows: Record<string, any>[]) {
+  const response = json(rows.map(impressionToApi));
+  response.headers.set('Cache-Control', 'no-store');
+  return response;
+}
 
 const handleGetProductImpressions: Handler = async (_request, env, params) => {
   const { results } = await env.DB.prepare(`
-    SELECT i.* FROM product_impressions i
-    JOIN products p ON p.id = i.product_id AND p.account_id = i.account_id
-    WHERE i.product_id = ? AND p.is_public = 1 AND p.status = 'Active'
-    ORDER BY i.published_at DESC
+    SELECT i.* ${PUBLIC_TASTING_EXCERPTS_FROM} AND i.product_id = ? AND i.show_on_listing = 1
+    ORDER BY i.published_at DESC, i.id
   `).bind(params.id).all<Record<string, any>>();
-  return json(results.map(impressionToApi));
+  return tastingExcerptResponse(results);
+};
+
+const handleGetMainPageTastingExcerpts: Handler = async (_request, env, params) => {
+  const { results } = await env.DB.prepare(`
+    SELECT i.* ${PUBLIC_TASTING_EXCERPTS_FROM} AND a.slug = ? AND i.show_on_main_page = 1
+    ORDER BY i.published_at DESC, i.id
+  `).bind(params.slug).all<Record<string, any>>();
+  return tastingExcerptResponse(results);
 };
 
 // Customer: POST /api/tasting-journal. Accepts the new shape (one entry per
@@ -19683,9 +19739,14 @@ const handleDeleteTastingEntry: Handler = async (request, env, params) => {
   if (authErr) return authErr;
   const email = getUserEmail(request);
 
-  await env.DB.prepare(
-    'DELETE FROM customer_tasting_journal WHERE id = ? AND user_id = ?'
-  ).bind(params.id, email).run();
+  const candidates = `SELECT c.id FROM tasting_note_candidates c
+    JOIN customer_tasting_journal j ON j.id = c.journal_entry_id
+    WHERE j.id = ? AND j.user_id = ?`;
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM product_impressions WHERE candidate_id IN (${candidates})`).bind(params.id, email),
+    env.DB.prepare(`DELETE FROM tasting_note_candidates WHERE id IN (${candidates})`).bind(params.id, email),
+    env.DB.prepare('DELETE FROM customer_tasting_journal WHERE id = ? AND user_id = ?').bind(params.id, email),
+  ]);
 
   return json({ success: true });
 };
@@ -22650,7 +22711,7 @@ async function fetchPublicProductsForAccount(
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
               p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-              p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
+              p.material, p.capacity_ml, p.teaware_category, p.teaware_details, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
               p.tasting, p.tasting_source,
               p.cultivar,
               (SELECT COUNT(*) > 0 FROM collection_items ci
@@ -22670,6 +22731,7 @@ async function fetchPublicProductsForAccount(
                   AND cp.target_type = 'shop'
                   AND cp.unpublished_at IS NULL) AS featured_position
        FROM products p
+       JOIN accounts account ON account.id = p.account_id AND account.status = 'active' AND account.public_enabled = 1
        LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
        WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND ${visibilityFilter} AND p.account_id = ?1${productFilter}
        ORDER BY p.created_at DESC`
@@ -22695,6 +22757,7 @@ async function fetchPublicProductsForAccount(
     for (const key of PUBLIC_FIELDS) {
       if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
     }
+    attachPublicTeawareDetails(safe, p);
     return safe;
   });
 }
@@ -30889,14 +30952,19 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/tasting-journal', handleAddTastingEntry],
   ['PUT', '/api/tasting-journal/:id/candidates/:noteKey', handleStarTastingNote],
   ['DELETE', '/api/tasting-journal/:id/candidates/:noteKey', handleUnstarTastingNote],
+  ['GET', '/api/tasting-journal/:id/offers/:noteKey', handleGetTastingExcerptOffer],
+  ['PUT', '/api/tasting-journal/:id/offers/:noteKey', handleOfferTastingExcerpt],
+  ['DELETE', '/api/tasting-journal/:id/offers/:noteKey', handleWithdrawTastingExcerptOffer],
   ['DELETE', '/api/tasting-journal/:id', handleDeleteTastingEntry],
   ['GET', '/api/admin/customer-tasting-notes', handleListCustomerTastingNotes],
-  ['POST', '/api/admin/customer-tasting-notes/decide', handlePromoteCustomerTastingNote],
+  ['POST', '/api/admin/customer-tasting-notes/decide', handleDecideCustomerTastingNote],
   ['GET', '/api/admin/tasting-note-candidates', handleListTastingNoteCandidates],
   ['PUT', '/api/admin/tasting-note-candidates/:id', handleUpdateTastingNoteCandidate],
   ['POST', '/api/admin/tasting-note-candidates/:id/dismiss', handleDismissTastingNoteCandidate],
   ['POST', '/api/admin/tasting-note-candidates/:id/promote', handlePromoteTastingNoteCandidate],
+  ['PUT', '/api/admin/tasting-impressions/:id/placements', handleUpdateTastingExcerptPlacements],
   ['GET', '/api/products/:id/impressions', handleGetProductImpressions],
+  ['GET', '/api/s/:slug/tasting-excerpts', handleGetMainPageTastingExcerpts],
   ['GET', '/api/tea-discovery', handleGetTeaDiscovery],
   ['PUT', '/api/tea-discovery', handlePutTeaDiscovery],
 

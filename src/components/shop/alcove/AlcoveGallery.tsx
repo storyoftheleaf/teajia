@@ -7,6 +7,7 @@ interface AlcoveGalleryProps {
   itemName?: string;
   layout?: 'card' | 'page';
   squarePage?: boolean;
+  featured?: boolean;
 }
 
 export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
@@ -15,6 +16,7 @@ export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
   itemName = '',
   layout = 'card',
   squarePage = false,
+  featured = false,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   if (allImages.length === 0) return null;
@@ -27,6 +29,40 @@ export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
       : itemName
         ? `${itemName}, view ${i + 1}`
         : '';
+
+  if (featured) {
+    const activeIndex = Math.max(0, imageUrls.indexOf(selectedImage ?? ''));
+    const activeUrl = imageUrls[activeIndex];
+    return (
+      <div className="alcove-gallery mx-auto w-full max-w-lg px-3 pt-3">
+        <button
+          type="button"
+          className="alcove-thumb-btn-single !h-auto aspect-square bg-tea-surface"
+          aria-label={`Enlarge photo ${activeIndex + 1} of ${itemName}`}
+          onClick={() => onExpandImage(activeUrl)}
+        >
+          <img src={activeUrl} alt={altFor(activeIndex)} className="alcove-thumb-img !object-contain" />
+        </button>
+        {imageUrls.length > 1 && (
+          <div role="group" aria-label="Product photos" className="mt-3 flex flex-wrap justify-center gap-2">
+            {imageUrls.map((url, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Show photo ${i + 1} of ${itemName}`}
+                aria-pressed={i === activeIndex}
+                onClick={() => setSelectedImage(url)}
+                className={`alcove-thumb-btn w-16 !flex-none !border !border-solid ${i === activeIndex ? '!border-tea-gold' : '!border-tea-border'}`}
+              >
+                <img src={url} alt="" className="alcove-thumb-img" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
 
   if (layout === 'page' && squarePage) {
     const selectedIndex = selectedImage === null ? -1 : imageUrls.indexOf(selectedImage);

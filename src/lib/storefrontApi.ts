@@ -111,6 +111,9 @@ export function normalizeProduct(p: any): PublicProduct {
     material: p.material || '',
     capacityMl: p.capacity_ml != null ? Number(p.capacity_ml) : undefined,
     teawareCategory: p.teaware_category || undefined,
+    teawareDetails: isTeaware && p.teaware_details && typeof p.teaware_details === 'object' && !Array.isArray(p.teaware_details)
+      ? p.teaware_details
+      : undefined,
     quantityUnits: p.quantity_units != null ? Number(p.quantity_units) : undefined,
     tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
     tastingSource:

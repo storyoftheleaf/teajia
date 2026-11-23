@@ -12,13 +12,14 @@ import { TastingNavigation } from './TastingNavigation';
 import { TastingFlow, ALL_SECTIONS, type SectionId } from './TastingFlow';
 import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { syncTastingJournal } from '../../lib/tastingJournalSync';
+import { TastingExcerptOffer } from './TastingExcerptOffer';
+import { persistTastingJournalEntry, syncTastingJournal } from '../../lib/tastingJournalSync';
 import { injectTastingNote } from '../shared/NoteThread';
 import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
-import { YourImpression, appendImpressionTranscript, sealEarlierDraft } from './YourImpression';
+import { YourImpression, appendImpressionTranscript, sealEarlierDraft, updateImpressionNote } from './YourImpression';
 import { TastingPhotographRow, NOTES_NOTICE } from './TastingPhotographRow';
 import { Button } from '../shared/Button';
 import { TastingShareStep } from './TastingShareStep';
@@ -203,7 +204,11 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
 
   // One tasting per tea with notes as a dated list: a draft left from an earlier day is sealed as that day's note.
-  const openedWith = sealEarlierDraft(item.journalRecord?.tasting ?? initialData ?? existingEntry?.note.tasting ?? {});
+  const personalProductTasting = item.sourceType === 'product' && !adminMode && !previewOnly;
+  const priorTasting = item.journalRecord?.tasting ?? initialData ?? existingEntry?.note.tasting ?? {};
+  const legacyNote = personalProductTasting && existingEntry?.note.personalNote;
+  const openedWith = sealEarlierDraft(legacyNote && !tastingNoteText(priorTasting).trim()
+    ? updateImpressionNote(priorTasting, legacyNote) : priorTasting);
   const [tastingData, setTastingData] = useState<TastingData>(openedWith);
   // The opened or most recently saved state. Closing compares against this, not against
   // "is there any data at all", so a tea you have tasted before closes on the
@@ -269,6 +274,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const isFreshTasting = !!freshReason.trim();
 
   const eventTasting = item.sourceType === 'event' || item.journalRecord?.sourceType === 'event';
+  const journalForOffer = personalProductTasting && isAuthenticated
+    ? tastingJournal.find(entry => entry.productId === item.id && !entry.archived && entry.synced)
+    : undefined;
   const structuredTasting = item.sourceType === 'session';
   const sessionRecord = item.journalRecord?.sourceType === 'session';
   const returnToQuick = eventTasting && startOnWheel;
@@ -450,7 +458,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               accountId: activeAccountId ?? 'guest',
             });
           }
-          syncTastingJournal().catch(() => {});
+          if (personalProductTasting && isAuthenticated) {
+            const savedEntry = useAppStore.getState().tastingJournal.find(entry => entry.id === entryId);
+            if (!savedEntry) throw new Error('Could not find the saved tasting.');
+            await persistTastingJournalEntry(savedEntry);
+          } else {
+            syncTastingJournal().catch(() => {});
+          }
         }
         await onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy, identity);
         storedSaveKeyRef.current = saveKey;
@@ -475,7 +489,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     setSaveState(tastingFingerprint(latestData.current) === baselineRef.current ? 'saved' : 'idle');
     if (onWriteDescription) setDescriptionDraft(generateDescription(tastingData));
     return true;
-  }, [previewOnly, item, tastingData, verdict, wouldBuy, onSave, onAfterSave, adminMode, activeAccountId, activeUserId, activeAccount, canSave, onWriteDescription, freshReason, isFreshTasting, upsertTastingByProductId, favoriteTeas, toggleFavoriteTea]);
+  }, [previewOnly, personalProductTasting, isAuthenticated, item, tastingData, verdict, wouldBuy, onSave, onAfterSave, adminMode, activeAccountId, activeUserId, activeAccount, canSave, onWriteDescription, freshReason, isFreshTasting, upsertTastingByProductId, favoriteTeas, toggleFavoriteTea]);
 
   // After an explicit Save, a signed-in person is offered the Share step once. Keep private is its default.
   const handleSaveThenShare = useCallback(async () => {
@@ -728,10 +742,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   <YourImpression value={tastingData} onChange={handleTastingChange}
                     ratingLabel={eventTasting ? 'Overall' : undefined} collectionUnavailable={item.collectionUnavailable}
                     sessionSharedNote={item.journalRecord?.sessionSharedNote}
-                    notesLabel={eventTasting ? 'Personal notes' : structuredTasting ? 'Notes for the host' : undefined}
+                    notesLabel={eventTasting ? 'Personal notes' : structuredTasting ? 'Notes for the host' : personalProductTasting ? 'How did this tea feel?' : undefined}
                     voiceState={silentVoice.state} voiceError={voiceError}
                     photographRow={familyEnabled ? <TastingPhotographRow photos={photographs.photos} busy={photographs.busy} onRemove={id => { void photographs.remove(id); }} onShape={(id, shape, frame) => photographs.reshape(id, shape, frame)} /> : undefined}
-                    notesNotice={isAuthenticated && !adminMode ? NOTES_NOTICE : undefined}
+                    notesNotice={personalProductTasting ? 'Saved to your private tasting journal.' : isAuthenticated && !adminMode ? NOTES_NOTICE : undefined}
                     verdict={verdict} onVerdict={next => { setVerdict(next); handleTastingChange({...tastingData, impression:next ?? undefined}); }}
                     wouldBuy={wouldBuy} onWouldBuy={next => { setWouldBuy(next); handleTastingChange({...tastingData,wantToPurchase:next}); }}
                     inCollection={tastingData.inCollection ?? favoriteTeas.includes(item.id)}
@@ -740,6 +754,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     onSaveNotes={() => { void handleSaveThenShare(); }} canSaveNotes={canSave && silentVoice.state === 'idle'}
                     savingNotes={saveState === 'saving'} notesSaveError={saveState === 'error'}
                     notesSaveHint={verdictRequired && verdict === null ? 'Choose an impression above to save.' : undefined}/>
+                  {journalForOffer && <TastingExcerptOffer key={journalForOffer.id} productId={item.id}
+                    entryId={journalForOffer.id} privateSentence={journalForOffer.note.personalNote ?? ''} />}
                 </div>
               ) : (
                 <TastingFlow

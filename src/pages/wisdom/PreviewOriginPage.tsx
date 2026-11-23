@@ -1,6 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
 import {
   AXIS_INDENT,
@@ -21,10 +21,15 @@ import {
 import ReferenceFactSections from './ReferenceFactSections';
 import { previewPlaceLevel } from './previewOriginMetadata';
 import { mapSearchLink } from './mapLinks';
+import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 
 const PreviewOriginPage: React.FC<{ id: string; fallback?: React.ReactNode }> = ({ id, fallback }) => {
   const { catalogue, products, isLoading, isError } = useTeaReferenceCatalogue();
   const origin = catalogue?.origins.find(entry => entry.id === id);
+  const { state } = useLocation();
+  const source = state?.fromProduct;
+  const returnToProduct = origin && source?.originId === origin.id && origin.productIds.includes(source.id)
+    && typeof source.name === 'string' && source.name.trim();
   const ancestors = [] as NonNullable<typeof origin>[];
   if (origin?.parentId && catalogue) {
     const seen = new Set([origin.id]);
@@ -67,6 +72,11 @@ const PreviewOriginPage: React.FC<{ id: string; fallback?: React.ReactNode }> = 
     <article className={PREVIEW_PAGE}>
       <Helmet><title>{origin ? `${origin.name} · Origins · Teajia` : 'Growing place · Teajia'}</title></Helmet>
       <WisdomSubNav active="regions" />
+      {returnToProduct && (
+        <Link to={buildPublicProductHref({ id: source.id, slug: source.slug }, source.store)} className={`${QUIET_LINK} inline-flex min-h-tap items-center`}>
+          Back to {source.name}
+        </Link>
+      )}
       <div className="mt-7">
         <PageHead kind="Growing place" title={origin?.name ?? 'Growing place'} />
       </div>

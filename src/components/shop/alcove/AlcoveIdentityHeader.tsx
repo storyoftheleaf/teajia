@@ -128,11 +128,12 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   footNote,
 }) => {
   const onPlate = variant === 'plate';
-  const onTeaPlate = onPlate && item.category === 'tea';
-  const vintage = onTeaPlate ? String(item.year ?? '').trim() : '';
+  const onProductPlate = onPlate && (item.category === 'tea' || item.category === 'ware');
+  const vintage = onProductPlate && item.category === 'tea' ? String(item.year ?? '').trim() : '';
   const typeLabel = typeLabelProp ?? (teaType
     ? /tea/i.test(teaType) ? teaType : `${teaType} tea`
     : '');
+  const plateClass = item.category === 'tea' ? (typeLabelProp ?? teaType).replace(/\btea\b/gi, '').trim() : typeLabel;
   // The prominent title is the GIVEN name when there is one (a human-assigned
   // name for the tea, e.g. "Silent Forest"). Fall back to the product name.
   // A given name that is empty, "unknown", or identical to the product name is
@@ -144,18 +145,18 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   const subLine = [givenName.trim() !== productName.trim() ? givenName : '', typeLabel].filter(Boolean).join(' · ');
   // The plate is a gallery plaque and carries three lines and no more: the name
   // the shop gave the tea (left out when there is none), the kind of tea, and
-  // that kind in Chinese. Its class ("Dark tea") is set into the head of the
+  // that kind in Chinese. Its class ("Dark") is set into the head of the
   // plaque's border line and its year into the foot. No photograph ever sits in
   // the plaque.
   const plateKind = title === productName ? '' : productName.trim();
 
   return (
     <header
-      data-tea-class={onTeaPlate && typeLabel ? '' : undefined}
+      data-tea-class={onProductPlate && plateClass ? '' : undefined}
       data-tea-vintage={vintage ? '' : undefined}
       className={
         onPlate
-          ? `label-plate mx-5 mt-2 flex flex-col px-7 pb-10 pt-11 text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 lg:pt-[clamp(120px,20vw,300px)]${onTeaPlate ? ' label-plate--tea' : ''}`
+          ? `label-plate mx-5 mt-2 flex flex-col px-7 pb-10 pt-11 text-center lg:m-0 lg:h-full lg:min-h-[900px] lg:justify-start lg:px-[clamp(22px,4.3vw,62px)] lg:pb-0 lg:pt-[clamp(120px,20vw,300px)]${onProductPlate ? ' label-plate--tea' : ''}`
           : 'px-5 pt-7 pb-5 text-center'
       }
     >
@@ -189,7 +190,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           {chineseCharacters}
         </p>
       )}
-      {subLine && !onTeaPlate && (
+      {subLine && !onProductPlate && (
         <p
           className={`m-0 flex flex-wrap items-center justify-center font-sans uppercase tracking-[0.22em] ${
             onPlate
@@ -205,9 +206,9 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           <span>{subLine}</span>
         </p>
       )}
-      {onTeaPlate && typeLabel && (
+      {onProductPlate && plateClass && (
         <p className="label-plate__edge label-plate__edge--class" data-testid="tea-classification">
-          <span>{typeLabel}</span>
+          <span>{plateClass}</span>
           <span className="label-plate__rule" aria-hidden="true" />
         </p>
       )}

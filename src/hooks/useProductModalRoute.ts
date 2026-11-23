@@ -1,7 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import type { InventoryItem } from '../types';
-import { buildPublicProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
+import { inventoryProductHref, findProductByRouteParam } from '../lib/publicProductNavigation';
+
+import { useAppStore } from '../lib/store';
 
 /** Matches /shop/product/:id (one segment, no trailing slash). */
 export const PRODUCT_PATH_RE = /^\/shop\/product\/([^/]+)$/;
@@ -36,6 +38,7 @@ export function useProductModalRoute(inventory: InventoryItem[], routeLocation?:
   const location = routeLocation ?? contextLocation;
   const navigate = useNavigate();
 
+  const persistedShop = useAppStore(state => state.shopStoreSlug);
   const background = (location.state as BackgroundState | null)?.background;
   const match = PRODUCT_PATH_RE.exec(location.pathname);
   // The segment may be the readable address or a legacy id; the resolver takes
@@ -50,21 +53,21 @@ export function useProductModalRoute(inventory: InventoryItem[], routeLocation?:
   /** Card tap: push the product URL as a real navigation, no background. */
   const openProduct = useCallback(
     (item: InventoryItem) => {
-      navigate(buildPublicProductHref({ id: item.id, slug: item.slug }));
+      navigate(inventoryProductHref(item, location.search, persistedShop));
     },
-    [navigate],
+    [navigate, location.search, persistedShop],
   );
 
   /** Swipe/arrow inside the modal: replace so Back still closes in one step. */
   const navigateWithinModal = useCallback(
     (item: InventoryItem) => {
       if (!background) return;
-      navigate(buildPublicProductHref({ id: item.id, slug: item.slug }), {
+      navigate(inventoryProductHref(item, background.search, persistedShop), {
         replace: true,
         state: { background },
       });
     },
-    [navigate, background],
+    [navigate, background, persistedShop],
   );
 
   /**

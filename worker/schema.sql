@@ -1631,6 +1631,7 @@ CREATE TABLE IF NOT EXISTS tasting_note_candidates (
   dismissed_by TEXT REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  offered_at TEXT,
   UNIQUE (author_user_id, journal_entry_id, note_key)
 );
 CREATE INDEX IF NOT EXISTS idx_tasting_note_candidates_account_status_created ON tasting_note_candidates(account_id, status, created_at DESC);
@@ -1646,7 +1647,9 @@ CREATE TABLE IF NOT EXISTS product_impressions (
   attribution_detail TEXT,
   published_at TEXT NOT NULL DEFAULT (datetime('now')),
   published_by TEXT NOT NULL REFERENCES users(id),
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  show_on_listing INTEGER NOT NULL DEFAULT 0 CHECK (show_on_listing IN (0, 1)),
+  show_on_main_page INTEGER NOT NULL DEFAULT 0 CHECK (show_on_main_page IN (0, 1))
 );
 CREATE INDEX IF NOT EXISTS idx_product_impressions_account_product_published ON product_impressions(account_id, product_id, published_at DESC);
 
@@ -3594,3 +3597,6 @@ CREATE TABLE IF NOT EXISTS shipping_whatsapp_approval (
  last_approved_at TEXT,
  PRIMARY KEY(account_id,template_name,language)
 );
+
+-- Optional, public-facing details for a single shop's teaware product.
+ALTER TABLE products ADD COLUMN teaware_details TEXT;

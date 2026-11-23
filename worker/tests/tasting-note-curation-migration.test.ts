@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const priorSchema = readFileSync(new URL('./fixtures/schema-through-112.sql', import.meta.url), 'utf8');
 const migration = readFileSync(new URL('../migrations.archived/113_tasting_note_curation.sql', import.meta.url), 'utf8');
+const placements = readFileSync(new URL('../migrations/0078_tasting_excerpt_consent_and_placements.sql', import.meta.url), 'utf8');
 const canonical = readFileSync(new URL('../schema.sql', import.meta.url), 'utf8');
 const directories: string[] = [];
 
@@ -33,7 +34,7 @@ describe('tasting-note curation migration 113', () => {
   });
 
   it('matches the canonical schema columns and indexes', () => {
-    const upgraded = database(priorSchema + migration);
+    const upgraded = database(priorSchema + migration + placements);
     const fresh = database(canonical);
     for (const table of ['tasting_note_candidates', 'product_impressions']) {
       expect(query(upgraded, `PRAGMA table_info('${table}')`).map(({ cid: _cid, ...row }) => row))

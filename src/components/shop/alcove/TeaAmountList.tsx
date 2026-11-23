@@ -147,7 +147,7 @@ export function buildTeaAmountCells({
 
 /** The existing list layout also renders the footer's counted teaware cells. */
 export function AmountCellList({
-  cells, wholePiece, variant = 'pinned', id, showCurrency, inOrderLabel,
+  cells, wholePiece, variant = 'pinned', id, showCurrency, inOrderLabel, countedPieces,
 }: {
   cells: TeaAmountCell[];
   wholePiece?: { label: string };
@@ -155,6 +155,7 @@ export function AmountCellList({
   id?: string;
   showCurrency?: boolean;
   inOrderLabel?: string;
+  countedPieces?: boolean;
 }) {
   const isRail = variant === 'rail';
   const isDocked = variant === 'docked';
@@ -187,7 +188,7 @@ export function AmountCellList({
           "How much" is gone from this row. The sentence under it named
           the same thing in words a reader can act on, so the caps
           label was a heading over a heading. */}
-      <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
+      {(!countedPieces || showCurrency) && <div className="flex items-center justify-between gap-2 px-3.5 pb-2 pt-3">
         {/* Wraps rather than truncates. Cut off at "a lower pri..."
             the sentence loses the only word that says what happens. */}
         {/* True for loose leaf all the way up. For a tea that comes
@@ -195,13 +196,13 @@ export function AmountCellList({
             nothing is opened to send it, so the sentence says where
             the bottom is rather than promising a discount that no
             longer arrives. */}
-        <span className="min-w-0 font-sans text-ui-10 leading-[1.35] tracking-[0.02em] text-tea-text-dim">
+        {!countedPieces && <span className="min-w-0 font-sans text-ui-10 leading-[1.35] tracking-[0.02em] text-tea-text-dim">
           {wholePiece
             ? `Quantity provides a lower price, down to one ${wholePiece.label.toLowerCase()}.`
             : 'Quantity provides a lower price.'}
-        </span>
+        </span>}
         {showCurrency && <ShopCurrencyPicker />}
-      </div>
+      </div>}
       {/* Said once, where it is true. Adding the same tea again puts
           the weight onto the line already there rather than starting a
           second one, so this is a running total and the reader can

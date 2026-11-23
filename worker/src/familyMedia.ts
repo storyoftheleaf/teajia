@@ -56,7 +56,11 @@ export async function familyMediaVerdict(
   if (await validSignature(secret, key, params)) return 'signed';
   const row = await db.prepare(
     `SELECT 1 AS ok FROM member_photographs p
-      WHERE (p.full_key = ?1 OR p.small_key = ?1)
+       JOIN products lot ON lot.id = p.product_id AND lot.account_id = p.account_id
+       JOIN accounts a ON a.id = lot.account_id
+      WHERE lot.is_public = 1 AND lot.shown_in_shop = 1 AND lot.status IN ('Active', 'Sold Out')
+        AND a.status = 'active' AND a.public_enabled = 1
+        AND (p.full_key = ?1 OR p.small_key = ?1)
         AND (
           (p.removed_by_member_at IS NULL AND p.share_state IN ('page', 'offered'))
           OR (p.offered_at IS NOT NULL AND p.shop_use IN ('placed', 'lead'))

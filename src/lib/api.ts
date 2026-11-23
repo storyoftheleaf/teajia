@@ -3584,7 +3584,24 @@ export const api = {
       authedFetch(`${API_URL}/api/tasting-journal/${entryId}/candidates/${encodeURIComponent(noteKey)}`, { method: 'DELETE' }),
   },
 
+  tastingExcerptOffers: {
+    get: (entryId: string) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${encodeURIComponent(entryId)}/offers/personal`),
+    offer: (entryId: string, data: { excerpt: string; byline: string }) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${encodeURIComponent(entryId)}/offers/personal`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
+    withdraw: (entryId: string) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${encodeURIComponent(entryId)}/offers/personal`, { method: 'DELETE' }),
+  },
+
   tastingNoteCandidates: {
+    approve: (id: string) =>
+      authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${encodeURIComponent(id)}/promote`, { method: 'POST', body: '{}' }),
+    setPlacements: (impressionId: string, data: { show_on_listing?: boolean; show_on_main_page?: boolean }) =>
+      authedFetch(`${API_URL}/api/admin/tasting-impressions/${encodeURIComponent(impressionId)}/placements`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
     list: (status = 'starred') => authedFetch(`${API_URL}/api/admin/tasting-note-candidates?status=${encodeURIComponent(status)}`),
     update: (id: string, data: { edited_text?: string; attribution_name?: string; attribution_detail?: string }) =>
       authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -3619,6 +3636,7 @@ export const api = {
   },
 
   productImpressions: {
+    mainPage: async (slug: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/s/${encodeURIComponent(slug)}/tasting-excerpts`)),
     list: async (productId: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/products/${encodeURIComponent(productId)}/impressions`)),
   },
 

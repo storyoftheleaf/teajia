@@ -716,7 +716,30 @@ export interface CartItem {
 }
 
 // Unified Inventory Type
+export interface TeawareDetails {
+  clay_type?: string;
+  clay_history?: string;
+  form_history?: string;
+  age_estimate?: string;
+  dating_basis?: string;
+  maker?: string;
+  mark?: string;
+  acquired_in?: string;
+  acquired_from?: string;
+  acquired_when?: string;
+  construction?: string;
+  use_history?: string;
+  condition?: string;
+  recommended_tea_type?: string;
+  recommended_tea_types?: string[];
+  brewing_notes?: string;
+  pour_notes?: string;
+  provenance?: string;
+  is_yixing?: boolean;
+}
+
 export interface InventoryItem {
+  teawareDetails?: TeawareDetails;
   id: string;
   /** Readable public address, e.g. "mahei-gushu-red". Absent on rows that
    *  predate the slug migration; links fall back to the id. */
@@ -798,6 +821,7 @@ export interface InventoryItem {
 export type PublicProductType = TeaType | typeof NON_TEA_TYPES[number];
 
 export interface PublicProduct {
+  teawareDetails?: TeawareDetails;
   id: string;
   /** Readable public address. See InventoryItem.slug. */
   slug?: string;
