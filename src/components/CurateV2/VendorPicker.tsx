@@ -163,7 +163,6 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
             Add
           </button>
         )}
-        {!adding && <VendorFacesButton onClick={() => setFacesOpen(true)} />}
         {onCancel && (
           <button type="button" onClick={onCancel} aria-label="Close vendor list" className="curate-v2-word tap-target flex min-h-tap items-center justify-center text-tea-text-sec hover:text-tea-text">
             close
@@ -183,6 +182,11 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
           >
             <span className="font-mono text-ui-14 text-tea-gold">{typed ? `+ New vendor "${typed}"` : '+ New vendor…'}</span>
           </button>
+          <VendorFacesButton
+            label="Show faces"
+            onClick={() => setFacesOpen(true)}
+            className="w-full !justify-start rounded-none px-4 text-tea-gold"
+          />
           <div className="max-h-[50vh] overflow-y-auto">
             {rows.map((v) => (
               <button key={v.id ?? v.name} type="button" onClick={() => choose(v)} className="curate-v2-row w-full text-left">

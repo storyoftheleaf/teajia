@@ -93,6 +93,9 @@ const VendorPicker = ({
   // Picking by face moves focus into the face sheet. That blur must not be
   // read as "done typing", or half a name would offer to become a new vendor.
   const [facesOpen, setFacesOpen] = useState(false);
+  // Opening the faces fetches the list again, so a face added a moment ago
+  // (on another device, or on the vendor's page) shows straight away.
+  useEffect(() => { if (facesOpen) void refetchCustomers(); }, [facesOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const facesOpening = useRef(false);
   const faceVendors = useMemo(
     () => customers.filter(c => c.tags?.includes('vendor')).map(c => toFaceVendor(c)),

@@ -276,6 +276,9 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
   const [vendorError, setVendorError] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [facesOpen, setFacesOpen] = useState(false);
+  // Opening the faces fetches the list again, so a face added a moment ago
+  // (on another device, or on the vendor's page) shows straight away.
+  useEffect(() => { if (facesOpen) void refetchCustomers(); }, [facesOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const faceVendors = useMemo(
     () => customers.filter(c => c.tags?.includes('vendor')).map(c => toFaceVendor(c)),
     [customers]
