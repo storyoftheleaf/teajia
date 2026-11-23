@@ -469,8 +469,12 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   ) : null;
 
   // ── Scanner modal ──────────────────────────────────────────────────────────
+  // A takeover, not a modal: the phone's bottom bar is z-nav (75), above
+  // z-modal (40), so it used to draw over the shutter. A tap on the shutter
+  // then landed on the bar's home word and opened Today instead of reading
+  // the label (Adrian, 2026-11-23).
   const scannerModal = scannerOpen ? createPortal(
-    <div className="fixed inset-0 z-modal flex flex-col bg-black">
+    <div className="fixed inset-0 z-takeover flex flex-col bg-black" data-testid="label-scanner">
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 shrink-0">
