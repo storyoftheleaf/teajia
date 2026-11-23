@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-23T12:17:26.509Z",
+  "status": "approved",
+  "composedAt": "2026-11-23T12:53:56.336Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -20,16 +20,16 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "Y562 is a named export recipe from the Yunnan Tea Import and Export Company, sold under Jixing, its export brand, whose name means fortune. In the old coding the Y marks the company, and the number stands for leaf grade and factory. Grade five to six points to fine, tender leaf, unlike the coarse ripe bricks made in the same years."
+        "text": "Y562 is a named export recipe of the Yunnan Tea Import and Export Company, sold under Jixing, meaning fortune, the company’s export brand. In the old coding the Y marks the company and the number stands for leaf grade and factory. A grade of five to six points to fine, tender leaf, unlike the coarse leaf in ripe bricks from the same years. The leaf came from Menghai."
       },
       {
         "layer": "age",
-        "text": "This [ripe pu’er](shou:definition) dates from 1993, twenty years after Yunnan’s state factories brought [wet piling](shou:wet-piling) into production. It was kept loose in a box rather than pressed into a cake, and it has spent the years since around 1993 in dry storage in Hong Kong. At thirty-three years it sits well within what the trade counts as [aged ripe pu’er](shou:age-aged), and that dry storage has shaped it as much as the years have."
+        "text": "It was made as [ripe pu’er](shou:definition). The pile was developed to give, in weeks, what Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. This lot dates from 1993, twenty years after Yunnan’s state factories brought [wet piling](shou:wet-piling) into production. It was kept loose in a box rather than pressed, and has spent the years since in dry storage in Hong Kong. At thirty-three years it is well past the ten the trade counts for [aged ripe pu’er](shou:age-aged), where storage shapes the leaf as much as time does."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
     },
     "notice": {
       "layer": "notice",
@@ -45,25 +45,26 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:age-aged",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:notice-aged",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-23T12:58:04.409Z"
 }

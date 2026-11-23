@@ -1,6 +1,6 @@
 {
   "status": "draft",
-  "composedAt": "2026-11-23T12:21:02.948Z",
+  "composedAt": "2026-11-23T12:57:37.821Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -26,20 +26,16 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "The leaf in this cake comes from Yiwu, in Yunnan, and dates to 2008. It had already spent time aging before it was pressed, so the cake began further along than one pressed from fresh leaf."
+        "text": "The leaf in this cake dates to 2008, and it had already been aging before it was pressed, so the cake began further along than one pressed from fresh leaf. It is gushu, leaf picked from trees far older than the bushes of a plantation, grown in the Yiwu tea area of eastern Xishuangbanna. Yiwu can name a township, a market centre or a much wider tea area, so the label speaks for a region rather than one village. The town grew into a gathering point for leaf from the old Six Famous Tea Mountains."
       },
       {
         "layer": "type",
-        "text": "It is [ripe pu’er](shou:definition): the leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling) before pressing, a method Yunnan’s state factories brought into production in 1973."
-      },
-      {
-        "layer": "age",
-        "text": "Eighteen years on, the leaf is well past the ten years the trade uses to mark [aged ripe pu’er](shou:age-aged). From here, storage shapes it as much as the years do."
+        "text": "This leaf was made into [ripe pu’er](shou:definition): wetted and heaped in a covered [fermenting pile](shou:wet-piling), where the heat of its own microbes darkens it in weeks, so it can be drunk without years of waiting. Yunnan’s state factories brought the pile into production in 1973, which places 2008 leaf in the style’s fourth decade. At eighteen years it counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing with the air and moisture around it, so storage has shaped this cake as much as time."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole. Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
     },
     "notice": {
       "layer": "notice",
@@ -55,27 +51,27 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:age-aged",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing-pressed",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:notice-aged",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],

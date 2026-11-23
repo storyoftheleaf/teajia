@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-23T12:19:27.392Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-23T12:56:05.070Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -26,16 +26,16 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "A cake of [ripe pu’er](shou:definition) from Menghai in Yunnan, pressed in 2015 and carrying the name Pasha, 帕沙寨熟茶. Before pressing, the leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling), a method Yunnan’s state factories brought into production in 1973."
+        "text": "A cake of [ripe pu’er](shou:definition) from Menghai, in Yunnan, sold under the name Pasha and pressed in 2015. Its leaf was heaped damp in a [fermenting pile](shou:wet-piling), covered to hold in the heat the microbes make and turned to let air through. Yunnan’s state factories brought that method into production in 1973, forty-two years before this cake was made."
       },
       {
         "layer": "age",
-        "text": "At eleven years it has crossed into what the trade counts as [aged ripe pu’er](shou:age-aged). From here, how a cake is kept shapes it as much as the years do."
+        "text": "At eleven years it has passed the ten-year mark the trade uses for [aged ripe pu’er](shou:age-aged). The leaf still changes slowly with the air and moisture around it, so how it has been kept matters as much as the years."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole. Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
     },
     "notice": {
       "layer": "notice",
@@ -51,29 +51,35 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:age-aged",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing-pressed",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:notice-aged",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [
+    {
+      "sentence": "At eleven years it has passed the ten-year mark the trade uses for [aged ripe pu’er](shou:age-aged).",
+      "words": "the ten-year mark the trade uses",
+      "why": "The claim says that after ten years or more a well-kept ripe pu’er develops notes that the trade calls aged aroma. The trade is credited only with naming the aroma. No input says the trade uses ten years as a threshold for calling ripe pu’er aged."
+    }
+  ]
 }

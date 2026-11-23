@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-23T12:15:50.215Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-23T12:52:06.366Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -24,16 +24,16 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "A brick of [ripe pu’er](shou:definition), made from Yunnan leaf in 1990 and kept in Guangzhou’s tea trade through the decades since. Yunnan’s state factories only brought [wet piling](shou:wet-piling) into production in 1973, so this brick comes from the second decade of the style."
+        "text": "This brick of [ripe pu’er](shou:definition) was made from Yunnan leaf in 1990 and spent the decades since in Guangzhou’s tea trade. That is close to where the style began: the pile was devised to give, in weeks, the cup that Guangdong and Hong Kong drinkers knew from raw pu’er aged for years. Yunnan’s state factories brought [wet piling](shou:wet-piling) into production in 1973, after a joint team studied faster piling in Guangdong, so this brick comes from the style’s second decade."
       },
       {
         "layer": "age",
-        "text": "Thirty-six years on, it is far past the ten years after which the trade calls a ripe pu’er [aged](shou:age-aged). How it was kept has shaped it as much as the years have."
+        "text": "At thirty-six years it is well past the ten that mark [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, which is why its storage has shaped it as much as its age."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole. Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
     },
     "notice": {
       "layer": "notice",
@@ -49,29 +49,35 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:age-aged",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing-pressed",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:notice-aged",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [
+    {
+      "sentence": "That is close to where the style began: the pile was devised to give, in weeks, the cup that Guangdong and Hong Kong drinkers knew from raw pu’er aged for years.",
+      "words": "That is close to where the style began",
+      "why": "Neither the record nor the claims says the style began in or near Guangzhou. The record says the wet-pile method was developed in Yunnan. The claims say Guangdong drinkers were the market and that faster piling was studied in Guangdong, not that the style began there."
+    }
+  ]
 }

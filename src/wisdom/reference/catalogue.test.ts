@@ -205,7 +205,7 @@ describe('sellable Tea Reference catalogue', () => {
       expect.objectContaining({ id: 'shou', familyId: 'puer', productIds: ['tea-shou-active'] }),
     ]);
     // Trade-knowledge sections carry no citation line.
-    expect(result.types.find(type => type.id === 'shou')?.facts.every(fact => fact.citations.length === 0)).toBe(true);
+    expect(result.types.find(type => type.id === 'shou')?.facts.every(fact => (fact.citations ?? []).length === 0)).toBe(true);
     expect(result.origins).toEqual([
       expect.objectContaining({ id: 'greater-yiwu', parentId: 'yunnan', productIds: ['tea-sheng-active'] }),
       expect.objectContaining({ id: 'menghai-county', parentId: 'yunnan', productIds: ['tea-sheng-sold-out', 'tea-shou-active'] }),

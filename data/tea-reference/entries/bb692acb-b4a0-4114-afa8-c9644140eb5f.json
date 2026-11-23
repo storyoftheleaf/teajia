@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-23T12:15:20.389Z",
+  "status": "approved",
+  "composedAt": "2026-11-23T12:51:32.089Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -24,16 +24,16 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "A loose [ripe pu’er](shou:definition) from the highlands of northern Vietnam, where they meet the Yunnan border. It belongs to a trade that has long run across that border. For generations, houses in Hong Kong and Guangzhou bought leaf from the Vietnamese side and made it into pu’er style tea, and this lot comes from that lineage."
+        "text": "This tea comes from the highlands of northern Vietnam, where the mountains run on into Yunnan. For generations, tea houses in Hong Kong and Guangzhou bought leaf from this side of the border and piled it in the pu’er way. This lot follows that line."
       },
       {
         "layer": "type",
-        "text": "The leaf was [heaped warm and damp](shou:wet-piling) so heat, moisture and microbes could work through it, then left loose to age rather than pressed. The method is the usual one for the style. What sets this tea apart is where the leaf grew."
+        "text": "It was made into [ripe pu’er](shou:definition). The leaf was wetted and heaped in a [warm pile](shou:wet-piling), which was covered to hold in the heat its own microbes give off and turned now and then to let in air. That way weeks do the change that raw pu’er needs years of ageing to reach. Afterwards it was aged loose rather than pressed."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
     },
     "notice": {
       "layer": "notice",
@@ -50,21 +50,22 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:common-impressions",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-23T12:58:04.195Z"
 }

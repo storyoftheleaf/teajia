@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-23T12:14:48.780Z",
+  "status": "approved",
+  "composedAt": "2026-11-23T12:51:00.343Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -24,16 +24,16 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "Loose leaf from Yunnan, made as [ripe pu’er](shou:definition) and then left unpressed to age. Its leaf went through the [wet pile](shou:wet-piling): it was wetted and heaped so that heat, moisture and microbes could work on it, then dried. Yunnan’s state factories brought that method into production in 1973."
+        "text": "A [ripe pu’er](shou:definition) from Yunnan, kept as loose leaf rather than pressed, and aged loose after it was made."
       },
       {
         "layer": "type",
-        "text": "Ripe pu’er is ready to drink soon after it is made, unlike raw pu’er, which usually waits years. The time this leaf has spent aging loose goes beyond what its making required."
+        "text": "Before the ageing began, the leaf went through the [wet pile](shou:wet-piling). Leaf dried in the sun is wetted and heaped so that heat, moisture and microbes can work on it. The microbes make their own heat, so the heap is covered to hold it in and turned about once a week to spread it and let in air, and it is kept below about 65°C so the leaf does not char. Yunnan’s state factories brought the method into production in 1973, to reach in weeks what raw pu’er reached only after years of waiting."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
     },
     "notice": {
       "layer": "notice",
@@ -50,21 +50,22 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:common-impressions",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-23T12:58:04.716Z"
 }

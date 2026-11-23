@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
 import {
   AXIS_INDENT,
@@ -28,6 +28,12 @@ const TeaTypePage: React.FC = () => {
   const { catalogue, products, isLoading, isError } = useTeaReferenceCatalogue();
   const type = catalogue?.types.find(entry => entry.id === id);
   const pilotData = useWisdomPilotData();
+  // A link from a tea's entry names a section; land on it once the page has loaded.
+  const location = useLocation();
+  useEffect(() => {
+    const target = decodeURIComponent(location.hash.replace(/^#/, ''));
+    if (target && type) document.getElementById(target)?.scrollIntoView({ block: 'start' });
+  }, [location.hash, type]);
   const draftTypePage = WISDOM_PILOT_PREVIEW
     && pilotData?.pages.some(page => page.id === id && page.kind === 'tea_type' && page.visibility === 'draft');
   const family = type ? catalogue?.families.find(entry => entry.id === type.familyId) : undefined;

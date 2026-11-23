@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-23T12:18:00.203Z",
+  "status": "approved",
+  "composedAt": "2026-11-23T12:54:26.427Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -20,16 +20,16 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "Loose [ripe pu’er](shou:definition) from Yunnan, made in the 1990s and kept in Guangzhou since. It was never pressed into a cake, so the leaf has aged loose, with more air around it than a cake or brick allows."
+        "text": "Loose [ripe pu’er](shou:definition) from Yunnan, made in the 1990s and stored in Guangzhou. It was never pressed into a cake or brick, so air moves freely through the leaf and it ages along a more even path."
       },
       {
         "layer": "age",
-        "text": "The leaf went through the [wet pile](shou:wet-piling) that Yunnan’s state factories brought into production in 1973. At thirty-one years it is well past the ten-year mark the trade uses for [aged ripe pu’er](shou:age-aged), and where it was stored has shaped it as much as the years have."
+        "text": "The leaf was fermented in a covered [wet pile](shou:wet-piling), a method Yunnan’s state factories brought into production in 1973 to give in weeks what raw pu’er took years to reach. At thirty-one years it is well past the decade that marks [aged ripe pu’er](shou:age-aged), and it keeps changing slowly with the air and moisture around it, which is why storage counts as much as the years."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
     },
     "notice": {
       "layer": "notice",
@@ -45,36 +45,26 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:age-aged",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:notice-aged",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Loose [ripe pu’er](shou:definition) from Yunnan, made in the 1990s and kept in Guangzhou since.",
-      "words": "kept in Guangzhou since",
-      "why": "The notes say only 'Stored in Guangzhou'. They do not say it has been stored there since it was made in the 1990s."
-    },
-    {
-      "sentence": "It was never pressed into a cake, so the leaf has aged loose, with more air around it than a cake or brick allows.",
-      "words": "or brick",
-      "why": "The notes compare loose leaf only with a cake. Neither the record nor any claim mentions bricks."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-23T12:58:03.824Z"
 }
