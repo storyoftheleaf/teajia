@@ -35,6 +35,7 @@ interface ProductDetailLayoutProps {
   identity: Omit<ComponentProps<typeof AlcoveIdentityHeader>, 'variant'>;
   gallery: Omit<ComponentProps<typeof AlcoveGallery>, 'layout' | 'onExpandImage'>;
   actions: ComponentProps<typeof ProductDetailActions>;
+  ownerPreviewNavigation?: ReactNode;
   facts: Fact[];
   factsTitle: string;
   order?: ReactNode;
@@ -47,16 +48,16 @@ interface ProductDetailLayoutProps {
 }
 
 export function ProductDetailLayout({
-  identity, gallery, actions, facts, factsTitle, order, character, reading, related, teaOrder, modals, soldOut,
+  identity, gallery, actions, facts, factsTitle, order, character, reading, related, teaOrder, modals, soldOut, ownerPreviewNavigation,
 }: ProductDetailLayoutProps) {
   const { shopHref, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
   const { item } = identity;
-  const photos = useTeaFamily(item.id);
+  const photos = useTeaFamily(ownerPreviewNavigation ? undefined : item.id);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const visibleFacts = facts.filter(fact => fact.value?.trim() || fact.content);
   return (
     <>
-      <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
+      {ownerPreviewNavigation ?? <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
         <Link
           to={shopHref}
           aria-label="Back to shop"
@@ -72,7 +73,7 @@ export function ProductDetailLayout({
           )}
         </Link>
         <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
-      </div>
+      </div>}
 
       <article className="tea-product-page mx-auto w-full max-w-screen-xl" data-sold-out={soldOut || undefined}>
         <div className="tea-product-layout">
@@ -87,7 +88,7 @@ export function ProductDetailLayout({
           </div>
           <div className="tea-product-reading">
             <AlcoveGallery key={actions.productId} {...gallery} layout="page" onExpandImage={setExpandedImage} />
-            <ProductDetailActions {...actions} key={item.id} />
+            {!ownerPreviewNavigation && <ProductDetailActions {...actions} key={item.id} />}
             {visibleFacts.length > 0 && (
               <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">
                 <h2 id="tea-product-provenance-title" className="m-0 font-display text-ui-20 text-tea-text">{factsTitle}</h2>

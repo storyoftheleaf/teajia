@@ -180,6 +180,7 @@ import { handleCurateWorkspace } from './curateWorkspaceRoutes';
 import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
+import { serveYixingOwnerReview } from './yixingOwnerReview';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
 import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
@@ -31339,6 +31340,10 @@ const requestHandler = {
       };
       if (corsOrigin) headers['Access-Control-Allow-Origin'] = corsOrigin;
       return new Response(null, { status: 204, headers });
+    }
+
+    if (url.pathname === '/api/admin/yixing' || url.pathname.startsWith('/api/admin/yixing/')) {
+      return cors(await serveYixingOwnerReview(request, env, () => getActiveAccount(request, env)), corsOrigin);
     }
 
     // Same-origin media serving, straight from the R2 binding. Uploaded photos
