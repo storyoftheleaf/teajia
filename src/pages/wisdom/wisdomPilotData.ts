@@ -99,7 +99,7 @@ export function useWisdomPilotData(): WisdomPilotData | null {
   }, []);
   // The pilot panel's revision switch (an in-memory override, never an approval)
   // drives every pilot surface: listings, the grade page and the article flag.
-  const overrides = useSyncExternalStore(revisionOverrideStore.subscribe, revisionOverrideStore.get);
+  const overrides = useSyncExternalStore(revisionOverrideStore.subscribe, revisionOverrideStore.get, revisionOverrideStore.get);
   return useMemo(() => {
     if (!data || !WISDOM_PILOT_PREVIEW) return data;
     return { ...data, claims: applyRevisionOverrides(data.claims, overrides) };

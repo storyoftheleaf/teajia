@@ -43,6 +43,7 @@ import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { resolveLineage } from '../wisdom/TeaLineage';
 import { regionElevationPresentation } from '../../wisdom/regions';
 import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, passageHref, useWisdomListing } from './alcove/AlcoveWisdomPassages';
+import { AlcoveComposedEntry } from './alcove/AlcoveComposedEntry';
 import { EMPTY_LISTING_PASSAGES, resolveListingPassages } from '../../wisdom/reference/listingPassages';
 import { listingFactsFromInventoryItem } from '../../wisdom/reference/listingFacts';
 
@@ -544,7 +545,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     ? resolveProductResearch(referenceProduct)
     : null;
   const wisdomPassages = item.category === 'tea'
-    ? resolveListingPassages(wisdomListing.facts ?? listingFactsFromInventoryItem(item), wisdomListing.claims)
+    ? resolveListingPassages(wisdomListing.facts ?? listingFactsFromInventoryItem(item), wisdomListing.composed ? [] : wisdomListing.claims)
     : EMPTY_LISTING_PASSAGES;
   const passageFor = (field: 'region' | 'location' | 'type' | 'grade' | 'format') =>
     wisdomPassages.passages.find(passage => passage.gridField === field);
@@ -760,7 +761,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 <FactGrid facts={facts} />
               </section>
             )}
-            <AlcoveWisdomPassages listing={wisdomPassages} />
+            {wisdomListing.composed
+              ? <AlcoveComposedEntry entry={wisdomListing.composed} claims={wisdomListing.claims} />
+              : <AlcoveWisdomPassages listing={wisdomPassages} />}
             {!wisdomPilot?.externalReference && <div data-page-order data-tea-product-order className="commerce-dock commerce-price-surface paper-surface dark z-nav">
               {commerceFooter('docked')}
             </div>}

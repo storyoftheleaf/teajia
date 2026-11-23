@@ -14,9 +14,9 @@
  * tea type when it is public, and the articles that cite the grade. A
  * signed-out reader gets published articles and public pages only.
  */
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getTokenClaims } from '../../lib/api';
 import { wisdomClaimUsesApi } from '../../lib/wisdomClaimUsesApi';
@@ -67,12 +67,6 @@ const ClaimDetail: React.FC<{ claim: AnyClaim; sources: readonly PublicTeaRefere
     .filter((source): source is PublicTeaReferenceSource => Boolean(source));
   return (
     <div className={`mt-2 space-y-2 ${MEASURE} min-w-0`} data-claim-id={claim.claimId}>
-      {claim.scope && (
-        <p className={`${FOOTNOTE} min-w-0 break-words`}>
-          <span className={LABEL}>Scope</span>{' '}
-          <span data-claim-scope>{claim.scope}</span>
-        </p>
-      )}
       {claim.attribution && (
         <p className={`${FOOTNOTE} min-w-0 break-words`}>
           <span className={LABEL}>Observed on</span> {claim.attribution.sample}
@@ -103,12 +97,25 @@ const ClaimDetail: React.FC<{ claim: AnyClaim; sources: readonly PublicTeaRefere
   );
 };
 
-const GradePage: React.FC = () => {
+type ClaimPageKind = 'leaf_grade' | 'tea_type';
+const KIND_COPY: Record<ClaimPageKind, { label: string; plural: string; nav: 'marks' | 'types'; back: string; backLabel: string }> = {
+  leaf_grade: { label: 'Leaf grade', plural: 'Leaf grades', nav: 'marks', back: '/wisdom/marks', backLabel: 'All marks' },
+  tea_type: { label: 'Tea type', plural: 'Tea types', nav: 'types', back: '/wisdom/types', backLabel: 'All tea types' },
+};
+
+/**
+ * A Wisdom page built from its claims. Leaf grades always render here; a tea
+ * type renders here only in preview, while its Markdown page is still a draft
+ * and the public type page has nothing to show.
+ */
+export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_grade' }) => {
+  const copy = KIND_COPY[kind];
   const { id = '' } = useParams<{ id: string }>();
+  const location = useLocation();
   const data = useWisdomPilotData();
   const signedIn = Boolean(getTokenClaims());
 
-  const page = data?.pages.find(candidate => candidate.id === id && candidate.kind === 'leaf_grade');
+  const page = data?.pages.find(candidate => candidate.id === id && candidate.kind === kind);
   const claims = useMemo(
     () => {
       if (!page || !data) return [];
@@ -141,14 +148,20 @@ const GradePage: React.FC = () => {
     article.status === undefined || article.status === 'published' || (signedIn && article.status === 'draft')
   ));
 
+  // A link from a tea's entry lands on the section it named.
+  useEffect(() => {
+    const target = decodeURIComponent(location.hash.replace(/^#/, ''));
+    if (target && claims.length) document.getElementById(target)?.scrollIntoView({ block: 'start' });
+  }, [location.hash, claims.length]);
+
   if (data && !page) {
     return (
       <HoldingNotFound
-        section="marks"
-        heading="Leaf grade not found"
-        backTo="/wisdom/marks"
-        backLabel="All marks"
-        subject="A leaf grade that is missing"
+        section={copy.nav}
+        heading={`${copy.label} not found`}
+        backTo={copy.back}
+        backLabel={copy.backLabel}
+        subject={`A ${copy.label.toLowerCase()} that is missing`}
       />
     );
   }
@@ -156,12 +169,12 @@ const GradePage: React.FC = () => {
   return (
     <article className={PREVIEW_PAGE} data-wisdom-grade-page="true">
       <Helmet>
-        <title>{page ? `${page.label} · Leaf grades · Teajia` : 'Leaf grade · Teajia'}</title>
+        <title>{page ? `${page.label} · ${copy.plural} · Teajia` : `${copy.label} · Teajia`}</title>
         {page?.visibility === 'draft' && <meta name="robots" content="noindex" />}
       </Helmet>
-      <WisdomSubNav active="marks" />
+      <WisdomSubNav active={copy.nav} />
       <div className="mt-7">
-        <PageHead kind="Leaf grade" title={page?.label ?? 'Leaf grade'} chineseName={page?.nativeName} />
+        <PageHead kind={copy.label} title={page?.label ?? copy.label} chineseName={page?.nativeName} />
         {page?.visibility === 'draft' && (
           <p className={`${FOOTNOTE} mt-3 ${MEASURE}`} data-wisdom-draft-notice>
             Draft. Shown in preview only{data?.usesFixtures ? ', from pilot fixtures' : ''}.
@@ -212,7 +225,7 @@ const GradePage: React.FC = () => {
             facts={statements}
             sources={data.sources}
             products={[]}
-            reportIdentity={`Leaf grade: ${page.label}`}
+            reportIdentity={`${copy.label}: ${page.label}`}
             factDetail={fact => {
               const claim = claimById.get(fact.id);
               return claim ? <ClaimDetail claim={claim} sources={data.sources} /> : null;
@@ -229,5 +242,7 @@ const GradePage: React.FC = () => {
     </article>
   );
 };
+
+const GradePage: React.FC = () => <ClaimPage kind="leaf_grade" />;
 
 export default GradePage;

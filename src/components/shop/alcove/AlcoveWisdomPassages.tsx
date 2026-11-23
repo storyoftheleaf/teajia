@@ -6,6 +6,7 @@ import type {
   PublicClaim,
 } from '../../../wisdom/reference/claims';
 import { passageAnchorId } from '../../../wisdom/reference/listingPassages';
+import type { ComposedEntry } from '../../../wisdom/reference/composedEntry';
 import { BODY, FIELD_GAP, LABEL, LINK } from '../../shared/typeRoles';
 
 /**
@@ -20,6 +21,8 @@ export interface WisdomListingContextValue {
   claims: readonly PublicClaim[];
   /** Replaces the facts built from the product (the type-only fixture). */
   facts?: ListingFacts;
+  /** The tea's one written entry. When present it replaces the stacked passages and style references. */
+  composed?: ComposedEntry;
   pilot?: {
     /** External reference example: no price, order, Taste, Collect or sign-in. */
     externalReference?: boolean;

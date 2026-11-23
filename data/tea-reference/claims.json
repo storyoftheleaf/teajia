@@ -555,6 +555,78 @@
       "withdrawn": null
     },
     {
+      "claim_id": "shou:age-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "陈香",
+          "pinyin": "chén xiāng",
+          "gloss": "aged aroma"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "shou:age-settling",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "shou:age-young",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "堆味",
+          "pinyin": "duī wèi",
+          "gloss": "pile taste"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "shou:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
       "claim_id": "shou:common-impressions",
       "basis": "trade_knowledge",
       "axis": "sensory_observation",

@@ -14,6 +14,7 @@ import { loadWisdomPilotData } from '../../wisdom/wisdomPilotData';
 import { PILOT_FIXTURES, type PilotFixture } from './fixtureProducts';
 import { applyRevisionOverrides, revisionChoices, revisionOverrideStore, type RevisionChoice, type RevisionOverrides } from './revisionOverride';
 import { installPilotApiStub, stubbedCalls } from './stubApi';
+import { COMPOSED_FIXTURES, type ComposedFixture } from './composedFixtures';
 
 installPilotApiStub();
 
@@ -53,6 +54,26 @@ const ListingPage: React.FC<{ fixture: PilotFixture; claims: readonly PublicClai
   </div>
   );
 };
+
+const COMPOSED_ORDER: ComposedFixture['slug'][] = ['naka', 'ripe-brick'];
+
+/** Phase 1 target: one written entry in place of the stacked passages. */
+const ComposedPage: React.FC<{ fixture: ComposedFixture; claims: readonly PublicClaim[] }> = ({ fixture, claims }) => (
+  <div className="min-w-0 pb-nav" data-composed-fixture={fixture.slug}>
+    <div className="mx-4 mt-4 grid gap-1 border-b border-tea-border pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} m-0 text-tea-text-sec`}>Composed entry preview · {fixture.title}</p>
+        <Link to={BASE} className={`${TYPOGRAPHY_CLASSES.link} tap-target inline-flex items-center`}>All pilot pages</Link>
+      </div>
+      <p className={`${TYPOGRAPHY_CLASSES.bodyLight} m-0 text-tea-text-dim`} data-builder-only>
+        For you, not customers · would make it richer: {fixture.entry.missing.join(' · ')}
+      </p>
+    </div>
+    <WisdomListingProvider value={{ claims, composed: fixture.entry }}>
+      <AlcoveCard item={fixture.item} layout="page" />
+    </WisdomListingProvider>
+  </div>
+);
 
 const IndexPage: React.FC<{
   claims: readonly PublicClaim[];
@@ -96,6 +117,18 @@ const IndexPage: React.FC<{
           );
         })}
         <Button variant="quiet" size="sm" className="mt-4" onClick={onReset}>Reset to the fixture</Button>
+      </section>
+
+      <section className="mt-10" aria-labelledby="pilot-composed">
+        <h2 id="pilot-composed" className={`${TYPOGRAPHY_CLASSES.h2} m-0 text-tea-text`}>Composed entries (phase 1)</h2>
+        <ul className="m-0 mt-2 list-none p-0">
+          {COMPOSED_ORDER.map(slug => (
+            <li key={slug} className="mt-6 min-w-0 border-t border-tea-border pt-4">
+              <Link to={`${BASE}/composed/${slug}`} className={`${TYPOGRAPHY_CLASSES.link} tap-target inline-flex items-center`}>{COMPOSED_FIXTURES[slug].title}</Link>
+              <p className={`${TYPOGRAPHY_CLASSES.bodyLight} m-0 mt-1 text-tea-text-sec`}>{COMPOSED_FIXTURES[slug].note}</p>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="mt-10" aria-labelledby="pilot-pages">
@@ -170,6 +203,9 @@ export const WisdomPilotPreview: React.FC<{ claims?: readonly PublicClaim[] }> =
         />
         {ORDER.map(slug => (
           <Route key={slug} path={slug} element={<ListingPage fixture={PILOT_FIXTURES[slug]} claims={claims} />} />
+        ))}
+        {COMPOSED_ORDER.map(slug => (
+          <Route key={`composed-${slug}`} path={`composed/${slug}`} element={<ComposedPage fixture={COMPOSED_FIXTURES[slug]} claims={claims} />} />
         ))}
       </Routes>
     </QueryClientProvider>

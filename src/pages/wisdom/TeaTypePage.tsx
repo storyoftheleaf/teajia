@@ -20,11 +20,16 @@ import {
 } from './wisdomShared';
 import ReferenceFactSections from './ReferenceFactSections';
 import { previewPlaceLevel } from './previewOriginMetadata';
+import { ClaimPage } from './GradePage';
+import { WISDOM_PILOT_PREVIEW, useWisdomPilotData } from './wisdomPilotData';
 
 const TeaTypePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { catalogue, products, isLoading, isError } = useTeaReferenceCatalogue();
   const type = catalogue?.types.find(entry => entry.id === id);
+  const pilotData = useWisdomPilotData();
+  const draftTypePage = WISDOM_PILOT_PREVIEW
+    && pilotData?.pages.some(page => page.id === id && page.kind === 'tea_type' && page.visibility === 'draft');
   const family = type ? catalogue?.families.find(entry => entry.id === type.familyId) : undefined;
   const connectedOrigins = type && catalogue
     ? catalogue.origins.filter(origin => origin.productIds.some(productId => type.productIds.includes(productId)))
@@ -32,6 +37,9 @@ const TeaTypePage: React.FC = () => {
   const displayedOrigins = connectedOrigins.filter(origin => (
     !connectedOrigins.some(candidate => candidate.parentId === origin.id)
   ));
+
+  // Preview only: a type whose Wisdom page is still a draft is shown from its claims.
+  if (catalogue && !type && draftTypePage) return <ClaimPage kind="tea_type" />;
 
   if (catalogue && !type) {
     return (
