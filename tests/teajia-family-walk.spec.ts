@@ -344,7 +344,7 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       await expect(page.getByRole('button', { name: 'Stop recording' })).toBeVisible();
       await page.waitForTimeout(1500);
       await page.getByRole('button', { name: 'Stop recording' }).click();
-      await expect(page.getByRole('textbox', { name: 'Your notes' })).toHaveValue(new RegExp(SPOKEN), { timeout: 20_000 });
+      await expect(page.getByRole('textbox', { name: 'Your experience with this tea' })).toHaveValue(new RegExp(SPOKEN), { timeout: 20_000 });
       expect(sent).not.toBeNull();
       seen.push(`the recording went to /api/transcribe as ${sent!.type.split(';')[0]}, ${sent!.bytes} bytes, signed in: ${sent!.auth.startsWith('Bearer ')}`);
       expect(sent!.auth).toBe(`Bearer ${strangerToken}`);
@@ -354,11 +354,11 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       await page.screenshot({ path: shot(3, 'spoken-words-in-the-note') });
     });
 
-    await line(4, 'They tap the camera on the Impression page and again on the taste page; both show in "Your photographs", above "Your notes"', async (seen) => {
+    await line(4, 'They add photos in the Impression page above the experience box', async (seen) => {
       const row = page.getByRole('group', { name: 'Your photographs' });
       await expect(row).toBeVisible();
       const input = page.getByTestId('tasting-photo-input');
-      const camera = page.getByRole('button', { name: 'Add a photograph' });
+      const camera = row.getByRole('button', { name: 'Add photographs' });
       await expect(camera).toBeVisible();
       // The first is a camera-sized picture carrying a GPS position (line 17 measures what was stored).
       const raw = await bigJpeg(page);
@@ -371,25 +371,27 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       expect(response.status()).toBe(201);
       bigPhoto = (await response.json()).photograph;
       await expect(row.locator('img')).toHaveCount(1, { timeout: 20_000 });
-      // The taste page: the same camera in the header.
+      // The taste page has no upload control. Return to the Impression page for the second photo.
       // The tea page under the tasting has a Taste button of its own; the tasting's tab is the last one showing.
       await page.getByRole('button', { name: /^Taste/ }).filter({ visible: true }).last().click();
+      await expect(camera).toHaveCount(0);
+      await page.getByRole('button', { name: 'Open your impression' }).click();
       await expect(camera).toBeVisible();
       const second = page.waitForResponse(r => r.url().includes('/api/family/photographs') && r.request().method() === 'POST');
       await input.setInputFiles({ name: 'IMG_0002.jpg', mimeType: 'image/jpeg', buffer: await jpeg(page, 1600, 1200) });
       expect((await second).status()).toBe(201);
       const now = await mine();
       seen.push(`pages recorded for the two photographs: ${JSON.stringify(now.photographs.map((p: { page: string }) => p.page))}`);
-      expect(now.photographs.map((p: { page: string }) => p.page).sort()).toEqual(['impression', 'taste']);
+      expect(now.photographs.map((p: { page: string }) => p.page).sort()).toEqual(['impression', 'impression']);
       await page.getByRole('button', { name: 'Open your impression' }).click();
       const rowAgain = page.getByRole('group', { name: 'Your photographs' });
       await expect(rowAgain.locator('img')).toHaveCount(2);
       const rowY = (await rowAgain.boundingBox())!.y;
-      const notesY = (await page.getByText('Your notes', { exact: true }).boundingBox())!.y;
+      const notesY = (await page.getByRole('textbox', { name: 'Your experience with this tea' }).boundingBox())!.y;
       seen.push(`"Your photographs" at y=${Math.round(rowY)}, "Your notes" at y=${Math.round(notesY)}`);
       expect(rowY).toBeLessThan(notesY);
-      await expect(page.getByRole('group', { name: 'Your photographs' }).locator('.tasting-photo-box').getByRole('link', { name: 'How we use photographs' })).toBeVisible();
-  await expect(page.getByText('may be shown on Teajia')).toHaveCount(0);
+      await expect(rowAgain.getByRole('link', { name: 'How we use photographs' })).toHaveCount(0);
+      await expect(page.getByText('may be shown on Teajia')).toHaveCount(0);
       await rowAgain.scrollIntoViewIfNeeded();
       await page.screenshot({ path: shot(4, 'two-photographs-above-notes') });
     });
@@ -420,7 +422,7 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
     let shareSeen: string[] = [];
     await test.step('save the first sitting and share it (line 7 continues below)', async () => {
       try {
-        await page.getByRole('textbox', { name: 'Your notes' }).fill(`${SPOKEN}. First sitting ${tag}.`);
+        await page.getByRole('textbox', { name: 'Your experience with this tea' }).fill(`${SPOKEN}. First sitting ${tag}.`);
         await page.getByRole('button', { name: 'Save tasting' }).click();
         const share = page.getByRole('dialog', { name: 'Share this tasting' });
         await expect(share).toBeVisible({ timeout: 20_000 });
@@ -450,7 +452,7 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       const earlier = tomorrow.getByRole('region', { name: 'Earlier notes' });
       await expect(earlier).toBeVisible();
       await expect(earlier.getByText(`First sitting ${tag}`)).toBeVisible();
-      const notes = tomorrow.getByRole('textbox', { name: 'Your notes' });
+      const notes = tomorrow.getByRole('textbox', { name: 'Your experience with this tea' });
       await expect(notes).toHaveValue('');
       await notes.fill(`Second sitting ${tag}: the leaf opened fully.`);
       const saved = tomorrow.waitForResponse(r => /\/api\/(me\/)?(tasting|journal|notes)/.test(r.url()) && ['PUT', 'POST'].includes(r.request().method()), { timeout: 20_000 }).catch(() => null);
@@ -859,18 +861,14 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       await expect(ownerPage.getByText(teaName).first()).toBeVisible({ timeout: 30_000 });
       await ownerPage.getByRole('button', { name: /Add your tasting|Note|^Taste$/ }).first().click();
       await expect(ownerPage.locator('.tasting-header-controls')).toBeVisible({ timeout: 20_000 });
-      const mic = ownerPage.getByRole('button', { name: 'Record into your notes' });
-      const camera = ownerPage.getByRole('button', { name: 'Add a photograph' });
-      await expect(mic).toBeVisible();
-      await expect(camera).toBeVisible();
-      const m = (await mic.boundingBox())!; const c = (await camera.boundingBox())!;
-      seen.push(`owner's tasting header: microphone at x=${Math.round(m.x)}, camera at x=${Math.round(c.x)}, same row: ${Math.abs(m.y - c.y) < 2}`);
-      expect(Math.abs(m.y - c.y)).toBeLessThan(2);
+      const header = ownerPage.locator('.tasting-header-controls');
+      await expect(header.getByRole('button', { name: 'Record into your notes' })).toBeVisible();
+      await expect(header.getByRole('button', { name: 'Add photographs' })).toHaveCount(0);
       await ownerPage.getByRole('button', { name: 'Open your impression' }).click();
       const row = ownerPage.getByRole('group', { name: 'Your photographs' });
-      await expect(row).toBeVisible();
-      const notesLabel = ownerPage.getByText(/^(Your notes|Notes for the host|Personal notes)$/).first();
-      expect((await row.boundingBox())!.y).toBeLessThan((await notesLabel.boundingBox())!.y);
+      await expect(row.getByRole('button', { name: 'Add photographs' })).toBeVisible();
+      const notes = ownerPage.getByRole('textbox', { name: /^(Your experience with this tea|Your notes|Notes for the host|Personal notes)$/ });
+      expect((await row.boundingBox())!.y).toBeLessThan((await notes.boundingBox())!.y);
       // It works there too: one photograph from the owner's tasting.
       const up = ownerPage.waitForResponse(r => r.url().includes('/api/family/photographs') && r.request().method() === 'POST');
       await ownerPage.getByTestId('tasting-photo-input').setInputFiles({ name: 'owner.jpg', mimeType: 'image/jpeg', buffer: await jpeg(ownerPage, 1200, 900) });

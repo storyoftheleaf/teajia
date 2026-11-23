@@ -14,6 +14,9 @@ import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { VendorDetails } from './types';
+import { VendorFace } from '../vendors/VendorFace';
+import { VendorFaceSheet, VendorFacesButton } from '../vendors/VendorFaceSheet';
+import { toFaceVendor } from '../vendors/vendorFaces';
 
 /* ── Location parsing ───────────────────────────────────────
  * Pull WGS-84 coordinates out of a pasted map link OR a plain "lat, lng"
@@ -89,7 +92,9 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   onDetailsChange,
   linkedCustomerId,
   onLinkedCustomerChange,
-  showContactMenu = true,
+  // Off by default (Adrian, 2026-11-23): the bar is for choosing a vendor;
+  // contacts, photos and addresses are edited on the vendor's own page.
+  showContactMenu = false,
 }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -101,6 +106,14 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const vendors = useMemo(() => (customers.data ?? []).filter(customer =>
     customer.tags?.some(tag => tag.toLowerCase() === 'vendor')), [customers.data]);
   const [creatingNew, setCreatingNew] = useState(false);
+  // Pick by face (Adrian, 2026-11-23): every vendor as a photo, for when the
+  // face comes back before the name does.
+  const [facesOpen, setFacesOpen] = useState(false);
+  // Opening the faces fetches the list again, so a face added a moment ago
+  // (on another device, or on the vendor's page) shows straight away.
+  useEffect(() => { if (facesOpen) void customers.refetch(); }, [facesOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const faceVendors = useMemo(() => vendors.map(vendor => toFaceVendor(vendor)), [vendors]);
+  const photoByName = useMemo(() => new Map(faceVendors.map(v => [v.name.toLowerCase(), v.photo])), [faceVendors]);
   const [newName, setNewName] = useState('');
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [locInput, setLocInput] = useState('');
@@ -484,7 +497,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
         </div>}
         {/* Storefront photo, shown inline so it's actually visible once added,
             not hidden inside the contact menu. Tap to update. */}
-        {vendorDetails?.storefrontUrl && (
+        {showContactMenu && vendorDetails?.storefrontUrl && (
           <button
             type="button"
             onClick={() => storefrontRef.current?.click()}
@@ -515,6 +528,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             >
               <X size={14} />
             </button>
+            <VendorFacesButton onClick={() => setFacesOpen(true)} label="" />
           </>
         ) : (
           <div className="flex-1 min-w-0 relative">
@@ -534,7 +548,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 }
                 if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); }
               }}
-              placeholder="Select vendor..."
+              placeholder="Type a name"
               className="min-h-tap w-full input-warm text-base rounded-md px-3 py-2.5 outline-none placeholder:text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
             />
             <AnimatePresence>
@@ -548,6 +562,13 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   className="absolute top-full left-0 right-0 z-30 mt-1 bg-tea-surface rounded-xl shadow-lg border border-tea-border overflow-hidden"
                   style={{ minWidth: '200px' }}
                 >
+                  {/* First option: pick by face (Adrian, 2026-11-23: "if I click
+                      vendor, I could say show photos as the top option"). */}
+                  <VendorFacesButton
+                    label="Show faces"
+                    onClick={() => { setSearchOpen(false); setFacesOpen(true); }}
+                    className="w-full !justify-start rounded-none px-3 text-tea-gold"
+                  />
                   {/* Filtered vendor list */}
                   {(() => {
                     const q = searchQuery.toLowerCase();
@@ -581,7 +602,10 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                             }}
                             className="tap-target flex min-h-tap items-center justify-between w-full px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
                           >
-                            <span>{v.name}</span>
+                            <span className="flex min-w-0 items-center gap-2">
+                              <VendorFace name={v.name} photo={photoByName.get(v.name.toLowerCase())} size={24} />
+                              <span className="truncate">{v.name}</span>
+                            </span>
                             {v.isRecent && <span className="text-ui-12 text-tea-text-dim shrink-0 ml-2">recent</span>}
                           </button>
                         ))}
@@ -616,7 +640,37 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             </AnimatePresence>
           </div>
         )}
+        {!vendorName && (
+          <>
+            <VendorFacesButton onClick={() => { setSearchOpen(false); setFacesOpen(true); }} />
+            {/* A new person in one tap: the typed name, or a name field. */}
+            <Button
+              type="button"
+              variant="quiet"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const typed = searchQuery.trim();
+                setSearchOpen(false);
+                if (typed) { void handleSelectVendor(undefined, typed); setSearchQuery(''); }
+                else { setCreatingNew(true); setPickerOpen(true); }
+              }}
+              aria-label="Add a new vendor"
+              className="shrink-0 text-tea-gold"
+              icon={<Plus size={16} strokeWidth={2} aria-hidden="true" />}
+            >
+              New
+            </Button>
+          </>
+        )}
       </div>
+      <VendorFaceSheet
+        open={facesOpen}
+        onClose={() => setFacesOpen(false)}
+        vendors={faceVendors}
+        loading={customers.isFetching}
+        selectedName={vendorName}
+        onPick={v => { setSearchQuery(''); setSearchOpen(false); void handleSelectVendor(v.id, v.name); }}
+      />
 
       {/* ── New vendor input (only when creating) ── */}
       <AnimatePresence>

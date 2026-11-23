@@ -101,7 +101,11 @@ describe('article Wisdom claim uses', () => {
   it('serves a draft’s uses to its editor and never to a signed-out reader', async () => {
     const { env } = setup();
     await call(env, 'PUT', '/api/admin/articles/grade-draft/wisdom-claim-uses', EDITOR, { uses: USES });
-    await call(env, 'PUT', '/api/admin/articles/grade-live/wisdom-claim-uses', EDITOR, { uses: [USES[1]] });
+    await call(env, 'PUT', '/api/admin/articles/grade-live/wisdom-claim-uses', EDITOR, { uses: [
+      USES[1],
+      { ...USES[1], claim_id: 'menghai-county:scope' },
+      { ...USES[1], claim_id: 'menghai-county:unpublished' },
+    ] });
 
     const admin = await (await call(env, 'GET', '/api/admin/wisdom-claim-uses?page_id=gong-ting', EDITOR)).json() as any;
     expect(admin.articles.map((article: any) => [article.id, article.status])).toEqual([
@@ -111,8 +115,14 @@ describe('article Wisdom claim uses', () => {
     expect(admin.articles[0].claim_ids).toEqual(['gong-ting:common-impressions', 'gong-ting:definition']);
 
     const reader = await (await call(env, 'GET', '/api/wisdom/claim-uses/articles?page_id=gong-ting', null)).json() as any;
-    expect(reader.articles).toEqual([
-      { id: 'grade-live', title: 'Title grade-live', slug: 'a-published-grade-piece', claim_ids: ['gong-ting:definition'] },
+    expect(reader.articles).toEqual([]);
+    const owner = await (await call(env, 'GET', '/api/admin/articles/grade-live/wisdom-claim-uses', EDITOR)).json() as any;
+    expect(owner.history).toHaveLength(1);
+    expect(owner.history[0]).toMatchObject({ claim_id: 'menghai-county:scope', rev_used: 1, withdrawn: false });
+    expect(owner.history[0].text.length).toBeGreaterThan(0);
+    const published = await (await call(env, 'GET', '/api/wisdom/claim-uses/articles?page_id=menghai-county', null)).json() as any;
+    expect(published.articles).toEqual([
+      { id: 'grade-live', title: 'Title grade-live', slug: 'a-published-grade-piece', claim_ids: ['menghai-county:scope'] },
     ]);
 
     // The draft itself is not found for a signed-out reader.
@@ -121,7 +131,7 @@ describe('article Wisdom claim uses', () => {
     // The published article carries its uses.
     const live = await (await call(env, 'GET', '/api/articles/a-published-grade-piece', null)).json() as any;
     expect(live.wisdom_claim_uses).toEqual([
-      { article_id: 'grade-live', block_index: 1, claim_id: 'gong-ting:definition', rev_used: 1, use_kind: 'prose' },
+      { article_id: 'grade-live', block_index: 1, claim_id: 'menghai-county:scope', rev_used: 1, use_kind: 'prose' },
     ]);
   });
 

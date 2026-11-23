@@ -1,213 +1,214 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, expect, it } from 'vitest';
 import worker from '../src/index';
+import { seedIdentity, signedToken, SqliteD1 } from './helpers/sqliteD1';
 
-const SECRET = 'curation-secret';
+const databases: SqliteD1[] = [];
+afterEach(() => databases.splice(0).forEach(db => db.close()));
 
-async function token(user = 'member', email = 'member@test') {
-  const encode = (value: unknown) => btoa(JSON.stringify(value));
-  const now = Math.floor(Date.now() / 1000);
-  const data = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: user, email, name: 'Member', active_account_id: 'a', iat: now, exp: now + 3600 })}`;
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
-  return `${data}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`;
+const offerData = { excerpt: 'Orchid over warm stone', byline: 'M.' };
+const offerPath = '/api/tasting-journal/journal-a/offers/sitting-a';
+const queue = '/api/admin/tasting-note-candidates';
+const direct = '/api/admin/customer-tasting-notes';
+const listing = '/api/products/lot-a/impressions';
+const main = '/api/s/shop-a/tasting-excerpts';
+
+async function setup(guestAccount = 'shop-a') {
+  const db = new SqliteD1('migrations');
+  databases.push(db);
+  const JWT_SECRET = 'synthetic-tasting-excerpts';
+  const publisher = seedIdentity(db, { userId: 'publisher', accountId: 'shop-a' });
+  const catalog = seedIdentity(db, { userId: 'catalog', accountId: 'shop-a', role: 'staff', bundles: ['catalog'] });
+  const other = seedIdentity(db, { userId: 'other', accountId: 'shop-b' });
+  // The ordinary guest has no staff membership in either shop.
+  db.exec("INSERT INTO users (id, email, name, password_hash) VALUES ('guest', 'guest@test.dev', 'Private name', 'test')");
+  const guest = { userId: 'guest', email: 'guest@test.dev', accountId: guestAccount };
+  db.exec(`
+    INSERT INTO products (id, account_id, product_name, type, status, is_public, shown_in_shop,
+                          stock_grams, stock_known_at, fixed_retail_price_usd)
+    VALUES ('lot-a', 'shop-a', 'Spring Oolong', 'Oolong', 'Active', 1, 1, 100, '2026-11-21', 1),
+           ('lot-b', 'shop-a', 'Spring Oolong', 'Oolong', 'Active', 1, 1, 100, '2026-11-21', 1)
+  `);
+
+  const identities = { guest, publisher, catalog, other };
+  const sessions = new Map(await Promise.all(Object.entries(identities).map(async ([role, me]) => [
+    role, await signedToken(JWT_SECRET, { sub: me.userId, email: me.email, active_account_id: me.accountId }),
+  ] as const)));
+
+  async function call(path: string, method = 'GET', body?: unknown, role?: keyof typeof identities) {
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    if (role) headers.set('Authorization', `Bearer ${sessions.get(role)}`);
+    const response = await worker.fetch(new Request(`https://demo.test${path}`, {
+      method, headers, body: body === undefined ? undefined : JSON.stringify(body),
+    }), { DB: db, JWT_SECRET } as never, { waitUntil() {} } as never);
+    return { status: response.status, body: await response.json() as any, cache: response.headers.get('Cache-Control') };
+  }
+
+  const saved = await call('/api/tasting-journal', 'POST', {
+    id: 'journal-a', product_id: 'lot-a',
+    note: { personalNote: 'Private journal paragraph.' },
+    tastings: [{ id: 'sitting-a', tasting: { voiceNote: 'Orchid over warm stone. Private sitting detail.' } }],
+  }, 'guest');
+  expect(saved).toMatchObject({ status: 201, body: { id: 'journal-a' } });
+  return { db, call };
 }
 
-type Row = Record<string, any>;
-const normalized = (sql: string) => sql.replace(/\s+/g, ' ').trim().toLowerCase();
+it('keeps the journal and legacy stars out of review and proves exact-lot consent through both placements', async () => {
+  const { db, call } = await setup();
+  expect((await call(direct, 'GET', undefined, 'publisher')).body).toEqual([]);
+  expect((await call(`${direct}/decide`, 'POST', {
+    journal_entry_id: 'journal-a', note_key: 'personal', source_text: 'Private journal paragraph.',
+  }, 'publisher')).status).toBe(404);
+  db.exec(`
+    INSERT INTO tasting_note_candidates
+      (id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text)
+    VALUES ('legacy-star', 'shop-a', 'journal-a', 'sitting-a', 'lot-a', 'guest', 'Private sitting detail.')
+  `);
+  expect((await call(queue, 'GET', undefined, 'publisher')).body).toEqual([]);
+  expect((await call(`${queue}/legacy-star/promote`, 'POST', {}, 'publisher')).status).toBe(404);
+  expect((await call(offerPath, 'PUT', offerData)).status).toBe(401);
+  expect((await call(offerPath, 'PUT', offerData, 'other')).status).toBe(404);
+  expect((await call(offerPath, 'PUT', { ...offerData, byline: ' ' }, 'guest')).status).toBe(400);
+  expect((await call(offerPath, 'PUT', { ...offerData, excerpt: 'Private journal paragraph.' }, 'guest')).status).toBe(422);
+  expect((await call(offerPath, 'PUT', { ...offerData, excerpt: 'Made up' }, 'guest')).status).toBe(422);
 
-class Db {
-  candidates: Row[] = [];
-  impressions: Row[] = [];
-  failImpressionInsert = false;
-  transitionOnEdit = false;
-  constructor(private bundles: string[] = ['publish']) {}
-  prepare(sql: string) { return new Statement(this, sql); }
-  async batch(statements: Statement[]) {
-    const candidates = structuredClone(this.candidates);
-    const impressions = structuredClone(this.impressions);
-    try {
-      const results = [];
-      for (const statement of statements) results.push(await statement.run());
-      return results;
-    }
-    catch (error) {
-      this.candidates.splice(0, this.candidates.length, ...candidates);
-      this.impressions.splice(0, this.impressions.length, ...impressions);
-      throw error;
-    }
-  }
-  auth(sql: string) {
-    if (sql.includes('select platform_role from users')) return { platform_role: null };
-    if (sql.includes('from account_members am join accounts')) return { role: 'staff', permissions: JSON.stringify({ bundles: this.bundles }), kind: 'location' };
-    if (sql.includes('select status from accounts')) return { status: 'active' };
-    return undefined;
-  }
-}
-
-class Statement {
-  values: any[] = [];
-  constructor(private db: Db, private raw: string) {}
-  bind(...values: any[]) { this.values = values; return this; }
-  async first() {
-    const sql = normalized(this.raw);
-    const auth = this.db.auth(sql); if (auth !== undefined) return auth;
-    if (sql.includes('from customer_tasting_journal') && !sql.includes('join')) {
-      const [id, account, email] = this.values;
-      return id === 'journal-a' && account === 'a' && email === 'member@test' ? { id, product_id: 'product-a' } : null;
-    }
-    if (sql.includes('select * from tasting_note_candidates where account_id')) {
-      const [account, author, journal, key] = this.values;
-      return this.db.candidates.find(c => c.account_id === account && c.author_user_id === author && c.journal_entry_id === journal && c.note_key === key) || null;
-    }
-    if (sql.includes('select * from tasting_note_candidates where id')) {
-      const [id, account] = this.values;
-      return this.db.candidates.find(c => c.id === id && c.account_id === account) || null;
-    }
-    if (sql.includes('select status from tasting_note_candidates where id')) {
-      const [id, account] = this.values;
-      const candidate = this.db.candidates.find(c => c.id === id && c.account_id === account);
-      return candidate ? { status: candidate.status } : null;
-    }
-    if (sql.includes('select id from product_impressions where candidate_id')) {
-      const [candidate, account] = this.values;
-      const impression = this.db.impressions.find(row => row.candidate_id === candidate && row.account_id === account);
-      return impression ? { id: impression.id } : null;
-    }
-    return null;
-  }
-  async all() {
-    const sql = normalized(this.raw);
-    if (sql.includes('from tasting_note_candidates') && sql.includes('order by')) {
-      const [account, status] = this.values;
-      return { results: this.db.candidates.filter(c => c.account_id === account && c.status === status) };
-    }
-    if (sql.includes('from product_impressions') && !sql.includes('where candidate_id')) {
-      const [product] = this.values;
-      return { results: this.db.impressions.filter(i => i.product_id === product && i.product_public) };
-    }
-    const row = await this.first();
-    return { results: row == null ? [] : [row] };
-  }
-  async run() {
-    const sql = normalized(this.raw);
-    if (sql.startsWith('insert into tasting_note_candidates')) {
-      const [id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, source_tasting, created_at, updated_at] = this.values;
-      const old = this.db.candidates.find(c => c.author_user_id === author_user_id && c.journal_entry_id === journal_entry_id && c.note_key === note_key);
-      if (old?.status === 'starred') Object.assign(old, { source_text, source_tasting, updated_at });
-      else if (!old) this.db.candidates.push({ id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, source_tasting, status: 'starred', edited_text: null, attribution_name: null, attribution_detail: null, created_at, updated_at });
-      return { success: true, meta: { changes: old?.status === 'starred' || !old ? 1 : 0 } };
-    }
-    if (sql.startsWith('update tasting_note_candidates set edited_text') && sql.includes("status = 'promoted'")) {
-      const [edited_text, attribution_name, attribution_detail, promoted_at, promoted_by, updated_at, id, account] = this.values;
-      const candidate = this.db.candidates.find(c => c.id === id && c.account_id === account && c.status === 'starred');
-      if (candidate) Object.assign(candidate, { edited_text, attribution_name, attribution_detail, status: 'promoted', promoted_at, promoted_by, updated_at });
-      return { success: true, meta: { changes: candidate ? 1 : 0 } };
-    }
-    if (sql.startsWith('insert into product_impressions')) {
-      if (this.db.failImpressionInsert) throw new Error('database unavailable');
-      const [id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at] = this.values;
-      const candidate = this.db.candidates.find(row => row.id === candidate_id && row.account_id === account_id && row.status === 'promoted');
-      if (!candidate) return { success: true, meta: { changes: 0 } };
-      if (this.db.impressions.some(row => row.candidate_id === candidate_id)) throw new Error('unique candidate');
-      this.db.impressions.push({ id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at, product_public: true });
-      return { success: true, meta: { changes: 1 } };
-    }
-    if (sql.startsWith('update tasting_note_candidates set edited_text')) {
-      const [edited_text, attribution_name, attribution_detail, updated_at, id, account] = this.values;
-      const candidate = this.db.candidates.find(c => c.id === id && c.account_id === account);
-      if (this.db.transitionOnEdit && candidate) candidate.status = 'dismissed';
-      if (!candidate || candidate.status !== 'starred') return { success: true, meta: { changes: 0 } };
-      Object.assign(candidate, { edited_text, attribution_name, attribution_detail, updated_at });
-      return { success: true, meta: { changes: 1 } };
-    }
-    return { success: true, meta: { changes: 1 } };
-  }
-}
-
-async function call(db: Db, path: string, method = 'GET', body?: unknown, account = 'a') {
-  return worker.fetch(new Request(`https://test${path}`, { method, headers: { Authorization: `Bearer ${await token()}`, 'X-Teajia-Account': account, 'Content-Type': 'application/json' }, body: body == null ? undefined : JSON.stringify(body) }), { DB: db, JWT_SECRET: SECRET } as any);
-}
-
-describe('tasting-note curation routes', () => {
-  it('stars only a journal entry owned by the authenticated member in the active account', async () => {
-    const db = new Db();
-    const saved = await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: '  orchid  ', source_tasting: { private: true } });
-    expect(saved.status).toBe(200);
-    expect(await saved.json()).toMatchObject({ noteKey: 'aroma', sourceText: 'orchid', status: 'starred' });
-    expect((await call(db, '/api/tasting-journal/journal-b/candidates/aroma', 'PUT', { source_text: 'stolen' })).status).toBe(404);
-    expect((await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'cross account' }, 'b')).status).toBe(404);
+  const offered = await call(offerPath, 'PUT', { ...offerData, product_id: 'lot-b' }, 'guest');
+  expect(offered).toMatchObject({
+    status: 200,
+    body: { productId: 'lot-a', sourceText: offerData.excerpt, attributionName: offerData.byline, status: 'starred' },
   });
+  const { id } = offered.body;
+  expect((await call(offerPath, 'PUT', offerData, 'guest')).body.id).toBe(id);
+  expect((await call(offerPath, 'GET', undefined, 'guest')).body).toEqual(offered.body);
+  expect((await call(offerPath, 'GET', undefined, 'other')).body).toBeNull();
+  expect((await call(offerPath, 'PUT', { ...offerData, byline: 'Someone else' }, 'guest')).status).toBe(409);
+  expect((await call(queue, 'GET', undefined, 'other')).body).toEqual([]);
+  expect((await call(queue, 'GET', undefined, 'catalog')).status).toBe(403);
+  const review = await call(direct, 'GET', undefined, 'publisher');
+  expect(review.body).toEqual([expect.objectContaining({ authorName: 'M.', text: offerData.excerpt, status: 'open' })]);
+  expect(JSON.stringify(review.body)).not.toMatch(/Private (name|sitting|journal)/);
 
-  it('requires publish capability and never returns private candidates publicly', async () => {
-    const denied = await call(new Db(['catalog']), '/api/admin/tasting-note-candidates');
-    expect(denied.status).toBe(403);
-    const db = new Db();
-    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private' });
-    expect(await (await worker.fetch(new Request('https://test/api/products/product-a/impressions'), { DB: db, JWT_SECRET: SECRET } as any)).json()).toEqual([]);
-  });
+  const approve = `${queue}/${id}/promote`;
+  expect((await call(approve, 'POST', {}, 'catalog')).status).toBe(403);
+  expect((await call(approve, 'POST', { attribution_name: 'Changed' }, 'publisher')).status).toBe(422);
+  expect((await call(approve, 'POST', { edited_text: 'Rewritten' }, 'publisher')).status).toBe(422);
+  expect((await call(listing)).body).toEqual([]);
+  const approved = await call(approve, 'POST', {}, 'publisher');
+  expect(approved).toMatchObject({ status: 201, body: { showOnListing: false, showOnMainPage: false } });
+  expect((await call(approve, 'POST', {}, 'publisher')).status).toBe(409);
+  const impressionId = approved.body.id;
+  expect((await call(`${queue}?status=promoted`, 'GET', undefined, 'publisher')).body)
+    .toEqual([expect.objectContaining({ id, impressionId, showOnListing: false, showOnMainPage: false })]);
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
 
-  it('scopes the admin queue to the active account', async () => {
-    const db = new Db();
-    db.candidates.push(
-      { id: 'a-note', account_id: 'a', status: 'starred', source_text: 'A', edited_text: null, journal_entry_id: 'j', note_key: 'aroma', product_id: 'p', created_at: '1', updated_at: '1' },
-      { id: 'b-note', account_id: 'b', status: 'starred', source_text: 'B', edited_text: null, journal_entry_id: 'j2', note_key: 'aroma', product_id: 'p2', created_at: '1', updated_at: '1' },
-    );
-    const response = await call(db, '/api/admin/tasting-note-candidates');
-    expect((await response.json() as Row[]).map(row => row.id)).toEqual(['a-note']);
+  const placements = `/api/admin/tasting-impressions/${impressionId}/placements`;
+  expect((await call(placements, 'PUT', { show_on_listing: true }, 'other')).status).toBe(404);
+  expect((await call(placements, 'PUT', { show_on_listing: true }, 'catalog')).status).toBe(403);
+  expect((await call(placements, 'PUT', { show_on_main_page: 'true' }, 'publisher')).status).toBe(400);
+  expect(await call(placements, 'PUT', { show_on_main_page: true }, 'publisher')).toMatchObject({
+    status: 200, body: { showOnListing: false, showOnMainPage: true },
   });
+  const publicExcerpt = {
+    id: impressionId, productId: 'lot-a', text: offerData.excerpt, attributionName: 'M.',
+    attributionDetail: null, publishedAt: approved.body.publishedAt,
+  };
+  expect((await call(listing)).body).toEqual([]);
+  expect(await call(main)).toMatchObject({ body: [publicExcerpt], cache: 'no-store' });
+  expect((await call('/api/s/shop-b/tasting-excerpts')).body).toEqual([]);
+  expect(await call(placements, 'PUT', { show_on_listing: true, show_on_main_page: false }, 'publisher'))
+    .toMatchObject({ body: { showOnListing: true, showOnMainPage: false } });
+  expect(await call(listing)).toMatchObject({ body: [publicExcerpt], cache: 'no-store' });
+  expect((await call('/api/products/lot-b/impressions')).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  await call(placements, 'PUT', { show_on_main_page: true }, 'publisher');
 
-  it('promotes once and exposes only the durable public impression fields', async () => {
-    const db = new Db();
-    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source', source_tasting: { private: true } });
-    Object.assign(db.candidates[0], { edited_text: 'Orchid over warm stone', attribution_name: 'M.', attribution_detail: 'Bali' });
-    const first = await call(db, `/api/admin/tasting-note-candidates/${db.candidates[0].id}/promote`, 'POST');
-    expect(first.status).toBe(201);
-    expect((await call(db, `/api/admin/tasting-note-candidates/${db.candidates[0].id}/promote`, 'POST')).status).toBe(409);
-    const publicResponse = await worker.fetch(new Request('https://test/api/products/product-a/impressions'), { DB: db, JWT_SECRET: SECRET } as any);
-    const published = await publicResponse.json() as Row[];
-    expect(published).toEqual([expect.objectContaining({ text: 'Orchid over warm stone', attributionName: 'M.' })]);
-    expect(published[0]).not.toHaveProperty('sourceTasting');
-    expect(published[0]).not.toHaveProperty('sourceText');
-  });
+  const unpublish = await call('/api/products/lot-a/publication', 'PUT', { is_public: false }, 'publisher');
+  expect(unpublish.status).toBe(200);
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  expect((await call(`${queue}?status=promoted`, 'GET', undefined, 'publisher')).body)
+    .toEqual([expect.objectContaining({ showOnListing: true, showOnMainPage: true })]);
+  const republish = await call('/api/products/lot-a/publication', 'PUT', { is_public: true }, 'publisher');
+  expect(republish.status).toBe(200);
+  expect((await call(listing)).body).toEqual([publicExcerpt]);
+  expect((await call(main)).body).toEqual([publicExcerpt]);
+  db.exec("UPDATE products SET shown_in_shop = 0 WHERE id = 'lot-a'");
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  db.exec("UPDATE products SET shown_in_shop = 1, status = 'Draft' WHERE id = 'lot-a'");
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  db.exec("UPDATE products SET shown_in_shop = 1, status = 'Sold Out' WHERE id = 'lot-a'");
+  expect((await call(listing)).body).toEqual([publicExcerpt]);
+  db.exec("UPDATE accounts SET public_enabled = 0 WHERE id = 'shop-a'");
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  db.exec("UPDATE accounts SET public_enabled = 1 WHERE id = 'shop-a'");
 
-  it('promotes directly from the request body without a preceding admin update', async () => {
-    const db = new Db();
-    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source' });
-    const response = await call(db, `/api/admin/tasting-note-candidates/${db.candidates[0].id}/promote`, 'POST', {
-      edited_text: 'Body-selected final text', attribution_name: 'Host', attribution_detail: 'Session table',
-    });
-    expect(response.status).toBe(201);
-    expect(await response.json()).toMatchObject({ text: 'Body-selected final text', attributionName: 'Host', attributionDetail: 'Session table' });
-    expect(db.candidates[0]).toMatchObject({ status: 'promoted', edited_text: 'Body-selected final text', attribution_name: 'Host' });
-  });
+  await call(offerPath, 'DELETE', undefined, 'other');
+  expect((await call(listing)).body).toEqual([publicExcerpt]);
+  expect((await call(offerPath, 'DELETE', undefined, 'guest')).status).toBe(200);
+  expect((await call(offerPath, 'DELETE', undefined, 'guest')).status).toBe(200);
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  expect((await call(placements, 'PUT', { show_on_listing: true }, 'publisher')).status).toBe(404);
+  expect((await call('/api/tasting-journal', 'GET', undefined, 'guest')).body)
+    .toEqual([expect.objectContaining({ id: 'journal-a', note: expect.stringContaining('Private journal paragraph') })]);
+  const reoffered = await call(offerPath, 'PUT', offerData, 'guest');
+  expect(reoffered.body.id).not.toBe(id);
+  expect((await call(approve, 'POST', {}, 'publisher')).status).toBe(404);
+  expect((await call(listing)).body).toEqual([]);
+});
 
-  it('returns 400 for malformed promotion JSON', async () => {
-    const db = new Db();
-    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source' });
-    const response = await worker.fetch(new Request(`https://test/api/admin/tasting-note-candidates/${db.candidates[0].id}/promote`, {
-      method: 'POST', headers: { Authorization: `Bearer ${await token()}`, 'X-Teajia-Account': 'a', 'Content-Type': 'application/json' }, body: '{bad',
-    }), { DB: db, JWT_SECRET: SECRET } as any);
-    expect(response.status).toBe(400);
-  });
+it('suppresses legacy impressions and rolls back a partially failed approval, then removes offers on journal deletion', async () => {
+  const { db, call } = await setup();
+  db.exec(`
+    INSERT INTO tasting_note_candidates
+      (id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, status)
+    VALUES ('legacy', 'shop-a', 'journal-a', 'sitting-a', 'lot-a', 'guest', 'Old private text', 'promoted');
+    INSERT INTO product_impressions
+      (id, account_id, product_id, candidate_id, text, attribution_name, published_by, show_on_listing, show_on_main_page)
+    VALUES ('old-impression', 'shop-a', 'lot-a', 'legacy', 'Old private text', 'Old name', 'publisher', 1, 1);
+  `);
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  expect((await call(`${queue}?status=promoted`, 'GET', undefined, 'publisher')).body).toEqual([]);
+  const { body: { id } } = await call(offerPath, 'PUT', offerData, 'guest');
 
-  it('does not report a successful edit after a concurrent terminal transition', async () => {
-    const db = new Db();
-    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source' });
-    db.transitionOnEdit = true;
-    const response = await call(db, `/api/admin/tasting-note-candidates/${db.candidates[0].id}`, 'PUT', { edited_text: 'too late' });
-    expect(response.status).toBe(409);
-  });
+  db.exec(`
+    CREATE TRIGGER fail_approval BEFORE UPDATE OF status ON tasting_note_candidates
+    WHEN NEW.status = 'promoted' BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END
+  `);
+  const approve = `${queue}/${id}/promote`;
+  expect(await call(approve, 'POST', {}, 'publisher')).toMatchObject({ status: 500, body: { retryable: true } });
+  expect((await call(offerPath, 'GET', undefined, 'guest')).body.status).toBe('starred');
+  expect(db.sqlite.prepare('SELECT id FROM product_impressions').get()?.id).toBe('old-impression');
+  db.exec('DROP TRIGGER fail_approval');
+  const approved = await call(approve, 'POST', {}, 'publisher');
+  expect(approved.status).toBe(201);
+  expect(approved.body.id).not.toBe('old-impression');
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  await call(`/api/admin/tasting-impressions/${approved.body.id}/placements`, 'PUT', {
+    show_on_listing: true, show_on_main_page: true,
+  }, 'publisher');
+  expect((await call('/api/tasting-journal/journal-a', 'DELETE', undefined, 'guest')).status).toBe(200);
+  expect((await call(listing)).body).toEqual([]);
+  expect((await call(main)).body).toEqual([]);
+  expect(db.sqlite.prepare('SELECT id FROM tasting_note_candidates').get()).toBeUndefined();
+  expect(db.sqlite.prepare('SELECT id FROM product_impressions').get()).toBeUndefined();
+});
 
-  it('rolls back candidate promotion and returns retryable 500 when impression insertion fails', async () => {
-    const db = new Db();
-    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source' });
-    db.failImpressionInsert = true;
-    const response = await call(db, `/api/admin/tasting-note-candidates/${db.candidates[0].id}/promote`, 'POST', { edited_text: 'Final', attribution_name: 'Host' });
-    expect(response.status).toBe(500);
-    expect(await response.json()).toMatchObject({ retryable: true });
-    expect(db.candidates[0].status).toBe('starred');
-    expect(db.candidates[0].edited_text).toBeNull();
-    expect(db.candidates[0].attribution_name).toBeNull();
-    expect(db.impressions).toEqual([]);
-  });
+it('routes an offer for a publicly accessible lot to its owning shop even from a different journal account', async () => {
+  const { db, call } = await setup('shop-b');
+  const offer = await call(offerPath, 'PUT', offerData, 'guest');
+  expect(offer).toMatchObject({ status: 200, body: { productId: 'lot-a' } });
+  expect((await call(queue, 'GET', undefined, 'other')).body).toEqual([]);
+  expect((await call(queue, 'GET', undefined, 'publisher')).body)
+    .toEqual([expect.objectContaining({ id: offer.body.id })]);
+  db.exec("UPDATE products SET is_public = 0 WHERE id = 'lot-a'");
+  expect((await call(offerPath, 'GET', undefined, 'guest')).body.id).toBe(offer.body.id);
+  await call(offerPath, 'DELETE', undefined, 'guest');
+  expect((await call(queue, 'GET', undefined, 'publisher')).body).toEqual([]);
+  expect((await call(offerPath, 'PUT', offerData, 'guest')).status).toBe(404);
 });

@@ -25,6 +25,7 @@ export function candidateToApi(row: Record<string, any>) {
     finalText: row.edited_text || row.source_text,
     attributionName: row.attribution_name ?? null,
     attributionDetail: row.attribution_detail ?? null,
+    offeredAt: row.offered_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -42,17 +43,8 @@ export function impressionToApi(row: Record<string, any>) {
 }
 
 /**
- * Every note anyone has written about this shop's teas, flattened out of the
- * journals they live in.
- *
- * A journal row holds two kinds of writing: the paragraph someone wrote about
- * the tea, and any separate notes they took during the sitting. Both are
- * things a person said about a tea, so both come through here as one list and
- * the shop decides between them by reading, not by which field they landed in.
- *
- * `noteKey` is what makes a note addressable later: 'personal' for the
- * paragraph, the note's own id for the rest. It is what a promotion is recorded
- * against, so the same note cannot be published twice.
+ * A paragraph or tasting note from a private journal row. The key identifies
+ * the source of a guest's excerpt within that row.
  */
 export interface JournalNote {
   journalEntryId: string;
@@ -118,4 +110,26 @@ export function journalRowToNotes(
   });
 
   return out;
+}
+
+export function parseExcerptOffer(value: unknown) {
+  const fields = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const excerpt = typeof fields.excerpt === 'string' ? fields.excerpt.trim() : '';
+  const byline = typeof fields.byline === 'string' ? fields.byline.trim() : '';
+  if (!excerpt || !byline) throw new Error('Excerpt and byline are required');
+  return { excerpt, byline };
+}
+
+export function journalContainsExcerpt(row: Record<string, any>, noteKey: string, excerpt: string) {
+  const notes: Pick<JournalNote, 'noteKey' | 'text'>[] = journalRowToNotes(row, new Map());
+  const sittings = parseJson(row.tastings);
+  if (Array.isArray(sittings)) {
+    for (const sitting of sittings) {
+      const text = sitting?.tasting?.voiceNote;
+      if (typeof sitting?.id === 'string' && typeof text === 'string') {
+        notes.push({ noteKey: sitting.id, text });
+      }
+    }
+  }
+  return notes.some(note => note.noteKey === noteKey && note.text.includes(excerpt));
 }

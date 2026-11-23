@@ -43,6 +43,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     isCurated: p.isCurated,
     material: p.material,
     capacityMl: p.capacityMl,
+    teawareDetails: p.teawareDetails,
     subcategory: p.teawareCategory || undefined,
     tasting: p.tasting,
     tastingSource: p.tastingSource,

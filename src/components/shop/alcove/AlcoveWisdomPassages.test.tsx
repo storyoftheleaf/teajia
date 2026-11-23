@@ -31,10 +31,10 @@ describe('AlcoveWisdomPassages', () => {
     expect(markup).not.toContain('data-citation-line');
   });
 
-  it('adds a citation line only when the claim has sources', () => {
+  it('links a sourced passage to its evidence in Wisdom', () => {
     const listing = resolveListingPassages(PILOT_FIXTURES['gong-ting-external'].facts, PILOT_FIXTURE_CLAIMS);
     const cited = { ...listing, passages: [{ ...listing.passages[0], claim: { ...listing.passages[0].claim, basis: 'sourced', sourceIds: ['s'] } as PublicClaim }] };
-    expect(render(<AlcoveWisdomPassages listing={cited} />)).toContain('data-citation-line');
+    expect(render(<AlcoveWisdomPassages listing={cited} />)).toContain('href="/wisdom/grade/gong-ting#definition"');
   });
 
   it('shows the taste sentence under "What people often notice", naming no source, framed as the style', () => {

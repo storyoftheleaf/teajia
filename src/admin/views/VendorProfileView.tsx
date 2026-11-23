@@ -1,23 +1,30 @@
 import { CurateRecordTools } from '../../components/curate/CurateRecordTools';
 import { CurateQuotesPanel } from '../../components/curate/CurateQuotesPanel';
 import { CurateVendorFields } from '../../components/curate/CurateVendorFields';
+import { VendorDetailsCard, type VendorRecord } from '../../components/vendors/VendorDetailsCard';
+import { VendorNotesCard } from '../../components/vendors/VendorNotesCard';
+import { VendorSalesCard, type VendorOwnOrder } from '../../components/vendors/VendorSalesCard';
 /**
  * VendorProfileView, /admin/vendors/:vendorId
  *
- * A read-rich story page for a single vendor: their identity, the teas they
- * sourced, the value of that stock, and every purchase invoice tied to their
- * products.  Not a form, this is an intelligence document.
+ * One vendor: their face and details (each editable where it sits), notes,
+ * what the shop sold of their teas and what they bought, the teas they
+ * supply, and what was bought from them. The working records (people,
+ * quotes, files) sit last.
+ *
+ * Adrian, 2026-11-23: "nothing is editable ... the notes is just one weird
+ * long list ... you're not sharing what other people purchased from me."
  */
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { api, type PurchaseOrder } from '../../lib/api';
+import { api, type PurchaseOrder, type VendorProductSale } from '../../lib/api';
 import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
 import { useRates } from '../hooks/useAdminData';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
-import type { Customer, InventoryReceipt } from '../types';
+import type { InventoryReceipt } from '../types';
 import { recordedCost, vendorEconomics, vendorPurchaseOrders, vendorReceipts, type PricedVendorProductRow } from './vendorProfileData';
 
 // ────────────────────────────────────────────────────────
@@ -46,9 +53,6 @@ function stockVariant(g: number): { label: string; variant: StatusPillVariant } 
   return { label: 'In stock', variant: 'success' };
 }
 
-const VENDOR_GRADIENT =
-  'radial-gradient(circle at 30% 30%, #c6a473, #8e6d2e 55%, #3a3126)';
-
 // ────────────────────────────────────────────────────────
 // Sub-components
 // ────────────────────────────────────────────────────────
@@ -71,7 +75,7 @@ export const VendorProfileView: React.FC = () => {
   const { data: rates } = useRates();
 
   // ── Vendor data ──────────────────────────────────────
-  const { data: vendorData, isLoading: vendorLoading } = useQuery<Customer>({
+  const { data: vendorData, isLoading: vendorLoading } = useQuery<VendorRecord>({
     queryKey: ['vendor', vendorId, ...scope.key],
     queryFn: () => api.customers.get(vendorId!),
     enabled: !!vendorId && scope.ready,
@@ -95,6 +99,19 @@ export const VendorProfileView: React.FC = () => {
     queryKey: ['inventory-receipts-all', ...scope.key],
     enabled: scope.ready,
     queryFn: () => api.inventoryReceipts.list(true),
+    staleTime: 60_000,
+  });
+  // ── What the shop sold: their teas, and their own orders ──
+  const { data: salesData, isLoading: salesLoading, isError: salesError } = useQuery<VendorProductSale[]>({
+    queryKey: ['vendor-sales', vendorId, ...scope.key],
+    queryFn: () => api.customers.getProductSales(vendorId!),
+    enabled: !!vendorId && scope.ready,
+    staleTime: 60_000,
+  });
+  const { data: ownOrdersData, isLoading: ownOrdersLoading } = useQuery<VendorOwnOrder[]>({
+    queryKey: ['vendor-own-orders', vendorId, ...scope.key],
+    queryFn: () => api.customers.getOrders(vendorId!),
+    enabled: !!vendorId && scope.ready,
     staleTime: 60_000,
   });
   const vendor = scope.ready ? vendorData : undefined;
@@ -144,16 +161,6 @@ export const VendorProfileView: React.FC = () => {
     );
   }
 
-  const location = [vendor.city, vendor.country].filter(Boolean).join(', ');
-  const primaryContact =
-    vendor.email ||
-    vendor.contacts?.find(c => c.channel === 'whatsapp')?.handle ||
-    vendor.whatsapp ||
-    vendor.phone ||
-    '';
-  const verified = vendor.tags?.some(t => t.toLowerCase().includes('verified'));
-  const extraTags = vendor.tags?.filter(t => !t.toLowerCase().includes('verified')) ?? [];
-
   return (
     <div className="h-full overflow-y-auto bg-tea-bg pb-nav-gap">
       {/* Narrow chrome */}
@@ -170,35 +177,17 @@ export const VendorProfileView: React.FC = () => {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 md:px-6 pb-12 space-y-6">
-        {/* Identity card */}
-        <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
-          <div className="flex items-start gap-4">
-            <div
-              className="w-12 h-12 rounded-full flex-shrink-0"
-              style={{ background: VENDOR_GRADIENT }}
-              aria-hidden="true"
-            />
-            <div className="flex-1 min-w-0">
-              <h3 className="h3">{vendor.name}</h3>
-              {primaryContact && (
-                <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{primaryContact}</p>
-              )}
-              {(location || vendor.company) && (
-                <p className="text-ui-12 text-tea-text-dim mt-0.5">
-                  {[vendor.company, location].filter(Boolean).join(' · ')}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                <StatusPill variant={verified ? 'success' : 'draft'}>
-                  {verified ? 'Source verified' : 'Source unverified'}
-                </StatusPill>
-                {extraTags.map(tag => (
-                  <StatusPill key={tag} variant="draft">{tag}</StatusPill>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+        <VendorDetailsCard vendor={vendor} vendorId={vendorId!} />
+
+        <VendorNotesCard vendorId={vendorId!} notes={vendor.notes} />
+
+        <VendorSalesCard
+          sales={salesData}
+          salesLoading={salesLoading}
+          salesError={salesError}
+          ownOrders={ownOrdersData}
+          ownOrdersLoading={ownOrdersLoading}
+        />
 
         {/* Stats row */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -220,9 +209,6 @@ export const VendorProfileView: React.FC = () => {
           </div>
         </section>
 
-        <CurateVendorFields vendorId={vendorId!} />
-        <CurateQuotesPanel vendorId={vendorId!} />
-        <CurateRecordTools entityType="vendor" entityId={vendorId!} />
 
         {/* Products supplied */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -261,13 +247,11 @@ export const VendorProfileView: React.FC = () => {
                         {[p.type, p.origin_region, p.origin_country].filter(Boolean).join(' · ')}
                       </p>
                     </div>
-                    <span className="font-mono text-ui-13 text-tea-text-sec tabular-nums">
-                      {p.stock_grams == null ? 'Stock unrecorded' : `${Number(p.stock_grams).toLocaleString()}g`}
-                    </span>
-                    <span className="font-mono text-ui-13 text-tea-text-sec tabular-nums">
-                      {recordedCost(p) ?? 'Cost unrecorded'}
-                    </span>
-                    {stock && <StatusPill variant={stock.variant}>{stock.label}</StatusPill>}
+                    {/* Stock and cost stack on the right, so the row never runs off a phone. */}
+                    <div className="shrink-0 text-right font-mono text-ui-12 text-tea-text-sec tabular-nums leading-snug">
+                      <p>{p.stock_grams == null ? 'Stock ?' : `${Number(p.stock_grams).toLocaleString()}g`}{stock ? ` · ${stock.label}` : ''}</p>
+                      <p>{recordedCost(p) ?? 'Cost ?'}</p>
+                    </div>
                   </div>
                 );
               })}
@@ -278,7 +262,7 @@ export const VendorProfileView: React.FC = () => {
         {/* Purchase history */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-4">
-            <h3 className="h3">Purchase history</h3>
+            <h3 className="h3">Bought from them</h3>
             <span className="label-caps text-tea-text-dim">{historyError ? '—' : historyLoading ? '…' : orders.length + receipts.length}</span>
           </div>
 
@@ -328,14 +312,13 @@ export const VendorProfileView: React.FC = () => {
           )}
         </section>
 
-        {/* Notes */}
-        {vendor.notes && (
-          <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
-            <h3 className="h3 mb-1">Notes</h3>
-            <p className="label-caps text-tea-text-dim mb-4">Staff-facing</p>
-            <p className="text-ui-13 text-tea-text-sec leading-relaxed">{vendor.notes}</p>
-          </section>
-        )}
+        {/* The working records (people, quotes, files, history) sit last, below
+            what Adrian reads (Adrian, 2026-11-23: "put these at the very bottom"). */}
+        <section className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
+          <CurateVendorFields vendorId={vendorId!} />
+          <CurateQuotesPanel vendorId={vendorId!} />
+          <CurateRecordTools entityType="vendor" entityId={vendorId!} />
+        </section>
       </div>
     </div>
   );

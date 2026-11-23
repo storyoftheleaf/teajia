@@ -16,7 +16,7 @@ test('quote conditions remain structured through unknown and known thresholds', 
   await page.route('**/api/curate/history?*', route => route.fulfill({json:{history:[]}}));
   await page.goto('/admin/vendors/vendor-1');
   const panel=page.getByTestId('curate-quotes-panel');
-  await panel.getByText('Vendor quotes',{exact:true}).click();
+  await panel.getByText('Quotes',{exact:true}).click();
   await panel.getByRole('button',{name:'LKY quote',exact:true}).click();
   await expect(panel.getByLabel('Quote discount (%)')).toHaveValue('25');
   await expect(panel.getByLabel('Discount condition',{exact:true})).toHaveValue('unknown');

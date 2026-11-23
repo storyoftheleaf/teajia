@@ -1,4 +1,16 @@
+## 2026-11-23: The Curate package scanner reads with ChatGPT
+
+Scan in Curate sends the package photo to OpenAI first, using the shop's own key from Account settings (the key the photo enhancer already uses), then to Claude and Gemini if a worker key is set and the one before fails. The reader translates Chinese and other labels, fills the empty form fields (name, characters, type, form, year, season, origin, price, weight), and puts every other word it read into the tea's notes: each descriptive word with its original characters, producer, production and harvest dates, brewing, shelf life, storage, grade, standard and a line by line translation of the label. Scanning spends tokens, so it is the shop owner's only: the worker refuses other members (`owner_required`) and their Scan button takes a plain photo. The model is set in `worker/src/labelScan.ts`; `LABEL_SCAN_OPENAI_MODEL` overrides the OpenAI one.
+
 ## 2026-11-12: Curate's Source form follows the sitting
+
+## 2026-11-23: Vendor page you can edit, and what sold
+
+The vendor page (`/admin/vendors/:id`) is now edited where it is read: tap the name, Chinese name, shop, address, city or country to change it, and add, change or remove contacts (WeChat, WhatsApp, phone, email and the rest; the old single email, phone and WhatsApp columns are kept in step). Renaming goes through the supplier rename, so the vendor's teas follow. Notes read one thought per line with any label ("WeChat:", "Prices:") set apart, and open as plain text to edit; the stored text is never rewritten. A new "Their teas, sold" list shows every real sale of that vendor's teas and who bought it (`GET /api/customers/:id/product-sales`, `worker/src/vendorProductSales.ts`; drafts, cancelled and deleted invoices left out), and "Bought from you" shows the vendor's own orders when they are a customer too. Products supplied stack stock and cost so the row fits a phone.
+
+## 2026-11-23: Vendor faces
+
+Each vendor can carry a photo of their face (`customers.face_photo`, migration 0082), added or changed from the vendor's page or from the camera on any tile in People > Suppliers > Faces, a gallery of every vendor as a face. Wherever a vendor is picked (the Curate vendor strip, Curate v2, the stock editor's supplier field, Add tea), the list shows each vendor's face beside the name and a Faces button opens the same grid to pick by sight. A vendor with no face falls back to their storefront photo, then their business card, then their initials. The customer list now also carries the storefront and business-card photos, which the Suppliers avatars were asking for and never got.
 
 ## 2026-11-21: One photo editor everywhere
 

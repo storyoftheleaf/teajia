@@ -1,3 +1,5 @@
+import namedTeaIds from '../../src/wisdom/generated/namedTeaIds.json';
+
 export const WISDOM_TARGET_TYPES = [
   'article',
   'tea_profile',
@@ -25,7 +27,7 @@ const WISDOM_NODE_IDS: Record<WisdomNodeType, ReadonlySet<string>> = {
   producer: new Set('china-national-tea-corporation,hengfengyuan,kunming-tea-factory,liao-fu,menghai-tea-factory,qiaorui,tongqinghao,wuzhou-tea-factory,xiaguan-tea-factory,xinghai-tea-factory'.split(',')),
   mark: new Set('7572,aaa-grade,blue-seal-green-label,golden-bull,gong-jin,gong-ting,gongjian,jia-ji,red-seal,three-cranes,wan-yan,yellow-label,yi-ji,zhen-pin,zhong-cha-pai'.split(',')),
   style: new Set('bai-liang-hua-juan,bamboo-tube,basket-tea,camphor-stored,gaba-oolong,kang-brick,qi-zi-bing,tie-bing,wet-stored,xiao-qing-gan'.split(',')),
-  named_tea: new Set('courage,french-brick,galaxy,inspiration,mercy,miracle-fate,new-rainbow,old-rainbow,orange-master-box,passion,tea-masters-cake,true-love,true-love-new,universe,wisdom,yue-chen-yue-xiang,yun-shen-chu'.split(',')),
+  named_tea: new Set(namedTeaIds),
 };
 
 const LEGAL_RELATIONSHIPS: Record<WisdomTargetType, ReadonlySet<WisdomRelationshipKind>> = {

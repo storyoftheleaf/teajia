@@ -114,10 +114,10 @@ test('the tea page: plain when nobody has added anything, then the family strip,
     const plaque = visitorPage.locator('.label-plate');
     await expect(plaque).toBeVisible({ timeout: 30_000 });
     await expect(plaque.locator('img')).toHaveCount(0);
-    // The tea's class ("Dark tea") sits in the head of the plaque's border line, not among its lines.
+    // The tea's class ("Dark") sits in the head of the plaque's border line, not among its lines.
     const classMark = plaque.getByTestId('tea-classification');
     const teaClass = (await classMark.innerText()).trim();
-    expect(teaClass).toMatch(/ tea$/i);
+    expect(teaClass.toLowerCase()).toBe(String(product.type).replace(/\btea\b/gi, '').trim().toLowerCase());
     const plaqueLines = (await plaque.locator('h1, p:not(.label-plate__edge)').allInnerTexts()).map(t => t.trim()).filter(Boolean);
     expect(plaqueLines.length, 'the plaque holds three lines at most').toBeLessThanOrEqual(3);
     expect(plaqueLines.map(t => t.toLowerCase())).not.toContain(teaClass.toLowerCase());

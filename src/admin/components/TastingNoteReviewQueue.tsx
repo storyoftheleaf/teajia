@@ -31,7 +31,7 @@ export function candidateDraft(candidate: TastingNoteCandidate): CandidateDraft 
   };
 }
 
-type CandidateApi = typeof api.tastingNoteCandidates;
+type CandidateApi = Pick<typeof api.tastingNoteCandidates, 'update' | 'promote' | 'dismiss'>;
 
 export async function promoteCandidate(id: string, draft: CandidateDraft, client: CandidateApi = api.tastingNoteCandidates) {
   const payload = {

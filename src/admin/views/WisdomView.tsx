@@ -3,6 +3,7 @@ import { ChevronDown, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { useProducts } from '../hooks/useAdminData';
+import { OwnerWisdomLink } from './yixing/OwnerWisdomLink';
 import { WisdomBrowser } from '../components/wisdom/WisdomBrowser';
 import {
   WISDOM_PARAM,
@@ -487,6 +488,7 @@ export const WisdomView: React.FC = () => {
   const wisdomBrowser = (
     <div className="min-h-full bg-tea-bg">
       <h1 className="sr-only">Wisdom</h1>
+      <OwnerWisdomLink />
       {/* Remounting on tab change resets the find field, which is right: a query
           for a cultivar means nothing against the list of marks. Sort, grouping
           and the folded sections survive it, because they are written into the

@@ -6,6 +6,8 @@ label: Shou (ripe pu’er)
 native_name: 熟普洱
 parent: puer
 visibility: public
+source_ids:
+  - white2tea-ripe-puer
 ---
 
 ## What ripe pu’er is {#definition}
@@ -14,7 +16,7 @@ Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it i
 
 ## Wet piling {#wet-piling}
 
-Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.
+Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. [cite:white2tea-ripe-puer] Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.
 
 ## How piling came to be {#piling-history}
 

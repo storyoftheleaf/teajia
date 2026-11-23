@@ -574,7 +574,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
 
   // Save (create or update)
   const save = useCallback(async () => {
-    if (!title.trim()) return;
+    if (!title.trim()) return false;
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
       autoSaveTimer.current = null;
@@ -583,17 +583,19 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     setSaveState('saving');
     try {
       const id = await persistenceRef.current.save(buildPayload());
-      if (editorVersionRef.current !== version) return;
+      if (editorVersionRef.current !== version) return false;
       setArticleId(id);
       setSaveState('saved');
       onSaved?.();
       setTimeout(() => {
         if (editorVersionRef.current === version) setSaveState('idle');
       }, 2000);
+      return true;
     } catch (err: any) {
-      if (editorVersionRef.current !== version) return;
+      if (editorVersionRef.current !== version) return false;
       setSaveState('idle');
       showToast(err.message || 'Article save failed. Try again.', 'error');
+      return false;
     }
   }, [buildPayload, title, onSaved, showToast]);
 
@@ -647,6 +649,9 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       }
     }
   };
+
+  // Opening a cited entry unmounts the editor and would cancel a queued autosave.
+  const beforeOpenWisdom = () => autoSaveTimer.current ? save() : Promise.resolve(true);
 
   // Block operations
   const updateBlock = (index: number, updated: ArticleBlock) => {
@@ -1100,7 +1105,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           {/* Wisdom tab: the claims this article cites, flagged when a claim moved on */}
           {rightTab === 'wisdom' && articleId && (
             <div className="flex-1 overflow-y-auto px-4 py-5">
-              <ArticleWisdomClaims articleId={articleId} blocks={blocks} />
+              <ArticleWisdomClaims articleId={articleId} blocks={blocks} beforeOpen={beforeOpenWisdom} />
             </div>
           )}
 
@@ -1223,15 +1228,9 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           </div>
         </details>
         {articleId && (
-          <details className="px-4 border-t border-tea-border">
-            <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
-              Wisdom
-              <ChevronDown size={13} className="text-tea-text-dim" />
-            </summary>
-            <div className="pb-4 max-h-[55vh] overflow-y-auto">
-              <ArticleWisdomClaims articleId={articleId} blocks={blocks} />
-            </div>
-          </details>
+          <div className="px-4 py-3 border-t border-tea-border">
+            <ArticleWisdomClaims articleId={articleId} blocks={blocks} beforeOpen={beforeOpenWisdom} />
+          </div>
         )}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { requiresNamedTeaLotLink } from './reference/namedTeaLots';
 import { NAMED_TEAS } from './generated/namedTeas';
 import type { NamedTea } from './types';
 
@@ -29,6 +30,9 @@ export const findNamedTeaById = (id: string | null | undefined): NamedTea | null
  */
 const EXACT_INDEX = new Map<string, NamedTea>();
 for (const tea of NAMED_TEAS) {
+  // A commercial tea may share a code or brand with another product.
+  // Its reviewed Stock link is resolved on the listing, never from an alias.
+  if (requiresNamedTeaLotLink(tea.id)) continue;
   for (const alias of [tea.name, tea.chineseName, ...tea.altNames]) {
     if (alias) EXACT_INDEX.set(matchKey(alias), tea);
   }

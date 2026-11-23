@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import type { CustomerTasting, InventoryItem } from '../../../types';
 import { resolveTermLabel, TASTING_CATEGORY_ORDER } from '../../../data/tastingTaxonomy';
 import { starredNotes } from '../../../lib/noteEntries';
-import type { ProductImpression } from '../ProductImpressions';
+import { ProductImpressions, type ProductImpression } from '../ProductImpressions';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
 import { AlcoveTastingPlate } from './AlcoveTastingPlate';
 import type { ProductResearchResolution } from '../../../wisdom/productResearch';
@@ -62,66 +62,55 @@ function wisdomEntryPath({ entryKind, entryId }: ProductResearchResolution): str
   return `/wisdom/${segment}/${entryId}`;
 }
 
-/** One centered label + serif term line, terms separated by gold middots. */
-const TermLine: React.FC<{
+/** Each flex item is a whole descriptor. The dot lives in the gap, so showing
+ * it never changes where the browser wraps the row. */
+function CharacterTerms({ labels, className, onChoose }: {
+  labels: string[];
+  className: string;
+  onChoose?: (index: number) => void;
+}) {
+  const list = useRef<HTMLUListElement>(null);
+  useLayoutEffect(() => {
+    const root = list.current;
+    if (!root) return;
+    const items = Array.from(root.children) as HTMLLIElement[];
+    const markLines = () => {
+      const tops = items.map(item => item.offsetTop);
+      items.forEach((item, index) => item.toggleAttribute('data-joined', index > 0 && tops[index] === tops[index - 1]));
+    };
+    markLines();
+    const observer = new ResizeObserver(markLines);
+    observer.observe(root);
+    // A font can change term widths without changing the container dimensions.
+    items.forEach(item => observer.observe(item));
+    return () => observer.disconnect();
+  }, [labels]);
+
+  return (
+    <ul className={`alcove-character-terms ${className}`} ref={list} role="list">
+      {labels.map((label, index) => (
+        <li key={`${label}-${index}`}>
+          {index > 0 && <span className="alcove-character-dot" aria-hidden="true">·</span>}
+          {onChoose ? <button type="button" className="alcove-term-btn" onClick={() => onChoose(index)}>{label}</button> : label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TermLine({ label, terms, onTermClick }: {
   label: string;
   terms: TermRef[];
   onTermClick?: (termId: string, categoryId: string) => void;
-  /** Title Case reads as a database. A sentence reads as someone writing. */
-  sentenceCase?: boolean;
-}> = ({ label, terms, onTermClick, sentenceCase }) => {
-  const cased = (text: string) =>
-    sentenceCase ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : text;
+}) {
   return (
-  <div className="grp">
-    {/* On the page, label and terms are ONE line. They used to be a caps line,
-        then a 21px serif block running to three or five lines, then an
-        empty-state note, then a boxed button: five stacked things and a couple
-        of hundred pixels to say a tea tastes of five flavours. The label now
-        sits inline at the head of the sentence and the terms run on after it,
-        wrapping only when they must. The card keeps the stacked form, where
-        the block is the point and there is nothing competing with it. */}
-    {!sentenceCase && (
-      <div className="font-sans text-ui-10 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">
-        {label}
-      </div>
-    )}
-    <div
-      className={
-        sentenceCase
-          ? 'mx-auto max-w-[560px] text-balance font-display text-ui-16 leading-[1.55] text-tea-text'
-          : 'mx-auto mt-3 max-w-[300px] font-display text-[21px] leading-[1.65] text-tea-text lg:max-w-[360px] lg:text-ui-22'
-      }
-    >
-      {sentenceCase && (
-        <span className="mr-2 font-sans text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">
-          {label}
-        </span>
-      )}
-      {terms.map((term, i) => (
-        <React.Fragment key={term.termId}>
-          {i > 0 && (
-            <span aria-hidden="true" className="px-[7px] text-tea-gold-lt">
-              ·
-            </span>
-          )}
-          {onTermClick ? (
-            <button
-              type="button"
-              className="alcove-term-btn"
-              onClick={() => onTermClick(term.termId, term.categoryId)}
-            >
-              {cased(term.label)}
-            </button>
-          ) : (
-            <span>{cased(term.label)}</span>
-          )}
-        </React.Fragment>
-      ))}
+    <div className="grp">
+      <div className="font-sans text-ui-10 uppercase tracking-[0.24em] indent-[0.24em] text-tea-text-dim">{label}</div>
+      <CharacterTerms className="mx-auto mt-3 max-w-[300px] font-display text-[21px] leading-[1.65] text-tea-text lg:max-w-[360px] lg:text-ui-22"
+        labels={terms.map(term => term.label)} onChoose={onTermClick && (i => onTermClick(terms[i].termId, terms[i].categoryId))} />
     </div>
-  </div>
   );
-};
+}
 
 /**
  * "Character": the one chapter that gathers everything sensory: the taste
@@ -169,7 +158,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
    *
    * Two sources, one grammar. The shop's own starred notes are Adrian writing
    * about his tea. The impressions are customers' notes he read in the review
-   * queue and promoted, each going out under the name he set. Both are
+   * queue and promoted, each going out under the byline the author chose. Both are
    * published claims on a public product page, which is what earns them a place
    * on the record.
    *
@@ -192,15 +181,19 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
     detail: impression.attributionDetail,
     key: `said-${impression.id}`,
   }));
-  const quotes = [...shopStarred, ...promoted];
+  const quotes = open ? shopStarred : [...shopStarred, ...promoted];
   const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
   const hasCharacterContent = hasTerms || quotes.length > 0;
   const hasAny = hasCharacterContent || Boolean(potentialResearch) || Boolean(onTaste);
+  const journal = open && impressions.length > 0 ? (
+    <div className="mx-5">
+      <ProductImpressions impressions={impressions} />
+    </div>
+  ) : null;
 
-  // No sensory data: no band, no empty heading. (The admin "Edit" affordance
-  // lives on the card's top edge, not here, so an empty tasting shows nothing.)
-  if (!hasAny) return null;
+  // With no descriptors or other character content, the journal can stand on its own.
+  if (!hasAny) return journal;
 
   /*
    * The page's record card.
@@ -218,32 +211,9 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
    * because this card is the shop's claim about the tea and that is yours.
    */
   if (open) {
-    const termLine = (
-      terms: TermRef[],
-      className: string,
-    ) => (
-      <p className={`m-0 [text-wrap:balance] ${className}`}>
-        {terms.map((term, i) => (
-          <React.Fragment key={term.termId}>
-            {i > 0 && (
-              <span aria-hidden="true" className="px-[7px] text-tea-gold-lt lg:px-[9px]">
-                ·
-              </span>
-            )}
-            {onTermClick ? (
-              <button
-                type="button"
-                className="alcove-term-btn"
-                onClick={() => onTermClick(term.termId, term.categoryId)}
-              >
-                {term.label}
-              </button>
-            ) : (
-              <span>{term.label}</span>
-            )}
-          </React.Fragment>
-        ))}
-      </p>
+    const termLine = (terms: TermRef[], className: string) => (
+      <CharacterTerms className={className} labels={terms.map(term => term.label)}
+        onChoose={onTermClick && (i => onTermClick(terms[i].termId, terms[i].categoryId))} />
     );
 
     const sourceNote =
@@ -253,7 +223,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
           ? 'Source-described profile'
           : null;
 
-    return (
+    const character = (
       <section aria-label="Character" className="mx-5 mt-7">
         {/*
           Two things, not a stack of boxes.
@@ -320,9 +290,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
                       <p className="font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
                         {POTENTIAL_LABELS[category]}
                       </p>
-                      <p className="mt-1 font-display text-ui-17 leading-[1.4] text-tea-text">
-                        {terms.map(resolveTermLabel).join(' · ')}
-                      </p>
+                      <CharacterTerms className="mt-1 font-display text-ui-17 leading-[1.4] text-tea-text" labels={terms.map(resolveTermLabel)} />
                     </div>
                   );
                 })}
@@ -343,6 +311,8 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
         </div>
       </section>
     );
+
+    return <>{character}{journal}</>;
   }
 
   return (
@@ -367,10 +337,10 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
       {hasTerms && (
         <div className={open ? "text-center [&_.grp+.grp]:mt-1.5" : "text-center [&_.grp+.grp]:mt-3"}>
           {tasteTerms.length > 0 && (
-            <TermLine label={open ? 'Tastes of' : 'Taste'} terms={tasteTerms} onTermClick={onTermClick} sentenceCase={open} />
+            <TermLine label="Taste" terms={tasteTerms} onTermClick={onTermClick} />
           )}
           {feelingTerms.length > 0 && (
-            <TermLine label="Feel" terms={feelingTerms} onTermClick={onTermClick} sentenceCase={open} />
+            <TermLine label="Feel" terms={feelingTerms} onTermClick={onTermClick} />
           )}
           {item.tastingSource === 'common' && hasVisibleStructuredTerms && (
             <p className="mt-2 font-sans text-ui-11 text-tea-text-dim">Potential profile</p>
@@ -416,9 +386,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
                   <p className="font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
                     {POTENTIAL_LABELS[category]}
                   </p>
-                  <p className="mt-1 font-display text-ui-17 leading-[1.4] text-tea-text">
-                    {terms.map(resolveTermLabel).join(' · ')}
-                  </p>
+                  <CharacterTerms className="mt-1 font-display text-ui-17 leading-[1.4] text-tea-text" labels={terms.map(resolveTermLabel)} />
                 </div>
               );
             })}

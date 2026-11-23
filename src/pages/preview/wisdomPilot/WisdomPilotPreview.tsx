@@ -13,6 +13,7 @@ import { PILOT_FIXTURE_CLAIMS } from './fixtureClaims';
 import { loadWisdomPilotData } from '../../wisdom/wisdomPilotData';
 import { PILOT_FIXTURES, type PilotFixture } from './fixtureProducts';
 import { applyRevisionOverrides, revisionChoices, revisionOverrideStore, type RevisionChoice, type RevisionOverrides } from './revisionOverride';
+import reviewClaimIds from '../../../../data/tea-reference/shop-review.json';
 import { installPilotApiStub, stubbedCalls } from './stubApi';
 import { COMPOSED_FIXTURES, type ComposedFixture } from './composedFixtures';
 import { DRAFT_ENTRIES, draftItem, type DraftEntryFile } from './draftEntries';
@@ -243,6 +244,9 @@ export const WisdomPilotPreview: React.FC<{ claims?: readonly PublicClaim[] }> =
             />
           )}
         />
+        {ORDER.map(slug => (
+          <Route key={`review-${slug}`} path={`review/${slug}`} element={<ListingPage fixture={PILOT_FIXTURES[slug]} claims={claims.filter(claim => reviewClaimIds.includes(claim.claimId))} />} />
+        ))}
         {ORDER.map(slug => (
           <Route key={slug} path={slug} element={<ListingPage fixture={PILOT_FIXTURES[slug]} claims={claims} />} />
         ))}

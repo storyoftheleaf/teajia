@@ -5,6 +5,9 @@ import type {
   ListingPassages,
   PublicClaim,
 } from '../../../wisdom/reference/claims';
+import type { PublicTeaReferencePage } from '../../../wisdom/reference/types';
+import { GENERATED_TEA_REFERENCE_REGISTRY } from '../../../wisdom/reference/generatedPages';
+import { GENERATED_CLAIMS } from '../../../wisdom/reference/generatedClaims';
 import { passageAnchorId } from '../../../wisdom/reference/listingPassages';
 import type { ComposedEntry } from '../../../wisdom/reference/composedEntry';
 import { BODY, FIELD_GAP, LABEL, LINK } from '../../shared/typeRoles';
@@ -12,13 +15,12 @@ import { BODY, FIELD_GAP, LABEL, LINK } from '../../shared/typeRoles';
 /**
  * The claim set a listing reads, and the pilot preview's view switches.
  *
- * Production has no provider, so it reads the default: an empty claim set
- * until the integration thread swaps in GENERATED_CLAIMS, which means the
- * shop renders no passage and nothing else on the page changes. Only the
- * dev-only /preview/wisdom-pilot/* pages provide `pilot`.
+ * The production default is generated from approved revisions on public pages.
+ * Only the local pilot supplies draft previews or explicit fixture facts.
  */
 export interface WisdomListingContextValue {
   claims: readonly PublicClaim[];
+  publicPages?: readonly PublicTeaReferencePage[];
   /** Replaces the facts built from the product (the type-only fixture). */
   facts?: ListingFacts;
   /** The tea's one written entry. When present it replaces the stacked passages and style references. */
@@ -29,10 +31,9 @@ export interface WisdomListingContextValue {
   };
 }
 
-/** Swapped for GENERATED_CLAIMS by the integration thread once it exists. */
-export const PRODUCTION_LISTING_CLAIMS: readonly PublicClaim[] = [];
-
-const WisdomListingContext = createContext<WisdomListingContextValue>({ claims: PRODUCTION_LISTING_CLAIMS });
+const WisdomListingContext = createContext<WisdomListingContextValue>({
+  claims: GENERATED_CLAIMS, publicPages: GENERATED_TEA_REFERENCE_REGISTRY.pages,
+});
 
 export const WisdomListingProvider = WisdomListingContext.Provider;
 
@@ -40,17 +41,12 @@ export function useWisdomListing(): WisdomListingContextValue {
   return useContext(WisdomListingContext);
 }
 
-/** A passage whose grid row exists gets this href on that row. */
-export function passageHref(claimId: string): string {
-  return `#${passageAnchorId(claimId)}`;
-}
-
 /** Brings a passage into view when its grid row's link sets the hash. */
 function useScrollToPassage(ids: readonly string[]) {
   const location = useLocation();
   const key = ids.join(' ');
   useEffect(() => {
-    const id = decodeURIComponent(location.hash.replace(/^#/, ''));
+    const id = location.hash.slice(1);
     if (!id || !key.split(' ').includes(id)) return;
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [location.hash, key]);
@@ -92,19 +88,23 @@ export const AlcoveWisdomPassages: React.FC<{ listing: ListingPassages }> = ({ l
           data-claim-id={claim.claimId}
           data-claim-rev={claim.rev ?? undefined}
         >
-          <h3 className={`${LABEL} ${FIELD_GAP} m-0 text-tea-text-dim`}>{claim.label}</h3>
-          <p className={`${BODY} m-0 text-tea-text [overflow-wrap:anywhere]`}>{claim.text}</p>
+          <h3 className={`${LABEL} ${FIELD_GAP} m-0 text-tea-text-dim`}>
+            {claim.axis === 'named_tea_history'
+              ? <Link to={wisdomHref} className={`${LINK} tap-target`} aria-label={`${claim.label} in Tea Wisdom`}>{claim.label}</Link>
+              : claim.label}
+          </h3>
+          <p className={`${BODY} m-0 whitespace-pre-line text-tea-text [overflow-wrap:anywhere]`}>{claim.text}</p>
           <TermsLine claim={claim} />
-          {/* Scope is an editing note for the Wisdom record, never shown to customers. */}
+          {/* Scope is an editing note for the Wisdom record, never shown to customers (Adrian, 2026-11-23). */}
           {/* Trade knowledge is written in our own words and carries no citation. */}
           {claim.sourceIds.length > 0 && (
             <p className={`${BODY} m-0 mt-1 text-tea-text-dim`} data-citation-line>
               Sources are listed in Wisdom.
             </p>
           )}
-          <Link to={wisdomHref} className={`${BODY} ${LINK} tap-target mt-1 inline-flex items-center text-tea-text-sec`}>
+          {claim.axis !== 'named_tea_history' && <Link to={wisdomHref} className={`${BODY} ${LINK} tap-target mt-1 inline-flex items-center text-tea-text-sec`}>
             Read more in Wisdom
-          </Link>
+          </Link>}
         </article>
       ))}
     </section>

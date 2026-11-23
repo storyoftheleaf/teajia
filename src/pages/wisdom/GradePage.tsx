@@ -18,7 +18,8 @@ import React, { useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getTokenClaims } from '../../lib/api';
+import { usePrivateQueryScope } from '../../admin/hooks/usePrivateQueryScope';
+import { selectHasBundle, useAppStore } from '../../lib/store';
 import { wisdomClaimUsesApi } from '../../lib/wisdomClaimUsesApi';
 import type { PublicReferenceStatement } from '../../wisdom/receiving/previewImporter';
 import type { DraftClaim, PublicClaim, PublicTeaReferenceSource } from '../../wisdom/reference/claims';
@@ -118,7 +119,6 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
   const { id = '' } = useParams<{ id: string }>();
   const location = useLocation();
   const data = useWisdomPilotData();
-  const signedIn = Boolean(getTokenClaims());
   const { products: publicProducts } = useTeaReferenceCatalogue(kind === 'tea_type');
   // A type page lists the shop's teas of that type, so a reader can go from the Wisdom page back to a tea.
   const teas = useMemo(
@@ -127,6 +127,9 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
       : []),
     [kind, id, publicProducts],
   );
+  const scope = usePrivateQueryScope();
+  const canPublish = useAppStore(state => selectHasBundle(state, 'publish'));
+  const canReadDraftArticles = scope.ready && canPublish;
 
   const page = data?.pages.find(candidate => candidate.id === id && candidate.kind === kind);
   const claims = useMemo(
@@ -152,13 +155,13 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
   const parentType = places.find(place => place.pageId === page?.parentId);
 
   const citing = useQuery({
-    queryKey: ['wisdom-citing-articles', id, signedIn],
-    queryFn: () => wisdomClaimUsesApi.citingPage(id),
+    queryKey: ['wisdom-citing-articles', id, ...(canReadDraftArticles ? scope.key : ['public'])],
+    queryFn: () => wisdomClaimUsesApi.citingPage(id, canReadDraftArticles),
     enabled: Boolean(page),
     staleTime: 60_000,
   });
   const articles = (citing.data?.articles ?? []).filter(article => (
-    article.status === undefined || article.status === 'published' || (signedIn && article.status === 'draft')
+    article.status === undefined || article.status === 'published' || (canReadDraftArticles && article.status === 'draft')
   ));
 
   // A link from a tea's entry lands on the section it named.

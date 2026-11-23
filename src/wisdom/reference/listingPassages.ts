@@ -1,5 +1,7 @@
 // Which approved Wisdom claims a shop listing may show, and in what order.
 // Contract: docs/_notes/tea-wisdom-claims.md, "What a listing may match on".
+import type { PublicTeaReferencePage } from './types';
+import { wisdomPageHref } from '../../pages/wisdom/articleClaimUses';
 import {
   LISTING_AXIS_ORDER,
   type ClaimAppliesWhen,
@@ -42,6 +44,7 @@ export function appliesTo(when: ClaimAppliesWhen, facts: ListingFacts): boolean 
   if (keys.length === 0) return false;
   if (when.name_includes !== undefined && when.origin_includes === undefined) return false;
 
+  if (when.named_tea !== undefined && when.named_tea !== facts.namedTeaId) return false;
   if (when.type !== undefined && when.type !== facts.type) return false;
   if (when.grade !== undefined && when.grade !== facts.grade) return false;
   if (when.form !== undefined && when.form !== facts.form) return false;
@@ -58,7 +61,8 @@ export function appliesTo(when: ClaimAppliesWhen, facts: ListingFacts): boolean 
 
 /** Scalar keys count once; each listed origin or name value counts once. */
 export function conditionCount(when: ClaimAppliesWhen): number {
-  return (when.type !== undefined ? 1 : 0)
+  return (when.named_tea !== undefined ? 1 : 0)
+    + (when.type !== undefined ? 1 : 0)
     + (when.grade !== undefined ? 1 : 0)
     + (when.form !== undefined ? 1 : 0)
     + (when.origin_includes?.length ?? 0)
@@ -74,9 +78,14 @@ function axisRank(axis: ClaimAxis): number {
   return rank === -1 ? Number.POSITIVE_INFINITY : rank;
 }
 
+function identifiesGradeOrPlace(when: ClaimAppliesWhen): number {
+  return Number(Boolean(when.grade || when.origin_includes?.length));
+}
+
 function compareForListing(left: PublicClaim, right: PublicClaim): number {
-  return axisRank(left.axis) - axisRank(right.axis)
+  return identifiesGradeOrPlace(right.appliesWhen) - identifiesGradeOrPlace(left.appliesWhen)
     || conditionCount(right.appliesWhen) - conditionCount(left.appliesWhen)
+    || axisRank(left.axis) - axisRank(right.axis)
     || codePointCompare(left.claimId, right.claimId);
 }
 
@@ -92,6 +101,7 @@ export function wisdomHrefFor(claim: Pick<PublicClaim, 'axis' | 'pageId' | 'sect
   const anchor = `#${encodeURIComponent(claim.sectionKey)}`;
   const page = encodeURIComponent(claim.pageId);
   switch (claim.axis) {
+    case 'named_tea_history': return `/wisdom/named/${page}${anchor}`;
     case 'grade': return `/wisdom/grade/${page}${anchor}`;
     case 'place': return `/wisdom/region/${page}${anchor}`;
     default: return `/wisdom/type/${page}${anchor}`;
@@ -104,7 +114,8 @@ export function passageAnchorId(claimId: string): string {
 }
 
 /**
- * At most two passages, ranked grade > place > type > process, the second on a
+ * After the named tea’s history, at most two general passages, most specific first; grade > place > type > process
+ * settles equal specificity. The second is on a
  * different axis from the first. Only approved, listing-eligible claims lead.
  * Sensory claims (what people often notice in the style or grade) come back
  * separately as style references, and never describe the lot.
@@ -123,11 +134,35 @@ function styleSpecificity(claim: PublicClaim): number {
 export function resolveListingPassages(
   facts: ListingFacts,
   claims: readonly PublicClaim[],
+  publicPages?: readonly PublicTeaReferencePage[],
 ): ListingPassages {
-  const live = claims.filter(isPublic);
+  // Public links follow the kind of the page that owns the section. A process
+  // can be explained on a family page and a taste reference on a region page.
+  const publicLinks = publicPages && new Map(publicPages.flatMap(page => {
+    const href = wisdomPageHref(page.id, page.kind);
+    return href ? page.sections.map(section =>
+      [page.id + ':' + section.key, href + '#' + encodeURIComponent(section.key)] as const) : [];
+  }));
+  const live = claims.filter(claim =>
+    isPublic(claim) && (!publicLinks || (publicLinks.has(claim.claimId)
+      && (claim.axis !== 'sensory_observation' || claim.sourceIds.length > 0))));
+
+
+  // Use the reference entry's published section order. Its history is a single
+  // narrative, independent of the two general facts selected below.
+  const namedPage = facts.namedTeaId && publicPages?.find(page =>
+    page.kind === 'named_tea' && page.id === facts.namedTeaId);
+  const namedClaims = namedPage ? namedPage.sections.flatMap(section => {
+    const claim = live.find(candidate => candidate.axis === 'named_tea_history'
+      && candidate.pageId === namedPage.id && candidate.sectionKey === section.key
+      && candidate.claimId === namedPage.id + ':' + section.key
+      && candidate.appliesWhen.named_tea === namedPage.id && appliesTo(candidate.appliesWhen, facts)
+      && candidate.listingEligible && candidate.sourceIds.length > 0);
+    return claim ? [claim] : [];
+  }) : [];
 
   const candidates = live
-    .filter(claim => claim.listingEligible
+    .filter(claim => claim.listingEligible && claim.axis !== 'named_tea_history'
       && !NEVER_ON_A_LISTING.has(claim.axis)
       && LISTING_AXIS_ORDER.includes(claim.axis)
       && appliesTo(claim.appliesWhen, facts))
@@ -146,13 +181,14 @@ export function resolveListingPassages(
     .sort((left, right) => (styleSpecificity(right) - styleSpecificity(left)) || codePointCompare(left.claimId, right.claimId))
     .slice(0, 1);
 
-  if (chosen.length === 0 && styleReferences.length === 0) return EMPTY_LISTING_PASSAGES;
+  const passages = [...namedClaims, ...chosen];
+  if (passages.length === 0 && styleReferences.length === 0) return EMPTY_LISTING_PASSAGES;
 
   return {
-    passages: chosen.map(claim => ({
+    passages: passages.map(claim => ({
       claim,
       gridField: GRID_FIELD[claim.axis],
-      wisdomHref: wisdomHrefFor(claim),
+      wisdomHref: publicLinks?.get(claim.claimId) ?? wisdomHrefFor(claim),
     })),
     styleReferences,
   };

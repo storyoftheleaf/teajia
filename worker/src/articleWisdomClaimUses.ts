@@ -15,6 +15,19 @@
  * The public article response carries its uses too (`publicArticleClaimUses`).
  */
 
+import articleClaims from './articleWisdomClaimIndex.json';
+
+const publicClaimIds = new Set(articleClaims.filter(claim => claim.public).map(claim => claim.id));
+
+function citedHistory(uses: ArticleClaimUseRow[]) {
+  return uses.flatMap(use => {
+    const claim = articleClaims.find(item => item.id === use.claim_id);
+    const revision = claim?.revisions.find(item => item.rev === use.rev_used);
+    if (!claim || !revision) return [];
+    return [{ claim_id: claim.id, rev_used: revision.rev, text: revision.text, withdrawn: claim.withdrawn }];
+  });
+}
+
 export interface ArticleClaimUseEnv {
   DB: D1Database;
 }
@@ -93,7 +106,7 @@ export async function publicArticleClaimUses(db: D1Database, articleId: string):
         WHERE u.article_id = ? AND a.status = 'published'
         ORDER BY u.block_index ASC, u.claim_id ASC`,
     ).bind(articleId).all<ArticleClaimUseRow>();
-    return rows.results ?? [];
+    return (rows.results ?? []).filter(row => publicClaimIds.has(row.claim_id));
   } catch (error) {
     if (isMissingTable(error)) return [];
     throw error;
@@ -153,7 +166,8 @@ export function articleWisdomClaimUseRoutes<E extends ArticleClaimUseEnv>(
     if ('error' in ctx) return ctx.error;
     const article = await ownArticle(env, params.id, ctx.accountId);
     if (!article) return refuse(404, 'Article not found', 'article_not_found');
-    return json({ uses: await usesOf(env.DB, article.id, ctx.accountId) });
+    const uses = await usesOf(env.DB, article.id, ctx.accountId);
+    return json({ uses, history: citedHistory(uses) });
   };
 
   const replace: Handler<E> = async (request, env, params) => {
@@ -221,7 +235,10 @@ export function articleWisdomClaimUseRoutes<E extends ArticleClaimUseEnv>(
   const publicCiting: Handler<E> = async (request, env) => {
     const pageId = pageIdFrom(request);
     if (!PAGE_ID.test(pageId)) return refuse(400, 'Name the Wisdom page as page_id.', 'invalid_page_id');
-    const articles = (await citing(env, pageId, 'published')).map(({ status: _status, ...article }) => article);
+    const articles = (await citing(env, pageId, 'published')).flatMap(({ status: _status, ...article }) => {
+      const claim_ids = article.claim_ids.filter(id => publicClaimIds.has(id));
+      return claim_ids.length ? [{ ...article, claim_ids }] : [];
+    });
     return json({ articles });
   };
 

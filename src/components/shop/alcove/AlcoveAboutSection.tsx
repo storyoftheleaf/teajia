@@ -1,68 +1,17 @@
 import React from 'react';
-import type { InventoryItem } from '../../../types';
+import { Link } from 'react-router-dom';
+import { QUIET_LINK } from '../../../pages/wisdom/frame';
+import type { ProductReading } from '../productDetailFields';
 import { resolveTermLabel } from '../../../data/tastingTaxonomy';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
 
-interface AlcoveAboutSectionProps {
-  item: InventoryItem;
-  magazineUrl?: string;
-  /** Historical / cultural lore (item.lore). */
-  mainStory: string;
-  /** The saved Shop introduction (item.description). */
-  introduction: string;
-  /** Experience prose (item.experience). Rendered only when present. */
-  feelingDescription: string;
-  terroir: string;
-  processing: string;
-  mood: string;
-  /**
-   * 'card' is the quiet modal card, where a chapter label is a 10px whisper
-   * over 14px prose because the whole card is a glance.
-   *
-   * 'page' is the product page, where this section IS the page: the label
-   * becomes the centred rule-and-word mark that names a chapter, and the prose
-   * steps up to reading size in reading ink. The 14px secondary text was the
-   * single thing that made the page feel thin.
-   */
-  variant?: 'card' | 'page';
-}
-
-/**
- * "About this tea": each populated field renders as its own labeled block
- * (TERROIR / PROCESSING / MOOD / EXPERIENCE), not concatenated into one blob.
- * so no section repeats and each reads clearly. The saved introduction is
- * separate from tasting and experience prose.
- */
-export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
-  item,
-  magazineUrl,
-  mainStory,
-  introduction,
-  feelingDescription,
-  terroir,
-  processing,
-  mood,
-  variant = 'card',
-}) => {
-  const brewingTerms = item.tasting?.brewing ?? [];
-  const hasBrewing = brewingTerms.length > 0;
-  const teaser = item.tasting?.teaser?.trim() || '';
-
-  const hasAny =
-    Boolean(teaser) ||
-    Boolean(introduction.trim()) ||
-    Boolean(mainStory.trim()) ||
-    Boolean(terroir.trim()) ||
-    Boolean(processing.trim()) ||
-    Boolean(mood.trim()) ||
-    Boolean(feelingDescription.trim());
-  if (!hasAny && !hasBrewing) return null;
-
+export function AlcoveAboutSection({
+  reading, variant = 'card',
+}: { reading: ProductReading; variant?: 'card' | 'page' }) {
+  const { label, teaser, sections, brewing = [] } = reading;
+  const populated = sections.filter(section => section.paragraphs?.length || section.links?.length);
+  if (!teaser && !populated.length && !brewing.length) return null;
   const onPage = variant === 'page';
-  const [processingCopy, styleAroma] = onPage
-    ? processing.split(/\n\s*## Style aroma reference\s*\n/, 2)
-    : [processing];
-
   const paragraphClass = onPage
     ? 'm-0 whitespace-pre-line font-body text-[16.5px] font-normal leading-[1.82] text-tea-text-sec [text-wrap:pretty] [&+p]:mt-3 lg:text-ui-17'
     : 'm-0 whitespace-pre-line font-body text-ui-14 font-normal leading-[1.75] text-tea-text-sec [&+p]:mt-[9px]';
@@ -112,18 +61,8 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
     return blocks;
   }
 
-  function labeledSection(label: string, body: string) {
-    if (!body.trim()) return null;
-    return (
-      <div className={onPage ? '[&:not(:first-child)]:mt-9 first:mt-0 lg:[&:not(:first-child)]:mt-11' : '[&:not(:first-child)]:mt-5 first:mt-0'}>
-        {sectionLabel(label)}
-        <div className={onPage ? '' : 'mt-1.5'}>{renderMarkdown(body)}</div>
-      </div>
-    );
-  }
-
   return (
-    <section aria-label="About this tea">
+    <section aria-label={label} className={onPage ? 'mt-10 lg:mt-12' : undefined}>
       <div className="px-5">
         {/* Teaser first: the user-entered one-liner, shown only when present. */}
         {teaser && (
@@ -135,31 +74,33 @@ export const AlcoveAboutSection: React.FC<AlcoveAboutSectionProps> = ({
             {teaser}
           </p>
         )}
-        {labeledSection('Introduction', introduction)}
-        {/* Order: Lore (when present), then Terroir, Processing, Mood, Experience. */}
-        {mainStory.trim() && (
-          <div className={onPage ? '[&:not(:first-child)]:mt-9 first:mt-0 lg:[&:not(:first-child)]:mt-11' : '[&:not(:first-child)]:mt-5 first:mt-0'}>
-            {sectionLabel('Lore')}
-            <div className={onPage ? '' : 'mt-1.5'}>{renderMarkdown(mainStory)}</div>
+        {populated.map(section => (
+          <div key={section.label} className={onPage ? '[&:not(:first-child)]:mt-9 first:mt-0 lg:[&:not(:first-child)]:mt-11' : '[&:not(:first-child)]:mt-5 first:mt-0'}>
+            {sectionLabel(section.label)}
+            {section.paragraphs?.map((text, index) => (
+              <div key={index} className={onPage ? '' : 'mt-1.5'}>{renderMarkdown(text)}</div>
+            ))}
+            {section.links?.length ? (
+              <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                {section.links.map(link => <li key={link.name}>
+                  {link.href ? <Link className={`${QUIET_LINK} tap-target inline-flex items-center`} to={link.href}>{link.name} →</Link> : link.name}
+                </li>)}
+              </ul>
+            ) : null}
           </div>
-        )}
-        {labeledSection('Terroir', terroir)}
-        {labeledSection('Processing', processingCopy)}
-        {labeledSection('Mood', mood)}
-        {labeledSection('Experience', feelingDescription)}
-        {styleAroma && labeledSection('Flavor & Aroma Profile', styleAroma)}
+        ))}
       </div>
 
-      {hasBrewing && (
+      {brewing.length > 0 && (
         <div className="mx-5 mt-3.5 grid grid-cols-[92px_1fr] items-start py-2.5">
           <div className="pt-[3px] font-sans text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim">
             Brewing
           </div>
           <div className="font-body text-[13.5px] leading-[1.6] text-tea-text-sec">
-            {brewingTerms.map(termId => resolveTermLabel(termId)).join(' · ')}
+            {brewing.map(termId => resolveTermLabel(termId)).join(' · ')}
           </div>
         </div>
       )}
     </section>
   );
-};
+}

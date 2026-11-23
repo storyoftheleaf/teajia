@@ -136,8 +136,8 @@ export async function personTastings(db: D1Database, userId: string | null | und
             p.stock_grams, a.slug AS account_slug
        FROM products p JOIN accounts a ON a.id = p.account_id
       WHERE p.id IN (${ids.map(() => '?').join(',')})
-        AND p.is_public = 1 AND p.status IN ('Active', 'Sold Out')
-        AND a.status = 'active' AND COALESCE(a.public_enabled, 1) = 1`,
+        AND p.is_public = 1 AND p.shown_in_shop = 1 AND p.status IN ('Active', 'Sold Out')
+        AND a.status = 'active' AND a.public_enabled = 1`,
   ).bind(...ids).all<ProductRow>();
   const byId = new Map((results ?? []).map(row => [row.id, row]));
 

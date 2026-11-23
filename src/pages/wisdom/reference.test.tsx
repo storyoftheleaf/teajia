@@ -685,7 +685,7 @@ describe('wayfinding', () => {
     ]);
   });
 
-  it.skipIf(TEA_REFERENCE_PREVIEW_ENABLED)('renders all six canonical pages on their existing routes, including colliding region ids', async () => {
+  it.skipIf(TEA_REFERENCE_PREVIEW_ENABLED)('renders the canonical pages on their existing routes, including colliding region ids', async () => {
     const routeHtml = async (path: string) => path.startsWith('/wisdom/region/')
       ? renderRegionAsync(path, createCanonicalQueryClient())
       : renderCanonicalTypeRoute(path);
@@ -703,7 +703,12 @@ describe('wayfinding', () => {
       expect(html, path).toContain(sectionLabel);
       expect(html, path).toContain(canonicalSection);
       expect(html, path).not.toContain('Source:');
-      expect(html, path).not.toContain('TeaDB');
+      if (path === '/wisdom/region/menghai-county') {
+        expect(html).toContain('id="mengsong-naka"');
+        expect(html).toContain('href="https://teadb.org/menghai-county/"');
+      } else {
+        expect(html, path).not.toContain('TeaDB');
+      }
       expect(html, path).not.toContain('>Cited origin<');
     }
   });

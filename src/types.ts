@@ -3,27 +3,10 @@
 // here so existing consumers keep working without importing from ../wisdom
 // directly. Do not redeclare this list.
 import { NON_TEA_TYPES, type TeaType } from './wisdom';
+import type { NoteEntry } from './lib/noteEntries';
+export type { NoteEntry } from './lib/noteEntries';
 import type { FamilyPageTier, FamilyPersonTasting } from './lib/familyContract';
 export { TEA_TYPES, type TeaType, NON_TEA_TYPES } from './wisdom';
-
-/**
- * A single captured note within a tasting session. May originate from a voice
- * transcription, typed entry, or promoted community entry. Starred notes are
- * the admin's published voice on the product's tasting profile.
- */
-export interface NoteEntry {
-  id: string;
-  text: string;
-  /** If true, the note has been curated and should render publicly. */
-  starred?: boolean;
-  /** Which section of the session the note was captured in. */
-  section?: 'flavor' | 'aroma' | 'feeling' | 'body' | 'finish' | 'general';
-  /** ISO timestamp of when the note was first captured. */
-  capturedAt?: string;
-  /** When the note was promoted from a community source, its attribution. */
-  sourceAuthor?: { initial?: string; accountName?: string };
-  sourceJournalEntryId?: string;
-}
 
 export interface TastingData {
   // Section 1: Sensation (temperature, weight, texture)
@@ -716,7 +699,30 @@ export interface CartItem {
 }
 
 // Unified Inventory Type
+export interface TeawareDetails {
+  clay_type?: string;
+  clay_history?: string;
+  form_history?: string;
+  age_estimate?: string;
+  dating_basis?: string;
+  maker?: string;
+  mark?: string;
+  acquired_in?: string;
+  acquired_from?: string;
+  acquired_when?: string;
+  construction?: string;
+  use_history?: string;
+  condition?: string;
+  recommended_tea_type?: string;
+  recommended_tea_types?: string[];
+  brewing_notes?: string;
+  pour_notes?: string;
+  provenance?: string;
+  is_yixing?: boolean;
+}
+
 export interface InventoryItem {
+  teawareDetails?: TeawareDetails;
   id: string;
   /** Readable public address, e.g. "mahei-gushu-red". Absent on rows that
    *  predate the slug migration; links fall back to the id. */
@@ -798,6 +804,7 @@ export interface InventoryItem {
 export type PublicProductType = TeaType | typeof NON_TEA_TYPES[number];
 
 export interface PublicProduct {
+  teawareDetails?: TeawareDetails;
   id: string;
   /** Readable public address. See InventoryItem.slug. */
   slug?: string;

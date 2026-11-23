@@ -270,6 +270,12 @@ export default function SessionPage() {
 
       {activeTea && (
         <TastingSession
+          key={activeTea.id}
+          sequence={{
+            index: sortedTeas.findIndex(tea => tea.id === activeTea.id),
+            count: sortedTeas.length,
+            onSelect: index => setActiveTeaId(sortedTeas[index].id),
+          }}
           item={{
             id: activeTea.product_id || activeTea.id,
             name: teaDisplayName(activeTea),

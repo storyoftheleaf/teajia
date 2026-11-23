@@ -25,6 +25,33 @@ import { useSampleStore } from '../../samples/sampleStore';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import type { Currency } from '../types';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
+import { Button } from '../../components/shared/Button';
+import { VendorFaceGallery } from '../../components/vendors/VendorFaceGallery';
+import { toFaceVendor, vendorFacePhoto } from '../../components/vendors/vendorFaces';
+
+type SourcesLayout = 'list' | 'faces';
+const LAYOUT_KEY = 'teajia.sources.layout';
+const readLayout = (): SourcesLayout => {
+  try { return localStorage.getItem(LAYOUT_KEY) === 'faces' ? 'faces' : 'list'; } catch { return 'list'; }
+};
+
+/** List or faces: the same vendors, read as rows or picked out by sight. */
+const LayoutToggle: React.FC<{ layout: SourcesLayout; onChange: (next: SourcesLayout) => void }> = ({ layout, onChange }) => (
+  <div role="group" aria-label="Show vendors as" className="inline-flex shrink-0 items-center gap-1">
+    {(['list', 'faces'] as const).map(option => (
+      <Button
+        key={option}
+        type="button"
+        variant="chip"
+        onClick={() => onChange(option)}
+        aria-pressed={layout === option}
+        data-testid={`sources-layout-${option}`}
+      >
+        {option === 'list' ? 'List' : 'Faces'}
+      </Button>
+    ))}
+  </div>
+);
 
 /** Canonical status pill, see DesignSystemShowcase §8 */
 const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
@@ -70,7 +97,7 @@ const VendorAvatar: React.FC<{ name: string; size?: number; className?: string; 
     style={{ width: size, height: size }}
   >
     {photo ? (
-      // Show the vendor's actual storefront / business-card photo when we have one.
+      // The vendor's face when there is one, else the storefront or business card.
       <img src={mediaUrl(photo)} alt={name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
     ) : (
       <>
@@ -327,6 +354,11 @@ export const SourcesView = () => {
 
   // Expanded source, shows inline inventory table
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
+  const [layout, setLayoutState] = useState<SourcesLayout>(readLayout);
+  const setLayout = (next: SourcesLayout) => {
+    setLayoutState(next);
+    try { localStorage.setItem(LAYOUT_KEY, next); } catch { /* remembered for this visit only */ }
+  };
 
   // --- LOCAL VIEW STATE ---
   const [searchQuery, setSearchQuery] = useState('');
@@ -918,7 +950,7 @@ export const SourcesView = () => {
 
       {/* --- MOBILE CONTROL BAR --- */}
       <div className={`md:hidden sticky top-0 z-sticky transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/95 backdrop-blur-md'}`}>
-        <div className="flex items-center px-2 py-1.5 gap-1">
+        <div className="flex flex-wrap items-center px-2 py-1.5 gap-1">
           <Users size={14} className="text-tea-gold shrink-0 ml-1" />
           <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.08em] shrink-0">
             {processedSources.length}
@@ -936,6 +968,8 @@ export const SourcesView = () => {
           )}
 
           <div className="flex-1" />
+
+          <LayoutToggle layout={layout} onChange={setLayout} />
 
           {/* Search */}
           <div className="relative w-28">
@@ -1071,6 +1105,7 @@ export const SourcesView = () => {
           )}
 
           <div className="flex items-center gap-4 ml-auto">
+            <LayoutToggle layout={layout} onChange={setLayout} />
             {/* Search */}
             <div className="relative w-48">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
@@ -1210,9 +1245,12 @@ export const SourcesView = () => {
         ref={scrollContainerRef}
         className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
       >
+        {layout === 'faces' && (
+          <VendorFaceGallery vendors={processedSources.map(source => toFaceVendor(source))} />
+        )}
 
         {/* MOBILE CARDS, canonical list rows §8 + identity-card-in-miniature §19 */}
-        <div className="md:hidden pb-nav-gap">
+        <div className={`md:hidden pb-nav-gap ${layout === 'faces' ? 'hidden' : ''}`}>
           <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden mx-3 mt-3">
             {processedSources.map((source) => {
               const isExpanded = expandedCardId === source.id;
@@ -1223,7 +1261,7 @@ export const SourcesView = () => {
                     className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-accent-sub ${isExpanded ? 'bg-tea-accent-sub' : ''}`}
                     onClick={() => setExpandedCardId(isExpanded ? null : source.id)}
                   >
-                    <VendorAvatar name={source.name} photo={source.storefront_photo || source.business_card_photo} size={36} />
+                    <VendorAvatar name={source.name} photo={vendorFacePhoto(source)} size={36} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-display text-ui-15 text-tea-text truncate">{source.name}</span>
@@ -1349,7 +1387,7 @@ export const SourcesView = () => {
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+        <div className={`w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden ${layout === 'faces' ? '' : 'md:block'}`}>
 
           {/* --- GROUPED VIEW --- */}
           {groupedSources ? (
@@ -1482,7 +1520,7 @@ export const SourcesView = () => {
 
             {/* Identity card, canonical from §19 */}
             <div className="px-5 py-5 border-b border-tea-border flex items-start gap-4 flex-shrink-0">
-              <VendorAvatar name={panelSource.name} photo={panelSource.storefront_photo || panelSource.business_card_photo} size={48} />
+              <VendorAvatar name={panelSource.name} photo={vendorFacePhoto(panelSource)} size={48} />
               <div className="flex-1 min-w-0">
                 <h3 className="h3 truncate">{panelSource.name}</h3>
                 {panelSource.email && (

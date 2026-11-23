@@ -3,7 +3,7 @@
  * Contract: docs/_notes/tea-wisdom-claims.md, "Article claim uses".
  * Worker side: worker/src/articleWisdomClaimUses.ts.
  */
-import { API_URL, authedFetch, fetchWithTimeout, getTokenClaims, handleResponse } from './api';
+import { API_URL, authedFetch, fetchWithTimeout, handleResponse } from './api';
 
 export interface WisdomClaimUseRow {
   article_id: string;
@@ -11,6 +11,13 @@ export interface WisdomClaimUseRow {
   claim_id: string;
   rev_used: number;
   use_kind: 'prose' | 'live_block';
+}
+
+export interface CitedClaimHistory {
+  claim_id: string;
+  rev_used: number;
+  text: string;
+  withdrawn: boolean;
 }
 
 export interface WisdomCitingArticle {
@@ -23,7 +30,7 @@ export interface WisdomCitingArticle {
 }
 
 export const wisdomClaimUsesApi = {
-  list: (articleId: string): Promise<{ uses: WisdomClaimUseRow[] }> =>
+  list: (articleId: string): Promise<{ uses: WisdomClaimUseRow[]; history?: CitedClaimHistory[] }> =>
     authedFetch(`${API_URL}/api/admin/articles/${encodeURIComponent(articleId)}/wisdom-claim-uses`),
 
   replace: (articleId: string, uses: Omit<WisdomClaimUseRow, 'article_id'>[]): Promise<{ uses: WisdomClaimUseRow[] }> =>
@@ -33,9 +40,9 @@ export const wisdomClaimUsesApi = {
     }),
 
   /** Articles citing a Wisdom page. Signed in with the publish bundle: the account's drafts too. Otherwise published only. */
-  async citingPage(pageId: string): Promise<{ articles: WisdomCitingArticle[] }> {
+  async citingPage(pageId: string, includeDrafts: boolean): Promise<{ articles: WisdomCitingArticle[] }> {
     const query = `page_id=${encodeURIComponent(pageId)}`;
-    if (getTokenClaims()) {
+    if (includeDrafts) {
       try {
         return await authedFetch(`${API_URL}/api/admin/wisdom-claim-uses?${query}`);
       } catch {

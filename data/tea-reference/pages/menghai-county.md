@@ -24,7 +24,7 @@ The establishment of Menghai Tea Factory and the post-1950 shift toward large-sc
 
 ## Mengsong and Naka {#mengsong-naka}
 
-Mengsong is a township in the east of Menghai County, facing Nannuo across the Liusha River. Naka is a Lahu village in the north of Mengsong, close to Huazhu Liangzi, the highest peak in Xishuangbanna.
+Naka is a village in Mengsong, one of Menghai County’s tea-growing areas. [cite:teadb-menghai-county]
 
 ## Where ripe pu’er began {#ripe-origins}
 

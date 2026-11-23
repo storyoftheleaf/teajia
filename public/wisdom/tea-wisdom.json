@@ -2,7 +2,7 @@
   "meta": {
     "name": "Teajia Tea Wisdom Base",
     "version": "1.0.0",
-    "generatedAt": "2026-08-09",
+    "generatedAt": "2026-11-23",
     "license": "CC BY 4.0, see LICENSE.txt",
     "homepage": "https://teajia.com",
     "contact": "hello@teajia.com",
@@ -13,7 +13,7 @@
       "producers": 10,
       "styles": 10,
       "marks": 15,
-      "namedTeas": 17,
+      "namedTeas": 18,
       "vocabulary": 25,
       "researchSources": 1,
       "citations": 1,
@@ -961,7 +961,7 @@
       "country": "China",
       "province": "Yunnan",
       "altitude": "1600m (approx.)",
-      "climate": "Lahu village in Mengsong township, Menghai county, Xishuangbanna, on the eastern side of Huazhu Liangzi mountain; over 600 mu of old tea gardens with trees roughly 300 to 500 years old."
+      "climate": "Village on Nannuo Mountain (one of the ancient six tea mountains) in Menghai county, Xishuangbanna; ancient gardens cultivated by the Lahu ethnic minority."
     },
     {
       "id": "nangang-district-taipei",
@@ -7944,6 +7944,22 @@
       "provenance": "undisclosed",
       "tradition": "Chinese private-collection naming",
       "description": "Named by the collector who stored it for a quality the tea seemed to carry beyond flavor. Origin beyond the Yunnan province and vintage are unrecorded."
+    },
+    {
+      "id": "y562",
+      "name": "Y562",
+      "chineseName": "中茶吉幸Y562",
+      "altNames": [
+        "Jixing Black Box",
+        "Little Black Box",
+        "小黑盒"
+      ],
+      "type": "Shou",
+      "form": "Loose",
+      "region": "Yunnan",
+      "country": "China",
+      "provenance": "partial",
+      "tradition": "Export tea codes"
     },
     {
       "id": "yue-chen-yue-xiang",

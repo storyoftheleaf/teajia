@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { VendorFace } from '../../components/vendors/VendorFace';
+import { VendorFaceSheet, VendorFacesButton } from '../../components/vendors/VendorFaceSheet';
+import { toFaceVendor } from '../../components/vendors/vendorFaces';
 import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, ChevronDown, Compass, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Currency, Product, ExchangeRate, ProductType } from '../types';
@@ -87,6 +90,21 @@ const VendorPicker = ({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingVendor, setPendingVendor] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  // Picking by face moves focus into the face sheet. That blur must not be
+  // read as "done typing", or half a name would offer to become a new vendor.
+  const [facesOpen, setFacesOpen] = useState(false);
+  // Opening the faces fetches the list again, so a face added a moment ago
+  // (on another device, or on the vendor's page) shows straight away.
+  useEffect(() => { if (facesOpen) void refetchCustomers(); }, [facesOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const facesOpening = useRef(false);
+  const faceVendors = useMemo(
+    () => customers.filter(c => c.tags?.includes('vendor')).map(c => toFaceVendor(c)),
+    [customers]
+  );
+  const photoByName = useMemo(
+    () => new Map(faceVendors.map(v => [v.name.toLowerCase(), v.photo])),
+    [faceVendors]
+  );
 
   // Get unique vendor names from customers tagged as vendor
   const vendors = useMemo(() => {
@@ -175,6 +193,7 @@ const VendorPicker = ({
 
   return (
     <div ref={wrapperRef} className="relative">
+      <div className="flex items-center gap-1 min-w-0">
       <input
         type="text"
         value={query}
@@ -184,7 +203,7 @@ const VendorPicker = ({
         }}
         onFocus={(e) => { setOpen(true); setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
         onBlur={() => {
-          setTimeout(() => handleSelectVendor(query.trim()), 150);
+          setTimeout(() => { if (!facesOpening.current) handleSelectVendor(query.trim()); }, 150);
         }}
         onKeyDown={e => {
           if (e.key === 'Enter') {
@@ -195,6 +214,18 @@ const VendorPicker = ({
         className={className}
         placeholder="Type or pick a source..."
         autoComplete="off"
+      />
+      <VendorFacesButton
+        onClick={() => { facesOpening.current = true; setOpen(false); setFacesOpen(true); }}
+        label=""
+      />
+      </div>
+      <VendorFaceSheet
+        open={facesOpen}
+        onClose={() => { setFacesOpen(false); window.setTimeout(() => { facesOpening.current = false; }, 300); }}
+        vendors={faceVendors}
+        selectedName={value}
+        onPick={v => { setQuery(v.name); handleSelectVendor(v.name); }}
       />
 
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
@@ -218,11 +249,12 @@ const VendorPicker = ({
                 setQuery(v);
                 handleSelectVendor(v);
               }}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-tea-bg transition-colors ${
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-tea-bg transition-colors flex items-center gap-2 ${
                 v === value ? 'text-tea-gold font-medium' : 'text-tea-text'
               }`}
             >
-              {v}
+              <VendorFace name={v} photo={photoByName.get(v.toLowerCase())} size={24} />
+              <span className="truncate">{v}</span>
             </button>
           ))}
         </div>

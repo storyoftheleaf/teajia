@@ -1,0 +1,79 @@
+import { Button } from '../../../components/shared/Button';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { CELL, FACT, LABEL, NAME_CLASS, QUIET_LINK, RULE_FULL } from '../../../pages/wisdom/wisdomShared';
+import { BASE, guidePath, KINDS, potPath, type Board, type ChangeClay, type Kind } from './data';
+import { shapeLibraryPath } from './shapeData';
+
+const labels: Record<Kind, string> = { clay: 'Clay names', color: 'Fired colors', shape: 'Shapes' };
+
+export function Guide({ board, onClay, onReload }: { board: Board; onClay: ChangeClay; onReload: () => Promise<void> }) {
+  const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [conflict, setConflict] = useState(false);
+  const { search, hash } = useLocation();
+  const anchor = hash.slice(1);
+  const { reference } = board;
+  const params = new URLSearchParams(search);
+  const pot = board.pots.find(p => p.id === params.get('pot'));
+  const fromListing = params.get('from') === 'listing';
+  const kind = reference.entries.find(e => e.id === anchor)?.kind
+    ?? KINDS.find(k => 'yixing-' + k === anchor) ?? 'clay';
+  const entries = reference.entries.filter(e => e.kind === kind);
+  const back = pot
+    ? <Link className={QUIET_LINK} to={potPath(pot.id) + (fromListing ? '/listing' : '')}>← Back to {pot.name}</Link>
+    : <Link className={QUIET_LINK} to={BASE}>Review my teapots</Link>;
+  const chooseForPot = pot && kind === 'clay';
+  async function applyClay(id: string, action: 'approve' | 'deny' = 'approve') {
+    if (!pot || saving || conflict) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      await onClay(pot.id, id, action, board.decisions[pot.id]?.revision ?? 0);
+      navigate(potPath(pot.id));
+    } catch (error) {
+      setConflict(error instanceof Error && 'status' in error && error.status === 409);
+      setMessage(error instanceof Error ? error.message : 'Unable to apply this clay.');
+    } finally { setSaving(false); }
+  }
+  useEffect(() => {
+    if (!anchor) return;
+    const frame = requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: 'start', behavior: 'instant' }));
+    return () => cancelAnimationFrame(frame);
+  }, [anchor, reference]);
+  return <>
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">{back}
+      <Link className="btn-secondary tap-target" to={shapeLibraryPath(pot?.id, fromListing)}>Shape Library</Link>
+    </div>
+    <h1 className="type-page-title font-display">{reference.title}</h1>
+    <nav aria-label="Yixing reference categories" id={'yixing-' + kind} className="my-4 flex flex-wrap gap-2">
+      {KINDS.map(k => <Link className="btn-tab" aria-current={kind === k ? 'page' : undefined} key={k} to={guidePath(pot, 'yixing-' + k, fromListing)}>{labels[k]}</Link>)}
+    </nav>
+    {chooseForPot && <p className="mb-2">Choose clay for {pot.name}</p>}
+    <div className={CELL + ' mb-4 flex flex-wrap gap-x-4 gap-y-2'}>{entries.map(e =>
+      chooseForPot ? <Button variant="chip" type="button" key={e.id} aria-label={'Apply ' + e.name}
+       disabled={saving || conflict} onClick={() => void applyClay(e.id)}>{e.name}</Button>
+        : <Link className={QUIET_LINK} key={e.id} to={guidePath(pot, e.id, fromListing)}>{e.name}</Link>)}</div>
+    {message && <div role="alert">{message} {conflict && <Button variant="secondary" type="button" onClick={async () => {
+      try { await onReload(); } catch { setMessage('Reload failed. Try again.'); }
+    }}>Reload saved choices</Button>}</div>}
+    <p className={FACT + ' mb-4'}>{reference.scope}</p>
+    {entries.map(e => <section key={e.id} id={e.id} className={RULE_FULL + ' scroll-mt-1 py-4 ' + (e.id === anchor ? 'bg-tea-accent-sub px-3' : '')}>
+      <h2 className={NAME_CLASS}>{e.name} {e.chinese && <span lang="zh" className="text-tea-text-sec">{e.chinese}</span>}</h2>
+      {chooseForPot && anchor === e.id && <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Button variant="primary" type="button" disabled={saving || conflict}
+          onClick={() => void applyClay(e.id)}>Use {e.name} for this pot</Button>
+        {pot.comparisonIds.includes(e.id) && board.decisions[pot.id]?.clay !== e.id && !board.decisions[pot.id]?.rejectedClays?.includes(e.id) &&
+          <Button variant="secondary" type="button" disabled={saving || conflict}
+            onClick={() => void applyClay(e.id, 'deny')}>Deny {e.name}</Button>}
+      </div>}
+      <p className={LABEL + ' mt-1'}>{e.status}</p><p className={FACT + ' mt-2'}>{e.summary}</p>
+      {!!e.cues?.length && <div className="mt-3"><p className={LABEL}>What to look for</p>
+        <ul className={FACT + ' list-disc ps-5'}>{e.cues.map(cue => <li key={cue}>{cue}</li>)}</ul></div>}
+      <ul aria-label={'Sources for ' + e.name} className={CELL + ' mt-3 space-y-1'}>{e.sources.map(s =>
+        <li key={s.url + s.locator}><a href={s.url} rel="noreferrer" target="_blank" className={QUIET_LINK}>{s.title} ↗</a>{s.locator && ' · ' + s.locator}</li>)}</ul>
+      {anchor === e.id && pot && <div className="mt-3">{back}</div>}
+    </section>)}
+  </>;
+}

@@ -15,6 +15,13 @@ describe('article claim review against a claims set', () => {
     expect(review.textUsed).not.toBe(review.currentText);
   });
 
+  it('shows the editor the cited text after withdrawal removes the claim from the public registry', () => {
+    const review = reviewClaimUse(prose, [], { claim_id: prose.claimId, rev_used: 1, text: 'Former wording.', withdrawn: true });
+    expect(claimUseFlag(review)).toBe('Needs review: claim withdrawn after rev 1');
+    expect(review.textUsed).toBe('Former wording.');
+    expect(review.currentText).toBeNull();
+  });
+
   it('does not flag the same prose while rev 1 is still current', () => {
     const review = reviewClaimUse(prose, gradePilotClaims(1));
     expect(review.needsReview).toBe(false);

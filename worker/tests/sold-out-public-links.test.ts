@@ -35,4 +35,34 @@ it('keeps public sold-out links scoped to their shop while browse shows stock fo
   }
   expect(await request('/api/products/public/bali-tea')).toMatchObject({ status: 200, body: { id: 'bali-sold' } });
   expect(await request('/api/products/public/sold-tea')).toMatchObject({ status: 404 });
+  // One set of publication rules serves both product categories and both URL forms.
+  const publicShop = '/api/products/public';
+  for (const type of ['Oolong', 'Teaware']) {
+    db.sqlite.prepare(`UPDATE products SET type = ?, status = 'Active', is_public = 1,
+      shown_in_shop = 1, stock_grams = 10, quantity_units = 1, teaware_details = ? WHERE id = 'bali-sold'`)
+      .run(type, JSON.stringify({ mark: 'Stamped base', supplierInvoice: 'private' }));
+    for (const prefix of [publicShop, '/api/s/teajia-bali/products']) {
+      for (const key of ['bali-sold', 'bali-tea']) {
+        const { status, body } = await request(prefix + '/' + key);
+        expect(status).toBe(200);
+        expect(body.teaware_details).toEqual(type === 'Teaware' ? { mark: 'Stamped base' } : undefined);
+      }
+      expect(await request(prefix)).toMatchObject({ status: 200, body: [{ id: 'bali-sold' }] });
+    }
+    for (const [status, isPublic, shown] of [['Draft', 1, 1], ['Active', 0, 1], ['Active', 1, 0]] as const) {
+      db.sqlite.prepare('UPDATE products SET status = ?, is_public = ?, shown_in_shop = ? WHERE id = ?')
+        .run(status, isPublic, shown, 'bali-sold');
+      for (const prefix of [publicShop, '/api/s/teajia-bali/products']) {
+        expect((await request(prefix)).body).toEqual([]);
+        for (const key of ['bali-sold', 'bali-tea']) {
+          expect((await request(prefix + '/' + key)).status).toBe(404);
+        }
+      }
+    }
+  }
+  db.exec("UPDATE products SET is_public = 1, shown_in_shop = 1 WHERE id = 'bali-sold'");
+  db.exec("UPDATE accounts SET public_enabled = 0 WHERE id = 'acc_teajia_bali'");
+  expect((await request(publicShop)).body).toEqual([]);
+  expect((await request(publicShop + '/bali-tea')).status).toBe(404);
+
 });

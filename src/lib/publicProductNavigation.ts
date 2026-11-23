@@ -1,4 +1,4 @@
-const DEFAULT_PUBLIC_STORE_SLUG = 'teajia-bali';
+export const DEFAULT_PUBLIC_STORE_SLUG = 'teajia-bali';
 
 type PublicProductLinkSource = {
   id?: unknown;
@@ -50,6 +50,12 @@ export function buildPublicProductHref(source: PublicProductLinkSource, fallback
   const segment = slug ?? id;
   if (!segment) return '/shop';
   return addStoreToProductPath(`/shop/product/${encodeURIComponent(segment)}`, storeSlug);
+}
+
+/** Keep the originating shop when a public catalog opens a product. */
+export function inventoryProductHref(item: PublicProductLinkSource, search: string, persistedSlug: string | null): string {
+  const store = cleanSlug(new URLSearchParams(search).get('store')) ?? cleanSlug(persistedSlug);
+  return buildPublicProductHref(item, store);
 }
 
 /**

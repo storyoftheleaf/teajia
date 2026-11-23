@@ -469,6 +469,16 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- An explicitly linked, existing Google subject can use one canonical profile.
+-- Provisioned by a trusted operation. No public registration path writes here.
+CREATE TABLE IF NOT EXISTS user_google_login_aliases (
+    google_subject TEXT PRIMARY KEY NOT NULL,
+    source_user_id TEXT UNIQUE NOT NULL REFERENCES users(id),
+    profile_user_id TEXT NOT NULL REFERENCES users(id),
+    CHECK (source_user_id <> profile_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_google_login_aliases_profile ON user_google_login_aliases(profile_user_id);
+
 CREATE TABLE IF NOT EXISTS sales_grants (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
@@ -1631,6 +1641,7 @@ CREATE TABLE IF NOT EXISTS tasting_note_candidates (
   dismissed_by TEXT REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  offered_at TEXT,
   UNIQUE (author_user_id, journal_entry_id, note_key)
 );
 CREATE INDEX IF NOT EXISTS idx_tasting_note_candidates_account_status_created ON tasting_note_candidates(account_id, status, created_at DESC);
@@ -1646,7 +1657,9 @@ CREATE TABLE IF NOT EXISTS product_impressions (
   attribution_detail TEXT,
   published_at TEXT NOT NULL DEFAULT (datetime('now')),
   published_by TEXT NOT NULL REFERENCES users(id),
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  show_on_listing INTEGER NOT NULL DEFAULT 0 CHECK (show_on_listing IN (0, 1)),
+  show_on_main_page INTEGER NOT NULL DEFAULT 0 CHECK (show_on_main_page IN (0, 1))
 );
 CREATE INDEX IF NOT EXISTS idx_product_impressions_account_product_published ON product_impressions(account_id, product_id, published_at DESC);
 
@@ -2042,6 +2055,21 @@ CREATE INDEX IF NOT EXISTS idx_articles_account_status ON articles(account_id, s
 CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_account_source_event ON articles(account_id, source_event_id) WHERE source_event_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_articles_pull_quote_subject ON articles(pull_quote_subject) WHERE pull_quote_subject IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS article_wisdom_claim_uses (
+  id INTEGER PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  article_id TEXT NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  block_index INTEGER NOT NULL,
+  claim_id TEXT NOT NULL,
+  rev_used INTEGER NOT NULL,
+  use_kind TEXT NOT NULL CHECK (use_kind IN ('prose', 'live_block')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (article_id, block_index, claim_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_article_wisdom_claim_uses_claim
+  ON article_wisdom_claim_uses (account_id, claim_id);
 
 CREATE TABLE IF NOT EXISTS article_external_sources (
   id TEXT PRIMARY KEY,
@@ -2686,6 +2714,7 @@ ALTER TABLE customers ADD COLUMN user_linked_at TEXT;
 ALTER TABLE customers ADD COLUMN contacts TEXT;
 ALTER TABLE customers ADD COLUMN business_card_photo TEXT;
 ALTER TABLE customers ADD COLUMN storefront_photo TEXT;
+ALTER TABLE customers ADD COLUMN face_photo TEXT;
 ALTER TABLE customers ADD COLUMN latitude REAL;
 ALTER TABLE customers ADD COLUMN longitude REAL;
 ALTER TABLE customers ADD COLUMN line TEXT;
@@ -3594,3 +3623,6 @@ CREATE TABLE IF NOT EXISTS shipping_whatsapp_approval (
  last_approved_at TEXT,
  PRIMARY KEY(account_id,template_name,language)
 );
+
+-- Optional, public-facing details for a single shop's teaware product.
+ALTER TABLE products ADD COLUMN teaware_details TEXT;

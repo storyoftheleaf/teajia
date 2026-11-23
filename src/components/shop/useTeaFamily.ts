@@ -24,6 +24,7 @@ export interface TeaRowPhotograph {
   /** Who to credit in the zoom. Null on the reader's own. */
   author: FamilyAuthor | null;
   /** The reader's own cover for this tea: first in their row, seen only by them. */
+  shareState?: FamilyPhotograph['share_state'];
   isCover: boolean;
   /** The shop's chosen picture for this tea: first in everyone else's row. */
   isLead: boolean;
@@ -69,7 +70,7 @@ export function buildTeaRow(
 ): TeaRowPhotograph[] {
   const mine = (p: FamilyPhotograph): TeaRowPhotograph => ({
     id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height, shape: p.shape ?? 'square', frame: p.frame ?? null,
-    mine: true, author: null, isCover: p.id === coverId, isLead: shared.lead?.id === p.id,
+    mine: true, shareState: p.share_state, author: null, isCover: p.id === coverId, isLead: shared.lead?.id === p.id,
   });
   const theirs = (p: FamilySharedPhotograph): TeaRowPhotograph => ({
     id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height, shape: p.shape ?? 'square', frame: p.frame ?? null,
@@ -95,7 +96,7 @@ export { readPublic as readPublicTeaPhotographs };
  * photographs of this tea with the one they have made their cover.
  */
 export function useTeaFamily(productId: string | undefined) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
 
   const publicQuery = useQuery({
@@ -105,7 +106,7 @@ export function useTeaFamily(productId: string | undefined) {
     staleTime: 1000 * 60 * 5,
     retry: false,
   });
-  const mineKey = ['family', 'my-tea', productId] as const;
+  const mineKey = ['family', 'my-tea', productId, user?.email] as const;
   const mineQuery = useQuery({
     queryKey: mineKey,
     queryFn: async () => readMine(await familyApi.myTea(productId!)),
@@ -130,7 +131,7 @@ export function useTeaFamily(productId: string | undefined) {
       queryClient.setQueryData<FamilyMyTea | null>(mineKey, before ?? null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, queryClient]);
+  }, [productId, queryClient, user?.email]);
 
   /** "Remove from my page": gone from the reader's page and view at once. The shop keeps the file. */
   const removeOwn = useCallback(async (photographId: string) => {
@@ -140,7 +141,7 @@ export function useTeaFamily(productId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['family', 'my-tea', productId] }),
       queryClient.invalidateQueries({ queryKey: ['family', 'tea-photographs', productId] }),
     ]);
-  }, [productId, queryClient]);
+  }, [productId, queryClient, user?.email]);
 
   /** The reader's own photograph, shown square, 2:3 or 3:2. Answers at once; a refusal puts it back. */
   const reshapeOwn = useCallback(async (photographId: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null = null) => {
@@ -158,7 +159,15 @@ export function useTeaFamily(productId: string | undefined) {
       queryClient.setQueryData<FamilyMyTea | null>(mineKey, before ?? null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, queryClient]);
+  }, [productId, queryClient, user?.email]);
 
-  return { row, coverId, chooseCover, removeOwn, reshapeOwn };
+  async function shareOwn(photoId: string, choice: 'page' | 'private') {
+    await familyApi.setPhotographShare(photoId, choice);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: mineKey }),
+      queryClient.invalidateQueries({ queryKey: ['family', 'tea-photographs', productId] }),
+    ]);
+  }
+
+  return { row, coverId, chooseCover, removeOwn, reshapeOwn, shareOwn };
 }

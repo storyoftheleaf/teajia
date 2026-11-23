@@ -232,7 +232,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
     .filter(line => line.id === item.id)
     .map(line => ({ grams: line.packGrams ?? line.quantityGrams, packs: line.packs ?? 1 }));
   const inOrderGrams = orderedPacks.reduce((sum, p) => sum + p.grams * p.packs, 0);
-  const inOrderLabel = orderedPacks
+  const inOrderLabel = !isTea ? `${inOrderGrams} ${inOrderGrams === 1 ? 'piece' : 'pieces'}` : orderedPacks
     .map(p => (p.packs > 1 ? `${p.packs} \u00d7 ${p.grams}g` : `${p.grams}g`))
     .join(' and ');
   /* What the chosen amount works out to a gram, short enough to live on a
@@ -356,6 +356,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               />
             ) : (
               <AmountCellList
+                countedPieces
                 cells={teawareCells}
                 variant={variant}
                 id={amountsId}

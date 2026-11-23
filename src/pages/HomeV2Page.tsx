@@ -3,6 +3,8 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { buildPublicProductHref, DEFAULT_PUBLIC_STORE_SLUG } from '../lib/publicProductNavigation';
+import type { ProductImpression } from '../components/shop/ProductImpressions';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { quoteForDisplay } from '../lib/teaPricing';
 import { usePublicProducts } from '../hooks/usePublicProducts';
@@ -122,6 +124,13 @@ const HomeV2Page: React.FC = () => {
   // The shop's own hook, so the rows arrive normalised. A raw fetch under the
   // same key showed the tea only when another page had filled the cache first.
   const { data: products } = usePublicProducts();
+  const { data: excerpts = [] } = useQuery<ProductImpression[]>({
+    queryKey: ['main-tasting-excerpts', DEFAULT_PUBLIC_STORE_SLUG],
+    queryFn: () => api.productImpressions.mainPage(DEFAULT_PUBLIC_STORE_SLUG),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    retry: false,
+  });
   const tea = useMemo(() => pickTea(Array.isArray(products) ? products : []), [products]);
   // The same quote the shop row and the product page read for 50 g, handling
   // fee and whole-unit rounding included. Multiplying the price per gram by 50
@@ -245,6 +254,28 @@ const HomeV2Page: React.FC = () => {
           crop={{ scale: 1, x: 0.62, y: 0.45 }}
         />
       </section>
+
+      {excerpts.length > 0 && (
+        <section id="featured-tasting-excerpts" aria-labelledby="featured-tasting-heading" className={`${EDGE} mt-[var(--space-8)] px-[var(--space-6)]`}>
+          <h2 id="featured-tasting-heading" className={TYPOGRAPHY_CLASSES.h3}>From the tasting journal</h2>
+          <div className="mt-[var(--space-3)] grid gap-[var(--space-4)] md:grid-cols-2">
+            {excerpts.map(excerpt => {
+              const product = products?.find(row => row.id === excerpt.productId);
+              return (
+                <blockquote key={excerpt.id} className="min-w-0 break-words border-l border-tea-border pl-[var(--space-3)]">
+                  <p className={TYPOGRAPHY_CLASSES.bodyLight}>“{excerpt.text}”</p>
+                  <footer className={`${TYPOGRAPHY_CLASSES.accountMeta} mt-[var(--space-1)] flex flex-wrap items-center gap-[var(--space-2)]`}>
+                    <span>{excerpt.attributionName}</span>
+                    <Link className="btn-quiet btn-sm" to={buildPublicProductHref({ id: excerpt.productId, slug: product?.slug }, DEFAULT_PUBLIC_STORE_SLUG)}>
+                      {product?.givenName || product?.productName || 'View this tea'}
+                    </Link>
+                  </footer>
+                </blockquote>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* The house keeps each character beside its complete meaning on mobile.
           On wider screens the three meanings return to one editorial row. */}

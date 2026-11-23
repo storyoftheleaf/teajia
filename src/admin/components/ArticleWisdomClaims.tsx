@@ -9,8 +9,9 @@
  * out, the pilot data is used (wisdomPilotData.ts).
  */
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useAppStore } from '../../lib/store';
 import { wisdomClaimUsesApi } from '../../lib/wisdomClaimUsesApi';
 import type { ArticleBlock } from '../../types';
 import type { DraftReferencePage, PublicClaim } from '../../wisdom/reference/claims';
@@ -44,7 +45,7 @@ const UseRow: React.FC<{ review: ClaimUseReview; block: ArticleBlock | undefined
       </p>
       {claim?.scope && <p className="text-ui-11 text-tea-text-sec leading-relaxed break-words">Scope: {claim.scope}</p>}
       {flag ? (
-        <div className="rounded-md border border-tea-gold/30 bg-tea-gold/8 p-3 space-y-2" role="status">
+        <div className="rounded-md border border-tea-border bg-tea-accent-sub p-3 space-y-2" role="status">
           <p className="text-ui-12 text-tea-text font-medium leading-relaxed">{flag}</p>
           <div>
             <p className={HEADING}>Written against, rev {use.revUsed}</p>
@@ -61,7 +62,9 @@ const UseRow: React.FC<{ review: ClaimUseReview; block: ArticleBlock | undefined
         </div>
       ) : (
         <p className="text-ui-11 text-tea-text-sec leading-relaxed">
-          {review.status === 'live' ? 'Shows the current approved text.' : 'Matches the current revision.'}
+          {use.useKind === 'live_block'
+            ? (review.currentText ? 'Shows the current approved text.' : 'No public text is available for this block.')
+            : 'Matches the current revision.'}
         </p>
       )}
     </li>
@@ -74,26 +77,37 @@ export const ArticleWisdomClaims: React.FC<{
   /** The claims set to review against. Defaults to the pilot data. */
   claims?: readonly PublicClaim[];
   pages?: readonly DraftReferencePage[];
-}> = ({ articleId, blocks, claims, pages }) => {
+  beforeOpen?: () => Promise<boolean>;
+}> = ({ articleId, blocks, claims, pages, beforeOpen }) => {
+  const navigate = useNavigate();
+  function openCitedPage(event: React.MouseEvent<HTMLElement>) {
+    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>('a');
+    if (!beforeOpen || !link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    event.preventDefault();
+    const href = link.pathname + link.search + link.hash;
+    void beforeOpen().then(saved => { if (saved) navigate(href); });
+  }
   const pilot = useWisdomPilotData();
   const claimSet = claims ?? pilot?.claims ?? [];
   const pageSet = pages ?? pilot?.pages ?? [];
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
   const query = useQuery({
-    queryKey: ['article-wisdom-claim-uses', articleId],
+    queryKey: ['article-wisdom-claim-uses', accountId, userId, articleId],
     queryFn: () => wisdomClaimUsesApi.list(articleId),
   });
   const uses = useMemo(() => (query.data?.uses ?? []).map(toArticleClaimUse), [query.data]);
   // Flagged uses first, then in block order, so a review is never below the fold.
   const reviews = useMemo(
-    () => reviewClaimUses(uses, claimSet).sort((a, b) => Number(b.needsReview) - Number(a.needsReview)),
-    [uses, claimSet],
+    () => reviewClaimUses(uses, claimSet, query.data?.history).sort((a, b) => Number(b.needsReview) - Number(a.needsReview)),
+    [uses, claimSet, query.data?.history],
   );
   const destinations = useMemo(() => wisdomDestinations(uses.map(use => use.claimId), pageSet, true), [uses, pageSet]);
   const hrefFor = (claimId: string) => destinations.find(destination => claimId.startsWith(`${destination.pageId}:`))?.href;
   const flagged = reviews.filter(review => review.needsReview).length;
 
   return (
-    <section aria-labelledby="article-wisdom-claims" data-article-wisdom-claims>
+    <section aria-labelledby="article-wisdom-claims" data-article-wisdom-claims onClickCapture={openCitedPage}>
       <h3 id="article-wisdom-claims" className={`${HEADING} mb-3`}>Wisdom claims</h3>
       {query.isLoading && <p className="text-ui-12 text-tea-text-sec">Loading…</p>}
       {query.isError && <p className="text-ui-12 text-tea-text-sec">The claim uses could not be loaded.</p>}
@@ -103,7 +117,7 @@ export const ArticleWisdomClaims: React.FC<{
       {uses.length > 0 && (
         <>
           <p className="text-ui-12 text-tea-text-sec leading-relaxed mb-2">
-            {uses.length} {uses.length === 1 ? 'use' : 'uses'}{flagged > 0 ? `, ${flagged} needing review` : ', all current'}.
+            {uses.length} {uses.length === 1 ? 'use' : 'uses'}{flagged > 0 ? `, ${flagged} needing review` : ''}.
           </p>
           {destinations.length > 0 && (
             <div className="mb-3">

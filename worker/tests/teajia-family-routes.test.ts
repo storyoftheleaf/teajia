@@ -136,8 +136,9 @@ describe('the JPEG reader at the door', () => {
 });
 
 describe('POST /api/family/photographs', () => {
-  it('stores both copies for a signed-in member with no shop membership, and files them under the tea\'s shop', async () => {
+  it.each(['Oolong', 'Teaware'])('stores both copies privately for a member on a published %s listing', async type => {
     const { env, bucket, db } = setup();
+    db.sqlite.prepare("UPDATE products SET type = ? WHERE id = 'tea-a'").run(type);
     const response = await upload(env, MEMBER, 'tea-a', { page: 'impression' });
     expect(response.status).toBe(201);
     const body = await response.json() as any;
@@ -399,6 +400,15 @@ describe('the shop\'s side', () => {
     expect(shown.status).toBe(200);
     // Short, never a year: a browser that saw it must lose it within a minute of its removal.
     expect(shown.headers.get('Cache-Control')).toBe('public, max-age=60');
+    for (const [status, isPublic, shownInShop] of [['Draft', 1, 1], ['Active', 0, 1], ['Active', 1, 0]] as const) {
+      db.sqlite.prepare('UPDATE products SET status = ?, is_public = ?, shown_in_shop = ? WHERE id = ?')
+        .run(status, isPublic, shownInShop, 'tea-a');
+      expect((await fetchPath(bare)).status).toBe(404);
+      expect((await call(env, null, '/api/family/teas/tea-a/photographs')).status).toBe(404);
+    }
+    db.exec("UPDATE products SET status = 'Sold Out', shown_in_shop = 1 WHERE id = 'tea-a'");
+    expect((await fetchPath(bare)).status).toBe(200);
+    expect((await call(env, null, '/api/family/teas/tea-a/photographs')).status).toBe(200);
     // Hidden by the shop: gone again.
     await call(env, OWNER, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'photograph', target_id: made.id } });
     expect((await fetchPath(bare)).status).toBe(404);

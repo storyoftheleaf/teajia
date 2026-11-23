@@ -112,6 +112,14 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "teadb-menghai-county"
           ]
+        },
+        {
+          "key": "mengsong-naka",
+          "label": "Mengsong and Naka",
+          "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
+          "sourceIds": [
+            "teadb-menghai-county"
+          ]
         }
       ]
     },
@@ -196,7 +204,9 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "label": "Shou (ripe pu’er)",
       "nativeName": "熟普洱",
       "parentId": "puer",
-      "sourceIds": [],
+      "sourceIds": [
+        "white2tea-ripe-puer"
+      ],
       "sections": [
         {
           "key": "definition",
@@ -207,8 +217,10 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
         {
           "key": "wet-piling",
           "label": "Wet piling",
-          "text": "Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
-          "sourceIds": []
+          "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
+          "sourceIds": [
+            "white2tea-ripe-puer"
+          ]
         },
         {
           "key": "piling-history",
@@ -273,6 +285,55 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "y562",
+      "slug": "y562",
+      "kind": "named_tea",
+      "label": "Y562",
+      "nativeName": "中茶吉幸Y562",
+      "parentId": "shou",
+      "sourceIds": [
+        "china-tea-catalogue-y562",
+        "puer-magazine-export-cartons",
+        "puer-magazine-jixing-design"
+      ],
+      "sections": [
+        {
+          "key": "little-black-box",
+          "label": "Yunnan’s little black box",
+          "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
+          "sourceIds": [
+            "china-tea-catalogue-y562",
+            "puer-magazine-jixing-design"
+          ]
+        },
+        {
+          "key": "export-trade",
+          "label": "The box was part of the tea’s story",
+          "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
+          "sourceIds": [
+            "puer-magazine-export-cartons"
+          ]
+        },
+        {
+          "key": "designers",
+          "label": "A tiger and a hand-painted carton",
+          "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
+          "sourceIds": [
+            "puer-magazine-export-cartons",
+            "puer-magazine-jixing-design"
+          ]
+        },
+        {
+          "key": "original-blend",
+          "label": "The tea behind the code",
+          "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+          "sourceIds": [
+            "puer-magazine-jixing-design"
+          ]
+        }
+      ]
+    },
+    {
       "id": "yunnan",
       "slug": "yunnan",
       "kind": "major_region",
@@ -311,6 +372,15 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
   ],
   "sources": [
     {
+      "sourceId": "china-tea-catalogue-y562",
+      "publisher": "China Tea (COFCO)",
+      "publisherRoleLabel": "Tea producer",
+      "title": "Product catalogue, item 78",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://productandservice.cofco.com/upload/1/zl/platform/1993169302277591040.pdf"
+    },
+    {
       "sourceId": "ctma-puer-history-2021",
       "publisher": "China Tea Marketing Association",
       "publisherRoleLabel": "Trade association",
@@ -327,6 +397,24 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "author": "MarshalN",
       "publishedDate": "2013-09-18",
       "url": "https://marshaln.com/2013/09/really-young-puerh-is-not-really-puerh/"
+    },
+    {
+      "sourceId": "puer-magazine-export-cartons",
+      "publisher": "Pu’er magazine",
+      "publisherRoleLabel": "Trade history and package photographs",
+      "title": "Small packages in the loose-tea export trade",
+      "author": "Mama",
+      "publishedDate": "",
+      "url": "https://m.ipucha.com/show-25-4533.html"
+    },
+    {
+      "sourceId": "puer-magazine-jixing-design",
+      "publisher": "Pu’er magazine",
+      "publisherRoleLabel": "Designer interview",
+      "title": "The designers of Y562 and Y671",
+      "author": "Cheng Xin",
+      "publishedDate": "2017-02",
+      "url": "https://m.ipucha.com/show-24-7921.html"
     },
     {
       "sourceId": "teadb-greater-yiwu",
@@ -372,6 +460,15 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "author": "Leo Kwan",
       "publishedDate": "",
       "url": "https://www.teaguardian.com/what-is-tea/raw-puer-or-cooked-puer/"
+    },
+    {
+      "sourceId": "white2tea-ripe-puer",
+      "publisher": "white2tea",
+      "publisherRoleLabel": "Tea producer",
+      "title": "Ripe Puer Tea: A Beginner's Guide to Appreciating Shou",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://white2tea.com/blogs/blog/ripe-puer-tea-a-beginners-guide-to-appreciating-shou"
     }
   ]
 } as const satisfies TeaReferencePageRegistry;

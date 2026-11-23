@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
@@ -17,17 +17,21 @@ import { personPath, type TeaRowPhotograph } from './useTeaFamily';
 const ROW_LIMIT = 8;
 
 export function TeaPhotographRow({
-  photographs, teaName, onChooseCover, onRemove, onShape,
+  photographs, teaName, onChooseCover, onRemove, onShape, onShare, addPhoto,
 }: {
   photographs: TeaRowPhotograph[];
+  addPhoto?: ReactNode;
   teaName: string;
   onChooseCover: (photographId: string | null) => void;
+  onShare?: (photographId: string, choice: 'page' | 'private') => Promise<void>;
   onRemove: (photographId: string) => Promise<void>;
   onShape: (photographId: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null) => Promise<void> | void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [removeFailed, setRemoveFailed] = useState(false);
+  const [shareFailed, setShareFailed] = useState(false);
+  const [sharing, setSharing] = useState(false);
   if (photographs.length === 0) return null;
 
   const toZoom = (p: TeaRowPhotograph): ZoomPhotograph => ({
@@ -44,7 +48,7 @@ export function TeaPhotographRow({
   const more = photographs.length - shown.length;
   const open = photographs.find(p => p.id === openId) ?? null;
   const href = open?.author ? personPath(open.author.page_id) : null;
-  const close = () => { setOpenId(null); setRemoveFailed(false); };
+  const close = () => { setOpenId(null); setRemoveFailed(false); setShareFailed(false); };
 
   return (
     <div className="mx-5 mt-3 lg:mx-6" data-testid="tea-photographs">
@@ -59,6 +63,7 @@ export function TeaPhotographRow({
             <Button variant="quiet" size="sm" type="button" onClick={() => setShowAll(true)} data-testid="tea-photographs-more">{more} more</Button>
           </li>
         )}
+        {addPhoto && <li>{addPhoto}</li>}
       </ul>
 
       <PhotographZoom photo={open ? toZoom(open) : null} onClose={close}>
@@ -73,6 +78,18 @@ export function TeaPhotographRow({
             <PhotographShapeChoice shape={open.shape} onChoose={shape => onShape(open.id, shape, null)} />
             <div className="photo-zoom__actions">
               <PhotographCrop photo={toZoom(open)} onSave={(shape, frame) => onShape(open.id, shape, frame)} />
+              {onShare && open.shareState !== 'offered' && (
+                <Button variant="plain" type="button" className={PHOTO_QUIET} disabled={sharing}
+                  onClick={async () => {
+                    setShareFailed(false);
+                    setSharing(true);
+                    try { await onShare(open.id, open.shareState === 'page' ? 'private' : 'page'); }
+                    catch { setShareFailed(true); }
+                    finally { setSharing(false); }
+                  }}>
+                  {open.shareState === 'page' ? 'Make private' : 'Share on my page and this listing'}
+                </Button>
+              )}
               {open.isCover ? (
                 <Button variant="plain" type="button" className={PHOTO_QUIET} onClick={() => onChooseCover(null)} data-testid="cover-clear">Stop using as my cover</Button>
               ) : (
@@ -91,6 +108,7 @@ export function TeaPhotographRow({
                 Remove from my page
               </Button>
             </div>
+            {shareFailed && <p role="alert" className="photo-zoom__note">Sharing could not be updated. Try again.</p>}
             {removeFailed && <p role="alert" className="photo-zoom__note">That did not go through. Try again.</p>}
           </>
         )}

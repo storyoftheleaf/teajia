@@ -1,3 +1,4 @@
+import type { CitedClaimHistory } from '../../lib/wisdomClaimUsesApi';
 /**
  * Tea Wisdom pilot: an article's claim uses, read against a claims set.
  * Contract: docs/_notes/tea-wisdom-claims.md, "Article claim uses".
@@ -47,19 +48,17 @@ export interface ClaimUseReview {
   currentRev: number | null;
 }
 
-export function reviewClaimUse(use: ArticleClaimUse, claims: readonly PublicClaim[]): ClaimUseReview {
+export function reviewClaimUse(use: ArticleClaimUse, claims: readonly PublicClaim[], history?: CitedClaimHistory): ClaimUseReview {
   const claim = claims.find(candidate => candidate.claimId === use.claimId);
   const needsReview = articleUseNeedsReview(use, claim);
   const usedRevision = claim?.previousRevisions?.find(revision => revision.rev === use.revUsed);
-  const textUsed = usedRevision?.text ?? (claim && claim.rev === use.revUsed ? claim.text : null);
-  const withdrawn = claim?.reviewState === 'withdrawn';
+  const textUsed = usedRevision?.text ?? history?.text ?? (claim && claim.rev === use.revUsed ? claim.text : null);
+  const withdrawn = claim ? claim.reviewState === 'withdrawn' : Boolean(history?.withdrawn);
   const live = claim && !withdrawn && claim.rev !== null;
-  const status: ClaimUseStatus = use.useKind === 'live_block'
-    ? 'live'
-    : !claim || claim.rev === null ? 'not_public'
-    : withdrawn ? 'withdrawn'
-    : needsReview ? 'changed'
-    : 'current';
+  const status: ClaimUseStatus = withdrawn ? 'withdrawn'
+    : !live ? 'not_public'
+    : use.useKind === 'live_block' ? 'live'
+    : needsReview ? 'changed' : 'current';
   return {
     use,
     claim,
@@ -71,8 +70,8 @@ export function reviewClaimUse(use: ArticleClaimUse, claims: readonly PublicClai
   };
 }
 
-export function reviewClaimUses(uses: readonly ArticleClaimUse[], claims: readonly PublicClaim[]): ClaimUseReview[] {
-  return uses.map(use => reviewClaimUse(use, claims));
+export function reviewClaimUses(uses: readonly ArticleClaimUse[], claims: readonly PublicClaim[], history: readonly CitedClaimHistory[] = []): ClaimUseReview[] {
+  return uses.map(use => reviewClaimUse(use, claims, history.find(item => item.claim_id === use.claimId && item.rev_used === use.revUsed)));
 }
 
 /** The plain-language flag line for a use that needs review. */
@@ -93,6 +92,7 @@ type PageKind = DraftReferencePage['kind'];
 export function wisdomPageHref(pageId: string, kind: PageKind): string | null {
   switch (kind) {
     case 'leaf_grade': return `/wisdom/grade/${pageId}`;
+    case 'named_tea': return `/wisdom/named/${pageId}`;
     case 'tea_type': return `/wisdom/type/${pageId}`;
     case 'tea_family': return `/wisdom/family/${pageId}`;
     case 'major_region':

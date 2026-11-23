@@ -53,7 +53,7 @@
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": 1
+      "rev": 2
     },
     {
       "claimId": "shou:brewing-pressed",
@@ -70,5 +70,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-23T12:58:06.341Z"
+  "approvedAt": "2026-11-23T13:13:03.340Z"
 }

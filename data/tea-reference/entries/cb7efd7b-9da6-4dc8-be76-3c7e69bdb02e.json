@@ -1,5 +1,5 @@
 {
-  "status": "approved",
+  "status": "draft",
   "composedAt": "2026-11-23T12:53:56.336Z",
   "writer": "claude opus",
   "checker": "claude opus",
@@ -45,26 +45,25 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": 1
+      "rev": null
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": 1
+      "rev": null
     },
     {
       "claimId": "shou:age-aged",
-      "rev": 1
+      "rev": null
     },
     {
       "claimId": "shou:brewing",
-      "rev": 1
+      "rev": null
     },
     {
       "claimId": "shou:notice-aged",
-      "rev": 1
+      "rev": null
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-23T12:58:04.409Z"
+  "unsupported": []
 }

@@ -11,6 +11,13 @@
 import { API_URL, authedBlobFetch, authedFetch, fetchWithTimeout, handleResponse } from './api';
 import type { FamilyFeedbackNote, FamilySheetRange, FamilyMyTea, FamilyOfferedPhotograph, FamilyPageTier, FamilyPhotoPage, FamilyPhotograph, FamilyReport, FamilyRestockRequest, FamilyShareState, FamilyShopUse, FamilyTargetKind, FamilyTeaPhotographs, FamilyPhotographShape, FamilyPhotographFrame } from './familyContract';
 
+import { prepareFamilyPhotograph } from './familyPhotographSizes';
+
+export async function addProductPhotograph(productId: string, file: File, page?: FamilyPhotoPage) {
+  const { full, small } = await prepareFamilyPhotograph(file);
+  return familyApi.uploadPhotograph({ productId, full, small, page });
+}
+
 export const familyApi = {
   /** Both copies of one photograph of a shop tea. `page` is the tasting page it was taken on. */
   uploadPhotograph: (input: { productId: string; full: Blob; small: Blob; page?: FamilyPhotoPage }): Promise<{ photograph: FamilyPhotograph; remaining: number }> => {

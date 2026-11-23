@@ -1,4 +1,23 @@
-import type { NoteEntry, TastingData } from '../types';
+import type { TastingData } from '../types';
+
+/**
+ * A single captured note within a tasting session. May originate from a voice
+ * transcription, typed entry, or promoted community entry. Starred notes are
+ * the admin's published voice on the product's tasting profile.
+ */
+export interface NoteEntry {
+  id: string;
+  text: string;
+  /** If true, the note has been curated and should render publicly. */
+  starred?: boolean;
+  /** Which section of the session the note was captured in. */
+  section?: 'flavor' | 'aroma' | 'feeling' | 'body' | 'finish' | 'general';
+  /** ISO timestamp of when the note was first captured. */
+  capturedAt?: string;
+  /** When the note was promoted from a community source, its attribution. */
+  sourceAuthor?: { initial?: string; accountName?: string };
+  sourceJournalEntryId?: string;
+}
 
 let counter = 0;
 function generateId(): string {

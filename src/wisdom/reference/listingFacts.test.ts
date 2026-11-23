@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { matchNamedTea } from '../namedTeas';
 import { listingFacts, listingFactsFromInventoryItem, listingFactsFromPublicProduct } from './listingFacts';
 
 describe('listingFacts', () => {
@@ -23,6 +24,14 @@ describe('listingFacts', () => {
     expect(facts.form).toBeUndefined();
     expect(facts.originParts).toEqual([]);
     expect(facts.nameTokens).toEqual(['jingmai', 'gong', 'ting', 'shou', 'cake']);
+  });
+
+  it('links a named history by Stock identity alone across both product adapters', () => {
+    const id = 'cb7efd7b-9da6-4dc8-be76-3c7e69bdb02e';
+    expect(listingFactsFromPublicProduct({ id, productName: 'Local title' }).namedTeaId).toBe('y562');
+    expect(listingFactsFromInventoryItem({ id, name: 'Changed title' }).namedTeaId).toBe('y562');
+    expect(listingFactsFromInventoryItem({ id: 'other', name: 'Y562' }).namedTeaId).toBeUndefined();
+    expect(matchNamedTea('Y562', 'Jixing Black Box')).toBeNull();
   });
 
   it('takes a grade only from the explicit field', () => {

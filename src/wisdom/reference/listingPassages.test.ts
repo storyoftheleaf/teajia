@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { PublicTeaReferencePage } from './types';
 import type { PublicClaim } from './claims';
 import { appliesTo, resolveListingPassages } from './listingPassages';
 import { listingFacts } from './listingFacts';
@@ -124,7 +125,7 @@ describe('resolveListingPassages: contract rules', () => {
     expect(resolveListingPassages(facts, claims).passages).toEqual([]);
   });
 
-  it('ranks by axis, then by more conditions, then by claim id; two at most, different axes', () => {
+  it('ranks by matching conditions, then axis, then claim id; two at most, different axes', () => {
     const claims = [
       claim({ claimId: 'p:process', axis: 'process', appliesWhen: { type: 'Shou' } }),
       claim({ claimId: 'b:type', axis: 'type', appliesWhen: { type: 'Shou' } }),
@@ -136,6 +137,29 @@ describe('resolveListingPassages: contract rules', () => {
     expect(passageIds(claims, facts)).toEqual(['g:grade-2', 'z:type-narrow']);
     expect(passageIds(claims.filter(entry => entry.axis !== 'grade' && entry.claimId !== 'z:type-narrow'), facts))
       .toEqual(['a:type', 'p:process']);
+  });
+
+  it('leads with a corroborated village before a broad grade or type', () => {
+    const claims = [
+      claim({ claimId: 'g:grade', axis: 'grade', appliesWhen: { grade: 'gong-ting' } }),
+      claim({ claimId: 's:type', axis: 'type', appliesWhen: { type: 'Shou', form: 'Cake' } }),
+      claim({ claimId: 'v:place', axis: 'place', appliesWhen: { origin_includes: ['mengsong'], name_includes: ['naka'] } }),
+    ];
+    expect(passageIds(claims, facts)).toEqual(['v:place', 'g:grade']);
+  });
+
+  it('requires a public destination and style evidence on a normal listing', () => {
+    const base = { id: 'family', slug: 'family', label: 'Family', kind: 'tea_family' as const, sourceIds: [] };
+    const section = { key: 'process', label: 'Process', text: 'Explanation', sourceIds: [] };
+    const pages = [{ ...base, sections: [section, { ...section, key: 'taste' }] }];
+    const appliesWhen = { type: 'Shou' };
+    const process = claim({ claimId: 'family:process', pageId: 'family', sectionKey: 'process', axis: 'process', appliesWhen });
+    const taste = claim({ claimId: 'family:taste', pageId: 'family', sectionKey: 'taste', axis: 'sensory_observation', appliesWhen, sourceIds: [] });
+    const draftPageClaim = { ...process, claimId: 'unreleased:process', pageId: 'unreleased' };
+    const listing = resolveListingPassages(facts, [process, draftPageClaim, taste], pages);
+    expect(listing.passages.map(passage => passage.wisdomHref)).toEqual(['/wisdom/family/family#process']);
+    expect(listing.styleReferences).toEqual([]);
+    expect(resolveListingPassages(facts, [{ ...taste, sourceIds: ['source'] }], pages).styleReferences).toHaveLength(1);
   });
 
   it('returns sensory claims only as style references, with or without attribution', () => {
@@ -156,5 +180,37 @@ describe('resolveListingPassages: contract rules', () => {
     ];
     const listing = resolveListingPassages({ ...facts, grade: 'gong-ting' }, claims);
     expect(ids(listing.styleReferences)).toEqual(['gong-ting:common-impressions']);
+  });
+});
+
+describe('an explicitly linked named history', () => {
+  const page = (id: string, keys: string[], kind: PublicTeaReferencePage['kind'] = 'named_tea'): PublicTeaReferencePage =>
+    ({ id, slug: id, kind, label: id, sourceIds: ['source'], sections: keys.map(key => ({ key, label: key, text: key, sourceIds: ['source'] })) });
+  const history = (id: string, key: string, overrides: Partial<PublicClaim> = {}) => claim({
+    claimId: id + ':' + key, axis: 'named_tea_history', appliesWhen: { named_tea: id }, sourceIds: ['source'], ...overrides,
+  });
+  const pages = [page('y562', ['carton']), page('another-tea', ['z', 'b', 'a', 'c']), page('shou', ['process'], 'tea_type')];
+  const general = claim({ claimId: 'shou:process', axis: 'process', appliesWhen: { type: 'Shou' } });
+  const claims = [general, history('another-tea', 'a'), history('another-tea', 'b'), history('another-tea', 'c'),
+    history('another-tea', 'z'), history('y562', 'carton')];
+  const facts = { ...listingFacts({ type: 'Shou', name: 'Y562' }), namedTeaId: 'another-tea' };
+
+  it('keeps every sourced section in page order, then general context, for a second identity', () => {
+    const passages = resolveListingPassages(facts, claims, pages).passages;
+    expect(passages.map(p => p.wisdomHref)).toEqual([
+      '/wisdom/named/another-tea#z', '/wisdom/named/another-tea#b', '/wisdom/named/another-tea#a', '/wisdom/named/another-tea#c',
+      '/wisdom/type/shou#process',
+    ]);
+    expect(resolveListingPassages({ ...facts, namedTeaId: undefined }, claims, pages).passages.map(p => p.claim.claimId))
+      .toEqual(['shou:process']);
+  });
+
+  it('reflects revised or withdrawn sections and drops unpublished pages, ineligible text and missing sources', () => {
+    const updated = [history('another-tea', 'z', { text: 'Revised wording', rev: 2 }),
+      history('another-tea', 'b', { withdrawn: { at: '2026-11-23', reason: 'Source corrected' } }),
+      history('another-tea', 'a', { sourceIds: [] }), history('another-tea', 'c', { listingEligible: false }), general];
+    expect(resolveListingPassages(facts, updated, pages).passages.map(p => p.claim.text)).toEqual(['Revised wording', general.text]);
+    expect(resolveListingPassages(facts, claims, pages.filter(p => p.id !== 'another-tea')).passages.map(p => p.claim.claimId))
+      .toEqual(['shou:process']);
   });
 });

@@ -39,15 +39,13 @@ describe('dated notes under one tasting', () => {
 
 describe('the photograph row', () => {
   const photo = { id: 'p1', product_id: 't', journal_entry_id: null, page: 'impression', full_url: 'https://media.teajia.co/x-full.jpg', small_url: 'https://media.teajia.co/x-small.jpg', full_width: 2000, full_height: 1500, small_width: 480, small_height: 360, share_state: 'private', created_at: '2026-11-19' } as FamilyPhotograph;
-  it('sits above the notes, with the one-line notices and the small link', () => {
+  it('keeps the upload and thumbnails together above the notes', () => {
     const html = renderToStaticMarkup(<YourImpression value={{}} onChange={() => {}} verdict={null} onVerdict={() => {}} wouldBuy={false} onWouldBuy={() => {}} inCollection={false} onCollection={() => {}} selections={[]} onResume={() => {}}
-      photographRow={<TastingPhotographRow photos={[photo]} busy={false} onRemove={() => {}} />} notesNotice={NOTES_NOTICE} />);
+      photographRow={<TastingPhotographRow photos={[photo]} busy={false} onAdd={() => {}} onRemove={() => {}} />} notesNotice={NOTES_NOTICE} />);
     expect(html.indexOf('Your photographs')).toBeGreaterThan(-1);
     expect(html.indexOf('Your photographs')).toBeLessThan(html.indexOf('Your notes'));
-    // The notice is the link alone, inside the box the photographs sit in.
-    expect(html).not.toContain('may be shown on Teajia');
-    expect(html).toMatch(/tasting-photo-box"[\s\S]*How we use photographs[\s\S]*<\/div>/);
-    expect(html).toContain('How we use photographs');
+    expect(html).toMatch(/tasting-photo-heading"[\s\S]*Add photographs[\s\S]*data-testid="tasting-photo-input"/);
+    expect(html).not.toContain('How we use photographs');
     // Nothing is written under a thumbnail: "Remove from my page" is in the zoom.
     expect(html).not.toContain('Remove from my page');
     expect(html).toContain('data-testid="tasting-photograph"');

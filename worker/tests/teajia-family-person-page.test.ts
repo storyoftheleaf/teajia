@@ -92,6 +92,13 @@ describe('a person page shows what they shared', () => {
     expect(a.public_path).toMatch(/^\/shop\/product\/tea-a\?store=/);
   });
 
+  it('removes shared words and photographs when their tea leaves the shop', async () => {
+    const { db, env } = setup();
+    db.exec("UPDATE products SET shown_in_shop = 0 WHERE id IN ('tea-a', 'tea-b')");
+    const page = await (await get(env, '/api/people/mei')).json() as any;
+    expect(page.tastings.map((t: any) => t.product_id)).toEqual(['tea-c', 'tea-gone']);
+  });
+
   it('never carries a score, a verdict or a private note, and leaves out private tastings, removed photographs and withdrawn teas', async () => {
     const { env } = setup();
     const text = await (await get(env, '/api/people/mei')).text();

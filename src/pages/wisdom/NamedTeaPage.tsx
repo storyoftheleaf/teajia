@@ -10,6 +10,12 @@ import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
+import { usePublicProducts } from '../../hooks/usePublicProducts';
+import { buildGeneratedTeaReferenceFacts } from '../../wisdom/reference/catalogue';
+import { GENERATED_TEA_REFERENCE_REGISTRY } from '../../wisdom/reference/generatedPages';
+import { namedTeaIdForLot } from '../../wisdom/reference/namedTeaLots';
+import type { PublicTeaReferencePage } from '../../wisdom/reference/types';
+import { ReferenceFactSections } from './ReferenceFactSections';
 import {
   AXIS_INDENT,
   EntryAuthorship,
@@ -35,16 +41,30 @@ function provenanceStatement(provenance: 'undisclosed' | 'partial' | 'stated'): 
     case 'undisclosed':
       return 'The mountain, the village and the vintage are unrecorded. That is the nature of this record, not a gap in it: the name is what the tea carries forward, and the rest was never written down.';
     case 'partial':
-      return 'Part of the origin is stated below. The exact garden and vintage were not recorded beyond it.';
+      return 'The record identifies part of this tea’s origin.';
     case 'stated':
     default:
       return 'The origin is recorded in full below.';
   }
 }
 
+const NamedTeaHistory: React.FC<{ page: PublicTeaReferencePage }> = ({ page }) => {
+  const { data: products = [] } = usePublicProducts();
+  return (
+    <ReferenceFactSections
+      facts={buildGeneratedTeaReferenceFacts(page)}
+      sources={GENERATED_TEA_REFERENCE_REGISTRY.sources}
+      products={products.filter(product => namedTeaIdForLot(product.id) === page.id)}
+      referencePage={page}
+      reportIdentity={page.label}
+    />
+  );
+};
+
 const NamedTeaPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const tea = findNamedTeaById(id);
+  const history = GENERATED_TEA_REFERENCE_REGISTRY.pages.find(page => page.kind === 'named_tea' && page.id === id);
 
   const structuredData = useMemo(() => {
     if (!tea) return null;
@@ -118,19 +138,15 @@ const NamedTeaPage: React.FC = () => {
         <Fact label="Source">{tea.vendor}</Fact>
       </div>
 
-      {/* The tradition is a sixteen-word sentence, and it once ran at the label
-          size, 11px, directly under the title. It is prose, so it takes the
-          device the reference has for prose: the label hung in the margin, the
-          sentence on the value axis at body size. Below the facts, not above
-          them, because a reader wants to know what type of tea it is before
-          they want to know how its name was arrived at. */}
-      <section className={`${SPACE.section} ${GROUND} py-6`}>
-        <SectionHead label="How it was named" />
-        <Passage label="Naming tradition" text={tea.tradition} />
-        <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT} mt-5`}>
-          {provenanceStatement(tea.provenance)}
-        </p>
-      </section>
+      {history ? <NamedTeaHistory page={history} /> : (
+        <section className={`${SPACE.section} ${GROUND} py-6`}>
+          <SectionHead label="How it was named" />
+          <Passage label="Naming tradition" text={tea.tradition} />
+          <p className={`${FACT_CLASS} text-tea-text ${MEASURE} ${AXIS_INDENT} mt-5`}>
+            {provenanceStatement(tea.provenance)}
+          </p>
+        </section>
+      )}
 
       {tea.description && (
         <section className={`${SPACE.section} ${GROUND} py-6`}>
@@ -144,7 +160,7 @@ const NamedTeaPage: React.FC = () => {
       <WisdomRelatedMaterial identity={{ nodeType: 'named_tea', nodeId: tea.id }} />
       <EntryAuthorship id={tea.id} />
 
-      <Invitation subject={`Named tea: ${tea.name}`} />
+      {!history && <Invitation subject={`Named tea: ${tea.name}`} />}
     </article>
     </WisdomPublicStateGate>
   );

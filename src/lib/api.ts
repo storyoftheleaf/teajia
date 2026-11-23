@@ -2,6 +2,8 @@ import type { ShippingPaymentNotification } from './shippingNotification';
 import type { TrackedOrder } from './orderTrackingTypes';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
+import type { VendorProductSale } from './vendorSalesTypes';
+export type { VendorProductSale } from './vendorSalesTypes';
 import type { LogisticsAddress, LogisticsAddressInput, LogisticsTracking, LogisticsService, LogisticsServiceInput, LogisticsOrder, LogisticsOrderInput, LogisticsShipment, LogisticsShipmentInput, LogisticsShipmentUpdate, LogisticsReceiveInput, StudioReceiptReferral, StudioReceiptReferralInput } from './logisticsTypes';
 import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
@@ -2207,6 +2209,8 @@ export const api = {
     getOrders: async (id: string) => {
       return authedFetch(`${API_URL}/api/customers/${id}/orders`)
     },
+    /** Every sale of this vendor's teas: who bought which, when. */
+    getProductSales: async (id: string): Promise<VendorProductSale[]> => authedFetch(`${API_URL}/api/customers/${encodeURIComponent(id)}/product-sales`),
     getTeas: async (id: string) => {
       return authedFetch(`${API_URL}/api/customers/${id}/teas`)
     },
@@ -3584,7 +3588,24 @@ export const api = {
       authedFetch(`${API_URL}/api/tasting-journal/${entryId}/candidates/${encodeURIComponent(noteKey)}`, { method: 'DELETE' }),
   },
 
+  tastingExcerptOffers: {
+    get: (entryId: string) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${encodeURIComponent(entryId)}/offers/personal`),
+    offer: (entryId: string, data: { excerpt: string; byline: string }) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${encodeURIComponent(entryId)}/offers/personal`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
+    withdraw: (entryId: string) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${encodeURIComponent(entryId)}/offers/personal`, { method: 'DELETE' }),
+  },
+
   tastingNoteCandidates: {
+    approve: (id: string) =>
+      authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${encodeURIComponent(id)}/promote`, { method: 'POST', body: '{}' }),
+    setPlacements: (impressionId: string, data: { show_on_listing?: boolean; show_on_main_page?: boolean }) =>
+      authedFetch(`${API_URL}/api/admin/tasting-impressions/${encodeURIComponent(impressionId)}/placements`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
     list: (status = 'starred') => authedFetch(`${API_URL}/api/admin/tasting-note-candidates?status=${encodeURIComponent(status)}`),
     update: (id: string, data: { edited_text?: string; attribution_name?: string; attribution_detail?: string }) =>
       authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -3619,6 +3640,7 @@ export const api = {
   },
 
   productImpressions: {
+    mainPage: async (slug: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/s/${encodeURIComponent(slug)}/tasting-excerpts`)),
     list: async (productId: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/products/${encodeURIComponent(productId)}/impressions`)),
   },
 

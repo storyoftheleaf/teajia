@@ -6,11 +6,13 @@ import { BODY, FIELD_GAP, LABEL, LINK } from '../shared/typeRoles';
 export interface Fact {
   label: string;
   value: string;
+  content?: React.ReactNode;
   /**
    * The value's own public page, when the base holds one. A fact that can be
    * followed is a doorway; a fact that cannot is a plain string and stays one.
    */
   to?: string;
+  state?: unknown;
 }
 
 /**
@@ -52,11 +54,11 @@ export const FactGrid: React.FC<{ facts: Fact[] }> = ({ facts }) => {
           <dt className={`${LABEL} ${FIELD_GAP} text-tea-text-dim`}>{fact.label}</dt>
           <dd className={`${BODY} text-tea-text-sec`}>
             {fact.to ? (
-              <Link to={fact.to} className={`${LINK} inline-flex min-h-tap items-center`}>
+              <Link to={fact.to} state={fact.state} className={`${LINK} inline-flex min-h-tap items-center`}>
                 {fact.value}
               </Link>
             ) : (
-              fact.value
+              fact.content ?? fact.value
             )}
           </dd>
         </div>

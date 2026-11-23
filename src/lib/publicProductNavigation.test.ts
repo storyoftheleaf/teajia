@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { buildPublicProductHref, resolveInventoryStoreSlug } from './publicProductNavigation';
+import { buildPublicProductHref, inventoryProductHref, resolveInventoryStoreSlug } from './publicProductNavigation';
 
 describe('store-aware public product navigation', () => {
   it('lets a cold-link store query override the persisted shop', () => {
     expect(resolveInventoryStoreSlug(new URLSearchParams('store=rayi-master'), 'barry-master')).toBe('rayi-master');
     expect(resolveInventoryStoreSlug(new URLSearchParams('store=%20'), 'barry-master')).toBe('barry-master');
     expect(resolveInventoryStoreSlug(new URLSearchParams(), null)).toBe('teajia-bali');
+  });
+
+  it('opens a grid item in its source shop or the originating catalog', () => {
+    const item = { id: 'pot-04', slug: 'inscribed-pot' };
+    expect(inventoryProductHref(item, '?store=rayi-master&type=Teaware', 'barry-master'))
+      .toBe('/shop/product/inscribed-pot?store=rayi-master');
+    expect(inventoryProductHref(item, '', 'barry-master')).toBe('/shop/product/inscribed-pot?store=barry-master');
+    expect(inventoryProductHref(item, '', null)).toBe('/shop/product/inscribed-pot');
+    expect(inventoryProductHref({ ...item, source_account_slug: 'third-shop' }, '?store=rayi-master', null))
+      .toBe('/shop/product/inscribed-pot?store=third-shop');
   });
 
   it('prefers a backend public path and carries its backend account slug', () => {

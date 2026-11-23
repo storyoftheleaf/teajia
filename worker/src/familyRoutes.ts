@@ -94,14 +94,14 @@ const isPhotoPage = (value: unknown): value is FamilyPhotoPage =>
 const validId = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(value);
 
 type ProductRow = {
-  id: string; account_id: string; name: string | null; is_public: number | null; status: string | null;
+  id: string; account_id: string; name: string | null; is_public: number | null; shown_in_shop: number | null; status: string | null;
   stock_grams: number | null; account_status: string | null; public_enabled: number | null;
 };
 
 async function readProduct(db: D1Database, productId: string): Promise<ProductRow | null> {
   if (!validId(productId)) return null;
   return db.prepare(
-    `SELECT p.id, p.account_id, COALESCE(NULLIF(p.given_name, ''), p.product_name) AS name, p.is_public, p.status,
+    `SELECT p.id, p.account_id, COALESCE(NULLIF(p.given_name, ''), p.product_name) AS name, p.is_public, p.shown_in_shop, p.status,
             p.stock_grams, a.status AS account_status, a.public_enabled
        FROM products p JOIN accounts a ON a.id = p.account_id
       WHERE p.id = ?`,
@@ -110,8 +110,8 @@ async function readProduct(db: D1Database, productId: string): Promise<ProductRo
 
 /** A tea in the shop: public, in an open public account, and not withdrawn. */
 function inTheShop(product: ProductRow): boolean {
-  return Number(product.is_public) === 1 && product.account_status === 'active'
-    && Number(product.public_enabled ?? 1) === 1 && (product.status === 'Active' || product.status === 'Sold Out');
+  return Number(product.is_public) === 1 && Number(product.shown_in_shop) === 1 && product.account_status === 'active'
+    && Number(product.public_enabled) === 1 && (product.status === 'Active' || product.status === 'Sold Out');
 }
 
 const mediaUrl = (key: string) => `${MEDIA_PREFIX}${key}`;

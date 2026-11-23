@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import { GENERATED_CLAIMS } from '../../wisdom/reference/generatedClaims';
 import type { PublicProduct } from '../../types';
 import type { PublicReferenceStatement } from '../../wisdom/receiving/previewImporter';
 import type { PublicTeaReferenceSource } from '../../wisdom/reference/types';
@@ -13,6 +15,8 @@ import {
   IndexList,
   Invitation,
   MEASURE,
+  FOOTNOTE,
+  QUIET_LINK,
   RULE_FULL,
   SPACE,
   SectionHead,
@@ -53,14 +57,29 @@ function isUsefulFact(fact: PublicReferenceStatement): boolean {
   return !GENERIC_REFERENCE_TEXT.some(pattern => pattern.test(fact.text.trim()));
 }
 
+const citedListingClaims = new Set(GENERATED_CLAIMS.filter(claim => claim.listingEligible && claim.sourceIds.length).map(claim => claim.claimId));
+
 const FactStatement: React.FC<{
   fact: PublicReferenceStatement;
   detail?: React.ReactNode;
 }> = ({ fact, detail }) => {
+  const anchor = /^[a-z0-9-]+:([a-z0-9-]+)$/.exec(fact.id)?.[1];
+  const row = useRef<HTMLLIElement>(null);
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (anchor && hash === '#' + anchor) row.current?.scrollIntoView?.({ block: 'center' });
+  }, [anchor, hash]);
   return (
-    <li className={`${RULE_FULL} first:border-t-0 py-4 min-w-0`}>
+    <li ref={row} id={anchor} className={`${RULE_FULL} first:border-t-0 py-4 min-w-0`}>
       <p className={`${FACT} ${MEASURE} min-w-0 break-words`}>{fact.text}</p>
       {detail}
+      {!detail && citedListingClaims.has(fact.id) && (
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+          {(fact.citations ?? [fact.citation]).map(source => (
+            <a key={source.sourceId} href={source.url} className={`${FOOTNOTE} ${QUIET_LINK} tap-target`}>{source.label}</a>
+          ))}
+        </div>
+      )}
     </li>
   );
 };

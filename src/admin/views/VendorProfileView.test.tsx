@@ -2,10 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import React from 'react';
 
-vi.mock('react-router-dom', () => ({ useParams: () => ({ vendorId: 'vendor-1' }), useNavigate: () => vi.fn() }));
+vi.mock('react-router-dom', () => ({
+  useParams: () => ({ vendorId: 'vendor-1' }),
+  useNavigate: () => vi.fn(),
+  Link: ({ to, children, ...rest }: { to: string; children: React.ReactNode }) => React.createElement('a', { href: to, ...rest }, children),
+}));
 vi.mock('../hooks/usePrivateQueryScope', () => ({ usePrivateQueryScope: () => ({ ready: true, key: ['account-1', 'user-1', 1] }) }));
 vi.mock('../hooks/useAdminData', () => ({ useRates: () => ({ data: [{ currency: 'Yuan', rateToUSD: 8 }] }) }));
 vi.mock('@tanstack/react-query', () => ({
+  // The face photo button refreshes vendor lists after a save.
+  useQueryClient: () => ({ invalidateQueries: () => Promise.resolve() }),
   useQuery: ({ queryKey }: { queryKey: string[] }) => ({
     data: queryKey[0] === 'vendor' ? { id: 'vendor-1', name: 'Target Vendor', tags: [], contacts: [] }
       : queryKey[0] === 'vendor-products' ? [{
@@ -18,6 +24,12 @@ vi.mock('@tanstack/react-query', () => ({
           { id: 'po-1', vendor_id: 'vendor-1', vendor_name: 'Target Vendor', total_usd: 0, status: 'pending', created_at: '2026-09-01' },
           { id: 'po-2', vendor_id: 'vendor-2', vendor_name: 'Target Vendor', total_usd: 90, status: 'pending', created_at: '2026-09-01' },
         ]
+      : queryKey[0] === 'vendor-sales' ? [{
+          line_id: 'line-1', invoice_id: 'inv-9', invoice_number: 'INV-9', status: 'Paid', created_at: '2026-10-02 10:00:00',
+          customer_id: 'cust-7', customer_name: 'Mei', product_id: 'tea-1', product_name: 'Yunnan tea',
+          quantity: 50, quantity_unit: 'g', price_at_sale: 0.5,
+        }]
+      : queryKey[0] === 'vendor-own-orders' ? [{ id: 'own-1', invoice_number: 'OWN-3', status: 'Paid', created_at: '2026-10-05', computed_total: 40, shipping_cost_usd: 0 }]
       : queryKey[0] === 'inventory-receipts-all' ? [{ id: 'receipt-1', vendor_name: 'Target Vendor', source_kind: 'purchase', state: 'ordered', lines: [] }]
       : [{ id: 'sale-1', customer_name: 'Target Vendor', invoice_number: 'SALE-1' }],
     isLoading: false,
@@ -42,5 +54,23 @@ describe('vendor profile route', () => {
     expect(html).toMatch(/\$<!-- -->0\.00<!-- --> USD/);
     expect(html).not.toContain('SALE-1');
     expect(html).not.toContain('$90.00');
+  });
+
+  it('shows who bought their teas, and what the vendor bought from the shop', () => {
+    const html = renderToString(<VendorProfileView />);
+    expect(html).toContain('Their teas, sold');
+    expect(html).toContain('href="/admin/people/cust-7"');
+    expect(html).toContain('Mei');
+    expect(html).toContain('$25.00');
+    expect(html).toContain('Bought from you');
+    expect(html).toContain('#OWN-3');
+    expect(html).toContain('$40.00');
+  });
+
+  it('makes the details editable where they sit', () => {
+    const html = renderToString(<VendorProfileView />);
+    expect(html).toContain('aria-label="Edit name"');
+    expect(html).toContain('aria-label="Edit country"');
+    expect(html).toContain('Add contact');
   });
 });

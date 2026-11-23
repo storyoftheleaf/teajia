@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useScrollFade } from './alcove/hooks/useScrollFade';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { useTastingCount, useTastingEntry } from '../../hooks/useTastingCount';
@@ -9,46 +9,39 @@ import { useShopPrice } from './shopPrice';
 import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../hooks/useAuth';
-import { getTeaColor } from '../../designTokens';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import type { InventoryItem } from '../../types';
 import { ContentType } from '../../types';
 
-import { Icons } from '../Icons';
-import { Button } from '../shared/Button';
-import { FactGrid } from '../wisdom/FactGrid';
-import { authPagePath } from '../../lib/authNavigation';
+import { ProductDetailLayout } from './ProductDetailLayout';
 import { AlcoveShell } from './alcove/AlcoveShell';
 import { AlcoveGallery } from './alcove/AlcoveGallery';
 import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
-import { AlcoveOriginLine } from './alcove/AlcoveOriginLine';
+import { TeawareProductContent } from './TeawareProductContent';
 import { AlcoveFactsLedger } from './alcove/AlcoveFactsLedger';
 import { AlcoveSectionHeading } from './alcove/AlcoveSectionHeading';
-import { AlcoveTastingPlate } from './alcove/AlcoveTastingPlate';
 import { AlcoveCharacterBand } from './alcove/AlcoveCharacterBand';
 import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import { AlcoveTableSection } from './alcove/AlcoveTableSection';
 import { AlcoveCommerceFooter, wholePieceOf } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
-import { findProductOriginReference } from '../../wisdom/reference/catalogue';
+import { wisdomRelationsApi } from '../../admin/components/wisdom/relationsApi';
 import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
-import { TeaReference, recordFacts, resolveRecord, type TeaReferenceProduct } from '../wisdom/TeaReference';
-import type { ProductImpression } from './ProductImpressions';
+import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
+import { useProductImpressions } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 import { minimumOrderGrams, quoteGrams, sellUnitOf } from '../../lib/teaPricing';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
-import { resolveLineage } from '../wisdom/TeaLineage';
-import { regionElevationPresentation } from '../../wisdom/regions';
-import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, passageHref, useWisdomListing } from './alcove/AlcoveWisdomPassages';
+import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, useWisdomListing } from './alcove/AlcoveWisdomPassages';
 import { AlcoveComposedEntry } from './alcove/AlcoveComposedEntry';
-import { entryClaimUses, entryLinkFor } from '../../wisdom/reference/composedEntry';
 import { GENERATED_ENTRIES } from '../../wisdom/reference/generatedEntries';
 import { GENERATED_CLAIMS } from '../../wisdom/reference/generatedClaims';
 import { EMPTY_LISTING_PASSAGES, resolveListingPassages } from '../../wisdom/reference/listingPassages';
 import { listingFactsFromInventoryItem } from '../../wisdom/reference/listingFacts';
+import { productGallery, productIdentity, teaFacts, teaReading, teaRegionFields } from './productDetailFields';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -79,8 +72,6 @@ interface AlcoveCardProps {
    * Both layouts share the exact same state, handlers, and section blocks.
    */
   layout?: 'card' | 'page';
-  /** Page layout only: what sits directly under the plaque (the row of photographs, the sold-out line). */
-  underPlate?: React.ReactNode;
 }
 
 /** Returns stock status info for display */
@@ -108,8 +99,17 @@ function hexToRgbString(hex: string): string | undefined {
   return `${(int >> 16) & 255} ${(int >> 8) & 255} ${int & 255}`;
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card', underPlate }) => {
+export function ProductDetailContent(props: AlcoveCardProps) {
+  if (props.item.category === 'ware') {
+    return <TeawareProductContent key={props.item.id} item={props.item} publicHref={props.publicHref}
+      availabilityContact={props.availabilityContact} onAddToCart={props.onAddToCart} />;
+  }
+  return <AlcoveCard {...props} layout="page" />;
+}
+
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, publicHref, availabilityContact, onOpenOrder, layout = 'card' }) => {
   const navigate = useNavigate();
+  const { search } = useLocation();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
   // Local sample cart (flask / sample list)
@@ -140,14 +140,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [sampleDone, setSampleDone] = useState(false);
   const [sampleError, setSampleError] = useState<string | null>(null);
 
-  const { isAuthenticated: isLoggedIn, user } = useAuth();
-  // Tea Wisdom claims for this listing. Production reads an empty set until
-  // GENERATED_CLAIMS lands; `pilot` is set only on the wisdom-pilot preview pages.
+  const { isAuthenticated: isLoggedIn } = useAuth();
+
   const wisdomListing = useWisdomListing();
   const wisdomPilot = wisdomListing.pilot;
-  // The tea's composed entry: the preview supplies one; the live shop shows only an approved entry.
-  const composed = wisdomListing.composed ?? (item.category === 'tea' ? GENERATED_ENTRIES[item.id] : undefined);
-  const entryClaims = wisdomListing.composed ? wisdomListing.claims : GENERATED_CLAIMS;
 
   const handleSampleClick = () => {
     setSampleModalOpen(true);
@@ -193,11 +189,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // Fetch events that featured this product
   const { data: productEvents } = useProductEvents(item.id);
-  const { data: impressions = [] } = useQuery<ProductImpression[]>({
-    queryKey: ['product-impressions', item.id],
-    queryFn: () => api.productImpressions.list(item.id),
-    staleTime: 60_000,
-  });
+  const { data: impressions = [] } = useProductImpressions(item.id);
   const { data: xrefArticleResponse } = useQuery({
     queryKey: ['public-xref', 'product-articles', item.id],
     queryFn: () => api.publicXref.productArticles(item.id),
@@ -274,30 +266,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // Alcove uses the main Espresso+Gold palette (see designTokens.ts)
   const alcoveBg = 'var(--tea-bg)';
-  const typeColor = getTeaColor(item.type);
-
-  // Derive display values from InventoryItem
-  const productName = item.variant || item.name;
-  const givenName = item.variant !== item.name ? item.name : '';
-  // Strip numbers and latin characters: only show actual CJK characters
-  const chineseCharacters = (item.chineseName || '').replace(/[0-9A-Za-z\s]/g, '');
-  const teaType = item.type;
-  const mainStory = item.lore || '';
-  const introduction = item.description || '';
-  const terroir = item.terroir || '';
-  const processing = item.processingNotes || '';
+  const identity = {
+    ...productIdentity(item), isAdmin,
+    footNote: layout === 'page' && wholePieceGrams
+      ? `One whole ${(wholePiece?.label ?? '').toLowerCase()} · ${wholePieceGrams}g`
+      : undefined,
+    onNavigateSource: () => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier ?? '')}`),
+  };
+  const teaType = identity.teaType;
   const notes = item.tags || [];
-  const photoUrl = item.image;
-  const magazineUrl = item.magazineUrl;
 
   // Liquor color (first liquor-color term): ledger row + shell warmth tint
   const liquorTermId = item.tasting?.['liquor-color']?.[0];
   const liquorHex = liquorTermId ? LIQUOR_COLORS[liquorTermId] : undefined;
   const warmthRGB = liquorHex ? hexToRgbString(liquorHex) : undefined;
-
-  // Collect all available images (main + additional), max 3
-  const photos = [photoUrl, ...(item.additionalImages || [])].filter(Boolean);
-  const allImages = layout === 'page' && item.category === 'tea' ? photos : photos.slice(0, 3);
 
   /**
    * Choosing an amount on the page bar puts it straight in the order.
@@ -437,48 +419,29 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         wholePiece={wholePiece}
         unitGrams={unitGrams}
       />
-      <ImageOverlayModal
+      {layout === 'card' && <ImageOverlayModal
         open={imageExpanded}
         expandedImageUrl={expandedImageUrl}
         itemName={item.name}
         onClose={() => { setImageExpanded(false); setExpandedImageUrl(null); }}
-      />
+      />}
     </>
   );
 
   // 1. Identity: centered serif header, hanzi as real text
   const identityHeader = (
     <div className="relative lg:h-full">
-      {!(layout === 'page' && item.category === 'tea') && isAdmin && onEditProductTasting && (
+      {isAdmin && onEditProductTasting && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
-          className={`tap-target absolute z-10 font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim transition-colors hover:text-tea-gold ${
-            layout === 'page'
-              ? 'right-[32px] top-[6px] lg:right-7 lg:top-[22px]'
-              : 'right-3 top-3'
-          }`}
+          className="tap-target absolute right-3 top-3 z-10 font-sans text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim transition-colors hover:text-tea-gold"
           aria-label="Edit this tea"
         >
           Edit
         </button>
       )}
-      <AlcoveIdentityHeader
-        item={item}
-        variant={layout === 'page' ? 'plate' : 'plain'}
-        footNote={
-          layout === 'page' && wholePieceGrams
-            ? `One whole ${(wholePiece?.label ?? '').toLowerCase()} · ${wholePieceGrams}g`
-            : undefined
-        }
-        productName={productName}
-        givenName={givenName}
-        teaType={teaType}
-        chineseCharacters={chineseCharacters}
-        typeColor={typeColor}
-        isAdmin={isAdmin}
-        onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
-      />
+      <AlcoveIdentityHeader {...identity} variant="plain" />
     </div>
   );
 
@@ -492,25 +455,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // comes through with it, because a county elevation and a tea-growing
   // elevation are not the same claim and the base is careful about which it
   // is offering.
-  const ledgerRegion = item.category === 'tea'
-    ? resolveLineage({
-        name: item.name,
-        chineseName: item.chineseName,
-        origin: item.origin,
-        cultivar: item.cultivar,
-      }).region
-    : null;
-  const ledgerElevationRaw = regionElevationPresentation(ledgerRegion);
-  // The base's long label exists to stop a county's geographic range being read
-  // as a tea-growing claim. Where the figure IS scoped to tea growing there is
-  // nothing to guard against, so the ledger can say Elevation and stay honest.
-  // Anything else keeps the qualifier it came with.
-  const ledgerElevation = ledgerElevationRaw
-    ? {
-        ...ledgerElevationRaw,
-        label: ledgerRegion?.elevation?.scope === 'tea_growing' ? 'Elevation' : ledgerElevationRaw.label,
-      }
-    : null;
+  const regionFields = teaRegionFields(item);
+  const { region: ledgerRegion, elevation: ledgerElevation } = regionFields;
 
   const factsLedger = (
     <AlcoveFactsLedger
@@ -524,15 +470,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   // 3. Gallery band
-  const gallery = (
-    <AlcoveGallery
-      allImages={allImages}
-      itemName={item.name}
-      layout={layout}
-      squarePage={item.category === 'tea'}
-      onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
-    />
-  );
+  const gallery = productGallery(item, layout);
 
   // What the wisdom base can resolve from this product's own fields.
   const referenceProduct: TeaReferenceProduct = {
@@ -550,13 +488,27 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const potentialResearch = item.category === 'tea' && !wisdomPilot
     ? resolveProductResearch(referenceProduct)
     : null;
-  const wisdomPassages = item.category === 'tea'
-    ? resolveListingPassages(wisdomListing.facts ?? listingFactsFromInventoryItem(item), composed ? [] : wisdomListing.claims)
+  const listingFacts = wisdomListing.facts ?? listingFactsFromInventoryItem(item);
+  const namedTeaId = listingFacts.namedTeaId;
+  const namedTeaState = useQuery({
+    queryKey: ['wisdom-public-state', 'named_tea', namedTeaId],
+    queryFn: () => wisdomRelationsApi.publicState({ nodeType: 'named_tea', nodeId: namedTeaId! }),
+    enabled: layout === 'page' && item.category === 'tea' && Boolean(namedTeaId),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    gcTime: 0,
+  });
+  const publicFacts = namedTeaState.isSuccess && !namedTeaState.isFetching && namedTeaState.data.is_public
+    ? listingFacts : { ...listingFacts, namedTeaId: undefined };
+  // The tea's one composed entry: the preview supplies a draft; the live shop shows
+  // an approved entry, except on a confirmed named tea, whose sourced history leads.
+  const composed = layout === 'page' && item.category === 'tea'
+    ? wisdomListing.composed ?? (publicFacts.namedTeaId ? undefined : GENERATED_ENTRIES[item.id])
+    : undefined;
+  const entryClaims = wisdomListing.composed ? wisdomListing.claims : GENERATED_CLAIMS;
+  const wisdomPassages = layout === 'page' && item.category === 'tea' && !composed
+    ? resolveListingPassages(publicFacts, wisdomListing.claims, wisdomListing.publicPages)
     : EMPTY_LISTING_PASSAGES;
-  const passageFor = (field: 'region' | 'location' | 'type' | 'grade' | 'format') =>
-    wisdomPassages.passages.find(passage => passage.gridField === field);
-  const gradePassage = passageFor('grade');
-  const typePassage = passageFor('type');
 
   // 4. Character: exact product tasting and cited shared potential remain separate.
   const characterBand = (
@@ -564,7 +516,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       item={item}
       legacyNotes={notes}
       onTermClick={onTermClick}
-      potentialResearch={potentialResearch}
+      potentialResearch={wisdomPassages.styleReferences.length ? null : potentialResearch}
       onTaste={layout === 'page' ? undefined : onTaste}
       tastingEntry={tastingEntry}
       impressions={impressions}
@@ -574,21 +526,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // 5. About this tea: story + terroir + craft as one reading chapter
   // A composed entry speaks for the introduction, lore, terroir and processing;
-  // mood and experience stay Adrian's own and still show.
-  const composedSpeaks = Boolean(composed);
-  const aboutSection = (
-    <AlcoveAboutSection
-      variant={layout === 'page' ? 'page' : 'card'}
-      item={composedSpeaks ? { ...item, description: '', lore: '' } : item}
-      magazineUrl={magazineUrl}
-      mainStory={composedSpeaks ? '' : mainStory}
-      introduction={composedSpeaks ? '' : introduction}
-      feelingDescription={item.experience || ''}
-      terroir={composedSpeaks ? '' : terroir}
-      processing={composedSpeaks ? '' : processing}
-      mood={item.mood || ''}
-    />
-  );
+  // mood and experience stay Adrian's own.
+  const reading = teaReading(composed ? { ...item, description: '', lore: '', terroir: '', processingNotes: '' } : item, layout);
 
   /**
    * 6. The plant and the maker: what the wisdom base knows.
@@ -623,7 +562,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
    * word the reader is most likely to be chasing. Nothing here is invented, so
    * a tea with no recorded taste simply shows fewer threads.
    */
-  const shopStoreSlug = useAppStore.getState().shopStoreSlug;
+  const shopStoreSlug = new URLSearchParams(search).get('store')?.trim() || useAppStore.getState().shopStoreSlug;
   const threadBase = shopStoreSlug ? `/shop?store=${encodeURIComponent(shopStoreSlug)}&` : '/shop?';
   const threadOriginName = (item.origin ?? '').split(',')[0]?.trim();
   const firstFlavor = item.tasting?.flavor?.[0];
@@ -661,142 +600,29 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
-  if (layout === 'page' && item.category !== 'tea') {
-    const originLine = <AlcoveOriginLine origin={item.origin} harvest={item.year} />;
-    const tastingRow = onTaste && (
-      <div className="mx-5 mt-6">
-        <AlcoveTastingPlate variant="standalone" entry={tastingEntry} onTaste={intent => onTaste(item, intent)} />
-      </div>
-    );
-    return (
-      <article className="mx-auto w-full max-w-[1280px]">
-        <div className="lg:grid lg:grid-cols-[minmax(0,min(36%,520px))_minmax(0,1fr)] lg:items-stretch lg:gap-0">
-          {/* With something under it the plate gives up its full-height stretch
-              to the column, so the strip sits below it instead of past the end. */}
-          <div className={`lg:h-full lg:border-r lg:border-tea-border${underPlate ? ' lg:flex lg:flex-col lg:[&>header]:h-auto lg:[&>header]:flex-1' : ''}`}>
-            {identityHeader}
-            {/* The plate fills the column, which on a long tea is far taller than the
-                window, so the strip stays in view at the foot of the window. */}
-            {underPlate && <div className="lg:sticky lg:bottom-0 lg:z-10 lg:bg-tea-bg lg:pb-3">{underPlate}</div>}
-          </div>
-
-          {/* The reading, with what the shop knows at the top of it */}
-          <div className="lg:min-w-0 lg:px-7 lg:pt-2">
-            {originLine}
-            {gallery}
-            <div data-page-order className="commerce-dock commerce-price-surface paper-surface dark z-nav">
-              {commerceFooter('docked')}
-            </div>
-            {characterBand}
-            <div className="mt-10 lg:mt-12">{aboutSection}</div>
-            {tastingRow}
-            {referenceSection}
-            {tableSection}
-            {threadSection}
-          </div>
-
-        </div>
-
-        <div aria-hidden="true" className="h-40 lg:h-8" />
-        {modals}
-      </article>
-    );
-  }
-
   if (layout === 'page') {
-    const regionName = ledgerRegion?.province || ledgerRegion?.name;
-    const originReference = findProductOriginReference(referenceCatalogue, item.id, item.origin);
-    const locationPassage = passageFor('location');
-    // With a composed entry, the Type and Location rows open the Wisdom pages the entry draws on.
-    const composedUses = composed ? entryClaimUses(composed) : [];
-    const composedPageFor = (axes: readonly string[]) => {
-      const claimId = composedUses.find(id => axes.includes(entryClaims.find(claim => claim.claimId === id)?.axis ?? ''));
-      return claimId ? entryLinkFor(claimId, entryClaims)?.split('#')[0] ?? null : null;
-    };
-    const composedTypeHref = composedPageFor(['type', 'process']);
-    const composedPlaceHref = composedPageFor(['place']);
-    const facts = [
-      { label: 'Vintage', value: item.year },
-      // A grade row exists only when a recorded grade has a passage to explain it.
-      ...(gradePassage && wisdomListing.facts?.grade ? [{ label: 'Grade', value: wisdomListing.facts.grade.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '), to: passageHref(gradePassage.claim.claimId) }] : []),
-      ...(typePassage ? [{ label: 'Type', value: item.type, to: passageHref(typePassage.claim.claimId) }] : []),
-      ...(!typePassage && composedTypeHref ? [{ label: 'Type', value: item.type, to: composedTypeHref }] : []),
-      originReference
-        ? { label: 'Region', value: originReference.name, to: `/wisdom/region/${originReference.id}` }
-        : { label: 'Region', value: regionName && regionName !== item.origin ? regionName : '' },
-      locationPassage
-        ? { label: 'Location', value: item.origin, to: passageHref(locationPassage.claim.claimId) }
-        : composedPlaceHref
-          ? { label: 'Location', value: item.origin, to: composedPlaceHref }
-          : { label: 'Location', value: item.origin },
-      { label: 'Leaf cultivar', value: item.cultivar ?? '' },
-      { label: 'Format', value: item.form ?? '' },
-      { label: ledgerElevation?.label ?? 'Elevation', value: ledgerElevation?.value ?? '' },
-      { label: 'Forest cover', value: ledgerRegion?.forestCover ?? '' },
-      // The pilot view takes nothing from the name: no grade mark from
-      // "Gong Ting", no tree age from "Gushu".
-      { label: 'Tree character', value: wisdomPilot ? '' : ledgerRegion?.treeCharacter ?? '' },
-      ...(wisdomPilot ? [] : recordFacts(resolveRecord(referenceProduct))),
-    ].filter(fact => fact.value?.trim());
-
     return (
-      <article className="tea-product-page mx-auto w-full max-w-screen-xl" data-sold-out={isSoldOut || undefined}>
-        <div className="tea-product-layout">
-          {/* The family's row sits right under the plaque. With nothing in it the
-              plaque stands exactly as it does without the family. */}
-          <div className="tea-product-plaque">
-            {underPlate
-              ? <div className="tea-product-plaque-stack">{identityHeader}<div className="tea-product-under-plaque">{underPlate}</div></div>
-              : identityHeader}
-          </div>
-          <div className="tea-product-reading">
-            {gallery}
-            {!wisdomPilot?.externalReference && <div className="tea-product-account" role="group" aria-label="Your tea actions">
-              {isLoggedIn ? (
-                <>
-                  <Button variant="secondary" size="sm" className="tea-product-profile" icon={<Icons.User aria-hidden="true" />} onClick={() => navigate('/account')}>
-                    {user?.name?.trim() || 'My account'}
-                  </Button>
-                  {onTaste && <Button variant="secondary" size="sm" onClick={() => onTaste(item, 'notes')}>Taste</Button>}
-                  <Button variant="secondary" size="sm" aria-pressed={favorited} onClick={() => toggleFavoriteTea(item.id)}>
-                    {favorited ? 'Collected' : '+ Collect'}
-                  </Button>
-                  {isAdmin && onEditProductTasting && (
-                    <Button variant="secondary" size="sm" onClick={() => onEditProductTasting(item)}>
-                      Edit
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Button variant="secondary" size="sm" onClick={() => navigate(authPagePath('signin', window.location.pathname + window.location.search))}>Log in</Button>
-                  {/* The family's door: a stranger joins from here and lands back in the tasting. */}
-                  {onTaste && <Button variant="secondary" size="sm" onClick={() => onTaste(item, 'notes')}>Add your tasting</Button>}
-                </>
-              )}
-            </div>}
-            {facts.length > 0 && (
-              <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">
-                <h2 id="tea-product-provenance-title" className="m-0 font-display text-ui-20 text-tea-text">Provenance</h2>
-                <FactGrid facts={facts} />
-              </section>
-            )}
-            {composed
-              ? <AlcoveComposedEntry entry={composed} claims={entryClaims} />
-              : <AlcoveWisdomPassages listing={wisdomPassages} />}
-            {!wisdomPilot?.externalReference && <div data-page-order data-tea-product-order className="commerce-dock commerce-price-surface paper-surface dark z-nav">
-              {commerceFooter('docked')}
-            </div>}
-            {characterBand}
-            <div className="mt-10 lg:mt-12">{aboutSection}</div>
-            <AlcoveWisdomStyleReferences listing={wisdomPassages} />
-            {tableSection}
-            {threadSection}
-          </div>
-        </div>
-        <div aria-hidden="true" className="h-40 lg:h-8" />
-        {modals}
-      </article>
+      <ProductDetailLayout
+        identity={identity}
+        gallery={gallery}
+        actions={wisdomPilot?.externalReference ? undefined : { productId: item.id, label: 'Your tea actions',
+          onTaste: onTaste && (() => onTaste(item, 'notes')),
+          onEdit: isAdmin && onEditProductTasting ? () => onEditProductTasting(item) : undefined }}
+        facts={teaFacts(item, referenceCatalogue, regionFields, shopStoreSlug, {
+          passages: wisdomPassages.passages, grade: listingFacts.grade, search, pilot: Boolean(wisdomPilot),
+        })}
+        factsTitle="Provenance"
+        afterFacts={composed
+          ? <AlcoveComposedEntry entry={composed} claims={entryClaims} />
+          : <AlcoveWisdomPassages listing={wisdomPassages} />}
+        order={wisdomPilot?.externalReference ? undefined : commerceFooter('docked')}
+        teaOrder
+        character={characterBand}
+        reading={reading}
+        related={<>{tableSection}{threadSection}<AlcoveWisdomStyleReferences listing={wisdomPassages} /></>}
+        soldOut={isSoldOut}
+        modals={modals}
+      />
     );
   }
 
@@ -813,9 +639,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     >
       {identityHeader}
       {factsLedger}
-      {gallery}
+      <AlcoveGallery {...gallery} layout="card" onExpandImage={url => { setExpandedImageUrl(url); setImageExpanded(true); }} />
       {characterBand}
-      {aboutSection}
+      <AlcoveAboutSection reading={reading} />
       {referenceSection}
       {tableSection}
 
