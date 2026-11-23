@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus, Loader2, RefreshCw, FileText, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -75,7 +76,23 @@ export const MagazineView: React.FC = () => {
     }
   };
 
+  // A link straight to one article (the Wisdom grade page links a draft that cites it here).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedArticleId = searchParams.get('article');
+  const openedLink = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linkedArticleId || openedLink.current === linkedArticleId) return;
+    openedLink.current = linkedArticleId;
+    void handleRowClick({ id: linkedArticleId } as DbArticle);
+  }, [linkedArticleId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleEditorClose = () => {
+    if (linkedArticleId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('article');
+      setSearchParams(next, { replace: true });
+      openedLink.current = null;
+    }
     setEditorOpen(false);
     setEditingArticle(null);
   };
