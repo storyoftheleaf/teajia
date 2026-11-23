@@ -8,6 +8,8 @@ import { Thumbnail } from './Photos';
 import { Guide } from './Guide';
 import { Listing } from './Listing';
 import { Review } from './Review';
+import { ShapeLibrary } from './ShapeLibrary';
+import { SHAPE_LIBRARY_PATH } from './shapeData';
 
 const column = 'mx-auto w-full max-w-[calc(var(--tasting-journal-column)+var(--tasting-journal-rail))] p-4 text-tea-text';
 type BoardProps = { board: Board; auth: Auth };
@@ -49,8 +51,10 @@ export default function OwnerYixing() {
   const auth = { accountId, userId };
   // A renewed token for the same owner must preserve in-progress edits.
   const { pathname, search } = useLocation();
-  const guidePot = pathname === BASE + '/wisdom' && new URLSearchParams(search).get('pot');
-  const draftScope = JSON.stringify([accountId, userId, guidePot ? potPath(guidePot) : pathname]);
+  const inShapeLibrary = pathname === SHAPE_LIBRARY_PATH || pathname.startsWith(SHAPE_LIBRARY_PATH + '/');
+  const hasPotContext = pathname === BASE + '/wisdom' || inShapeLibrary;
+  const contextPot = hasPotContext ? new URLSearchParams(search).get('pot') : null;
+  const draftScope = JSON.stringify([accountId, userId, contextPot ? potPath(contextPot) : pathname]);
   const pending = useRef<{ scope: string; draft: Decision } | null>(null);
   useEffect(() => {
     if (pending.current?.scope !== draftScope || !scope.ready) pending.current = null;
@@ -103,6 +107,7 @@ export default function OwnerYixing() {
   return <Routes key={JSON.stringify([accountId, userId, reloadRevision])}>
     <Route index element={<Index {...props} />} />
     <Route path="wisdom" element={<div className={column}><Guide board={result.data} onClay={onClay} onReload={onReload} /></div>} />
+    <Route path="wisdom/shapes/*" element={<div className={column}><ShapeLibrary {...props} revision={revision} /></div>} />
     <Route path=":id" element={<PotRoute {...props} {...edit} onClay={onClay} onSave={onSave} onReload={onReload} />} />
     <Route path=":id/listing" element={<PotRoute {...props} {...edit} onClay={onClay} preview onSave={onSave} onReload={onReload} />} />
   </Routes>;

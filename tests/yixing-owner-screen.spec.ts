@@ -156,3 +156,76 @@ test('the guide without a current pot opens clay references for reading', async 
   await expect(page.getByRole('heading', { name: duanni.name, exact: true })).toBeInViewport();
   await expect(page.getByRole('button', { name: /^(Apply |Use .* for this pot)/ })).toHaveCount(0);
 });
+
+test('shape library compares protected references with the current pot and preserves the review', async ({ page }) => {
+  await injectAuth(page);
+  await page.route('**/api/**', route => route.fulfill({ json: {} }));
+  await mockInventoryApi(page);
+  const libraryPath = base + '/wisdom/shapes';
+  const shapeForm = {
+    id: 'shipiao', chinese: '石瓢壶', pinyin: 'shípiáo hú', kind: 'Named form', silhouette: 'Low or flattened',
+    variants: '石瓢壺', nearNeighbors: 'Check the foot.', features: { profile: 'Low body', foot: 'Three feet',
+      lid: 'Flat lid', knob: 'Bridge knob', spout: 'Straight spout', handle: 'Loop handle' },
+    exemplar: { title: 'Xu Han Tang · 石瓢壶', credit: 'Museum', maker: '徐汉棠', asset: 'assets/shipiao.jpg',
+      recordUrl: 'https://example.org/shipiao', rights: 'Private reference', views: [
+        { label: 'Underside', asset: 'assets/shipiao-bottom.jpg', imageUrl: 'https://example.org/image.jpg' },
+      ] },
+    additionalExemplars: [
+      { title: 'Second example', credit: 'Museum', asset: 'assets/shipiao-alternate.jpg',
+        recordUrl: 'https://example.org/shipiao-alternate', rights: 'Private reference',
+        reviewStatus: 'Owner addition awaiting source review' },
+    ],
+    supportingSources: [],
+  };
+  const forms = [shapeForm, ...Array.from({ length: 14 }, (_, index) => ({
+    ...shapeForm, id: 'round-' + index, chinese: '圆壶 ' + index, pinyin: 'yuán hú',
+    silhouette: 'Round', variants: '', additionalExemplars: [],
+    exemplar: { ...shapeForm.exemplar, title: 'Round teapot', maker: '', asset: 'assets/round-' + index + '.jpg', views: [] },
+  }))];
+  const images = new Set<string>();
+  await page.route('**/api/admin/yixing**', async route => {
+    const request = route.request();
+    expect(request.headers().authorization).toMatch(/^Bearer /);
+    const path = new URL(request.url()).pathname;
+    if (path.includes('/media/')) {
+      images.add(path);
+      return route.fulfill({ body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/HwAAAABJRU5ErkJggg==', 'base64'), contentType: 'image/png' });
+    }
+    if (path.endsWith('/shapes')) return route.fulfill({ json: { schemaVersion: 1, libraryVersion: '2.0.0', forms } });
+    return route.fulfill({ json: { ...board, decisions: {} } });
+  });
+
+  await page.goto(base + '/' + pot.id + '?view=original');
+  await page.getByLabel('Private evidence note').fill('Unsaved comparison note');
+  await page.getByRole('link', { name: 'Compare shapes' }).click();
+  await expect(page.getByRole('heading', { name: 'Shape Library', exact: true })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: '15 forms' })).toBeVisible();
+  await expect(page.getByRole('img', { name: pot.name + ' · Main view' })).toHaveAttribute('src', /^blob:/);
+  expect([...images].some(path => path.endsWith('/media/round-13.jpg'))).toBeFalsy();
+
+  await page.getByRole('searchbox', { name: 'Search shapes' }).fill('shi piao');
+  await expect(page.getByRole('status').filter({ hasText: '1 form' })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Silhouette' }).selectOption('Round');
+  await expect(page.getByText('No forms match these filters.')).toBeVisible();
+  await page.getByRole('combobox', { name: 'Silhouette' }).selectOption('');
+  await page.getByRole('searchbox', { name: 'Search shapes' }).fill('徐汉棠');
+  await page.getByRole('link', { name: /石瓢壶/ }).click();
+  await expect(page.getByRole('heading', { name: '石瓢壶', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Source record' })).toHaveAttribute('href', shapeForm.exemplar.recordUrl);
+  await page.getByRole('button', { name: 'Underside', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'Xu Han Tang · 石瓢壶 · Underside' })).toHaveAttribute('src', /^blob:/);
+  expect([...images].some(path => path.endsWith('/shapes/media/shipiao-bottom.jpg'))).toBeTruthy();
+  await page.getByRole('combobox', { name: 'Reference example' }).selectOption('assets/shipiao-alternate.jpg');
+  await expect(page.getByRole('heading', { name: 'Second example', exact: true })).toBeVisible();
+  await expect(page.getByText('Owner addition awaiting source review', { exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: /Back to Example teapot/ }).click();
+  await expect(page).toHaveURL(base + '/' + pot.id + '?view=original');
+  await expect(page.getByLabel('Private evidence note')).toHaveValue('Unsaved comparison note');
+
+  await page.goto(libraryPath + '?pot=invalid');
+  await expect(page.getByRole('link', { name: /Back to Yixing Wisdom/ })).toBeVisible();
+  await expect(page.getByRole('region', { name: /Compare with/ })).toHaveCount(0);
+  await page.getByRole('link', { name: /Back to Yixing Wisdom/ }).click();
+  await expect(page.getByRole('link', { name: 'Shape Library', exact: true })).toBeVisible();
+});

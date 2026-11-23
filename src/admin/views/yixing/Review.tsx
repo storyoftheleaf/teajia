@@ -4,6 +4,7 @@ import { ImageOverlayModal } from '../../../components/shop/alcove/AlcoveModals'
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
 import { BASE, EMPTY, guidePath, KINDS, potPath, saveReview, type ChangeClay, type ClayAction, type Auth, type Board, type Decision, type Pot } from './data';
 import { useReviewPhotos } from './Photos';
+import { shapeLibraryPath } from './shapeData';
 
 const FIELD_LABELS = { clay: 'Clay', color: 'Observed fired color', shape: 'Shape' };
 const fieldClass = 'mt-1 block w-full min-w-0 rounded-md border border-tea-border bg-tea-surface p-2 text-tea-text';
@@ -67,6 +68,7 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
       <Link className={QUIET_LINK} to={BASE}>All pots</Link>
       <Link className={QUIET_LINK} to={potPath(pot.id) + '/listing'}>Listing preview</Link>
       <Link className={QUIET_LINK} to={guidePath(pot)}>Yixing Wisdom</Link>
+      <Link className={QUIET_LINK} to={shapeLibraryPath(pot.id, false, originals)}>Compare shapes</Link>
       {idx > 0 && <Link className={QUIET_LINK} to={potPath(board.pots[idx - 1].id)}>Previous pot</Link>}
       {idx + 1 < board.pots.length && <Link className={QUIET_LINK} to={potPath(board.pots[idx + 1].id)}>Next pot</Link>}
     </nav>

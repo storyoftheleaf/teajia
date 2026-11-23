@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CELL, FACT, LABEL, NAME_CLASS, QUIET_LINK, RULE_FULL } from '../../../pages/wisdom/wisdomShared';
 import { BASE, guidePath, KINDS, potPath, type Board, type ChangeClay, type Kind } from './data';
+import { shapeLibraryPath } from './shapeData';
 
 const labels: Record<Kind, string> = { clay: 'Clay names', color: 'Fired colors', shape: 'Shapes' };
 
@@ -41,7 +42,9 @@ export function Guide({ board, onClay, onReload }: { board: Board; onClay: Chang
     return () => cancelAnimationFrame(frame);
   }, [anchor, reference]);
   return <>
-    <div className="mb-3">{back}</div>
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">{back}
+      <Link className="btn-secondary tap-target" to={shapeLibraryPath(pot?.id, fromListing)}>Shape Library</Link>
+    </div>
     <h1 className="type-page-title font-display">{reference.title}</h1>
     <nav aria-label="Yixing reference categories" id={'yixing-' + kind} className="my-4 flex flex-wrap gap-2">
       {KINDS.map(k => <Link className="btn-tab" aria-current={kind === k ? 'page' : undefined} key={k} to={guidePath(pot, 'yixing-' + k, fromListing)}>{labels[k]}</Link>)}

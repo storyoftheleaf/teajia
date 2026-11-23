@@ -1,7 +1,10 @@
+import { serveYixingShapeLibrary } from './yixingShapeLibrary';
+
 /** The private pot review is kept apart from shop records, drafts and publication. */
 const ACCOUNT = 'acc_teajia_bali';
 const API = '/api/admin/yixing';
-const PREFIX = 'owner-review/' + ACCOUNT + '/yixing/v1/';
+const ROOT = 'owner-review/' + ACCOUNT + '/yixing/';
+const PREFIX = ROOT + 'v1/';
 const FIELDS = ['clay', 'color', 'shape'] as const;
 type Kind = typeof FIELDS[number];
 type Decision = Record<Kind, string> & { note: string; revision: number; rejectedClays?: string[] };
@@ -109,6 +112,9 @@ export async function serveYixingOwnerReview(
     const board = await object.json<Board>();
     if (!board.ownerUserId || account.userId !== board.ownerUserId) return error('Owner access required', 403);
     const path = new URL(request.url).pathname.slice(API.length);
+    if (path === '/shapes' || path.startsWith('/shapes/')) {
+      return await serveYixingShapeLibrary(request, bucket, path.slice('/shapes'.length), ROOT + 'shapes/v1/', privateResponse);
+    }
     const decisionsKey = PREFIX + 'decisions/' + encodeURIComponent(account.userId) + '.json';
     if (!path && head) return privateResponse(null, 200, 'application/json');
     if (!path && request.method === 'GET') {
