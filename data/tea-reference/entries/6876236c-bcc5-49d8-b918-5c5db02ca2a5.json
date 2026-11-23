@@ -1,8 +1,8 @@
 {
   "status": "needs_review",
-  "composedAt": "2026-11-23T11:46:13.981Z",
+  "composedAt": "2026-11-23T12:18:00.203Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "6876236c-bcc5-49d8-b918-5c5db02ca2a5",
     "name": "Ripe Puerh Loose",
@@ -20,20 +20,20 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "[Ripe pu’er](shou:definition) from Yunnan, made in the 1990s and never pressed into a cake. It has stayed as open leaf through its years in storage in Guangzhou, with more air moving through it than a pressed tea would have. The [wet-pile method](shou:wet-piling) behind it only reached production in 1973, so this lot comes from the style’s early decades."
+        "text": "Loose [ripe pu’er](shou:definition) from Yunnan, made in the 1990s and kept in Guangzhou since. It was never pressed into a cake, so the leaf has aged loose, with more air around it than a cake or brick allows."
       },
       {
         "layer": "age",
-        "text": "At thirty-one years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). Where and how it was kept has shaped the leaf as much as time has."
+        "text": "The leaf went through the [wet pile](shou:wet-piling) that Yunnan’s state factories brought into production in 1973. At thirty-one years it is well past the ten-year mark the trade uses for [aged ripe pu’er](shou:age-aged), and where it was stored has shaped it as much as the years have."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Loose leaf needs no breaking apart, so measure it straight into the pot. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Old ripe tea like this gives eight or more good cups."
+      "text": "Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "notice": {
-      "styleName": "aged ripe pu’er",
       "layer": "notice",
+      "styleName": "aged ripe pu’er",
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
@@ -54,29 +54,27 @@
     {
       "claimId": "shou:age-aged",
       "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": null
     }
   ],
   "problems": [],
   "unsupported": [
     {
-      "sentence": "The [wet-pile method](shou:wet-piling) behind it only reached production in 1973, so this lot comes from the style’s early decades.",
-      "words": "so this lot comes from the style’s early decades",
-      "why": "The claim says Yunnan's state factories brought the method into production in 1973, but nothing says the 1990s are the style's 'early decades'. That is a characterisation not made by any input."
+      "sentence": "Loose [ripe pu’er](shou:definition) from Yunnan, made in the 1990s and kept in Guangzhou since.",
+      "words": "kept in Guangzhou since",
+      "why": "The notes say only 'Stored in Guangzhou'. They do not say it has been stored there since it was made in the 1990s."
     },
     {
-      "sentence": "It has stayed as open leaf through its years in storage in Guangzhou, with more air moving through it than a pressed tea would have.",
-      "words": "with more air moving through it than a pressed tea would have",
-      "why": "The record notes say this about loose leaf (the owner's own note), so this is mostly supported. It is weakly supported at most, and left here only as a borderline case."
-    },
-    {
-      "sentence": "Where and how it was kept has shaped the leaf as much as time has.",
-      "words": "Where and how it was kept has shaped the leaf as much as time has.",
-      "why": "The claim says storage matters as much as age in general. Stating that it has shaped this lot's leaf is a statement about this lot that no claim or record makes."
-    },
-    {
-      "sentence": "Old ripe tea like this gives eight or more good cups.",
-      "words": "Old ripe tea like this gives eight or more good cups.",
-      "why": "The claim gives 'eight or more good cups' for ripe pu'er in general. Applying it to this aged lot is a yield promise about this lot, which the claims do not support."
+      "sentence": "It was never pressed into a cake, so the leaf has aged loose, with more air around it than a cake or brick allows.",
+      "words": "or brick",
+      "why": "The notes compare loose leaf only with a cake. Neither the record nor any claim mentions bricks."
     }
   ]
 }

@@ -11,7 +11,7 @@
 import type { PublicClaim } from '../reference/claims';
 import { appliesTo } from '../reference/listingPassages';
 import { listingFacts } from '../reference/listingFacts';
-import { entrySegments, type ComposedEntry } from '../reference/composedEntry';
+import { entrySegments, type ComposedEntry, type ComposedParagraph } from '../reference/composedEntry';
 
 /** The public product fields the writer may see. Mirrors /api/products/public. */
 export interface ComposeProduct {
@@ -44,7 +44,13 @@ export interface ComposeInputs {
     notes: string[];
   };
   /** Claims the writer may use, by layer. */
-  layers: Partial<Record<'grade' | 'place' | 'age' | 'type' | 'brewing' | 'notice', PublicClaim[]>>;
+  layers: Partial<Record<'grade' | 'place' | 'age' | 'type', PublicClaim[]>>;
+  /**
+   * Brewing and the style line come straight from the kit, worded once in
+   * Wisdom and fitted only to the tea's form and age. The writer never
+   * rewords them.
+   */
+  fixed: { brewing?: ComposedParagraph; notice?: ComposedParagraph & { styleName: string }; claimIds: string[] };
   allowNotice: boolean;
   missing: string[];
 }
@@ -97,11 +103,21 @@ export function composeInputs(
   const type = ['definition', 'wet-piling'].map(onType).filter((claim): claim is PublicClaim => Boolean(claim));
   if (type.length) layers.type = type;
   else missing.push(`A Wisdom kit for ${product.type ?? 'this type'}`);
-  const brewing = onType('brewing');
-  if (brewing) layers.brewing = [brewing];
   const allowNotice = !(options.noNotice ?? []).includes(product.id);
-  const notice = [onType('common-impressions'), layers.age?.[0]].filter((claim): claim is PublicClaim => Boolean(claim));
-  if (allowNotice && notice.length) layers.notice = notice;
+  const fixed: ComposeInputs['fixed'] = { claimIds: [] };
+  const brewing = onType('brewing');
+  const pressed = facts.form !== undefined && !['Loose', 'Bag', 'Rolled'].includes(facts.form);
+  const breaking = pressed ? onType('brewing-pressed') : undefined;
+  if (brewing) {
+    fixed.brewing = { layer: 'brewing', text: [breaking?.text, brewing.text].filter(Boolean).join(' ') };
+    fixed.claimIds.push(...[breaking, brewing].filter((claim): claim is PublicClaim => Boolean(claim)).map(claim => claim.claimId));
+  }
+  const aged = layers.age?.[0]?.sectionKey === 'age-aged';
+  const noticeClaim = aged ? onType('notice-aged') : onType('common-impressions');
+  if (allowNotice && noticeClaim) {
+    fixed.notice = { layer: 'notice', styleName: aged ? 'aged ripe pu’er' : 'ripe pu’er', text: noticeClaim.text };
+    fixed.claimIds.push(noticeClaim.claimId);
+  }
   missing.push('A voice note from you on this lot', 'Photos');
 
   return {
@@ -117,6 +133,7 @@ export function composeInputs(
       notes: [product.lore, product.terroir, product.processing_notes].map(text => text?.trim()).filter((text): text is string => Boolean(text)),
     },
     layers,
+    fixed,
     allowNotice,
     missing,
   };
@@ -137,6 +154,7 @@ export function entryProblems(entry: ComposedEntry, inputs: ComposeInputs): Entr
   const allowed = new Set(Object.values(inputs.layers).flat().map(claim => claim!.claimId));
   const sourceText = [
     ...Object.values(inputs.layers).flat().map(claim => claim!.text),
+    inputs.fixed.brewing?.text ?? '', inputs.fixed.notice?.text ?? '',
     ...inputs.record.notes,
     inputs.record.name, inputs.record.year ?? '', inputs.record.origin ?? '', String(inputs.record.ageYears ?? ''),
   ].join(' ');
@@ -148,7 +166,7 @@ export function entryProblems(entry: ComposedEntry, inputs: ComposeInputs): Entr
   ];
   if (entry.paragraphs.length < 1 || entry.paragraphs.length > 3) problems.push({ where: 'entry', problem: `${entry.paragraphs.length} story paragraphs; write one to three` });
   if (entry.notice && !inputs.allowNotice) problems.push({ where: 'notice', problem: 'this listing carries no taste copy' });
-  if (entry.notice && !inputs.layers.notice) problems.push({ where: 'notice', problem: 'no notice claim was supplied' });
+  if (entry.notice && !inputs.fixed.notice) problems.push({ where: 'notice', problem: 'no notice claim was supplied' });
   if (entry.notice && /\b(it|its|this (brick|cake|tea|lot|tuo|leaf))\b/i.test(entry.notice.text)) {
     problems.push({ where: 'notice', problem: 'the notice speaks of this lot ("it", "this"); describe the style instead' });
   }

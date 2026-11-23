@@ -1,8 +1,8 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-23T11:44:40.114Z",
+  "status": "draft",
+  "composedAt": "2026-11-23T12:16:22.608Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "3603a079-0aa8-4acd-958f-307322b037e5",
     "name": "Ginseng Puer",
@@ -20,20 +20,20 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "These are fragments of [ripe pu’er](shou:definition) cakes pressed in Yunnan in the 1980s, broken from whole cakes and sold as loose pieces. That puts them in the style’s first two decades: the [wet-pile method](shou:wet-piling) only reached production in 1973."
+        "text": "These are pieces of [ripe pu’er](shou:definition) cakes pressed in the 1980s, broken apart rather than kept whole. The leaf is from Yunnan, and it was made in the style’s first two decades: the province’s state factories only brought the [wet-pile method](shou:wet-piling) into production in 1973."
       },
       {
         "layer": "age",
-        "text": "At forty-one years, the pieces sit well within what the trade counts as [aged ripe pu’er](shou:age-aged). Here storage shapes the tea as much as the years do."
+        "text": "Forty-one years on, the tea sits well beyond the ten years the trade looks for in [aged ripe pu’er](shou:age-aged). At this age the storage has shaped it as much as the years have."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "The tea comes already broken, so there is no cake to work apart with a pick. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the pieces open. Ripe tea forgives a heavy hand and gives eight or more good cups."
+      "text": "Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "notice": {
-      "styleName": "aged ripe pu’er",
       "layer": "notice",
+      "styleName": "aged ripe pu’er",
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
@@ -54,24 +54,16 @@
     {
       "claimId": "shou:age-aged",
       "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": null
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "These are fragments of [ripe pu’er](shou:definition) cakes pressed in Yunnan in the 1980s, broken from whole cakes and sold as loose pieces. That puts them in the style’s first two decades: the [wet-pile method](shou:wet-piling) only reached production in 1973.",
-      "words": "That puts them in the style’s first two decades",
-      "why": "Plain arithmetic from 1973 (production start) to the 1980s gives roughly a decade or less to 15 years. 'First two decades' is a stretch, though 1980s is within 20 years of 1973 (1973 to 1989 is under two decades), so this is supported. However, 'pressed in Yunnan' is supported by origin. This flag is weak: the main concern is only whether 'the style's' is claimed beyond the wet-piling claim, which it is not."
-    },
-    {
-      "sentence": "At forty-one years, the pieces sit well within what the trade counts as [aged ripe pu’er](shou:age-aged). Here storage shapes the tea as much as the years do.",
-      "words": "Here storage shapes the tea as much as the years do.",
-      "why": "The claim says storage matters as much as age in general; this sentence asserts it about this lot, and nothing in the record says how this lot was stored."
-    },
-    {
-      "sentence": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
-      "words": "A smooth, deep cup with woody, date-like or medicinal notes",
-      "why": "The notice is meant to be a general statement about the style, but it is phrased as describing the cup in front of the buyer, not clearly labelled as a general style description; it reads as a taste claim for this lot. The record's own notes describe this lot as herbaceous/ginseng-like, so woody and date-like notes are not supported for this lot."
-    }
-  ]
+  "unsupported": []
 }

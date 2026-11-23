@@ -30,8 +30,16 @@ After ten years or more, a well-kept ripe pu’er grows smooth and deep, with wo
 
 ## Brewing ripe pu’er {#brewing}
 
-Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups. From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it.
+Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups.
+
+## Breaking a pressed tea {#brewing-pressed}
+
+From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole.
 
 ## What people often notice {#common-impressions}
 
-People often describe ripe pu’er as smooth and sweet, with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.
+A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.
+
+## What people often notice in aged ripe pu’er {#notice-aged}
+
+A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.

@@ -1,8 +1,8 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-23T11:45:46.069Z",
+  "status": "draft",
+  "composedAt": "2026-11-23T12:17:26.509Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "cb7efd7b-9da6-4dc8-be76-3c7e69bdb02e",
     "name": "Y562 (Jixing) Black Box",
@@ -20,24 +20,20 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "Y562 is a named export recipe from the Yunnan Tea Import and Export Company, sold under its Jixing brand, a word meaning fortune. In the old coding the Y marks the company and the number stands for leaf grade and factory. Grade 5 to 6 points to fine, tender leaf, here from Menghai in southern Yunnan."
-      },
-      {
-        "layer": "type",
-        "text": "The leaf was made into [ripe pu’er](shou:definition) by [wet piling](shou:wet-piling), a method Yunnan’s state factories brought into production in 1973, which puts this lot in the style’s second decade. Rather than being pressed, it was kept loose in a 100 gram box, and it has sat in Hong Kong dry storage since around 1993."
+        "text": "Y562 is a named export recipe from the Yunnan Tea Import and Export Company, sold under Jixing, its export brand, whose name means fortune. In the old coding the Y marks the company, and the number stands for leaf grade and factory. Grade five to six points to fine, tender leaf, unlike the coarse ripe bricks made in the same years."
       },
       {
         "layer": "age",
-        "text": "At thirty-three years it falls among what the trade counts as [aged ripe pu’er](shou:age-aged), where clean, dry keeping shapes the leaf as much as the years do."
+        "text": "This [ripe pu’er](shou:definition) dates from 1993, twenty years after Yunnan’s state factories brought [wet piling](shou:wet-piling) into production. It was kept loose in a box rather than pressed into a cake, and it has spent the years since around 1993 in dry storage in Hong Kong. At thirty-three years it sits well within what the trade counts as [aged ripe pu’er](shou:age-aged), and that dry storage has shaped it as much as the years have."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "The leaf is loose, so there is nothing to break off. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe tea forgives a heavy hand, and gives eight or more good cups."
+      "text": "Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "notice": {
-      "styleName": "aged ripe pu’er",
       "layer": "notice",
+      "styleName": "aged ripe pu’er",
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
@@ -58,19 +54,16 @@
     {
       "claimId": "shou:age-aged",
       "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": null
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "The leaf was made into [ripe pu’er](shou:definition) by [wet piling](shou:wet-piling), a method Yunnan’s state factories brought into production in 1973, which puts this lot in the style’s second decade.",
-      "words": "which puts this lot in the style’s second decade",
-      "why": "Inference not made by any claim or the record. The lot is dated 1993 and the claim gives 1973, but 'second decade' is a characterization of the lot's place in the style's history that neither the record nor a claim states, and it is a questionable reading of 1993 as well."
-    },
-    {
-      "sentence": "Y562 is a named export recipe from the Yunnan Tea Import and Export Company, sold under its Jixing brand, a word meaning fortune. In the old coding the Y marks the company and the number stands for leaf grade and factory. Grade 5 to 6 points to fine, tender leaf, here from Menghai in southern Yunnan.",
-      "words": "Grade 5 to 6 points to fine, tender leaf",
-      "why": "This comes from the record notes, which the owner's record counts as fact, so it is supported. It is flagged only if you consider the 'grade 5 to 6' reading to be unsourced by a claim; no claim backs it, but the record does."
-    }
-  ]
+  "unsupported": []
 }

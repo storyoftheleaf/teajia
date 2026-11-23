@@ -1,8 +1,8 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-23T11:43:34.070Z",
+  "status": "draft",
+  "composedAt": "2026-11-23T12:15:20.389Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "bb692acb-b4a0-4114-afa8-c9644140eb5f",
     "name": "Aged Northern Vietnam Ripe Pu-erh Tea",
@@ -24,17 +24,21 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "This tea comes from the highlands of northern Vietnam, on the border with Yunnan, and was made into [ripe pu’er](shou:definition) the classic way. The leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling) so that heat, moisture and microbes could work through it. It was then left loose rather than pressed, and aged in that form."
+        "text": "A loose [ripe pu’er](shou:definition) from the highlands of northern Vietnam, where they meet the Yunnan border. It belongs to a trade that has long run across that border. For generations, houses in Hong Kong and Guangzhou bought leaf from the Vietnamese side and made it into pu’er style tea, and this lot comes from that lineage."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was [heaped warm and damp](shou:wet-piling) so heat, moisture and microbes could work through it, then left loose to age rather than pressed. The method is the usual one for the style. What sets this tea apart is where the leaf grew."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Use boiling water, about 7 grams of the loose leaf to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe tea forgives a heavy hand and gives eight or more good cups."
+      "text": "Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "notice": {
-      "styleName": "ripe pu’er",
       "layer": "notice",
-      "text": "A smooth, sweet cup with earthy or woody notes. Younger ripe teas can carry a faint smell of the pile, which fades with airing or in the first steeps."
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
       "A Wisdom entry for its place, or a more specific origin",
@@ -51,14 +55,16 @@
     {
       "claimId": "shou:wet-piling",
       "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": null
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "The leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling) so that heat, moisture and microbes could work through it. It was then left loose rather than pressed, and aged in that form.",
-      "words": "and aged in that form",
-      "why": "The notes say \"then aged loose\", but no year is recorded and the record gives no age. This is supported by the notes, so it is a weak flag. The more serious issue is that it presents the aging as fact for this lot beyond the owner's notes; if the notes are accepted as fact, this should not be flagged."
-    }
-  ]
+  "unsupported": []
 }

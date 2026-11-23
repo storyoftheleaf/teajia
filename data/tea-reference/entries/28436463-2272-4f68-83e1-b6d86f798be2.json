@@ -1,8 +1,8 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-23T11:44:06.238Z",
+  "status": "draft",
+  "composedAt": "2026-11-23T12:15:50.215Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "28436463-2272-4f68-83e1-b6d86f798be2",
     "name": "Ripe Puerh Brick",
@@ -24,20 +24,20 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "This [ripe pu’er](shou:definition) brick was pressed in Yunnan in 1990 and has been kept in Guangzhou’s tea trade in the decades since. It dates from the early years of the style: Yunnan’s state factories only brought [wet piling](shou:wet-piling) into production in 1973, after a joint team studied faster piling in Guangdong."
+        "text": "A brick of [ripe pu’er](shou:definition), made from Yunnan leaf in 1990 and kept in Guangzhou’s tea trade through the decades since. Yunnan’s state factories only brought [wet piling](shou:wet-piling) into production in 1973, so this brick comes from the second decade of the style."
       },
       {
         "layer": "age",
-        "text": "Thirty-six years on, it belongs to [aged ripe pu’er](shou:age-aged), where the place a tea was kept shapes it as much as the years it has spent there."
+        "text": "Thirty-six years on, it is far past the ten years after which the trade calls a ripe pu’er [aged](shou:age-aged). How it was kept has shaped it as much as the years have."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Work a piece loose from the edge of the brick with a pick instead of breaking it off. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that grow longer as the leaf opens. Ripe tea forgives a heavy hand, and an old brick like this gives eight or more good cups."
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole. Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "notice": {
-      "styleName": "aged ripe pu’er",
       "layer": "notice",
+      "styleName": "aged ripe pu’er",
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
@@ -58,19 +58,20 @@
     {
       "claimId": "shou:age-aged",
       "rev": null
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": null
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "This [ripe pu’er](shou:definition) brick was pressed in Yunnan in 1990 and has been kept in Guangzhou’s tea trade in the decades since.",
-      "words": "was pressed in Yunnan in 1990",
-      "why": "The record gives origin Yunnan and year 1990, but the year is not stated as the pressing year, and the place of pressing is not given. Origin does not say where it was pressed."
-    },
-    {
-      "sentence": "Thirty-six years on, it belongs to [aged ripe pu’er](shou:age-aged), where the place a tea was kept shapes it as much as the years it has spent there.",
-      "words": "where the place a tea was kept shapes it as much as the years it has spent there",
-      "why": "The claim says storage matters as much as age, which supports this. However, nothing flagged here beyond that; this is supported, so it is not an issue."
-    }
-  ]
+  "unsupported": []
 }

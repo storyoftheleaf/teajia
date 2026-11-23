@@ -21,7 +21,8 @@ describe('composeInputs', () => {
     expect(ids(inputs.layers.place)).toContain('menghai-county:mengsong-naka');
     expect(ids(inputs.layers.type)).toEqual(['shou:definition', 'shou:wet-piling']);
     expect(inputs.layers.age).toBeUndefined();
-    expect(inputs.layers.notice).toBeUndefined();
+    expect(inputs.fixed.notice).toBeUndefined();
+    expect(inputs.fixed.brewing?.text).toMatch(/^From a cake, brick or tuo/);
     expect(inputs.missing[0]).toMatch(/year/);
   });
 
@@ -29,7 +30,11 @@ describe('composeInputs', () => {
     const inputs = composeInputs(brick, claims, { thisYear: 2026 });
     expect(inputs.record.ageYears).toBe(36);
     expect(ids(inputs.layers.age)).toEqual(['shou:age-aged']);
-    expect(ids(inputs.layers.brewing)).toEqual(['shou:brewing']);
+    expect(inputs.fixed.claimIds).toEqual(['shou:brewing-pressed', 'shou:brewing', 'shou:notice-aged']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged ripe pu’er');
+    const loose = composeInputs({ ...brick, form: 'Loose Leaf', year: 2022 }, claims, { thisYear: 2026 });
+    expect(loose.fixed.brewing?.text).not.toMatch(/pick/);
+    expect(loose.fixed.notice?.styleName).toBe('ripe pu’er');
     expect(inputs.layers.place).toBeUndefined();
     expect(inputs.record.notes).toEqual([brick.terroir]);
   });

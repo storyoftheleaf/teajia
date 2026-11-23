@@ -1,8 +1,8 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-23T11:46:46.362Z",
+  "status": "draft",
+  "composedAt": "2026-11-23T12:18:30.433Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "e342e878-b5c8-4433-8a22-9af8265376c6",
     "name": "Wuliangshan Gushu Shou",
@@ -20,21 +20,21 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "A cake of [ripe pu’er](shou:definition) from Wuliang Mountain, in Jingdong County, Pu’er City, Yunnan, pressed in 2019. Before pressing, the leaf was [heaped warm and damp](shou:wet-piling) for a month or two, a method Yunnan’s state factories took into production in 1973."
+        "text": "A cake of [ripe pu’er](shou:definition) from Wuliang Mountain, in Jingdong County, Pu'er City, pressed in 2019. Before pressing, the leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling), the method Yunnan's state factories brought into production in 1973, and then dried."
       },
       {
         "layer": "age",
-        "text": "At seven years the cake has reached the stretch, roughly five to ten years on, in which the [smell of the pile](shou:age-settling) has usually gone."
+        "text": "At seven years it has entered the stretch between five and ten, when the [mark of the pile](shou:age-settling) has usually worn off and the tea has had time to settle."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Ease a piece off the cake along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe tea like this gives eight or more good cups."
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole. Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "notice": {
-      "styleName": "ripe pu’er",
       "layer": "notice",
-      "text": "A smooth, sweet cup with earthy or woody notes, which turns cleaner and rounder once the pile note has faded after five years or so."
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
       "A Wisdom entry for its place, or a more specific origin",
@@ -54,19 +54,20 @@
     {
       "claimId": "shou:age-settling",
       "rev": null
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": null
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Before pressing, the leaf was [heaped warm and damp](shou:wet-piling) for a month or two, a method Yunnan’s state factories took into production in 1973.",
-      "words": "for a month or two",
-      "why": "The claim gives about one to two months as the general process length for wet piling. The sentence states it as what was done to this lot's leaf, a lot-specific process detail that the record does not support."
-    },
-    {
-      "sentence": "Ripe tea like this gives eight or more good cups.",
-      "words": "gives eight or more good cups",
-      "why": "The brewing claim says ripe pu’er gives eight or more good cups in general. The sentence presents it as an expected result for this lot."
-    }
-  ]
+  "unsupported": []
 }

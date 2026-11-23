@@ -1,8 +1,8 @@
 {
   "status": "draft",
-  "composedAt": "2026-11-23T11:50:18.412Z",
+  "composedAt": "2026-11-23T12:19:57.087Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "dddd11d2-7357-4d91-86e8-52a99bb47c51",
     "name": "Naka Gushu",
@@ -26,16 +26,16 @@
     "paragraphs": [
       {
         "layer": "place",
-        "text": "Naka is a Lahu village in the north of [Mengsong](menghai-county:mengsong-naka), near Huazhu Liangzi, the highest peak in Xishuangbanna. Mengsong itself is a township on the east side of Menghai County, facing Nannuo across the Liusha River."
+        "text": "[Mengsong](menghai-county:mengsong-naka) is a township on the eastern side of Menghai County, with Nannuo facing it across the Liusha River. In its north, near Huazhu Liangzi, the highest peak in Xishuangbanna, lies the Lahu village of Naka, where this leaf comes from."
       },
       {
         "layer": "type",
-        "text": "The leaf for this cake was made into [ripe pu’er](shou:definition). It was wetted and heaped in a [warm pile](shou:wet-piling), where heat, moisture and microbes work on it, then dried and pressed into a cake. Yunnan’s state factories brought the method into production in 1973. It makes a tea that is ready to drink soon after it is made, without the years of aging a raw pu’er usually gets."
+        "text": "The leaf was made into [ripe pu’er](shou:definition). It was wetted and heaped in a [warm pile](shou:wet-piling) for a month or two, then pressed into a cake. Yunnan has made tea this way since 1973, and the pile is why the cake is ready to drink now instead of after years of keeping."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Ease a piece off the cake along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe pu’er forgives a heavy hand and gives eight or more good cups."
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole. Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "missing": [
       "The year it was made: unlocks the age paragraph",
@@ -54,6 +54,14 @@
     },
     {
       "claimId": "shou:wet-piling",
+      "rev": null
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
       "rev": null
     }
   ],

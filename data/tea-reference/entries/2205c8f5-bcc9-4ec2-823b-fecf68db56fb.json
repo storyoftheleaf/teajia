@@ -1,8 +1,8 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-23T11:47:49.356Z",
+  "status": "draft",
+  "composedAt": "2026-11-23T12:19:27.392Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "2205c8f5-bcc9-4ec2-823b-fecf68db56fb",
     "name": "Pasha Village",
@@ -26,21 +26,21 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "A cake of [ripe pu’er](shou:definition) from Menghai in Yunnan, sold under the name Pasha and pressed in 2015. Before pressing, the leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling), the method Yunnan’s state factories took into production in 1973."
+        "text": "A cake of [ripe pu’er](shou:definition) from Menghai in Yunnan, pressed in 2015 and carrying the name Pasha, 帕沙寨熟茶. Before pressing, the leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling), a method Yunnan’s state factories brought into production in 1973."
       },
       {
         "layer": "age",
-        "text": "At eleven years the cake has crossed into what the trade counts as [aged ripe pu’er](shou:age-aged). From here, how it is stored shapes it as much as the years do."
+        "text": "At eleven years it has crossed into what the trade counts as [aged ripe pu’er](shou:age-aged). From here, how a cake is kept shapes it as much as the years do."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Ease a piece off the cake along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. It gives eight or more good cups."
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole. Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "notice": {
-      "styleName": "aged ripe pu’er",
       "layer": "notice",
-      "text": "A deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
       "A Wisdom entry for its place, or a more specific origin",
@@ -60,19 +60,20 @@
     {
       "claimId": "shou:age-aged",
       "rev": null
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": null
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Before pressing, the leaf was heaped warm and damp in a [fermenting pile](shou:wet-piling), the method Yunnan’s state factories took into production in 1973.",
-      "words": "the method Yunnan’s state factories took into production in 1973",
-      "why": "The wet-piling claim supports the 1973 date as general history of the method, but the sentence presents it as part of this lot's story. The record says only that the method was developed in the early 1970s and does not say how this cake was made. This is a type-level process claim, so it is marginal. It is flagged only because the 1973 date is a specific historical fact attached to this lot's description."
-    },
-    {
-      "sentence": "A deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
-      "words": "A deep cup with woody, date-like or medicinal notes",
-      "why": "The claim attaches these notes to a well-kept ripe pu’er after ten years. The notice states them as the cup of this style without that condition. Storage of this lot is unknown, so the sentence reads as a taste claim for this lot."
-    }
-  ]
+  "unsupported": []
 }

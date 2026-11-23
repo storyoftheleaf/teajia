@@ -627,6 +627,21 @@
       "withdrawn": null
     },
     {
+      "claim_id": "shou:brewing-pressed",
+      "axis": "type",
+      "basis": "trade_knowledge",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
       "claim_id": "shou:common-impressions",
       "basis": "trade_knowledge",
       "axis": "sensory_observation",
@@ -655,6 +670,27 @@
           "original": "熟普洱",
           "pinyin": "shú pǔ’ěr",
           "gloss": "ripe pu’er"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "shou:notice-aged",
+      "axis": "sensory_observation",
+      "basis": "trade_knowledge",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "陈香",
+          "pinyin": "chén xiāng",
+          "gloss": "aged aroma"
         }
       ],
       "status": "draft",

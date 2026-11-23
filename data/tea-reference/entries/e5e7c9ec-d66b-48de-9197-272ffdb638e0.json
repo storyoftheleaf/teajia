@@ -1,8 +1,8 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-23T11:48:48.120Z",
+  "status": "draft",
+  "composedAt": "2026-11-23T12:20:28.078Z",
   "writer": "claude opus",
-  "checker": "claude sonnet",
+  "checker": "claude opus",
   "record": {
     "id": "e5e7c9ec-d66b-48de-9197-272ffdb638e0",
     "name": "Xiniu Tang Gushu",
@@ -25,18 +25,22 @@
     "productId": "e5e7c9ec-d66b-48de-9197-272ffdb638e0",
     "paragraphs": [
       {
+        "layer": "place",
+        "text": "This cake was made from leaf grown in Yiwu, in Yunnan."
+      },
+      {
         "layer": "type",
-        "text": "A cake of [ripe pu’er](shou:definition) from Yiwu, in Yunnan. The leaf was sun dried, then wetted and heaped in a [fermenting pile](shou:wet-piling) that was turned as it warmed and held below about 65°C for a month or two. After that it was dried and pressed, so the tea is ready to drink now rather than after years of keeping."
+        "text": "The leaf was made into [ripe pu’er](shou:definition). After sun drying it was wetted and heaped in a [warm pile](shou:wet-piling), turned as the heat built over a month or two, then dried and pressed into a cake. Yunnan’s state factories brought that method into production in 1973. A ripe cake like this one is ready to drink now, without the years of keeping that raw pu’er usually asks for."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Ease a piece off the cake along its edge with a pick rather than snapping it. Use boiling water, about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens. Ripe tea forgives a heavy hand and gives eight or more good cups."
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it, so the leaves stay whole. Ripe pu’er takes boiling water and forgives a heavy hand. A common start is about 7 grams to 100 ml, one quick rinse, then short steeps that lengthen as the leaf opens; it gives eight or more good cups."
     },
     "notice": {
-      "styleName": "ripe pu’er",
       "layer": "notice",
-      "text": "A smooth, sweet cup with earthy or woody notes, and in a young ripe tea a faint smell of the pile that fades with airing or in the first steeps."
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
       "A Wisdom entry for its place, or a more specific origin",
@@ -53,14 +57,20 @@
     {
       "claimId": "shou:wet-piling",
       "rev": null
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": null
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": null
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "After that it was dried and pressed, so the tea is ready to drink now rather than after years of keeping.",
-      "words": "After that it was dried and pressed, so the tea is ready to drink now rather than after years of keeping.",
-      "why": "The claims say ripe pu’er is ready to drink soon after it is made. They do not say this cake was dried then pressed in that order, and 'ready to drink now' is asserted for this lot without a made year to support it."
-    }
-  ]
+  "unsupported": []
 }
