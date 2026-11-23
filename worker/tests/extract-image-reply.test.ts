@@ -24,10 +24,12 @@ describe('reading the label scanner reply', () => {
   });
 
   it('the scanner turns thinking off so it cannot spend the reply on it', () => {
-    const src = readFileSync(join(process.cwd(), 'worker/src/index.ts'), 'utf8');
-    const start = src.indexOf('const handleExtractFromImage');
-    const body = src.slice(start, src.indexOf('// ── Waitlist Cascade Helper', start));
-    expect(body).toMatch(/thinking:\s*\{\s*type:\s*'disabled'\s*\}/);
+    const src = readFileSync(join(process.cwd(), 'worker/src/labelScan.ts'), 'utf8');
+    expect(src).toMatch(/thinking:\s*\{\s*type:\s*'disabled'\s*\}/);
+    const index = readFileSync(join(process.cwd(), 'worker/src/index.ts'), 'utf8');
+    const start = index.indexOf('const handleExtractFromImage');
+    const body = index.slice(start, index.indexOf('// ── Waitlist Cascade Helper', start));
     expect(body).toMatch(/parseExtractReply\(/);
+    expect(body).toMatch(/scanLabel\(/);
   });
 });

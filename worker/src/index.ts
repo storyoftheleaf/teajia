@@ -126,7 +126,8 @@ import {
 import { candidateToApi, impressionToApi, journalContainsExcerpt, parseCandidateInput, parseExcerptOffer } from './tastingNoteCuration';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { handoffToRepair } from './problemAlerts';
-import { isRetryableProviderStatus, parseExtractReply } from './extractImageReply';
+import { parseExtractReply } from './extractImageReply';
+import { labelScanFailureMessage, labelScanProviders, labelScanSignature, scanLabel } from './labelScan';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, clearQuietIncidents, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
@@ -225,6 +226,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   CURATE_IMPORT_ANALYSIS_MODEL?: string;
   CURATE_IMPORT_GROQ_VISION_MODEL?: string;
   GEMINI_API_KEY: string;
+  // Optional: the OpenAI model the package scanner asks (default in labelScan.ts).
+  LABEL_SCAN_OPENAI_MODEL?: string;
   GROQ_API_KEY: string;
   // Optional — set SENDER_EMAIL + RESEND_API_KEY to enable transactional emails via Resend
   SENDER_EMAIL?: string;
@@ -12070,41 +12073,8 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
   return json({ url: publicUrl, key: sourceKey });
 };
 
-// ── Extract Product Info from Image (Gemini Flash) ──
-// Vision model used for tea-label extraction when Claude is the active provider.
-// Kept as a named constant so a future model bump is a one-line change.
-const EXTRACT_VISION_MODEL = 'claude-sonnet-5';
-
-// Shared extraction instructions: the same contract both providers must honor.
-// Field names here are load-bearing: PhotoCapture.tsx (parseExtractResult) and
-// intakeMapping.ts (extractedToStaged) key off these exact names.
-const EXTRACT_IMAGE_PROMPT = `You are a tea product data extractor. Analyze this image of a tea product (package, label, menu listing, or price tag) and extract as much information as possible.
-
-Return ONLY a valid JSON object with these fields (omit any you can't determine):
-{
-  "givenName": "The tea's name in English (translate if needed)",
-  "chineseName": "Chinese characters if visible",
-  "productName": "Cultivar or botanical name if identifiable (e.g. Da Hong Pao, Tie Guan Yin)",
-  "type": "One of: Green, Yellow, White, Oolong, Red, Dark, Sheng, Shou, Herbal, Teaware, Misc",
-  "form": "One of: Loose, Cake, Tuo, Brick, Rolled, Ball, Powder, Bag, Other",
-  "year": 2024,
-  "originCountry": "Country of origin",
-  "originRegion": "Specific region if visible",
-  "vendor": "Brand or vendor name if visible",
-  "costAmount": 0,
-  "costCurrency": "One of: USD, NT, Yuan, IDR, JPY, MYR, HKD, UNK",
-  "quantityPurchased": 0,
-  "description": "Brief description based on what you see",
-  "notes": "Any other useful info from the image (brewing instructions, tasting notes, etc.)"
-}
-
-Important:
-- Translate all Chinese/Japanese/other text to English for givenName and description
-- Keep chineseName in original characters
-- For costAmount, extract the numeric price if visible
-- For quantityPurchased, extract grams/weight if visible (always in grams)
-- If you see a price like "NT$300" set costAmount=300 and costCurrency="NT"
-- Return ONLY the JSON object, no markdown formatting or explanation`;
+// ── Package scanner (Curate Scan button) ──
+// The prompt, the providers and their order live in labelScan.ts.
 
 // Base64-encode image bytes WITHOUT spreading the whole array as call
 // arguments. `String.fromCharCode(...bytes)` overflows the engine's argument
@@ -12168,16 +12138,35 @@ async function validateUpload(file: File, kind: 'image' | 'audio', maxBytes: num
 const handleExtractFromImage: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
+  // Every scan spends the shop's tokens, so it is the owner's (Adrian,
+  // 2026-11-23: "This is not available for all members"). Platform tier acts
+  // as owner in any account.
+  if (!ctx.isPlatform && ctx.role !== 'owner') {
+    return restError(403, 'Scanning a package is for the shop owner', 'owner_required');
+  }
   const { accountId, userId } = ctx;
   const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${accountId}:${userId}:extract-image`);
   if (limited) return limited;
 
-  // Prefer Claude (the production ANTHROPIC_API_KEY is live); fall back to
-  // Gemini only if Claude isn't configured. Both keys missing is a hard 503;
-  // there is no vision provider to call.
-  const useClaude = !!env.ANTHROPIC_API_KEY;
-  const useGemini = !useClaude && !!env.GEMINI_API_KEY;
-  if (!useClaude && !useGemini) {
+  // The shop's own OpenAI key first, then the worker's Claude and Gemini keys.
+  // A key that cannot be opened is skipped, not fatal.
+  let openaiKey: string | null = null;
+  try {
+    const row = await env.DB.prepare('SELECT openai_api_key_encrypted FROM accounts WHERE id = ?')
+      .bind(accountId).first() as { openai_api_key_encrypted: string | null } | null;
+    if (row?.openai_api_key_encrypted && env.KEY_ENCRYPTION_SECRET) {
+      openaiKey = await decryptSecret(row.openai_api_key_encrypted, env);
+    }
+  } catch (err) {
+    console.error(`extract-from-image could not open the shop's OpenAI key: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  const providers = labelScanProviders({
+    openaiKey,
+    openaiModel: env.LABEL_SCAN_OPENAI_MODEL,
+    anthropicKey: env.ANTHROPIC_API_KEY,
+    geminiKey: env.GEMINI_API_KEY,
+  });
+  if (providers.length === 0) {
     return json({ error: 'no_ai_provider' }, 503);
   }
 
@@ -12194,7 +12183,7 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
   if (fileError) return fileError;
 
-  // Convert image to base64 for the vision model (chunked — see bytesToBase64).
+  // Convert image to base64 for the vision model (chunked, see bytesToBase64).
   const arrayBuffer = await file.arrayBuffer();
   const base64 = bytesToBase64(new Uint8Array(arrayBuffer));
   const mimeType = file.type || 'image/jpeg';
@@ -12212,97 +12201,37 @@ const handleExtractFromImage: Handler = async (request, env) => {
     imageUrl = `https://media.teajia.co/${key}`;
   }
 
-  let rawText = '';
-
-  if (useClaude) {
-    // Claude Messages API via plain fetch, no SDK (keep the worker bundle lean).
-    // Thinking is off: this model thinks by default, and thinking is paid out
-    // of max_tokens, so a long think could leave no room for the JSON at all.
-    // Reading a label needs no deliberation. One retry covers a busy provider.
-    const callClaude = () => fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: EXTRACT_VISION_MODEL,
-        max_tokens: 4096,
-        thinking: { type: 'disabled' },
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mimeType, data: base64 },
-            },
-            { type: 'text', text: EXTRACT_IMAGE_PROMPT },
-          ],
-        }],
-      }),
-    });
-    let claudeRes = await callClaude();
-    if (!claudeRes.ok && isRetryableProviderStatus(claudeRes.status)) {
-      console.warn(`extract-from-image Claude answered ${claudeRes.status}; retrying once`);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      claudeRes = await callClaude();
-    }
-
-    if (!claudeRes.ok) {
-      const errText = await claudeRes.text();
-      // Log the upstream detail; do not echo it back to the client.
-      console.error(`extract-from-image Claude upstream error: ${claudeRes.status}: ${errText}`);
-      return json({ error: 'provider_error' }, 502);
-    }
-
-    const claudeData = await claudeRes.json() as any;
-    rawText = claudeData?.content?.find((b: any) => b.type === 'text')?.text || '';
-  } else {
-    // Call Gemini Flash to extract product info from the image
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-      {
+  const outcome = await scanLabel(providers, { base64, mimeType });
+  // Each provider that failed is filed on the fixes page with its reason, and
+  // the one that answered is cleared, so whether the scanner works (and with
+  // which key) can be read without asking the owner to try it.
+  try {
+    for (const failure of outcome.failures) {
+      await recordHealthProblem(env.DB, {
+        signature: labelScanSignature(failure.provider),
+        category: 'server',
+        severity: outcome.ok ? 'low' : 'high',
+        route: '/api/extract-from-image',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                inlineData: {
-                  mimeType,
-                  data: base64,
-                },
-              },
-              { text: EXTRACT_IMAGE_PROMPT },
-            ],
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 1024,
-          },
-        }),
-      }
-    );
-
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      // Log the upstream detail; do not echo it back to the client.
-      console.error(`extract-from-image Gemini upstream error: ${geminiRes.status}: ${errText}`);
-      return json({ error: 'provider_error' }, 502);
+        errorCode: 'label_scan_provider_failed',
+        httpStatus: failure.status,
+        message: labelScanFailureMessage(failure),
+      });
     }
-
-    const geminiData = await geminiRes.json() as any;
-    rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (outcome.ok) await clearHealthProblem(env.DB, labelScanSignature(outcome.provider), `label scan answered by ${outcome.provider}`);
+  } catch (err) {
+    console.error(`extract-from-image could not file the scan result: ${err instanceof Error ? err.message : String(err)}`);
   }
+  if (!outcome.ok) return json({ error: outcome.error }, outcome.error === 'no_ai_provider' ? 503 : 502);
 
   // Parse the JSON from the model's response (strip markdown fences if present)
-  const parsedReply = parseExtractReply(rawText);
+  const parsedReply = parseExtractReply(outcome.text);
   if (!parsedReply) {
-    console.error(`extract-from-image reply held no JSON object (${rawText.length} chars)`);
+    console.error(`extract-from-image ${outcome.provider} reply held no JSON object (${outcome.text.length} chars)`);
     return json({ error: 'extract_failed' }, 502);
   }
   const extracted: Record<string, any> = parsedReply;
+  extracted.scannedBy = outcome.provider;
 
   // Attach the uploaded image URL
   if (imageUrl) {

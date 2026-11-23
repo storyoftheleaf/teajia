@@ -276,6 +276,15 @@ describe('worker authorization boundaries', () => {
     expect(await denied.json()).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: bundle } });
   });
 
+  // The package scanner spends the shop's tokens (Adrian, 2026-11-23): staff
+  // who may edit the catalogue still may not scan.
+  it('keeps the package scanner to the shop owner, even for catalog staff', async () => {
+    const request = await authedRequest('/api/extract-from-image', { method: 'POST', body: '{}' });
+    const denied = await worker.fetch(request, makeEnv({ role: 'staff', bundles: ['catalog'] }));
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({ code: 'owner_required' });
+  });
+
   // Teajia family (todo/plans/teajia-family.md): voice notes are open to any
   // signed-in member. Without the catalog bundle the caller is not refused but
   // taken down the member path, with member limits under its own limiter key.
