@@ -10,6 +10,9 @@ const STATUSES = new Set(['draft', 'approved', 'withdrawn']);
 const ORIGINS = new Set(['approved', 'legacy_import']);
 const APPLIES_KEYS = new Set(['type', 'grade', 'origin_includes', 'name_includes', 'form']);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const BASES = new Set(['sourced', 'trade_knowledge']);
+
+export const basisOf = entry => entry.basis ?? 'sourced';
 
 export const claimIdFor = (pageId, sectionKey) => `${pageId}:${sectionKey}`;
 
@@ -71,14 +74,19 @@ export function validateLedger(ledger, sourcePages, provenance) {
     if (entry.listing_eligible && NEVER_LISTING.has(entry.axis)) fail(claimId, `axis ${entry.axis} is never listing-eligible`);
     validateAppliesWhen(claimId, entry.applies_when);
 
-    if (entry.axis === 'sensory_observation') {
+    if (!BASES.has(basisOf(entry))) fail(claimId, `unsupported basis ${entry.basis}`);
+    const located = sections.get(claimId);
+    if (located && basisOf(entry) === 'sourced' && located.section.sourceIds.length === 0) {
+      fail(claimId, 'a sourced claim needs at least one [cite:] marker in its section (or basis "trade_knowledge")');
+    }
+    if (entry.attribution != null && entry.axis !== 'sensory_observation') {
+      fail(claimId, 'attribution is only for sensory_observation claims');
+    }
+    if (entry.attribution != null) {
       const attribution = entry.attribution;
-      if (!attribution) fail(claimId, 'sensory_observation requires attribution');
       if (!sourceIds.has(attribution.source_id)) fail(claimId, `attribution source ${attribution.source_id} is missing`);
       if (!SOURCE_ROLES.has(attribution.source_role)) fail(claimId, `unsupported attribution source_role ${attribution.source_role}`);
       assertPublicText(claimId, 'attribution.sample', attribution.sample);
-    } else if (entry.attribution != null) {
-      fail(claimId, 'attribution is only for sensory_observation claims');
     }
 
     if (!Array.isArray(entry.terms)) fail(claimId, 'terms must be a list');
@@ -100,9 +108,8 @@ export function validateLedger(ledger, sourcePages, provenance) {
       if (!Array.isArray(revision.evidence_ids)) fail(claimId, `rev ${revision.rev} evidence_ids must be a list`);
       if (revision.origin === 'legacy_import') {
         if (typeof revision.legacy_ref !== 'string' || !revision.legacy_ref) fail(claimId, `rev ${revision.rev} legacy_import needs legacy_ref`);
-        const located = sections.get(claimId);
         if (located && located.page.visibility !== 'draft') fail(claimId, 'legacy_import revisions are only allowed on draft pages');
-      } else if (revision.evidence_ids.length === 0) {
+      } else if (revision.evidence_ids.length === 0 && basisOf(entry) === 'sourced') {
         fail(claimId, `rev ${revision.rev} needs evidence_ids`);
       }
       for (const evidenceId of revision.evidence_ids) {
@@ -163,6 +170,7 @@ export function projectClaim(entry, page, section, { preview }) {
     sectionKey: entry.claim_id.split(':')[1],
     label: section?.label ?? '',
     axis: entry.axis,
+    basis: basisOf(entry),
     listingEligible: entry.listing_eligible,
     appliesWhen: entry.applies_when,
     ...(entry.attribution ? { attribution: {

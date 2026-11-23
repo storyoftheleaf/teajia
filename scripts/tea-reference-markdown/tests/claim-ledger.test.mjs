@@ -167,7 +167,8 @@ test('claim metadata rules are enforced', async () => {
     uses: [['alpha', 'overview']],
   };
   const cases = [
-    [{ axis: 'sensory_observation' }, /requires attribution/],
+    [{ axis: 'sensory_observation', listing_eligible: true }, /never listing-eligible/],
+    [{ attribution: { source_id: 'source-a', source_role: 'study', sample: 'Sample' } }, /only for sensory_observation/],
     [{ axis: 'maker_history', listing_eligible: true }, /never listing-eligible/],
     [{ applies_when: { name_includes: ['naka'] } }, /only valid together with origin_includes/],
     [{ terms: [{ original: 'gongting', pinyin: 'gōngtíng', gloss: 'palace' }] }, /must contain Han script/],
@@ -230,4 +231,31 @@ test('approve, withdraw and import-legacy produce valid revisions', async () => 
   entry = run('withdraw', { reason: 'Test withdrawal' });
   assert.equal(entry.status, 'withdrawn');
   assert.equal(entry.current_rev, 2);
+});
+
+test('trade knowledge is written in our own words with no citation or evidence', async () => {
+  const uncited = `---
+id: alpha
+slug: alpha
+kind: major_region
+label: alpha label
+parent: none
+visibility: public
+---
+
+## Overview {#overview}
+
+Ripe pu’er is fermented in a damp pile before drying.
+`;
+  const sourcedPaths = await fixture({ pages: { alpha: uncited }, uses: [['unrelated', 'section']], claims: [claim('alpha:overview', { revisions: [revision(1, 'Ripe pu’er is fermented in a damp pile before drying.')] })] });
+  await assert.rejects(buildWisdom(sourcedPaths), /sourced claim needs at least one \[cite:\] marker|does not list this claim/);
+  const knowledgePaths = await fixture({
+    pages: { alpha: uncited },
+    uses: [['unrelated', 'section']],
+    claims: [claim('alpha:overview', { basis: 'trade_knowledge', revisions: [revision(1, 'Ripe pu’er is fermented in a damp pile before drying.', { evidence_ids: [] })] })],
+  });
+  const built = await buildWisdom(knowledgePaths);
+  assert.equal(built.claims[0].basis, 'trade_knowledge');
+  assert.deepEqual(built.claims[0].sourceIds, []);
+  assert.equal(built.registry.pages[0].sections[0].text, 'Ripe pu’er is fermented in a damp pile before drying.');
 });

@@ -100,7 +100,6 @@ function cleanSectionText(lines, fileName, sectionKey) {
   if (!/[A-Za-z]{2}/.test(text) || !/[.!?][”’"']?$/.test(text)) {
     fail(fileName, `section ${sectionKey} must contain ordinary English prose`);
   }
-  if (sourceIds.length === 0) fail(fileName, `section ${sectionKey} needs at least one compact citation marker`);
   return { text, sourceIds: [...new Set(sourceIds)].sort(codePointCompare) };
 }
 
@@ -128,9 +127,9 @@ export function parsePageMarkdown(markdown, fileName = '<markdown>') {
     fail(fileName, 'reference_topic pages must remain non-public drafts');
   }
   if (HAN_SCRIPT.test(label)) fail(fileName, 'Han-script is not allowed in the public label');
-  if (!Array.isArray(sourceIds) || sourceIds.length === 0) fail(fileName, 'source_ids must contain at least one source');
-  if (sourceIds.some(sourceId => !SOURCE_ID_PATTERN.test(sourceId))) fail(fileName, 'source_ids contains an invalid source id');
-  if (new Set(sourceIds).size !== sourceIds.length) fail(fileName, 'source_ids contains a duplicate');
+  if (sourceIds !== undefined && !Array.isArray(sourceIds)) fail(fileName, 'source_ids must be a list');
+  if ((sourceIds ?? []).some(sourceId => !SOURCE_ID_PATTERN.test(sourceId))) fail(fileName, 'source_ids contains an invalid source id');
+  if (new Set(sourceIds ?? []).size !== (sourceIds ?? []).length) fail(fileName, 'source_ids contains a duplicate');
   if (parent !== 'none' && !ID_PATTERN.test(parent)) fail(fileName, `invalid parent ${parent}`);
 
   const bodyLines = match[2].trim().split('\n');
@@ -160,7 +159,7 @@ export function parsePageMarkdown(markdown, fileName = '<markdown>') {
   if (sections.length === 0) fail(fileName, 'at least one keyed section is required');
   if (new Set(sections.map(section => section.key)).size !== sections.length) fail(fileName, 'section keys must be unique');
   const citedSourceIds = [...new Set(sections.flatMap(section => section.sourceIds))].sort(codePointCompare);
-  const declaredSourceIds = [...sourceIds].sort(codePointCompare);
+  const declaredSourceIds = [...(sourceIds ?? [])].sort(codePointCompare);
   if (JSON.stringify(citedSourceIds) !== JSON.stringify(declaredSourceIds)) {
     fail(fileName, 'front matter source_ids must exactly match cited source IDs');
   }
@@ -333,6 +332,14 @@ export async function loadSourcePages({ pagesDirectory, translationsPath }) {
   return { sourcePages, document };
 }
 
+export function assertEverySectionCited(sourcePages) {
+  for (const page of sourcePages) {
+    for (const section of page.sections) {
+      if (section.sourceIds.length === 0) throw new Error(`${page.id}.md: section ${section.key} needs at least one compact citation marker`);
+    }
+  }
+}
+
 export function publicRegistryFrom(sourcePages, document) {
   const pages = sourcePages
     .filter(page => page.visibility === 'public')
@@ -350,6 +357,7 @@ export function publicRegistryFrom(sourcePages, document) {
 
 export async function buildRegistry(paths) {
   const { sourcePages, document } = await loadSourcePages(paths);
+  assertEverySectionCited(sourcePages);
   return publicRegistryFrom(sourcePages, document);
 }
 
