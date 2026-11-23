@@ -14,7 +14,7 @@ Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it i
 
 ## Wet piling {#wet-piling}
 
-Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The pile is turned as it warms, and the process runs for about one to two months before the leaf is dried. Yunnan’s state factories brought the method into production in 1973.
+Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The pile is turned as it warms and kept below about 65°C, and the process runs for about one to two months before the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.
 
 ## What people often notice {#common-impressions}
 

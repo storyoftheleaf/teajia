@@ -18,10 +18,10 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Dry Gong Ting is small, tight and bud-rich, often with golden down on the buds. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+    "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Dry Gong Ting is small, tight and bud-rich, often with golden down on the buds. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+    "pendingText": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -39,10 +39,10 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "People often notice a sweet, smooth and thick cup with a dark red liquor. A very young, very fine Gong Ting can show a slight bitter edge, and its small leaf gives up flavour quickly, so short pours suit it.",
+    "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "People often notice a sweet, smooth and thick cup with a dark red liquor. A very young, very fine Gong Ting can show a slight bitter edge, and its small leaf gives up flavour quickly, so short pours suit it.",
+    "pendingText": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -110,6 +110,27 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
     "sourceIds": [],
     "reviewState": "draft",
     "pendingText": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:name-on-the-label",
+    "pageId": "gong-ting",
+    "sectionKey": "name-on-the-label",
+    "label": "A grade, and a selling word",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -433,10 +454,10 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style.",
+    "text": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style.",
+    "pendingText": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.",
     "previousRevisions": [],
     "pageVisibility": "public"
   },
@@ -795,10 +816,10 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
     ],
     "rev": null,
     "scope": "",
-    "text": "Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The pile is turned as it warms, and the process runs for about one to two months before the leaf is dried. Yunnan’s state factories brought the method into production in 1973.",
+    "text": "Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The pile is turned as it warms and kept below about 65°C, and the process runs for about one to two months before the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The pile is turned as it warms, and the process runs for about one to two months before the leaf is dried. Yunnan’s state factories brought the method into production in 1973.",
+    "pendingText": "Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The pile is turned as it warms and kept below about 65°C, and the process runs for about one to two months before the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -1029,6 +1050,11 @@ export const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = [
       {
         "key": "grade-and-quality",
         "label": "Grade is not quality",
+        "sourceIds": []
+      },
+      {
+        "key": "name-on-the-label",
+        "label": "A grade, and a selling word",
         "sourceIds": []
       },
       {

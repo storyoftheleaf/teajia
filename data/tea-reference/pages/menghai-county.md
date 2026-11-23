@@ -28,4 +28,4 @@ Mengsong is a township in the east of Menghai County, facing Nannuo across the L
 
 ## Where ripe pu’er began {#ripe-origins}
 
-Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style.
+Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.

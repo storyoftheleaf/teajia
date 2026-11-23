@@ -88,6 +88,21 @@
       "withdrawn": null
     },
     {
+      "claim_id": "gong-ting:name-on-the-label",
+      "basis": "trade_knowledge",
+      "axis": "terminology",
+      "listing_eligible": false,
+      "applies_when": {
+        "grade": "gong-ting"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
       "claim_id": "greater-yiwu:common-character",
       "axis": "sensory_observation",
       "listing_eligible": false,
