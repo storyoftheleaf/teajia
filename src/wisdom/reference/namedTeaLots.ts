@@ -8,6 +8,23 @@ interface ReviewedNamedTeaLot {
 }
 
 const confirmedLots = new Map<string, ReviewedNamedTeaLot>([
+  ['9b5b05f1-a6d6-4651-9126-0fe42c5c5e86', {
+    namedTeaId: 'malaysian-returned-liu-bao',
+    replacementProse: { lore: 'The shop traces this tea from Guangzhou to storage in Malaysia and Singapore, then back to Guangzhou.' },
+    supersededProse: {
+      lore: "Liu bao takes its name from Liu Bao village in Cangwu County, meaning 'six stockades.' From the mid-1800s onward, Hakka migrants carried it down the Tea Ship Route through Guangzhou and Hong Kong to the tin mines and rubber plantations of British Malaya, where workers called it life-saving tea and Ipoh became known as its second hometown. This lot is a returned (huiliu) liu bao: received in Guangzhou in the 1990s, sent out to age for years in the humid warehouses of Malaysia and Singapore, then bought back into the Guangzhou trade.",
+      terroir: "Liu bao is a protected origin tea from Guangxi in southern China. Only leaves grown around Cangwu and Wuzhou, along the Xijiang river basin, may carry the name. The area is subtropical and warm year round, with red acidic soil and steady humidity that the tea plants have settled into over centuries.",
+      processingNotes: "Liu bao is a hei cha, or dark tea, from the same post-fermented family as shou puerh and Fu brick. After the leaves are killed and rolled, they go through wet piling (wo dui), where they are heaped damp so microbes ferment them, turning the leaf dark and the liquor smooth. It is traditionally packed loose into large bamboo baskets to keep aging. Aged liu bao drinks dark and mellow with a gentle sweetness, and the binlang or areca nut aroma is the mark that time in storage has done its work.",
+    },
+  }],
+  ['186380ba-6839-448f-baaf-2b84ef7e5556', {
+    namedTeaId: 'mahei-gushu-red',
+    supersededProse: {
+      lore: "Mahei is a small village a short distance north of Yiwu town, tucked inside one of the Qing dynasty's Six Famous Tea Mountains. The Dai name for the wider area means 'place where beautiful snakes live', and its leaf once traveled out as tribute to the emperor.",
+      terroir: "The country here sits between roughly 910 and 1700 meters along the border with Laos, with forest coverage reaching about 88%. Tea across the region grows as Yunnan assamica under a high canopy, in gardens once linked to the old caravan trails that carried leaf toward the capital. The area is known for aged forest stands.",
+      processingNotes: "Made from Yunnan assamica leaf, fully oxidized in the traditional hong cha (red tea) method. Kept as loose leaf.",
+    },
+  }],
   ['b11a8bad-89d9-4518-9406-25145d4c6e2c', {
     namedTeaId: 'san-he-liu-bao',
     replacementProse: { processingNotes: 'The shop records Guangzhou as a storage stop for this tea.' },

@@ -66,6 +66,61 @@
     ]
   },
   {
+    "id": "mahei-gushu-red:tea-name",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea."
+      }
+    ]
+  },
+  {
+    "id": "mahei:village-road-and-harvest",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day."
+      }
+    ]
+  },
+  {
+    "id": "malaysian-returned-liu-bao:returned",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China."
+      }
+    ]
+  },
+  {
+    "id": "malaysian-returned-liu-bao:river-trade",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets."
+      }
+    ]
+  },
+  {
+    "id": "malaysian-returned-liu-bao:tea-came-back",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market."
+      }
+    ]
+  },
+  {
     "id": "menghai-county:common-character",
     "public": true,
     "withdrawn": false,

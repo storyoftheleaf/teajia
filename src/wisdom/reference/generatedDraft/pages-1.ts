@@ -112,6 +112,86 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "mahei",
+    "slug": "mahei",
+    "kind": "tea_area",
+    "label": "Mahei",
+    "visibility": "public",
+    "nativeName": "麻黑",
+    "parentId": "greater-yiwu",
+    "sourceIds": [
+      "ma-zhefeng-mahei-road",
+      "mengla-mahei-spring"
+    ],
+    "sections": [
+      {
+        "key": "village-road-and-harvest",
+        "label": "The road through Mahei",
+        "sourceIds": [
+          "ma-zhefeng-mahei-road",
+          "mengla-mahei-spring"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mahei-gushu-red",
+    "slug": "mahei-gushu-red",
+    "kind": "named_tea",
+    "label": "Mahei Gushu Red",
+    "visibility": "public",
+    "nativeName": "麻黑古树红茶",
+    "sourceIds": [
+      "teajia-mahei-red"
+    ],
+    "sections": [
+      {
+        "key": "tea-name",
+        "label": "Reading the tea’s name",
+        "sourceIds": [
+          "teajia-mahei-red"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "malaysian-returned-liu-bao",
+    "slug": "malaysian-returned-liu-bao",
+    "kind": "named_tea",
+    "label": "Malaysian Returned Liu Bao",
+    "visibility": "public",
+    "nativeName": "马来回流六堡茶",
+    "sourceIds": [
+      "cns-malaysia-liubao-trade",
+      "guangxi-archives-liubao",
+      "teajia-malaysian-returned"
+    ],
+    "sections": [
+      {
+        "key": "returned",
+        "label": "Why the tea is called “returned”",
+        "sourceIds": [
+          "cns-malaysia-liubao-trade",
+          "teajia-malaysian-returned"
+        ]
+      },
+      {
+        "key": "river-trade",
+        "label": "The river route to Malaya",
+        "sourceIds": [
+          "guangxi-archives-liubao"
+        ]
+      },
+      {
+        "key": "tea-came-back",
+        "label": "How older tea found its way back",
+        "sourceIds": [
+          "cns-malaysia-liubao-trade"
+        ]
+      }
+    ]
+  },
+  {
     "id": "menghai-county",
     "slug": "menghai-county",
     "kind": "tea_area",

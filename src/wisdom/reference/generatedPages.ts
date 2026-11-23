@@ -79,6 +79,88 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "mahei",
+      "slug": "mahei",
+      "kind": "tea_area",
+      "label": "Mahei",
+      "nativeName": "麻黑",
+      "parentId": "greater-yiwu",
+      "sourceIds": [
+        "ma-zhefeng-mahei-road",
+        "mengla-mahei-spring"
+      ],
+      "sections": [
+        {
+          "key": "village-road-and-harvest",
+          "label": "The road through Mahei",
+          "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
+          "sourceIds": [
+            "ma-zhefeng-mahei-road",
+            "mengla-mahei-spring"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mahei-gushu-red",
+      "slug": "mahei-gushu-red",
+      "kind": "named_tea",
+      "label": "Mahei Gushu Red",
+      "nativeName": "麻黑古树红茶",
+      "sourceIds": [
+        "teajia-mahei-red"
+      ],
+      "sections": [
+        {
+          "key": "tea-name",
+          "label": "Reading the tea’s name",
+          "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
+          "sourceIds": [
+            "teajia-mahei-red"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "malaysian-returned-liu-bao",
+      "slug": "malaysian-returned-liu-bao",
+      "kind": "named_tea",
+      "label": "Malaysian Returned Liu Bao",
+      "nativeName": "马来回流六堡茶",
+      "sourceIds": [
+        "cns-malaysia-liubao-trade",
+        "guangxi-archives-liubao",
+        "teajia-malaysian-returned"
+      ],
+      "sections": [
+        {
+          "key": "returned",
+          "label": "Why the tea is called “returned”",
+          "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
+          "sourceIds": [
+            "cns-malaysia-liubao-trade",
+            "teajia-malaysian-returned"
+          ]
+        },
+        {
+          "key": "river-trade",
+          "label": "The river route to Malaya",
+          "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
+          "sourceIds": [
+            "guangxi-archives-liubao"
+          ]
+        },
+        {
+          "key": "tea-came-back",
+          "label": "How older tea found its way back",
+          "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
+          "sourceIds": [
+            "cns-malaysia-liubao-trade"
+          ]
+        }
+      ]
+    },
+    {
       "id": "menghai-county",
       "slug": "menghai-county",
       "kind": "tea_area",
@@ -475,6 +557,15 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "url": "https://productandservice.cofco.com/upload/1/zl/platform/1993169302277591040.pdf"
     },
     {
+      "sourceId": "cns-malaysia-liubao-trade",
+      "publisher": "China News Service",
+      "publisherRoleLabel": "Interview with Lin Hengyi",
+      "title": "Liu Bao tea traders meet in Guangxi",
+      "author": "",
+      "publishedDate": "2024-07-11",
+      "url": "https://www.chinanews.com/cj/2024/07-11/10249700.shtml"
+    },
+    {
       "sourceId": "cns-wuzhou-aging-warehouse",
       "publisher": "China News Service",
       "publisherRoleLabel": "Factory visit",
@@ -520,6 +611,15 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "url": "https://www.gxdag.org.cn/show/338/17006"
     },
     {
+      "sourceId": "ma-zhefeng-mahei-road",
+      "publisher": "Aipu Tea",
+      "publisherRoleLabel": "Photographic field survey by Ma Zhefeng",
+      "title": "Walking the Tea Horse Road through Yiwu",
+      "author": "",
+      "publishedDate": "2024-12-21",
+      "url": "https://www.ipucha.com/mingjia/mingjialuncha/14633.html"
+    },
+    {
       "sourceId": "marshaln-young-puer-2013",
       "publisher": "A Tea Addict's Journal",
       "publisherRoleLabel": "Community",
@@ -527,6 +627,15 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "author": "MarshalN",
       "publishedDate": "2013-09-18",
       "url": "https://marshaln.com/2013/09/really-young-puerh-is-not-really-puerh/"
+    },
+    {
+      "sourceId": "mengla-mahei-spring",
+      "publisher": "The Paper",
+      "publisherRoleLabel": "Local harvest report carried by The Paper",
+      "title": "Spring tea picking in Yiwu, Mengla County",
+      "author": "",
+      "publishedDate": "2024-04-18",
+      "url": "https://www.thepaper.cn/newsDetail_forward_27087177"
     },
     {
       "sourceId": "mofcom-three-cranes",
@@ -599,6 +708,24 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "author": "Leo Kwan",
       "publishedDate": "",
       "url": "https://www.teaguardian.com/what-is-tea/raw-puer-or-cooked-puer/"
+    },
+    {
+      "sourceId": "teajia-mahei-red",
+      "publisher": "Teajia",
+      "publisherRoleLabel": "Shop collection record",
+      "title": "Mahei Gushu Red",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://www.teajia.com/shop/product/mahei-gushu-red"
+    },
+    {
+      "sourceId": "teajia-malaysian-returned",
+      "publisher": "Teajia",
+      "publisherRoleLabel": "Shop collection record",
+      "title": "Malaysian Returned Liu Bao",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://www.teajia.com/shop/product/9b5b05f1-a6d6-4651-9126-0fe42c5c5e86"
     },
     {
       "sourceId": "white2tea-ripe-puer",

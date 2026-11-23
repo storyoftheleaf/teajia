@@ -23,6 +23,15 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "url": "https://productandservice.cofco.com/upload/1/zl/platform/1993169302277591040.pdf"
   },
   {
+    "sourceId": "cns-malaysia-liubao-trade",
+    "publisher": "China News Service",
+    "publisherRoleLabel": "Interview with Lin Hengyi",
+    "title": "Liu Bao tea traders meet in Guangxi",
+    "author": "",
+    "publishedDate": "2024-07-11",
+    "url": "https://www.chinanews.com/cj/2024/07-11/10249700.shtml"
+  },
+  {
     "sourceId": "cns-wuzhou-aging-warehouse",
     "publisher": "China News Service",
     "publisherRoleLabel": "Factory visit",
@@ -95,6 +104,15 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "url": "https://www.gxdag.org.cn/show/338/17006"
   },
   {
+    "sourceId": "ma-zhefeng-mahei-road",
+    "publisher": "Aipu Tea",
+    "publisherRoleLabel": "Photographic field survey by Ma Zhefeng",
+    "title": "Walking the Tea Horse Road through Yiwu",
+    "author": "",
+    "publishedDate": "2024-12-21",
+    "url": "https://www.ipucha.com/mingjia/mingjialuncha/14633.html"
+  },
+  {
     "sourceId": "marshaln-young-puer-2013",
     "publisher": "A Tea Addict's Journal",
     "publisherRoleLabel": "Community",
@@ -102,6 +120,15 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "author": "MarshalN",
     "publishedDate": "2013-09-18",
     "url": "https://marshaln.com/2013/09/really-young-puerh-is-not-really-puerh/"
+  },
+  {
+    "sourceId": "mengla-mahei-spring",
+    "publisher": "The Paper",
+    "publisherRoleLabel": "Local harvest report carried by The Paper",
+    "title": "Spring tea picking in Yiwu, Mengla County",
+    "author": "",
+    "publishedDate": "2024-04-18",
+    "url": "https://www.thepaper.cn/newsDetail_forward_27087177"
   },
   {
     "sourceId": "mofcom-three-cranes",
@@ -174,6 +201,24 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "author": "Leo Kwan",
     "publishedDate": "",
     "url": "https://www.teaguardian.com/what-is-tea/raw-puer-or-cooked-puer/"
+  },
+  {
+    "sourceId": "teajia-mahei-red",
+    "publisher": "Teajia",
+    "publisherRoleLabel": "Shop collection record",
+    "title": "Mahei Gushu Red",
+    "author": "",
+    "publishedDate": "",
+    "url": "https://www.teajia.com/shop/product/mahei-gushu-red"
+  },
+  {
+    "sourceId": "teajia-malaysian-returned",
+    "publisher": "Teajia",
+    "publisherRoleLabel": "Shop collection record",
+    "title": "Malaysian Returned Liu Bao",
+    "author": "",
+    "publishedDate": "",
+    "url": "https://www.teajia.com/shop/product/9b5b05f1-a6d6-4651-9126-0fe42c5c5e86"
   },
   {
     "sourceId": "white2tea-ripe-puer",

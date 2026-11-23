@@ -1354,6 +1354,149 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "malaysian-returned-liu-bao:returned",
+      "basis": "sourced",
+      "axis": "named_tea_history",
+      "listing_eligible": true,
+      "applies_when": {
+        "named_tea": "malaysian-returned-liu-bao"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "Meaning of the trade name.",
+          "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
+          "approved_at": "2026-11-23",
+          "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+          "evidence_ids": [
+            "EVIDENCE-25C675AC1B3373D804FFE518",
+            "EVIDENCE-3D052B7C680B4561B8BEB047"
+          ]
+        }
+      ],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "malaysian-returned-liu-bao:river-trade",
+      "basis": "sourced",
+      "axis": "named_tea_history",
+      "listing_eligible": true,
+      "applies_when": {
+        "named_tea": "malaysian-returned-liu-bao"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "The commercial route in the 1951 trade account.",
+          "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
+          "approved_at": "2026-11-23",
+          "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+          "evidence_ids": [
+            "EVIDENCE-94FBED6771030379C4352AC1",
+            "EVIDENCE-374E11CAC771CEE17ACA52B9"
+          ]
+        }
+      ],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "malaysian-returned-liu-bao:tea-came-back",
+      "basis": "sourced",
+      "axis": "named_tea_history",
+      "listing_eligible": true,
+      "applies_when": {
+        "named_tea": "malaysian-returned-liu-bao"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
+          "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
+          "approved_at": "2026-11-23",
+          "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+          "evidence_ids": [
+            "EVIDENCE-A3F7299E9399CE865CCF9A5D",
+            "EVIDENCE-3D052B7C680B4561B8BEB047"
+          ]
+        }
+      ],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "mahei-gushu-red:tea-name",
+      "basis": "sourced",
+      "axis": "named_tea_history",
+      "listing_eligible": true,
+      "applies_when": {
+        "named_tea": "mahei-gushu-red"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "The recorded name and its meaning. It supplies no tree measurement.",
+          "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
+          "approved_at": "2026-11-23",
+          "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+          "evidence_ids": [
+            "EVIDENCE-D2D75741CFD44DE469A12F65"
+          ]
+        }
+      ],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "mahei:village-road-and-harvest",
+      "basis": "sourced",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "mahei",
+          "yiwu"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "The documented Mahei road and one grower’s 2024 field account.",
+          "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
+          "approved_at": "2026-11-23",
+          "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+          "evidence_ids": [
+            "EVIDENCE-44151BAAF5BCA58F985D91EE",
+            "EVIDENCE-80742578E49E9441F6CC59CF",
+            "EVIDENCE-7D86F61C923CB5E76CC2CCD4"
+          ]
+        }
+      ],
+      "withdrawn": null
     }
   ]
 }

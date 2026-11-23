@@ -39,6 +39,8 @@ describe('listingFacts', () => {
   });
 
   it.each([
+    ['9b5b05f1-a6d6-4651-9126-0fe42c5c5e86', 'Malaysian Returned Liu Bao', 'malaysian-returned-liu-bao', 3],
+    ['186380ba-6839-448f-baaf-2b84ef7e5556', 'Mahei Gushu Red', 'mahei-gushu-red', 1],
     ['b11a8bad-89d9-4518-9406-25145d4c6e2c', 'San He Liu Bao', 'san-he-liu-bao', 5],
     ['8c24430b-49d5-4c9d-9ea8-2d353057e2b9', 'Nanqiao Ruigong Brick', 'nanqiao-ruigong-brick', 2],
   ] as const)('projects the public named history only on its documented lot %s', (id, name, teaId, count) => {
@@ -52,6 +54,16 @@ describe('listingFacts', () => {
     expect(result.passages).toHaveLength(count);
     expect(result.passages.every(({ claim, wisdomHref }) =>
       claim.sourceIds.length > 0 && wisdomHref.startsWith('/wisdom/named/' + teaId + '#'))).toBe(true);
+  });
+
+  it('uses the village account only when Mahei and Yiwu are recorded in the origin', () => {
+    const page = GENERATED_TEA_REFERENCE_REGISTRY.pages;
+    const project = (originRegion: string) => resolveListingPassages(listingFactsFromPublicProduct({
+      id: 'another-lot', productName: 'Mahei', type: 'Shou', originRegion,
+    }), GENERATED_CLAIMS, page).passages;
+    expect(project('Mahei, Yiwu, Yunnan').map(p => p.wisdomHref)).toContain('/wisdom/region/mahei#village-road-and-harvest');
+    expect(project('Yiwu, Yunnan').map(p => p.claim.pageId)).not.toContain('mahei');
+    expect(project('Mahei, Yiwu, Yunnan').map(p => p.claim.pageId)).not.toContain('mahei-gushu-red');
   });
 
   it('takes a grade only from the explicit field', () => {

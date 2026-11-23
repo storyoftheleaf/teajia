@@ -179,6 +179,9 @@ describe('sellable Tea Reference catalogue', () => {
     expect(result.pages.map(page => page.id)).toEqual([
       'greater-yiwu',
       'lincang',
+      'mahei',
+      'mahei-gushu-red',
+      'malaysian-returned-liu-bao',
       'menghai-county',
       'nanqiao-ruigong-brick',
       'puer',

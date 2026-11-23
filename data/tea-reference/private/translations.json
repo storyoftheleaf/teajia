@@ -714,6 +714,40 @@
               "section_key": "export-buyers"
             }
           ]
+        },
+        {
+          "evidence_id": "EVIDENCE-94FBED6771030379C4352AC1",
+          "locator": {
+            "heading": "Section one, quotation from China Tea News, 1951",
+            "section": "Section one, quotation from China Tea News, 1951",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "94fbed6771030379c4352ac1a6e300a81ddc900a53673ad9379c66f6d06ab0cd",
+          "uses": [
+            {
+              "page_id": "malaysian-returned-liu-bao",
+              "section_key": "river-trade"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-374E11CAC771CEE17ACA52B9",
+          "locator": {
+            "heading": "Section one, destinations in the same 1951 account",
+            "section": "Section one, destinations in the same 1951 account",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "374e11cac771cee17aca52b99df9c7da69c2b1e37cd3d508ccfc487a2ef9b5f4",
+          "uses": [
+            {
+              "page_id": "malaysian-returned-liu-bao",
+              "section_key": "river-trade"
+            }
+          ]
         }
       ]
     },
@@ -922,6 +956,197 @@
             {
               "page_id": "nanqiao-ruigong-brick",
               "section_key": "nanqiao-name"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "teajia-malaysian-returned",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Teajia",
+        "publisher_role_label": "Shop collection record",
+        "title": "Malaysian Returned Liu Bao",
+        "url": "https://www.teajia.com/shop/product/9b5b05f1-a6d6-4651-9126-0fe42c5c5e86"
+      },
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-25C675AC1B3373D804FFE518",
+          "locator": {
+            "heading": "Stock record, Chinese name",
+            "section": "Stock record, Chinese name",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "25c675ac1b3373d804ffe518fbcdd8bc800cfb0a0aaf4497c5675abcd2ae3908",
+          "uses": [
+            {
+              "page_id": "malaysian-returned-liu-bao",
+              "section_key": "returned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "teajia-mahei-red",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Teajia",
+        "publisher_role_label": "Shop collection record",
+        "title": "Mahei Gushu Red",
+        "url": "https://www.teajia.com/shop/product/mahei-gushu-red"
+      },
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-D2D75741CFD44DE469A12F65",
+          "locator": {
+            "heading": "Stock record, Chinese name",
+            "section": "Stock record, Chinese name",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "d2d75741cfd44de469a12f65356a7c60f8dcc67aeb2c5139c3dbf1ef467dd1b7",
+          "uses": [
+            {
+              "page_id": "mahei-gushu-red",
+              "section_key": "tea-name"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "cns-malaysia-liubao-trade",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "China News Service",
+        "publisher_role_label": "Interview with Lin Hengyi",
+        "title": "Liu Bao tea traders meet in Guangxi",
+        "url": "https://www.chinanews.com/cj/2024/07-11/10249700.shtml",
+        "published_date": "2024-07-11"
+      },
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-A3F7299E9399CE865CCF9A5D",
+          "locator": {
+            "heading": "Lin Hengyi describes the trade order",
+            "section": "Lin Hengyi describes the trade order",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "a3f7299e9399ce865ccf9a5dc35521012ded839e4e71dfed580380cc0da85fe4",
+          "uses": [
+            {
+              "page_id": "malaysian-returned-liu-bao",
+              "section_key": "tea-came-back"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-3D052B7C680B4561B8BEB047",
+          "locator": {
+            "heading": "Lin Hengyi describes his family and a proposal from tea merchants",
+            "section": "Lin Hengyi describes his family and a proposal from tea merchants",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "3d052b7c680b4561b8beb047b2a65d93bd8f6f0a227df4ff91b2281d2bfaa63a",
+          "uses": [
+            {
+              "page_id": "malaysian-returned-liu-bao",
+              "section_key": "tea-came-back"
+            },
+            {
+              "page_id": "malaysian-returned-liu-bao",
+              "section_key": "returned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "ma-zhefeng-mahei-road",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Aipu Tea",
+        "publisher_role_label": "Photographic field survey by Ma Zhefeng",
+        "title": "Walking the Tea Horse Road through Yiwu",
+        "url": "https://www.ipucha.com/mingjia/mingjialuncha/14633.html",
+        "published_date": "2024-12-21"
+      },
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-44151BAAF5BCA58F985D91EE",
+          "locator": {
+            "heading": "Photograph identifying the Mahei section",
+            "section": "Photograph identifying the Mahei section",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "44151baaf5bca58f985d91eedf6105e631fb0ed7f38ed10b0a153bc192cb72a3",
+          "uses": [
+            {
+              "page_id": "mahei",
+              "section_key": "village-road-and-harvest"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "mengla-mahei-spring",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "The Paper",
+        "publisher_role_label": "Local harvest report carried by The Paper",
+        "title": "Spring tea picking in Yiwu, Mengla County",
+        "url": "https://www.thepaper.cn/newsDetail_forward_27087177",
+        "published_date": "2024-04-18"
+      },
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-80742578E49E9441F6CC59CF",
+          "locator": {
+            "heading": "Mahei village field report and interview with Ding Wanchun",
+            "section": "Mahei village field report and interview with Ding Wanchun",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "80742578e49e9441f6cc59cf2a7f16a8d0dbacc1c3679caae020d30e16e1199d",
+          "uses": [
+            {
+              "page_id": "mahei",
+              "section_key": "village-road-and-harvest"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-7D86F61C923CB5E76CC2CCD4",
+          "locator": {
+            "heading": "Ding Wanchun on his family’s picking crew",
+            "section": "Ding Wanchun on his family’s picking crew",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "7d86f61c923cb5e76cc2ccd48ef83ea89644e7dd97497684ab47c25d4fa2fb88",
+          "uses": [
+            {
+              "page_id": "mahei",
+              "section_key": "village-road-and-harvest"
             }
           ]
         }
@@ -1463,6 +1688,159 @@
       "method": "machine_translation",
       "translator": "OpenAI Codex",
       "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-25C675AC1B3373D804FFE518",
+      "source_id": "teajia-malaysian-returned",
+      "locator": {
+        "heading": "Stock record, Chinese name",
+        "section": "Stock record, Chinese name",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "马来回流六堡茶",
+      "english": "Malaysian returned Liu Bao tea.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-94FBED6771030379C4352AC1",
+      "source_id": "guangxi-archives-liubao",
+      "locator": {
+        "heading": "Section one, quotation from China Tea News, 1951",
+        "section": "Section one, quotation from China Tea News, 1951",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "由梨埠换大木船运至封开，再用电船装运广州",
+      "english": "At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel bound for Guangzhou.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-374E11CAC771CEE17ACA52B9",
+      "source_id": "guangxi-archives-liubao",
+      "locator": {
+        "heading": "Section one, destinations in the same 1951 account",
+        "section": "Section one, destinations in the same 1951 account",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "其余大部分销南洋怡保及吉隆坡一带",
+      "english": "Most of the rest was sold around Ipoh and Kuala Lumpur.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-A3F7299E9399CE865CCF9A5D",
+      "source_id": "cns-malaysia-liubao-trade",
+      "locator": {
+        "heading": "Lin Hengyi describes the trade order",
+        "section": "Lin Hengyi describes the trade order",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "参访中看到一张1973年的订单",
+      "english": "During his visit he saw an order dated 1973.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-3D052B7C680B4561B8BEB047",
+      "source_id": "cns-malaysia-liubao-trade",
+      "locator": {
+        "heading": "Lin Hengyi describes his family and a proposal from tea merchants",
+        "section": "Lin Hengyi describes his family and a proposal from tea merchants",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "我家里就存有一些20世纪70年代的老茶。我这次来，有茶商向我提出，让六堡茶老茶回流中国市场。",
+      "english": "His family kept some 1970s tea. On this visit merchants suggested that aged Liu Bao return to the Chinese market.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-D2D75741CFD44DE469A12F65",
+      "source_id": "teajia-mahei-red",
+      "locator": {
+        "heading": "Stock record, Chinese name",
+        "section": "Stock record, Chinese name",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "麻黑古树红茶",
+      "english": "Mahei old-tree red tea.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-44151BAAF5BCA58F985D91EE",
+      "source_id": "ma-zhefeng-mahei-road",
+      "locator": {
+        "heading": "Photograph identifying the Mahei section",
+        "section": "Photograph identifying the Mahei section",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "茶马古道勐腊段——麻黑村路段。",
+      "english": "Tea Horse Road in Mengla, the Mahei village section.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-80742578E49E9441F6CC59CF",
+      "source_id": "mengla-mahei-spring",
+      "locator": {
+        "heading": "Mahei village field report and interview with Ding Wanchun",
+        "section": "Mahei village field report and interview with Ding Wanchun",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "茶农丁万春，带着采茶工正在采摘春茶。",
+      "english": "Tea farmer Ding Wanchun was picking spring tea with the pickers.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-7D86F61C923CB5E76CC2CCD4",
+      "source_id": "mengla-mahei-spring",
+      "locator": {
+        "heading": "Ding Wanchun on his family’s picking crew",
+        "section": "Ding Wanchun on his family’s picking crew",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "采茶工人每天都需要20多个",
+      "english": "His family needed more than twenty tea pickers a day.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "2026-11",
       "translated_date": "2026-11-23"
     }
   ]
