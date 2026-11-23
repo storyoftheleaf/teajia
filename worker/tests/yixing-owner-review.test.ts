@@ -105,6 +105,55 @@ describe('personal Yixing pot review', () => {
     expect(readback.decisions['pots-02'].clay).toBe('clay-zini');
   });
 
+  it('atomically accepts selected photo replacements, leaves exceptions pending, and makes retries write-free', async () => {
+    const { call, objects, failedPuts } = setup();
+    const before = { role: 'Front view', sha256: hash, originalSha256: 'b'.repeat(64) };
+    const underside = { ...before, role: 'Base / stamp' };
+    const after = { ...before, sha256: 'c'.repeat(64) };
+    const nextUnderside = { ...underside, sha256: 'd'.repeat(64), originalSha256: 'e'.repeat(64) };
+    const priorBoard = JSON.stringify({ ...board, pots: [
+      { ...board.pots[0], photos: [before] }, { id: 'pots-33', photos: [underside] },
+    ] });
+    const id = '0'.repeat(64);
+    const state = prefix + 'photo-batches/gallery.json';
+    const proposal = prefix + 'photo-batches/proposal.json';
+    const routine = { potId: 'pots-04', slot: 0 };
+    const exception = { potId: 'pots-33', slot: 0 };
+    const changes = [
+      { ...routine, before, after },
+      { ...exception, before: underside, after: nextUnderside, needsReview: true },
+    ];
+    const path = base + '/photo-batch';
+    objects.set(prefix + 'board.json', priorBoard);
+    objects.set(proposal, JSON.stringify({ id, changes }));
+    objects.set(prefix + 'media/' + after.sha256 + '.jpg', 'corrected private photo');
+    objects.set(prefix + 'media/' + nextUnderside.sha256 + '.jpg', 'other corrected private photo');
+    const save = (selections: typeof routine[], batchId = id) => call(path, 'personal-owner', 'PUT', { id: batchId, selections });
+    expect((await call(path, null)).status).toBe(401);
+    expect((await call(path, 'second-owner')).status).toBe(403);
+    expect((await call(path, 'staff', 'PUT', { id, selections: [routine] })).status).toBe(403);
+    expect(await (await call(path)).json()).toEqual({ id, changes });
+    expect((await save([routine, routine])).status).toBe(400);
+    expect((await save([routine], 'f'.repeat(64))).status).toBe(409);
+    expect((await save([routine, exception])).status).toBe(503);
+    expect(objects.has(state)).toBe(false);
+    const decision = { ...initial, shape: 'shape-hexagonal', note: 'Keep this decision' };
+    expect((await call(base + '/pots/pots-04', 'personal-owner', 'PUT', decision)).status).toBe(200);
+    expect(await (await save([routine])).json()).toEqual({ applied: 1 });
+    failedPuts.add(state);
+    expect(await (await save([routine])).json()).toEqual({ applied: 0 });
+    failedPuts.delete(state);
+    expect(objects.get(prefix + 'board.json')).toBe(priorBoard);
+    expect(await (await call(path)).json()).toEqual({ id, changes: [changes[1]] });
+    const result = await (await call(base)).json() as { pots: { photos: (typeof before)[] }[]; decisions: Record<string, typeof initial> };
+    expect(result.pots.map(pot => pot.photos)).toEqual([[after], [underside]]);
+    expect(result.decisions['pots-04']).toEqual({ ...decision, revision: 1 });
+    objects.set(prefix + 'media/' + nextUnderside.originalSha256 + '.jpg', 'private source');
+    expect(await (await save([exception])).json()).toEqual({ applied: 1 });
+    expect(await (await call(path)).json()).toEqual({ id, changes: [] });
+    expect(await (await save([routine, exception])).json()).toEqual({ applied: 0 });
+  });
+
   it('accepts only distinct known clay rejections compatible with the confirmed clay', async () => {
     const { call } = setup();
     const path = base + '/pots/pots-04';
@@ -145,7 +194,8 @@ const shapePrefix = 'owner-review/' + account + '/yixing/shapes/v1/';
 const shapeBase = {
   schemaVersion: 1, libraryVersion: 'test-library', forms: [{
     id: 'liufang', chinese: '六方壶', pinyin: 'liùfāng hú', silhouette: 'Faceted or geometric',
-    exemplar: { asset: 'assets/old-reference.jpg', imageUrl: 'https://museum.example/old-reference.jpg' },
+    exemplar: { asset: 'assets/old-reference.jpg', imageUrl: 'https://museum.example/old-reference.jpg',
+      title: 'Museum six-sided pot', recordUrl: 'https://museum.example/objects/six' },
   }],
 };
 const jpeg = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAAFAAQDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAgP/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCfAJJ//9k=';
@@ -258,5 +308,93 @@ describe('private Yixing shape library', () => {
     failedPuts.delete(additionsKey);
     expect((await call(shapes, 'personal-owner', 'POST', example)).status).toBe(201);
     expect((await call(media)).status).toBe(200);
+  });
+});
+
+describe('shape evidence verdicts for an individual pot', () => {
+  const potPath = base + '/pots/pots-04';
+  const verdictPath = potPath + '/shape-verdict';
+  const match = { formId: 'liufang', asset: shapeBase.forms[0].exemplar.asset };
+  const evidence = { ...match, chinese: '六方壶', pinyin: 'liùfāng hú',
+    title: 'Museum six-sided pot', recordUrl: 'https://museum.example/objects/six' };
+
+  it('pins source evidence behind the exact owner guard and preserves independent review fields', async () => {
+    const { call, objects } = shapeSetup();
+    const input = { ...match, action: 'confirm', revision: 1, chinese: 'Forged label', title: 'Forged title' };
+    for (const [user, status] of [[null, 401], ['second-owner', 403], ['other-platform-owner', 403], ['staff', 403]] as const) {
+      const denied = await call(verdictPath, user, 'PUT', input);
+      expect(denied.status).toBe(status);
+      expect(denied.headers.get('Cache-Control')).toContain('no-store');
+    }
+    const stored = { ...initial, clay: 'clay-zini', shape: 'shape-hexagonal', note: 'A private note', rejectedClays: ['clay-zhuni'] };
+    const forged = { ...stored, confirmedShape: { ...evidence, title: 'Forged title' }, rejectedShapes: { liufang: evidence } };
+    expect(await (await call(potPath, 'personal-owner', 'PUT', forged)).json()).toEqual({ ...stored, revision: 1 });
+    const result = await call(verdictPath, 'personal-owner', 'PUT', input);
+    expect(result.status).toBe(200);
+    expect(result.headers.get('Cache-Control')).toContain('no-store');
+    expect(await result.json()).toEqual({ ...stored, revision: 2, confirmedShape: { ...evidence, verdict: 'confirmed' } });
+    expect((await call(verdictPath, 'personal-owner', 'PUT', input)).status).toBe(409);
+    expect((await call(potPath, 'personal-owner', 'PUT', { ...stored, revision: 1 })).status).toBe(409);
+    const changed = { ...stored, revision: 2, note: 'Updated independently', confirmedShape: null, rejectedShapes: {} };
+    expect(await (await call(potPath, 'personal-owner', 'PUT', changed)).json()).toEqual({
+      ...stored, note: changed.note, revision: 3, confirmedShape: { ...evidence, verdict: 'confirmed' },
+    });
+
+    // The saved title and label come from the moment of review.
+    const original = shapeBase.forms[0];
+    objects.set(shapePrefix + 'library.json', JSON.stringify({ ...shapeBase, forms: [{
+      ...original, chinese: '六方新名', exemplar: { ...original.exemplar, title: 'Renamed source' },
+    }] }));
+    expect(await (await call(base)).json()).toMatchObject({
+      decisions: { 'pots-04': { revision: 3, confirmedShape: { ...evidence, verdict: 'confirmed' } } },
+    });
+    const other = await (await call(base)).json() as { decisions: Record<string, unknown> };
+    expect(other.decisions['pots-02']).toBeUndefined();
+  });
+
+  it('verifies additions and exact exemplar membership, and withdraws a retired source without touching another form', async () => {
+    const { call, objects } = shapeSetup();
+    const added = await call(shapes, 'personal-owner', 'POST', {
+      ...example, mode: 'form', chinese: '新方壶', pinyin: 'xīn fāng hú', silhouette: 'Faceted or geometric',
+    });
+    expect(added.status).toBe(201);
+    const contributed = await added.json() as { formId: string; asset: string };
+    const put = (data: unknown, path = verdictPath) => call(path, 'personal-owner', 'PUT', data);
+    expect((await put({ ...match, action: 'confirm', revision: 0 }, base + '/pots/pots-99/shape-verdict')).status).toBe(404);
+    expect((await put({ ...match, asset: contributed.asset, action: 'confirm', revision: 0 })).status).toBe(400);
+    expect((await put({ ...match, action: 'pick', revision: 0 })).status).toBe(400);
+    expect(await (await put({ ...match, action: 'reject', revision: 0 })).json()).toEqual({
+      ...initial, revision: 1, rejectedShapes: { liufang: { ...evidence, verdict: 'rejected' } },
+    });
+    expect(await (await put({ ...match, action: 'confirm', revision: 1 })).json()).toEqual({
+      ...initial, revision: 2, confirmedShape: { ...evidence, verdict: 'confirmed' },
+    });
+    expect(await (await put({ ...contributed, action: 'confirm', revision: 2 })).json()).toMatchObject({
+      revision: 3, confirmedShape: { ...contributed, verdict: 'confirmed', title: example.title, recordUrl: example.recordUrl },
+    });
+    expect(await (await put({ ...match, action: 'reject', revision: 3 })).json()).toMatchObject({
+      revision: 4, confirmedShape: { ...contributed, verdict: 'confirmed' }, rejectedShapes: { liufang: { ...evidence, verdict: 'rejected' } },
+    });
+    const opposite = await (await put({ ...contributed, action: 'reject', revision: 4 })).json();
+    expect(opposite).not.toHaveProperty('confirmedShape');
+    expect(opposite).toMatchObject({ revision: 5, rejectedShapes: {
+      liufang: { verdict: 'rejected' }, [contributed.formId]: { verdict: 'rejected' },
+    } });
+
+    objects.delete(shapePrefix + 'additions.json');
+    expect(await (await put({ ...contributed, action: 'withdraw', revision: 5 })).json()).toEqual({
+      ...initial, revision: 6, rejectedShapes: { liufang: { ...evidence, verdict: 'rejected' } },
+    });
+    expect(await (await put({ ...match, action: 'withdraw', revision: 6 })).json()).toEqual({ ...initial, revision: 7 });
+    expect(await (await call(base)).json()).toMatchObject({ decisions: { 'pots-04': { ...initial, revision: 7 } } });
+  });
+
+  it('allows one shape or ordinary save when both use the same revision', async () => {
+    const { call } = shapeSetup();
+    const saves = await Promise.all([
+      call(verdictPath, 'personal-owner', 'PUT', { ...match, action: 'confirm', revision: 0 }),
+      call(potPath, 'personal-owner', 'PUT', { ...initial, note: 'Concurrent note' }),
+    ]);
+    expect(saves.map(response => response.status).sort()).toEqual([200, 409]);
   });
 });

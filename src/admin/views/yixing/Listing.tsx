@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom';
 import type { InventoryItem } from '../../../types';
 import { ProductDetailLayout } from '../../../components/shop/ProductDetailLayout';
 import { productGallery, productIdentity, teawareFacts, teawareReading } from '../../../components/shop/productDetailFields';
-import { BASE, EMPTY, guidePath, KINDS, potPath, type Auth, type Board, type Pot } from './data';
+import { BASE, EMPTY, guidePath, KINDS, potPath, shapeEvidenceName, type Auth, type Board, type Pot } from './data';
 import { useReviewPhotos } from './Photos';
+import { shapeEvidencePath } from './shapeData';
 
 export function Listing({ board, pot, auth }: { board: Board; pot: Pot; auth: Auth }) {
   const { urls, failed } = useReviewPhotos(pot.photos.map(photo => photo.sha256), auth);
@@ -13,9 +14,14 @@ export function Listing({ board, pot, auth }: { board: Board; pot: Pot; auth: Au
     image: urls[0] ?? '', additionalImages: urls.slice(1), tags: [], teawareDetails: { mark: pot.listing.mark },
   };
   const decision = board.decisions[pot.id] ?? EMPTY;
-  const matches = KINDS.flatMap(kind => board.reference.entries.filter(e => e.kind === kind && e.id === decision[kind]));
+  const matches = KINDS.filter(kind => kind !== 'shape' || !decision.confirmedShape)
+    .flatMap(kind => board.reference.entries.filter(e => e.kind === kind && e.id === decision[kind]));
   const labels = { clay: 'Clay type', color: 'Fired color', shape: 'Form' };
   const linkedFacts = matches.map(e => ({ label: labels[e.kind], value: e.name, to: guidePath(pot, e.id, true) }));
+  const confirmed = decision.confirmedShape;
+  if (confirmed) linkedFacts.push({
+    label: labels.shape, value: shapeEvidenceName(confirmed), to: shapeEvidencePath(pot.id, confirmed, true),
+  });
   const facts = [...linkedFacts, ...teawareFacts(item).filter(f => !linkedFacts.some(link => link.label === f.label))];
   const reading = teawareReading(item, null);
   if (matches.length) reading.sections.push({ label: 'From Tea Wisdom', paragraphs: matches.map(e => e.summary) });

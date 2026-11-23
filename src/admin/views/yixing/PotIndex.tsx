@@ -2,7 +2,7 @@ import { Button } from '../../../components/shared/Button';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
-import { EMPTY, guidePath, KINDS, potPath, type Auth, type Board, type ChangeClay } from './data';
+import { BASE, EMPTY, guidePath, KINDS, potPath, shapeEvidenceName, type Auth, type Board, type ChangeClay } from './data';
 import { Thumbnail } from './Photos';
 
 type Props = { board: Board; auth: Auth; onClay: ChangeClay; onRefresh: () => Promise<unknown> };
@@ -64,7 +64,10 @@ export function PotIndex({ board, auth, onClay, onRefresh }: Props) {
 
   return <>
     <h1 className="type-page-title font-display">Teapot confirmations</h1>
-    <Link className={QUIET_LINK} to={guidePath()}>Yixing Wisdom</Link>
+    <div className="flex flex-wrap gap-3">
+      <Link className={QUIET_LINK} to={guidePath()}>Yixing Wisdom</Link>
+      <Link className={QUIET_LINK} to={BASE + '/photo-batch'}>Review photo replacements</Link>
+    </div>
     <label className="my-3 block">Review by clay
       <select className="btn-field mt-1 block max-w-full" value={clayId} disabled={saving} onChange={e => changeGroup(e.target.value)}>
         <option value="">All pots ({pots.length})</option>
@@ -84,7 +87,9 @@ export function PotIndex({ board, auth, onClay, onRefresh }: Props) {
     {!visible.length && <p>No pots in this group.</p>}
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {visible.map(({ pot, decision, suggestions }) => {
-        const facts = KINDS.flatMap(kind => reference.entries.filter(entry => entry.id === decision[kind] && entry.kind === kind).map(entry => entry.name));
+        const facts = KINDS.flatMap(kind => kind === 'shape' && decision.confirmedShape
+          ? [shapeEvidenceName(decision.confirmedShape)]
+          : reference.entries.filter(entry => entry.id === decision[kind] && entry.kind === kind).map(entry => entry.name));
         const status = suggestions.length ? 'Suggested · ' + suggestions.map(entry => entry.name).join(', ') : 'Needs clay evidence';
         return <li key={pot.id} className="flex min-w-0 items-center gap-2">
           {group && <label className="tap-target flex shrink-0 items-center justify-center">

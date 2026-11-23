@@ -4,7 +4,9 @@ import { Link, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivateQueryScope } from '../../hooks/usePrivateQueryScope';
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
-import { BASE, EMPTY, loadBoard, potPath, saveReview, type ChangeClay, type Auth, type Board, type Decision } from './data';
+import { BASE, EMPTY, loadBoard, potPath, saveReview, saveShapeVerdict,
+  type ChangeClay, type ChangeShape, type Auth, type Board, type Decision } from './data';
+import { PhotoBatch } from './PhotoBatch';
 import { PotIndex } from './PotIndex';
 import { Guide } from './Guide';
 import { Listing } from './Listing';
@@ -15,14 +17,15 @@ import { SHAPE_LIBRARY_PATH } from './shapeData';
 const column = 'mx-auto w-full max-w-[calc(var(--tasting-journal-column)+var(--tasting-journal-rail))] p-4 text-tea-text';
 type BoardProps = { board: Board; auth: Auth };
 
-function PotRoute({ board, auth, preview, onSave, onReload, onClay, draft, onDraft }: BoardProps & {
-  preview?: boolean; onClay: ChangeClay; draft?: Decision; onDraft: (decision: Decision) => void; onSave: (id: string, d: Decision) => void; onReload: () => Promise<void>;
+function PotRoute({ board, auth, preview, onSave, onReload, onClay, onShape, draft, onDraft }: BoardProps & {
+  preview?: boolean; onClay: ChangeClay; onShape: ChangeShape;
+  draft?: Decision; onDraft: (decision: Decision) => void; onSave: (id: string, d: Decision) => void; onReload: () => Promise<void>;
 }) {
   const { id } = useParams();
   const pot = board.pots.find(p => p.id === id);
   if (!pot) return <div className={column}><p>Pot unavailable.</p><Link className={QUIET_LINK} to={BASE}>All pots</Link></div>;
   return preview ? <Listing key={pot.id} board={board} pot={pot} auth={auth} /> : <div className={column}>
-    <Review key={pot.id} board={board} pot={pot} auth={auth} draft={draft} onClay={onClay} onDraft={onDraft} onSave={d => onSave(pot.id, d)} onReload={onReload} />
+    <Review key={pot.id} board={board} pot={pot} auth={auth} draft={draft} onClay={onClay} onShape={onShape} onDraft={onDraft} onSave={d => onSave(pot.id, d)} onReload={onReload} />
   </div>;
 }
 
@@ -84,12 +87,30 @@ export default function OwnerYixing() {
     buffer.draft = { ...buffer.draft, clay: saved.clay, rejectedClays: saved.rejectedClays, revision: saved.revision };
     return buffer.draft;
   };
+  const onShape: ChangeShape = async (id, change) => {
+    const current = result.data.decisions[id] ?? EMPTY;
+    const potScope = JSON.stringify([accountId, userId, potPath(id)]);
+    const buffered = pending.current;
+    if (change.revision !== current.revision || (buffered?.scope === potScope && buffered.draft.revision !== change.revision)) {
+      throw Object.assign(new Error('This review changed. Reload the saved choices.'), { status: 409 });
+    }
+    const saved = await saveShapeVerdict(id, change, auth);
+    client.setQueryData<Board>(queryKey, old => old && ({ ...old, decisions: { ...old.decisions, [id]: saved } }));
+    const buffer = pending.current;
+    if (buffer?.scope !== potScope || buffer.draft.revision !== change.revision) return saved;
+    buffer.draft = {
+      ...buffer.draft,
+      confirmedShape: saved.confirmedShape, rejectedShapes: saved.rejectedShapes, revision: saved.revision,
+    };
+    return buffer.draft;
+  };
   const onReload = async () => { await result.refetch({ throwOnError: true }); pending.current = null; setReloadRevision(r => r + 1); };
   return <Routes key={JSON.stringify([accountId, userId, reloadRevision])}>
     <Route index element={<div className={column}><PotIndex {...props} onClay={onClay} onRefresh={() => refetch({ throwOnError: true })} /></div>} />
+    <Route path="photo-batch" element={<div className={column}><PhotoBatch auth={auth} onApplied={() => refetch({ throwOnError: true })} /></div>} />
     <Route path="wisdom" element={<div className={column}><Guide board={result.data} onClay={onClay} onReload={onReload} /></div>} />
-    <Route path="wisdom/shapes/*" element={<div className={column}><ShapeLibrary {...props} revision={revision} /></div>} />
-    <Route path=":id" element={<PotRoute {...props} {...edit} onClay={onClay} onSave={onSave} onReload={onReload} />} />
-    <Route path=":id/listing" element={<PotRoute {...props} {...edit} onClay={onClay} preview onSave={onSave} onReload={onReload} />} />
+    <Route path="wisdom/shapes/*" element={<div className={column}><ShapeLibrary {...props} revision={revision} onShape={onShape} onReload={onReload} /></div>} />
+    <Route path=":id" element={<PotRoute {...props} {...edit} onClay={onClay} onShape={onShape} onSave={onSave} onReload={onReload} />} />
+    <Route path=":id/listing" element={<PotRoute {...props} {...edit} onClay={onClay} onShape={onShape} preview onSave={onSave} onReload={onReload} />} />
   </Routes>;
 }

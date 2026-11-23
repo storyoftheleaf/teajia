@@ -13,9 +13,19 @@ export type Pot = {
   comparisonIds: string[]; photos: { role: string; sha256: string; originalSha256: string }[];
   listing: { name: string; form?: string; mark?: string; description?: string };
 };
-export type Decision = Record<Kind, string> & { note: string; revision: number; rejectedClays?: string[] };
+export type ShapeEvidence = {
+  formId: string; asset: string; chinese: string; pinyin: string; title: string; recordUrl: string;
+  verdict: 'confirmed' | 'rejected';
+};
+export type ShapeAction = 'confirm' | 'reject' | 'withdraw';
+export type Decision = Record<Kind, string> & {
+  note: string; revision: number; rejectedClays?: string[];
+  confirmedShape?: ShapeEvidence; rejectedShapes?: Record<string, ShapeEvidence>;
+};
 export type ClayAction = 'approve' | 'deny' | 'undo';
 export type ChangeClay = (potId: string, clayId: string, action: ClayAction, revision: number) => Promise<Decision>;
+export type ShapeChange = { formId: string; asset: string; action: ShapeAction; revision: number };
+export type ChangeShape = (potId: string, change: ShapeChange) => Promise<Decision>;
 export type Board = {
   reference: { title: string; scope: string; entries: Entry[] };
   pots: Pot[]; decisions: Record<string, Decision>;
@@ -31,8 +41,15 @@ export const canReview = async (auth: Auth, signal: AbortSignal) => {
 };
 export const loadPhoto = (hash: string, auth: Auth, signal: AbortSignal) =>
   authedBlobFetch(api + '/media/' + encodeURIComponent(hash) + '.jpg', { ...options(auth), signal });
-export const saveReview = (id: string, decision: Decision, auth: Auth): Promise<Decision> =>
-  authedFetch(api + '/pots/' + encodeURIComponent(id), { ...options(auth), method: 'PUT', body: JSON.stringify(decision) });
+export const saveReview = (id: string, { clay, color, shape, note, revision, rejectedClays }: Decision, auth: Auth): Promise<Decision> =>
+  authedFetch(api + '/pots/' + encodeURIComponent(id), {
+    ...options(auth), method: 'PUT', body: JSON.stringify({ clay, color, shape, note, revision, rejectedClays }),
+  });
+export const saveShapeVerdict = (id: string, change: ShapeChange, auth: Auth): Promise<Decision> =>
+  authedFetch(api + '/pots/' + encodeURIComponent(id) + '/shape-verdict', {
+    ...options(auth), method: 'PUT', retryTimeouts: false, body: JSON.stringify(change),
+  });
+export const shapeEvidenceName = (shape: ShapeEvidence) => [shape.chinese, shape.pinyin].filter(Boolean).join(' · ');
 export const potPath = (id: string) => BASE + '/' + encodeURIComponent(id);
 export function guidePath(pot?: Pot, anchor?: string, fromListing = false) {
   const params = new URLSearchParams();

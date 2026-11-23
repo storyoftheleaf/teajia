@@ -11,9 +11,12 @@ const DEFAULT_RIGHTS = 'Owner-added photo for private comparison. Public reuse r
 
 type PrivateResponse = (body: BodyInit | null, status: number, type: string) => Response;
 type Feature = typeof FEATURES[number];
-type Exemplar = { asset: string; imageUrl: string; photoSha256?: string };
+type Exemplar = { asset: string; imageUrl: string; title: string; recordUrl: string; photoSha256?: string };
+export type ShapeReferenceEvidence = {
+  formId: string; asset: string; chinese: string; pinyin: string; title: string; recordUrl: string;
+};
 type OwnerExemplar = Exemplar & {
-  id: string; title: string; credit: string; recordUrl: string; rights: string;
+  id: string; credit: string; rights: string;
   sourceType: string; tradition: string; notes: string; reviewStatus: string; recordedOn: string;
 };
 type FormInfo = { id: string; chinese: string; pinyin: string; silhouette: string };
@@ -165,6 +168,22 @@ function mergeForms(base: Form[], additions: Addition[]) {
   return [...forms.values()];
 }
 
+async function readMergedLibrary(bucket: R2Bucket, prefix: string): Promise<Library> {
+  const [base, { additions }] = await Promise.all([readLibrary(bucket, prefix), readAdditions(bucket, prefix)]);
+  return { ...base, forms: mergeForms(base.forms, additions) };
+}
+
+export async function findYixingShapeEvidence(
+  bucket: R2Bucket, prefix: string, formId: string, asset: string,
+): Promise<ShapeReferenceEvidence | null> {
+  const { forms } = await readMergedLibrary(bucket, prefix);
+  const form = forms.find(item => item.id === formId);
+  if (!form) return null;
+  const exemplar = exemplars(form).find(item => item.asset === asset);
+  if (!exemplar || !exemplar.title || !exemplar.recordUrl) return null;
+  return { formId, asset, chinese: form.chinese, pinyin: form.pinyin, title: exemplar.title, recordUrl: exemplar.recordUrl };
+}
+
 function normalizedLabel(value: string) {
   return value.normalize('NFKC').trim().replace(/[壶壺]$/u, '').trim().toLowerCase();
 }
@@ -244,8 +263,7 @@ export async function serveYixingShapeLibrary(
       return exists ? json(null) : json({ error: 'Shape library unavailable' }, 503);
     }
     if (!path && request.method === 'GET') {
-      const [base, { additions }] = await Promise.all([readLibrary(bucket, prefix), readAdditions(bucket, prefix)]);
-      return json({ ...base, forms: mergeForms(base.forms, additions) });
+      return json(await readMergedLibrary(bucket, prefix));
     }
     if (!path && request.method === 'POST') return json(await saveAddition(request, bucket, prefix), 201);
 

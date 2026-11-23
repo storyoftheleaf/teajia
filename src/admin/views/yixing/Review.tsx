@@ -3,15 +3,17 @@ import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ImageOverlayModal } from '../../../components/shop/alcove/AlcoveModals';
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
-import { BASE, EMPTY, guidePath, KINDS, potPath, saveReview, type ChangeClay, type ClayAction, type Auth, type Board, type Decision, type Pot } from './data';
+import { BASE, EMPTY, guidePath, KINDS, potPath, saveReview, shapeEvidenceName, type ChangeClay, type ChangeShape,
+  type ShapeEvidence, type ClayAction, type Auth, type Board, type Decision, type Pot } from './data';
 import { useReviewPhotos } from './Photos';
-import { shapeLibraryPath } from './shapeData';
+import { shapeEvidencePath, shapeLibraryPath } from './shapeData';
 
 const FIELD_LABELS = { clay: 'Clay', color: 'Observed fired color', shape: 'Shape' };
 const fieldClass = 'mt-1 block w-full min-w-0 rounded-md border border-tea-border bg-tea-surface p-2 text-tea-text';
 
-export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onReload, onClay }: {
-  board: Board; pot: Pot; auth: Auth; onClay: ChangeClay; draft?: Decision; onDraft: (decision: Decision) => void; onSave: (decision: Decision) => void; onReload: () => Promise<void>;
+export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onReload, onClay, onShape }: {
+  board: Board; pot: Pot; auth: Auth; onClay: ChangeClay; onShape: ChangeShape;
+  draft?: Decision; onDraft: (decision: Decision) => void; onSave: (decision: Decision) => void; onReload: () => Promise<void>;
 }) {
   const [params, setParams] = useSearchParams();
   const originals = params.get('view') === 'original';
@@ -27,6 +29,8 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
 
   const clayGuesses = comparisons.filter(entry => entry.kind === 'clay');
   const otherComparisons = comparisons.filter(entry => entry.kind !== 'clay');
+  const shapeVerdicts = [...(draft.confirmedShape ? [draft.confirmedShape] : []),
+    ...Object.values(draft.rejectedShapes ?? {})];
 
   async function chooseClay(id: string, action: ClayAction) {
     if (saving || conflict) return;
@@ -39,6 +43,19 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
     } catch (error) {
       setConflict(error instanceof Error && 'status' in error && error.status === 409);
       setMessage(error instanceof Error ? error.message : 'Unable to save the clay decision.');
+    } finally { setSaving(false); }
+  }
+
+  async function withdrawShape(shape: ShapeEvidence) {
+    if (saving || conflict) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      setDraft(await onShape(pot.id, { formId: shape.formId, asset: shape.asset, action: 'withdraw', revision: draft.revision }));
+      setMessage(shape.verdict === 'confirmed' ? 'Confirmation withdrawn.' : 'Rejection removed.');
+    } catch (error) {
+      setConflict(error instanceof Error && 'status' in error && error.status === 409);
+      setMessage(error instanceof Error ? error.message : 'Unable to withdraw the shape decision.');
     } finally { setSaving(false); }
   }
 
@@ -93,6 +110,17 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
     <h2 className="type-section-heading mt-4 font-display">Your confirmation</h2>
     <form onSubmit={submit}>
       <fieldset className="min-w-0" disabled={saving}>
+        {shapeVerdicts.length > 0 && <ul aria-label="Saved library shape decisions" className="my-3 space-y-2">
+          {shapeVerdicts.map(shape => <li key={shape.formId} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="break-words">
+              {shape.verdict === 'confirmed' ? 'Confirmed shape' : 'Rejected shape'} ·{' '}
+              <Link className={QUIET_LINK} to={shapeEvidencePath(pot.id, shape, false, originals)}>{shapeEvidenceName(shape)}</Link>
+            </span>
+            <button className="btn-quiet tap-target" type="button" disabled={conflict} onClick={() => void withdrawShape(shape)}>
+              {shape.verdict === 'confirmed' ? 'Withdraw confirmation' : 'Undo rejection'}
+            </button>
+          </li>)}
+        </ul>}
         <section aria-label="Suggested clay" className="mb-3">
           {clayGuesses.length === 0 && <p className="text-tea-text-sec">No clay suggestion from these photos.</p>}
           {clayGuesses.map(entry => {

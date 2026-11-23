@@ -5,9 +5,10 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ImageOverlayModal } from '../../../components/shop/alcove/AlcoveModals';
 import { TYPOGRAPHY_CLASSES as TYPE } from '../../../designTokens';
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
-import { guidePath, potPath, type Auth, type Board, type Pot } from './data';
+import { EMPTY, guidePath, potPath, type Auth, type Board, type ChangeShape, type Decision, type Pot } from './data';
 import { useReviewPhotos } from './Photos';
 import AddShapeReference from './AddShapeReference';
+import { ShapeVerdict } from './ShapeVerdict';
 import {
   loadShapeLibrary, loadShapePhoto, matchingShapes, shapeExemplars, SHAPE_FEATURES,
   SHAPE_LIBRARY_PATH, SHAPE_SILHOUETTES, type ShapeExemplar, type ShapeForm,
@@ -120,9 +121,10 @@ function Example({ example, auth, onZoom }: { example: ShapeExemplar; auth: Auth
   </article>;
 }
 
-function ShapeDetails({ auth, form, pot, originals, reference, onSelect, onZoom }: {
+function ShapeDetails({ auth, form, pot, originals, reference, onSelect, onZoom, decision, onShape, onReload }: {
   auth: Auth; form: ShapeForm; pot?: Pot; originals: boolean; reference: string | null;
   onSelect: (asset: string) => void; onZoom: OnZoom;
+  decision: Decision; onShape: ChangeShape; onReload: () => Promise<void>;
 }) {
   const exemplars = shapeExemplars(form);
   const selected = exemplars.find(item => item.asset === reference) ?? exemplars[0];
@@ -140,6 +142,8 @@ function ShapeDetails({ auth, form, pot, originals, reference, onSelect, onZoom 
       <Example key={selected.asset} example={selected} auth={auth} onZoom={onZoom} />
       {!pot && <ShapeFeatures form={form} />}
     </div>
+    {pot && <ShapeVerdict key={pot.id + ':' + form.id} pot={pot} form={form} example={selected}
+      decision={decision} onShape={onShape} onReload={onReload} />}
     {pot && <ShapeFeatures form={form} />}
   </>;
 }
@@ -167,7 +171,9 @@ function ShapeFeatures({ form }: { form: ShapeForm }) {
   </section>;
 }
 
-export function ShapeLibrary({ board, auth, revision }: { board: Board; auth: Auth; revision: number }) {
+export function ShapeLibrary({ board, auth, revision, onShape, onReload }: {
+  board: Board; auth: Auth; revision: number; onShape: ChangeShape; onReload: () => Promise<void>;
+}) {
   const { '*': child } = useParams();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -234,6 +240,7 @@ export function ShapeLibrary({ board, auth, revision }: { board: Board; auth: Au
       : editing ? <AddShapeReference auth={auth} forms={library.forms} onCancel={() => navigate(link())}
         onSaved={({ formId, asset }) => { void query.refetch(); navigate(link(formId, asset), { replace: true }); }} />
       : chosen ? <ShapeDetails auth={auth} pot={pot} originals={originals} form={chosen}
+        decision={pot ? board.decisions[pot.id] ?? EMPTY : EMPTY} onShape={onShape} onReload={onReload}
         reference={selectedAsset} onSelect={asset => navigate(link(chosen.id, asset), { replace: true })} onZoom={setZoom} />
       : child ? <><h1 className={TYPE.h1}>Form unavailable</h1><Link className={QUIET_LINK} to={link()}>Browse the shape library</Link></>
       : <>

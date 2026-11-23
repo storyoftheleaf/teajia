@@ -1,5 +1,5 @@
 import { API_URL, authedBlobFetch, authedFetch, type ApiRequestInit } from '../../../lib/api';
-import { BASE, type Auth } from './data';
+import { BASE, type Auth, type ShapeEvidence } from './data';
 
 export const SHAPE_LIBRARY_PATH = BASE + '/wisdom/shapes';
 export const SHAPE_SILHOUETTES = [
@@ -59,6 +59,13 @@ export function shapeLibraryPath(potId?: string, fromListing = false, originals 
     if (originals) params.set('view', 'original');
   }
   return SHAPE_LIBRARY_PATH + (params.size ? '?' + params : '');
+}
+
+export function shapeEvidencePath(potId: string, shape: ShapeEvidence, fromListing = false, originals = false) {
+  const params = new URLSearchParams({ pot: potId, ref: shape.asset });
+  if (fromListing) params.set('from', 'listing');
+  if (originals) params.set('view', 'original');
+  return SHAPE_LIBRARY_PATH + '/' + encodeURIComponent(shape.formId) + '?' + params;
 }
 
 const normalize = (value: string) =>
