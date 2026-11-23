@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { claimIdFor, currentRevision, projectClaim, reviewStateFor, validateLedger } from './claim-ledger.mjs';
+
 const HAN_SCRIPT = /\p{Script=Han}/u;
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SOURCE_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -13,6 +15,7 @@ const PAGE_KINDS = new Set([
   'tea_type',
   'major_region',
   'tea_area',
+  'leaf_grade',
   'reference_topic',
 ]);
 const GEOGRAPHIC_KINDS = new Set(['major_region', 'tea_area']);
@@ -123,9 +126,6 @@ export function parsePageMarkdown(markdown, fileName = '<markdown>') {
   if (!['public', 'draft'].includes(visibility)) fail(fileName, `unsupported visibility ${visibility}`);
   if (kind === 'reference_topic' && visibility !== 'draft') {
     fail(fileName, 'reference_topic pages must remain non-public drafts');
-  }
-  if (kind !== 'reference_topic' && visibility !== 'public') {
-    fail(fileName, `${kind} pages must be public`);
   }
   if (HAN_SCRIPT.test(label)) fail(fileName, 'Han-script is not allowed in the public label');
   if (!Array.isArray(sourceIds) || sourceIds.length === 0) fail(fileName, 'source_ids must contain at least one source');
@@ -253,7 +253,7 @@ function publicSource(source) {
   };
 }
 
-export async function buildRegistry({ pagesDirectory, translationsPath }) {
+export async function loadSourcePages({ pagesDirectory, translationsPath }) {
   const [fileNames, privateJson] = await Promise.all([
     fs.readdir(pagesDirectory),
     fs.readFile(translationsPath, 'utf8'),
@@ -297,12 +297,18 @@ export async function buildRegistry({ pagesDirectory, translationsPath }) {
     if (page.kind === 'major_region' && parent && parent.kind !== 'major_region') {
       throw new Error(`major_region ${page.id} may only have a major_region parent`);
     }
+    if (page.kind === 'leaf_grade' && parent?.kind !== 'tea_type') {
+      throw new Error(`leaf_grade ${page.id} must have a tea_type parent`);
+    }
     if (page.kind === 'tea_area' && (!parent || !['major_region', 'tea_area'].includes(parent.kind))) {
       throw new Error(`tea_area ${page.id} must have a major_region or tea_area parent`);
     }
     for (const sourceId of page.sourceIds) {
       const source = sourcesById.get(sourceId);
-      if (!source) throw new Error(`${page.id} cites missing private source provenance ${sourceId}`);
+      if (!source) {
+        if (page.visibility === 'draft' && page.kind !== 'reference_topic') continue;
+        throw new Error(`${page.id} cites missing private source provenance ${sourceId}`);
+      }
       if (GEOGRAPHIC_KINDS.has(page.kind) && NON_PLACE_SOURCE_SHAPES.has(source.content_shape)) {
         throw new Error(`${source.content_shape} research ${sourceId} must be a reference_topic, not ${page.kind}`);
       }
@@ -310,14 +316,30 @@ export async function buildRegistry({ pagesDirectory, translationsPath }) {
     for (const section of page.sections) {
       for (const sourceId of section.sourceIds) {
         const source = sourcesById.get(sourceId);
-        const resolves = source.evidence.some(evidence => evidence.uses.some(use => (
+        const resolves = Boolean(source) && source.evidence.some(evidence => evidence.uses.some(use => (
           use.page_id === page.id && use.section_key === section.key
         )));
-        if (!resolves) throw new Error(`${page.id}#${section.key} citation ${sourceId} has no private evidence provenance`);
+        if (!resolves) {
+          // A draft page may cite research whose capture is still pending; it never reaches the public registry.
+          if (page.visibility === 'draft' && page.kind !== 'reference_topic') {
+            section.unresolvedSourceIds = [...(section.unresolvedSourceIds ?? []), sourceId];
+            continue;
+          }
+          throw new Error(`${page.id}#${section.key} citation ${sourceId} has no private evidence provenance`);
+        }
       }
     }
   }
-  const pages = sourcePages.filter(page => page.visibility === 'public').map(({ visibility: _visibility, ...page }) => page);
+  return { sourcePages, document };
+}
+
+export function publicRegistryFrom(sourcePages, document) {
+  const pages = sourcePages
+    .filter(page => page.visibility === 'public')
+    .map(({ visibility: _visibility, ...page }) => ({
+      ...page,
+      sections: page.sections.map(({ unresolvedSourceIds: _unresolved, ...section }) => section),
+    }));
   const usedSourceIds = new Set(pages.flatMap(page => page.sourceIds));
   const sources = document.sources
     .filter(source => usedSourceIds.has(source.source_id))
@@ -326,6 +348,72 @@ export async function buildRegistry({ pagesDirectory, translationsPath }) {
   return { schemaVersion: 1, pages, sources };
 }
 
+export async function buildRegistry(paths) {
+  const { sourcePages, document } = await loadSourcePages(paths);
+  return publicRegistryFrom(sourcePages, document);
+}
+
 export function renderGeneratedRegistry(registry) {
   return `/* This file is generated by scripts/tea-reference-markdown/build-pages.mjs. */\nimport type { TeaReferencePageRegistry } from './types';\n\nexport const GENERATED_TEA_REFERENCE_REGISTRY = ${JSON.stringify(registry, null, 2)} as const satisfies TeaReferencePageRegistry;\n\nexport const GENERATED_TEA_REFERENCE_PAGES = GENERATED_TEA_REFERENCE_REGISTRY.pages;\n`;
+}
+
+/**
+ * Build the public registry and claim projections from Markdown plus the claim ledger.
+ * Public text comes from the ledger's current approved revision, never from Markdown.
+ * Contract: docs/_notes/tea-wisdom-claims.md
+ */
+export async function buildWisdom({ pagesDirectory, translationsPath, claimsPath }) {
+  const { sourcePages, document } = await loadSourcePages({ pagesDirectory, translationsPath });
+  const ledger = JSON.parse(await fs.readFile(claimsPath, 'utf8'));
+  const entries = validateLedger(ledger, sourcePages, document);
+
+  const approvedPages = sourcePages
+    .filter(page => page.visibility === 'public')
+    .map(page => {
+      const sections = page.sections
+        .map(section => {
+          const entry = entries.get(claimIdFor(page.id, section.key));
+          const state = reviewStateFor(entry, section.text);
+          if (state !== 'approved' && state !== 'pending') return undefined;
+          return { ...section, text: currentRevision(entry).text };
+        })
+        .filter(Boolean);
+      const sourceIds = [...new Set(sections.flatMap(section => section.sourceIds))].sort(codePointCompare);
+      return { ...page, sections, sourceIds };
+    })
+    .filter(page => page.sections.length > 0);
+  const registry = publicRegistryFrom(approvedPages, document);
+
+  const located = new Map();
+  for (const page of sourcePages) {
+    for (const section of page.sections) located.set(claimIdFor(page.id, section.key), { page, section });
+  }
+  const claims = [];
+  const draftClaims = [];
+  for (const entry of [...entries.values()].sort((left, right) => codePointCompare(left.claim_id, right.claim_id))) {
+    const { page, section } = located.get(entry.claim_id) ?? {};
+    const draft = projectClaim(entry, page, section, { preview: true });
+    if (section?.unresolvedSourceIds?.length) draft.unresolvedSourceIds = section.unresolvedSourceIds;
+    draftClaims.push(draft);
+    const isPublic = page?.visibility === 'public' && (draft.reviewState === 'approved' || draft.reviewState === 'pending');
+    if (isPublic) claims.push({ ...projectClaim(entry, page, section, { preview: false }), reviewState: 'approved' });
+  }
+  const draftPages = sourcePages.map(({ sections, ...page }) => ({
+    ...page,
+    sections: sections.map(({ key, label, sourceIds, unresolvedSourceIds }) => ({
+      key, label, sourceIds, ...(unresolvedSourceIds ? { unresolvedSourceIds } : {}),
+    })),
+  }));
+  const draftSources = document.sources.map(publicSource).sort((left, right) => codePointCompare(left.sourceId, right.sourceId));
+  return { registry, claims, draftClaims, draftPages, draftSources };
+}
+
+export function renderGeneratedClaims(claims) {
+  return `/* This file is generated by scripts/tea-reference-markdown/build-pages.mjs. Approved public claims only. */\nimport type { PublicClaim } from './claims';\n\nexport const GENERATED_CLAIMS: readonly PublicClaim[] = ${JSON.stringify(claims, null, 2)};\n`;
+}
+
+export function renderGeneratedDraftClaims({ draftClaims, draftPages, draftSources }) {
+  return `/* This file is generated by scripts/tea-reference-markdown/build-pages.mjs.
+ * Every claim in every review state. Load only through a mode-guarded dynamic import()
+ * (see docs/_notes/tea-wisdom-claims.md); it must never reach a production bundle. */\nimport type { DraftClaim, DraftReferencePage, PublicTeaReferenceSource } from './claims';\n\nexport const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = ${JSON.stringify(draftClaims, null, 2)};\n\nexport const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = ${JSON.stringify(draftPages, null, 2)};\n\nexport const GENERATED_DRAFT_SOURCES: readonly PublicTeaReferenceSource[] = ${JSON.stringify(draftSources, null, 2)};\n`;
 }

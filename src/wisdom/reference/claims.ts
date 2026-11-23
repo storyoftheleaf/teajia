@@ -135,3 +135,24 @@ export function articleUseNeedsReview(
   if (!claim || claim.reviewState === 'withdrawn' || claim.rev === null) return true;
   return claim.rev > use.revUsed;
 }
+
+export type { PublicTeaReferenceSource } from './types';
+
+/** A claim as the preview build sees it (generatedDraftClaims.ts). */
+export interface DraftClaim extends PublicClaim {
+  pageVisibility?: 'public' | 'draft';
+  /** Citations on a draft page whose evidence capture is still pending. */
+  unresolvedSourceIds?: readonly string[];
+}
+
+export interface DraftReferencePage {
+  id: string;
+  slug: string;
+  kind: 'tea_family' | 'tea_type' | 'major_region' | 'tea_area' | 'leaf_grade' | 'reference_topic';
+  label: string;
+  visibility: 'public' | 'draft';
+  nativeName?: string;
+  parentId?: string;
+  sourceIds: readonly string[];
+  sections: readonly { key: string; label: string; sourceIds: readonly string[]; unresolvedSourceIds?: readonly string[] }[];
+}

@@ -49,6 +49,8 @@ Every section of every existing `visibility: public` page gets a ledger entry wi
 
 `visibility: draft` is allowed on every page kind. The new kind `leaf_grade` must have a `tea_type` parent (Gong Ting → `shou`).
 
+A draft page may cite a source whose evidence capture is still pending. The builder records these citations as `unresolvedSourceIds` on the draft claim, and the preview shows them as "Evidence pending". A public page never may. Approving a revision still requires real `evidence_ids`.
+
 | Module | Exports | Contents | Loaded |
 |---|---|---|---|
 | `src/wisdom/reference/generatedPages.ts` | `GENERATED_TEA_REFERENCE_REGISTRY` (unchanged shape) | public pages, approved text | always |
