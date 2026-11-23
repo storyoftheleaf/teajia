@@ -228,9 +228,6 @@ export const VendorProfileView: React.FC = () => {
           </div>
         </section>
 
-        <CurateVendorFields vendorId={vendorId!} />
-        <CurateQuotesPanel vendorId={vendorId!} />
-        <CurateRecordTools entityType="vendor" entityId={vendorId!} />
 
         {/* Products supplied */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -344,6 +341,14 @@ export const VendorProfileView: React.FC = () => {
             <p className="text-ui-13 text-tea-text-sec leading-relaxed">{vendor.notes}</p>
           </section>
         )}
+
+        {/* The working records (people, quotes, files, history) sit last, below
+            what Adrian reads (Adrian, 2026-11-23: "put these at the very bottom"). */}
+        <section className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
+          <CurateVendorFields vendorId={vendorId!} />
+          <CurateQuotesPanel vendorId={vendorId!} />
+          <CurateRecordTools entityType="vendor" entityId={vendorId!} />
+        </section>
       </div>
     </div>
   );

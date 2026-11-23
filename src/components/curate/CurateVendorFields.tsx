@@ -60,7 +60,7 @@ export function CurateVendorFields({ vendorId }: { vendorId: string }) {
     } finally { savingRef.current = false; if (generation === request.current) setSaving(false); }
   };
   return <details className="border-t border-tea-border pt-3" data-testid="curate-vendor-fields">
-    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-tap text-tea-text-sec`}>Vendor people &amp; addresses</summary>
+    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-tap text-tea-text-sec`}>People &amp; addresses</summary>
     {error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
     {!draft && error && <button type="button" className={buttonClass} onClick={() => setRetry(value => value + 1)}>Retry vendor details</button>}
     {!draft ? <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`}>Loading vendor details</p> : <div className="space-y-5 pb-3">
