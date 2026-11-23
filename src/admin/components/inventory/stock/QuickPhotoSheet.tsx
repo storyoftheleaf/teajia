@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Camera, ImagePlus } from 'lucide-react';
 import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
+import { selectIsOwnerTier, useAppStore } from '../../../../lib/store';
 import { api } from '../../../../lib/api';
 import { mediaUrl } from '../../../../lib/mediaUrl';
 import type { Product } from '../../../types';
@@ -13,6 +14,7 @@ type PendingPhoto = { file: File; slot: PhotoSlot; replace: boolean; url?: strin
 const slotLabel = (slot: PhotoSlot) => slot === 'main' ? 'Main photo' : `Photo ${Number(slot) + 1}`;
 
 export function QuickPhotoSheet({ product, onSave, onClose }: QuickPhotoSheetProps) {
+  const owner = useAppStore(selectIsOwnerTier);
   const [replaceSlot, setReplaceSlot] = useState<PhotoSlot | null>(null);
   const [pending, setPending] = useState<PendingPhoto | null>(null);
   const [busy, setBusy] = useState(false);
@@ -81,6 +83,7 @@ export function QuickPhotoSheet({ product, onSave, onClose }: QuickPhotoSheetPro
         <p className={`${T.link} break-words text-tea-text-sec`}>{pending.file.name} is ready to retry.</p>
         <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void persist(pending)} className={`${T.nav} min-h-tap rounded-md cta-solid px-4 py-2`}>Retry saving photo</button><button type="button" onClick={discardPending} className={`${T.link} min-h-tap rounded-md border border-tea-border px-4 py-2`}>Choose another</button></div>
       </div>}
+      {owner && !pending && !busy && <a className="btn-quiet btn-sm" href={'/admin/stock/gallery-proposals/' + encodeURIComponent(product.id)}>Stage private gallery</a>}
       {existing.length > 0 && <div className="space-y-2">
         {existing.map(([slot, url]) => <div key={slot} className="flex min-w-0 items-center gap-3 rounded-xl border border-tea-border bg-tea-surface p-2">
           <img src={mediaUrl(url!)} alt={slotLabel(slot)} className="h-16 w-16 shrink-0 rounded-md object-cover" />

@@ -16,16 +16,34 @@ describe('product fields on the page and quick view', () => {
     const tea = { ...item, lore: 'Origin story', terroir: 'From this place', processingNotes: 'Process\n## Style aroma reference\nCited style detail' };
     const card = renderToStaticMarkup(<AlcoveAboutSection reading={teaReading(tea, 'card')} />);
     const page = renderToStaticMarkup(<AlcoveAboutSection reading={teaReading(tea, 'page')} variant="page" />);
-    for (const text of ['Introduction text', 'Origin story', 'From this place', 'Cited style detail']) {
+    for (const text of ['Origin story', 'From this place']) {
       expect(card).toContain(text);
       expect(page).toContain(text);
     }
     expect(card).toContain('Style aroma reference');
-    expect(page).toContain('Flavor &amp; Aroma Profile');
+    expect(card).toContain('Introduction text');
+    expect(teaReading(tea, 'page').introduction).toBe('Introduction text');
+    expect(page).not.toContain('Introduction text');
+    expect(page).not.toContain('Cited style detail');
     expect(productGallery(tea, 'card').allImages).toHaveLength(3);
     expect(productGallery(tea, 'page').allImages).toHaveLength(4);
   });
 
+  it('opens on supported detail and leaves a name-and-type-only listing without a lead', () => {
+    expect(teaReading({ ...item, name: 'Test', description: 'Test.' }, 'page').introduction).toBeUndefined();
+    expect(teaReading({ ...item, description: '', form: 'Loose Leaf', origin: 'Wuzhou, Guangxi' }, 'page').introduction)
+      .toBe('Loose leaf from Wuzhou, Guangxi.');
+    const tea = teaReading({ ...item, description: 'A small hollow tuo.\n\nThe longer account.' }, 'page');
+    expect(tea.introduction).toBe('A small hollow tuo.');
+    expect(tea.sections[0].paragraphs).toEqual(['The longer account.']);
+  });
+
+  it('leads the object facts with its form, capacity and condition', () => {
+    const ware: InventoryItem = { ...item, category: 'ware', form: 'Hexagonal', capacityMl: 250, material: 'Clay',
+      teawareDetails: { mark: 'Incised', condition: 'Small rim chip' } };
+    expect(teawareFacts(ware).filter(fact => fact.value).map(fact => fact.label))
+      .toEqual(['Form', 'Capacity', 'Condition', 'Material', 'Mark']);
+  });
   it('replaces the reviewed lot’s disputed prose on both surfaces while retaining independently recorded fields', () => {
     const tea = { ...item, name: 'Y562', id: 'cb7efd7b-9da6-4dc8-be76-3c7e69bdb02e',
       lore: "The Y562 is a named export recipe from Yunnan's state tea trade house, not an anonymous cake. In old puerh coding the Y prefix marks it as the Yunnan Tea Import and Export Company, and Jixing, meaning fortune, was their export brand. The number itself is shorthand for leaf grade and factory. Grade 5 to 6 points to fine tender leaf, in contrast to the coarse ripe bricks of the same period.",
@@ -33,12 +51,16 @@ describe('product fields on the page and quick view', () => {
       processingNotes: "Ripe puerh is made by wo dui, a wet piling step developed in the early 1970s where damp leaves are heaped and turned so microbes speed up the ageing. Rather than pressed into a cake, this lot was kept loose in a 100 gram box, then aged in Hong Kong dry storage from around 1993, a steady climate that lets the tea settle cleanly. Ripe puerh of this age drinks dark, smooth, and thick in the mouth.",
       experience: 'Separately recorded experience' };
     for (const surface of ['card', 'page'] as const) {
-      const text = teaReading(tea, surface).sections.flatMap(section => section.paragraphs);
+      const read = (row: InventoryItem) => {
+        const reading = teaReading(row, surface);
+        return [reading.introduction, ...reading.sections.flatMap(section => section.paragraphs)].filter(Boolean);
+      };
+      const text = read(tea);
       expect(text).toEqual([item.description, tea.experience]);
-      expect(teaReading({ ...tea, lore: '  ' + tea.lore.replace(/ /g, '\n') + '  ',
-        terroir: 'Newly confirmed origin' }, surface).sections.flatMap(section => section.paragraphs))
+      expect(read({ ...tea, lore: '  ' + tea.lore.replace(/ /g, '\n') + '  ',
+        terroir: 'Newly confirmed origin' }))
         .toEqual([item.description, 'Newly confirmed origin', tea.experience]);
-      expect(teaReading({ ...tea, id: 'different-lot' }, surface).sections.flatMap(section => section.paragraphs))
+      expect(read({ ...tea, id: 'different-lot' }))
         .toEqual([item.description, tea.lore, tea.terroir, tea.processingNotes, tea.experience]);
     }
   });

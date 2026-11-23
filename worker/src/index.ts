@@ -182,6 +182,7 @@ import { handleCurateWorkspace } from './curateWorkspaceRoutes';
 import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
+import { serveStockGalleryProposal } from './stockGalleryProposal';
 import { serveYixingOwnerReview } from './yixingOwnerReview';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
 import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
@@ -31301,6 +31302,10 @@ const requestHandler = {
       return new Response(null, { status: 204, headers });
     }
 
+    if (url.pathname.startsWith('/api/admin/stock-gallery/')) {
+      return cors(await serveStockGalleryProposal(request, env, () => getActiveAccount(request, env)), corsOrigin);
+    }
+
     if (url.pathname === '/api/admin/yixing' || url.pathname.startsWith('/api/admin/yixing/')) {
       return cors(await serveYixingOwnerReview(request, env, () => getActiveAccount(request, env)), corsOrigin);
     }
@@ -31327,7 +31332,7 @@ const requestHandler = {
       }
       // Curate evidence can contain private invoices and vendor conversations.
       // It must never pass through the public product-media endpoint.
-      if (key.startsWith('curate/') || key.startsWith('private-recordings/')) return cors(new Response('Not found', { status: 404 }), corsOrigin);
+      if (key.startsWith('stock-gallery-proposals/') || key.startsWith('curate/') || key.startsWith('private-recordings/')) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       if (!env.MEDIA_BUCKET) {
         return cors(new Response('Media bucket not configured', { status: 503 }), corsOrigin);
       }

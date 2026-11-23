@@ -41,7 +41,7 @@ describe('AlcoveWisdomPassages', () => {
     const markup = render(<AlcoveWisdomStyleReferences listing={listing} />);
     expect(markup).toContain('What people often notice');
     expect(markup).toContain('People often notice dried fruit and a creamy sweetness in Gong Ting ripe pu&#x27;er.');
-    expect(markup).toContain('not a tasting of this tea');
+    expect(markup).toContain("as a grade, not any one lot");
     expect(markup).not.toMatch(/Reported by|Yunnan Sourcing|Style reference/);
   });
 });

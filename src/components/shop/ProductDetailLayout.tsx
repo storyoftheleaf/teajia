@@ -14,6 +14,7 @@ import { ImageOverlayModal } from './alcove/AlcoveModals';
 import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import type { ProductReading } from './productDetailFields';
 import { ProductOrderAccess } from './ProductOrderAccess';
+import { BODY } from '../shared/typeRoles';
 import { GroupHead, IndexRow, SplitName } from '../people/immersive';
 import type { api } from '../../lib/api';
 import { useTeaFamily } from './useTeaFamily';
@@ -38,9 +39,10 @@ interface ProductDetailLayoutProps {
   ownerPreviewNavigation?: ReactNode;
   facts: Fact[];
   factsTitle: string;
-  afterFacts?: ReactNode;
+  history?: ReactNode;
+  styleReference?: ReactNode;
   order?: ReactNode;
-  character?: ReactNode;
+  tasting?: ReactNode;
   reading?: ProductReading;
   related?: ReactNode;
   teaOrder?: boolean;
@@ -49,7 +51,7 @@ interface ProductDetailLayoutProps {
 }
 
 export function ProductDetailLayout({
-  identity, gallery, actions, facts, factsTitle, afterFacts, order, character, reading, related, teaOrder, modals, soldOut, ownerPreviewNavigation,
+  identity, gallery, actions, facts, factsTitle, history, order, tasting, reading, related, styleReference, teaOrder, modals, soldOut, ownerPreviewNavigation,
 }: ProductDetailLayoutProps) {
   const { shopHref, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
   const { item } = identity;
@@ -126,43 +128,44 @@ export function ProductDetailLayout({
             }} />}
             {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
             {hasProductActions && actions && <ProductDetailActions {...actions} key={item.id} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
+            {reading?.introduction && <p className={`${BODY} mx-5 my-[var(--space-4)] text-tea-text`}>{reading.introduction}</p>}
+            {tasting}
             {visibleFacts.length > 0 && (
               <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">
                 <h2 id="tea-product-provenance-title" className="m-0 font-display text-ui-20 text-tea-text">{factsTitle}</h2>
                 <FactGrid facts={visibleFacts} />
               </section>
             )}
-            {afterFacts}
             {order && <div data-page-order data-tea-product-order={teaOrder || undefined} className="commerce-dock commerce-price-surface paper-surface dark z-nav">{order}</div>}
-            {character}
+            {history}
             {reading && <AlcoveAboutSection reading={reading} variant="page" />}
             {related}
+            {selectedBy.length > 0 && (
+              <section aria-label="Selected by" className="mx-5 mt-4" data-testid="product-selected-by">
+                {/* The profile page's own row (2026-09-21): the spaced-caps divider,
+                    the name with its italic gold surname, the tea master's own note
+                    as the dek, a hairline under. It reads as the person's voice on
+                    the tea, which is the whole point of the line. */}
+                <GroupHead label="Selected by" />
+                {selectedBy.map(creator => (
+                  <IndexRow
+                    key={creator.slug}
+                    to={`/people/${encodeURIComponent(creator.slug)}`}
+                    title={<SplitName name={creator.display_name} />}
+                    dek={creator.why ?? (creator.business_name ? `At ${creator.business_name}.` : undefined)}
+                    testId="product-selected-by-row"
+                    ariaLabel={`${creator.display_name}, who selected this item`}
+                  />
+                ))}
+              </section>
+            )}
+            {styleReference}
           </div>
         </div>
         <div aria-hidden="true" className="h-40 lg:h-8" />
         <ImageOverlayModal open={Boolean(expandedImage)} expandedImageUrl={expandedImage} itemName={item.name} onClose={() => setExpandedImage(null)} />
         {modals}
       </article>
-      {selectedBy.length > 0 && (
-        <section aria-label="Selected by" className="mx-5 mt-4 lg:mx-10" data-testid="product-selected-by">
-          {/* The profile page's own row (2026-09-21): the spaced-caps divider,
-              the name with its italic gold surname, the tea master's own note
-              as the dek, a hairline under. It reads as the person's voice on
-              the tea, which is the whole point of the line. */}
-          <GroupHead label="Selected by" />
-          {selectedBy.map(creator => (
-            <IndexRow
-              key={creator.slug}
-              to={`/people/${encodeURIComponent(creator.slug)}`}
-              title={<SplitName name={creator.display_name} />}
-              dek={creator.why ?? (creator.business_name ? `At ${creator.business_name}.` : undefined)}
-              testId="product-selected-by-row"
-              ariaLabel={`${creator.display_name}, who selected this item`}
-            />
-          ))}
-        </section>
-      )}
-
     </>
   );
 }

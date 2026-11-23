@@ -480,9 +480,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     year: item.year,
   };
   const { catalogue: referenceCatalogue } = useTeaReferenceCatalogue(layout === 'page' && item.category === 'tea');
-  // The pilot view hides "Potential character": it falls through region and
-  // style research that no claim guards yet.
-  const potentialResearch = item.category === 'tea' && !wisdomPilot
+  // Background research belongs to the admin card. Public cup terms require an authored lot tasting.
+  const potentialResearch = item.category === 'tea' && layout === 'card' && isAdmin && !wisdomPilot
     ? resolveProductResearch(referenceProduct)
     : null;
   const listingFacts = wisdomListing.facts ?? listingFactsFromInventoryItem(item);
@@ -511,7 +510,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       onTaste={layout === 'page' ? undefined : onTaste}
       tastingEntry={tastingEntry}
       impressions={impressions}
-      open={layout === 'page'}
+      verifiedOnly={layout === 'page' || !isAdmin}
     />
   );
 
@@ -554,7 +553,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const shopStoreSlug = new URLSearchParams(search).get('store')?.trim() || useAppStore.getState().shopStoreSlug;
   const threadBase = shopStoreSlug ? `/shop?store=${encodeURIComponent(shopStoreSlug)}&` : '/shop?';
   const threadOriginName = (item.origin ?? '').split(',')[0]?.trim();
-  const firstFlavor = item.tasting?.flavor?.[0];
+  const firstFlavor = item.tastingSource === 'owner' ? item.tasting?.flavor?.[0] : undefined;
   const threads = [
     ...(threadOriginName ? [{ key: 'origin', label: `More from ${threadOriginName}`, href: `${threadBase}origin=${encodeURIComponent(threadOriginName)}` }] : []),
     ...(teaType ? [{ key: 'type', label: `Other ${teaType.toLowerCase()}`, href: `${threadBase}type=${encodeURIComponent(teaType)}` }] : []),
@@ -598,15 +597,16 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           onTaste: onTaste && (() => onTaste(item, 'notes')),
           onEdit: isAdmin && onEditProductTasting ? () => onEditProductTasting(item) : undefined }}
         facts={teaFacts(item, referenceCatalogue, regionFields, shopStoreSlug, {
-          passages: wisdomPassages.passages, grade: listingFacts.grade, search, pilot: Boolean(wisdomPilot),
+          passages: wisdomPassages.passages, grade: publicFacts.grade, namedTeaId: publicFacts.namedTeaId, search,
         })}
         factsTitle="Provenance"
-        afterFacts={<AlcoveWisdomPassages listing={wisdomPassages} />}
+        history={<AlcoveWisdomPassages listing={wisdomPassages} />}
         order={wisdomPilot?.externalReference ? undefined : commerceFooter('docked')}
         teaOrder
-        character={characterBand}
+        tasting={characterBand}
         reading={reading}
-        related={<>{tableSection}{threadSection}<AlcoveWisdomStyleReferences listing={wisdomPassages} /></>}
+        related={<>{tableSection}{threadSection}</>}
+        styleReference={<AlcoveWisdomStyleReferences listing={wisdomPassages} />}
         soldOut={isSoldOut}
         modals={modals}
       />

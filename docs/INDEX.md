@@ -39,6 +39,7 @@ Only three engineering queues remain active. Human, operator, editorial, and dep
 | [TEA_DISCOVERY.md](TEA_DISCOVERY.md) | Discovery-profile behavior and integration |
 | [COLOR_RULES.md](COLOR_RULES.md) | Mandatory color and styling rules |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Canonical visual system |
+| [Shop listing hierarchy](design/catalog-listing-hierarchy.md) and [field guide](design/catalog-listing-field-guide.md) | Approved tea and teaware reading order, sources and empty states |
 | [UI_CONSISTENCY.md](UI_CONSISTENCY.md) | Lint-enforced UI consistency contract |
 
 ## Engineering references

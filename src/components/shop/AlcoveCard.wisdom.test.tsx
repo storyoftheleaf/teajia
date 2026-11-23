@@ -13,11 +13,15 @@ import { GENERATED_TEA_REFERENCE_REGISTRY } from '../../wisdom/reference/generat
 import { GENERATED_CLAIMS } from '../../wisdom/reference/generatedClaims';
 import { teaFacts, teaRegionFields } from './productDetailFields';
 import type { TeaReferenceCatalogue } from '../../wisdom/reference/types';
+import { ProductDetailPageContext } from './ProductDetailLayout';
 import { ProductDetailContent } from './AlcoveCard';
 import { WisdomListingProvider, useWisdomListing } from './alcove/AlcoveWisdomPassages';
 
-function renderPage(item: InventoryItem, context?: ReturnType<typeof useWisdomListing>) {
-  const content = <ProductDetailContent item={item} />;
+function renderPage(item: InventoryItem, context?: ReturnType<typeof useWisdomListing>, withSelection = false) {
+  const content = <ProductDetailPageContext.Provider value={{ shopHref: '/shop', cartItemCount: 0,
+    selectedBy: withSelection ? [{ slug: 'selector', display_name: 'Shop selector', business_name: null, why: null }] : [] }}>
+    <ProductDetailContent item={item} />
+  </ProductDetailPageContext.Provider>;
   return renderToStaticMarkup(
     <MemoryRouter initialEntries={['/shop/product/naka-gushu?store=bali']}>
       <QueryClientProvider client={new QueryClient()}>
@@ -63,6 +67,16 @@ describe('Wisdom in the shared product page', () => {
     expect(markup).not.toContain('data-wisdom-style-references');
   });
 
+  it('orders a sparse page from its recorded introduction to its sourced story without presenting legacy tags as taste', () => {
+    const markup = renderPage({ ...PILOT_FIXTURES.naka.item, tags: ['Unsupported legacy taste'], form: 'Cake',
+      description: 'A tea cake from Mengsong.', tasting: { flavor: ['unverified-descriptor'] } }, { claims: PILOT_FIXTURE_CLAIMS });
+    const locators = ['Your tea actions', 'A tea cake from Mengsong.', 'tea-product-provenance-title', 'data-page-order', 'data-wisdom-passages'];
+    const positions = locators.map(text => markup.indexOf(text));
+    expect(positions.every(position => position !== -1)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(markup).not.toMatch(/Unsupported legacy taste|unverified-descriptor|aria-label="Taste"/i);
+  });
+
   it('links the registered tea family independently of the verified region', () => {
     const item = PILOT_FIXTURES.naka.item;
     const catalogue: TeaReferenceCatalogue = {
@@ -83,9 +97,10 @@ describe('Wisdom in the shared product page', () => {
     const fixture = PILOT_FIXTURES['gong-ting-external'];
     const markup = renderPage(fixture.item, {
       claims: PILOT_FIXTURE_CLAIMS, facts: fixture.facts, pilot: { externalReference: true },
-    });
+    }, true);
     expect(markup).toContain('data-claim-id="gong-ting:definition"');
     expect(markup).not.toMatch(/data-page-order|Add your own picture|View order|Your tea actions/i);
-    expect(markup.indexOf('data-wisdom-style-references')).toBeGreaterThan(markup.indexOf('Follow the thread'));
+    expect(markup.indexOf('product-selected-by')).toBeGreaterThan(markup.indexOf('Follow the thread'));
+    expect(markup.indexOf('data-wisdom-style-references')).toBeGreaterThan(markup.indexOf('product-selected-by'));
   });
 });

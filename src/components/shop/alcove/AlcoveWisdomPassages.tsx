@@ -8,6 +8,7 @@ import type {
 import type { PublicTeaReferencePage } from '../../../wisdom/reference/types';
 import { GENERATED_TEA_REFERENCE_REGISTRY } from '../../../wisdom/reference/generatedPages';
 import { GENERATED_CLAIMS } from '../../../wisdom/reference/generatedClaims';
+import { wisdomPageHref } from '../../../pages/wisdom/articleClaimUses';
 import { passageAnchorId } from '../../../wisdom/reference/listingPassages';
 import { BODY, FIELD_GAP, LABEL, LINK } from '../../shared/typeRoles';
 
@@ -106,26 +107,21 @@ export const AlcoveWisdomPassages: React.FC<{ listing: ListingPassages }> = ({ l
   );
 };
 
-/**
- * "What people often notice": one sentence per style or grade, in our own
- * words, naming no seller or study. Always last, always about the style or
- * grade, never offered as the taste of this lot. Renders nothing when empty.
- */
+/** The resolver selects a single style-level reference. Its evidence lives with its Wisdom entry. */
 export const AlcoveWisdomStyleReferences: React.FC<{ listing: ListingPassages }> = ({ listing }) => {
-  if (listing.styleReferences.length === 0) return null;
+  const { publicPages } = useWisdomListing();
+  const [claim] = listing.styleReferences;
+  if (!claim) return null;
+  const page = publicPages?.find(entry => entry.id === claim.pageId);
+  const path = page ? wisdomPageHref(page.id, page.kind)
+    : !publicPages ? wisdomPageHref(claim.pageId, claim.appliesWhen.grade ? 'leaf_grade' : 'tea_type') : null;
   return (
-    <section
-      className="mx-4 mt-8 grid gap-3 border-t border-tea-border py-4"
-      aria-labelledby="wisdom-style-reference-title"
-      data-wisdom-style-references
-    >
-      <h2 id="wisdom-style-reference-title" className={`${LABEL} m-0 text-tea-text-dim`}>What people often notice</h2>
-      {listing.styleReferences.map(claim => (
-        <p key={claim.claimId} className={`${BODY} m-0 text-tea-text-sec [overflow-wrap:anywhere]`} data-claim-id={claim.claimId}>
-          {claim.text}
-        </p>
-      ))}
-      <p className={`${BODY} m-0 text-tea-text-dim`}>About the style in general, not a tasting of this tea.</p>
+    <section className="mx-4 mt-8 grid gap-3 border-t border-tea-border py-4"
+      aria-labelledby="wisdom-style-reference-title" data-wisdom-style-references>
+      <h2 id="wisdom-style-reference-title" className={`${LABEL} m-0 text-tea-text-dim`}>{claim.label}</h2>
+      <p className={`${BODY} m-0 text-tea-text-sec [overflow-wrap:anywhere]`} data-claim-id={claim.claimId}>{claim.text}</p>
+      {claim.scope && <p className={`${BODY} m-0 text-tea-text-sec`}>{claim.scope}</p>}
+      {path && <Link to={path + '#' + encodeURIComponent(claim.sectionKey)} className={`${LINK} tap-target`}>Read more in Wisdom</Link>}
     </section>
   );
 };

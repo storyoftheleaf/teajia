@@ -68,6 +68,7 @@ import { ActivityView } from './components/ActivityView';
 // DraftsView (capture route) statically imports InventoryView, so it must also
 // be lazy, otherwise InventoryView is pulled back into the shell chunk through
 // it. Both then share a single on-demand InventoryView chunk.
+const StockGalleryProposal = lazy(() => import('./views/StockGalleryProposal'));
 const OwnerYixing = lazy(() => import('./views/yixing/OwnerYixing'));
 const DraftsView = lazy(() => import('./components/DraftsView').then((m) => ({ default: m.DraftsView })));
 import { IntakeWorkspace } from './views/IntakeWorkspace';
@@ -633,6 +634,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
               <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
               <Route path="tasting-notes" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><CustomerNotesView /></PageTransition></ProtectedRoute>} />
+              <Route path="stock/gallery-proposals/:stockId/:proposalId?" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><Suspense fallback={null}><StockGalleryProposal /></Suspense></ProtectedRoute>} />
               <Route path="yixing/*" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={!isLoggedIn}><Suspense fallback={null}><OwnerYixing /></Suspense></ProtectedRoute>} />
               <Route path="wisdom" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={!isLoggedIn}><PageTransition><WisdomView /></PageTransition></ProtectedRoute>} />
               {/* Network hub, single page with tabbed surfaces */}
