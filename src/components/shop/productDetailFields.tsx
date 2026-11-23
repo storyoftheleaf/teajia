@@ -1,5 +1,6 @@
 import { getTeaColor } from '../../designTokens';
 import type { InventoryItem } from '../../types';
+import { stockClayReading } from '../../wisdom/teawareClay';
 import { resolveLineage } from '../../wisdom/productIdentity';
 import { reviewedLotProse } from '../../wisdom/reference/namedTeaLots';
 import { passageAnchorId } from '../../wisdom/reference/listingPassages';
@@ -186,13 +187,15 @@ export function teawareReading(item: InventoryItem, store: string | null): Produ
   const fallback = typeof capacity === 'number' && Number.isFinite(capacity) && capacity > 0 && !names.includes(`${capacity}ml`)
     ? `This piece holds approximately ${capacity} ml.` : '';
   const opening = listingOpening(item, fallback);
+  const clay = stockClayReading(item);
   return {
     label: 'About this piece',
+    ...(clay && { clay }),
     introduction: opening.introduction,
     sections: [
       passage('About this piece', ...new Set([opening.remaining, ...[item.lore, item.processingNotes, item.experience].map(known)
         .filter(text => text !== opening.introduction && text !== known(item.description))])),
-      passage('Clay', known(details?.clay_history)),
+      ...(!clay ? [passage('Clay', known(details?.clay_history))] : []),
       passage('Form and history', known(details?.form_history)),
       passage('Provenance', known(details?.provenance)),
       passage('At the tea table', known(details?.brewing_notes)),
