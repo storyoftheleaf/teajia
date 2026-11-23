@@ -2,27 +2,89 @@
   "schema_version": 1,
   "claims": [
     {
-      "claim_id": "greater-yiwu:scope",
-      "axis": "place",
-      "listing_eligible": false,
-      "applies_when": {},
+      "claim_id": "gong-ting:appearance",
+      "basis": "trade_knowledge",
+      "axis": "grade",
+      "listing_eligible": true,
+      "applies_when": {
+        "grade": "gong-ting"
+      },
       "attribution": null,
       "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "gong-ting:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "grade": "gong-ting"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "gong-ting:definition",
+      "basis": "trade_knowledge",
+      "axis": "grade",
+      "listing_eligible": true,
+      "applies_when": {
+        "grade": "gong-ting"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "宫廷",
+          "pinyin": "gōngtíng",
+          "gloss": "palace; used as a grade name"
+        }
+      ],
       "status": "approved",
-      "current_rev": 1,
+      "current_rev": 2,
       "revisions": [
         {
           "rev": 1,
-          "origin": "approved",
-          "scope": "Greater Yiwu",
-          "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+          "origin": "legacy_import",
+          "legacy_ref": "marks:gong-ting",
+          "scope": "General grade designation, used on shou pu’er and aged Taiwanese oolong",
+          "text": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves).",
           "approved_at": "2026-11-23",
-          "reason": "Backfilled from pages",
-          "evidence_ids": [
-            "EVIDENCE-B4A02CADDFD91399DD30150A"
-          ]
+          "reason": "Imported from the legacy marks corpus",
+          "evidence_ids": []
+        },
+        {
+          "rev": 2,
+          "origin": "approved",
+          "scope": "Loose ripe pu’er grading",
+          "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
+          "approved_at": "2026-11-23",
+          "reason": "Narrowed to loose ripe pu’er grading (pilot correction demo; awaiting Adrian’s review)",
+          "evidence_ids": []
         }
       ],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "gong-ting:grade-and-quality",
+      "basis": "trade_knowledge",
+      "axis": "terminology",
+      "listing_eligible": false,
+      "applies_when": {
+        "grade": "gong-ting"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
       "withdrawn": null
     },
     {
@@ -78,7 +140,7 @@
       "withdrawn": null
     },
     {
-      "claim_id": "lincang:scope",
+      "claim_id": "greater-yiwu:scope",
       "axis": "place",
       "listing_eligible": false,
       "applies_when": {},
@@ -90,12 +152,12 @@
         {
           "rev": 1,
           "origin": "approved",
-          "scope": "Lincang",
-          "text": "Lincang lies north of Pu’er Prefecture and against Myanmar to the west. Its tea geography includes Mengku, Yongde, Fengqing, Bangdong, Bingdao, and Xigui, with repeated place names such as Daxueshan making precise labels especially important.",
+          "scope": "Greater Yiwu",
+          "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
           "approved_at": "2026-11-23",
           "reason": "Backfilled from pages",
           "evidence_ids": [
-            "EVIDENCE-4F088D1E4FC6C3B3B00588A1"
+            "EVIDENCE-B4A02CADDFD91399DD30150A"
           ]
         }
       ],
@@ -154,7 +216,7 @@
       "withdrawn": null
     },
     {
-      "claim_id": "menghai-county:scope",
+      "claim_id": "lincang:scope",
       "axis": "place",
       "listing_eligible": false,
       "applies_when": {},
@@ -166,12 +228,12 @@
         {
           "rev": 1,
           "origin": "approved",
-          "scope": "Menghai County",
-          "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
+          "scope": "Lincang",
+          "text": "Lincang lies north of Pu’er Prefecture and against Myanmar to the west. Its tea geography includes Mengku, Yongde, Fengqing, Bangdong, Bingdao, and Xigui, with repeated place names such as Daxueshan making precise labels especially important.",
           "approved_at": "2026-11-23",
           "reason": "Backfilled from pages",
           "evidence_ids": [
-            "EVIDENCE-5F496A300F5E710FC8FA80B0"
+            "EVIDENCE-4F088D1E4FC6C3B3B00588A1"
           ]
         }
       ],
@@ -230,8 +292,40 @@
       "withdrawn": null
     },
     {
-      "claim_id": "menghai-tea-mountain-circuit:editorial-boundary",
+      "claim_id": "menghai-county:mengsong-naka",
+      "basis": "trade_knowledge",
       "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "origin_includes": [
+          "mengsong"
+        ],
+        "name_includes": [
+          "naka"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "勐宋",
+          "pinyin": "Měngsòng",
+          "gloss": "Mengsong township"
+        },
+        {
+          "original": "那卡",
+          "pinyin": "Nàkǎ",
+          "gloss": "Naka village"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "menghai-county:ripe-origins",
+      "basis": "trade_knowledge",
+      "axis": "maker_history",
       "listing_eligible": false,
       "applies_when": {},
       "attribution": null,
@@ -242,7 +336,31 @@
       "withdrawn": null
     },
     {
-      "claim_id": "menghai-tea-mountain-circuit:seven-mountain-route",
+      "claim_id": "menghai-county:scope",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {},
+      "attribution": null,
+      "terms": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "Menghai County",
+          "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
+          "approved_at": "2026-11-23",
+          "reason": "Backfilled from pages",
+          "evidence_ids": [
+            "EVIDENCE-5F496A300F5E710FC8FA80B0"
+          ]
+        }
+      ],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "menghai-tea-mountain-circuit:editorial-boundary",
       "axis": "place",
       "listing_eligible": false,
       "applies_when": {},
@@ -266,27 +384,15 @@
       "withdrawn": null
     },
     {
-      "claim_id": "puer:identity",
-      "axis": "type",
+      "claim_id": "menghai-tea-mountain-circuit:seven-mountain-route",
+      "axis": "place",
       "listing_eligible": false,
       "applies_when": {},
       "attribution": null,
       "terms": [],
-      "status": "approved",
-      "current_rev": 1,
-      "revisions": [
-        {
-          "rev": 1,
-          "origin": "approved",
-          "scope": "Pu’er",
-          "text": "Pu’er belongs to Yunnan’s long tea history. The name now gathers a family of teas whose identity is tied not only to manufacture, but also to material, place, and the traditions that developed around them.",
-          "approved_at": "2026-11-23",
-          "reason": "Backfilled from pages",
-          "evidence_ids": [
-            "EVIDENCE-5B1AC33CAC9C5C015CA7CA80"
-          ]
-        }
-      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
       "withdrawn": null
     },
     {
@@ -314,6 +420,30 @@
       "withdrawn": null
     },
     {
+      "claim_id": "puer:identity",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {},
+      "attribution": null,
+      "terms": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "Pu’er",
+          "text": "Pu’er belongs to Yunnan’s long tea history. The name now gathers a family of teas whose identity is tied not only to manufacture, but also to material, place, and the traditions that developed around them.",
+          "approved_at": "2026-11-23",
+          "reason": "Backfilled from pages",
+          "evidence_ids": [
+            "EVIDENCE-5B1AC33CAC9C5C015CA7CA80"
+          ]
+        }
+      ],
+      "withdrawn": null
+    },
+    {
       "claim_id": "puer:modern-family",
       "axis": "type",
       "listing_eligible": false,
@@ -332,6 +462,30 @@
           "reason": "Backfilled from pages",
           "evidence_ids": [
             "EVIDENCE-AAAA07C79A04F58BAF100676"
+          ]
+        }
+      ],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:aging",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {},
+      "attribution": null,
+      "terms": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "Sheng Pu’er",
+          "text": "Sheng is not given shou’s rapid fermentation. Its character instead changes gradually during storage, with leaf, liquor, aroma, and texture developing over years. Storage conditions therefore belong to the tea’s history, not as a guarantee of quality but as part of how any particular cake has evolved.",
+          "approved_at": "2026-11-23",
+          "reason": "Backfilled from pages",
+          "evidence_ids": [
+            "EVIDENCE-E31C7DFEB22516770374C078"
           ]
         }
       ],
@@ -386,31 +540,64 @@
       "withdrawn": null
     },
     {
-      "claim_id": "sheng:aging",
-      "axis": "process",
+      "claim_id": "shou:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
       "listing_eligible": false,
-      "applies_when": {},
+      "applies_when": {
+        "type": "Shou"
+      },
       "attribution": null,
       "terms": [],
-      "status": "approved",
-      "current_rev": 1,
-      "revisions": [
-        {
-          "rev": 1,
-          "origin": "approved",
-          "scope": "Sheng Pu’er",
-          "text": "Sheng is not given shou’s rapid fermentation. Its character instead changes gradually during storage, with leaf, liquor, aroma, and texture developing over years. Storage conditions therefore belong to the tea’s history, not as a guarantee of quality but as part of how any particular cake has evolved.",
-          "approved_at": "2026-11-23",
-          "reason": "Backfilled from pages",
-          "evidence_ids": [
-            "EVIDENCE-E31C7DFEB22516770374C078"
-          ]
-        }
-      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
       "withdrawn": null
     },
     {
-      "claim_id": "xishuangbanna-tea-mountains:regional-grouping",
+      "claim_id": "shou:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "熟普洱",
+          "pinyin": "shú pǔ’ěr",
+          "gloss": "ripe pu’er"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "shou:wet-piling",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "渥堆",
+          "pinyin": "wò duī",
+          "gloss": "wet piling"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "xishuangbanna-tea-mountains:living-culture",
       "axis": "place",
       "listing_eligible": false,
       "applies_when": {},
@@ -434,7 +621,31 @@
       "withdrawn": null
     },
     {
-      "claim_id": "xishuangbanna-tea-mountains:living-culture",
+      "claim_id": "xishuangbanna-tea-mountains:regional-grouping",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {},
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yunnan-mountain-names:market-names",
+      "axis": "place",
+      "listing_eligible": false,
+      "applies_when": {},
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yunnan-mountain-names:reading-the-list",
       "axis": "place",
       "listing_eligible": false,
       "applies_when": {},
@@ -470,30 +681,6 @@
       "withdrawn": null
     },
     {
-      "claim_id": "yunnan:regional-map",
-      "axis": "place",
-      "listing_eligible": false,
-      "applies_when": {},
-      "attribution": null,
-      "terms": [],
-      "status": "approved",
-      "current_rev": 1,
-      "revisions": [
-        {
-          "rev": 1,
-          "origin": "approved",
-          "scope": "Yunnan Pu’er Regions",
-          "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
-          "approved_at": "2026-11-23",
-          "reason": "Backfilled from pages",
-          "evidence_ids": [
-            "EVIDENCE-F9F875FFED47BD47BC79EC6C"
-          ]
-        }
-      ],
-      "withdrawn": null
-    },
-    {
       "claim_id": "yunnan:reading-labels",
       "axis": "place",
       "listing_eligible": false,
@@ -518,27 +705,27 @@
       "withdrawn": null
     },
     {
-      "claim_id": "yunnan-mountain-names:market-names",
+      "claim_id": "yunnan:regional-map",
       "axis": "place",
       "listing_eligible": false,
       "applies_when": {},
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
-      "withdrawn": null
-    },
-    {
-      "claim_id": "yunnan-mountain-names:reading-the-list",
-      "axis": "place",
-      "listing_eligible": false,
-      "applies_when": {},
-      "attribution": null,
-      "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "Yunnan Pu’er Regions",
+          "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
+          "approved_at": "2026-11-23",
+          "reason": "Backfilled from pages",
+          "evidence_ids": [
+            "EVIDENCE-F9F875FFED47BD47BC79EC6C"
+          ]
+        }
+      ],
       "withdrawn": null
     }
   ]

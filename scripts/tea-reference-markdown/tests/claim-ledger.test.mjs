@@ -76,14 +76,17 @@ async function fixture({ pages, uses, claims }) {
   return { pagesDirectory, translationsPath, claimsPath };
 }
 
-test('the real ledger reproduces the existing public registry exactly', async () => {
+test('the real ledger reproduces the committed public registry and keeps drafts out', async () => {
   const paths = {
     pagesDirectory: path.join(REPO_ROOT, 'data', 'tea-reference', 'pages'),
     translationsPath: path.join(REPO_ROOT, 'data', 'tea-reference', 'private', 'translations.json'),
   };
-  const legacy = await buildRegistry(paths);
+  const generated = await fs.readFile(path.join(REPO_ROOT, 'src', 'wisdom', 'reference', 'generatedPages.ts'), 'utf8');
+  const committed = JSON.parse(generated.slice(generated.indexOf('= {') + 2, generated.indexOf(' as const')));
   const built = await buildWisdom({ ...paths, claimsPath: path.join(REPO_ROOT, 'data', 'tea-reference', 'claims.json') });
-  assert.deepEqual(built.registry, legacy);
+  assert.deepEqual(JSON.parse(JSON.stringify(built.registry)), committed);
+  // Draft claims added to a public page (e.g. Menghai's Mengsong section) stay out of the public registry.
+  assert.ok(!JSON.stringify(built.registry).includes('Naka is a Lahu village'));
 });
 
 test('an edit in Markdown stays pending: public keeps the approved text, preview shows both', async () => {

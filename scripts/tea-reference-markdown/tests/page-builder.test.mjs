@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   buildRegistry,
+  buildWisdom,
   codePointCompare,
   parsePageMarkdown,
   renderGeneratedRegistry,
@@ -276,14 +277,15 @@ test('rejects invalid public parent-kind relationships', async () => {
   }
 });
 
-test('validates nine canonical Markdown files but generates only the six safely routable pages', async () => {
-  const registry = await buildRegistry({
+test('validates every canonical Markdown file but generates only the six safely routable pages', async () => {
+  const { registry } = await buildWisdom({
     pagesDirectory: PAGES_DIRECTORY,
     translationsPath: TRANSLATIONS_PATH,
+    claimsPath: path.join(REPO_ROOT, 'data', 'tea-reference', 'claims.json'),
   });
 
   const markdownFiles = (await fs.readdir(PAGES_DIRECTORY)).filter(fileName => fileName.endsWith('.md'));
-  assert.equal(markdownFiles.length, 9);
+  assert.equal(markdownFiles.length, 11);
   assert.deepEqual(registry.pages.map(page => page.id), [
     'greater-yiwu',
     'lincang',

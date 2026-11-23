@@ -5,6 +5,115 @@ import type { DraftClaim, DraftReferencePage, PublicTeaReferenceSource } from '.
 
 export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
   {
+    "claimId": "gong-ting:appearance",
+    "pageId": "gong-ting",
+    "sectionKey": "appearance",
+    "label": "Reading the leaf",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Dry Gong Ting is small, tight and bud-rich, often with golden down on the buds. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dry Gong Ting is small, tight and bud-rich, often with golden down on the buds. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:common-impressions",
+    "pageId": "gong-ting",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "People often notice a sweet, smooth and thick cup with a dark red liquor. A very young, very fine Gong Ting can show a slight bitter edge, and its small leaf gives up flavour quickly, so short pours suit it.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "People often notice a sweet, smooth and thick cup with a dark red liquor. A very young, very fine Gong Ting can show a slight bitter edge, and its small leaf gives up flavour quickly, so short pours suit it.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:definition",
+    "pageId": "gong-ting",
+    "sectionKey": "definition",
+    "label": "What Gong Ting means",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [
+      {
+        "original": "宫廷",
+        "pinyin": "gōngtíng",
+        "gloss": "palace; used as a grade name"
+      }
+    ],
+    "rev": 2,
+    "scope": "Loose ripe pu’er grading",
+    "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "legacy_import",
+        "legacyRef": "marks:gong-ting",
+        "scope": "General grade designation, used on shou pu’er and aged Taiwanese oolong",
+        "text": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves).",
+        "approvedAt": "2026-11-23",
+        "reason": "Imported from the legacy marks corpus",
+        "evidenceIds": []
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Loose ripe pu’er grading",
+        "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
+        "approvedAt": "2026-11-23",
+        "reason": "Narrowed to loose ripe pu’er grading (pilot correction demo; awaiting Adrian’s review)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:grade-and-quality",
+    "pageId": "gong-ting",
+    "sectionKey": "grade-and-quality",
+    "label": "Grade is not quality",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
     "claimId": "greater-yiwu:common-character",
     "pageId": "greater-yiwu",
     "sectionKey": "common-character",
@@ -273,6 +382,62 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
         ]
       }
     ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:mengsong-naka",
+    "pageId": "menghai-county",
+    "sectionKey": "mengsong-naka",
+    "label": "Mengsong and Naka",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "mengsong"
+      ],
+      "name_includes": [
+        "naka"
+      ]
+    },
+    "terms": [
+      {
+        "original": "勐宋",
+        "pinyin": "Měngsòng",
+        "gloss": "Mengsong township"
+      },
+      {
+        "original": "那卡",
+        "pinyin": "Nàkǎ",
+        "gloss": "Naka village"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Mengsong is a township in the east of Menghai County, facing Nannuo across the Liusha River. Naka is a Lahu village in the north of Mengsong, close to Huazhu Liangzi, the highest peak in Xishuangbanna.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Mengsong is a township in the east of Menghai County, facing Nannuo across the Liusha River. Naka is a Lahu village in the north of Mengsong, close to Huazhu Liangzi, the highest peak in Xishuangbanna.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:ripe-origins",
+    "pageId": "menghai-county",
+    "sectionKey": "ripe-origins",
+    "label": "Where ripe pu’er began",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style.",
+    "previousRevisions": [],
     "pageVisibility": "public"
   },
   {
@@ -563,6 +728,81 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
+    "claimId": "shou:common-impressions",
+    "pageId": "shou",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "People often describe ripe pu’er as smooth and sweet, with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "People often describe ripe pu’er as smooth and sweet, with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "shou:definition",
+    "pageId": "shou",
+    "sectionKey": "definition",
+    "label": "What ripe pu’er is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "熟普洱",
+        "pinyin": "shú pǔ’ěr",
+        "gloss": "ripe pu’er"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. It is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. It is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "shou:wet-piling",
+    "pageId": "shou",
+    "sectionKey": "wet-piling",
+    "label": "Wet piling",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "渥堆",
+        "pinyin": "wò duī",
+        "gloss": "wet piling"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The pile is turned as it warms, and the process runs for about one to two months before the leaf is dried. Yunnan’s state factories brought the method into production in 1973.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The pile is turned as it warms, and the process runs for about one to two months before the leaf is dried. Yunnan’s state factories brought the method into production in 1973.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
     "claimId": "xishuangbanna-tea-mountains:living-culture",
     "pageId": "xishuangbanna-tea-mountains",
     "sectionKey": "living-culture",
@@ -767,6 +1007,38 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
 
 export const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = [
   {
+    "id": "gong-ting",
+    "slug": "gong-ting",
+    "kind": "leaf_grade",
+    "label": "Gong Ting",
+    "visibility": "draft",
+    "nativeName": "宫廷",
+    "parentId": "shou",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Gong Ting means",
+        "sourceIds": []
+      },
+      {
+        "key": "appearance",
+        "label": "Reading the leaf",
+        "sourceIds": []
+      },
+      {
+        "key": "grade-and-quality",
+        "label": "Grade is not quality",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "greater-yiwu",
     "slug": "greater-yiwu",
     "kind": "tea_area",
@@ -868,6 +1140,16 @@ export const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = [
         "sourceIds": [
           "teadb-menghai-county"
         ]
+      },
+      {
+        "key": "mengsong-naka",
+        "label": "Mengsong and Naka",
+        "sourceIds": []
+      },
+      {
+        "key": "ripe-origins",
+        "label": "Where ripe pu’er began",
+        "sourceIds": []
       }
     ]
   },
@@ -972,6 +1254,33 @@ export const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = [
         "sourceIds": [
           "marshaln-young-puer-2013"
         ]
+      }
+    ]
+  },
+  {
+    "id": "shou",
+    "slug": "shou",
+    "kind": "tea_type",
+    "label": "Shou (ripe pu’er)",
+    "visibility": "draft",
+    "nativeName": "熟普洱",
+    "parentId": "puer",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What ripe pu’er is",
+        "sourceIds": []
+      },
+      {
+        "key": "wet-piling",
+        "label": "Wet piling",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
       }
     ]
   },
