@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
+import { remapBlockIndexes } from '../src/articleWisdomClaimUses';
 
 // Tea Wisdom pilot, Phase 3 (todo/plans/tea-wisdom-pilot-action-plan.md):
 // an article records which Wisdom claim, at which revision, each block relies
@@ -139,5 +140,48 @@ describe('article Wisdom claim uses', () => {
     const { env } = setup();
     const response = await call(env, 'GET', '/api/wisdom/claim-uses/articles?page_id=gong%25', null);
     expect(response.status).toBe(400);
+  });
+});
+
+describe('claim uses follow their blocks', () => {
+  const block = (id: string | null, text: string) => (id ? { type: 'paragraph', text, blockId: id } : { type: 'paragraph', text });
+
+  it('maps by block id, drops a removed block, and finds an id-less block by its content', () => {
+    expect(remapBlockIndexes(
+      [block('a', 'one'), block('b', 'two'), block('c', 'three')],
+      [block('c', 'three, edited'), block('new', 'inserted'), block('a', 'one')],
+    )).toEqual([2, null, 0]);
+    // Saved before ids existed: the first save with ids still finds each block.
+    expect(remapBlockIndexes(
+      [block(null, 'one'), block(null, 'two')],
+      [block('y', 'two'), block('x', 'one')],
+    )).toEqual([1, 0]);
+  });
+
+  it('moves the stored uses when a save reorders, inserts and deletes blocks', async () => {
+    const { env, db } = setup();
+    const blocks = [
+      { type: 'intro', text: 'Two Gong Ting teas can differ in the cup.', blockId: 'intro' },
+      { type: 'paragraph', text: 'Gong Ting names fine, tender leaf.', blockId: 'grades' },
+      { type: 'paragraph', text: 'Brew them side by side.', blockId: 'exercise' },
+    ];
+    expect((await call(env, 'PUT', '/api/admin/articles/grade-draft', EDITOR, { blocks })).status).toBe(200);
+    await call(env, 'PUT', '/api/admin/articles/grade-draft/wisdom-claim-uses', EDITOR, { uses: [
+      { block_index: 0, claim_id: 'gong-ting:common-impressions', rev_used: 1, use_kind: 'prose' },
+      { block_index: 1, claim_id: 'gong-ting:definition', rev_used: 1, use_kind: 'prose' },
+      { block_index: 2, claim_id: 'gong-ting:blending', rev_used: 1, use_kind: 'prose' },
+    ] });
+    // A new block on top, the grade paragraph moved last, the intro deleted.
+    const next = [
+      { type: 'section_heading', text: 'A new heading', blockId: 'heading' },
+      blocks[2],
+      blocks[1],
+    ];
+    expect((await call(env, 'PUT', '/api/admin/articles/grade-draft', EDITOR, { blocks: next })).status).toBe(200);
+    const rows = db.sqlite.prepare('SELECT block_index, claim_id FROM article_wisdom_claim_uses ORDER BY block_index').all();
+    expect(rows).toEqual([
+      { block_index: 1, claim_id: 'gong-ting:blending' },
+      { block_index: 2, claim_id: 'gong-ting:definition' },
+    ]);
   });
 });

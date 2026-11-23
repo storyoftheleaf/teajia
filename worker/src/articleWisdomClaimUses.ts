@@ -254,3 +254,88 @@ export function articleWisdomClaimUseRoutes<E extends ArticleClaimUseEnv>(
     ['GET', '/api/wisdom/claim-uses/articles', publicCiting],
   ];
 }
+
+// ── Keeping uses on their blocks when an article's blocks change ─────────────
+//
+// The table stores block_index (the contract's shape). Blocks carry a stable
+// `blockId` the editor assigns, so when a save moves, inserts or deletes
+// blocks, each use follows its block to its new position. A block saved
+// before ids existed is found again by its exact content. A use whose block is
+// gone is dropped: the sentence it vouched for no longer exists.
+
+type StoredBlock = Record<string, unknown>;
+
+function parseBlocks(blocks: unknown): StoredBlock[] {
+  if (Array.isArray(blocks)) return blocks as StoredBlock[];
+  try {
+    const parsed = JSON.parse(String(blocks ?? '[]'));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+const blockIdOf = (block: StoredBlock | undefined) =>
+  typeof block?.blockId === 'string' && block.blockId ? block.blockId : null;
+
+function contentOf(block: StoredBlock): string {
+  const { blockId: _id, ...rest } = block;
+  return JSON.stringify(rest, Object.keys(rest).sort());
+}
+
+/** For each old block index, its index in the new blocks, or null when it was removed. */
+export function remapBlockIndexes(oldBlocks: unknown, newBlocks: unknown): (number | null)[] {
+  const before = parseBlocks(oldBlocks);
+  const after = parseBlocks(newBlocks);
+  const byId = new Map<string, number>();
+  after.forEach((block, index) => { const id = blockIdOf(block); if (id && !byId.has(id)) byId.set(id, index); });
+  const claimed = new Set<number>();
+  const result: (number | null)[] = before.map(block => {
+    const id = blockIdOf(block);
+    if (id && byId.has(id)) { const index = byId.get(id)!; claimed.add(index); return index; }
+    return null;
+  });
+  // Blocks with no id yet (saved before ids existed): the first unclaimed block with the same content.
+  before.forEach((block, oldIndex) => {
+    if (result[oldIndex] !== null) return;
+    if (blockIdOf(block) && byId.size > 0) return; // it had an id, and that id is gone: removed
+    const content = contentOf(block);
+    const match = after.findIndex((candidate, index) => !claimed.has(index) && contentOf(candidate) === content);
+    if (match >= 0) { claimed.add(match); result[oldIndex] = match; return; }
+    // An id-less block edited in the same save: it stays where it was, if that slot is still free.
+    if (!blockIdOf(block) && oldIndex < after.length && !claimed.has(oldIndex) && !blockIdOf(after[oldIndex])) {
+      claimed.add(oldIndex);
+      result[oldIndex] = oldIndex;
+    }
+  });
+  return result;
+}
+
+/** Called by the article update route after it has written new blocks. */
+export async function moveClaimUsesWithBlocks(
+  db: D1Database,
+  accountId: string,
+  articleId: string,
+  oldBlocks: unknown,
+  newBlocks: unknown,
+): Promise<void> {
+  const uses = await usesOf(db, articleId, accountId);
+  if (uses.length === 0) return;
+  const map = remapBlockIndexes(oldBlocks, newBlocks);
+  const moved = uses
+    .map(use => ({ ...use, block_index: map[use.block_index] ?? null }))
+    .filter((use): use is ArticleClaimUseRow => use.block_index !== null);
+  const unchanged = moved.length === uses.length && moved.every((use, index) => use.block_index === uses[index].block_index);
+  if (unchanged) return;
+  const seen = new Set<string>();
+  const statements = [
+    db.prepare('DELETE FROM article_wisdom_claim_uses WHERE article_id = ? AND account_id = ?').bind(articleId, accountId),
+    ...moved
+      .filter(use => { const key = `${use.block_index}|${use.claim_id}`; if (seen.has(key)) return false; seen.add(key); return true; })
+      .map(use => db.prepare(
+        `INSERT INTO article_wisdom_claim_uses (account_id, article_id, block_index, claim_id, rev_used, use_kind)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      ).bind(accountId, articleId, use.block_index, use.claim_id, use.rev_used, use.use_kind)),
+  ];
+  await db.batch(statements);
+}

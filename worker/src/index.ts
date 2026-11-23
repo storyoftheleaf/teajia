@@ -190,7 +190,7 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
-import { articleWisdomClaimUseRoutes, publicArticleClaimUses } from './articleWisdomClaimUses';
+import { articleWisdomClaimUseRoutes, moveClaimUsesWithBlocks, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
@@ -24898,6 +24898,8 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   await env.DB.prepare(
     `UPDATE articles SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
   ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  // Wisdom claim uses follow their blocks when blocks move, arrive or go.
+  if (cols.includes('blocks')) await moveClaimUsesWithBlocks(env.DB, accountId, params.id, existing.blocks, body.blocks);
 
   const updated = await env.DB.prepare(
     'SELECT * FROM articles WHERE id = ? AND account_id = ?'

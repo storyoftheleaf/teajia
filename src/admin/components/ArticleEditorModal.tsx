@@ -17,6 +17,7 @@ import {
 import { useToast } from './Toast';
 import { ImmersivePreview } from './ImmersivePreview';
 import { ArticleWisdomClaims } from './ArticleWisdomClaims';
+import { withBlockIds } from '../../pages/wisdom/blockIds';
 import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant, ContributorOption } from '../../types';
 
 const IMMERSIVE_TEMPLATE = 'immersive_scroll';
@@ -471,7 +472,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const [status, setStatus] = useState<DbArticle['status']>(initialData?.status ?? 'draft');
 
   // Blocks
-  const [blocks, setBlocks] = useState<ArticleBlock[]>(initialData?.blocks ?? []);
+  const [blocks, setBlocks] = useState<ArticleBlock[]>(() => withBlockIds(initialData?.blocks ?? []));
 
   // Metadata
   const [subtitle, setSubtitle] = useState(initialData?.subtitle ?? '');
@@ -518,7 +519,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     setArticleId(initialData?.id ?? null);
     setTitle(initialData?.title ?? '');
     setStatus(initialData?.status ?? 'draft');
-    setBlocks(initialData?.blocks ?? []);
+    setBlocks(withBlockIds(initialData?.blocks ?? []));
     setSubtitle(initialData?.subtitle ?? '');
     setAuthor(initialData?.author_id ?? '');
     setSubjectIds(initialData?.subject_ids ?? []);
@@ -680,7 +681,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   };
 
   const addBlock = (type: ArticleBlock['type']) => {
-    setBlocks(prev => [...prev, makeEmptyBlock(type)]);
+    setBlocks(prev => withBlockIds([...prev, makeEmptyBlock(type)]));
     setAddBlockOpen(false);
     scheduleAutoSave();
   };
@@ -696,7 +697,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       return;
     }
 
-    setBlocks(newBlocks);
+    setBlocks(withBlockIds(newBlocks));
     if (t) setTitle(t);
     if (s) setSubtitle(s);
     if (a && contributors.some(contributor => contributor.id === a)) setAuthor(a);
