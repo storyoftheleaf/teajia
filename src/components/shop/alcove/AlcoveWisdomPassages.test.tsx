@@ -16,12 +16,13 @@ describe('AlcoveWisdomPassages', () => {
     expect(render(<AlcoveWisdomStyleReferences listing={EMPTY_LISTING_PASSAGES} />)).toBe('');
   });
 
-  it('shows each passage with its text, scope, terms and a Wisdom link, anchored for its grid row', () => {
+  it('shows each passage with its text, terms and a Wisdom link, anchored for its grid row, and never its scope', () => {
     const listing = resolveListingPassages(PILOT_FIXTURES['gong-ting-external'].facts, PILOT_FIXTURE_CLAIMS);
     const markup = render(<AlcoveWisdomPassages listing={listing} />);
     expect(markup).toContain('id="wisdom-passage-gong-ting-definition"');
     expect(markup).toContain('Gong Ting is the name used for a fine, bud-rich grade');
-    expect(markup).toContain('Scope: </span>Loose ripe pu&#x27;er, Menghai Tea Alliance standard');
+    // Scope is an editing note for the Wisdom record, never shown to customers.
+    expect(markup).not.toContain('Scope');
     expect(markup).toContain('宫廷');
     expect(markup).toContain('href="/wisdom/grade/gong-ting#definition"');
     expect(markup).toContain('Read more in Wisdom');
