@@ -127,7 +127,7 @@ import { candidateToApi, impressionToApi, journalContainsExcerpt, parseCandidate
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { handoffToRepair } from './problemAlerts';
 import { parseExtractReply } from './extractImageReply';
-import { labelScanProviders, scanLabel } from './labelScan';
+import { labelScanFailureMessage, labelScanProviders, labelScanSignature, scanLabel } from './labelScan';
 import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, recordHealthProblem, clearHealthProblem, clearQuietIncidents, type IncidentStatus } from './incidents';
 import {
   deleteWisdomVerification,
@@ -12202,6 +12202,26 @@ const handleExtractFromImage: Handler = async (request, env) => {
   }
 
   const outcome = await scanLabel(providers, { base64, mimeType });
+  // Each provider that failed is filed on the fixes page with its reason, and
+  // the one that answered is cleared, so whether the scanner works (and with
+  // which key) can be read without asking the owner to try it.
+  try {
+    for (const failure of outcome.failures) {
+      await recordHealthProblem(env.DB, {
+        signature: labelScanSignature(failure.provider),
+        category: 'server',
+        severity: outcome.ok ? 'low' : 'high',
+        route: '/api/extract-from-image',
+        method: 'POST',
+        errorCode: 'label_scan_provider_failed',
+        httpStatus: failure.status,
+        message: labelScanFailureMessage(failure),
+      });
+    }
+    if (outcome.ok) await clearHealthProblem(env.DB, labelScanSignature(outcome.provider), `label scan answered by ${outcome.provider}`);
+  } catch (err) {
+    console.error(`extract-from-image could not file the scan result: ${err instanceof Error ? err.message : String(err)}`);
+  }
   if (!outcome.ok) return json({ error: outcome.error }, outcome.error === 'no_ai_provider' ? 503 : 502);
 
   // Parse the JSON from the model's response (strip markdown fences if present)

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   LABEL_SCAN_PROMPT,
+  labelScanFailureMessage,
   labelScanProviders,
   labelScanRequest,
   scanLabel,
@@ -60,7 +61,8 @@ describe('the package scanner', () => {
       return reply(200, { content: [{ type: 'text', text: '{"givenName":"Lao Ban Zhang"}' }] });
     }) as unknown as typeof fetch;
     const outcome = await scanLabel(labelScanProviders({ openaiKey: 'sk-a', anthropicKey: 'ak' }), image, fetcher, async () => {});
-    expect(outcome).toEqual({ ok: true, text: '{"givenName":"Lao Ban Zhang"}', provider: 'claude' });
+    expect(outcome).toEqual({ ok: true, text: '{"givenName":"Lao Ban Zhang"}', provider: 'claude', failures: [{ provider: 'openai', status: 401 }] });
+    expect(labelScanFailureMessage({ provider: 'openai', status: 401 })).toContain("refused the shop's OpenAI key");
     expect(calls).toHaveLength(2);
   });
 
@@ -72,14 +74,14 @@ describe('the package scanner', () => {
       return reply(200, { choices: [{ message: { content: '{"type":"Sheng","year":2019}' } }] });
     }) as unknown as typeof fetch;
     const outcome = await scanLabel(labelScanProviders({ openaiKey: 'sk-a' }), image, fetcher, async () => {});
-    expect(outcome).toEqual({ ok: true, text: '{"type":"Sheng","year":2019}', provider: 'openai' });
+    expect(outcome).toEqual({ ok: true, text: '{"type":"Sheng","year":2019}', provider: 'openai', failures: [] });
     expect(n).toBe(2);
   });
 
   it('says which failure it was: nothing to call, or nobody answered', async () => {
-    expect(await scanLabel([], image)).toEqual({ ok: false, error: 'no_ai_provider' });
+    expect(await scanLabel([], image)).toEqual({ ok: false, error: 'no_ai_provider', failures: [] });
     const down = (async () => reply(500, 'down')) as unknown as typeof fetch;
     expect(await scanLabel(labelScanProviders({ openaiKey: 'sk-a' }), image, down, async () => {}))
-      .toEqual({ ok: false, error: 'provider_error' });
+      .toEqual({ ok: false, error: 'provider_error', failures: [{ provider: 'openai', status: 500 }] });
   });
 });

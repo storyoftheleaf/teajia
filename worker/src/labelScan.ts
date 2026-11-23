@@ -179,9 +179,32 @@ export function labelScanReplyText(provider: LabelScanProvider, data: any): stri
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
+/** One provider that did not answer, and the status it gave (null: no answer at all). */
+export interface LabelScanFailure { provider: LabelScanProvider['kind']; status: number | null }
+
 export type LabelScanOutcome =
-  | { ok: true; text: string; provider: LabelScanProvider['kind'] }
-  | { ok: false; error: 'no_ai_provider' | 'provider_error' };
+  | { ok: true; text: string; provider: LabelScanProvider['kind']; failures: LabelScanFailure[] }
+  | { ok: false; error: 'no_ai_provider' | 'provider_error'; failures: LabelScanFailure[] };
+
+const PROVIDER_NAME: Record<LabelScanProvider['kind'], string> = { openai: 'OpenAI', claude: 'Claude', gemini: 'Gemini' };
+
+/**
+ * The plain sentence the fixes page shows for a provider that failed. The
+ * worker keeps no logs to look in afterwards, so the reason rides here.
+ */
+export function labelScanFailureMessage(failure: LabelScanFailure): string {
+  const name = PROVIDER_NAME[failure.provider];
+  const whose = failure.provider === 'openai' ? "the shop's OpenAI key (Account settings)" : `the worker's ${name} key`;
+  if (failure.status === 401 || failure.status === 403) return `Package scanner: ${name} refused ${whose} (${failure.status}). Save a working key.`;
+  if (failure.status === 429) return `Package scanner: ${name} said the account is over its limit or out of credit (429).`;
+  if (failure.status === 400 || failure.status === 404) return `Package scanner: ${name} refused the request (${failure.status}); the model name may be wrong.`;
+  if (failure.status == null) return `Package scanner: ${name} could not be reached.`;
+  return `Package scanner: ${name} failed (${failure.status}).`;
+}
+
+export function labelScanSignature(provider: LabelScanProvider['kind']): string {
+  return `label-scan-${provider}`;
+}
 
 /**
  * Ask each provider in turn, once more after a busy answer, until one replies.
@@ -194,7 +217,8 @@ export async function scanLabel(
   fetcher: typeof fetch = fetch,
   pause: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 ): Promise<LabelScanOutcome> {
-  if (providers.length === 0) return { ok: false, error: 'no_ai_provider' };
+  const failures: LabelScanFailure[] = [];
+  if (providers.length === 0) return { ok: false, error: 'no_ai_provider', failures };
   for (const provider of providers) {
     const { url, init } = labelScanRequest(provider, image);
     try {
@@ -207,14 +231,17 @@ export async function scanLabel(
       if (!res.ok) {
         const detail = await res.text().catch(() => '');
         console.error(`label scan: ${provider.kind} upstream error ${res.status}: ${detail.slice(0, 500)}`);
+        failures.push({ provider: provider.kind, status: res.status });
         continue;
       }
       const text = labelScanReplyText(provider, await res.json());
-      if (text) return { ok: true, text, provider: provider.kind };
+      if (text) return { ok: true, text, provider: provider.kind, failures };
       console.error(`label scan: ${provider.kind} answered with no text`);
+      failures.push({ provider: provider.kind, status: res.status });
     } catch (err) {
       console.error(`label scan: ${provider.kind} request failed: ${err instanceof Error ? err.message : String(err)}`);
+      failures.push({ provider: provider.kind, status: null });
     }
   }
-  return { ok: false, error: 'provider_error' };
+  return { ok: false, error: 'provider_error', failures };
 }
