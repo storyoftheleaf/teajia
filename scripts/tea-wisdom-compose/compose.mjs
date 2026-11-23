@@ -75,6 +75,7 @@ ${STYLE}
 
 HOW AN ENTRY IS BUILT
 - Story paragraphs (one to three), most specific layer first: lot (from the record notes), grade, place, age, type. Use only the layers supplied. Skip a missing layer; never guess.
+- Where a claim gives a reason (why the pile exists, why it is turned, why storage matters), carry the reason into the story; a fact with its why reads better than a fact alone.
 - The reader may already know the tea's type. Put general knowledge in a clause and lead with what is specific to this tea.
 - Story paragraphs carry place, craft, history and how the tea has changed with age. No taste or texture words in them at all (no sweet, smooth, woody, earthy, aroma, notes). Those go only in the notice.
 - Write only the story paragraphs. Brewing and the style line are added from the kit after you; do not write them, and do not repeat brewing advice or taste in the story.

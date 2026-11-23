@@ -699,6 +699,51 @@
       "withdrawn": null
     },
     {
+      "claim_id": "shou:piling-1973",
+      "axis": "process",
+      "basis": "trade_knowledge",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "shou:piling-history",
+      "axis": "process",
+      "basis": "trade_knowledge",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "shou:piling-today",
+      "axis": "process",
+      "basis": "trade_knowledge",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Shou"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
       "claim_id": "shou:wet-piling",
       "basis": "trade_knowledge",
       "axis": "process",

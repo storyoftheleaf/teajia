@@ -163,3 +163,7 @@ CREATE TABLE article_wisdom_claim_uses (   -- practice DB only during the pilot
 ```
 
 The "needs review" flag is computed client-side with `articleUseNeedsReview` against the claims module in use: `GENERATED_CLAIMS`, or the overridden draft set on the demo panel. The worker only stores and returns uses. A `live_block` shows the current approved text and is never flagged. Exact-lot tastings (`product_impressions`) are keyed to author and product, and no claim change touches them.
+
+### A kit section says why, not only what (Adrian, 2026-11-23)
+
+Every kit section explains the reason behind what it describes: why the pile exists, why it is turned and kept below 65°C, why the rinse and boiling water, why pile taste fades, why storage matters. A process is told with its history where the trade knows it (the piling eras before 1949, Hong Kong and Guangdong in the 1950s, Yunnan in 1973 to 1975, floor and off-floor piles today). The composer is told to carry the why into the story when a claim gives one.
