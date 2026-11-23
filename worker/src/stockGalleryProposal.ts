@@ -1,5 +1,6 @@
 // A proposed gallery is one immutable private object. Its ordered byte ranges
 // are metadata on that object, so readers can never see a partial gallery.
+import { readTeawareDetails } from './teawareDetails';
 import { sha256Hex } from './inquiryDomain';
 
 const PREFIX = '/api/admin/stock-gallery/';
@@ -10,6 +11,55 @@ const MAX_PHOTOS = 4;
 type Slot = { sha256: string; length: number; type: string };
 type Scope = { accountId: string; userId: string };
 type Env = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
+
+interface StockBackgroundRow {
+  product_name: string;
+  given_name: string | null;
+  type: string;
+  chinese_name: string | null;
+  form: string | null;
+  year: number | null;
+  origin_region: string | null;
+  origin_country: string | null;
+  description: string | null;
+  lore: string | null;
+  terroir: string | null;
+  processing_notes: string | null;
+  material: string | null;
+  capacity_ml: number | null;
+  teaware_category: string | null;
+  teaware_details: string | null;
+}
+
+function stockReading(row: StockBackgroundRow) {
+  const facts: { label: string; value: string }[] = [];
+  const background: typeof facts = [];
+  const add = (items: typeof facts, label: string, value: string | number | null | undefined) => {
+    if (value != null && String(value).trim()) items.push({ label, value: String(value).trim() });
+  };
+  const teaware = row.type === 'Teaware';
+  add(facts, teaware ? 'Category' : 'Tea type', teaware ? row.teaware_category : row.type);
+  add(facts, 'Chinese name', row.chinese_name);
+  add(facts, teaware ? 'Form' : 'Format', row.form);
+  add(facts, 'Year', row.year);
+  add(facts, 'Origin', [row.origin_region, row.origin_country].filter(Boolean).join(', '));
+  add(background, 'Introduction', row.description);
+  add(background, 'Lore & history', row.lore);
+  if (teaware) {
+    const details = readTeawareDetails(row.teaware_details);
+    add(facts, 'Material', row.material);
+    add(facts, 'Capacity', row.capacity_ml == null ? null : row.capacity_ml + ' ml');
+    add(facts, 'Mark', details?.mark);
+    add(background, 'Construction', details?.construction);
+    add(background, 'Form history', details?.form_history);
+    add(background, 'Clay history', details?.clay_history);
+    add(background, 'Provenance', details?.provenance);
+  } else {
+    add(background, 'Growing region', row.terroir);
+    add(background, 'Processing', row.processing_notes);
+  }
+  return { facts, background };
+}
 
 function privateResponse(body: BodyInit | null, status: number, type = 'application/json') {
   return new Response(body, { status, headers: {
@@ -73,8 +123,10 @@ export async function serveStockGalleryProposal(
   const [stockId, proposalId, slotNumber, ...extra] = new URL(request.url).pathname.slice(PREFIX.length).split('/');
   if (!UUID.test(stockId) || extra.length || (proposalId !== undefined && !HASH.test(proposalId))) return failure('Proposal unavailable.', 404);
   const row = await env.DB.prepare(
-    'SELECT product_name, given_name FROM products WHERE id=? AND account_id=?',
-  ).bind(stockId, scope.accountId).first<{ product_name: string; given_name: string | null }>();
+    `SELECT product_name, given_name, type, chinese_name, form, year, origin_region, origin_country,
+            description, lore, terroir, processing_notes, material, capacity_ml, teaware_category,
+            teaware_details FROM products WHERE id=? AND account_id=?`,
+  ).bind(stockId, scope.accountId).first<StockBackgroundRow>();
   if (!row) return failure('Stock item unavailable.', 404);
   const bucket = env.ATLAS_BUCKET;
   if (!bucket) return failure('Private media storage unavailable.', 503);
@@ -82,7 +134,7 @@ export async function serveStockGalleryProposal(
   if (request.method === 'POST' && proposalId === undefined) return stage(request, bucket, prefix, stockId);
   if (proposalId === undefined && ['GET', 'HEAD'].includes(request.method)) {
     return privateResponse(request.method === 'HEAD' ? null : JSON.stringify({ stockId,
-      name: row.given_name || row.product_name, productName: row.product_name, photos: [] }), 200);
+      name: row.given_name || row.product_name, productName: row.product_name, reading: stockReading(row), photos: [] }), 200);
   }
   if (!proposalId || !['GET', 'HEAD'].includes(request.method)) return failure('Method unavailable.', 405);
   const key = prefix + proposalId;
@@ -92,7 +144,7 @@ export async function serveStockGalleryProposal(
   const head = request.method === 'HEAD';
   if (slotNumber === undefined) {
     return privateResponse(head ? null : JSON.stringify({ stockId, name: row.given_name || row.product_name,
-      productName: row.product_name, id: proposalId, photos: slots }), 200);
+      productName: row.product_name, reading: stockReading(row), id: proposalId, photos: slots }), 200);
   }
   if (!/^[1-4]$/.test(slotNumber) || Number(slotNumber) > slots.length) return failure('Photo unavailable.', 404);
   const index = Number(slotNumber) - 1;

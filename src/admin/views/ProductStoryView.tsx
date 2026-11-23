@@ -30,10 +30,19 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 interface LedgerEntry {
   id: string;
   product_id: string;
-  change_g: number;
+  delta: number;
+  movement_unit?: 'gram' | 'unit' | null;
+  movement_type?: string | null;
   reason?: string;
-  reference?: string;
+  note?: string;
   created_at: string;
+}
+
+function movementQuantity(entry: LedgerEntry, product: Product, signed = false) {
+  const units = (entry.movement_unit ?? (product.type === 'Teaware' ? 'unit' : 'gram')) === 'unit';
+  const prefix = signed && entry.delta > 0 ? '+' : '';
+  const label = units ? (Math.abs(entry.delta) === 1 ? 'piece' : 'pieces') : 'g';
+  return `${prefix}${entry.delta.toLocaleString()} ${label}`;
 }
 
 interface EventRef {
@@ -109,9 +118,10 @@ function extractFlavorWords(notes: TastingNote[]): string[] {
     .map(([w]) => w);
 }
 
-function stockStatusLabel(g: number): { label: string; color: string } {
-  if (g <= 0) return { label: 'Out of stock', color: 'text-tea-error' };
-  if (g < 100) return { label: 'Low stock', color: 'text-tea-gold' };
+function stockStatusLabel(product: Product, quantity: number | undefined): { label: string; color: string } {
+  if (product.recheckStock || !(product.stockVerifiedAt || product.stockKnownAt) || quantity == null) return { label: 'Needs count', color: 'text-tea-text-sec' };
+  if (quantity <= 0) return { label: 'Out of stock', color: 'text-tea-error' };
+  if (product.type !== 'Teaware' && quantity < (product.lowStockThreshold ?? 100)) return { label: 'Low stock', color: 'text-tea-gold' };
   return { label: 'In stock', color: 'text-tea-text' };
 }
 
@@ -146,8 +156,13 @@ function buildNarrative(params: {
 
   // Arrival
   if (firstLedger) {
-    const kg = (firstLedger.change_g / 1000).toFixed(2);
-    parts.push(`It arrived in ${formatMonthYear(firstLedger.created_at)}, ${kg} kg in the first delivery.`);
+    const amount = movementQuantity(firstLedger, product);
+    const date = formatMonthYear(firstLedger.created_at);
+    if (firstLedger.movement_type === 'receipt' || firstLedger.reason === 'PURCHASE_RECEIPT') {
+      parts.push(`A receipt of ${amount} was recorded in ${date}.`);
+    } else if (firstLedger.reason === 'INITIAL_BALANCE') {
+      parts.push(`The opening Stock balance recorded in ${date} was ${amount}.`);
+    }
   }
 
   // First session
@@ -334,7 +349,10 @@ export const ProductStoryView: React.FC = () => {
     });
   }, [product, compass, firstLedger, firstEvent, allTastingNotes.length, flavorWords]);
 
-  const stockStatus = product ? stockStatusLabel(product.stockGrams ?? 0) : null;
+  const pieces = product?.type === 'Teaware';
+  const stock = pieces ? product?.quantityUnits : product?.stockGrams;
+  const retail = product?.fixedRetailPriceUSD ?? product?.pricePerGramUSD;
+  const stockStatus = product ? stockStatusLabel(product, stock) : null;
 
   // ────────────────────────────────────────────────────────
   // Render
@@ -388,7 +406,7 @@ export const ProductStoryView: React.FC = () => {
             <div className="w-20 h-20 rounded-full overflow-hidden border border-tea-border mb-6">
               <img
                 src={product.imageUrl}
-                alt={product.givenName}
+                alt={product.givenName || product.productName}
                 className="w-full h-full object-cover opacity-90"
               />
             </div>
@@ -396,7 +414,7 @@ export const ProductStoryView: React.FC = () => {
 
           <h1 className="h1 mb-2">The story</h1>
           <p className="h2 text-tea-text-sec mb-2">
-            {product.givenName}
+            {product.givenName || product.productName}
           </p>
           {product.chineseName && (
             <p className="subtitle mb-2">
@@ -496,7 +514,7 @@ export const ProductStoryView: React.FC = () => {
           <>
             <Divider />
             <section className="mb-12">
-              <SectionLabel>Arrival</SectionLabel>
+              <SectionLabel>Stock movements</SectionLabel>
               <div className="mt-2">
                 {[...ledger]
                   .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -505,8 +523,8 @@ export const ProductStoryView: React.FC = () => {
                     <TimelineEntry
                       key={entry.id}
                       date={formatDate(entry.created_at)}
-                      label={`${entry.change_g > 0 ? '+' : ''}${entry.change_g.toLocaleString()}g`}
-                      note={entry.reason || entry.reference}
+                      label={movementQuantity(entry, product, true)}
+                      note={entry.reason === 'INITIAL_BALANCE' ? 'Opening balance' : entry.note || entry.reason}
                       index={i}
                     />
                   ))}
@@ -607,20 +625,20 @@ export const ProductStoryView: React.FC = () => {
         {/* 5. Available now */}
         <Divider />
         <section className="mb-12">
-          <SectionLabel>Available now</SectionLabel>
+          <SectionLabel>Stock record</SectionLabel>
 
           <div className="bg-tea-surface border border-tea-border rounded-xl p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
               <div>
-                <p className="label-caps text-tea-text-dim mb-1">Current stock</p>
+                <p className="label-caps text-tea-text-dim mb-1">Recorded balance</p>
                 <p className="font-serif text-ui-26 text-tea-text num">
-                  {(product.stockGrams ?? 0).toLocaleString()}g
+                  {stock == null ? '—' : stock.toLocaleString() + (pieces ? (stock === 1 ? ' piece' : ' pieces') : 'g')}
                 </p>
               </div>
               <div>
-                <p className="label-caps text-tea-text-dim mb-1">Price/g</p>
+                <p className="label-caps text-tea-text-dim mb-1">{pieces ? 'Price/piece' : 'Price/g'}</p>
                 <p className="font-serif text-ui-26 text-tea-text num">
-                  {product.pricePerGramUSD === null ? '—' : `$${product.pricePerGramUSD.toFixed(3)}`}
+                  {retail == null ? '—' : `$${retail.toFixed(pieces ? 2 : 3)}`}
                 </p>
               </div>
               <div>
@@ -631,7 +649,7 @@ export const ProductStoryView: React.FC = () => {
               </div>
             </div>
 
-            {(product.stockGrams ?? 0) > 0 && (
+            {stock != null && stock > 0 && (
               <button
                 onClick={() => {
                   openPurchaseOrder();

@@ -16,6 +16,8 @@ function fixture() {
   db.prepare(`INSERT INTO products (id, account_id, product_name, given_name, type, cost_amount, cost_currency, status, is_public, shown_in_shop,
     stock_grams, image_url, additional_images) VALUES (?, 'shop','Liu Bao','Inward','Dark',NULL,NULL,'Active',1,0,600,'old-main','["old-extra"]')`).bind(product).run();
 
+  db.prepare("UPDATE products SET year=1980, origin_region='Cangwu, Guangxi', lore='Saved history', experience='Unattributed tasting' WHERE id=?").bind(product).run();
+
   const objects = new Map<string, { blob: Blob; customMetadata: Record<string, string> }>();
   const bucket = {
     head: (key: string) => objects.get(key) || null,
@@ -41,7 +43,7 @@ function fixture() {
     return worker.fetch(request, { JWT_SECRET: 'test-only', DB: db, ATLAS_BUCKET: bucket,
       MEDIA_BUCKET: { get: () => null }, APP_URL: 'https://teajia.test' } as never);
   }
-  return { call, objects, row: () => db.prepare('SELECT * FROM products WHERE id=?').bind(product).first() };
+  return { call, objects, db, row: () => db.prepare('SELECT * FROM products WHERE id=?').bind(product).first() };
 }
 
 const main = [255,216,255,224,49,255,217];
@@ -57,6 +59,13 @@ describe('private Stock gallery proposals', () => {
     const created = await call(api, 'POST', 'owner', [main, detail]);
     expect(created.status).toBe(201);
     const { id } = await created.json() as { id: string };
+    const metadata = await call(api + '/' + id);
+    const json = await metadata.json() as { reading: {facts: unknown[]; background: unknown[]} };
+    expect(json.reading.facts).toEqual([
+      { label: 'Tea type', value: 'Dark' }, { label: 'Year', value: '1980' }, { label: 'Origin', value: 'Cangwu, Guangxi' },
+    ]);
+    expect(json.reading.background).toEqual([{ label: 'Lore & history', value: 'Saved history' }]);
+    expect(JSON.stringify(json)).not.toContain('Unattributed tasting');
     const saved = objects.values().next().value;
     expect((await call(api, 'POST', 'owner', [main, detail])).status).toBe(200);
     expect(objects.size).toBe(1);
@@ -70,6 +79,16 @@ describe('private Stock gallery proposals', () => {
     expect(reversed.status).toBe(201);
     expect(objects.size).toBe(2);
     expect(row()).toEqual(original);
+  });
+  it('reads object-specific facts for teaware while keeping unknown values empty', async () => {
+    const { call, db } = fixture();
+    db.prepare("UPDATE products SET type='Teaware', year=NULL, lore=NULL, origin_region=NULL, teaware_category='pot', capacity_ml=140, teaware_details=?, terroir='Tea-specific' WHERE id=?")
+      .bind(JSON.stringify({ mark: 'Visible inscription', form_history: 'Saved form history' }), product).run();
+    const response = await call(api);
+    expect(await response.json()).toMatchObject({reading: {
+      facts: [{label:'Category', value:'pot'}, {label:'Capacity', value:'140 ml'}, {label:'Mark', value:'Visible inscription'}],
+      background: [{label:'Form history', value:'Saved form history'}],
+    }});
   });
   it('limits proposals and photo reads to owners in the matching active shop', async () => {
     const { call } = fixture();

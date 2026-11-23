@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { API_URL, authedBlobFetch, authedFetch } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
 
-type Proposal = { name: string; productName: string; photos: { sha256: string }[] };
-type Preview = { key: string; name: string; urls: string[] };
+type Field = { label: string; value: string };
+type Reading = { facts: Field[]; background: Field[] };
+type Proposal = { reading?: Reading; name: string; productName: string; photos: { sha256: string }[] };
+type Preview = { key: string; name: string; urls: string[]; reading?: Reading };
 
 function UploadPhotos({ stockId, accountId, userId }: { stockId: string; accountId: string; userId: string }) {
   const navigate = useNavigate();
@@ -73,7 +75,7 @@ export default function StockGalleryProposal() {
       if (controller.signal.aborted) return;
       photos.forEach(photo => urls.push(URL.createObjectURL(photo)));
       const name = entry.name === entry.productName ? entry.name : entry.name + ' (' + entry.productName + ')';
-      setPreview({ key, name, urls });
+      setPreview({ key, name, urls, reading: entry.reading });
     }
     open().catch(() => { if (!controller.signal.aborted) setFailed(key); });
     return () => { controller.abort(); urls.forEach(url => URL.revokeObjectURL(url)); };
@@ -89,5 +91,22 @@ export default function StockGalleryProposal() {
         <figcaption className="text-tea-text-sec">{index === 0 ? 'Main photo' : 'Gallery photo ' + (index + 1)}</figcaption>
       </figure>)}
     </div>}
+    {preview.reading && preview.reading.facts.length > 0 && <dl className="mt-6 grid grid-cols-2 gap-3">
+      {preview.reading.facts.map(field => <div key={field.label} className="min-w-0">
+        <dt className={TYPOGRAPHY_CLASSES.label}>{field.label}</dt>
+        <dd className="break-words">{field.value}</dd>
+      </div>)}
+    </dl>}
+    {preview.reading && preview.reading.background.length > 0 && <section className="mt-6 space-y-4">
+      <h2 className={TYPOGRAPHY_CLASSES.h2}>Private Stock background</h2>
+      {preview.reading.background.map(field => <div key={field.label}>
+        <h3 className={TYPOGRAPHY_CLASSES.label}>{field.label}</h3>
+        <p className="body-prose whitespace-pre-line break-words">{field.value}</p>
+      </div>)}
+    </section>}
+    <nav className="mt-4 flex flex-wrap gap-2" aria-label="Stock record">
+      <Link className="btn-quiet btn-sm" to={'/admin/products/' + encodeURIComponent(stockId || '') + '/story'}>Full Stock story</Link>
+      <Link className="btn-quiet btn-sm" to={'/admin/stock?panel=' + encodeURIComponent(stockId || '')}>Open Stock record</Link>
+    </nav>
   </section>;
 }

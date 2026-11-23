@@ -30,7 +30,7 @@ api.products.get = (id: string) => {
 };
 api.stockLedger.list = (async (id: string) => {
   const scope = identity(); requests.push({ kind: 'ledger', id, ...scope });
-  return { entries: [{ id: `${scope.account}-receipt`, product_id: id, change_g: 40, reason: `${scope.account} delivery`, created_at: '2026-09-01' }] };
+  return { entries: [{ id: 'opening', product_id: id, delta: 600, movement_unit: null, reason: 'INITIAL_BALANCE', created_at: '2026-08-01' }, { id: `${scope.account}-receipt`, product_id: id, delta: 40, movement_unit: 'gram', movement_type: 'receipt', reason: `${scope.account} delivery`, created_at: '2026-09-01' }] };
 }) as any;
 api.products.getEvents = (async (id: string) => {
   const scope = identity(); requests.push({ kind: 'events', id, ...scope });

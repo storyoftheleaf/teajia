@@ -33,6 +33,10 @@ describe('single-product story data behavior', () => {
     await expect.poll(() => page.getByText('account-a supplier', { exact: true }).count()).toBe(1);
     await expect.poll(() => heading('account-a gathering').count()).toBe(1);
     await expect.poll(() => page.getByText('"account-a floral peaches"', { exact: true }).count()).toBe(1);
+    expect(await page.getByText('+600 g', { exact: true }).count()).toBe(1);
+    expect(await page.getByText('Needs count', { exact: true }).count()).toBe(1);
+    expect(await page.getByText('Opening balance', { exact: true }).count()).toBe(1);
+    expect(await page.getByText(/opening Stock balance recorded in August 2026 was 600 g/).count()).toBe(1);
     expect(await page.getByText('$0.250', { exact: true }).count()).toBe(1);
     expect(await page.getByText('120g', { exact: true }).count()).toBe(1);
     expect((await requests()).filter((r: any) => r.kind === 'list')).toEqual([]);
