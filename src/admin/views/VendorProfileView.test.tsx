@@ -6,6 +6,8 @@ vi.mock('react-router-dom', () => ({ useParams: () => ({ vendorId: 'vendor-1' })
 vi.mock('../hooks/usePrivateQueryScope', () => ({ usePrivateQueryScope: () => ({ ready: true, key: ['account-1', 'user-1', 1] }) }));
 vi.mock('../hooks/useAdminData', () => ({ useRates: () => ({ data: [{ currency: 'Yuan', rateToUSD: 8 }] }) }));
 vi.mock('@tanstack/react-query', () => ({
+  // The face photo button refreshes vendor lists after a save.
+  useQueryClient: () => ({ invalidateQueries: () => Promise.resolve() }),
   useQuery: ({ queryKey }: { queryKey: string[] }) => ({
     data: queryKey[0] === 'vendor' ? { id: 'vendor-1', name: 'Target Vendor', tags: [], contacts: [] }
       : queryKey[0] === 'vendor-products' ? [{
