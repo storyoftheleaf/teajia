@@ -10,7 +10,7 @@
  * tea-reference-preview build, from the draft module or the pilot fixtures
  * (wisdomPilotData.ts). A production visitor gets the not-found page.
  *
- * Links out: the place the standard was issued (Menghai County), the parent
+ * Links out: the place the grade is used (Menghai County), the parent
  * tea type when it is public, and the articles that cite the grade. A
  * signed-out reader gets published articles and public pages only.
  */
@@ -41,7 +41,7 @@ import ReferenceFactSections from './ReferenceFactSections';
 import { wisdomDestinations } from './articleClaimUses';
 import { useWisdomPilotData } from './wisdomPilotData';
 
-/** The place a grade's standard was issued. Pilot grades all come from the Menghai Tea Alliance. */
+/** Where the grade name is used: the pilot grades are Menghai loose ripe pu'er grades. */
 const STANDARD_PLACE: Record<string, string> = {
   'gong-ting': 'menghai-county',
   'special-grade': 'menghai-county',
@@ -61,7 +61,8 @@ function asStatement(claim: AnyClaim, sources: readonly PublicTeaReferenceSource
 }
 
 const ClaimDetail: React.FC<{ claim: AnyClaim; sources: readonly PublicTeaReferenceSource[] }> = ({ claim, sources }) => {
-  const cited = claim.sourceIds
+  // Trade knowledge is written in our own words and carries no citation line.
+  const cited = (claim.basis === 'trade_knowledge' ? [] : claim.sourceIds)
     .map(sourceId => sources.find(source => source.sourceId === sourceId))
     .filter((source): source is PublicTeaReferenceSource => Boolean(source));
   return (
@@ -170,7 +171,7 @@ const GradePage: React.FC = () => {
               </Fact>
             )}
             {standardPlace && (
-              <Fact label="Standard issued in">
+              <Fact label="Graded in">
                 <Link to={standardPlace.href} className={`${QUIET_LINK} tap-target`} data-grade-standard-place>
                   {standardPlace.label}
                 </Link>

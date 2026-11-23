@@ -15,7 +15,7 @@ const databases: SqliteD1[] = [];
 afterEach(() => { while (databases.length) databases.pop()!.close(); });
 
 const BLOCKS = JSON.stringify([
-  { type: 'intro', text: 'Two Gong Ting cups.' },
+  { type: 'intro', text: 'Two Gong Ting teas can differ in the cup.' },
   { type: 'section', heading: 'Start with the dry leaf', text: 'The Gong Ting row describes fine, tender material.' },
   { type: 'section', heading: 'Try two cups', text: 'Brew them side by side.' },
 ]);
@@ -46,7 +46,7 @@ async function call(env: any, method: string, path: string, who: { userId: strin
 const EDITOR = { userId: 'editor', account: SHOP };
 const STRANGER = { userId: 'stranger', account: OTHER };
 const USES = [
-  { block_index: 0, claim_id: 'gong-ting:jingmai-seller-notes', rev_used: 1, use_kind: 'prose' },
+  { block_index: 0, claim_id: 'gong-ting:common-impressions', rev_used: 1, use_kind: 'prose' },
   { block_index: 1, claim_id: 'gong-ting:definition', rev_used: 1, use_kind: 'prose' },
   { block_index: 1, claim_id: 'special-grade:definition', rev_used: 1, use_kind: 'live_block' },
 ];
@@ -58,7 +58,7 @@ describe('article Wisdom claim uses', () => {
     expect(put.status).toBe(200);
     const listed = await (await call(env, 'GET', '/api/admin/articles/grade-draft/wisdom-claim-uses', EDITOR)).json() as any;
     expect(listed.uses).toEqual([
-      { article_id: 'grade-draft', block_index: 0, claim_id: 'gong-ting:jingmai-seller-notes', rev_used: 1, use_kind: 'prose' },
+      { article_id: 'grade-draft', block_index: 0, claim_id: 'gong-ting:common-impressions', rev_used: 1, use_kind: 'prose' },
       { article_id: 'grade-draft', block_index: 1, claim_id: 'gong-ting:definition', rev_used: 1, use_kind: 'prose' },
       { article_id: 'grade-draft', block_index: 1, claim_id: 'special-grade:definition', rev_used: 1, use_kind: 'live_block' },
     ]);
@@ -108,7 +108,7 @@ describe('article Wisdom claim uses', () => {
       ['grade-draft', 'draft'],
       ['grade-live', 'published'],
     ]);
-    expect(admin.articles[0].claim_ids).toEqual(['gong-ting:definition', 'gong-ting:jingmai-seller-notes']);
+    expect(admin.articles[0].claim_ids).toEqual(['gong-ting:common-impressions', 'gong-ting:definition']);
 
     const reader = await (await call(env, 'GET', '/api/wisdom/claim-uses/articles?page_id=gong-ting', null)).json() as any;
     expect(reader.articles).toEqual([
