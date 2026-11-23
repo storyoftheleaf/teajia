@@ -18823,33 +18823,44 @@ const handleGetJourney: Handler = async (request, env, params) => {
 
 // ── Samples ──
 
-/**
- * Whether this request may see who supplied a sample: the vendor's name, their
- * WeChat or phone, and the shop's own notes. Only people in the shop that owns
- * the sample, and the platform owner. Being signed in is not enough: sample
- * labels are handed out, and any customer with an account who opened one used
- * to see the supplier's contact.
- */
-async function canSeeSampleSource(request: Request, env: Env, accountId: unknown): Promise<boolean> {
-  const token = isAuthed(request);
-  if (!token || typeof accountId !== 'string' || !accountId) return false;
-  if (await validateSessionToken(token, env)) return false;
-  const claims = parseToken(token);
-  if (!claims) return false;
-  if (claims.sub === 'env-admin' || claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin') return true;
-  try {
-    const member = await env.DB.prepare(
-      "SELECT 1 AS ok FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'"
-    ).bind(claims.sub, accountId).first();
-    return !!member;
-  } catch {
-    return false;
-  }
+// Shop-owned legacy rows have no individual attribution. Only the recorded,
+// active account owner can read their private fields from a label.
+async function isSampleShopOwner(env: Env, accountId: string | null, userId: string | null): Promise<boolean> {
+  if (!accountId || !userId) return false;
+  return !!await env.DB.prepare(
+    `SELECT 1 FROM accounts a
+     JOIN account_members m ON m.account_id = a.id AND m.user_id = a.owner_user_id
+     WHERE a.id = ? AND a.owner_user_id = ? AND a.status = 'active'
+       AND m.status = 'active' AND m.role = 'owner'`
+  ).bind(accountId, userId).first();
 }
 
-function stripSampleSource(sample: Record<string, any>): Record<string, any> {
-  const { source_id, source_name, source_contact, notes, ...rest } = sample;
-  return rest;
+const SAMPLE_LABEL_SELECT = `
+  SELECT s.*, c.user_id AS compass_owner_id, ss.purpose AS set_purpose,
+         ss.source_id AS set_source_id, ss.source_name AS set_source_name,
+         p.id AS public_product_id
+  FROM tea_samples s
+  LEFT JOIN tea_sample_sets ss ON ss.id = s.set_id AND ss.account_id IS s.account_id
+  LEFT JOIN tea_compass_entries c ON c.id = s.compass_entry_id AND c.account_id = s.account_id
+  LEFT JOIN accounts a ON a.id = s.account_id AND a.status = 'active' AND a.public_enabled = 1
+  LEFT JOIN products p ON p.id = s.product_id AND p.account_id = a.id
+    AND p.is_public = 1 AND p.shown_in_shop = 1 AND p.status IN ('Active', 'Sold Out')
+    AND p.type <> 'Teaware'
+`;
+
+function sampleLabelText(value: unknown, sourceRefs: unknown[]): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const normalized = value.normalize('NFKC').toLowerCase();
+  if (/https?:|data:|blob:|\/api\/|www\.|\S+@\S+/.test(normalized)) return null;
+  if (sourceRefs.some(ref => typeof ref === 'string' && ref.trim()
+    && normalized.includes(ref.trim().normalize('NFKC').toLowerCase()))) return null;
+  return value;
+}
+
+function sampleLabelResponse(data: unknown): Response {
+  const response = json(data);
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 }
 
 function parseSampleRow(row: Record<string, any>): Record<string, any> {
@@ -18878,50 +18889,102 @@ function parseTastingRow(row: Record<string, any>): Record<string, any> {
   };
 }
 
+function viewSampleLabel(row: Record<string, any>, userId: string | null, shopOwner: boolean) {
+  const { compass_owner_id, set_purpose, set_source_id, set_source_name, public_product_id, ...sample } = row;
+  // Curate batches can contain samples from different authors. Authorize the
+  // sample against its own source record, independently of the set.
+  const ownerId = sample.compass_entry_id ? compass_owner_id : sample.user_id;
+  const isCustomerRequest = sample.created_by === 'customer' || set_purpose === 'customer-request';
+  const canSeeSource = isCustomerRequest || (!sample.compass_entry_id && ownerId == null)
+    ? shopOwner
+    : userId !== null && userId === ownerId;
+  if (canSeeSource) return { sample: parseSampleRow(sample), canSeeSource };
+
+  // Existing label identity is the public tea name. Suppress known supplier
+  // references in legacy label text. Original photos have no sample-level
+  // publication record, even when uploaded to a public media path.
+  const sourceRefs = [sample.source_id, sample.source_name, set_source_id, set_source_name];
+  return {
+    canSeeSource,
+    sample: {
+      id: sample.id,
+      name: sampleLabelText(sample.name, sourceRefs) ?? 'Tea sample',
+      chinese_name: sampleLabelText(sample.chinese_name, sourceRefs),
+      type: sampleLabelText(sample.type, sourceRefs),
+      form: sampleLabelText(sample.form, sourceRefs),
+      year: typeof sample.year === 'number' ? sample.year : null,
+      origin_region: sampleLabelText(sample.origin_region, sourceRefs),
+      product_id: public_product_id,
+      set_id: sample.set_id,
+      status: sample.status,
+      grams: sample.grams_known === 0 ? null : sample.grams,
+      grams_known: sample.grams_known !== 0,
+      photos: [],
+    },
+  };
+}
+
+function publicSampleTasting(row: Record<string, any>) {
+  return {
+    id: row.id,
+    rating: typeof row.rating === 'number' ? row.rating : null,
+    verdict: ['love', 'like', 'neutral', 'pass'].includes(row.verdict) ? row.verdict : 'neutral',
+    created_at: row.created_at,
+  };
+}
+
 // Public: GET /api/samples/:id
 const handleGetSample: Handler = async (request, env, params) => {
-  const sample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND archived_at IS NULL').bind(params.id).first();
-  if (!sample) return json({ error: 'Sample not found' }, 404);
+  const row = await env.DB.prepare(`${SAMPLE_LABEL_SELECT} WHERE s.id = ? AND s.archived_at IS NULL`)
+    .bind(params.id).first<Record<string, any>>();
+  if (!row) return json({ error: 'Sample not found' }, 404);
+
+  const user = await optionalAuthenticatedUser(request, env);
+  const userId = user?.userId ?? null;
+  const shopOwner = await isSampleShopOwner(env, row.account_id, userId);
+  const { sample, canSeeSource } = viewSampleLabel(row, userId, shopOwner);
 
   const tastings = await env.DB.prepare(
-    'SELECT * FROM tea_sample_tastings WHERE sample_id = ? ORDER BY created_at DESC'
-  ).bind(params.id).all();
+    `SELECT * FROM tea_sample_tastings
+     WHERE sample_id = ? AND (account_id IS NULL OR account_id = ?) ORDER BY created_at DESC`
+  ).bind(params.id, row.account_id || BALI_ACCOUNT_ID).all<Record<string, any>>();
 
-  let parsed = parseSampleRow(sample as Record<string, any>);
-
-  // Who supplied it is the shop's business only.
-  if (!await canSeeSampleSource(request, env, (sample as Record<string, unknown>).account_id)) {
-    parsed = stripSampleSource(parsed);
-  }
-
-  return json({
-    ...parsed,
-    tastings: (tastings.results as Record<string, any>[]).map(parseTastingRow),
+  return sampleLabelResponse({
+    ...sample,
+    tastings: tastings.results.map(canSeeSource ? parseTastingRow : publicSampleTasting),
   });
 };
 
 // Public: GET /api/samples/set/:setId
 const handleGetSamplesBySet: Handler = async (request, env, params) => {
-  const set = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?').bind(params.setId).first();
+  const set = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?')
+    .bind(params.setId).first<Record<string, any>>();
   if (!set) return json({ error: 'Sample set not found' }, 404);
 
   const samples = await env.DB.prepare(
-    'SELECT * FROM tea_samples WHERE set_id = ? AND archived_at IS NULL ORDER BY created_at DESC'
-  ).bind(params.setId).all();
+    `${SAMPLE_LABEL_SELECT} WHERE s.set_id = ? AND s.account_id IS ? AND s.archived_at IS NULL ORDER BY s.created_at DESC`
+  ).bind(params.setId, set.account_id).all<Record<string, any>>();
 
-  const insider = await canSeeSampleSource(request, env, (set as Record<string, unknown>).account_id);
+  const user = await optionalAuthenticatedUser(request, env);
+  const userId = user?.userId ?? null;
+  const shopOwner = await isSampleShopOwner(env, set.account_id, userId);
+  const canSeeSetSource = set.purpose === 'customer-request' || set.user_id == null
+    ? shopOwner
+    : userId !== null && userId === set.user_id;
+  const publicPurpose = ['customer-request', 'customer-gifted', 'event', 'panel'].includes(set.purpose)
+    ? set.purpose : 'sourcing';
+  const publicName = publicPurpose === 'event' || publicPurpose === 'panel'
+    ? sampleLabelText(set.name, [set.source_id, set.source_name]) : null;
 
-  const parsedSamples = (samples.results as Record<string, any>[]).map(s => {
-    const parsed = parseSampleRow(s);
-    return insider ? parsed : stripSampleSource(parsed);
+  return sampleLabelResponse({
+    set: canSeeSetSource ? parseSampleSetRow(set) : {
+      id: set.id,
+      name: publicName ?? 'Tea samples',
+      purpose: publicPurpose,
+      archived: Boolean(set.archived),
+    },
+    samples: samples.results.map(row => viewSampleLabel(row, userId, shopOwner).sample),
   });
-
-  let parsedSet = parseSampleSetRow(set as Record<string, any>);
-  if (!insider) {
-    const { source_id, source_name, notes, user_id, shared_with, panel_account_ids, ...publicSet } = parsedSet;
-    parsedSet = { ...publicSet, name: parsedSet.purpose === 'sourcing' || (source_name && String(parsedSet.name).includes(String(source_name))) ? 'Tea samples' : parsedSet.name };
-  }
-  return json({ set: parsedSet, samples: parsedSamples });
 };
 
 // Public/Guest: POST /api/samples/:id/tastings
