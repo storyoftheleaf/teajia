@@ -107,6 +107,9 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   // Pick by face (Adrian, 2026-11-23): every vendor as a photo, for when the
   // face comes back before the name does.
   const [facesOpen, setFacesOpen] = useState(false);
+  // Opening the faces fetches the list again, so a face added a moment ago
+  // (on another device, or on the vendor's page) shows straight away.
+  useEffect(() => { if (facesOpen) void customers.refetch(); }, [facesOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const faceVendors = useMemo(() => vendors.map(vendor => toFaceVendor(vendor)), [vendors]);
   const photoByName = useMemo(() => new Map(faceVendors.map(v => [v.name.toLowerCase(), v.photo])), [faceVendors]);
   const [newName, setNewName] = useState('');
