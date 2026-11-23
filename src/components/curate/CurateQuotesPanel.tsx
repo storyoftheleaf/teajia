@@ -101,7 +101,7 @@ export function CurateQuotesPanel({ vendorId }: { vendorId: string }) {
     <input className={inputClass} type={type} step={type === 'number' ? 'any' : undefined} value={value} onChange={event => update(event.target.value)} />
   </label>;
   return <details className="border-t border-tea-border pt-3" data-testid="curate-quotes-panel">
-    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-tap text-tea-text-sec`}>Vendor quotes</summary>
+    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-tap text-tea-text-sec`}>Quotes</summary>
     <div className="space-y-4 pb-3">
       {error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
       <div className="flex flex-wrap gap-2">

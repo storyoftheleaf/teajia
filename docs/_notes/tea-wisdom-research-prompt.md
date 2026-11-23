@@ -2,6 +2,14 @@
 
 Copy everything between the lines into the other agent. Send one topic batch per run. Save each answer as its own file in the vault at `Teajia/Research/tea-wisdom/<entry-id>.md`, then tell Claude "research is in". Claude turns the files into Wisdom entries in our own words.
 
+## Research the name on each tea
+
+Start with every public tea and repeat this pass when Stock gains a tea or a better label. Use the public catalog at https://www.teajia.com/api/products/public. Keep the Stock ID, Chinese characters, printed codes, brand, year and available wrapper or invoice evidence together. Distinguish a shop nickname from a documented trade name. Search the Chinese wording as well as English spellings.
+
+Look first for the people who made or sold the tea, dated factory catalogues, interviews, packaging and contemporary trade records. A useful story can cover who commissioned the tea, how people bought it, why its name or packaging mattered, how the original tea was made, and what changed between editions. Save the source URL, section or page, speaker, period, and exactly which tea or edition it describes. Record conflicting identifications and the evidence that would settle them. The cited place, process or producer may still merit a separate Wisdom passage while the exact identity is open.
+
+Write the strongest specific detail first, in Teajia’s own words. Credit a participant where a detail comes from their recollection. Connect verified lots to the named record by Stock ID. Use the named entry in the Wisdom catalogue and reviewed passages in `data/tea-reference/claims.json` for both Wisdom and shop copy. Give a well-documented tea as many short sections as its story earns. Then show relevant place, family or process context. Lot vintage, storage, sample weight and a drinker’s impressions each need evidence for that lot. Personal tasting comes from the author-approved journal.
+
 ---
 
 You are helping build Tea Wisdom, a reference for a specialist tea shop. Everything below is common knowledge in the tea trade: what a tea master, a farmer in the growing area, or an experienced seller would tell anyone who asked. Your job is to find out what that shared knowledge is by reading many places, and to show where those places agree and where they don't. Do not copy any source's wording. Write every statement in your own plain English.

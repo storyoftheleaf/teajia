@@ -74,7 +74,7 @@ test('clicking a photo opens reversible square framing; a small corner X removes
   const originalBytes = Buffer.from(original.original);
   await page.getByRole('button', { name: 'Save changes to this tea' }).filter({ visible: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved$/, visible: true })).toBeVisible();
-  await expect(page.getByText('Photos & source documents', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Files and change history', exact: true })).toHaveCount(0);
   await expect(page.getByText('1 photo saved', { exact: true })).toHaveCount(0);
   await photo.click();
   const dialog = page.getByRole('dialog', { name: 'Frame photo', exact: true });

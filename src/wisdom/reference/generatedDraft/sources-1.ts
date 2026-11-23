@@ -5,6 +5,15 @@ import type { PublicTeaReferenceSource } from '../claims';
 
 export const PART: readonly PublicTeaReferenceSource[] = [
   {
+    "sourceId": "china-tea-catalogue-y562",
+    "publisher": "China Tea (COFCO)",
+    "publisherRoleLabel": "Tea producer",
+    "title": "Product catalogue, item 78",
+    "author": "",
+    "publishedDate": "",
+    "url": "https://productandservice.cofco.com/upload/1/zl/platform/1993169302277591040.pdf"
+  },
+  {
     "sourceId": "ctma-menghai-seven-mountains-2025",
     "publisher": "China Tea Marketing Association",
     "publisherRoleLabel": "Trade association",
@@ -48,6 +57,24 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "author": "MarshalN",
     "publishedDate": "2013-09-18",
     "url": "https://marshaln.com/2013/09/really-young-puerh-is-not-really-puerh/"
+  },
+  {
+    "sourceId": "puer-magazine-export-cartons",
+    "publisher": "Pu’er magazine",
+    "publisherRoleLabel": "Trade history and package photographs",
+    "title": "Small packages in the loose-tea export trade",
+    "author": "Mama",
+    "publishedDate": "",
+    "url": "https://m.ipucha.com/show-25-4533.html"
+  },
+  {
+    "sourceId": "puer-magazine-jixing-design",
+    "publisher": "Pu’er magazine",
+    "publisherRoleLabel": "Designer interview",
+    "title": "The designers of Y562 and Y671",
+    "author": "Cheng Xin",
+    "publishedDate": "2017-02",
+    "url": "https://m.ipucha.com/show-24-7921.html"
   },
   {
     "sourceId": "teadb-greater-yiwu",

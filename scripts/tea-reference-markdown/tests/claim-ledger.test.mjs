@@ -185,6 +185,17 @@ test('claim metadata rules are enforced', async () => {
   }
 });
 
+test('a named-tea history must identify its own named tea, even when it also specifies a tea type', async () => {
+  const base = {
+    pages: { alpha: page({ id: 'alpha', kind: 'named_tea', sections: [['history', 'Approved text.']] }) },
+    uses: [['alpha', 'history']],
+  };
+  for (const applies_when of [{ type: 'Shou' }, { named_tea: 'beta', type: 'Shou' }]) {
+    const paths = await fixture({ ...base, claims: [claim('alpha:history', { axis: 'named_tea_history', applies_when })] });
+    await assert.rejects(buildWisdom(paths), /matched to its own named tea/);
+  }
+});
+
 test('leaf_grade pages need a tea_type parent and may be drafts with research still pending', async () => {
   const markdown = {
     family: page({ id: 'family', kind: 'tea_family', sections: [['overview', 'Approved text.']] }),

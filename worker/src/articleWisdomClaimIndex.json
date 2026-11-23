@@ -187,6 +187,50 @@
     ]
   },
   {
+    "id": "y562:designers",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers."
+      }
+    ]
+  },
+  {
+    "id": "y562:export-trade",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”"
+      }
+    ]
+  },
+  {
+    "id": "y562:little-black-box",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format."
+      }
+    ]
+  },
+  {
+    "id": "y562:original-blend",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends."
+      }
+    ]
+  },
+  {
     "id": "yunnan:geographic-frame",
     "public": true,
     "withdrawn": false,

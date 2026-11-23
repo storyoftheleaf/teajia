@@ -92,6 +92,7 @@ type PageKind = DraftReferencePage['kind'];
 export function wisdomPageHref(pageId: string, kind: PageKind): string | null {
   switch (kind) {
     case 'leaf_grade': return `/wisdom/grade/${pageId}`;
+    case 'named_tea': return `/wisdom/named/${pageId}`;
     case 'tea_type': return `/wisdom/type/${pageId}`;
     case 'tea_family': return `/wisdom/family/${pageId}`;
     case 'major_region':

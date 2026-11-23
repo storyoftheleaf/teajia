@@ -73,9 +73,13 @@ const FactStatement: React.FC<{
     <li ref={row} id={anchor} className={`${RULE_FULL} first:border-t-0 py-4 min-w-0`}>
       <p className={`${FACT} ${MEASURE} min-w-0 break-words`}>{fact.text}</p>
       {detail}
-      {!detail && citedListingClaims.has(fact.id) && (fact.citations ?? [fact.citation]).map(source => (
-        <a key={source.sourceId} href={source.url} className={`${FOOTNOTE} ${QUIET_LINK} tap-target mt-2 inline-flex`}>{source.label}</a>
-      ))}
+      {!detail && citedListingClaims.has(fact.id) && (
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+          {(fact.citations ?? [fact.citation]).map(source => (
+            <a key={source.sourceId} href={source.url} className={`${FOOTNOTE} ${QUIET_LINK} tap-target`}>{source.label}</a>
+          ))}
+        </div>
+      )}
     </li>
   );
 };

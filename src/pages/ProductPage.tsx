@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../hooks/useAuth';
 import { ProductDetailContent } from '../components/shop/AlcoveCard';
+import { reviewedLotProse } from '../wisdom/reference/namedTeaLots';
 import { normalizeTeaType } from '../wisdom';
 import { cultivarPath, resolveLineage } from '../components/wisdom/TeaLineage';
 import type { TeaReferenceProduct } from '../components/wisdom/TeaReference';
@@ -238,7 +239,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const priceKnown = isWare ? unitPrice != null : Number.isFinite(pricePerGram) && pricePerGram >= 0;
   const isSoldOut = (item.stock_g ?? 0) <= 0;
   const introduction = item.description || '';
-  const mainStory = item.lore || '';
+  const mainStory = reviewedLotProse(item.id, 'lore', item.lore) || '';
   const fallbackDescription = [item.type || item.name, item.origin && `from ${item.origin}`].filter(Boolean).join(' ');
   const description = introduction || mainStory || fallbackDescription;
   const metaDescription = description.slice(0, 160);

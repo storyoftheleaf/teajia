@@ -6,6 +6,8 @@ import { createPortal } from 'react-dom';
 import { Camera, Check, ChevronLeft, ChevronRight, Edit3, ImagePlus, Maximize2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { labelScanNotes } from '../../lib/labelScanNotes';
+import { selectIsOwnerTier, useAppStore } from '../../lib/store';
 import { compressImage } from '../../lib/imageCompressor';
 import { SquareCropModal } from '../shared/SquareCropModal';
 import { BottomSheet, SheetOption } from './CurateSheet';
@@ -53,12 +55,13 @@ type ScanStep = 'camera' | 'scanning' | 'result' | 'denied';
  *  failure with .catch(() => null), so "no key", "provider down" and
  *  "unreadable label" all looked identical. Now each gets its own quiet
  *  state; an empty result on a leaf photo is NOT an error and stays silent. */
-type ScanErrorCode = 'no_ai_provider' | 'provider_error' | 'extract_failed';
+type ScanErrorCode = 'no_ai_provider' | 'provider_error' | 'extract_failed' | 'owner_required';
 
 function classifyScanError(err: unknown): ScanErrorCode {
   const msg = err instanceof Error ? err.message : String(err ?? '');
   if (msg.includes('no_ai_provider')) return 'no_ai_provider';
   if (msg.includes('extract_failed')) return 'extract_failed';
+  if (msg.includes('owner_required') || msg.includes('for the shop owner')) return 'owner_required';
   // Anything else (provider_error, network, timeout) reads as the scanner
   // being unreachable right now.
   return 'provider_error';
@@ -68,6 +71,7 @@ const SCAN_ERROR_COPY: Record<ScanErrorCode, string> = {
   no_ai_provider: 'Scanner unavailable',
   provider_error: 'Scanner unavailable, try again shortly',
   extract_failed: "Couldn't read this label",
+  owner_required: 'Scanning is for the shop owner',
 };
 
 export function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
@@ -100,15 +104,8 @@ export function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
   if (gramsRaw !== undefined && gramsRaw !== null && gramsRaw !== '' && gramsRaw !== 0) {
     data.grams = typeof gramsRaw === 'number' ? gramsRaw : parseFloat(gramsRaw) || undefined;
   }
-  const extras: string[] = [];
-  if (r.awards) extras.push(`Awards: ${r.awards}`);
-  if (r.elevation || r.altitude) extras.push(`Elevation: ${r.elevation || r.altitude}`);
-  if (r.farm || r.garden) extras.push(`Farm: ${r.farm || r.garden}`);
-  if (r.productName || r.product_name) extras.push(`Cultivar: ${r.productName || r.product_name}`);
-  if (r.vendor) extras.push(`Vendor: ${r.vendor}`);
-  if (r.description) extras.push(r.description);
-  if (r.notes) extras.push(r.notes);
-  if (extras.length > 0) data.extraNotes = extras.join(' · ');
+  const notes = labelScanNotes(r);
+  if (notes) data.extraNotes = notes;
   return data;
 }
 
@@ -123,6 +120,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   variant = 'strip',
 }) => {
   const uploadPhoto = useCapturePhotoUpload(entryId);
+  // Reading a label spends the shop's tokens, so only the owner tier scans
+  // (the worker refuses everyone else too). Others still take photos.
+  const canScan = useAppStore(selectIsOwnerTier);
   const isLg = size === 'lg';
   // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
   // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
@@ -198,6 +198,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const runExtract = useCallback(
     async (file: File): Promise<{ data: ExtractedTeaData | null; error: ScanErrorCode | null }> => {
+      if (!canScan) return { data: null, error: null };
       try {
         const result = await api.extractFromImage(file, { skipUpload: true });
         return { data: result ? parseExtractResult(result as Record<string, any>) : null, error: null };
@@ -205,7 +206,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         return { data: null, error: classifyScanError(err) };
       }
     },
-    []
+    [canScan]
   );
 
   const handleRetryScan = useCallback(async () => {
@@ -869,7 +870,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             camera-roll glyph shows (the tile itself is the camera); after a
             photo the scan action joins it for retake/rescan. */}
         <div className="absolute bottom-2.5 right-2.5 flex gap-2">
-          {(heroValidUrl || heroPending) && (
+          {canScan && (heroValidUrl || heroPending) && (
             <button
               type="button"
               onClick={openScanner}
@@ -973,11 +974,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             type="button"
             onClick={openScanner}
             className={`curate-v2-frame is-tall shrink-0 uppercase tracking-[0.14em] ${justExtracted ? 'is-on' : ''}`}
-            aria-label="Scan label"
-            title="Scan label"
+            aria-label={canScan ? 'Scan label' : 'Take photo'}
+            title={canScan ? 'Scan label' : 'Take photo'}
             data-curate-action
           >
-            {justExtracted ? 'Label read' : 'Scan'}
+            {justExtracted ? 'Label read' : canScan ? 'Scan' : 'Photo'}
           </button>
         </div>
 

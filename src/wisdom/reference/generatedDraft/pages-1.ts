@@ -328,6 +328,52 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "y562",
+    "slug": "y562",
+    "kind": "named_tea",
+    "label": "Y562",
+    "visibility": "public",
+    "nativeName": "中茶吉幸Y562",
+    "parentId": "shou",
+    "sourceIds": [
+      "china-tea-catalogue-y562",
+      "puer-magazine-export-cartons",
+      "puer-magazine-jixing-design"
+    ],
+    "sections": [
+      {
+        "key": "little-black-box",
+        "label": "Yunnan’s little black box",
+        "sourceIds": [
+          "china-tea-catalogue-y562",
+          "puer-magazine-jixing-design"
+        ]
+      },
+      {
+        "key": "export-trade",
+        "label": "The box was part of the tea’s story",
+        "sourceIds": [
+          "puer-magazine-export-cartons"
+        ]
+      },
+      {
+        "key": "designers",
+        "label": "A tiger and a hand-painted carton",
+        "sourceIds": [
+          "puer-magazine-export-cartons",
+          "puer-magazine-jixing-design"
+        ]
+      },
+      {
+        "key": "original-blend",
+        "label": "The tea behind the code",
+        "sourceIds": [
+          "puer-magazine-jixing-design"
+        ]
+      }
+    ]
+  },
+  {
     "id": "yunnan",
     "slug": "yunnan",
     "kind": "major_region",

@@ -81,7 +81,7 @@ export const PUBLISHED_WISDOM_HOLDINGS: Holding[] = [
     label: 'Named Teas',
     to: '/wisdom/named',
     count: NAMED_TEAS.length,
-    description: 'Teas that arrived already named, where the composition was never disclosed.',
+    description: 'Tea names and their histories, from private collections to the export trade.',
   },
 ];
 

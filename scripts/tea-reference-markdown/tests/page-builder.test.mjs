@@ -285,7 +285,7 @@ test('validates every canonical Markdown file but generates only the approved, r
   });
 
   const markdownFiles = (await fs.readdir(PAGES_DIRECTORY)).filter(fileName => fileName.endsWith('.md'));
-  assert.equal(markdownFiles.length, 11);
+  assert.equal(markdownFiles.length, 12);
   assert.deepEqual(registry.pages.map(page => page.id), [
     'greater-yiwu',
     'lincang',
@@ -293,11 +293,16 @@ test('validates every canonical Markdown file but generates only the approved, r
     'puer',
     'sheng',
     'shou',
+    'y562',
     'yunnan',
   ]);
-  assert.ok(registry.pages.every(page => ['tea_family', 'tea_type', 'major_region', 'tea_area'].includes(page.kind)));
+  assert.ok(registry.pages.every(page => ['tea_family', 'tea_type', 'major_region', 'tea_area', 'named_tea'].includes(page.kind)));
   assert.doesNotMatch(JSON.stringify(registry), /reference_topic|mountain-circuit|mountain-names|xishuangbanna-tea-mountains/i);
   assert.deepEqual(registry.pages.find(page => page.id === 'shou').sections.map(section => section.key), ['wet-piling']);
+  const y562 = registry.pages.find(page => page.id === 'y562');
+  assert.deepEqual(y562.sections.map(section => section.key), ['little-black-box', 'export-trade', 'designers', 'original-blend']);
+  assert.ok(y562.sections.every(section => section.sourceIds.length > 0));
+  assert.doesNotMatch(JSON.stringify(y562), /1993|Hong Kong dry storage|Gong Ting/);
   const publicPageIds = new Set(registry.pages.map(page => page.id));
   for (const heldId of [
     'sheng-and-shou-puer',

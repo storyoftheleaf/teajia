@@ -4,6 +4,7 @@
 // generatedDraftClaims.ts (GENERATED_DRAFT_CLAIMS, every state; preview-only dynamic import).
 
 export type ClaimAxis =
+  | 'named_tea_history'
   | 'grade'
   | 'place'
   | 'type'
@@ -40,6 +41,8 @@ export interface ClaimAttribution {
  * Keys are ANDed; an empty object never matches.
  */
 export interface ClaimAppliesWhen {
+  /** Stable id of the named tea associated with the Stock lot. */
+  named_tea?: string;
   /** normalizeTeaType output, e.g. 'Shou'. */
   type?: string;
   /** A leaf_grade page id, e.g. 'gong-ting'. */
@@ -97,6 +100,7 @@ export interface PublicClaim {
 
 /** Recorded product facts the listing resolver may use. Built only from product fields, never inferred. */
 export interface ListingFacts {
+  namedTeaId?: string;
   type?: string;
   grade?: string;
   /** originRegion split on ',' and passed through normalizedWords. */
@@ -150,7 +154,7 @@ export interface DraftClaim extends PublicClaim {
 export interface DraftReferencePage {
   id: string;
   slug: string;
-  kind: 'tea_family' | 'tea_type' | 'major_region' | 'tea_area' | 'leaf_grade' | 'reference_topic';
+  kind: 'named_tea' | 'tea_family' | 'tea_type' | 'major_region' | 'tea_area' | 'leaf_grade' | 'reference_topic';
   label: string;
   visibility: 'public' | 'draft';
   nativeName?: string;

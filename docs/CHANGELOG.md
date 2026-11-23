@@ -1,4 +1,12 @@
+## 2026-11-23: The Curate package scanner reads with ChatGPT
+
+Scan in Curate sends the package photo to OpenAI first, using the shop's own key from Account settings (the key the photo enhancer already uses), then to Claude and Gemini if a worker key is set and the one before fails. The reader translates Chinese and other labels, fills the empty form fields (name, characters, type, form, year, season, origin, price, weight), and puts every other word it read into the tea's notes: each descriptive word with its original characters, producer, production and harvest dates, brewing, shelf life, storage, grade, standard and a line by line translation of the label. Scanning spends tokens, so it is the shop owner's only: the worker refuses other members (`owner_required`) and their Scan button takes a plain photo. The model is set in `worker/src/labelScan.ts`; `LABEL_SCAN_OPENAI_MODEL` overrides the OpenAI one.
+
 ## 2026-11-12: Curate's Source form follows the sitting
+
+## 2026-11-23: Vendor faces
+
+Each vendor can carry a photo of their face (`customers.face_photo`, migration 0082), added or changed from the vendor's page or from the camera on any tile in People > Suppliers > Faces, a gallery of every vendor as a face. Wherever a vendor is picked (the Curate vendor strip, Curate v2, the stock editor's supplier field, Add tea), the list shows each vendor's face beside the name and a Faces button opens the same grid to pick by sight. A vendor with no face falls back to their storefront photo, then their business card, then their initials. The customer list now also carries the storefront and business-card photos, which the Suppliers avatars were asking for and never got.
 
 ## 2026-11-21: One photo editor everywhere
 
