@@ -94,6 +94,10 @@ const AccountSettingsPage = lazyWithRetry(() => import('./pages/AccountSettingsP
 const OrderHistoryPage = lazyWithRetry(() => import('./pages/OrderHistoryPage'));
 const OrderDetailPage = lazyWithRetry(() => import('./pages/OrderDetailPage'));
 const SampleHistoryPage = lazyWithRetry(() => import('./pages/SampleHistoryPage'));
+// Tea Wisdom listing pilot: fixtures and stubbed API calls, development only.
+const WisdomPilotPreview = import.meta.env.DEV
+  ? lazyWithRetry(() => import('./pages/preview/wisdomPilot/WisdomPilotPreview'))
+  : null;
 // Repository docs can contain historical external URLs and are a development
 // tool, so do not ship their raw contents in the public production bundle.
 const DeveloperDocsPage = import.meta.env.DEV
@@ -1270,6 +1274,7 @@ const AppContent = () => {
                   <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
                   <Route path="/design/article-editor" element={<ErrorBoundary><Suspense fallback={null}><ArticleEditorHarness /></Suspense></ErrorBoundary>} />
                   <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
+                  {WisdomPilotPreview && <Route path="/preview/wisdom-pilot/*" element={<ErrorBoundary><Suspense fallback={null}><WisdomPilotPreview /></Suspense></ErrorBoundary>} />}
                 </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />

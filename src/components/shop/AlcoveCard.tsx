@@ -42,6 +42,9 @@ import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { resolveLineage } from '../wisdom/TeaLineage';
 import { regionElevationPresentation } from '../../wisdom/regions';
+import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, passageHref, useWisdomListing } from './alcove/AlcoveWisdomPassages';
+import { EMPTY_LISTING_PASSAGES, resolveListingPassages } from '../../wisdom/reference/listingPassages';
+import { listingFactsFromInventoryItem } from '../../wisdom/reference/listingFacts';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -134,6 +137,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [sampleError, setSampleError] = useState<string | null>(null);
 
   const { isAuthenticated: isLoggedIn, user } = useAuth();
+  // Tea Wisdom claims for this listing. Production reads an empty set until
+  // GENERATED_CLAIMS lands; `pilot` is set only on the wisdom-pilot preview pages.
+  const wisdomListing = useWisdomListing();
+  const wisdomPilot = wisdomListing.pilot;
 
   const handleSampleClick = () => {
     setSampleModalOpen(true);
@@ -531,9 +538,18 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     year: item.year,
   };
   const { catalogue: referenceCatalogue } = useTeaReferenceCatalogue(layout === 'page' && item.category === 'tea');
-  const potentialResearch = item.category === 'tea'
+  // The pilot view hides "Potential character": it falls through region and
+  // style research that no claim guards yet.
+  const potentialResearch = item.category === 'tea' && !wisdomPilot
     ? resolveProductResearch(referenceProduct)
     : null;
+  const wisdomPassages = item.category === 'tea'
+    ? resolveListingPassages(wisdomListing.facts ?? listingFactsFromInventoryItem(item), wisdomListing.claims)
+    : EMPTY_LISTING_PASSAGES;
+  const passageFor = (field: 'region' | 'location' | 'type' | 'grade' | 'format') =>
+    wisdomPassages.passages.find(passage => passage.gridField === field);
+  const gradePassage = passageFor('grade');
+  const typePassage = passageFor('type');
 
   // 4. Character: exact product tasting and cited shared potential remain separate.
   const characterBand = (
@@ -680,18 +696,26 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   if (layout === 'page') {
     const regionName = ledgerRegion?.province || ledgerRegion?.name;
     const originReference = findProductOriginReference(referenceCatalogue, item.id, item.origin);
+    const locationPassage = passageFor('location');
     const facts = [
       { label: 'Vintage', value: item.year },
+      // A grade row exists only when a recorded grade has a passage to explain it.
+      ...(gradePassage && wisdomListing.facts?.grade ? [{ label: 'Grade', value: wisdomListing.facts.grade.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '), to: passageHref(gradePassage.claim.claimId) }] : []),
+      ...(typePassage ? [{ label: 'Type', value: item.type, to: passageHref(typePassage.claim.claimId) }] : []),
       originReference
         ? { label: 'Region', value: originReference.name, to: `/wisdom/region/${originReference.id}` }
         : { label: 'Region', value: regionName && regionName !== item.origin ? regionName : '' },
-      { label: 'Location', value: item.origin },
+      locationPassage
+        ? { label: 'Location', value: item.origin, to: passageHref(locationPassage.claim.claimId) }
+        : { label: 'Location', value: item.origin },
       { label: 'Leaf cultivar', value: item.cultivar ?? '' },
       { label: 'Format', value: item.form ?? '' },
       { label: ledgerElevation?.label ?? 'Elevation', value: ledgerElevation?.value ?? '' },
       { label: 'Forest cover', value: ledgerRegion?.forestCover ?? '' },
-      { label: 'Tree character', value: ledgerRegion?.treeCharacter ?? '' },
-      ...recordFacts(resolveRecord(referenceProduct)),
+      // The pilot view takes nothing from the name: no grade mark from
+      // "Gong Ting", no tree age from "Gushu".
+      { label: 'Tree character', value: wisdomPilot ? '' : ledgerRegion?.treeCharacter ?? '' },
+      ...(wisdomPilot ? [] : recordFacts(resolveRecord(referenceProduct))),
     ].filter(fact => fact.value?.trim());
 
     return (
@@ -706,7 +730,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           </div>
           <div className="tea-product-reading">
             {gallery}
-            <div className="tea-product-account" role="group" aria-label="Your tea actions">
+            {!wisdomPilot?.externalReference && <div className="tea-product-account" role="group" aria-label="Your tea actions">
               {isLoggedIn ? (
                 <>
                   <Button variant="secondary" size="sm" className="tea-product-profile" icon={<Icons.User aria-hidden="true" />} onClick={() => navigate('/account')}>
@@ -729,18 +753,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   {onTaste && <Button variant="secondary" size="sm" onClick={() => onTaste(item, 'notes')}>Add your tasting</Button>}
                 </>
               )}
-            </div>
+            </div>}
             {facts.length > 0 && (
               <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">
                 <h2 id="tea-product-provenance-title" className="m-0 font-display text-ui-20 text-tea-text">Provenance</h2>
                 <FactGrid facts={facts} />
               </section>
             )}
-            <div data-page-order data-tea-product-order className="commerce-dock commerce-price-surface paper-surface dark z-nav">
+            <AlcoveWisdomPassages listing={wisdomPassages} />
+            {!wisdomPilot?.externalReference && <div data-page-order data-tea-product-order className="commerce-dock commerce-price-surface paper-surface dark z-nav">
               {commerceFooter('docked')}
-            </div>
+            </div>}
             {characterBand}
             <div className="mt-10 lg:mt-12">{aboutSection}</div>
+            <AlcoveWisdomStyleReferences listing={wisdomPassages} />
             {tableSection}
             {threadSection}
           </div>

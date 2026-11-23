@@ -72,7 +72,7 @@ function codePointCompare(left: string, right: string): number {
   }
 }
 
-function normalizedWords(value: string): string {
+export function normalizedWords(value: string): string {
   return value
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
