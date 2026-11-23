@@ -55,10 +55,12 @@ function isUsefulFact(fact: PublicReferenceStatement): boolean {
 
 const FactStatement: React.FC<{
   fact: PublicReferenceStatement;
-}> = ({ fact }) => {
+  detail?: React.ReactNode;
+}> = ({ fact, detail }) => {
   return (
     <li className={`${RULE_FULL} first:border-t-0 py-4 min-w-0`}>
       <p className={`${FACT} ${MEASURE} min-w-0 break-words`}>{fact.text}</p>
+      {detail}
     </li>
   );
 };
@@ -69,7 +71,9 @@ export const ReferenceFactSections: React.FC<{
   products: readonly PublicProduct[];
   reportIdentity: string;
   referencePage?: TeaReferenceFlagPage;
-}> = ({ facts, products, reportIdentity, referencePage }) => {
+  /** Optional lines under a statement, e.g. a claim's scope and its Chinese terms. */
+  factDetail?: (fact: PublicReferenceStatement) => React.ReactNode;
+}> = ({ facts, products, reportIdentity, referencePage, factDetail }) => {
   const groups = groupedFacts(facts.filter(isUsefulFact));
   const availableProducts = products.filter(product => product.status !== 'Sold Out');
   const previouslyOfferedProducts = products.filter(product => product.status === 'Sold Out');
@@ -100,7 +104,7 @@ export const ReferenceFactSections: React.FC<{
           <section key={group.label} aria-labelledby={sectionId} className={`${SPACE.section} ${GROUND} py-6`}>
             <SectionHead id={sectionId} label={group.label} count={group.facts.length} />
             <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
-              {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} />)}
+              {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} detail={factDetail?.(fact)} />)}
             </ul>
           </section>
         );

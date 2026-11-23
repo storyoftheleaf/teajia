@@ -157,6 +157,8 @@ const ProducerIndexPage = lazyWithRetry(() => import('./pages/wisdom/ProducerInd
 const ProducerPage = lazyWithRetry(() => import('./pages/wisdom/ProducerPage'));
 const MarkIndexPage = lazyWithRetry(() => import('./pages/wisdom/MarkIndexPage'));
 const MarkPage = lazyWithRetry(() => import('./pages/wisdom/MarkPage'));
+// Tea Wisdom pilot: a leaf grade built from claims. Preview-only until a grade page is public.
+const GradePage = lazyWithRetry(() => import('./pages/wisdom/GradePage'));
 const StyleIndexPage = lazyWithRetry(() => import('./pages/wisdom/StyleIndexPage'));
 const StylePage = lazyWithRetry(() => import('./pages/wisdom/StylePage'));
 const RegionIndexPage = lazyWithRetry(() => import('./pages/wisdom/RegionIndexPage'));
@@ -1222,6 +1224,9 @@ const AppContent = () => {
                 } />
                 <Route path="/wisdom/mark/:id" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><MarkPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/grade/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><GradePage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/styles" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><StyleIndexPage /></Suspense></ErrorBoundary>

@@ -16,6 +16,7 @@ import {
 } from '../../lib/articleBlockRegistry';
 import { useToast } from './Toast';
 import { ImmersivePreview } from './ImmersivePreview';
+import { ArticleWisdomClaims } from './ArticleWisdomClaims';
 import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant, ContributorOption } from '../../types';
 
 const IMMERSIVE_TEMPLATE = 'immersive_scroll';
@@ -494,7 +495,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // Right panel tab. 'immersive' shows the real reader render; only meaningful
   // when the article is set to the immersive look, but always selectable so the
   // operator can preview before committing the mode.
-  const [rightTab, setRightTab] = useState<'metadata' | 'preview' | 'immersive'>('metadata');
+  const [rightTab, setRightTab] = useState<'metadata' | 'preview' | 'immersive' | 'wisdom'>('metadata');
 
   // Add block dropdown
   const [addBlockOpen, setAddBlockOpen] = useState(false);
@@ -911,6 +912,18 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             >
               Reader
             </button>
+            {articleId && (
+              <button
+                onClick={() => setRightTab('wisdom')}
+                className={`px-4 py-2.5 text-ui-11 uppercase tracking-[0.15em] font-medium transition-colors ${
+                  rightTab === 'wisdom'
+                    ? 'text-tea-text border-b-2 border-tea-gold -mb-px'
+                    : 'text-tea-text-sec hover:text-tea-text'
+                }`}
+              >
+                Wisdom
+              </button>
+            )}
           </div>
 
           {/* Metadata tab */}
@@ -1084,6 +1097,13 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             </div>
           )}
 
+          {/* Wisdom tab: the claims this article cites, flagged when a claim moved on */}
+          {rightTab === 'wisdom' && articleId && (
+            <div className="flex-1 overflow-y-auto px-4 py-5">
+              <ArticleWisdomClaims articleId={articleId} blocks={blocks} />
+            </div>
+          )}
+
           {/* Reader (immersive) tab: the real reader render, phone + desktop */}
           {rightTab === 'immersive' && (
             <div className="flex-1 overflow-hidden flex flex-col">
@@ -1113,7 +1133,8 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       </div>
 
       {/* Mobile metadata panel (shown below blocks on mobile) */}
-      <div className="lg:hidden border-t border-tea-border bg-tea-surface/80">
+      {/* pb-nav: the shop's bottom bar stays over this modal below lg and covered the last rows. */}
+      <div className="lg:hidden border-t border-tea-border bg-tea-surface/80 pb-nav">
         <details className="px-4">
           <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
             Article Metadata
@@ -1201,6 +1222,17 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             <PreviewPane title={title} subtitle={subtitle} author={author} blocks={blocks} />
           </div>
         </details>
+        {articleId && (
+          <details className="px-4 border-t border-tea-border">
+            <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
+              Wisdom
+              <ChevronDown size={13} className="text-tea-text-dim" />
+            </summary>
+            <div className="pb-4 max-h-[55vh] overflow-y-auto">
+              <ArticleWisdomClaims articleId={articleId} blocks={blocks} />
+            </div>
+          </details>
+        )}
       </div>
     </div>
   );
