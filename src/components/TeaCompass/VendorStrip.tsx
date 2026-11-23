@@ -557,6 +557,13 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   className="absolute top-full left-0 right-0 z-30 mt-1 bg-tea-surface rounded-xl shadow-lg border border-tea-border overflow-hidden"
                   style={{ minWidth: '200px' }}
                 >
+                  {/* First option: pick by face (Adrian, 2026-11-23: "if I click
+                      vendor, I could say show photos as the top option"). */}
+                  <VendorFacesButton
+                    label="Show faces"
+                    onClick={() => { setSearchOpen(false); setFacesOpen(true); }}
+                    className="w-full !justify-start rounded-none px-3 text-tea-gold"
+                  />
                   {/* Filtered vendor list */}
                   {(() => {
                     const q = searchQuery.toLowerCase();
