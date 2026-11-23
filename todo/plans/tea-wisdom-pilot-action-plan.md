@@ -2,6 +2,14 @@
 
 Revised 2026-11-23. Merges our draft with an independent plan Fable wrote without seeing it, and Fable's review of the draft. Checked against origin/main `3eecf1d5`. Since the build plan (`bbd1fed2`), only a family voice-note change has landed, which is unrelated. Companion to [tea-wisdom-publishing.md](tea-wisdom-publishing.md). Stops at sandbox review: no production writes, no deploy, no push to main.
 
+## Catalog manager handoff · November 23
+
+The public tea and teaware template shipped at `1df4333b` (build `bo9z7faaz`). Its approved journal order is being updated in [release `5bf9e5a3`](https://github.com/storyoftheleaf/teajia/actions/runs/45100838294). The catalog team owns the shared product layout, the member photo + and authored tasting excerpts. This pilot owns Wisdom claims, passages, article dependencies and the review flag.
+
+Before integration, port the pilot's passage and fact links onto the current shared product template. The approved journal excerpt belongs immediately below actual tasting descriptors. Keep style-level sensory context last. Select an unused migration number for `0079_article_wisdom_claim_uses.sql` against the integration base. Production already has `0079_teaware_details.sql`. Rehearse both in a sandbox with existing data. Verify the signed-in article round trip and review flag before asking Adrian to review publication.
+
+The [catalog manager](codex://threads/01a1fb9d-d8a2-7b62-9836-a4d4c1cb24cb) owns release sequencing. [Tea Wisdom & Editorial](codex://threads/01a1fbd1-f8ca-72b2-a0d5-c28d0820809d) owns editorial review of the existing pilot.
+
 ## Current state: the gaps that matter (each checked in code)
 
 1. **Two Wisdom systems disagree.** The cited Markdown pages (`data/tea-reference/pages/` → `generatedPages.ts`) are new. The older uncited corpus is live and contradicts them:

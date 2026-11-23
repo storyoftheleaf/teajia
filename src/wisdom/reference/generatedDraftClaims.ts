@@ -11,7 +11,7 @@ export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [
     "label": "Reading the leaf",
     "axis": "grade",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
       "grade": "gong-ting"
     },

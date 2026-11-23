@@ -42,7 +42,7 @@ const UseRow: React.FC<{ review: ClaimUseReview; block: ArticleBlock | undefined
         {href ? <Link to={href} className="text-tea-gold-lt underline underline-offset-2">{claim?.label ?? use.claimId}</Link> : (claim?.label ?? use.claimId)}
         <span className="text-tea-text-sec"> · {use.claimId} · rev {use.revUsed} · {use.useKind === 'live_block' ? 'live block' : 'prose'}</span>
       </p>
-      {claim && <p className="text-ui-11 text-tea-text-sec leading-relaxed break-words">Scope: {claim.scope}</p>}
+      {claim?.scope && <p className="text-ui-11 text-tea-text-sec leading-relaxed break-words">Scope: {claim.scope}</p>}
       {flag ? (
         <div className="rounded-md border border-tea-gold/30 bg-tea-gold/8 p-3 space-y-2" role="status">
           <p className="text-ui-12 text-tea-text font-medium leading-relaxed">{flag}</p>

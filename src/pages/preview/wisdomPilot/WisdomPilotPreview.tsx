@@ -1,6 +1,6 @@
 // Dev-only Tea Wisdom listing pilot: /preview/wisdom-pilot/*.
 // Mounted from App.tsx inside the import.meta.env.DEV block only.
-import React, { useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AlcoveCard } from '../../../components/shop/AlcoveCard';
@@ -10,6 +10,7 @@ import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import type { PublicClaim } from '../../../wisdom/reference/claims';
 import { resolveListingPassages } from '../../../wisdom/reference/listingPassages';
 import { PILOT_FIXTURE_CLAIMS } from './fixtureClaims';
+import { loadWisdomPilotData } from '../../wisdom/wisdomPilotData';
 import { PILOT_FIXTURES, type PilotFixture } from './fixtureProducts';
 import { applyRevisionOverrides, revisionChoices, revisionOverrideStore, type RevisionChoice, type RevisionOverrides } from './revisionOverride';
 import { installPilotApiStub, stubbedCalls } from './stubApi';
@@ -38,14 +39,20 @@ const PreviewStrip: React.FC<{ fixture: PilotFixture }> = ({ fixture }) => (
   </div>
 );
 
-const ListingPage: React.FC<{ fixture: PilotFixture; claims: readonly PublicClaim[] }> = ({ fixture, claims }) => (
+const claimsFor = (fixture: PilotFixture, claims: readonly PublicClaim[]) =>
+  fixture.omitStyleReferences ? claims.filter(claim => claim.axis !== 'sensory_observation') : claims;
+
+const ListingPage: React.FC<{ fixture: PilotFixture; claims: readonly PublicClaim[] }> = ({ fixture, claims: allClaims }) => {
+  const claims = claimsFor(fixture, allClaims);
+  return (
   <div className="min-w-0 pb-nav" data-pilot-fixture={fixture.slug}>
     <PreviewStrip fixture={fixture} />
     <WisdomListingProvider value={{ claims, facts: fixture.facts, pilot: { externalReference: fixture.externalReference } }}>
       <AlcoveCard item={fixture.item} layout="page" />
     </WisdomListingProvider>
   </div>
-);
+  );
+};
 
 const IndexPage: React.FC<{
   claims: readonly PublicClaim[];
@@ -96,7 +103,7 @@ const IndexPage: React.FC<{
         <ul className="m-0 mt-2 list-none p-0">
           {ORDER.map(slug => {
             const fixture = PILOT_FIXTURES[slug];
-            const listing = resolveListingPassages(fixture.facts, claims);
+            const listing = resolveListingPassages(fixture.facts, claimsFor(fixture, claims));
             return (
               <li key={slug} className="mt-6 min-w-0 border-t border-tea-border pt-4" data-pilot-index-row={slug}>
                 <Link to={`${BASE}/${slug}`} className={`${TYPOGRAPHY_CLASSES.link} tap-target inline-flex items-center`}>{fixture.title}</Link>
@@ -131,7 +138,12 @@ const IndexPage: React.FC<{
  * `claims` defaults to the pilot fixture; the integration thread passes
  * GENERATED_DRAFT_CLAIMS (through its preview-only dynamic import) instead.
  */
-export const WisdomPilotPreview: React.FC<{ claims?: readonly PublicClaim[] }> = ({ claims: baseClaims = PILOT_FIXTURE_CLAIMS }) => {
+export const WisdomPilotPreview: React.FC<{ claims?: readonly PublicClaim[] }> = ({ claims: claimsProp }) => {
+  // The real claims: the generated draft module, drafts promoted for preview.
+  // The fixture only fills in while that module loads.
+  const [rawPilotClaims, setRawPilotClaims] = useState<readonly PublicClaim[] | null>(null);
+  useEffect(() => { loadWisdomPilotData().then(result => setRawPilotClaims(result.claims)); }, []);
+  const baseClaims = claimsProp ?? rawPilotClaims ?? PILOT_FIXTURE_CLAIMS;
   // A private cache: nothing from the live shop's persisted cache reaches these pages.
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },

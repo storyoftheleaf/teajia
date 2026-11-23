@@ -92,9 +92,11 @@ export const AlcoveWisdomPassages: React.FC<{ listing: ListingPassages }> = ({ l
           <h3 className={`${LABEL} ${FIELD_GAP} m-0 text-tea-text-dim`}>{claim.label}</h3>
           <p className={`${BODY} m-0 text-tea-text [overflow-wrap:anywhere]`}>{claim.text}</p>
           <TermsLine claim={claim} />
-          <p className={`${BODY} m-0 mt-2 text-tea-text-sec`}>
-            <span className="text-tea-text-dim">Scope: </span>{claim.scope}
-          </p>
+          {claim.scope && (
+            <p className={`${BODY} m-0 mt-2 text-tea-text-sec`}>
+              <span className="text-tea-text-dim">Scope: </span>{claim.scope}
+            </p>
+          )}
           {/* Trade knowledge is written in our own words and carries no citation. */}
           {claim.sourceIds.length > 0 && (
             <p className={`${BODY} m-0 mt-1 text-tea-text-dim`} data-citation-line>

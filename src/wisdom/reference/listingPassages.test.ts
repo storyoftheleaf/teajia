@@ -146,6 +146,15 @@ describe('resolveListingPassages: contract rules', () => {
     ];
     const listing = resolveListingPassages(facts, claims);
     expect(listing.passages).toEqual([]);
-    expect(ids(listing.styleReferences)).toEqual(['s:attributed', 's:common']);
+    expect(ids(listing.styleReferences)).toEqual(['s:attributed']);
+  });
+
+  it('keeps only the most specific style reference: a grade beats a type', () => {
+    const claims = [
+      claim({ claimId: 'shou:common-impressions', axis: 'sensory_observation', appliesWhen: { type: 'Shou' }, listingEligible: false, basis: 'trade_knowledge' }),
+      claim({ claimId: 'gong-ting:common-impressions', axis: 'sensory_observation', appliesWhen: { grade: 'gong-ting' }, listingEligible: false, basis: 'trade_knowledge' }),
+    ];
+    const listing = resolveListingPassages({ ...facts, grade: 'gong-ting' }, claims);
+    expect(ids(listing.styleReferences)).toEqual(['gong-ting:common-impressions']);
   });
 });

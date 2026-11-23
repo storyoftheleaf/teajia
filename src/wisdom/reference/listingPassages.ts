@@ -112,6 +112,14 @@ export function passageAnchorId(claimId: string): string {
  * `claims` is the claim set in use: GENERATED_CLAIMS in production, a fixture
  * or an overridden draft set on the pilot preview.
  */
+function styleSpecificity(claim: PublicClaim): number {
+  const when = claim.appliesWhen;
+  if (when.grade) return 4;
+  if (when.origin_includes) return 3;
+  if (when.type) return 2;
+  return when.form ? 1 : 0;
+}
+
 export function resolveListingPassages(
   facts: ListingFacts,
   claims: readonly PublicClaim[],
@@ -132,9 +140,11 @@ export function resolveListingPassages(
     chosen.push(claim);
   }
 
+  // One style reference only: the most specific that applies (grade > place > type > form).
   const styleReferences = live
     .filter(claim => claim.axis === 'sensory_observation' && appliesTo(claim.appliesWhen, facts))
-    .sort((left, right) => codePointCompare(left.claimId, right.claimId));
+    .sort((left, right) => (styleSpecificity(right) - styleSpecificity(left)) || codePointCompare(left.claimId, right.claimId))
+    .slice(0, 1);
 
   if (chosen.length === 0 && styleReferences.length === 0) return EMPTY_LISTING_PASSAGES;
 

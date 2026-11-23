@@ -5,7 +5,7 @@
       "claim_id": "gong-ting:appearance",
       "basis": "trade_knowledge",
       "axis": "grade",
-      "listing_eligible": true,
+      "listing_eligible": false,
       "applies_when": {
         "grade": "gong-ting"
       },

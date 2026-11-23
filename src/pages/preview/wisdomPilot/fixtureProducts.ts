@@ -17,6 +17,8 @@ export interface PilotFixture {
   withheld: readonly { field: string; text: string; reason: string }[];
   banner?: string;
   externalReference?: boolean;
+  /** Pilot decision: show no "What people often notice" block on this listing. */
+  omitStyleReferences?: boolean;
 }
 
 const NAKA_PROCESSING = 'This cake is made in the ripe puerh style, called shou in Chinese. Shou is Yunnan\'s dark, wet-piled tea. The picked leaf is heaped damp so heat and microbes ferment it, a step called wo dui, or wet piling. The method was developed in Yunnan in the early 1970s and turns the leaf dark so the tea is drinkable young. After fermentation the leaf is pressed into a cake. In the cup the liquor pours dark and drinks full-bodied and earthy; because the pile process works the leaf heavily, what carries through in a ripe tea is the quality of the starting material rather than the aromatics of the fresh leaf.';
@@ -98,7 +100,7 @@ const JINGMAI_GONG_TING_ITEM: InventoryItem = {
   variant: 'Jingmai Mountain Gong Ting',
   stock_g: 0,
   cost_price: '0',
-  description: 'An external reference example: the seller\'s title and description identify this loose tea as ripe pu\'er of Gong Ting grade. The standard explains the term; nothing here claims the batch was certified to it.',
+  description: 'An external reference example: another seller sells this loose ripe pu\'er as Gong Ting grade. It is shown here only to illustrate the grade, and nothing here describes a Teajia lot.',
   tags: [],
   image: '',
   additionalImages: [],
@@ -111,7 +113,8 @@ export const PILOT_FIXTURES: Record<PilotFixture['slug'], PilotFixture> = {
   naka: {
     slug: 'naka',
     title: 'Naka Gushu · live Teajia lot',
-    note: 'The live record, with the fields no source supports hidden on this page only.',
+    note: 'The live record, with the fields no source supports hidden on this page only. No taste copy in this pilot.',
+    omitStyleReferences: true,
     item: {
       ...NAKA_LIVE_ITEM,
       tags: [],

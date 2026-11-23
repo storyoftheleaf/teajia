@@ -67,10 +67,12 @@ const ClaimDetail: React.FC<{ claim: AnyClaim; sources: readonly PublicTeaRefere
     .filter((source): source is PublicTeaReferenceSource => Boolean(source));
   return (
     <div className={`mt-2 space-y-2 ${MEASURE} min-w-0`} data-claim-id={claim.claimId}>
-      <p className={`${FOOTNOTE} min-w-0 break-words`}>
-        <span className={LABEL}>Scope</span>{' '}
-        <span data-claim-scope>{claim.scope}</span>
-      </p>
+      {claim.scope && (
+        <p className={`${FOOTNOTE} min-w-0 break-words`}>
+          <span className={LABEL}>Scope</span>{' '}
+          <span data-claim-scope>{claim.scope}</span>
+        </p>
+      )}
       {claim.attribution && (
         <p className={`${FOOTNOTE} min-w-0 break-words`}>
           <span className={LABEL}>Observed on</span> {claim.attribution.sample}
@@ -108,7 +110,14 @@ const GradePage: React.FC = () => {
 
   const page = data?.pages.find(candidate => candidate.id === id && candidate.kind === 'leaf_grade');
   const claims = useMemo(
-    () => (page && data ? data.claims.filter(claim => claim.pageId === page.id && claim.reviewState !== 'withdrawn' && claim.rev !== null) : []),
+    () => {
+      if (!page || !data) return [];
+      // Keep the Markdown page's section order.
+      const order = new Map(page.sections.map((section, index) => [section.key, index]));
+      return data.claims
+        .filter(claim => claim.pageId === page.id && claim.reviewState !== 'withdrawn' && claim.rev !== null)
+        .sort((left, right) => (order.get(left.sectionKey) ?? 99) - (order.get(right.sectionKey) ?? 99));
+    },
     [data, page],
   );
   const claimById = useMemo(() => new Map(claims.map(claim => [claim.claimId, claim])), [claims]);
