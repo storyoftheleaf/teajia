@@ -34,7 +34,6 @@ export const ProductDetailPageContext = createContext<ProductPageContextValue>({
 interface ProductDetailLayoutProps {
   identity: Omit<ComponentProps<typeof AlcoveIdentityHeader>, 'variant'>;
   gallery: Omit<ComponentProps<typeof AlcoveGallery>, 'layout' | 'onExpandImage'>;
-  afterGallery?: ReactNode;
   actions: ComponentProps<typeof ProductDetailActions>;
   facts: Fact[];
   factsTitle: string;
@@ -48,7 +47,7 @@ interface ProductDetailLayoutProps {
 }
 
 export function ProductDetailLayout({
-  identity, gallery, afterGallery, actions, facts, factsTitle, order, character, reading, related, teaOrder, modals, soldOut,
+  identity, gallery, actions, facts, factsTitle, order, character, reading, related, teaOrder, modals, soldOut,
 }: ProductDetailLayoutProps) {
   const { shopHref, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
   const { item } = identity;
@@ -88,7 +87,6 @@ export function ProductDetailLayout({
           </div>
           <div className="tea-product-reading">
             <AlcoveGallery key={actions.productId} {...gallery} layout="page" onExpandImage={setExpandedImage} />
-            {afterGallery}
             <ProductDetailActions {...actions} key={item.id} />
             {visibleFacts.length > 0 && (
               <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">

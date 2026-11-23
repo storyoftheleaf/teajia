@@ -65,6 +65,7 @@ async function setup(page: Page, { failStar = false }: { failStar?: boolean } = 
   } : undefined;
   let offer: Offer | undefined;
   const placements: Array<Record<string, boolean>> = [];
+  let showDescriptors = true;
 
   await page.addInitScript(({ curatorJwt, guestJwt, seedJournal }) => {
     localStorage.clear();
@@ -98,8 +99,9 @@ async function setup(page: Page, { failStar = false }: { failStar?: boolean } = 
         token: isCurator ? curatorToken : guestToken,
       });
     }
-    if (path === '/api/products/public' || path === '/api/s/teajia-bali/products') return json([product]);
-    if (path === '/api/products/public/product-1') return json(product);
+    const catalogueTea = { ...product, tasting: showDescriptors ? { flavor: ['honey'] } : {} };
+    if (path === '/api/products/public' || path === '/api/s/teajia-bali/products') return json([catalogueTea]);
+    if (path === '/api/products/public/product-1' || path === '/api/s/teajia-bali/products/product-1') return json(catalogueTea);
     if (path === '/api/accounts/acct-bali' || path === '/api/s/teajia-bali') {
       return json({ id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali', public_enabled: 1 });
     }
@@ -172,7 +174,7 @@ async function setup(page: Page, { failStar = false }: { failStar?: boolean } = 
     if (path === '/api/user/favorites') return json({ favorites: [] });
     return json({});
   });
-  return { journal: () => journal, placements };
+  return { journal: () => journal, placements, clearDescriptors: () => { showDescriptors = false; } };
 }
 
 test('a guest excerpt requires approval and an independent public placement', async ({ page }) => {
@@ -239,6 +241,22 @@ test('a guest excerpt requires approval and an independent public placement', as
   await expect(page.getByRole('button', { name: 'Show on listing' })).toHaveAttribute('aria-pressed', 'true');
   expect(state.placements).toEqual([{ show_on_listing: true }]);
   await showPublic('listing', true);
+  const journalSection = page.getByRole('region', { name: 'From the tasting journal' });
+  const about = page.getByRole('region', { name: 'About this tea' });
+  const descriptorBox = journalSection.locator('xpath=../preceding-sibling::*[1]');
+  await expect(descriptorBox.getByText('Honey', { exact: true })).toBeVisible();
+  const expectJournalBeforeAbout = async () => {
+    await expect(about).toBeVisible();
+    const aboutElement = await about.elementHandle();
+    expect(await journalSection.evaluate((journal, section) =>
+      Boolean(journal.compareDocumentPosition(section!) & Node.DOCUMENT_POSITION_FOLLOWING), aboutElement)).toBe(true);
+  };
+  await expectJournalBeforeAbout();
+
+  state.clearDescriptors();
+  await showPublic('listing', true);
+  await expect(page.getByText('Honey', { exact: true })).toHaveCount(0);
+  await expectJournalBeforeAbout();
   await showPublic('homepage', false);
 
   await page.goto(reviewedPath);

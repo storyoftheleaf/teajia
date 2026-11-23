@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import type { CustomerTasting, InventoryItem } from '../../../types';
 import { resolveTermLabel, TASTING_CATEGORY_ORDER } from '../../../data/tastingTaxonomy';
 import { starredNotes } from '../../../lib/noteEntries';
-import type { ProductImpression } from '../ProductImpressions';
+import { ProductImpressions, type ProductImpression } from '../ProductImpressions';
 import { AlcoveSectionHeading } from './AlcoveSectionHeading';
 import { AlcoveTastingPlate } from './AlcoveTastingPlate';
 import type { ProductResearchResolution } from '../../../wisdom/productResearch';
@@ -158,7 +158,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
    *
    * Two sources, one grammar. The shop's own starred notes are Adrian writing
    * about his tea. The impressions are customers' notes he read in the review
-   * queue and promoted, each going out under the name he set. Both are
+   * queue and promoted, each going out under the byline the author chose. Both are
    * published claims on a public product page, which is what earns them a place
    * on the record.
    *
@@ -181,15 +181,19 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
     detail: impression.attributionDetail,
     key: `said-${impression.id}`,
   }));
-  const quotes = [...shopStarred, ...promoted];
+  const quotes = open ? shopStarred : [...shopStarred, ...promoted];
   const hasVisibleStructuredTerms = flavorTerms.length > 0 || feelingTerms.length > 0;
   const hasTerms = tasteTerms.length > 0 || feelingTerms.length > 0;
   const hasCharacterContent = hasTerms || quotes.length > 0;
   const hasAny = hasCharacterContent || Boolean(potentialResearch) || Boolean(onTaste);
+  const journal = open && impressions.length > 0 ? (
+    <div className="px-[var(--space-4)] lg:px-[var(--space-6)]">
+      <ProductImpressions impressions={impressions} />
+    </div>
+  ) : null;
 
-  // No sensory data: no band, no empty heading. (The admin "Edit" affordance
-  // lives on the card's top edge, not here, so an empty tasting shows nothing.)
-  if (!hasAny) return null;
+  // With no descriptors or other character content, the journal can stand on its own.
+  if (!hasAny) return journal;
 
   /*
    * The page's record card.
@@ -219,7 +223,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
           ? 'Source-described profile'
           : null;
 
-    return (
+    const character = (
       <section aria-label="Character" className="mx-5 mt-7">
         {/*
           Two things, not a stack of boxes.
@@ -257,6 +261,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
               )}
             </div>
           )}
+          {hasTerms && journal}
           {quotes.length > 0 && (
             <div className={`px-4 py-[18px] lg:px-6 lg:py-6 ${hasTerms ? 'alcove-record-said' : ''}`}>
               {quotes.map(({ text, attribution, detail, key }, i) => (
@@ -307,6 +312,8 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
         </div>
       </section>
     );
+
+    return <>{character}{!hasTerms && journal}</>;
   }
 
   return (

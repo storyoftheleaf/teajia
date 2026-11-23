@@ -28,7 +28,7 @@ import { AlcoveCommerceFooter, wholePieceOf } from './alcove/AlcoveCommerceFoote
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
 import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
-import { ProductImpressions, useProductImpressions } from './ProductImpressions';
+import { useProductImpressions } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 import { minimumOrderGrams, quoteGrams, sellUnitOf } from '../../lib/teaPricing';
@@ -486,7 +486,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       potentialResearch={potentialResearch}
       onTaste={layout === 'page' ? undefined : onTaste}
       tastingEntry={tastingEntry}
-      impressions={layout === 'page' ? [] : impressions}
+      impressions={impressions}
       open={layout === 'page'}
     />
   );
@@ -570,7 +570,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       <ProductDetailLayout
         identity={identity}
         gallery={gallery}
-        afterGallery={<ProductImpressions impressions={impressions} />}
         actions={{ productId: item.id, label: 'Your tea actions',
           onTaste: onTaste && (() => onTaste(item, 'notes')),
           onEdit: isAdmin && onEditProductTasting ? () => onEditProductTasting(item) : undefined }}
