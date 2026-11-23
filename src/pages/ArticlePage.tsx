@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { DbArticle } from '../types';
 import { SharePanel, type SharePage } from '../components/article/SharePanel';
+import { useArticleWisdomReferences } from './wisdom/ArticleWisdomLinks';
 import { buildPublicProductHref } from '../lib/publicProductNavigation';
 
 export type ArticleTeaReference = { id: string; name: string; detail: string; href: string };
@@ -107,7 +108,7 @@ type Page =
   | { kind: 'cover'; title: string; subtitle?: string; coverImage?: string; category?: string; mark?: string }
   | { kind: 'masthead'; intro: string; author?: string; authorSlug?: string; date?: string; readingTime?: number }
   | { kind: 'colophon'; title: string; author?: string; authorSlug?: string; date?: string; category?: string }
-  | { kind: 'tea_references'; teas: ArticleTeaReference[] }
+  | { kind: 'tea_references'; teas: ArticleTeaReference[]; heading?: string }
   | { kind: 'end'; title: string }
   // Original 8 (kept for the renderers we already wrote)
   | { kind: 'body'; head: string; paragraphs: string[]; pageNum: number; pageTotal: number }
@@ -1306,12 +1307,12 @@ const EndPage: React.FC<{ page: Extract<Page, { kind: 'end' }> }> = ({ page }) =
   </PageFrame>
 );
 
-export const ArticleTeaReferencesPage: React.FC<{ teas: ArticleTeaReference[] }> = ({ teas }) => (
+export const ArticleTeaReferencesPage: React.FC<{ teas: ArticleTeaReference[]; heading?: string }> = ({ teas, heading = 'Teas in this piece' }) => (
   <PageFrame>
     <PageInner>
       <div style={{ flex: 0.65 }} />
       <p style={{ fontFamily: T.mono, fontSize: 19, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.gold, margin: 0 }}>
-        Teas in this piece
+        {heading}
       </p>
       <div aria-hidden="true" style={{ width: 64, height: 1, background: T.border, margin: '30px 0 38px' }} />
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 28 }}>
@@ -2446,7 +2447,7 @@ const PageDispatch: React.FC<{ page: Page }> = ({ page }) => {
     case 'cover':           return <CoverPage page={page} />;
     case 'masthead':        return <MastheadPage page={page} />;
     case 'colophon':        return <ColophonPage page={page} />;
-    case 'tea_references':   return <ArticleTeaReferencesPage teas={page.teas} />;
+    case 'tea_references':   return <ArticleTeaReferencesPage teas={page.teas} heading={page.heading} />;
     case 'end':             return <EndPage page={page} />;
     // Original kinds, kept as fallbacks (synthetic body never created now)
     case 'body':            return <BodyPage page={page} />;
@@ -2534,16 +2535,19 @@ export default function ArticlePage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // The public Wisdom pages this piece cites get a reference page of their own, after its teas.
+  const wisdomRefs = useArticleWisdomReferences(article?.wisdom_claim_uses);
   const pages = useMemo(() => {
     if (!article) return [];
     const built = buildPages(article);
     const teas = normalizeArticleTeaReferences(articleTeaRows);
-    if (teas.length === 0) return built;
+    if (teas.length === 0 && wisdomRefs.length === 0) return built;
     const endIndex = built.findIndex(page => page.kind === 'end');
     const insertAt = endIndex >= 0 ? endIndex : built.length;
     const teaPages = paginateArticleTeaReferences(teas).map(pageTeas => ({ kind: 'tea_references' as const, teas: pageTeas }));
-    return [...built.slice(0, insertAt), ...teaPages, ...built.slice(insertAt)];
-  }, [article, articleTeaRows]);
+    const wisdomPages = paginateArticleTeaReferences(wisdomRefs).map(refs => ({ kind: 'tea_references' as const, teas: refs, heading: 'In the Wisdom pages' }));
+    return [...built.slice(0, insertAt), ...teaPages, ...wisdomPages, ...built.slice(insertAt)];
+  }, [article, articleTeaRows, wisdomRefs]);
   const total = pages.length;
 
   // A link from a creator profile ends in #quote-<contributor id>. That page

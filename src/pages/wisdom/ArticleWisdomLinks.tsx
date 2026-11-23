@@ -33,3 +33,27 @@ export const ArticleWisdomLinks: React.FC<{ uses?: readonly { claim_id: string }
 };
 
 export default ArticleWisdomLinks;
+
+const DESTINATION_KIND: Array<[string, string]> = [
+  ['/wisdom/grade/', 'Leaf grade'],
+  ['/wisdom/type/', 'Tea type'],
+  ['/wisdom/family/', 'Tea family'],
+  ['/wisdom/region/', 'Growing place'],
+];
+
+/**
+ * The same public Wisdom pages, shaped as the carousel reader's reference page
+ * rows ({ id, name, detail, href }), so it can show them on a page of their own.
+ */
+export function useArticleWisdomReferences(uses?: readonly { claim_id: string }[] | null) {
+  const data = useWisdomPilotData();
+  return useMemo(() => {
+    if (!data || !uses?.length) return [];
+    return wisdomDestinations(uses.map(use => use.claim_id), data.pages, false).map(destination => ({
+      id: destination.pageId,
+      name: destination.label,
+      href: destination.href,
+      detail: DESTINATION_KIND.find(([prefix]) => destination.href.startsWith(prefix))?.[1] ?? 'Wisdom',
+    }));
+  }, [data, uses]);
+}
