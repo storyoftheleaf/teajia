@@ -493,6 +493,7 @@ export interface ContributorProfile {
   hosting: ContributorHostingRef | null;
   accounts?: ContributorAccountRef[];
   shelf_slug?: string | null;
+  orderable_shelf_slug?: string | null;
   has_payment_methods?: boolean;
   payment_accounts?: Array<{ slug: string; name: string }>;
   host_account: ContributorHostAccount | null;
