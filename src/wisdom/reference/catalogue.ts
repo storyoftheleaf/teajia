@@ -417,12 +417,14 @@ export function buildGeneratedTeaReferenceFacts(
         url: source.url,
       };
     });
-    if (citations.length === 0) throw new Error(`${page.id}#${section.key} needs a public citation`);
+    // A section with no source is trade knowledge, written in our own words
+    // (docs/_notes/tea-wisdom-claims.md). The page builder admits that only
+    // through an approved trade-knowledge claim; it carries no citation line.
     return {
       id: `${page.id}:${section.key}`,
       label: section.label,
       text: section.text,
-      citation: citations[0],
+      citation: citations[0] ?? { sourceId: '', label: '', url: '' },
       citations,
     };
   });

@@ -277,7 +277,7 @@ test('rejects invalid public parent-kind relationships', async () => {
   }
 });
 
-test('validates every canonical Markdown file but generates only the six safely routable pages', async () => {
+test('validates every canonical Markdown file but generates only the seven safely routable pages', async () => {
   const { registry } = await buildWisdom({
     pagesDirectory: PAGES_DIRECTORY,
     translationsPath: TRANSLATIONS_PATH,
@@ -292,6 +292,7 @@ test('validates every canonical Markdown file but generates only the six safely 
     'menghai-county',
     'puer',
     'sheng',
+    'shou',
     'yunnan',
   ]);
   assert.ok(registry.pages.every(page => ['tea_family', 'tea_type', 'major_region', 'tea_area'].includes(page.kind)));

@@ -5,7 +5,7 @@ kind: tea_type
 label: Shou (ripe pu’er)
 native_name: 熟普洱
 parent: puer
-visibility: draft
+visibility: public
 ---
 
 ## What ripe pu’er is {#definition}
