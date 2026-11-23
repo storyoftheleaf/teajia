@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { PublicTeaReferencePage } from './types';
 import type { PublicClaim } from './claims';
 import { appliesTo, resolveListingPassages } from './listingPassages';
 import { listingFacts } from './listingFacts';
@@ -179,5 +180,37 @@ describe('resolveListingPassages: contract rules', () => {
     ];
     const listing = resolveListingPassages({ ...facts, grade: 'gong-ting' }, claims);
     expect(ids(listing.styleReferences)).toEqual(['gong-ting:common-impressions']);
+  });
+});
+
+describe('an explicitly linked named history', () => {
+  const page = (id: string, keys: string[], kind: PublicTeaReferencePage['kind'] = 'named_tea'): PublicTeaReferencePage =>
+    ({ id, slug: id, kind, label: id, sourceIds: ['source'], sections: keys.map(key => ({ key, label: key, text: key, sourceIds: ['source'] })) });
+  const history = (id: string, key: string, overrides: Partial<PublicClaim> = {}) => claim({
+    claimId: id + ':' + key, axis: 'named_tea_history', appliesWhen: { named_tea: id }, sourceIds: ['source'], ...overrides,
+  });
+  const pages = [page('y562', ['carton']), page('another-tea', ['z', 'b', 'a', 'c']), page('shou', ['process'], 'tea_type')];
+  const general = claim({ claimId: 'shou:process', axis: 'process', appliesWhen: { type: 'Shou' } });
+  const claims = [general, history('another-tea', 'a'), history('another-tea', 'b'), history('another-tea', 'c'),
+    history('another-tea', 'z'), history('y562', 'carton')];
+  const facts = { ...listingFacts({ type: 'Shou', name: 'Y562' }), namedTeaId: 'another-tea' };
+
+  it('keeps every sourced section in page order, then general context, for a second identity', () => {
+    const passages = resolveListingPassages(facts, claims, pages).passages;
+    expect(passages.map(p => p.wisdomHref)).toEqual([
+      '/wisdom/named/another-tea#z', '/wisdom/named/another-tea#b', '/wisdom/named/another-tea#a', '/wisdom/named/another-tea#c',
+      '/wisdom/type/shou#process',
+    ]);
+    expect(resolveListingPassages({ ...facts, namedTeaId: undefined }, claims, pages).passages.map(p => p.claim.claimId))
+      .toEqual(['shou:process']);
+  });
+
+  it('reflects revised or withdrawn sections and drops unpublished pages, ineligible text and missing sources', () => {
+    const updated = [history('another-tea', 'z', { text: 'Revised wording', rev: 2 }),
+      history('another-tea', 'b', { withdrawn: { at: '2026-11-23', reason: 'Source corrected' } }),
+      history('another-tea', 'a', { sourceIds: [] }), history('another-tea', 'c', { listingEligible: false }), general];
+    expect(resolveListingPassages(facts, updated, pages).passages.map(p => p.claim.text)).toEqual(['Revised wording', general.text]);
+    expect(resolveListingPassages(facts, claims, pages.filter(p => p.id !== 'another-tea')).passages.map(p => p.claim.claimId))
+      .toEqual(['shou:process']);
   });
 });

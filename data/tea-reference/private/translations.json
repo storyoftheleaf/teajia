@@ -2,6 +2,191 @@
   "schema_version": 1,
   "sources": [
     {
+      "source_id": "china-tea-catalogue-y562",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "China Tea (COFCO)",
+        "publisher_role_label": "Tea producer",
+        "title": "Product catalogue, item 78",
+        "url": "https://productandservice.cofco.com/upload/1/zl/platform/1993169302277591040.pdf"
+      },
+      "original_title": "中国茶叶-产品列表",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-99F92222EEA66297BE2ECBA5",
+          "locator": {
+            "heading": "Item 78, product name and adjacent 100 g specification",
+            "section": "Item 78, product name and adjacent 100 g specification",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "99f92222eea66297be2ecba501e3949525ec3a2417927c242334b80fda310ccf",
+          "uses": [
+            {
+              "page_id": "y562",
+              "section_key": "little-black-box"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "puer-magazine-jixing-design",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Pu’er magazine",
+        "publisher_role_label": "Designer interview",
+        "title": "The designers of Y562 and Y671",
+        "url": "https://m.ipucha.com/show-24-7921.html",
+        "author": "Cheng Xin",
+        "published_date": "2017-02"
+      },
+      "original_title": "“外贸会战”云南觉醒：精品化的Y562，Y671",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-E21387EE2A807C8BD28E7236",
+          "locator": {
+            "heading": "Yin Huize’s recollections, paragraph about the export cartons",
+            "section": "Yin Huize’s recollections, paragraph about the export cartons",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "e21387ee2a807c8bd28e723631520193ff69addf1efc2fc542487d623a56e36f",
+          "uses": [
+            {
+              "page_id": "y562",
+              "section_key": "little-black-box"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-6C6F4F073EDB7261F39C85AB",
+          "locator": {
+            "heading": "Yin Huize’s recollections, Jixing trademark",
+            "section": "Yin Huize’s recollections, Jixing trademark",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "6c6f4f073edb7261f39c85ab18877aa84938049c6680d30329710c08461ab842",
+          "uses": [
+            {
+              "page_id": "y562",
+              "section_key": "little-black-box"
+            },
+            {
+              "page_id": "y562",
+              "section_key": "designers"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-F630243D3CB7302997F8EC8E",
+          "locator": {
+            "heading": "Yin Huize’s recollections, design and spring Canton Fair orders",
+            "section": "Yin Huize’s recollections, design and spring Canton Fair orders",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "f630243d3cb7302997f8ec8ebbdb75c0b5aaa342932f1f4bfe4346b4b7437b13",
+          "uses": [
+            {
+              "page_id": "y562",
+              "section_key": "designers"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-A4817C0FA41A69E66E2BF23B",
+          "locator": {
+            "heading": "Historical supply and original blends",
+            "section": "Historical supply and original blends",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "a4817c0fa41a69e66e2bf23b2595485086f6436ca2663367af8fdd6e868cfc1d",
+          "uses": [
+            {
+              "page_id": "y562",
+              "section_key": "original-blend"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "puer-magazine-export-cartons",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Pu’er magazine",
+        "publisher_role_label": "Trade history and package photographs",
+        "title": "Small packages in the loose-tea export trade",
+        "url": "https://m.ipucha.com/show-25-4533.html",
+        "author": "Mama"
+      },
+      "original_title": "“窈窕茶”“快瘦茶”：小包装散茶出口记",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-F15BA92DF3957EB2BB4959D9",
+          "locator": {
+            "heading": "Introduction, bulk exports to Japan",
+            "section": "Introduction, bulk exports to Japan",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "f15ba92df3957eb2bb4959d94beecd3cc36b6fa80ac517e6602da5a23cae1335",
+          "uses": [
+            {
+              "page_id": "y562",
+              "section_key": "export-trade"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-55FC506828F74D8F0C72ADAB",
+          "locator": {
+            "heading": "Y562, Y671: cartons and their printed names",
+            "section": "Y562, Y671: cartons and their printed names",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "55fc506828f74d8f0c72adabc0d5b64f08a08ec130cb418f0bd5823930f656b8",
+          "uses": [
+            {
+              "page_id": "y562",
+              "section_key": "export-trade"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-2410F22AE4B69A942FA64699",
+          "locator": {
+            "heading": "Y562, Y671: photograph caption and final paragraph on airline gifts",
+            "section": "Y562, Y671: photograph caption and final paragraph on airline gifts",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "2410f22ae4b69a942fa646991cca0eddd44c6807401fc614e0d88ec8e65c84c2",
+          "uses": [
+            {
+              "page_id": "y562",
+              "section_key": "designers"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "source_id": "white2tea-ripe-puer",
       "source_language": "en",
       "content_shape": "reference",
@@ -336,6 +521,142 @@
     }
   ],
   "translations": [
+    {
+      "evidence_id": "EVIDENCE-99F92222EEA66297BE2ECBA5",
+      "source_id": "china-tea-catalogue-y562",
+      "locator": {
+        "heading": "Item 78, product name and adjacent 100 g specification",
+        "section": "Item 78, product name and adjacent 100 g specification",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "中茶Y562 普洱茶（熟茶）散茶",
+      "english": "China Tea Y562 pu’er tea (ripe), loose leaf.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-6",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-E21387EE2A807C8BD28E7236",
+      "source_id": "puer-magazine-jixing-design",
+      "locator": {
+        "heading": "Yin Huize’s recollections, paragraph about the export cartons",
+        "section": "Yin Huize’s recollections, paragraph about the export cartons",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "唛号Y562，昵称“小黑盒”，100克装",
+      "english": "Export code Y562, nicknamed “little black box,” in a 100 g pack.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-6",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-6C6F4F073EDB7261F39C85AB",
+      "source_id": "puer-magazine-jixing-design",
+      "locator": {
+        "heading": "Yin Huize’s recollections, Jixing trademark",
+        "section": "Yin Huize’s recollections, Jixing trademark",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "一只开放的下山虎",
+      "english": "A tiger descending a mountain, with an open outline.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-6",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-F630243D3CB7302997F8EC8E",
+      "source_id": "puer-magazine-jixing-design",
+      "locator": {
+        "heading": "Yin Huize’s recollections, design and spring Canton Fair orders",
+        "section": "Yin Huize’s recollections, design and spring Canton Fair orders",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "用广告颜料手绘的如同印刷品的包装盒到春季广交会上",
+      "english": "The cartons they took to the spring Canton Fair were hand-painted in poster colour and looked printed.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-6",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-A4817C0FA41A69E66E2BF23B",
+      "source_id": "puer-magazine-jixing-design",
+      "locator": {
+        "heading": "Historical supply and original blends",
+        "section": "Historical supply and original blends",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "Y562，用5、6级熟茶拼配，由勐海茶厂提供原料。Y671，用6、7级熟茶拼配，由昆明茶厂提供原料。",
+      "english": "Y562 blended grade-five and grade-six ripe tea supplied by Menghai Tea Factory. Y671 blended grades six and seven supplied by Kunming Tea Factory.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-6",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-F15BA92DF3957EB2BB4959D9",
+      "source_id": "puer-magazine-export-cartons",
+      "locator": {
+        "heading": "Introduction, bulk exports to Japan",
+        "section": "Introduction, bulk exports to Japan",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "当地进口商则是将其改装成自己品牌的小包装商品销售",
+      "english": "Local importers repackaged the tea in small packs under their own brands for sale.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-6",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-55FC506828F74D8F0C72ADAB",
+      "source_id": "puer-magazine-export-cartons",
+      "locator": {
+        "heading": "Y562, Y671: cartons and their printed names",
+        "section": "Y562, Y671: cartons and their printed names",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "因为是出口产品，包装盒背面是这些文字的英文“SUPERIOR YUNNAN Pu-erh TEA”。",
+      "english": "The back of the export carton carries the English wording “Superior Yunnan Pu-erh Tea.”",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-6",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-2410F22AE4B69A942FA64699",
+      "source_id": "puer-magazine-export-cartons",
+      "locator": {
+        "heading": "Y562, Y671: photograph caption and final paragraph on airline gifts",
+        "section": "Y562, Y671: photograph caption and final paragraph on airline gifts",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "15克迷你装和100克常规装的Y562对比。",
+      "english": "Comparison of the miniature 15 g Y562 and the regular 100 g pack.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "GPT-6",
+      "translated_date": "2026-11-23"
+    },
     {
       "evidence_id": "EVIDENCE-17B9BF842F4540ED9693D09D",
       "source_id": "ctma-menghai-seven-mountains-2025",

@@ -30,6 +30,7 @@
 // an edge bundle that only needs one plain object. articleLive.ts carries
 // nothing but that object and a pure function, so importing it here adds
 // nothing else to the bundle.
+import { reviewedLotProse } from '../src/wisdom/reference/namedTeaLots';
 import { isCuratedReadPath, isReadPathPublic, type ReadPublishOverrides } from '../src/pages/read/articleLive';
 
 interface Meta {
@@ -319,7 +320,7 @@ async function productMeta(id: string, workerOrigin: URL, path: string): Promise
     const isTeaware = p.type === 'Teaware';
     const origin = [p.origin_region, p.origin_country].filter(Boolean).join(', ');
     const description = (
-      p.description || p.lore ||
+      p.description || reviewedLotProse(p.id || id, 'lore', p.lore) ||
       (isTeaware ? `${name} — teaware from Teajia.` : `${name} — ${p.type || ''} tea${origin ? ` from ${origin}` : ''}, curated by Teajia.`)
     ).slice(0, 300);
     const image = absoluteMediaUrl(p.image_url);

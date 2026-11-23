@@ -26,6 +26,7 @@ import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import { AlcoveTableSection } from './alcove/AlcoveTableSection';
 import { AlcoveCommerceFooter, wholePieceOf } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
+import { wisdomRelationsApi } from '../../admin/components/wisdom/relationsApi';
 import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import { useProductImpressions } from './ProductImpressions';
@@ -485,8 +486,19 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     ? resolveProductResearch(referenceProduct)
     : null;
   const listingFacts = wisdomListing.facts ?? listingFactsFromInventoryItem(item);
+  const namedTeaId = listingFacts.namedTeaId;
+  const namedTeaState = useQuery({
+    queryKey: ['wisdom-public-state', 'named_tea', namedTeaId],
+    queryFn: () => wisdomRelationsApi.publicState({ nodeType: 'named_tea', nodeId: namedTeaId! }),
+    enabled: layout === 'page' && item.category === 'tea' && Boolean(namedTeaId),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    gcTime: 0,
+  });
+  const publicFacts = namedTeaState.isSuccess && !namedTeaState.isFetching && namedTeaState.data.is_public
+    ? listingFacts : { ...listingFacts, namedTeaId: undefined };
   const wisdomPassages = layout === 'page' && item.category === 'tea'
-    ? resolveListingPassages(listingFacts, wisdomListing.claims, wisdomListing.publicPages)
+    ? resolveListingPassages(publicFacts, wisdomListing.claims, wisdomListing.publicPages)
     : EMPTY_LISTING_PASSAGES;
 
   // 4. Character: exact product tasting and cited shared potential remain separate.

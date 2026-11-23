@@ -350,6 +350,88 @@ export const GENERATED_CLAIMS: readonly PublicClaim[] = [
     "reviewState": "approved"
   },
   {
+    "claimId": "y562:designers",
+    "pageId": "y562",
+    "sectionKey": "designers",
+    "label": "A tiger and a hand-painted carton",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
+    "sourceIds": [
+      "puer-magazine-export-cartons",
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "y562:export-trade",
+    "pageId": "y562",
+    "sectionKey": "export-trade",
+    "label": "The box was part of the tea’s story",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
+    "sourceIds": [
+      "puer-magazine-export-cartons"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "y562:little-black-box",
+    "pageId": "y562",
+    "sectionKey": "little-black-box",
+    "label": "Yunnan’s little black box",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
+    "sourceIds": [
+      "china-tea-catalogue-y562",
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "y562:original-blend",
+    "pageId": "y562",
+    "sectionKey": "original-blend",
+    "label": "The tea behind the code",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+    "sourceIds": [
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "yunnan:geographic-frame",
     "pageId": "yunnan",
     "sectionKey": "geographic-frame",

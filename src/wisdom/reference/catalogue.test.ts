@@ -183,6 +183,7 @@ describe('sellable Tea Reference catalogue', () => {
       'puer',
       'sheng',
       'shou',
+      'y562',
       'yunnan',
     ]);
     expect(result.families).toEqual([

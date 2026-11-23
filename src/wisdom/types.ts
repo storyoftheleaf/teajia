@@ -206,14 +206,8 @@ export interface Mark {
 }
 
 /**
- * A tea whose identity is the name it was given, where the composition is not
- * disclosed.
- *
- * These arrive already named, usually from Chinese private collections where
- * naming a stored tea is common practice among serious collectors. The mountain,
- * the village and often the vintage are never recorded, and that is the nature
- * of the record rather than a gap in it. Holding the name and saying plainly
- * what is not known beats refusing to hold it at all.
+ * A tea identified by a collector's name, a maker's name or an export code.
+ * This identity can span many lots. Lot dates and storage belong in Stock.
  */
 export interface NamedTea {
   id: string;
