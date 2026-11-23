@@ -150,6 +150,9 @@
   /* ---- Spacing: 4 / 8 / 12 / 16 / 24 / 32 / 48 ------------------------
      Padding, margin and gap utilities (p-4, mt-2, gap-3 ...) read these.
      Widths and heights (w-4, h-4) do not, so icons keep their size. */
+  /* The tasting journal pairs its section list with a comfortable writing width. */
+  --tasting-journal-rail: 12rem;
+  --tasting-journal-column: 42rem;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;

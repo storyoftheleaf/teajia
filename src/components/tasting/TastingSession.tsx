@@ -570,6 +570,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+      data-writing={phase === 'tasting' && showNote || undefined}
       className="tasting-session-surface fixed inset-0 bg-tea-bg flex flex-col overflow-hidden"
       style={{
         paddingLeft: 'env(safe-area-inset-left, 0px)',

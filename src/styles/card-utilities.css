@@ -6779,6 +6779,13 @@ body.cart-panel-open .commerce-dock {
 @media(min-width:1024px) {
   .tasting-session-surface .tasting-session-header { width:100%; max-width:none; margin:0; padding:16px 24px; }
   .tasting-session-surface .tasting-desktop-workspace .tasting-mobile-content { max-width:none; margin:0; padding:0; }
+  .tasting-session-surface[data-writing] :is(.tasting-session-header, .tasting-desktop-workspace) {
+    width: 100%;
+    max-width: calc(var(--tasting-journal-rail) + var(--tasting-journal-column));
+    margin-inline: auto;
+  }
+  .tasting-session-surface[data-writing] .tasting-desktop-workspace { padding-left: var(--tasting-journal-rail); }
+  .tasting-session-surface[data-writing] .tasting-desktop-nav { width: var(--tasting-journal-rail); }
   .tasting-session-surface .tasting-scroll > div:not(.tasting-wheel-panel) { max-width:960px; margin-inline:auto; padding-top:24px; }
   .tasting-session-surface .tasting-wheel-panel { max-width:none; margin:0; min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px 32px; }
   .tasting-session-surface .approved-taste-wheel.study-phone { display:grid; grid-template-columns:minmax(0,min(68dvh,720px)); align-items:center; justify-content:center; gap:32px; width:100%; max-width:1160px; margin:0 auto; padding:0; }
