@@ -124,6 +124,36 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "nanqiao-ruigong-brick",
+      "slug": "nanqiao-ruigong-brick",
+      "kind": "named_tea",
+      "label": "Nanqiao Ruigong Brick",
+      "nativeName": "南峤瑞贡金砖",
+      "parentId": "shou",
+      "sourceIds": [
+        "ctma-nanqiao-company",
+        "dahonghua-ruigong-brick"
+      ],
+      "sections": [
+        {
+          "key": "malaysian-tea-fair",
+          "label": "A brick on the Malaysian tea market",
+          "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
+          "sourceIds": [
+            "dahonghua-ruigong-brick"
+          ]
+        },
+        {
+          "key": "nanqiao-name",
+          "label": "Where the Nanqiao name comes from",
+          "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
+          "sourceIds": [
+            "ctma-nanqiao-company"
+          ]
+        }
+      ]
+    },
+    {
       "id": "puer",
       "slug": "puer",
       "kind": "tea_family",
@@ -155,6 +185,61 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "text": "Modern Pu’er includes sheng and shou. Their processing paths differ, but both sit within a twentieth-century industry that restored tea gardens, expanded production, and developed distinct forms for domestic and export markets.",
           "sourceIds": [
             "ctma-puer-history-2021"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "san-he-liu-bao",
+      "slug": "san-he-liu-bao",
+      "kind": "named_tea",
+      "label": "San He Liu Bao",
+      "nativeName": "三鹤六堡茶",
+      "sourceIds": [
+        "china-coop-san-he-baskets",
+        "cns-wuzhou-aging-warehouse",
+        "guangxi-archives-liubao",
+        "mofcom-three-cranes"
+      ],
+      "sections": [
+        {
+          "key": "three-cranes",
+          "label": "The three cranes",
+          "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
+          "sourceIds": [
+            "mofcom-three-cranes"
+          ]
+        },
+        {
+          "key": "export-buyers",
+          "label": "What buyers wanted from the leaf",
+          "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
+          "sourceIds": [
+            "guangxi-archives-liubao"
+          ]
+        },
+        {
+          "key": "cold-water-piling",
+          "label": "Water and the Wuzhou pile",
+          "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
+          "sourceIds": [
+            "mofcom-three-cranes"
+          ]
+        },
+        {
+          "key": "basket-weavers",
+          "label": "The basket makers",
+          "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
+          "sourceIds": [
+            "china-coop-san-he-baskets"
+          ]
+        },
+        {
+          "key": "aging-warehouse",
+          "label": "A warehouse built for aging",
+          "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
+          "sourceIds": [
+            "cns-wuzhou-aging-warehouse"
           ]
         }
       ]
@@ -372,6 +457,15 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
   ],
   "sources": [
     {
+      "sourceId": "china-coop-san-he-baskets",
+      "publisher": "All China Federation of Supply and Marketing Cooperatives",
+      "publisherRoleLabel": "Cooperative federation",
+      "title": "Three Cranes and its bamboo basket makers",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://www.chinacoop.gov.cn/news.html?aid=1752516"
+    },
+    {
       "sourceId": "china-tea-catalogue-y562",
       "publisher": "China Tea (COFCO)",
       "publisherRoleLabel": "Tea producer",
@@ -379,6 +473,24 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "author": "",
       "publishedDate": "",
       "url": "https://productandservice.cofco.com/upload/1/zl/platform/1993169302277591040.pdf"
+    },
+    {
+      "sourceId": "cns-wuzhou-aging-warehouse",
+      "publisher": "China News Service",
+      "publisherRoleLabel": "Factory visit",
+      "title": "Inside Wuzhou Tea Factory’s aging warehouse",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://www.chinanews.com/sh/2019/05-21/8842744.shtml"
+    },
+    {
+      "sourceId": "ctma-nanqiao-company",
+      "publisher": "China Tea Marketing Association",
+      "publisherRoleLabel": "Trade association member profile",
+      "title": "Menghai County Nanqiao Tea Company",
+      "author": "",
+      "publishedDate": "2023-12-19",
+      "url": "https://www.ctma.com.cn/huiyuandongtai/76767.html"
     },
     {
       "sourceId": "ctma-puer-history-2021",
@@ -390,6 +502,24 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "url": "https://www.ctma.com.cn/hangyeyaowen/71820.html"
     },
     {
+      "sourceId": "dahonghua-ruigong-brick",
+      "publisher": "Dahonghua Resources",
+      "publisherRoleLabel": "Exhibition catalogue",
+      "title": "Ruigong ripe bricks at the 2022 Malaysia Da Hong Hua Tea Expo",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://www.mmr.my/2022/eBook.pdf#page=9"
+    },
+    {
+      "sourceId": "guangxi-archives-liubao",
+      "publisher": "Guangxi Zhuang Autonomous Region Archives",
+      "publisherRoleLabel": "Regional archive",
+      "title": "A century of Guangxi Liu Bao through the archives",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://www.gxdag.org.cn/show/338/17006"
+    },
+    {
       "sourceId": "marshaln-young-puer-2013",
       "publisher": "A Tea Addict's Journal",
       "publisherRoleLabel": "Community",
@@ -397,6 +527,15 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "author": "MarshalN",
       "publishedDate": "2013-09-18",
       "url": "https://marshaln.com/2013/09/really-young-puerh-is-not-really-puerh/"
+    },
+    {
+      "sourceId": "mofcom-three-cranes",
+      "publisher": "Ministry of Commerce, China",
+      "publisherRoleLabel": "Brand archive",
+      "title": "Three Cranes in the Time-Honored Brands Museum",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://lzhbwg.mofcom.gov.cn/edi_ecms_web_front/thb/detail/748abf88616c408a9790ed760bfca3dd"
     },
     {
       "sourceId": "puer-magazine-export-cartons",

@@ -216,6 +216,46 @@ export const GENERATED_CLAIMS: readonly PublicClaim[] = [
     "reviewState": "approved"
   },
   {
+    "claimId": "nanqiao-ruigong-brick:malaysian-tea-fair",
+    "pageId": "nanqiao-ruigong-brick",
+    "sectionKey": "malaysian-tea-fair",
+    "label": "A brick on the Malaysian tea market",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "nanqiao-ruigong-brick"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "A 2008 Ruigong product shown at the 2022 fair.",
+    "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
+    "sourceIds": [
+      "dahonghua-ruigong-brick"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "nanqiao-ruigong-brick:nanqiao-name",
+    "pageId": "nanqiao-ruigong-brick",
+    "sectionKey": "nanqiao-name",
+    "label": "Where the Nanqiao name comes from",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "nanqiao-ruigong-brick"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The Nanqiao company and its trade.",
+    "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
+    "sourceIds": [
+      "ctma-nanqiao-company"
+    ],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "puer:history",
     "pageId": "puer",
     "sectionKey": "history",
@@ -266,6 +306,106 @@ export const GENERATED_CLAIMS: readonly PublicClaim[] = [
     "text": "Modern Pu’er includes sheng and shou. Their processing paths differ, but both sit within a twentieth-century industry that restored tea gardens, expanded production, and developed distinct forms for domestic and export markets.",
     "sourceIds": [
       "ctma-puer-history-2021"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "san-he-liu-bao:aging-warehouse",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "aging-warehouse",
+    "label": "A warehouse built for aging",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
+    "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
+    "sourceIds": [
+      "cns-wuzhou-aging-warehouse"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "san-he-liu-bao:basket-weavers",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "basket-weavers",
+    "label": "The basket makers",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Baskets used by Wuzhou Tea Factory.",
+    "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
+    "sourceIds": [
+      "china-coop-san-he-baskets"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "san-he-liu-bao:cold-water-piling",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "cold-water-piling",
+    "label": "Water and the Wuzhou pile",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory’s documented processing history.",
+    "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
+    "sourceIds": [
+      "mofcom-three-cranes"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "san-he-liu-bao:export-buyers",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "export-buyers",
+    "label": "What buyers wanted from the leaf",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Cangwu County export trade in 1959.",
+    "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
+    "sourceIds": [
+      "guangxi-archives-liubao"
+    ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "san-he-liu-bao:three-cranes",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "three-cranes",
+    "label": "The three cranes",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
+    "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
+    "sourceIds": [
+      "mofcom-three-cranes"
     ],
     "reviewState": "approved"
   },

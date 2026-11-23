@@ -570,6 +570,78 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "draft"
   },
   {
+    "claimId": "nanqiao-ruigong-brick:malaysian-tea-fair",
+    "pageId": "nanqiao-ruigong-brick",
+    "sectionKey": "malaysian-tea-fair",
+    "label": "A brick on the Malaysian tea market",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "nanqiao-ruigong-brick"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "A 2008 Ruigong product shown at the 2022 fair.",
+    "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
+    "sourceIds": [
+      "dahonghua-ruigong-brick"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "A 2008 Ruigong product shown at the 2022 fair.",
+        "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-0621572B10EDCD30C5521E55",
+          "EVIDENCE-12982E87A3E2D326852D474A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "nanqiao-ruigong-brick:nanqiao-name",
+    "pageId": "nanqiao-ruigong-brick",
+    "sectionKey": "nanqiao-name",
+    "label": "Where the Nanqiao name comes from",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "nanqiao-ruigong-brick"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The Nanqiao company and its trade.",
+    "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
+    "sourceIds": [
+      "ctma-nanqiao-company"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The Nanqiao company and its trade.",
+        "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-6B4D99DDB582935C71194716",
+          "EVIDENCE-4C832477FC20B224F7F37626",
+          "EVIDENCE-5468B24272F8BE0E9BB775EB",
+          "EVIDENCE-2E575AC1E516A475D2D6C4ED"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "puer:history",
     "pageId": "puer",
     "sectionKey": "history",
@@ -666,6 +738,184 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
+    "claimId": "san-he-liu-bao:aging-warehouse",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "aging-warehouse",
+    "label": "A warehouse built for aging",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
+    "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
+    "sourceIds": [
+      "cns-wuzhou-aging-warehouse"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
+        "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-AC2A67D3B1B5B15ED4E41970"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:basket-weavers",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "basket-weavers",
+    "label": "The basket makers",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Baskets used by Wuzhou Tea Factory.",
+    "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
+    "sourceIds": [
+      "china-coop-san-he-baskets"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Baskets used by Wuzhou Tea Factory.",
+        "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-01935FA9B3ED16A899C96AE0",
+          "EVIDENCE-3C9F563CB37502F0AAAE5274"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:cold-water-piling",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "cold-water-piling",
+    "label": "Water and the Wuzhou pile",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory’s documented processing history.",
+    "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
+    "sourceIds": [
+      "mofcom-three-cranes"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Wuzhou Tea Factory’s documented processing history.",
+        "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-8214350D25B5D7AAC7EC2C99",
+          "EVIDENCE-15FF408CEBEE1FB22D9133A5",
+          "EVIDENCE-032891B0557E265ACEF9BA27",
+          "EVIDENCE-5A3694521BEEDB837DC86DA9"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:export-buyers",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "export-buyers",
+    "label": "What buyers wanted from the leaf",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Cangwu County export trade in 1959.",
+    "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
+    "sourceIds": [
+      "guangxi-archives-liubao"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Cangwu County export trade in 1959.",
+        "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-E2B7E17EF2EC4C244C0DE398",
+          "EVIDENCE-FC7A270106D6F64BE874A1FA",
+          "EVIDENCE-3390025E05FABA35E65109A2"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:three-cranes",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "three-cranes",
+    "label": "The three cranes",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
+    "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
+    "sourceIds": [
+      "mofcom-three-cranes"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
+        "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-AEDB9F86CC043681D5AA7735",
+          "EVIDENCE-5A42B40D3004267C273C17CB",
+          "EVIDENCE-D7706B13A0199430490E0D3A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "sheng:aging",
     "pageId": "sheng",
     "sectionKey": "aging",
@@ -693,262 +943,6 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": [
           "EVIDENCE-E31C7DFEB22516770374C078"
         ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:identity",
-    "pageId": "sheng",
-    "sectionKey": "identity",
-    "label": "What sheng means",
-    "axis": "type",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
-    "sourceIds": [
-      "teaguardian-raw-cooked-puer"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-3BB473838666F92132E285E0"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:processing",
-    "pageId": "sheng",
-    "sectionKey": "processing",
-    "label": "From maocha to finished tea",
-    "axis": "process",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
-    "sourceIds": [
-      "teaguardian-raw-cooked-puer"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-6761D903E45891EFCB26F71D"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-aged",
-    "pageId": "shou",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "陈香",
-        "pinyin": "chén xiāng",
-        "gloss": "aged aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er at ten years and more",
-    "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er at ten years and more",
-        "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-settling",
-    "pageId": "shou",
-    "sectionKey": "age-settling",
-    "label": "Five to ten years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Ripe pu'er at about five to ten years",
-    "text": "Between about five and ten years the pile note has usually aired away. With it gone, the cup turns cleaner and rounder, and its sweetness comes forward.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er at about five to ten years",
-        "text": "Between about five and ten years the pile note has usually aired away. With it gone, the cup turns cleaner and rounder, and its sweetness comes forward.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-young",
-    "pageId": "shou",
-    "sectionKey": "age-young",
-    "label": "Young ripe pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "堆味",
-        "pinyin": "duī wèi",
-        "gloss": "pile taste"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er under about five years",
-    "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er under about five years",
-        "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:brewing",
-    "pageId": "shou",
-    "sectionKey": "brewing",
-    "label": "Brewing ripe pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Gongfu brewing of ripe pu'er in general",
-    "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Gongfu brewing of ripe pu'er in general",
-        "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:brewing-pressed",
-    "pageId": "shou",
-    "sectionKey": "brewing-pressed",
-    "label": "Breaking a pressed tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Cakes, bricks and tuo",
-    "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Cakes, bricks and tuo",
-        "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:common-impressions",
-    "pageId": "shou",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The ripe style, not any lot",
-    "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The ripe style, not any lot",
-        "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
       }
     ],
     "pageVisibility": "public"

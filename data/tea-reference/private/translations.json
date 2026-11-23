@@ -518,6 +518,414 @@
           "uses": [{ "page_id": "sheng", "section_key": "processing" }]
         }
       ]
+    },
+    {
+      "source_id": "mofcom-three-cranes",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Ministry of Commerce, China",
+        "publisher_role_label": "Brand archive",
+        "title": "Three Cranes in the Time-Honored Brands Museum",
+        "url": "https://lzhbwg.mofcom.gov.cn/edi_ecms_web_front/thb/detail/748abf88616c408a9790ed760bfca3dd"
+      },
+      "original_title": "三鹤",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-AEDB9F86CC043681D5AA7735",
+          "locator": {
+            "heading": "品牌介绍, account of the emblem",
+            "section": "品牌介绍, account of the emblem",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "aedb9f86cc043681d5aa77355dede0cc6d9d6348af75dc74dd1031da58094f67",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "three-cranes"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-5A42B40D3004267C273C17CB",
+          "locator": {
+            "heading": "店训/古训, registration date",
+            "section": "店训/古训, registration date",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "5a42b40d3004267c273c17cba4e6d7403580b59901c1b27436d5b4a76b7e5fc9",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "three-cranes"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-D7706B13A0199430490E0D3A",
+          "locator": {
+            "heading": "历史渊源, purpose of founding",
+            "section": "历史渊源, purpose of founding",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "d7706b13a0199430490e0d3aad9f7c6f91b9b25d9873d4cdedaa0037d96f3f97",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "three-cranes"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-8214350D25B5D7AAC7EC2C99",
+          "locator": {
+            "heading": "老字号传承人, paragraphs on the technicians of 1958, 1963 and 1988",
+            "section": "老字号传承人, paragraphs on the technicians of 1958, 1963 and 1988",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "8214350d25b5d7aac7ec2c994134bdd5aa2e9cb7752d4e68a7b43e0e9d1b4091",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "cold-water-piling"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-15FF408CEBEE1FB22D9133A5",
+          "locator": {
+            "heading": "老字号传承人, original team leader",
+            "section": "老字号传承人, original team leader",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "15ff408cebee1fb22d9133a51ceab2cbf881ad4c81bbdb058b1288d77530808e",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "cold-water-piling"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-032891B0557E265ACEF9BA27",
+          "locator": {
+            "heading": "老字号传承人, Qin Jiquan and subsequent training",
+            "section": "老字号传承人, Qin Jiquan and subsequent training",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "032891b0557e265acef9ba272ced474636305cfb582c7ee1fc4290b39b2945fc",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "cold-water-piling"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-5A3694521BEEDB837DC86DA9",
+          "locator": {
+            "heading": "老字号传承人, He Meizhen’s entry into the factory",
+            "section": "老字号传承人, He Meizhen’s entry into the factory",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "5a3694521beedb837dc86da9c1ff7f625c23b2b30ff5f78d1a37cd5e620412c1",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "cold-water-piling"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "guangxi-archives-liubao",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Guangxi Zhuang Autonomous Region Archives",
+        "publisher_role_label": "Regional archive",
+        "title": "A century of Guangxi Liu Bao through the archives",
+        "url": "https://www.gxdag.org.cn/show/338/17006"
+      },
+      "original_title": "从档案看广西六堡茶的百年沉浮",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-E2B7E17EF2EC4C244C0DE398",
+          "locator": {
+            "heading": "二、改革与转型, 1959-07-14 commercial department circular on Buyi",
+            "section": "二、改革与转型, 1959-07-14 commercial department circular on Buyi",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "e2b7e17ef2ec4c244c0de398eeadbaf676778b252f0d2eb82d8f0b44af20e0c5",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "export-buyers"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-FC7A270106D6F64BE874A1FA",
+          "locator": {
+            "heading": "二、改革与转型, export quality shortcomings preceding the circular",
+            "section": "二、改革与转型, export quality shortcomings preceding the circular",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "fc7a270106d6f64be874a1fa577c0aaab04b0659c3e0f92922f20957c2bac0cc",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "export-buyers"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-3390025E05FABA35E65109A2",
+          "locator": {
+            "heading": "二、改革与转型, assessment preceding the circular",
+            "section": "二、改革与转型, assessment preceding the circular",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "3390025e05faba35e65109a2a2fb660e92e3a67e5fb7adb4cc9a189d7ceb841a",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "export-buyers"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "china-coop-san-he-baskets",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "All China Federation of Supply and Marketing Cooperatives",
+        "publisher_role_label": "Cooperative federation",
+        "title": "Three Cranes and its bamboo basket makers",
+        "url": "https://www.chinacoop.gov.cn/news.html?aid=1752516"
+      },
+      "original_title": "供销社的“中华老字号”，认识一下——",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-01935FA9B3ED16A899C96AE0",
+          "locator": {
+            "heading": "“三鹤”来自, material and local weaving network",
+            "section": "“三鹤”来自, material and local weaving network",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "01935fa9b3ed16a899c96ae019654558835821c79fc29c7527809ac88e5a5009",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "basket-weavers"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-3C9F563CB37502F0AAAE5274",
+          "locator": {
+            "heading": "“三鹤”来自, basket purchase and weaving",
+            "section": "“三鹤”来自, basket purchase and weaving",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "3c9f563cb37502f0aaae52742c74dc8f4ef257f6923c3efb299f30fb057f72e1",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "basket-weavers"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "cns-wuzhou-aging-warehouse",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "China News Service",
+        "publisher_role_label": "Factory visit",
+        "title": "Inside Wuzhou Tea Factory’s aging warehouse",
+        "url": "https://www.chinanews.com/sh/2019/05-21/8842744.shtml"
+      },
+      "original_title": "从“茶船古道”到“一带一路” 中国六堡茶迎来新机遇",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-AC2A67D3B1B5B15ED4E41970",
+          "locator": {
+            "heading": "Factory visit, reporter description and paragraph beginning 何志超介绍",
+            "section": "Factory visit, reporter description and paragraph beginning 何志超介绍",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "ac2a67d3b1b5b15ed4e4197040f209686bd7be3ae4a8e45c6edb04da1482e6d6",
+          "uses": [
+            {
+              "page_id": "san-he-liu-bao",
+              "section_key": "aging-warehouse"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "dahonghua-ruigong-brick",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "Dahonghua Resources",
+        "publisher_role_label": "Exhibition catalogue",
+        "title": "Ruigong ripe bricks at the 2022 Malaysia Da Hong Hua Tea Expo",
+        "url": "https://www.mmr.my/2022/eBook.pdf#page=9"
+      },
+      "original_title": "2022马来西亚大红花茶展",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-0621572B10EDCD30C5521E55",
+          "locator": {
+            "heading": "Bottom-right photograph and caption, stall 27; the red and cream wrappers surround an unwrapped brick",
+            "section": "Bottom-right photograph and caption, stall 27; the red and cream wrappers surround an unwrapped brick",
+            "page": 9,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "0621572b10edcd30c5521e55097cfe2e43a399952073c801c2f8902183739612",
+          "uses": [
+            {
+              "page_id": "nanqiao-ruigong-brick",
+              "section_key": "malaysian-tea-fair"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-12982E87A3E2D326852D474A",
+          "locator": {
+            "heading": "Exhibitor list below floor plan, centre column",
+            "section": "Exhibitor list below floor plan, centre column",
+            "page": 37,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "12982e87a3e2d326852d474a92bf65200a8c9b2b30162116a881d11d9fe01ed5",
+          "uses": [
+            {
+              "page_id": "nanqiao-ruigong-brick",
+              "section_key": "malaysian-tea-fair"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source_id": "ctma-nanqiao-company",
+      "source_language": "zh",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "China Tea Marketing Association",
+        "publisher_role_label": "Trade association member profile",
+        "title": "Menghai County Nanqiao Tea Company",
+        "url": "https://www.ctma.com.cn/huiyuandongtai/76767.html",
+        "published_date": "2023-12-19"
+      },
+      "original_title": "新会员风采｜勐海县南峤茶业有限责任公司",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-6B4D99DDB582935C71194716",
+          "locator": {
+            "heading": "Company introduction, opening paragraph",
+            "section": "Company introduction, opening paragraph",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "6b4d99ddb582935c711947166527a7feeade4450ae47464e6322edfe993b6da5",
+          "uses": [
+            {
+              "page_id": "nanqiao-ruigong-brick",
+              "section_key": "nanqiao-name"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-4C832477FC20B224F7F37626",
+          "locator": {
+            "heading": "Company introduction, factory location and former county name",
+            "section": "Company introduction, factory location and former county name",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "4c832477fc20b224f7f376262bfb14ec5e42cb990540eed818027b381126e576",
+          "uses": [
+            {
+              "page_id": "nanqiao-ruigong-brick",
+              "section_key": "nanqiao-name"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-5468B24272F8BE0E9BB775EB",
+          "locator": {
+            "heading": "Company introduction, final paragraph, brand and trade destinations",
+            "section": "Company introduction, final paragraph, brand and trade destinations",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "5468b24272f8be0e9bb775eb5b195869c28c229ab7f4db0549393bda4166eac9",
+          "uses": [
+            {
+              "page_id": "nanqiao-ruigong-brick",
+              "section_key": "nanqiao-name"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVIDENCE-2E575AC1E516A475D2D6C4ED",
+          "locator": {
+            "heading": "Company introduction, final paragraph, trade destinations",
+            "section": "Company introduction, final paragraph, trade destinations",
+            "page": null,
+            "start": null,
+            "end": null
+          },
+          "excerpt_sha256": "2e575ac1e516a475d2d6c4ed7e4fb63898985e2d937ee00d29296afcf57bd3b6",
+          "uses": [
+            {
+              "page_id": "nanqiao-ruigong-brick",
+              "section_key": "nanqiao-name"
+            }
+          ]
+        }
+      ]
     }
   ],
   "translations": [
@@ -733,6 +1141,329 @@
       "translator": "OpenAI Codex",
       "version": "GPT-5",
       "translated_date": "2026-08-10"
+    },
+    {
+      "evidence_id": "EVIDENCE-AEDB9F86CC043681D5AA7735",
+      "source_id": "mofcom-three-cranes",
+      "locator": {
+        "heading": "品牌介绍, account of the emblem",
+        "section": "品牌介绍, account of the emblem",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "“三鹤”商标的原形在茶厂旁的鹤岗楼",
+      "english": "The model for the Three Cranes emblem was Hegang Tower beside the factory.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-5A42B40D3004267C273C17CB",
+      "source_id": "mofcom-three-cranes",
+      "locator": {
+        "heading": "店训/古训, registration date",
+        "section": "店训/古训, registration date",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "1991年10 月，“三鹤”商标注册成功。",
+      "english": "The Three Cranes trademark was registered in October 1991.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-D7706B13A0199430490E0D3A",
+      "source_id": "mofcom-three-cranes",
+      "locator": {
+        "heading": "历史渊源, purpose of founding",
+        "section": "历史渊源, purpose of founding",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "梧州茶厂1953年成立的初衷是为了出口创汇",
+      "english": "Wuzhou Tea Factory was founded in 1953 to earn foreign exchange through exports.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-E2B7E17EF2EC4C244C0DE398",
+      "source_id": "guangxi-archives-liubao",
+      "locator": {
+        "heading": "二、改革与转型, 1959-07-14 commercial department circular on Buyi",
+        "section": "二、改革与转型, 1959-07-14 commercial department circular on Buyi",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "采取降低杀青火温加压充分揉捻充分发酵等技术措施",
+      "english": "They lowered the firing temperature, rolled thoroughly under pressure, and allowed sufficient fermentation.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-FC7A270106D6F64BE874A1FA",
+      "source_id": "guangxi-archives-liubao",
+      "locator": {
+        "heading": "二、改革与转型, export quality shortcomings preceding the circular",
+        "section": "二、改革与转型, export quality shortcomings preceding the circular",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "汤色不够红浓明亮",
+      "english": "The infusion was insufficiently red, deep and bright.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-3390025E05FABA35E65109A2",
+      "source_id": "guangxi-archives-liubao",
+      "locator": {
+        "heading": "二、改革与转型, assessment preceding the circular",
+        "section": "二、改革与转型, assessment preceding the circular",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "同时条索也不够紧结",
+      "english": "The twists of leaf were also insufficiently tight.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-8214350D25B5D7AAC7EC2C99",
+      "source_id": "mofcom-three-cranes",
+      "locator": {
+        "heading": "老字号传承人, paragraphs on the technicians of 1958, 1963 and 1988",
+        "section": "老字号传承人, paragraphs on the technicians of 1958, 1963 and 1988",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "六堡茶冷水发酵技艺于1958年由广西梧州茶厂有限公司（原广西壮族自治区梧州茶厂）研发成功并投入使用",
+      "english": "Wuzhou Tea Factory developed and put the cold-water fermentation technique into operation in 1958.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-15FF408CEBEE1FB22D9133A5",
+      "source_id": "mofcom-three-cranes",
+      "locator": {
+        "heading": "老字号传承人, original team leader",
+        "section": "老字号传承人, original team leader",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "第一代技艺代表性传承人为周明樑科长。",
+      "english": "Section chief Zhou Mingliang represented the first generation of practitioners.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-032891B0557E265ACEF9BA27",
+      "source_id": "mofcom-three-cranes",
+      "locator": {
+        "heading": "老字号传承人, Qin Jiquan and subsequent training",
+        "section": "老字号传承人, Qin Jiquan and subsequent training",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "1963年，覃纪全到梧州茶厂工作，在生产股任技术员，跟班学习六堡茶冷水发酵技艺。",
+      "english": "In 1963 Qin Jiquan joined Wuzhou Tea Factory as a production technician and learned the cold-water fermentation technique on shift.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-5A3694521BEEDB837DC86DA9",
+      "source_id": "mofcom-three-cranes",
+      "locator": {
+        "heading": "老字号传承人, He Meizhen’s entry into the factory",
+        "section": "老字号传承人, He Meizhen’s entry into the factory",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "1988年，何梅珍到梧州茶厂工作，在生产技术科担任技术员，跟随覃纪全等老一辈生产技术员学习六堡茶冷水发酵技艺。",
+      "english": "In 1988 He Meizhen joined the factory as a production technician and learned the cold-water method from Qin Jiquan and other senior technicians.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-01935FA9B3ED16A899C96AE0",
+      "source_id": "china-coop-san-he-baskets",
+      "locator": {
+        "heading": "“三鹤”来自, material and local weaving network",
+        "section": "“三鹤”来自, material and local weaving network",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "手工竹箩具有通风透气不易变形的特点",
+      "english": "Handwoven bamboo baskets allow ventilation and resist deformation.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-3C9F563CB37502F0AAAE5274",
+      "source_id": "china-coop-san-he-baskets",
+      "locator": {
+        "heading": "“三鹤”来自, basket purchase and weaving",
+        "section": "“三鹤”来自, basket purchase and weaving",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "带动帮扶近3000位留守老人从事手工编织竹箩。",
+      "english": "The initiative supported nearly three thousand older residents in making handwoven bamboo baskets.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-AC2A67D3B1B5B15ED4E41970",
+      "source_id": "cns-wuzhou-aging-warehouse",
+      "locator": {
+        "heading": "Factory visit, reporter description and paragraph beginning 何志超介绍",
+        "section": "Factory visit, reporter description and paragraph beginning 何志超介绍",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "始建于1953年木板仓库是砖木结构建筑，木材是多孔性材料，具有调节温湿度作用",
+      "english": "Construction of the brick-and-timber warehouse began in 1953. The porous wood helps regulate temperature and humidity.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-0621572B10EDCD30C5521E55",
+      "source_id": "dahonghua-ruigong-brick",
+      "locator": {
+        "heading": "Bottom-right photograph and caption, stall 27; the red and cream wrappers surround an unwrapped brick",
+        "section": "Bottom-right photograph and caption, stall 27; the red and cream wrappers surround an unwrapped brick",
+        "page": 9,
+        "start": null,
+        "end": null
+      },
+      "original": "2008年瑞贡金砖熟砖250g 5片",
+      "english": "Five 250 g Ruigong ripe bricks dated 2008.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-12982E87A3E2D326852D474A",
+      "source_id": "dahonghua-ruigong-brick",
+      "locator": {
+        "heading": "Exhibitor list below floor plan, centre column",
+        "section": "Exhibitor list below floor plan, centre column",
+        "page": 37,
+        "start": null,
+        "end": null
+      },
+      "original": "27 泉雨轩",
+      "english": "Stall 27, Quanyuxuan.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-6B4D99DDB582935C71194716",
+      "source_id": "ctma-nanqiao-company",
+      "locator": {
+        "heading": "Company introduction, opening paragraph",
+        "section": "Company introduction, opening paragraph",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "勐海县南峤茶业有限责任公司成立于2004年2月",
+      "english": "Menghai County Nanqiao Tea Company was founded in February 2004.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-4C832477FC20B224F7F37626",
+      "source_id": "ctma-nanqiao-company",
+      "locator": {
+        "heading": "Company introduction, factory location and former county name",
+        "section": "Company introduction, factory location and former county name",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "勐海县勐遮镇（原南峤县）",
+      "english": "Mengzhe township, Menghai County, formerly Nanqiao County.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-5468B24272F8BE0E9BB775EB",
+      "source_id": "ctma-nanqiao-company",
+      "locator": {
+        "heading": "Company introduction, final paragraph, brand and trade destinations",
+        "section": "Company introduction, final paragraph, brand and trade destinations",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "南峤旗下品牌车佛南",
+      "english": "Che Fo Nan is a Nanqiao brand.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
+    },
+    {
+      "evidence_id": "EVIDENCE-2E575AC1E516A475D2D6C4ED",
+      "source_id": "ctma-nanqiao-company",
+      "locator": {
+        "heading": "Company introduction, final paragraph, trade destinations",
+        "section": "Company introduction, final paragraph, trade destinations",
+        "page": null,
+        "start": null,
+        "end": null
+      },
+      "original": "还远销香港、台湾和东南亚等地",
+      "english": "Its teas were also sold in Hong Kong, Taiwan and Southeast Asia.",
+      "method": "machine_translation",
+      "translator": "OpenAI Codex",
+      "version": "Astra",
+      "translated_date": "2026-11-23"
     }
   ]
 }

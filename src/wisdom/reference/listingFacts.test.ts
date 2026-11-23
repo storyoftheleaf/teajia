@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { wisdomNodeExists } from '../../../worker/src/wisdomRelations';
+import { GENERATED_CLAIMS } from './generatedClaims';
+import { GENERATED_TEA_REFERENCE_REGISTRY } from './generatedPages';
+import { resolveListingPassages } from './listingPassages';
 import { matchNamedTea } from '../namedTeas';
 import { listingFacts, listingFactsFromInventoryItem, listingFactsFromPublicProduct } from './listingFacts';
 
@@ -32,6 +36,22 @@ describe('listingFacts', () => {
     expect(listingFactsFromInventoryItem({ id, name: 'Changed title' }).namedTeaId).toBe('y562');
     expect(listingFactsFromInventoryItem({ id: 'other', name: 'Y562' }).namedTeaId).toBeUndefined();
     expect(matchNamedTea('Y562', 'Jixing Black Box')).toBeNull();
+  });
+
+  it.each([
+    ['b11a8bad-89d9-4518-9406-25145d4c6e2c', 'San He Liu Bao', 'san-he-liu-bao', 5],
+    ['8c24430b-49d5-4c9d-9ea8-2d353057e2b9', 'Nanqiao Ruigong Brick', 'nanqiao-ruigong-brick', 2],
+  ] as const)('projects the public named history only on its documented lot %s', (id, name, teaId, count) => {
+    expect(wisdomNodeExists('named_tea', teaId)).toBe(true);
+    const facts = listingFactsFromPublicProduct({ id, productName: name });
+    expect(facts.namedTeaId).toBe(teaId);
+    expect(listingFactsFromInventoryItem({ id, name }).namedTeaId).toBe(teaId);
+    expect(listingFactsFromPublicProduct({ id: 'another-lot', productName: name }).namedTeaId).toBeUndefined();
+    expect(matchNamedTea(name)).toBeNull();
+    const result = resolveListingPassages(facts, GENERATED_CLAIMS, GENERATED_TEA_REFERENCE_REGISTRY.pages);
+    expect(result.passages).toHaveLength(count);
+    expect(result.passages.every(({ claim, wisdomHref }) =>
+      claim.sourceIds.length > 0 && wisdomHref.startsWith('/wisdom/named/' + teaId + '#'))).toBe(true);
   });
 
   it('takes a grade only from the explicit field', () => {

@@ -5,6 +5,15 @@ import type { PublicTeaReferenceSource } from '../claims';
 
 export const PART: readonly PublicTeaReferenceSource[] = [
   {
+    "sourceId": "china-coop-san-he-baskets",
+    "publisher": "All China Federation of Supply and Marketing Cooperatives",
+    "publisherRoleLabel": "Cooperative federation",
+    "title": "Three Cranes and its bamboo basket makers",
+    "author": "",
+    "publishedDate": "",
+    "url": "https://www.chinacoop.gov.cn/news.html?aid=1752516"
+  },
+  {
     "sourceId": "china-tea-catalogue-y562",
     "publisher": "China Tea (COFCO)",
     "publisherRoleLabel": "Tea producer",
@@ -14,6 +23,15 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "url": "https://productandservice.cofco.com/upload/1/zl/platform/1993169302277591040.pdf"
   },
   {
+    "sourceId": "cns-wuzhou-aging-warehouse",
+    "publisher": "China News Service",
+    "publisherRoleLabel": "Factory visit",
+    "title": "Inside Wuzhou Tea Factory’s aging warehouse",
+    "author": "",
+    "publishedDate": "",
+    "url": "https://www.chinanews.com/sh/2019/05-21/8842744.shtml"
+  },
+  {
     "sourceId": "ctma-menghai-seven-mountains-2025",
     "publisher": "China Tea Marketing Association",
     "publisherRoleLabel": "Trade association",
@@ -21,6 +39,15 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "author": "",
     "publishedDate": "2025-01-04",
     "url": "https://www.ctma.com.cn/shuzichalvyunyouzhongguo/79991.html"
+  },
+  {
+    "sourceId": "ctma-nanqiao-company",
+    "publisher": "China Tea Marketing Association",
+    "publisherRoleLabel": "Trade association member profile",
+    "title": "Menghai County Nanqiao Tea Company",
+    "author": "",
+    "publishedDate": "2023-12-19",
+    "url": "https://www.ctma.com.cn/huiyuandongtai/76767.html"
   },
   {
     "sourceId": "ctma-puer-history-2021",
@@ -50,6 +77,24 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "url": "https://www.ctma.com.cn/hangyeyaowen/83904.html"
   },
   {
+    "sourceId": "dahonghua-ruigong-brick",
+    "publisher": "Dahonghua Resources",
+    "publisherRoleLabel": "Exhibition catalogue",
+    "title": "Ruigong ripe bricks at the 2022 Malaysia Da Hong Hua Tea Expo",
+    "author": "",
+    "publishedDate": "",
+    "url": "https://www.mmr.my/2022/eBook.pdf#page=9"
+  },
+  {
+    "sourceId": "guangxi-archives-liubao",
+    "publisher": "Guangxi Zhuang Autonomous Region Archives",
+    "publisherRoleLabel": "Regional archive",
+    "title": "A century of Guangxi Liu Bao through the archives",
+    "author": "",
+    "publishedDate": "",
+    "url": "https://www.gxdag.org.cn/show/338/17006"
+  },
+  {
     "sourceId": "marshaln-young-puer-2013",
     "publisher": "A Tea Addict's Journal",
     "publisherRoleLabel": "Community",
@@ -57,6 +102,15 @@ export const PART: readonly PublicTeaReferenceSource[] = [
     "author": "MarshalN",
     "publishedDate": "2013-09-18",
     "url": "https://marshaln.com/2013/09/really-young-puerh-is-not-really-puerh/"
+  },
+  {
+    "sourceId": "mofcom-three-cranes",
+    "publisher": "Ministry of Commerce, China",
+    "publisherRoleLabel": "Brand archive",
+    "title": "Three Cranes in the Time-Honored Brands Museum",
+    "author": "",
+    "publishedDate": "",
+    "url": "https://lzhbwg.mofcom.gov.cn/edi_ecms_web_front/thb/detail/748abf88616c408a9790ed760bfca3dd"
   },
   {
     "sourceId": "puer-magazine-export-cartons",

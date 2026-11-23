@@ -193,6 +193,35 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "nanqiao-ruigong-brick",
+    "slug": "nanqiao-ruigong-brick",
+    "kind": "named_tea",
+    "label": "Nanqiao Ruigong Brick",
+    "visibility": "public",
+    "nativeName": "南峤瑞贡金砖",
+    "parentId": "shou",
+    "sourceIds": [
+      "ctma-nanqiao-company",
+      "dahonghua-ruigong-brick"
+    ],
+    "sections": [
+      {
+        "key": "malaysian-tea-fair",
+        "label": "A brick on the Malaysian tea market",
+        "sourceIds": [
+          "dahonghua-ruigong-brick"
+        ]
+      },
+      {
+        "key": "nanqiao-name",
+        "label": "Where the Nanqiao name comes from",
+        "sourceIds": [
+          "ctma-nanqiao-company"
+        ]
+      }
+    ]
+  },
+  {
     "id": "puer",
     "slug": "puer",
     "kind": "tea_family",
@@ -222,6 +251,57 @@ export const PART: readonly DraftReferencePage[] = [
         "label": "The modern family",
         "sourceIds": [
           "ctma-puer-history-2021"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "san-he-liu-bao",
+    "slug": "san-he-liu-bao",
+    "kind": "named_tea",
+    "label": "San He Liu Bao",
+    "visibility": "public",
+    "nativeName": "三鹤六堡茶",
+    "sourceIds": [
+      "china-coop-san-he-baskets",
+      "cns-wuzhou-aging-warehouse",
+      "guangxi-archives-liubao",
+      "mofcom-three-cranes"
+    ],
+    "sections": [
+      {
+        "key": "three-cranes",
+        "label": "The three cranes",
+        "sourceIds": [
+          "mofcom-three-cranes"
+        ]
+      },
+      {
+        "key": "export-buyers",
+        "label": "What buyers wanted from the leaf",
+        "sourceIds": [
+          "guangxi-archives-liubao"
+        ]
+      },
+      {
+        "key": "cold-water-piling",
+        "label": "Water and the Wuzhou pile",
+        "sourceIds": [
+          "mofcom-three-cranes"
+        ]
+      },
+      {
+        "key": "basket-weavers",
+        "label": "The basket makers",
+        "sourceIds": [
+          "china-coop-san-he-baskets"
+        ]
+      },
+      {
+        "key": "aging-warehouse",
+        "label": "A warehouse built for aging",
+        "sourceIds": [
+          "cns-wuzhou-aging-warehouse"
         ]
       }
     ]
