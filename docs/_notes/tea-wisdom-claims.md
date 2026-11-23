@@ -49,6 +49,8 @@ Every section of every existing `visibility: public` page gets a ledger entry wi
 
 `visibility: draft` is allowed on every page kind. The new kind `leaf_grade` must have a `tea_type` parent (Gong Ting → `shou`).
 
+A draft page may cite a source whose evidence capture is still pending. The builder records these citations as `unresolvedSourceIds` on the draft claim, and the preview shows them as "Evidence pending". A public page never may. Approving a revision still requires real `evidence_ids`.
+
 | Module | Exports | Contents | Loaded |
 |---|---|---|---|
 | `src/wisdom/reference/generatedPages.ts` | `GENERATED_TEA_REFERENCE_REGISTRY` (unchanged shape) | public pages, approved text | always |
@@ -88,9 +90,18 @@ The demo panel on `/preview/wisdom-pilot` is an in-memory preview override, not 
 Rules the builder enforces:
 - **Evidence:** each `evidence_ids` entry exists in `translations.json`, and that evidence's `uses` includes this claim (`{page_id, section_key}`). Empty `evidence_ids` is allowed only for `origin: legacy_import`. The render thread must tolerate empty `sourceIds`.
 - **Text:** English prose rules, with no Han script. Chinese goes only in `terms[].original` (which must contain Han) and in a page's `native_name`.
-- **Sensory observations:** `axis: sensory_observation` requires `attribution` (whose `source_id` exists in sources) and `listing_eligible: false`.
+- **Sensory observations:** `axis: sensory_observation` requires `listing_eligible: false`. `attribution` is optional; when present, its `source_id` must exist in sources.
+- **Basis:** `basis: "trade_knowledge"` claims need no evidence or citation. `basis: "sourced"` claims (the default) do.
 - **Never listing-eligible:** `axis: maker_history` and `axis: terminology`.
 - **Scope:** belongs to the revision and is shown with the passage wherever it is projected.
+
+## Adrian's decisions, 2026-11-23 (these override anything below)
+
+1. **Common trade knowledge needs no citation.** Wet piling, what Gong Ting, special grade and seventh grade mean, Naka sitting in Mengsong: we write these in our own words, informed by sources but never copied. A claim takes `basis: "trade_knowledge"` (default `"sourced"`). A trade_knowledge revision has no `evidence_ids`, and its Markdown section needs no `[cite:]` marker. Sources we read stay in private research notes, not on the page.
+2. **Taste is described as what people commonly notice in the style, with no credit.** Several accounts are folded into one sentence in our own words ("People often notice dried fruit and a creamy sweetness…"). This replaces separate attributed observations. It is still shown last under its own label ("What people often notice"), it describes the style or grade, and it is never presented as the taste of the lot on screen. Adrian's or a guest's exact-lot tasting is the only taste text about the lot itself.
+3. **The research list shrinks.** Yang et al. and the MDPI study are dropped. Seller pages are read for background only.
+
+The rules below are updated to match: `attribution` is optional on `sensory_observation`, and `listing_eligible` stays false for every sensory claim (they appear only as the style block, never as a passage).
 
 ## Sensory observations
 
