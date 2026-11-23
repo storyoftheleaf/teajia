@@ -1,6 +1,6 @@
 // Dev-only Tea Wisdom listing pilot: /preview/wisdom-pilot/*.
 // Mounted from App.tsx inside the import.meta.env.DEV block only.
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AlcoveCard } from '../../../components/shop/AlcoveCard';
@@ -11,7 +11,7 @@ import type { PublicClaim } from '../../../wisdom/reference/claims';
 import { resolveListingPassages } from '../../../wisdom/reference/listingPassages';
 import { PILOT_FIXTURE_CLAIMS } from './fixtureClaims';
 import { PILOT_FIXTURES, type PilotFixture } from './fixtureProducts';
-import { applyRevisionOverrides, revisionChoices, type RevisionChoice, type RevisionOverrides } from './revisionOverride';
+import { applyRevisionOverrides, revisionChoices, revisionOverrideStore, type RevisionChoice, type RevisionOverrides } from './revisionOverride';
 import { installPilotApiStub, stubbedCalls } from './stubApi';
 
 installPilotApiStub();
@@ -136,7 +136,9 @@ export const WisdomPilotPreview: React.FC<{ claims?: readonly PublicClaim[] }> =
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
   }));
-  const [overrides, setOverrides] = useState<RevisionOverrides>({});
+  const overrides = useSyncExternalStore(revisionOverrideStore.subscribe, revisionOverrideStore.get);
+  const setOverrides = (update: (current: RevisionOverrides) => RevisionOverrides) =>
+    revisionOverrideStore.set(update(revisionOverrideStore.get()));
   const claims = useMemo(() => applyRevisionOverrides(baseClaims, overrides), [baseClaims, overrides]);
 
   return (
@@ -150,7 +152,7 @@ export const WisdomPilotPreview: React.FC<{ claims?: readonly PublicClaim[] }> =
               baseClaims={baseClaims}
               overrides={overrides}
               onChoose={(claimId, choice) => setOverrides(current => ({ ...current, [claimId]: choice }))}
-              onReset={() => setOverrides({})}
+              onReset={() => setOverrides(() => ({}))}
             />
           )}
         />

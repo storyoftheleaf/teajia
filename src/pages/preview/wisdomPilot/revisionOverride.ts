@@ -37,3 +37,20 @@ export function revisionChoices(claim: PublicClaim): RevisionChoice[] {
   const revs = (claim.previousRevisions ?? []).map(revision => revision.rev);
   return [...(revs.length ? revs : claim.rev !== null ? [claim.rev] : []), 'withdrawn'];
 }
+
+// The app re-mounts a route's element on every navigation (AnimatedRoutes),
+// so the panel's choice lives here, in memory, for the life of the tab.
+let currentOverrides: RevisionOverrides = {};
+const listeners = new Set<() => void>();
+
+export const revisionOverrideStore = {
+  get: (): RevisionOverrides => currentOverrides,
+  set(next: RevisionOverrides) {
+    currentOverrides = next;
+    listeners.forEach(listener => listener());
+  },
+  subscribe(listener: () => void) {
+    listeners.add(listener);
+    return () => { listeners.delete(listener); };
+  },
+};
