@@ -91,21 +91,23 @@ test('puts the signed-in owner’s Edit after Taste and Collect on the tea page'
 
   await page.goto('/shop/product/tea-1');
   const actions = page.getByRole('group', { name: 'Your tea actions' });
-  await expect(actions.getByRole('button')).toHaveText([ownerName, 'Taste', '+ Collect', 'Edit']);
+  await expect(actions.getByRole('button')).toHaveText([ownerName, '+ Add your own picture', 'Taste', '+ Collect', 'Edit']);
   await expect(page.locator('.tea-product-plaque').getByRole('button', { name: /edit/i })).toHaveCount(0);
   const layout = await actions.evaluate(strip => {
-    const [profile, taste, collect, edit] = Array.from(strip.querySelectorAll('button'));
+    const [profile, photo, taste, collect, edit] = Array.from(strip.querySelectorAll('button'));
     const icon = profile.querySelector('svg')!.getBoundingClientRect();
     const name = profile.lastElementChild!.getBoundingClientRect();
     return {
       iconLeftOfName: icon.right <= name.left,
       iconCenterOffset: Math.abs((icon.top + icon.bottom - name.top - name.bottom) / 2),
-      actionTops: [profile, taste, collect, edit].map(button => button.getBoundingClientRect().top),
+      accountTops: [profile, photo].map(button => button.getBoundingClientRect().top),
+      actionTops: [taste, collect, edit].map(button => button.getBoundingClientRect().top),
       overflow: strip.scrollWidth - strip.clientWidth,
     };
   });
   expect(layout.iconLeftOfName).toBe(true);
   expect(layout.iconCenterOffset).toBeLessThan(1);
+  expect(new Set(layout.accountTops).size).toBe(1);
   expect(new Set(layout.actionTops).size).toBe(1);
   expect(layout.overflow).toBeLessThanOrEqual(1);
   await actions.getByRole('button', { name: 'Edit', exact: true }).click();
@@ -126,7 +128,7 @@ test('loads stored product photos in the gallery and enlarged viewer', async ({ 
   const photos = [
     { id: 'tea-1', name: 'Moonlight White', label: 'View Moonlight White image 1 larger', path: '/api/media/gallery/moonlight.jpg' },
     { id: 'tea-1', name: 'Moonlight White', label: 'View Moonlight White image 2 larger', path: '/api/media/gallery/moonlight-side.jpg?v=2' },
-    { id: 'ware-1', name: 'Field Gaiwan', label: 'View Field Gaiwan larger', path: '/api/media/gallery/gaiwan.jpg' },
+    { id: 'ware-1', name: 'Field Gaiwan', label: 'Enlarge photo 1 of Field Gaiwan', path: '/api/media/gallery/gaiwan.jpg' },
   ];
   for (const photo of photos) {
     await page.goto(`/shop/product/${photo.id}`);
@@ -223,7 +225,7 @@ test.describe('refined public shop', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('.label-plate')).toBeVisible();
     // Signed out: the way in, and the family's door into a tasting (plan decision 15).
-    await expect(page.getByRole('group', { name: 'Your tea actions' }).getByRole('button')).toHaveText(['Log in', 'Add your tasting']);
+    await expect(page.getByRole('group', { name: 'Your tea actions' }).getByRole('button')).toHaveText(['Log in', '+ Add your own picture', 'Add your tasting']);
     const purchase = page.getByRole('group', { name: 'Choose and add a tea amount' });
     await expect(purchase.getByRole('button', { name: 'Add to order', exact: true })).toBeVisible();
     await expect(page.getByText('Order empty', { exact: true })).toBeVisible();
@@ -275,9 +277,8 @@ test.describe('refined public shop', () => {
     await expect(page).toHaveURL(/\/shop\/product\/ware-1$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('.label-plate')).toBeVisible();
-    // Teaware keeps the earlier page, which has no account strip; its door for a
-    // visitor is the tasting plate.
-    await expect(page.getByRole('button', { name: 'Add your tasting', exact: true })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Your teaware actions' }).getByRole('button'))
+      .toHaveText(['Log in', '+ Add your own picture']);
 
     // Back is a real history step now rather than a modal dismissal, and it
     // still has to land on the shop with the right tab showing. The tab is in

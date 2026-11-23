@@ -54,6 +54,33 @@ export function ProductDetailLayout({
   const { item } = identity;
   const photos = useTeaFamily(ownerPreviewNavigation ? undefined : item.id);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const { pathname, search, hash } = useLocation();
+  const input = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const upload = useMutation({
+    mutationFn: async (files: File[]) => {
+      for (const file of files) {
+        if (useAppStore.getState().authUser?.email !== user?.email) return;
+        await addProductPhotograph(item.id, file);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['family', 'my-tea', item.id] }),
+  });
+  const hasShopPhotos = gallery.allImages.length > 0;
+  const hasMemberPhotos = photos.row.length > 0;
+  const emptyGallery = !hasShopPhotos && !hasMemberPhotos;
+  const addPhoto = ownerPreviewNavigation ? undefined : (
+    <Button variant="secondary" size="sm" type="button" className={emptyGallery ? 'shrink-0' : 'product-photo-add'}
+      aria-label={emptyGallery ? 'Add your own picture' : 'Add your photo'}
+      title={emptyGallery ? undefined : 'Add your photo'} disabled={upload.isPending} onClick={() => {
+        if (isAuthenticated) input.current?.click();
+        else navigate(authPagePath('signup', pathname + search + hash));
+      }}>
+      {emptyGallery ? '+ Add your own picture' : <Icons.Plus aria-hidden="true" />}
+    </Button>
+  );
   const visibleFacts = facts.filter(fact => fact.value?.trim() || fact.content);
   return (
     <>
@@ -78,17 +105,25 @@ export function ProductDetailLayout({
       <article className="tea-product-page mx-auto w-full max-w-screen-xl" data-sold-out={soldOut || undefined}>
         <div className="tea-product-layout">
           <div className="tea-product-plaque">
-            <div className={photos.row.length ? 'tea-product-plaque-stack' : 'relative lg:h-full'}>
+            <div className={hasMemberPhotos ? 'tea-product-plaque-stack' : 'relative lg:h-full'}>
               <AlcoveIdentityHeader {...identity} variant="plate" />
-              {photos.row.length > 0 && <div className="tea-product-under-plaque">
+              {hasMemberPhotos && <div className="tea-product-under-plaque">
                 <TeaPhotographRow photographs={photos.row} teaName={item.name} onChooseCover={photos.chooseCover}
-                  onRemove={photos.removeOwn} onShape={photos.reshapeOwn} onShare={photos.shareOwn} />
+                  onRemove={photos.removeOwn} onShape={photos.reshapeOwn} onShare={photos.shareOwn}
+                  addPhoto={hasShopPhotos ? undefined : addPhoto} />
               </div>}
             </div>
           </div>
           <div className="tea-product-reading">
-            <AlcoveGallery key={actions.productId} {...gallery} layout="page" onExpandImage={setExpandedImage} />
-            {!ownerPreviewNavigation && <ProductDetailActions {...actions} key={item.id} />}
+            <AlcoveGallery key={actions.productId} {...gallery} layout="page" onExpandImage={setExpandedImage}
+              addPhoto={hasShopPhotos ? addPhoto : undefined} />
+            {!ownerPreviewNavigation && isAuthenticated && <input type="file" ref={input} hidden multiple accept="image/*" aria-label="Add product photos" onChange={event => {
+              const files = Array.from(event.target.files ?? []);
+              event.target.value = '';
+              if (files.length) upload.mutate(files);
+            }} />}
+            {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
+            {!ownerPreviewNavigation && <ProductDetailActions {...actions} key={item.id} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
             {visibleFacts.length > 0 && (
               <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">
                 <h2 id="tea-product-provenance-title" className="m-0 font-display text-ui-20 text-tea-text">{factsTitle}</h2>
@@ -130,58 +165,42 @@ export function ProductDetailLayout({
 }
 
 function ProductDetailActions({
-  productId, label, onTaste, onEdit,
+  productId, label, onTaste, onEdit, emptyGalleryAction,
 }: {
   productId: string;
   label: string;
   onTaste?: () => void;
   onEdit?: () => void;
+  emptyGalleryAction?: ReactNode;
 }) {
   const { isAuthenticated, user } = useAuth();
-  const input = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
-  const upload = useMutation({
-    mutationFn: async (files: File[]) => {
-      for (const file of files) {
-        if (useAppStore.getState().authUser?.email !== user?.email) return;
-        await addProductPhotograph(productId, file);
-      }
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['family', 'my-tea', productId] }),
-  });
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const collected = useAppStore(state => state.favoriteTeas.includes(productId));
   const toggleFavorite = useAppStore(state => state.toggleFavoriteTea);
 
+  const accountAction = isAuthenticated ? (
+    <Button variant="secondary" size="sm" className="tea-product-profile" icon={<Icons.User aria-hidden="true" />} onClick={() => navigate('/account')}>
+      {user?.name?.trim() || 'My account'}
+    </Button>
+  ) : (
+    <Button variant="secondary" size="sm" onClick={() => navigate(authPagePath('signin', pathname + search))}>Log in</Button>
+  );
+
   return (
     <div className="tea-product-account" role="group" aria-label={label}>
+      {emptyGalleryAction ? (
+        <div className="tea-product-account-photo">{accountAction}{emptyGalleryAction}</div>
+      ) : accountAction}
       {isAuthenticated ? (
-        <>
-          <Button variant="secondary" size="sm" className="tea-product-profile" icon={<Icons.User aria-hidden="true" />} onClick={() => navigate('/account')}>
-            {user?.name?.trim() || 'My account'}
-          </Button>
-          <Button variant="secondary" size="sm" disabled={upload.isPending} onClick={() => input.current?.click()}>
-            {upload.isPending ? 'Adding photo…' : 'Add photo'}
-          </Button>
-          <input type="file" ref={input} hidden multiple accept="image/*" aria-label="Add product photos" onChange={event => {
-            const files = Array.from(event.target.files ?? []);
-            event.target.value = '';
-            if (files.length) upload.mutate(files);
-          }} />
-          {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
+        <div className="flex flex-wrap items-center justify-center gap-2">
           {onTaste && <Button variant="secondary" size="sm" onClick={onTaste}>Taste</Button>}
           <Button variant="secondary" size="sm" aria-pressed={collected} onClick={() => toggleFavorite(productId)}>
             {collected ? 'Collected' : '+ Collect'}
           </Button>
           {onEdit && <Button variant="secondary" size="sm" onClick={onEdit}>Edit</Button>}
-        </>
-      ) : (
-        <>
-          <Button variant="secondary" size="sm" onClick={() => navigate(authPagePath('signin', pathname + search))}>Log in</Button>
-          {onTaste && <Button variant="secondary" size="sm" onClick={onTaste}>Add your tasting</Button>}
-        </>
-      )}
+        </div>
+      ) : onTaste && <Button variant="secondary" size="sm" onClick={onTaste}>Add your tasting</Button>}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
@@ -17,9 +17,10 @@ import { personPath, type TeaRowPhotograph } from './useTeaFamily';
 const ROW_LIMIT = 8;
 
 export function TeaPhotographRow({
-  photographs, teaName, onChooseCover, onRemove, onShape, onShare,
+  photographs, teaName, onChooseCover, onRemove, onShape, onShare, addPhoto,
 }: {
   photographs: TeaRowPhotograph[];
+  addPhoto?: ReactNode;
   teaName: string;
   onChooseCover: (photographId: string | null) => void;
   onShare?: (photographId: string, choice: 'page' | 'private') => Promise<void>;
@@ -62,6 +63,7 @@ export function TeaPhotographRow({
             <Button variant="quiet" size="sm" type="button" onClick={() => setShowAll(true)} data-testid="tea-photographs-more">{more} more</Button>
           </li>
         )}
+        {addPhoto && <li>{addPhoto}</li>}
       </ul>
 
       <PhotographZoom photo={open ? toZoom(open) : null} onClose={close}>
