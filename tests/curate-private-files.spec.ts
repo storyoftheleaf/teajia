@@ -47,7 +47,7 @@ test(`private vendor files preview, authenticate download, and ${selected ? 'und
   await expect(tools).toBeVisible();
   await tools.getByLabel('Choose file').setInputFiles({ name: file.filename, mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nprivate source') });
   await tools.getByLabel('Attachment role').selectOption('pricelist');
-  await tools.getByRole('button', { name: 'Preview attachment', exact: true }).click();
+  await tools.getByRole('button', { name: 'Attach', exact: true }).click();
   const preview = tools.getByRole('region', { name: 'Confirm change' });
   await expect(preview).toContainText(file.filename);
   expect(files).toHaveLength(0);
@@ -67,7 +67,7 @@ test(`private vendor files preview, authenticate download, and ${selected ? 'und
   await tools.getByText('Change history (2)', { exact: true }).click();
   await expect(tools).toContainText('Test Admin');
   if (selected) await tools.locator('article').nth(1).getByRole('button', { name: 'Preview undo', exact: true }).click();
-  else await tools.getByRole('button', { name: 'Preview undo of last shop change', exact: true }).click();
+  else await tools.getByRole('button', { name: 'Undo last change', exact: true }).click();
   await expect(preview).toContainText(selected ? 'Undo this change?' : 'Undo the last shop change?');
   expect(undoCalls[0].mutation_id).toBe(selected ? 'event-remove' : undefined);
   if (selected) {

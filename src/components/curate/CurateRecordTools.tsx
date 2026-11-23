@@ -84,17 +84,17 @@ function RecordToolsInner({ entityType, entityId, onChanged, flat = false }: Pro
   });
   return <section className="space-y-4 min-w-0 text-tea-text" aria-label="Files and change history">
     <div className="border-t border-tea-border pt-4 space-y-3">
-      <h3 className={T.h3}>Photos &amp; source documents</h3>
-      <p className={`${T.body} text-tea-text-dim`}>Private to your shop. JPEG, PNG, WebP or PDF, up to 6 MiB.</p>
+      <h3 className={T.h3}>Files</h3>
       {attachments.map(a => <div key={a.id} className="flex flex-wrap items-center gap-3 border border-tea-border rounded-md p-3 min-w-0">
         <button type="button" disabled={busy} className="tap-target text-left text-tea-gold break-all flex-1" onClick={()=>void download(a)}>{a.filename}<span className="block text-ui-11 text-tea-text-dim">{roles[a.role as keyof typeof roles]||a.role}</span></button>
         <button type="button" disabled={busy} className="tap-target text-ui-12" onClick={()=>void previewRemove(a.id)}>Remove</button>
         {a.mime_type?.startsWith('image/') && <PrivateImagePreview key={a.id} id={a.id} filename={a.filename} />}
       </div>)}
       <div className="flex flex-wrap gap-3 items-center">
-        <label className={`${T.label} min-w-0 flex-1`}>Choose file<input className="block mt-2 w-full min-w-0 text-ui-12" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy||!!pending} onChange={e=>setFile(e.target.files?.[0]||null)} /></label>
-        <label className={T.label}>Role<select aria-label="Attachment role" className="block min-h-tap bg-tea-surface border border-tea-border rounded-md px-2 mt-2" value={role} disabled={busy||!!pending} onChange={e=>setRole(e.target.value)}>{Object.entries(roles).filter(([key])=>key!=='businesscard'||entityType==='vendor').map(([key,name])=><option key={key} value={key}>{name}</option>)}</select></label>
-        <button type="button" className="min-h-tap px-3 border border-tea-border rounded-md" disabled={busy||!file||!!pending} onClick={()=>void previewUpload()}>Preview attachment</button>
+        {/* Private to the shop. JPEG, PNG, WebP or PDF up to 6 MiB (checked on attach). */}
+        <label className="btn-secondary cursor-pointer min-w-0 max-w-full"><span className="truncate">{file ? file.name : 'Choose file'}</span><input aria-label="Choose file" className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy||!!pending} onChange={e=>setFile(e.target.files?.[0]||null)} /></label>
+        <select aria-label="Attachment role" className="min-h-tap bg-tea-surface border border-tea-border rounded-md px-2 text-ui-14 text-tea-text" value={role} disabled={busy||!!pending} onChange={e=>setRole(e.target.value)}>{Object.entries(roles).filter(([key])=>key!=='businesscard'||entityType==='vendor').map(([key,name])=><option key={key} value={key}>{name}</option>)}</select>
+        <button type="button" className="btn-secondary" disabled={busy||!file||!!pending} onClick={()=>void previewUpload()}>Attach</button>
       </div>
     </div>
     {pending && <div ref={confirmationRef} className="bg-tea-elevated border border-tea-border rounded-md p-4 space-y-3" role="region" aria-label="Confirm change">
@@ -105,8 +105,7 @@ function RecordToolsInner({ entityType, entityId, onChanged, flat = false }: Pro
     {error && <p role="alert" className={`${T.body} text-tea-text`}>{error}</p>}
     <Group className="border-t border-tea-border pt-3">
       <Heading className={`${T.label} ${flat ? 'mb-2' : 'cursor-pointer min-h-tap'}`}>Change history ({history.length})</Heading>
-      <p className="text-ui-12 text-tea-text-dim mb-3">Choose a recorded change to review its undo. Later edits to the affected records are protected.</p>
-      <button type="button" className="min-h-tap px-3 border border-tea-border rounded-md mb-4" disabled={busy||!!pending} onClick={()=>void previewUndo()}>Preview undo of last shop change</button>
+      <button type="button" className="btn-secondary mb-4" disabled={busy||!!pending} onClick={()=>void previewUndo()}>Undo last change</button>
       <div className="space-y-4">{history.map(h=><article key={h.id} className="space-y-2"><div className="flex flex-wrap items-center justify-between gap-2"><p className={T.label}>{h.agent_name||h.actor_user_id} · {new Date(h.confirmed_at).toLocaleString()}</p>{h.undone_by ? <span className={T.label}>Undone</span> : !h.undo_of && !String(h.command_type).endsWith(':with_side_effects') && <button type="button" className="tap-target text-ui-12" disabled={busy||!!pending} onClick={()=>void previewUndo(h.id)}>Preview undo</button>}</div><CurateChangePreview changes={(h.records||[]).map((r:any)=>({entity_type:r.entity_type,entity_id:r.entity_id,before:JSON.parse(r.before_json),after:JSON.parse(r.after_json)}))} /></article>)}</div>
     </Group>
   </section>;

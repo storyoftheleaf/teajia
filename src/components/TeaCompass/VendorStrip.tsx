@@ -92,7 +92,9 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   onDetailsChange,
   linkedCustomerId,
   onLinkedCustomerChange,
-  showContactMenu = true,
+  // Off by default (Adrian, 2026-11-23): the bar is for choosing a vendor;
+  // contacts, photos and addresses are edited on the vendor's own page.
+  showContactMenu = false,
 }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -495,7 +497,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
         </div>}
         {/* Storefront photo, shown inline so it's actually visible once added,
             not hidden inside the contact menu. Tap to update. */}
-        {vendorDetails?.storefrontUrl && (
+        {showContactMenu && vendorDetails?.storefrontUrl && (
           <button
             type="button"
             onClick={() => storefrontRef.current?.click()}
@@ -546,7 +548,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 }
                 if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); }
               }}
-              placeholder="Select vendor..."
+              placeholder="Type a name"
               className="min-h-tap w-full input-warm text-base rounded-md px-3 py-2.5 outline-none placeholder:text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
             />
             <AnimatePresence>
@@ -639,7 +641,26 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
           </div>
         )}
         {!vendorName && (
-          <VendorFacesButton onClick={() => { setSearchOpen(false); setFacesOpen(true); }} />
+          <>
+            <VendorFacesButton onClick={() => { setSearchOpen(false); setFacesOpen(true); }} />
+            {/* A new person in one tap: the typed name, or a name field. */}
+            <Button
+              type="button"
+              variant="quiet"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const typed = searchQuery.trim();
+                setSearchOpen(false);
+                if (typed) { void handleSelectVendor(undefined, typed); setSearchQuery(''); }
+                else { setCreatingNew(true); setPickerOpen(true); }
+              }}
+              aria-label="Add a new vendor"
+              className="shrink-0 text-tea-gold"
+              icon={<Plus size={16} strokeWidth={2} aria-hidden="true" />}
+            >
+              New
+            </Button>
+          </>
         )}
       </div>
       <VendorFaceSheet

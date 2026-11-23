@@ -82,10 +82,10 @@ test.describe('Curate field capture preservation', () => {
     }
   });
 
-  test('keeps conditional vendor contact actions on the same type and touch scale', async ({ page }) => {
+  test('keeps the vendor bar to a name, faces and new, on the touch scale', async ({ page }) => {
     await openCompass(page, 'classic');
     await page.getByRole('button', { name: 'Vendor', exact: true }).click();
-    const vendorPicker = page.getByPlaceholder('Select vendor...');
+    const vendorPicker = page.getByPlaceholder('Type a name');
     await vendorPicker.click();
     await expect.poll(async () => (await vendorPicker.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
     expect(parseFloat(await vendorPicker.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
@@ -98,32 +98,17 @@ test.describe('Curate field capture preservation', () => {
     }
     await page.keyboard.press('Escape');
 
-    const contactOptions = page.getByRole('button', { name: 'Vendor contact options' });
-    const addContactLink = page.getByRole('button', { name: 'Add contact link' });
-    await contactOptions.click();
-
+    // Adrian, 2026-11-23: type a name, or pick by photo, or add a new person.
+    // Contacts and addresses live on the vendor's own page, not in this bar.
+    await expect(page.getByRole('button', { name: 'Vendor contact options' })).toHaveCount(0);
     for (const control of [
-      contactOptions,
-      page.getByRole('button', { name: 'Storefront photo' }),
-      page.getByRole('button', { name: 'Drop pin' }),
-      addContactLink,
+      page.getByRole('button', { name: 'Pick a vendor by face' }).filter({ visible: true }).first(),
+      page.getByRole('button', { name: 'Add a new vendor' }),
     ]) {
       await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
-      expect(parseFloat(await control.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
     }
-
-    await addContactLink.click();
-    for (const placeholder of ["Paste map link or 'lat, lng'", 'Phone', 'WhatsApp', 'WeChat', 'LINE']) {
-      const field = page.getByPlaceholder(placeholder);
-      await expect.poll(async () => (await field.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(tapFloor());
-      expect(parseFloat(await field.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
-    }
-    const location = page.getByPlaceholder("Paste map link or 'lat, lng'");
-    await location.fill('not coordinates');
-    await location.blur();
-    const locationError = page.getByText(/Couldn't read coordinates/);
-    await expect(locationError).toBeVisible();
-    expect(parseFloat(await locationError.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+    await page.getByRole('button', { name: 'Add a new vendor' }).click();
+    await expect(page.getByPlaceholder('Vendor name')).toBeVisible();
   });
 
   test('keeps detected Intent actions readable, reachable, and named', async ({ page }) => {
