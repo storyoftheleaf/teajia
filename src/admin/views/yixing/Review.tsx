@@ -8,14 +8,14 @@ import { useReviewPhotos } from './Photos';
 const FIELD_LABELS = { clay: 'Clay', color: 'Observed fired color', shape: 'Shape' };
 const fieldClass = 'mt-1 block w-full min-w-0 rounded-md border border-tea-border bg-tea-surface p-2 text-tea-text';
 
-export function Review({ board, pot, auth, onSave, onReload }: {
-  board: Board; pot: Pot; auth: Auth; onSave: (decision: Decision) => void; onReload: () => Promise<void>;
+export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onReload }: {
+  board: Board; pot: Pot; auth: Auth; draft?: Decision; onDraft: (decision: Decision) => void; onSave: (decision: Decision) => void; onReload: () => Promise<void>;
 }) {
   const [params, setParams] = useSearchParams();
   const originals = params.get('view') === 'original';
   const { urls, failed } = useReviewPhotos(pot.photos.map(p => originals ? p.originalSha256 : p.sha256), auth);
   const [zoom, setZoom] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Decision>(board.decisions[pot.id] ?? EMPTY);
+  const [draft, setDraft] = useState<Decision>(pending ?? board.decisions[pot.id] ?? EMPTY);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [conflict, setConflict] = useState(false);
@@ -24,7 +24,9 @@ export function Review({ board, pot, auth, onSave, onReload }: {
   const comparisons = pot.comparisonIds.flatMap(id => entries.filter(e => e.id === id));
 
   function edit(key: 'note' | typeof KINDS[number], value: string) {
-    setDraft(current => ({ ...current, [key]: value }));
+    const next = { ...draft, [key]: value };
+    onDraft(next);
+    setDraft(next);
     setMessage('');
   }
   async function submit(event: FormEvent) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Route, Routes, useParams } from 'react-router-dom';
+import { Link, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivateQueryScope } from '../../hooks/usePrivateQueryScope';
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
@@ -32,14 +32,14 @@ function Index({ board, auth }: BoardProps) {
   </div>;
 }
 
-function PotRoute({ board, auth, preview, onSave, onReload }: BoardProps & {
-  preview?: boolean; onSave: (id: string, d: Decision) => void; onReload: () => Promise<void>;
+function PotRoute({ board, auth, preview, onSave, onReload, draft, onDraft }: BoardProps & {
+  preview?: boolean; draft?: Decision; onDraft: (decision: Decision) => void; onSave: (id: string, d: Decision) => void; onReload: () => Promise<void>;
 }) {
   const { id } = useParams();
   const pot = board.pots.find(p => p.id === id);
   if (!pot) return <div className={column}><p>Pot unavailable.</p><Link className={QUIET_LINK} to={BASE}>All pots</Link></div>;
   return preview ? <Listing key={pot.id} board={board} pot={pot} auth={auth} /> : <div className={column}>
-    <Review key={pot.id} board={board} pot={pot} auth={auth} onSave={d => onSave(pot.id, d)} onReload={onReload} />
+    <Review key={pot.id} board={board} pot={pot} auth={auth} draft={draft} onDraft={onDraft} onSave={d => onSave(pot.id, d)} onReload={onReload} />
   </div>;
 }
 
@@ -48,6 +48,12 @@ export default function OwnerYixing() {
   const [accountId, userId] = scope.key;
   const auth = { accountId, userId };
   // A renewed token for the same owner must preserve in-progress edits.
+  const { pathname } = useLocation();
+  const draftScope = JSON.stringify([accountId, userId, pathname]);
+  const pending = useRef<{ scope: string; draft: Decision } | null>(null);
+  useEffect(() => {
+    if (pending.current?.scope !== draftScope || !scope.ready) pending.current = null;
+  }, [draftScope, scope.ready]);
   const queryKey = ['yixing-review', accountId, userId];
   const client = useQueryClient();
   const [reloadRevision, setReloadRevision] = useState(0);
@@ -65,14 +71,19 @@ export default function OwnerYixing() {
     <button className="btn-secondary mt-2" type="button" onClick={() => void result.refetch()}>Try again</button>
   </div>;
   const props = { board: result.data, auth };
+  const edit = {
+    draft: pending.current?.scope === draftScope ? pending.current.draft : undefined,
+    onDraft: (draft: Decision) => { pending.current = { scope: draftScope, draft }; },
+  };
   const onSave = (id: string, decision: Decision) => {
+    pending.current = null;
     client.setQueryData<Board>(queryKey, old => old && ({ ...old, decisions: { ...old.decisions, [id]: decision } }));
   };
-  const onReload = async () => { await result.refetch({ throwOnError: true }); setReloadRevision(r => r + 1); };
+  const onReload = async () => { await result.refetch({ throwOnError: true }); pending.current = null; setReloadRevision(r => r + 1); };
   return <Routes key={JSON.stringify([accountId, userId, reloadRevision])}>
     <Route index element={<Index {...props} />} />
     <Route path="wisdom" element={<div className={column}><Guide board={result.data} /></div>} />
-    <Route path=":id" element={<PotRoute {...props} onSave={onSave} onReload={onReload} />} />
-    <Route path=":id/listing" element={<PotRoute {...props} preview onSave={onSave} onReload={onReload} />} />
+    <Route path=":id" element={<PotRoute {...props} {...edit} onSave={onSave} onReload={onReload} />} />
+    <Route path=":id/listing" element={<PotRoute {...props} {...edit} preview onSave={onSave} onReload={onReload} />} />
   </Routes>;
 }
