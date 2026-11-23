@@ -147,7 +147,7 @@ const NamedTeaIndexPage: React.FC = () => {
 
   const structuredData = buildWisdomCollectionData({
     name: 'Named Teas',
-    description: 'Teas known by the name they were given, where the composition is not disclosed.',
+    description: 'Tea names and their histories, from private collections to the export trade.',
     entries: publicState.entries,
     pathFor: tea => `/wisdom/named/${tea.id}`,
   });
@@ -162,7 +162,7 @@ const NamedTeaIndexPage: React.FC = () => {
         <title>Named Teas · The Wisdom Base · Teajia</title>
         <meta
           name="description"
-          content={`${publicState.entries.length} teas known by the name they were given, where the composition was never disclosed.`}
+          content={`${publicState.entries.length} named teas from collections and the tea trade.`}
         />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
@@ -170,7 +170,7 @@ const NamedTeaIndexPage: React.FC = () => {
       <WisdomSubNav active="named" />
 
       <div className="mt-7">
-        <PageHead kind="Holding" title="Named Teas" note="Where the composition was never disclosed." />
+        <PageHead kind="Holding" title="Named Teas" note="Names given by collectors, makers and traders." />
       </div>
 
       <div className={SPACE.section}>

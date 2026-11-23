@@ -1,6 +1,7 @@
 import { getTeaColor } from '../../designTokens';
 import type { InventoryItem } from '../../types';
 import { resolveLineage, resolveRecord } from '../../wisdom/productIdentity';
+import { reviewedLotProse } from '../../wisdom/reference/namedTeaLots';
 import { passageAnchorId } from '../../wisdom/reference/listingPassages';
 import type { ListingPassage } from '../../wisdom/reference/claims';
 import { findProductOriginReference } from '../../wisdom/reference/catalogue';
@@ -126,15 +127,15 @@ function passage(label: string, ...text: (string | undefined)[]): ReadingSection
 }
 
 export function teaReading(item: InventoryItem, surface: 'card' | 'page'): ProductReading {
-  const text = item.processingNotes ?? '';
+  const text = reviewedLotProse(item.id, 'processingNotes', item.processingNotes) ?? '';
   const [processing, aroma] = surface === 'page' ? text.split(/\n\s*## Style aroma reference\s*\n/, 2) : [text];
   return {
     label: 'About this tea',
     teaser: item.tasting?.teaser?.trim(),
     sections: [
       passage('Introduction', item.description),
-      passage('Lore', item.lore),
-      passage('Terroir', item.terroir),
+      passage('Lore', reviewedLotProse(item.id, 'lore', item.lore)),
+      passage('Terroir', reviewedLotProse(item.id, 'terroir', item.terroir)),
       passage('Processing', processing),
       passage('Mood', item.mood),
       passage('Experience', item.experience),

@@ -26,6 +26,23 @@ describe('product fields on the page and quick view', () => {
     expect(productGallery(tea, 'page').allImages).toHaveLength(4);
   });
 
+  it('replaces the reviewed lot’s disputed prose on both surfaces while retaining independently recorded fields', () => {
+    const tea = { ...item, name: 'Y562', id: 'cb7efd7b-9da6-4dc8-be76-3c7e69bdb02e',
+      lore: "The Y562 is a named export recipe from Yunnan's state tea trade house, not an anonymous cake. In old puerh coding the Y prefix marks it as the Yunnan Tea Import and Export Company, and Jixing, meaning fortune, was their export brand. The number itself is shorthand for leaf grade and factory. Grade 5 to 6 points to fine tender leaf, in contrast to the coarse ripe bricks of the same period.",
+      terroir: "The leaf comes from Menghai, a warm humid county in southern Yunnan near the Burma and Laos borders. This is the historic home of large-leaf puerh, where old tea plants grow in red iron-rich soil. The climate is hot in summer and mild in winter, which suits the thick fleshy leaves that puerh needs.",
+      processingNotes: "Ripe puerh is made by wo dui, a wet piling step developed in the early 1970s where damp leaves are heaped and turned so microbes speed up the ageing. Rather than pressed into a cake, this lot was kept loose in a 100 gram box, then aged in Hong Kong dry storage from around 1993, a steady climate that lets the tea settle cleanly. Ripe puerh of this age drinks dark, smooth, and thick in the mouth.",
+      experience: 'Separately recorded experience' };
+    for (const surface of ['card', 'page'] as const) {
+      const text = teaReading(tea, surface).sections.flatMap(section => section.paragraphs);
+      expect(text).toEqual([item.description, tea.experience]);
+      expect(teaReading({ ...tea, lore: '  ' + tea.lore.replace(/ /g, '\n') + '  ',
+        terroir: 'Newly confirmed origin' }, surface).sections.flatMap(section => section.paragraphs))
+        .toEqual([item.description, 'Newly confirmed origin', tea.experience]);
+      expect(teaReading({ ...tea, id: 'different-lot' }, surface).sections.flatMap(section => section.paragraphs))
+        .toEqual([item.description, tea.lore, tea.terroir, tea.processingNotes, tea.experience]);
+    }
+  });
+
   it('maps vessel data into the same reading component and carries the originating shop into suggested teas', () => {
     const ware: InventoryItem = { ...item, category: 'ware', form: 'Hexagonal', material: 'Unknown',
       teawareDetails: { mark: 'Incised characters', recommended_tea_type: 'Oolong', clay_history: 'Clay history text' } };

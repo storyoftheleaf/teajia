@@ -3,12 +3,12 @@
 
 const HAN_SCRIPT = /\p{Script=Han}/u;
 const CLAIM_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const AXES = new Set(['grade', 'place', 'type', 'process', 'maker_history', 'sensory_observation', 'terminology']);
+const AXES = new Set(['named_tea_history', 'grade', 'place', 'type', 'process', 'maker_history', 'sensory_observation', 'terminology']);
 const NEVER_LISTING = new Set(['maker_history', 'terminology', 'sensory_observation']);
 const SOURCE_ROLES = new Set(['standard', 'producer', 'seller_own_batch', 'study', 'specialist_editorial', 'taster']);
 const STATUSES = new Set(['draft', 'approved', 'withdrawn']);
 const ORIGINS = new Set(['approved', 'legacy_import']);
-const APPLIES_KEYS = new Set(['type', 'grade', 'origin_includes', 'name_includes', 'form']);
+const APPLIES_KEYS = new Set(['named_tea', 'type', 'grade', 'origin_includes', 'name_includes', 'form']);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const BASES = new Set(['sourced', 'trade_knowledge']);
 
@@ -76,6 +76,9 @@ export function validateLedger(ledger, sourcePages, provenance) {
 
     if (!BASES.has(basisOf(entry))) fail(claimId, `unsupported basis ${entry.basis}`);
     const located = sections.get(claimId);
+    if (entry.axis === 'named_tea_history' && (
+      located?.page.kind !== 'named_tea' || entry.applies_when.named_tea !== located.page.id || basisOf(entry) !== 'sourced'
+    )) fail(claimId, 'named tea history requires a sourced claim matched to its own named tea page');
     if (located && basisOf(entry) === 'sourced' && located.section.sourceIds.length === 0) {
       fail(claimId, 'a sourced claim needs at least one [cite:] marker in its section (or basis "trade_knowledge")');
     }

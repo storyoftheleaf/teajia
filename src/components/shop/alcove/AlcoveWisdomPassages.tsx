@@ -85,17 +85,21 @@ export const AlcoveWisdomPassages: React.FC<{ listing: ListingPassages }> = ({ l
           data-claim-id={claim.claimId}
           data-claim-rev={claim.rev ?? undefined}
         >
-          <h3 className={`${LABEL} ${FIELD_GAP} m-0 text-tea-text-dim`}>{claim.label}</h3>
-          <p className={`${BODY} m-0 text-tea-text [overflow-wrap:anywhere]`}>{claim.text}</p>
+          <h3 className={`${LABEL} ${FIELD_GAP} m-0 text-tea-text-dim`}>
+            {claim.axis === 'named_tea_history'
+              ? <Link to={wisdomHref} className={`${LINK} tap-target`} aria-label={`${claim.label} in Tea Wisdom`}>{claim.label}</Link>
+              : claim.label}
+          </h3>
+          <p className={`${BODY} m-0 whitespace-pre-line text-tea-text [overflow-wrap:anywhere]`}>{claim.text}</p>
           <TermsLine claim={claim} />
           {claim.axis === 'grade' && claim.scope && (
             <p className={`${BODY} m-0 mt-2 text-tea-text-sec`}>
               <span className="text-tea-text-dim">Scope: </span>{claim.scope}
             </p>
           )}
-          <Link to={wisdomHref} className={`${BODY} ${LINK} tap-target mt-1 inline-flex items-center text-tea-text-sec`}>
+          {claim.axis !== 'named_tea_history' && <Link to={wisdomHref} className={`${BODY} ${LINK} tap-target mt-1 inline-flex items-center text-tea-text-sec`}>
             Read more in Wisdom
-          </Link>
+          </Link>}
         </article>
       ))}
     </section>

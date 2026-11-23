@@ -320,6 +320,9 @@ writeFileSync(join(generated, 'styles.ts'),
 writeFileSync(join(generated, 'marks.ts'),
   `${banner(marks.length, 'marks')}import type { Mark } from '../types';\n\nexport const MARKS: Mark[] = ${JSON.stringify(marks, null, 2)};\n`);
 
+// The Worker validates named-tea relationships using only these stable identities.
+writeFileSync(join(generated, 'namedTeaIds.json'), JSON.stringify(namedTeas.map(tea => tea.id), null, 2) + '\n');
+
 writeFileSync(join(generated, 'namedTeas.ts'),
   `${banner(namedTeas.length, 'named teas')}import type { NamedTea } from '../types';\n\nexport const NAMED_TEAS: NamedTea[] = ${JSON.stringify(namedTeas, null, 2)};\n`);
 

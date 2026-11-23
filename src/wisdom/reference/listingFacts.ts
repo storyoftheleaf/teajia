@@ -1,6 +1,7 @@
 // Recorded product facts for the Tea Wisdom listing resolver.
 // Contract: docs/_notes/tea-wisdom-claims.md, "What a listing may match on".
 import type { ListingFacts } from './claims';
+import { namedTeaIdForLot } from './namedTeaLots';
 import { normalizedWords } from './catalogue';
 import { normalizeTeaForm, normalizeTeaType } from '../vocabulary';
 
@@ -10,6 +11,7 @@ import { normalizeTeaForm, normalizeTeaType } from '../vocabulary';
  * from a name or description.
  */
 export interface ListingFactsSource {
+  id?: string | null;
   type?: string | null;
   form?: string | null;
   /** Comma-separated recorded origin, e.g. "Mengsong, Menghai, Yunnan". */
@@ -27,12 +29,14 @@ function words(value: string | null | undefined): string[] {
 export function listingFacts(product: ListingFactsSource): ListingFacts {
   const type = normalizeTeaType(product.type) ?? undefined;
   const form = normalizeTeaForm(product.form) ?? undefined;
+  const namedTeaId = product.id ? namedTeaIdForLot(product.id) : undefined;
   const grade = product.grade?.trim() || undefined;
   const originParts = (product.originRegion ?? '')
     .split(',')
     .map(part => normalizedWords(part))
     .filter(Boolean);
   return {
+    ...(namedTeaId ? { namedTeaId } : {}),
     ...(type ? { type } : {}),
     ...(grade ? { grade } : {}),
     originParts,
@@ -43,12 +47,14 @@ export function listingFacts(product: ListingFactsSource): ListingFacts {
 
 /** From the public API shape: `originRegion` is the region field alone. */
 export function listingFactsFromPublicProduct(product: {
+  id?: string | null;
   type?: string | null;
   form?: string | null;
   originRegion?: string | null;
   productName?: string | null;
 }): ListingFacts {
   return listingFacts({
+    id: product.id,
     type: product.type,
     form: product.form,
     originRegion: product.originRegion,
@@ -62,6 +68,7 @@ export function listingFactsFromPublicProduct(product: {
  * matching is unaffected. Never sets a grade.
  */
 export function listingFactsFromInventoryItem(item: {
+  id?: string | null;
   type?: string | null;
   form?: string | null;
   origin?: string | null;
@@ -69,6 +76,7 @@ export function listingFactsFromInventoryItem(item: {
   name?: string | null;
 }): ListingFacts {
   return listingFacts({
+    id: item.id,
     type: item.type,
     form: item.form,
     originRegion: item.origin,

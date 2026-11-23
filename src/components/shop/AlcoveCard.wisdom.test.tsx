@@ -41,6 +41,19 @@ describe('Wisdom in the shared product page', () => {
     expect(GENERATED_CLAIMS.every(claim => claim.reviewState === 'approved' && !claim.withdrawn)).toBe(true);
   });
 
+  it('keeps the 1993 vintage on the linked Y562 lot and withholds history until public visibility is known', () => {
+    const item: InventoryItem = { ...PILOT_FIXTURES['type-only'].item, id: 'cb7efd7b-9da6-4dc8-be76-3c7e69bdb02e',
+      name: 'Y562', variant: 'Y562 (Jixing) Black Box', year: '1993', type: 'Shou', origin: 'Yunnan, China' };
+    const markup = renderPage(item);
+    expect(markup).toMatch(/>Vintage<[^]*?>1993</);
+    expect(markup).toContain('data-claim-id="shou:wet-piling"');
+    expect(markup).not.toContain('/wisdom/named/y562');
+    const facts = listingFactsFromInventoryItem(item);
+    const history = resolveListingPassages(facts, GENERATED_CLAIMS, GENERATED_TEA_REFERENCE_REGISTRY.pages).passages;
+    expect(history.map(p => p.claim.sectionKey)).toEqual(['little-black-box', 'export-trade', 'designers', 'original-blend', 'wet-piling']);
+    expect(history.slice(0, -1).every(p => p.claim.text && !p.claim.text.includes('1993'))).toBe(true);
+  });
+
   it.each(['Shou Puer', 'Shou'])('matches a process from the Stock type %s and a place from corroborated origin', type => {
     const markup = renderPage({ ...PILOT_FIXTURES.naka.item, type }, { claims: PILOT_FIXTURE_CLAIMS });
     expect(markup).toContain('data-claim-id="menghai-county:mengsong-naka"');

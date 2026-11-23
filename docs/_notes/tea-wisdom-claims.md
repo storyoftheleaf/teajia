@@ -68,7 +68,7 @@ The demo panel on `/preview/wisdom-pilot` is an in-memory preview override, not 
 ```jsonc
 {
   "claim_id": "gong-ting:definition",
-  "axis": "grade",            // grade | place | type | process | maker_history | sensory_observation | terminology
+  "axis": "grade",            // named_tea_history | grade | place | type | process | maker_history | sensory_observation | terminology
   "listing_eligible": true,
   "applies_when": { "grade": "gong-ting" },
   "attribution": null,        // required for sensory_observation
@@ -120,6 +120,7 @@ On a listing they appear only in the last block, labelled "Style reference", wit
 
 | Fact | Value | From | Never from |
 |---|---|---|---|
+| `namedTeaId` | Stable Wisdom entry ID, e.g. `y562` | Confirmed Stock lot identity in `namedTeaLots.ts` | Product name or alias match |
 | `type` | `normalizeTeaType(product.type)`, e.g. `'Shou'` | type field | name |
 | `grade` | a `leaf_grade` page id, e.g. `'gong-ting'` | explicit grade field (fixtures only today) | name, description |
 | `originParts` | `originRegion` split on `,`, each part run through `normalizedWords` (`catalogue.ts:75`): Naka is `['mengsong', 'menghai', 'yunnan']` | origin field | name |
@@ -141,6 +142,10 @@ The three pilot cases:
 | Type-only fixture | `shou:wet-piling` (process) or `shou:definition` (type) | `{ type: 'Shou' }` |
 
 Ranking:
+A confirmed `named_tea` match carries all approved, sourced `named_tea_history` passages from that entry in Markdown section order. Its stock identity and public Wisdom state determine eligibility. These passages lead and carry their own headings.
+
+General background follows these rules.
+
 1. Axis order is grade > place > type > process.
 2. Within an axis, the claim with more `applies_when` conditions wins. A remaining tie goes to the lower `claim_id` by code point.
 3. At most two passages, and the second must have a different axis from the first.

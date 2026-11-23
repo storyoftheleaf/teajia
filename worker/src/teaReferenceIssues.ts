@@ -124,6 +124,7 @@ function assertOnlyFields(body: Record<string, unknown>, allowed: ReadonlySet<st
 }
 
 function canonicalRoute(page: CanonicalPage): string | null {
+  if (page.kind === 'named_tea') return `/wisdom/named/${page.id}`;
   if (page.kind === 'tea_family') return `/wisdom/family/${page.id}`;
   if (page.kind === 'tea_type') return `/wisdom/type/${page.id}`;
   if (page.kind === 'major_region' || page.kind === 'tea_area') return `/wisdom/region/${page.id}`;

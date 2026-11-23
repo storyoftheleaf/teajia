@@ -11,6 +11,7 @@ const SECTION_PATTERN = /^## ([^\n]+) \{#([a-z0-9]+(?:-[a-z0-9]+)*)\}$/;
 const CITATION_PATTERN = /\[cite:([a-z0-9]+(?:-[a-z0-9]+)*)\]/g;
 const CITATION_LIKE_PATTERN = /\[\s*(?:cite|citation)(?:\b|:)/i;
 const PAGE_KINDS = new Set([
+  'named_tea',
   'tea_family',
   'tea_type',
   'major_region',
