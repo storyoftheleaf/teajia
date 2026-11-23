@@ -1,7 +1,7 @@
 {
   "name": "Teajia Tea Wisdom Base",
   "version": "1.0.0",
-  "generatedAt": "2026-08-09",
+  "generatedAt": "2026-11-23",
   "license": "CC BY 4.0, see LICENSE.txt",
   "homepage": "https://teajia.com",
   "contact": "hello@teajia.com",
@@ -12,7 +12,7 @@
     "producers": 10,
     "styles": 10,
     "marks": 15,
-    "namedTeas": 17,
+    "namedTeas": 18,
     "vocabulary": 25,
     "researchSources": 1,
     "citations": 1,
@@ -713,7 +713,7 @@
       "name": "namedTeas",
       "label": "Named teas",
       "about": "Teas that arrived already named, where the composition is undisclosed. The name is the identity.",
-      "count": 17,
+      "count": 18,
       "csv": "https://teajia.com/wisdom/tea-wisdom-named-teas.csv",
       "record": "https://teajia.com/wisdom/named/{id}.json",
       "index": "https://teajia.com/wisdom/named",
@@ -734,6 +734,7 @@
         "true-love-new",
         "universe",
         "wisdom",
+        "y562",
         "yue-chen-yue-xiang",
         "yun-shen-chu"
       ]

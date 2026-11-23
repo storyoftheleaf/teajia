@@ -55,7 +55,7 @@ A draft page may cite a source whose evidence capture is still pending. The buil
 |---|---|---|---|
 | `src/wisdom/reference/generatedPages.ts` | `GENERATED_TEA_REFERENCE_REGISTRY` (unchanged shape) | public pages, approved text | always |
 | `src/wisdom/reference/generatedClaims.ts` | `GENERATED_CLAIMS: readonly PublicClaim[]` | approved claims only (`reviewState: 'approved'`) | always |
-| `src/wisdom/reference/generatedDraftClaims.ts` | `GENERATED_DRAFT_CLAIMS: readonly PublicClaim[]`, `GENERATED_DRAFT_PAGES` | every claim in every state, with `previousRevisions` and `pendingText` | only through a mode-guarded dynamic `import()`, when `MODE === 'tea-reference-preview'` or on dev-only `/preview/wisdom-pilot/*` |
+| `src/wisdom/reference/generatedDraftClaims.ts` (joins the parts in `generatedDraft/`, each kept under 1,000 lines so no file crosses the 1,500-line ceiling) | `GENERATED_DRAFT_CLAIMS: readonly PublicClaim[]`, `GENERATED_DRAFT_PAGES` | every claim in every state, with `previousRevisions` and `pendingText` | only through a mode-guarded dynamic `import()`, when `MODE === 'tea-reference-preview'` or on dev-only `/preview/wisdom-pilot/*` |
 
 A test builds production and greps `dist/` for a sentence from a draft page; the sentence must not be found.
 
