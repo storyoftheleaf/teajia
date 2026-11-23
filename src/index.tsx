@@ -10,10 +10,13 @@ import App from './App';
 import { ThemeProvider } from './context/ThemeContext';
 const LibraryPreviewPage = import.meta.env.DEV ? React.lazy(() => import('./pages/LibraryPreviewPage')) : null;
 import { AUTH_TOKEN_CHANGED_EVENT } from './lib/api';
+import { captureAfterSitCredential } from './lib/afterSitAccess';
 import { shouldPersistQueryKey } from './lib/queryPersistence';
 import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } from './lib/refreshCommerce';
 import './styles/tailwind.css';
 import './styles/card-utilities.css';
+
+captureAfterSitCredential();
 
 const queryClient = new QueryClient({
   defaultOptions: {

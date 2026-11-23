@@ -1,3 +1,12 @@
+import { casualSitPublicationRoutes } from './casualSitPublications';
+import { publicSitRoutes } from './publicSitConnections';
+import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
+import { createMemberPrivateSitsHandler } from './memberPrivateSits';
+import { afterSitRoutes } from './afterSitAccess';
+import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
+import { listKeptSetups } from './privateKeptSetups';
+import { eraseKeptSetup, queueKeptPhotoCleanupForUser, retryKeptPhotoCleanup, serveKeptSetupPhotos } from './privateKeptSetupPhotos';
+import { serveGuestBookReview } from './sessionGuestBook';
 import { attachPublicTeawareDetails } from './teawareDetails';
 import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
 import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
@@ -272,6 +281,7 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   LOGIN_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
   VERIFY_LIMITER?: RateLimiterBinding;
   JOIN_CODE_LIMITER?: RateLimiterBinding;
+  AFTER_SIT_LIMITER?: RateLimit;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -2179,12 +2189,17 @@ const handleDeleteAccount: Handler = async (request, env) => {
   }
 
   await env.DB.batch([
+    queueKeptPhotoCleanupForUser(env.DB, claims.sub),
+    env.DB.prepare('DELETE FROM private_session_reflections WHERE user_id = ?').bind(claims.sub),
+    env.DB.prepare('UPDATE event_attendees SET user_id = NULL WHERE user_id = ?').bind(claims.sub),
+    env.DB.prepare('DELETE FROM customer_tasting_journal WHERE user_id = ?').bind(personJournalOwner(claims.sub)),
     env.DB.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(claims.sub),
     env.DB.prepare('DELETE FROM account_members WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
   ]);
 
+  await retryKeptPhotoCleanup(env.DB, env.ATLAS_BUCKET);
   return json({ ok: true });
 };
 
@@ -2361,9 +2376,14 @@ const handleDeleteUser: Handler = async (request, env, params) => {
   if (user.platform_role === 'platform_owner') return json({ error: 'Cannot delete platform owner account' }, 403);
 
   await env.DB.batch([
+    queueKeptPhotoCleanupForUser(env.DB, userId),
+    env.DB.prepare('DELETE FROM private_session_reflections WHERE user_id = ?').bind(userId),
+    env.DB.prepare('UPDATE event_attendees SET user_id = NULL WHERE user_id = ?').bind(userId),
+    env.DB.prepare('DELETE FROM customer_tasting_journal WHERE user_id = ?').bind(personJournalOwner(userId)),
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(userId),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
   ]);
+  await retryKeptPhotoCleanup(env.DB, env.ATLAS_BUCKET);
   return json({ ok: true });
 };
 
@@ -12372,6 +12392,17 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   }, 30);
 };
 
+async function publicEventHosts(env: Env, eventId: string, accountId: string) {
+  const hostRows = await env.DB.prepare(
+    `SELECT c.id, c.display_name, c.business_name, c.portrait_url, c.now_text, c.beginnings, c.inspirations, ec.role
+       FROM event_contributors ec
+       JOIN contributors c ON c.id = ec.contributor_id
+      WHERE ec.event_id = ? AND ec.account_id = ? AND ec.is_public = 1 AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+      ORDER BY CASE ec.role WHEN 'lead_host' THEN 0 WHEN 'co_host' THEN 1 WHEN 'guest_host' THEN 2 ELSE 3 END, ec.display_order ASC`
+  ).bind(eventId, accountId).all<Record<string, any>>();
+  return (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
+}
+
 // GET /api/events/:slug/recap — public post-session recap (no auth required)
 // Only returns an explicit public projection for completed or archived events
 // whose host published the recap from a public, active account.
@@ -12432,6 +12463,8 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
     productImageUrl: m.product_image_url || undefined,
   }));
 
+  const hosts = await publicEventHosts(env, String(event.id), String(event.account_id));
+
   return json({
     event: {
       id: event.id,
@@ -12440,6 +12473,7 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
       subtitle: event.subtitle,
       event_date: event.event_date,
       flyer_image_url: event.flyer_image_url,
+      hosts,
     },
     post_session: {
       id: postSession.id,
@@ -13030,6 +13064,64 @@ const handlePrivateSessionReflection: Handler = async (request, env, params) => 
   }
   response.headers.set('Cache-Control', 'private, no-store');
   return response;
+};
+
+function privateSetupResponse(value: unknown, status = 200) {
+  return Response.json(value, { status, headers: { 'Cache-Control': 'private, no-store' } });
+}
+
+async function personalKeptSetupScope(request: Request, env: Env, eventId: string) {
+  const user = await requireAuthenticatedUser(request, env);
+  if ('error' in user) return user;
+  const owned = await env.DB.prepare(
+    'SELECT account_id FROM private_kept_setups WHERE user_id = ? AND event_id = ?'
+  ).bind(user.userId, eventId).first<{ account_id: string }>();
+  if (!owned) return { error: privateSetupResponse({ error: 'Private setup not found.' }, 404) };
+  return { accountId: owned.account_id, userId: user.userId };
+}
+
+const handlePersonalKeptSetups: Handler = async (request, env, params) => {
+  if (!params.id) {
+    const user = await requireAuthenticatedUser(request, env);
+    if ('error' in user) return user.error;
+    return privateSetupResponse({ setups: await listKeptSetups(env.DB, { accountId: null, userId: user.userId }) });
+  }
+  const owned = await personalKeptSetupScope(request, env, params.id);
+  if ('error' in owned) return owned.error;
+  return await eraseKeptSetup(env.DB, owned, params.id)
+    ? privateSetupResponse({ saved: false })
+    : privateSetupResponse({ error: 'Remove the private photos before removing this setup.' }, 409);
+};
+
+const handlePersonalKeptSetupPhotos: Handler = async (request, env, params) => {
+  const owned = await personalKeptSetupScope(request, env, params.id);
+  if ('error' in owned) return owned.error;
+  return serveKeptSetupPhotos(request, env.DB, env.ATLAS_BUCKET, owned, params.id, params.photoId);
+};
+
+const handleOwnerSitPhotoPermission: Handler = async (request, env, params) => {
+  const scope = await personalKeptSetupScope(request, env, params.id);
+  if ('error' in scope) return scope.error;
+  if (!scope.accountId) return json({ error: 'Private setup not found.' }, 404);
+  return serveOwnerSitPhotoPermission(request, env.DB, { accountId: scope.accountId, userId: scope.userId }, params.id, params.photoId);
+};
+
+const handleRecapPhotoReview: Handler = async (request, env, params) => {
+  const gather = await requireBundle(request, env, 'gather');
+  if ('error' in gather) return gather.error;
+  const publish = await requireBundle(request, env, 'publish');
+  if ('error' in publish) return publish.error;
+  const { accountId, userId } = publish;
+  return serveRecapPhotoReview(request, env.DB, env.ATLAS_BUCKET, { accountId, userId }, params.id, params.grantId);
+};
+
+const handlePublicRecapPhoto: Handler = (request, env, params) =>
+  servePublicRecapPhoto(request, env.DB, env.ATLAS_BUCKET, params.slug, params.grantId);
+
+const handleGuestBookReview: Handler = async (request, env, params) => {
+  const scope = await requireBundle(request, env, 'gather');
+  if ('error' in scope) return scope.error;
+  return serveGuestBookReview(request, env.DB, scope.accountId, params.id, params.entryId);
 };
 
 const handleGetPostSession: Handler = async (_request, env, params) => {
@@ -19292,6 +19384,12 @@ const handleDeleteTeaReview: Handler = async (request, env, params) => {
 // Customer: GET /api/tasting-journal. Returns the new shape with `note` and
 // `tastings` JSON columns. Legacy rows (pre-migration) still parse via the
 // client's tolerant fromApiRow.
+const personJournalOwner = (userId: string) => `person:${userId}`;
+
+function isPersonJournalTea(id: string) {
+  return id.startsWith('member-sit:') || id.startsWith('member-tea:');
+}
+
 const handleGetTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -19299,19 +19397,20 @@ const handleGetTastingJournal: Handler = async (request, env) => {
   const claims = parseToken(isAuthed(request)!);
   const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
 
-  let query = 'SELECT * FROM customer_tasting_journal WHERE user_id = ?';
+  let query = 'SELECT * FROM customer_tasting_journal WHERE ((user_id = ?';
   const binds: any[] = [email];
   if (headerAccount) {
     query += ' AND account_id = ?';
     binds.push(headerAccount);
   }
-  query += ' ORDER BY created_at DESC';
+  query += ') OR (user_id = ? AND account_id IS NULL)) ORDER BY created_at DESC';
+  binds.push(personJournalOwner(claims?.sub ?? ''));
 
   const { results } = await env.DB.prepare(query).bind(...binds).all();
 
   // Pass JSON strings through verbatim. The client parses them. This avoids
   // double-stringification and keeps the worker handler narrow.
-  return json(results);
+  return Response.json(results, { headers: { 'Cache-Control': 'private, no-store' } });
 };
 
 const handleStarTastingNote: Handler = async (request, env, params) => {
@@ -19669,7 +19768,9 @@ const handleAddTastingEntry: Handler = async (request, env) => {
   }
 
   const id = body.id || crypto.randomUUID();
-  const joined = mergePushedJournal((await storedJournalsFor(env.DB, email, [String(body.product_id)])).get(String(body.product_id)), {
+  const personal = isPersonJournalTea(String(body.product_id));
+  const owner = personal ? personJournalOwner(claims?.sub ?? '') : email;
+  const joined = mergePushedJournal((await storedJournalsFor(env.DB, owner, [String(body.product_id)])).get(String(body.product_id)), {
     note: typeof body.note === 'string' ? body.note : JSON.stringify(body.note || {}),
     tastings: typeof body.tastings === 'string' ? body.tastings : JSON.stringify(body.tastings || []),
   });
@@ -19688,8 +19789,8 @@ const handleAddTastingEntry: Handler = async (request, env) => {
       archived = excluded.archived
   `).bind(
     id,
-    headerAccount,
-    email,
+    personal ? null : headerAccount,
+    owner,
     body.product_id,
     body.product_name || null,
     body.product_type || null,
@@ -19709,14 +19810,15 @@ const handleDeleteTastingEntry: Handler = async (request, env, params) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
   const email = getUserEmail(request);
+  const personal = personJournalOwner(parseToken(isAuthed(request)!)?.sub ?? '');
 
   const candidates = `SELECT c.id FROM tasting_note_candidates c
     JOIN customer_tasting_journal j ON j.id = c.journal_entry_id
-    WHERE j.id = ? AND j.user_id = ?`;
+    WHERE j.id = ? AND j.user_id IN (?, ?)`;
   await env.DB.batch([
-    env.DB.prepare(`DELETE FROM product_impressions WHERE candidate_id IN (${candidates})`).bind(params.id, email),
-    env.DB.prepare(`DELETE FROM tasting_note_candidates WHERE id IN (${candidates})`).bind(params.id, email),
-    env.DB.prepare('DELETE FROM customer_tasting_journal WHERE id = ? AND user_id = ?').bind(params.id, email),
+    env.DB.prepare(`DELETE FROM product_impressions WHERE candidate_id IN (${candidates})`).bind(params.id, email, personal),
+    env.DB.prepare(`DELETE FROM tasting_note_candidates WHERE id IN (${candidates})`).bind(params.id, email, personal),
+    env.DB.prepare('DELETE FROM customer_tasting_journal WHERE id = ? AND user_id IN (?, ?)').bind(params.id, email, personal),
   ]);
 
   return json({ success: true });
@@ -19736,7 +19838,13 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
 
   const valid = entries.filter((e: any) => e.product_id && e.product_id !== 'quick-note');
   // Join each pushed copy with the stored one rather than replacing it.
-  const storedJournals = await storedJournalsFor(env.DB, email, valid.map((e: any) => String(e.product_id)));
+  const ids: string[] = valid.map((e: any) => String(e.product_id));
+  const person = personJournalOwner(claims?.sub ?? '');
+  const [storeJournals, personJournals] = await Promise.all([
+    storedJournalsFor(env.DB, email, ids.filter(id => !isPersonJournalTea(id))),
+    storedJournalsFor(env.DB, person, ids.filter(isPersonJournalTea)),
+  ]);
+  const storedJournals = new Map([...storeJournals, ...personJournals]);
 
   const stmts = valid.map((e: any) => {
     const joined = mergePushedJournal(storedJournals.get(String(e.product_id)), {
@@ -19744,6 +19852,7 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
       tastings: typeof e.tastings === 'string' ? e.tastings : JSON.stringify(e.tastings || []),
     });
     storedJournals.set(String(e.product_id), joined);
+    const personal = isPersonJournalTea(String(e.product_id));
     return env.DB.prepare(`
       INSERT INTO customer_tasting_journal
         (id, account_id, user_id, product_id, product_name, product_type, product_image, note, tastings, compass_entry_id, archived, created_at)
@@ -19758,8 +19867,8 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
         archived = excluded.archived
     `).bind(
       e.id || crypto.randomUUID(),
-      headerAccount,
-      email,
+      personal ? null : headerAccount,
+      personal ? person : email,
       e.product_id,
       e.product_name || null,
       e.product_type || null,
@@ -30340,6 +30449,13 @@ const handleDriveSaveNow: Handler = async (request, env) => {
 };
 
 // ── Routes ──
+const handleMemberPrivateSits: Handler = createMemberPrivateSitsHandler<Env>(requireAuthenticatedUser);
+const handleMemberPrivateSitPhotos: Handler = async (request, env, params) => {
+  const user = await requireAuthenticatedUser(request, env);
+  if ('error' in user) return user.error;
+  return servePrivateSubjectPhotos(request, env.DB, env.ATLAS_BUCKET, user.userId, 'sit', params.id, params.photoId);
+};
+
 const routes: [string, string, Handler][] = [
   ['GET', '/api/release', async (_request, env) => workerReleaseResponse(env)],
   // Auth
@@ -30709,6 +30825,11 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/events/:slug/public', handleGetEventBySlug],
   ['GET', '/api/events/:slug/tea-menu', handleGetPublicTeaMenu],
   ['GET', '/api/events/:slug/recap', handleGetPublicEventRecap],
+  ['GET', '/api/events/:slug/recap-photo', handlePublicRecapPhoto],
+  ['POST', '/api/events/:slug/recap-photo', handlePublicRecapPhoto],
+  ['GET', '/api/events/:slug/recap-photo/:grantId', handlePublicRecapPhoto],
+  ['HEAD', '/api/events/:slug/recap-photo/:grantId', handlePublicRecapPhoto],
+  ['POST', '/api/events/:slug/recap-photo/:grantId', handlePublicRecapPhoto],
   ['POST', '/api/events/:slug/rsvp', handleRSVP],
   ['GET', '/api/events/:slug/availability', handleGetEventAvailability],
   ['POST', '/api/events/:slug/find-rsvp', handleFindRSVP],
@@ -30730,6 +30851,33 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/rsvp/:token', handleUpdateRSVP],
   ['POST', '/api/rsvp/:token/claim', handleClaimSpot],
   ['GET', '/api/rsvp/:token/post-session', handleGetPostSession],
+  ['GET', '/api/admin/events/:id/guest-book', handleGuestBookReview],
+  ['POST', '/api/admin/events/:id/guest-book/:entryId/review', handleGuestBookReview],
+  ...casualSitPublicationRoutes<Env>({
+    requireUser: requireAuthenticatedUser,
+    shopAccountId: BALI_ACCOUNT_ID,
+  }),
+  ...publicSitRoutes<Env>({
+    requireUser: requireAuthenticatedUser,
+    requireEditor: (request, env) => requireBundle(request, env, 'publish'),
+  }),
+  ...afterSitRoutes<Env>({
+    requireHost: (request, env) => requireBundle(request, env, 'gather'),
+    requireUser: requireAuthenticatedUser,
+    limit: (_request, env, key) => enforceDurableLimit(env.AFTER_SIT_LIMITER, 'AFTER_SIT_LIMITER', 'after-sit:' + key),
+  }),
+  ['GET', '/api/me/kept-setups/:id/photos/:photoId/public-permission', handleOwnerSitPhotoPermission],
+  ['PUT', '/api/me/kept-setups/:id/photos/:photoId/public-permission', handleOwnerSitPhotoPermission],
+  ['DELETE', '/api/me/kept-setups/:id/photos/:photoId/public-permission', handleOwnerSitPhotoPermission],
+  ['GET', '/api/admin/events/:id/recap-photo-review', handleRecapPhotoReview],
+  ['GET', '/api/admin/events/:id/recap-photo-review/:grantId', handleRecapPhotoReview],
+  ['PUT', '/api/admin/events/:id/recap-photo-review/:grantId', handleRecapPhotoReview],
+  ['GET', '/api/me/personal-kept-setups', handlePersonalKeptSetups],
+  ['DELETE', '/api/me/personal-kept-setups/:id', handlePersonalKeptSetups],
+  ['GET', '/api/me/personal-kept-setups/:id/photos', handlePersonalKeptSetupPhotos],
+  ['POST', '/api/me/personal-kept-setups/:id/photos', handlePersonalKeptSetupPhotos],
+  ['GET', '/api/me/personal-kept-setups/:id/photos/:photoId', handlePersonalKeptSetupPhotos],
+  ['DELETE', '/api/me/personal-kept-setups/:id/photos/:photoId', handlePersonalKeptSetupPhotos],
   ['GET', '/api/rsvp/:token/reflection', handlePrivateSessionReflection],
   ['PUT', '/api/rsvp/:token/reflection', handlePrivateSessionReflection],
   ['GET', '/api/me/session-reflections', handlePrivateSessionReflection],
@@ -30821,6 +30969,19 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/user/favorites', handlePutUserFavorites],
 
   // Personal cellar (stock spine step 4) — location-less, person-owned stock.
+  ['GET', '/api/me/private-sits', handleMemberPrivateSits],
+  ['POST', '/api/me/private-sits', handleMemberPrivateSits],
+  ['POST', '/api/me/private-sits/accept', handleMemberPrivateSits],
+  ['GET', '/api/me/private-sits/:id', handleMemberPrivateSits],
+  ['PUT', '/api/me/private-sits/:id', handleMemberPrivateSits],
+  ['PUT', '/api/me/private-sits/:id/invite', handleMemberPrivateSits],
+  ['DELETE', '/api/me/private-sits/:id/invite', handleMemberPrivateSits],
+  ['PUT', '/api/me/private-sits/:id/note', handleMemberPrivateSits],
+  ['GET', '/api/me/private-sits/:id/photos', handleMemberPrivateSitPhotos],
+  ['POST', '/api/me/private-sits/:id/photos', handleMemberPrivateSitPhotos],
+  ['GET', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
+  ['DELETE', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
+  ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ['GET',    '/api/me/cellar', handleListCellar],
   ['POST',   '/api/me/cellar', handleCreateCellarItem],
   ['PUT',    '/api/me/cellar/:id', handleUpdateCellarItem],
@@ -31536,6 +31697,8 @@ const requestHandler = {
   },
 
   async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    try { await retryKeptPhotoCleanup(env.DB, env.ATLAS_BUCKET); }
+    catch (error) { console.error('Private setup photo cleanup failed', error); }
     // The scheduled jobs share one allowance. Record approval before cleanup or
     // outbox work can spend it, including when a database failure consumes it.
     if (env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED === 'true') {

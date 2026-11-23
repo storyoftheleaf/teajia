@@ -40,7 +40,9 @@ export interface TastingItem {
   type?: string;
   image?: string;
   /** Stamps sourceType on every journal entry automatically */
-  sourceType?: 'product' | 'compass' | 'event' | 'sample' | 'session';
+  sourceType?: TastingRecord['sourceType'];
+  /** Exact shop product used for private photographs on a separate Journal subject. */
+  photoProductId?: string;
   compassEntryId?: string;
   eventId?: string;
   eventTitle?: string;
@@ -120,6 +122,8 @@ interface TastingSessionProps {
   startOnNotes?: boolean;
   startOnWheel?: boolean;
   sequence?: TastingSequence;
+  /** Private photographs on the exact tea from a saved sit. */
+  privatePhotographs?: React.ReactNode;
   /**
    * Extra class on the overlay root. The session is portalled to the body, so a
    * surface that dresses it (Curate's `curate-v2`) cannot reach it by ancestry;
@@ -183,7 +187,7 @@ function tastingFingerprint(value: unknown): string {
 
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
-  detailsPanel, startOnDetails = false, startOnWheel = false, sequence, className, previewOnly = false,
+  detailsPanel, startOnDetails = false, startOnWheel = false, sequence, className, privatePhotographs, previewOnly = false,
 }) => {
   const { updateTasting, upsertTastingByProductId, activeAccountId, activeUserId, activeAccount, tastingJournal, favoriteTeas, toggleFavoriteTea } = useAppStore();
   const { addNote } = useNotesStore();
@@ -204,8 +208,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   // One tasting per tea with notes as a dated list: a draft left from an earlier day is sealed as that day's note.
   const personalProductTasting = item.sourceType === 'product' && !adminMode && !previewOnly;
+  const memberTeaTasting = (item.sourceType ?? item.journalRecord?.sourceType) === 'memberTea' && !adminMode && !previewOnly;
+  const personalTasting = personalProductTasting || memberTeaTasting;
   const priorTasting = item.journalRecord?.tasting ?? initialData ?? existingEntry?.note.tasting ?? {};
-  const legacyNote = personalProductTasting && existingEntry?.note.personalNote;
+  const legacyNote = personalTasting && existingEntry?.note.personalNote;
   const openedWith = sealEarlierDraft(legacyNote && !tastingNoteText(priorTasting).trim()
     ? updateImpressionNote(priorTasting, legacyNote) : priorTasting);
   const [tastingData, setTastingData] = useState<TastingData>(openedWith);
@@ -232,9 +238,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   // camera, row and Share step serve every place this screen is opened.
   // A tasting opened on a Curate entry, a session, an event or a sample is not on a
   // shop tea, so the shop is not even asked: asking only earned a refusal.
-  const onShopTea = item.sourceType === undefined || item.sourceType === 'product';
-  const familyAsked = isAuthenticated && !previewOnly && onShopTea && hasJournalItemId(item.id);
-  const photographs = useTastingPhotographs({ productId: item.id, enabled: familyAsked });
+  const onShopTea = !memberTeaTasting && (item.sourceType === undefined || item.sourceType === 'product');
+  const photoProductId = item.photoProductId ?? item.journalRecord?.photoProductId ?? (onShopTea ? item.id : '');
+  const familyAsked = isAuthenticated && !previewOnly && hasJournalItemId(photoProductId);
+  const photographs = useTastingPhotographs({ productId: photoProductId, enabled: familyAsked });
   // Only a shop tea takes photographs and can be shared (plan decision 8). The
   // worker says which teas those are; until it has, nothing of the family shows.
   const familyEnabled = familyAsked && photographs.inShop;
@@ -270,7 +277,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     ? tastingJournal.find(entry => entry.productId === item.id && !entry.archived && entry.synced)
     : undefined;
   const structuredTasting = item.sourceType === 'session';
-  const privateJournalNotes = personalProductTasting || (item.journalRecord != null && !structuredTasting);
+  const privateJournalNotes = personalTasting || (item.journalRecord != null && !structuredTasting);
   const sessionRecord = item.journalRecord?.sourceType === 'session';
   const returnToQuick = eventTasting && startOnWheel;
   const eventTitle = item.eventTitle ?? item.journalRecord?.eventTitle;
@@ -441,6 +448,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 tasting: tastingData,
                 reason: freshReason || undefined,
                 sourceType: item.sourceType,
+                ...(item.photoProductId && { photoProductId: item.photoProductId }),
                 eventId: item.eventId,
                 eventTitle: item.eventTitle,
               };
@@ -464,7 +472,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               accountId: activeAccountId ?? 'guest',
             });
           }
-          if (personalProductTasting && isAuthenticated) {
+          if (personalTasting && isAuthenticated) {
             const savedEntry = useAppStore.getState().tastingJournal.find(entry => entry.id === entryId);
             if (!savedEntry) throw new Error('Could not find the saved tasting.');
             await persistTastingJournalEntry(savedEntry);
@@ -495,16 +503,16 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     setSaveState(tastingFingerprint(latestData.current) === baselineRef.current ? 'saved' : 'idle');
     if (onWriteDescription) setDescriptionDraft(generateDescription(tastingData));
     return true;
-  }, [previewOnly, personalProductTasting, isAuthenticated, item, tastingData, verdict, wouldBuy, onSave, onAfterSave, adminMode, activeAccountId, activeUserId, activeAccount, canSave, onWriteDescription, freshReason, upsertTastingByProductId, favoriteTeas, toggleFavoriteTea]);
+  }, [previewOnly, personalTasting, isAuthenticated, item, tastingData, verdict, wouldBuy, onSave, onAfterSave, adminMode, activeAccountId, activeUserId, activeAccount, canSave, onWriteDescription, freshReason, upsertTastingByProductId, favoriteTeas, toggleFavoriteTea]);
 
   // After an explicit Save, a signed-in person is offered the Share step once. Keep private is its default.
   const handleSaveThenShare = useCallback(async () => {
     const saved = await handleSave();
-    if (saved && familyEnabled && !adminMode && !shareAskedRef.current) {
+    if (saved && familyEnabled && onShopTea && !adminMode && !shareAskedRef.current) {
       shareAskedRef.current = true;
       setShareOpen(true);
     }
-  }, [handleSave, familyEnabled, adminMode]);
+  }, [handleSave, familyEnabled, onShopTea, adminMode]);
 
   // The prompt's Save is a way OUT, so a successful write closes rather than
   // landing on the confirmation screen the person was already trying to leave.
@@ -672,10 +680,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     sessionSharedNote={item.journalRecord?.sessionSharedNote}
                     notesLabel={eventTasting ? 'Personal notes' : structuredTasting ? 'Notes for the host' : personalProductTasting ? 'Your experience with this tea' : undefined}
                     voiceState={silentVoice.state} voiceError={voiceError}
-                    photographRow={familyEnabled ? <TastingPhotographRow photos={photographs.photos} busy={photographs.busy}
-                      onAdd={files => { void photographs.add(files, 'impression'); }}
-                      onRemove={id => { void photographs.remove(id); }}
-                      onShape={(id, shape, frame) => photographs.reshape(id, shape, frame)} /> : undefined}
+                    photographRow={<>
+                      {privatePhotographs}
+                      {familyEnabled && (!privatePhotographs || photographs.photos.length > 0) && <TastingPhotographRow photos={photographs.photos} busy={photographs.busy}
+                        onAdd={privatePhotographs ? undefined : files => { void photographs.add(files, 'impression'); }}
+                        onRemove={id => { void photographs.remove(id); }}
+                        onShape={(id, shape, frame) => photographs.reshape(id, shape, frame)} />}
+                    </>}
                     notesNotice={isAuthenticated && !adminMode
                       ? privateJournalNotes ? 'Saved to your private tasting journal.' : NOTES_NOTICE
                       : undefined}

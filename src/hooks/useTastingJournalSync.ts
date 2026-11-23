@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAppStore } from '../lib/store';
-import { hydrateTastingJournal, retryPendingJournalSync, syncTastingJournal } from '../lib/tastingJournalSync';
-import { hasToken } from '../lib/api';
+import { retryPendingJournalSync, syncTastingJournal } from '../lib/tastingJournalSync';
+import { useJournalHydration } from './useJournalHydration';
 
 /**
  * Syncs the customer tasting journal between localStorage and D1.
@@ -14,30 +14,12 @@ import { hasToken } from '../lib/api';
  */
 export function useTastingJournalSync(isAuthenticated: boolean) {
   const tastingJournal = useAppStore((s) => s.tastingJournal);
-  const hasFetchedRef = useRef(false);
-  const prevAuthRef = useRef(isAuthenticated);
+  const { canRead: canSync, scopeKey } = useJournalHydration(isAuthenticated);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Hydrate from server on login / first mount when authenticated
-  useEffect(() => {
-    const justLoggedIn = isAuthenticated && !prevAuthRef.current;
-    prevAuthRef.current = isAuthenticated;
-
-    if (!isAuthenticated) {
-      hasFetchedRef.current = false;
-      return;
-    }
-
-    if (!hasFetchedRef.current || justLoggedIn) {
-      hasFetchedRef.current = true;
-      hydrateTastingJournal().catch(() => {});
-    }
-  }, [isAuthenticated]);
 
   // Debounced push of unsynced entries after journal changes
   useEffect(() => {
-    if (!isAuthenticated || !hasToken()) return;
-    if (!hasFetchedRef.current) return;
+    if (!canSync) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -47,12 +29,12 @@ export function useTastingJournalSync(isAuthenticated: boolean) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [tastingJournal, isAuthenticated]);
+  }, [tastingJournal, canSync, scopeKey]);
 
   // Retry a failed push on reconnect and on focus. Guests have no listener,
   // and the retry itself also refuses without a token.
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!canSync) return;
     const retry = () => { retryPendingJournalSync().catch(() => {}); };
     const onVisible = () => { if (document.visibilityState === 'visible') retry(); };
     window.addEventListener('online', retry);
@@ -63,5 +45,5 @@ export function useTastingJournalSync(isAuthenticated: boolean) {
       window.removeEventListener('focus', retry);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [isAuthenticated]);
+  }, [canSync, scopeKey]);
 }

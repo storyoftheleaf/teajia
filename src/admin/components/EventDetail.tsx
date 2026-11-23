@@ -13,6 +13,8 @@ import { AttendeeTable } from './AttendeeTable';
 import { TeaMenuEditor } from './TeaMenuEditor';
 import { NotificationPanel } from './NotificationPanel';
 import { PostSessionEditor } from './PostSessionEditor';
+import { GuestBookReview } from './GuestBookReview';
+import { RecapPhotoReview } from './RecapPhotoReview';
 import { ApprovalCard } from './ApprovalCard';
 import { BriefingCardsEditor } from './BriefingCardsEditor';
 import { ReminderTimeline } from './ReminderTimeline';
@@ -829,7 +831,12 @@ export const EventDetail: React.FC = () => {
               <p className="text-xs text-tea-text-dim mt-1">Confirmed and waitlisted guests will appear here.</p>
             </div>
           ) : (
-            <AttendeeTable attendees={attendees} eventId={event.id} onRefresh={refetchAttendees} />
+            <AttendeeTable
+              attendees={attendees}
+              eventId={event.id}
+              showGuestLinks={event.lifecycleStatus === 'completed'}
+              onRefresh={refetchAttendees}
+            />
           )
         )}
 
@@ -908,6 +915,12 @@ export const EventDetail: React.FC = () => {
                 </p>
               )}
             </section>
+            {(event.lifecycleStatus === 'completed' || event.lifecycleStatus === 'archived') && (
+              <>
+                <GuestBookReview eventId={event.id} />
+                <RecapPhotoReview eventId={event.id} />
+              </>
+            )}
             <PostSessionEditor
               key={event.id}
               eventId={event.id}

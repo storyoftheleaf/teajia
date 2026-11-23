@@ -1,3 +1,5 @@
+import { SessionCards } from '../components/sessions/SessionCards';
+import { ProfileSitRecaps } from '../components/people/ProfileSitRecaps';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -330,7 +332,12 @@ export default function ContributorProfilePage() {
           {/* The hub: three cells at most, side by side, sharing the width. It
               stays: someone who came to pay should not have to scroll. */}
           <HubCells cells={cells} testId="profile-hub" />
+          <ProfileSitRecaps slug={data.id} />
         </header>
+
+        <div className={SIDE}>
+          <SessionCards profile={data.id} />
+        </div>
 
         {/* ── In my words ────────────────────────────────────────────────── */}
         {hasWords && (

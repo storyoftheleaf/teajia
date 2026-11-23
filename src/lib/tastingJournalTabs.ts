@@ -13,8 +13,11 @@ export function mergeJournalEntries(a: CustomerTasting, b: CustomerTasting): Cus
   const { note, tastings } = mergeJournalSides<CustomerTasting['note'], TastingRecord>(a, b);
   // Prefer the older id and createdAt to keep stable references.
   const olderCreated = new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b;
+  const previousIds = new Set([a.id, b.id, ...(a.previousIds ?? []), ...(b.previousIds ?? [])]);
+  previousIds.delete(olderCreated.id);
   return {
     ...olderCreated,
+    ...(previousIds.size ? { previousIds: [...previousIds] } : {}),
     productName: a.productName || b.productName,
     productType: a.productType || b.productType,
     productImage: a.productImage ?? b.productImage,
@@ -80,15 +83,30 @@ export function joinOtherTabJournal(
   return capTastingJournal([...added, ...result]);
 }
 
-/** The journal inside one stored value of the persisted store, or null. */
-export function journalInStoredValue(text: string | null | undefined): CustomerTasting[] | null {
+interface StoredJournalScope {
+  activeUserId?: string | null;
+  activeAccountId?: string | null;
+}
+
+function readStoredJournal(text: string | null | undefined) {
   if (typeof text !== 'string') return null;
   try {
-    const journal = (JSON.parse(text) as { state?: { tastingJournal?: unknown } })?.state?.tastingJournal;
-    return Array.isArray(journal) ? journal as CustomerTasting[] : null;
+    const state = (JSON.parse(text) as { state?: StoredJournalScope & { tastingJournal?: unknown } })?.state;
+    if (!Array.isArray(state?.tastingJournal)) return null;
+    return { ...state, tastingJournal: state.tastingJournal as CustomerTasting[] };
   } catch {
     return null;
   }
+}
+
+/** The journal inside one stored value of the persisted store, or null. */
+export function journalInStoredValue(text: string | null | undefined): CustomerTasting[] | null {
+  return readStoredJournal(text)?.tastingJournal ?? null;
+}
+
+function sameJournalScope(a: StoredJournalScope, b: StoredJournalScope): boolean {
+  return (a.activeUserId ?? null) === (b.activeUserId ?? null)
+    && (a.activeAccountId ?? null) === (b.activeAccountId ?? null);
 }
 
 /**
@@ -109,7 +127,7 @@ export function storedValueWithJournal(text: string | null | undefined, journal:
 }
 
 interface JournalStore {
-  getState(): { tastingJournal: CustomerTasting[] };
+  getState(): StoredJournalScope & { tastingJournal: CustomerTasting[] };
   setState(partial: { tastingJournal: CustomerTasting[] }): void;
 }
 
@@ -123,10 +141,13 @@ export function listenForOtherTabJournal(store: JournalStore, key: string): () =
   if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return () => {};
   const onStorage = (event: StorageEvent) => {
     if (event.key !== key) return;
-    const other = journalInStoredValue(event.newValue);
-    if (!other) return;
-    const local = store.getState().tastingJournal;
-    const joined = joinOtherTabJournal(local, other, journalInStoredValue(event.oldValue));
+    const other = readStoredJournal(event.newValue);
+    const state = store.getState();
+    if (!other || !sameJournalScope(state, other)) return;
+    const prior = readStoredJournal(event.oldValue);
+    const lastSeen = prior && sameJournalScope(state, prior) ? prior.tastingJournal : null;
+    const local = state.tastingJournal;
+    const joined = joinOtherTabJournal(local, other.tastingJournal, lastSeen);
     if (joined === local) return;
     store.setState({ tastingJournal: joined });
     // That write stored this tab's copy of everything. Put the other tab's

@@ -1,3 +1,4 @@
+import { PrivateSubjectPhotos } from './components/events/PrivateKeptSetupPhotos';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react';
 import { lazyWithRetry } from './lib/lazyWithRetry';
@@ -68,6 +69,10 @@ const ArticleGate: React.FC<{ href: string; children: React.ReactNode }> = ({ hr
 
 const SharedCollection = lazyWithRetry(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 const EventLanding = lazyWithRetry(() => import('./components/events/EventLanding'));
+const CasualSitRecapPage = lazyWithRetry(() => import('./pages/CasualSitRecapPage'));
+const AfterSitPage = lazyWithRetry(() => import('./pages/AfterSitPage'));
+const MemberSitPage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitPage })));
+const MemberSitInvitePage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitInvitePage })));
 const EventRecapPage = lazyWithRetry(() => import('./pages/EventRecapPage'));
 const GuestManagement = lazyWithRetry(() => import('./components/events/GuestManagement'));
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
@@ -1260,6 +1265,10 @@ const AppContent = () => {
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/cellar" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CellarPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/journey/sits/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}>
+                  <MemberSitPage renderPhotos={sit => <PrivateSubjectPhotos subject="member-sit" subjectId={sit.id} />} />
+                </Suspense></ErrorBoundary>} />
+                <Route path="/account/journey/sit-invite" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><MemberSitInvitePage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
                 <Route path="/dev/library-preview/authorize" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><LibraryPreviewAuthorize /></Suspense></ErrorBoundary>} />
                 <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignInPage /></Suspense></ErrorBoundary>} />
@@ -1283,6 +1292,8 @@ const AppContent = () => {
                 </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
+                <Route path="/sits/casual/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CasualSitRecapPage /></Suspense></ErrorBoundary>} />
+                <Route path="/after-sit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AfterSitPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug/recap" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventRecapPage /></Suspense></ErrorBoundary>} />
                 <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><GuestManagement /></Suspense></ErrorBoundary>} />
                 <Route path="/order/:ref" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderStatusPage /></Suspense></ErrorBoundary>} />

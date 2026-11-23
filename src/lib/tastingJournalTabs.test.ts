@@ -104,6 +104,23 @@ describe('the storage listener', () => {
     expect(Object.keys(setState.mock.calls[0][0])).toEqual(['tastingJournal']);
     expect(setState.mock.calls[0][0].tastingJournal.map((e: CustomerTasting) => e.id)).toEqual(['b', 'a']);
   });
+
+  it('does not import another location or another person’s private journal', () => {
+    let handler: ((event: unknown) => void) | undefined;
+    vi.stubGlobal('window', {
+      addEventListener: (_: string, fn: typeof handler) => { handler = fn; },
+      removeEventListener: () => {},
+    });
+    const mine = { tastingJournal: [], activeUserId: 'me', activeAccountId: 'a' };
+    const setState = vi.fn();
+    listenForOtherTabJournal({ getState: () => mine, setState }, 'teajia-storage');
+
+    for (const scope of [{ activeAccountId: 'b' }, { activeUserId: 'them' }]) {
+      const state = { ...mine, ...scope, tastingJournal: [entry('private', 'tea', '2026-11-02T08:00:00.000Z', [])] };
+      handler?.({ key: 'teajia-storage', newValue: JSON.stringify({ state }) });
+    }
+    expect(setState).not.toHaveBeenCalled();
+  });
 });
 
 describe('what is left in storage after joining another tab', () => {

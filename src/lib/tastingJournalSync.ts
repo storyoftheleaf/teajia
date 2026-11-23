@@ -1,7 +1,7 @@
 import { useAppStore } from './store';
-import { api, hasToken } from './api';
-import type { CustomerTasting, TastingRecord, TastingData } from '../types';
-import { mergeJournalEntries } from './tastingJournalTabs';
+import { api, getTokenClaims, hasToken, isTokenScopedToAccount } from './api';
+import type { CustomerTasting } from '../types';
+import { fromApiRow, mergePulledJournal } from './tastingJournalRead';
 import { createJournalRetry } from './tastingJournalRetry';
 
 const BACKGROUND_REQUEST = { background: true } as const;
@@ -24,86 +24,16 @@ function toApiPayload(entry: CustomerTasting): Record<string, any> {
 }
 
 export async function persistTastingJournalEntry(entry: CustomerTasting): Promise<void> {
-  await api.tastingJournal.sync([toApiPayload(entry)]);
-  useAppStore.setState(state => ({
-    tastingJournal: state.tastingJournal.map(item => item.id === entry.id ? { ...item, synced: true } : item),
-  }));
+  const { activeAccountId: accountId, activeUserId: userId } = useAppStore.getState();
+  if (!userId || !isCurrentJournalScope(accountId, userId)) throw new Error('Sign in again to save this tasting.');
+  await api.tastingJournal.sync([toApiPayload(entry)], { expectedAuth: { accountId, userId } });
+  useAppStore.setState(state => {
+    if (state.activeUserId !== userId || state.activeAccountId !== accountId) return state;
+    return { tastingJournal: state.tastingJournal.map(item =>
+      item.id === entry.id && JSON.stringify(item) === JSON.stringify(entry) ? { ...item, synced: true } : item,
+    ) };
+  });
 }
-
-function safeParse<T>(value: unknown, fallback: T): T {
-  if (typeof value !== 'string') return (value ?? fallback) as T;
-  try { return JSON.parse(value) as T; } catch { return fallback; }
-}
-
-// Convert API response row → CustomerTasting.
-// Tolerant of legacy rows (pre-migration) that store flat fields instead of JSON.
-function fromApiRow(row: Record<string, any>): CustomerTasting {
-  const productId = row.product_id;
-  const createdAt = row.created_at || new Date().toISOString();
-
-  // New shape: server returns `note` and `tastings` as JSON.
-  if (row.note || row.tastings) {
-    const note = safeParse<CustomerTasting['note']>(row.note, {
-      tasting: {} as TastingData,
-      updatedAt: createdAt,
-    });
-    const tastings = safeParse<TastingRecord[]>(row.tastings, []);
-    return {
-      id: row.id,
-      productId,
-      productName: row.product_name,
-      productType: row.product_type || '',
-      productImage: row.product_image ?? undefined,
-      note,
-      tastings: tastings.length > 0 ? tastings : [{ id: row.id, createdAt, tasting: note.tasting }],
-      compassEntryId: row.compass_entry_id ?? undefined,
-      createdAt,
-      accountId: row.account_id ?? undefined,
-      archived: !!row.archived,
-      synced: true,
-    };
-  }
-
-  // Legacy shape: a single tasting per row. Wrap into the new shape.
-  const tasting = safeParse<TastingData>(row.tasting, {} as TastingData);
-  const personalNote = row.personal_note ?? undefined;
-  const rating = row.rating ?? undefined;
-  return {
-    id: row.id,
-    productId,
-    productName: row.product_name,
-    productType: row.product_type || '',
-    productImage: row.product_image ?? undefined,
-    note: {
-      tasting,
-      personalNote,
-      rating,
-      updatedAt: createdAt,
-    },
-    tastings: [{
-      id: row.id,
-      createdAt,
-      tasting,
-      sourceType: row.source_type ?? undefined,
-      eventId: row.event_id ?? undefined,
-      eventTitle: row.event_title ?? undefined,
-    }],
-    compassEntryId: row.compass_entry_id ?? undefined,
-    createdAt,
-    accountId: row.account_id ?? undefined,
-    archived: false,
-    synced: true,
-  };
-}
-
-/**
- * Merge two CustomerTasting entries that target the same productId, during
- * hydration (local vs server). The note and sittings follow the shared rule in
- * `tastingJournalMerge.ts`, which the worker also applies on push: sittings
- * united by id, and the side whose note was edited later keeps its note and
- * its copy of a shared sitting (local wins a tie).
- */
-const mergeEntries = mergeJournalEntries;
 
 /**
  * Syncs unsynced tasting journal entries to D1. Quick-note sentinel rows
@@ -112,7 +42,8 @@ const mergeEntries = mergeJournalEntries;
 export async function syncTastingJournal(): Promise<number> {
   if (!hasToken()) return 0;
 
-  const { tastingJournal } = useAppStore.getState();
+  const { tastingJournal, activeAccountId: accountId, activeUserId: userId } = useAppStore.getState();
+  if (!userId || !isCurrentJournalScope(accountId, userId)) return 0;
   // Drop legacy quick-note sentinels client-side. The server-side migration
   // also deletes them; this is the client's parallel pass.
   const validJournal = tastingJournal.filter(e => e.productId && e.productId !== 'quick-note');
@@ -128,13 +59,14 @@ export async function syncTastingJournal(): Promise<number> {
     // What was sent, so an entry edited while the request was in flight is
     // not marked as sent: it stays waiting and goes up on the next push.
     const sent = new Map(unsynced.map(u => [u.id, JSON.stringify(u)]));
-    await api.tastingJournal.sync(payload, BACKGROUND_REQUEST);
+    await api.tastingJournal.sync(payload, { ...BACKGROUND_REQUEST, expectedAuth: { accountId, userId } });
 
-    useAppStore.setState(state => ({
-      tastingJournal: state.tastingJournal.map(e =>
+    useAppStore.setState(state => {
+      if (state.activeUserId !== userId || state.activeAccountId !== accountId) return state;
+      return { tastingJournal: state.tastingJournal.map(e =>
         sent.get(e.id) === JSON.stringify(e) ? { ...e, synced: true } : e
-      ),
-    }));
+      ) };
+    });
 
     return unsynced.length;
   } catch (err) {
@@ -156,46 +88,50 @@ export const retryPendingJournalSync = createJournalRetry({
   push: syncTastingJournal,
 });
 
+export function isCurrentJournalScope(accountId: string | null, userId: string | null): boolean {
+  if (!userId) return false;
+  if (accountId) return isTokenScopedToAccount(accountId, userId);
+  // Signed-in guests with no location membership still own a personal Journal.
+  const claims = getTokenClaims();
+  return claims?.sub === userId && !claims.active_account_id && !claims.memberships?.length;
+}
+
 /**
- * Hydrates the tasting journal from D1. Conflict key is (productId), not (id),
- * because a local-offline entry may have a different uuid than the server's.
- * For each productId, take the union of tastings and the most recent note.
+ * Pull the current account's Journal once even when the app and a Journal
+ * door open together. A location switch can change the store before the JWT
+ * refreshes, so the request and its merge both require the same identity.
  */
+let currentPull: Promise<void> | undefined;
+
 export async function hydrateTastingJournal(): Promise<void> {
-  if (!hasToken()) return;
+  const { activeAccountId: accountId, activeUserId: userId, tastingJournal } = useAppStore.getState();
+  if (!userId || !isCurrentJournalScope(accountId, userId)) return;
+  if (currentPull) return currentPull;
 
-  try {
-    const data = await api.tastingJournal.list(BACKGROUND_REQUEST);
-    const rows = Array.isArray(data?.entries) ? data.entries
-      : Array.isArray(data) ? data
-      : [];
-    const serverEntries: CustomerTasting[] = rows.map(fromApiRow);
-
-    useAppStore.setState(state => {
-      const local = state.tastingJournal.filter(e => e.productId && e.productId !== 'quick-note');
-      const byProductId = new Map<string, CustomerTasting>();
-
-      for (const entry of local) byProductId.set(entry.productId, entry);
-      for (const server of serverEntries) {
-        const existing = byProductId.get(server.productId);
-        if (!existing) {
-          byProductId.set(server.productId, { ...server, synced: true });
-          continue;
-        }
-        // If local is unsynced, merge but keep `synced: false` so it gets pushed.
-        const merged = mergeEntries(existing, server);
-        byProductId.set(server.productId, {
-          ...merged,
-          synced: existing.synced && server.synced,
-        });
-      }
-
-      const merged = [...byProductId.values()].sort(
-        (a, b) => new Date(b.note.updatedAt).getTime() - new Date(a.note.updatedAt).getTime()
-      );
-      return { tastingJournal: merged };
-    });
-  } catch (err) {
-    console.warn('[TastingJournal] Hydration failed:', err);
-  }
+  const atStart = new Map(tastingJournal.map(entry => [entry.productId, entry]));
+  let scopeChanged = false;
+  const stopWatching = useAppStore.subscribe(state => {
+    if (state.activeAccountId === accountId && state.activeUserId === userId) return;
+    scopeChanged = true;
+    if (currentPull === pull) currentPull = undefined;
+  });
+  const pull = api.tastingJournal.list({
+    ...BACKGROUND_REQUEST,
+    ...(accountId ? { expectedAuth: { accountId, userId } } : {}),
+  }).then(data => {
+    if (scopeChanged || !isCurrentJournalScope(accountId, userId)) return;
+    const rows = Array.isArray(data?.entries) ? data.entries : Array.isArray(data) ? data : [];
+    const serverEntries = rows.filter(row => row?.id && (row.account_id == null || row.account_id === accountId))
+      .map(fromApiRow);
+    useAppStore.setState(state => ({
+      tastingJournal: mergePulledJournal(state.tastingJournal, serverEntries, atStart),
+    }));
+  }).catch(error => {
+    if (!scopeChanged && isCurrentJournalScope(accountId, userId)) throw error;
+  }).finally(() => {
+    stopWatching();
+    if (currentPull === pull) currentPull = undefined;
+  });
+  currentPull = pull;
+  return pull;
 }

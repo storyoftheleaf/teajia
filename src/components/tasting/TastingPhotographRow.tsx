@@ -15,7 +15,7 @@ export const NOTES_NOTICE = 'Notes may be used to help describe the tea and help
 export function TastingPhotographRow({ photos, busy, onAdd, onRemove, onShape }: {
   photos: FamilyPhotograph[];
   busy: boolean;
-  onAdd: (files: File[]) => void;
+  onAdd?: (files: File[]) => void;
   onRemove: (id: string) => void;
   /** Square is the default; "Crop" in the zoom frames it and offers 2:3 and 3:2. */
   onShape?: (id: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null) => Promise<void> | void;
@@ -37,15 +37,17 @@ export function TastingPhotographRow({ photos, busy, onAdd, onRemove, onShape }:
   return <div className="tasting-impression-notes tasting-impression-photos" role="group" aria-labelledby={labelId}>
     <div className="tasting-photo-heading">
       <span id={labelId} className={TYPOGRAPHY_CLASSES.label}>Your photographs</span>
-      <Button variant="secondary" size="sm" type="button" className="tap-target" disabled={busy} onClick={() => inputRef.current?.click()}>
-        Add photographs
-      </Button>
-      <input ref={inputRef} type="file" accept="image/*" multiple hidden data-testid="tasting-photo-input"
-        onChange={event => {
-          const files = Array.from(event.currentTarget.files ?? []);
-          event.currentTarget.value = '';
-          if (files.length) onAdd(files);
-        }} />
+      {onAdd && <>
+        <Button variant="secondary" size="sm" type="button" className="tap-target" disabled={busy} onClick={() => inputRef.current?.click()}>
+          Add photographs
+        </Button>
+        <input ref={inputRef} type="file" accept="image/*" multiple hidden data-testid="tasting-photo-input"
+          onChange={event => {
+            const files = Array.from(event.currentTarget.files ?? []);
+            event.currentTarget.value = '';
+            if (files.length) onAdd(files);
+          }} />
+      </>}
     </div>
     {(photos.length > 0 || busy) && (
       <div className="tasting-photo-box">

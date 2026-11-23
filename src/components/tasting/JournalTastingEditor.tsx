@@ -3,9 +3,11 @@ import { TastingSession } from './TastingSession';
 import type { CustomerTasting, TastingRecord } from '../../types';
 import { journalEntryCurateTeaIdHere, saveCurateTasting } from '../../lib/curateTastingSave';
 import { useAppStore } from '../../lib/store';
-import { latestTasting } from '../../lib/tastingAccessors';
+import { eventTastingRecordId, latestTasting } from '../../lib/tastingAccessors';
 import { updateImpressionNote } from './YourImpression';
 import { tastingNoteText } from './tastingNoteText';
+import { useKeptSetups } from '../../hooks/useKeptSetups';
+import { PrivateKeptSetupPhotos } from '../events/PrivateKeptSetupPhotos';
 
 interface JournalTastingEditorProps {
   entry: CustomerTasting;
@@ -14,6 +16,8 @@ interface JournalTastingEditorProps {
 }
 
 export function JournalTastingEditor({ entry: startingEntry, record: startingRecord, onClose }: JournalTastingEditorProps) {
+  const accountId = useAppStore(state => state.activeAccountId);
+  const userId = useAppStore(state => state.activeUserId);
   const journal = useAppStore(state => state.tastingJournal);
   const [selected, setSelected] = useState<{ entryId: string; recordId: string } | null>(null);
   const tastings = useMemo(() => journal.filter(entry => !entry.archived).flatMap(entry => (
@@ -24,6 +28,10 @@ export function JournalTastingEditor({ entry: startingEntry, record: startingRec
   const index = tastings.findIndex(tasting => tasting.entry.id === entryId && tasting.record.id === recordId);
   const { entry, record } = tastings[index] ?? { entry: startingEntry, record: startingRecord };
   const compassEntryId = journalEntryCurateTeaIdHere(entry);
+  const eventId = record?.sourceType === 'event' ? record.eventId : undefined;
+  const setups = useKeptSetups(accountId, userId, !!eventId);
+  const setup = setups.data?.setups.find(saved => saved.event_id === eventId);
+  const menuTea = setup && record && setup.teas.find(tea => eventTastingRecordId(setup.event_id, tea.id) === record.id);
   let journalRecord = record;
   // Earlier journal edits could store prose only in the tea's summary.
   const legacyNote = entry.note.personalNote;
@@ -50,7 +58,11 @@ export function JournalTastingEditor({ entry: startingEntry, record: startingRec
         image: entry.productImage,
         compassEntryId,
         journalRecord,
+        collectionUnavailable: record?.sourceType === 'memberTea' || menuTea?.id === entry.productId,
       }}
+      privatePhotographs={setup && menuTea
+        ? <PrivateKeptSetupPhotos setupId={setup.event_id} teaId={menuTea.id} />
+        : undefined}
       onClose={onClose}
       onAfterSave={(data, verdict, _wouldBuy, identity) => {
         if (!compassEntryId) return;

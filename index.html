@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Teajia · A Home for Tea</title>
+    <script>
+      // Capture the personal fragment before app scripts can read the URL.
+      if (/^\/after-sit\/?$/.test(location.pathname) && /^#[a-f0-9]{64}$/.test(location.hash)) {
+        window.__teajiaAfterSit = location.hash.slice(1);
+        history.replaceState(history.state, '', location.pathname);
+      }
+    </script>
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />

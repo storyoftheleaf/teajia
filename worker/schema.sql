@@ -3626,3 +3626,227 @@ CREATE TABLE IF NOT EXISTS shipping_whatsapp_approval (
 
 -- Optional, public-facing details for a single shop's teaware product.
 ALTER TABLE products ADD COLUMN teaware_details TEXT;
+
+-- 0101_private_kept_setups.sql
+CREATE TABLE IF NOT EXISTS private_kept_setups (
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_id TEXT NOT NULL,
+  event_title TEXT NOT NULL,
+  event_date TEXT NOT NULL,
+  teas_json TEXT NOT NULL,
+  saved_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, user_id, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_private_kept_setups_archive
+  ON private_kept_setups(account_id, user_id, saved_at DESC);
+
+-- 0102_private_kept_setup_photos.sql
+CREATE TABLE IF NOT EXISTS private_kept_setup_photos (
+  account_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  id TEXT NOT NULL,
+  tea_id TEXT,
+  object_key TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, user_id, event_id, id),
+  FOREIGN KEY (account_id, user_id, event_id)
+    REFERENCES private_kept_setups(account_id, user_id, event_id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS private_kept_photo_cleanup (
+  object_key TEXT PRIMARY KEY NOT NULL
+);
+
+-- 0103_session_guest_book.sql
+CREATE TABLE IF NOT EXISTS session_guest_book (
+  id TEXT PRIMARY KEY NOT NULL,
+  account_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  attendee_id TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  note TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('pending', 'included', 'passed')),
+  revision INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL,
+  UNIQUE(account_id, event_id, user_id),
+  FOREIGN KEY(attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_session_guest_book_event ON session_guest_book(account_id, event_id, status);
+
+-- 0106_after_sit_access.sql
+CREATE TABLE IF NOT EXISTS after_sit_access (
+  attendee_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  credential_hash TEXT NOT NULL UNIQUE,
+  expires_at INTEGER NOT NULL,
+  PRIMARY KEY (attendee_id, event_id, account_id),
+  FOREIGN KEY (attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id) ON DELETE CASCADE
+);
+
+-- A later correction back to present must not reactivate a previously issued link.
+CREATE TRIGGER IF NOT EXISTS after_sit_revoke_on_attendance_correction
+AFTER UPDATE OF attended, status ON event_attendees
+WHEN NEW.attended IS NOT 1 OR NEW.status IS NOT 'confirmed'
+BEGIN
+  DELETE FROM after_sit_access
+    WHERE attendee_id = OLD.id AND event_id = OLD.event_id AND account_id = OLD.account_id;
+END;
+
+-- 0107_revocable_sit_photos.sql
+CREATE TABLE IF NOT EXISTS sit_photo_public_permissions (
+  id TEXT PRIMARY KEY NOT NULL,
+  account_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  photo_id TEXT NOT NULL,
+  attendee_id TEXT NOT NULL,
+  audience TEXT NOT NULL CHECK (audience = 'public_recap'),
+  credit TEXT NOT NULL CHECK (length(trim(credit)) BETWEEN 1 AND 120),
+  offered_at TEXT NOT NULL,
+  revoked_at TEXT,
+  UNIQUE (account_id, event_id, id),
+  FOREIGN KEY (account_id, user_id, event_id, photo_id)
+    REFERENCES private_kept_setup_photos(account_id, user_id, event_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sit_photo_one_active_permission
+  ON sit_photo_public_permissions(account_id, user_id, event_id, photo_id, audience)
+  WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_sit_photo_permission_source
+  ON sit_photo_public_permissions(account_id, user_id, event_id, photo_id);
+
+CREATE TABLE IF NOT EXISTS sit_photo_recap_placements (
+  account_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  permission_id TEXT NOT NULL,
+  alt_text TEXT NOT NULL CHECK (length(trim(alt_text)) BETWEEN 1 AND 250),
+  observation TEXT CHECK (length(observation) <= 280),
+  approved_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+  approved_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, event_id),
+  FOREIGN KEY (account_id, event_id, permission_id)
+    REFERENCES sit_photo_public_permissions(account_id, event_id, id) ON DELETE CASCADE
+);
+
+-- 0109_member_private_sits.sql
+CREATE TABLE IF NOT EXISTS member_private_sits (
+  id TEXT PRIMARY KEY NOT NULL,
+  owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  request_id TEXT NOT NULL,
+  sit_date TEXT NOT NULL,
+  title TEXT,
+  description TEXT,
+  tea_id TEXT,
+  tea_name TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (owner_user_id, request_id)
+);
+
+CREATE TABLE IF NOT EXISTS member_private_sit_invites (
+  token_hash TEXT PRIMARY KEY NOT NULL,
+  sit_id TEXT NOT NULL REFERENCES member_private_sits(id) ON DELETE CASCADE,
+  expires_at INTEGER NOT NULL,
+  revoked_at INTEGER,
+  accepted_by_user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE (sit_id, accepted_by_user_id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS member_private_sit_one_pending_invite
+  ON member_private_sit_invites(sit_id)
+  WHERE accepted_by_user_id IS NULL AND revoked_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS member_private_sit_guest_history
+  ON member_private_sit_invites(accepted_by_user_id, sit_id);
+
+CREATE TABLE IF NOT EXISTS member_private_sit_notes (
+  sit_id TEXT NOT NULL REFERENCES member_private_sits(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  note TEXT NOT NULL,
+  PRIMARY KEY (sit_id, user_id)
+);
+
+-- 0110_private_subject_photos.sql
+CREATE TABLE IF NOT EXISTS private_member_sit_photos (
+  sit_id TEXT NOT NULL REFERENCES member_private_sits(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id TEXT NOT NULL,
+  object_key TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (sit_id, user_id, id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_private_member_sit_photo_user ON private_member_sit_photos(user_id);
+
+CREATE TRIGGER IF NOT EXISTS queue_deleted_private_member_sit_photo
+AFTER DELETE ON private_member_sit_photos
+BEGIN
+  INSERT OR IGNORE INTO private_kept_photo_cleanup (object_key) VALUES (OLD.object_key);
+END;
+
+-- 0111_sit_profile_placements.sql
+CREATE TABLE IF NOT EXISTS sit_profile_placements (
+  account_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  contributor_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  PRIMARY KEY (event_id, contributor_id),
+  FOREIGN KEY (event_id, account_id)
+    REFERENCES events(id, account_id) ON DELETE CASCADE,
+  FOREIGN KEY (event_id, contributor_id, role)
+    REFERENCES event_contributors(event_id, contributor_id, role) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_sit_profile_placements_contributor ON sit_profile_placements(contributor_id);
+
+-- 0114_member_sit_photo_shares.sql
+-- A private original has no share ID until its owner offers it to this sit.
+ALTER TABLE private_member_sit_photos ADD COLUMN share_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_private_member_sit_photo_shares
+  ON private_member_sit_photos(sit_id, share_id) WHERE share_id IS NOT NULL;
+
+-- 0115_casual_sit_publications.sql
+CREATE TABLE IF NOT EXISTS casual_sit_publications (
+  sit_id TEXT PRIMARY KEY NOT NULL REFERENCES member_private_sits(id) ON DELETE CASCADE,
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  writing TEXT NOT NULL,
+  tea_name TEXT NOT NULL,
+  link_shop_tea INTEGER NOT NULL CHECK (link_shop_tea IN (0, 1)),
+  photo_object_key TEXT REFERENCES private_member_sit_photos(object_key) ON DELETE SET NULL,
+  photo_public_id TEXT UNIQUE,
+  photo_alt TEXT,
+  published_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_casual_sit_publications_profile
+  ON casual_sit_publications(contributor_id);
+CREATE INDEX IF NOT EXISTS idx_casual_sit_publications_photo
+  ON casual_sit_publications(photo_object_key);
+
+-- 0116_guest_book_photos.sql
+CREATE TABLE IF NOT EXISTS session_guest_book_photos (
+  id TEXT PRIMARY KEY NOT NULL,
+  account_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  attendee_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  photo_id TEXT NOT NULL,
+  alt_text TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('pending', 'included', 'passed')),
+  offered_at TEXT NOT NULL,
+  revoked_at TEXT,
+  FOREIGN KEY (account_id, user_id, event_id, photo_id)
+    REFERENCES private_kept_setup_photos(account_id, user_id, event_id, id) ON DELETE CASCADE,
+  FOREIGN KEY (attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_guest_book_photo_active_source
+  ON session_guest_book_photos(account_id, event_id, user_id, photo_id) WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_guest_book_photo_event_status
+  ON session_guest_book_photos(account_id, event_id, status) WHERE revoked_at IS NULL;

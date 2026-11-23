@@ -93,6 +93,14 @@ type = "ratelimit"
 namespace_id = "1002"
 simple = { limit = 10, period = 60 }
 
+# Guests at one table can share a network. A recap read, save, and Guest
+# Book check each use this separate limiter, with distinct IP and link keys.
+[[unsafe.bindings]]
+name = "AFTER_SIT_LIMITER"
+type = "ratelimit"
+namespace_id = "1012"
+simple = { limit = 90, period = 60 }
+
 [[unsafe.bindings]]
 name = "VERIFY_LIMITER"
 type = "ratelimit"

@@ -28,6 +28,10 @@ export function displayTastingData(entry: CustomerTasting): TastingData {
   return entry.note.tasting;
 }
 
+export function eventTastingRecordId(eventId: string, menuId: string): string {
+  return `event-tasting:${eventId}:${menuId}`;
+}
+
 /** Ordinary event tastings may adopt a local guest entry or reuse one in the active shop. */
 export function matchesEventTastingEntry(entry: CustomerTasting, productId: string, accountId?: string | null): boolean {
   return !entry.archived && entry.productId === productId &&

@@ -1,4 +1,6 @@
+import { MemberSitsJourney } from '../components/account/MemberSitsJourney';
 import { SessionReflectionArchive } from '../components/account/SessionReflectionArchive';
+import { KeptSetupsArchive } from '../components/account/KeptSetupsArchive';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -421,18 +423,16 @@ const AccountJourneyPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-tea-bg">
         <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
-          <button onClick={() => navigate(-1)} className="inline-flex min-h-tap items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
-            <ArrowLeft size={14} />
-            <span className="text-ui-13">Back</span>
-          </button>
-          <p className="label-caps text-tea-text-dim mb-2">Your Journey</p>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <button onClick={() => navigate(-1)} className="btn-quiet tap-target" aria-label="Back">
+              <ArrowLeft size={14} /> Back
+            </button>
+            <Link to="/account/profile" className="btn-quiet tap-target">Your profile</Link>
+          </div>
+          <h1 className="h1 mb-4">Your Journey</h1>
+          <KeptSetupsArchive />
+          <MemberSitsJourney />
           <SessionReflectionArchive />
-          <h1 className="h1 mb-4">It begins at the table.</h1>
-          <div className="w-10 h-[1px] bg-tea-gold mb-8" />
-          <p className="body-prose mb-4">
-            Your session record lives here once your first gathering is complete and your account is linked.
-          </p>
-
           {hasSomething && (
             <>
               {(journey?.samples?.length ?? 0) > 0 && (
@@ -482,11 +482,15 @@ const AccountJourneyPage: React.FC = () => {
         <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
 
           {/* Back */}
-          <button onClick={() => navigate(-1)} className="inline-flex min-h-tap items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
-            <ArrowLeft size={14} />
-            <span className="text-ui-13">Back</span>
-          </button>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <button onClick={() => navigate(-1)} className="btn-quiet tap-target" aria-label="Back">
+              <ArrowLeft size={14} /> Back
+            </button>
+            <Link to="/account/profile" className="btn-quiet tap-target">Your profile</Link>
+          </div>
 
+          <KeptSetupsArchive />
+          <MemberSitsJourney />
           <SessionReflectionArchive />
 
           {/* Header */}

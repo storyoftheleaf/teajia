@@ -1,7 +1,9 @@
+import { API_URL, authedFetch } from '../../lib/api';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, Check, UserPlus, Phone, Leaf, Star, Loader2, Users, Link2, X, Search } from 'lucide-react';
 import { api } from '../../lib/api';
+import { Button } from '../../components/shared/Button';
 import { useToast } from './Toast';
 import { EventAttendee, AttendeeStatus } from '../../types/events';
 import type { Customer } from '../types';
@@ -9,6 +11,7 @@ import type { Customer } from '../types';
 interface AttendeeTableProps {
   attendees: EventAttendee[];
   eventId: string;
+  showGuestLinks: boolean;
   onRefresh: () => void;
 }
 
@@ -52,7 +55,24 @@ const AttendeeActions: React.FC<{
   loadingId: string | null;
   onUpdate: (attendee: EventAttendee, status: AttendeeStatus) => void;
   compact?: boolean;
-}> = ({ attendee, loadingId, onUpdate, compact = false }) => {
+  showGuestLink: boolean;
+}> = ({ attendee, loadingId, onUpdate, compact = false, showGuestLink }) => {
+  const { showToast } = useToast();
+  const copyGuestLink = async () => {
+    try {
+      const issued: { credential: string } = await authedFetch(
+        API_URL + '/api/admin/events/' + encodeURIComponent(attendee.eventId) + '/after-sit/' + encodeURIComponent(attendee.id),
+        { method: 'POST' },
+      );
+      const url = new URL('/after-sit', window.location.origin);
+      url.hash = issued.credential;
+      await navigator.clipboard.writeText(url.href);
+      showToast('Guest link copied. Send it only to ' + attendee.fullName + '.', 'success');
+    } catch {
+      showToast('Could not copy the guest link. Try again.', 'error');
+    }
+  };
+
   const px = compact ? 'px-2.5' : 'px-2';
   return (
     <>
@@ -61,6 +81,17 @@ const AttendeeActions: React.FC<{
           className={`text-ui-10 ${px} py-1 rounded bg-tea-leaf/10 text-tea-leaf hover:bg-tea-leaf/20 transition-colors disabled:opacity-50`}>
           Promote
         </button>
+      )}
+      {showGuestLink && attendee.status === 'confirmed' && attendee.attended && (
+        <Button
+          variant="quiet"
+          size="sm"
+          type="button"
+          aria-label={'Copy guest link for ' + attendee.fullName}
+          onClick={copyGuestLink}
+        >
+          Copy guest link
+        </Button>
       )}
       {(attendee.status === 'confirmed' || attendee.status === 'waitlist') && (
         <button onClick={() => onUpdate(attendee, 'cancelled')} disabled={!!loadingId}
@@ -289,7 +320,7 @@ const LinkCustomerModal: React.FC<LinkCustomerModalProps> = ({ attendee, onClose
 
 // ─── Main Table ───────────────────────────────────────────────────────────────
 
-export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId, onRefresh }) => {
+export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId, showGuestLinks, onRefresh }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterTab>('all');
@@ -532,7 +563,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                   )}
                 </div>
 
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <button
                     onClick={() => toggleAttended(attendee)}
                     disabled={loadingId === attendee.id || attendee.isDenied}
@@ -550,8 +581,8 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     {attendee.attended ? 'Attended' : 'Mark attended'}
                   </button>
 
-                  <div className="flex items-center gap-1.5">
-                    <AttendeeActions attendee={attendee} loadingId={loadingId} onUpdate={updateStatus} compact />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <AttendeeActions attendee={attendee} loadingId={loadingId} onUpdate={updateStatus} showGuestLink={showGuestLinks} compact />
                   </div>
                 </div>
               </div>
@@ -667,7 +698,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     </td>
                     <td className="py-2.5 px-2">
                       <div className="flex items-center gap-1 flex-wrap">
-                        <AttendeeActions attendee={attendee} loadingId={loadingId} onUpdate={updateStatus} />
+                        <AttendeeActions attendee={attendee} loadingId={loadingId} onUpdate={updateStatus} showGuestLink={showGuestLinks} />
                       </div>
                     </td>
                   </tr>

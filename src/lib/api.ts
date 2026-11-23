@@ -1061,7 +1061,7 @@ export interface ApiRequestInit extends RequestInit {
   background?: boolean;
   reportIncident?: boolean;
   /** Stops an offline retry or 401 refresh from sending a person's queued body under another session. */
-  expectedAuth?: { accountId: string; userId: string };
+  expectedAuth?: { accountId: string | null; userId: string };
   /**
    * The caller refreshes the dependent commerce queries itself, with the changed
    * rows already reconciled, so authedFetch does not broadcast a second, full
@@ -1131,7 +1131,7 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
   let timeoutRetries = 0;
   let lastErr: any;
   for (let attempt = 0; attempt <= NETWORK_RETRY_BACKOFF_MS.length; attempt++) {
-    if (expectedAuth && !isTokenScopedToAccount(expectedAuth.accountId, expectedAuth.userId)) {
+    if (expectedAuth && !matchesExpectedAuth(expectedAuth)) {
       throw new Error('The signed-in person changed before this request could be sent.');
     }
     const controller = new AbortController();
@@ -1396,12 +1396,12 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
     // bug, not an expired session. Refreshing would be pointless and could
     // falsely fire SESSION_EXPIRED.
     if (reason !== 'auth_no_token') {
-      if (init.expectedAuth && !isTokenScopedToAccount(init.expectedAuth.accountId, init.expectedAuth.userId)) {
+      if (init.expectedAuth && !matchesExpectedAuth(init.expectedAuth)) {
         throw new Error('The signed-in person changed before this request could be retried.');
       }
       const refreshResult = await ensureTokenRefreshed();
       if (refreshResult === 'refreshed') {
-        if (init.expectedAuth && !isTokenScopedToAccount(init.expectedAuth.accountId, init.expectedAuth.userId)) {
+        if (init.expectedAuth && !matchesExpectedAuth(init.expectedAuth)) {
           throw new Error('The signed-in person changed before this request could be retried.');
         }
         // New token stored, retry ONCE with fresh auth headers.
@@ -1433,10 +1433,10 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
   return res;
 }
 
-export async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
+export async function authedFetch(url: string, init: ApiRequestInit = {}, signal?: AbortSignal): Promise<any> {
   const accountId = useAppStore.getState().activeAccountId;
   const requestToken = getToken();
-  const result = await handleResponse(await authenticatedResponse(url, init), requestToken);
+  const result = await handleResponse(await authenticatedResponse(url, signal ? { ...init, signal } : init), requestToken);
   if (!init.callerRefreshesCommerce && init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) &&
       (/\/api\/(products|invoices|invoice-payments|inquiries|accounts|rates|stock|inventory|purchase-orders|logistics|listings|network|collections|rpc|curate\/receipt-proposals)(\/|$)/.test(url)
         || /\/api\/platform\/exchange-rates(?:\/|$)/.test(url)
@@ -1513,8 +1513,8 @@ export async function atlasAdminResponse(path: string, init: ApiRequestInit = {}
   return authenticatedResponse(`${API_URL}/api/atlas-admin/${path}`, { timeoutMs: 60_000, ...init });
 }
 
-export async function authedBlobFetch(url: string, init?: ApiRequestInit): Promise<Blob> {
-  const response = await authenticatedResponse(url, init);
+export async function authedBlobFetch(url: string, init?: ApiRequestInit, signal?: AbortSignal): Promise<Blob> {
+  const response = await authenticatedResponse(url, signal ? { ...init, signal } : init);
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     try { const body = await response.json(); if (typeof body?.error === 'string') message = body.error; } catch { /* use status */ }
@@ -1606,6 +1606,13 @@ export function isTokenScopedToAccount(accountId: string | null, userId?: string
   const claims = getTokenClaims();
   return !!accountId && claims?.active_account_id === accountId &&
     (userId === undefined || (!!userId && claims.sub === userId));
+}
+
+function matchesExpectedAuth(scope: NonNullable<ApiRequestInit['expectedAuth']>): boolean {
+  if (scope.accountId) return isTokenScopedToAccount(scope.accountId, scope.userId);
+  const claims = getTokenClaims();
+  return Boolean(claims?.sub === scope.userId && !claims.active_account_id &&
+    useAppStore.getState().activeAccountId === null);
 }
 
 /**

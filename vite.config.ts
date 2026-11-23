@@ -131,6 +131,13 @@ export default defineConfig(({ command, mode }) => {
           navigateFallbackDenylist: [/^\/api\//, /^\/media\//, /^\/mcp/, /^\/oauth/, /^\/\.well-known/, /^\/version\.json/],
           runtimeCaching: [
             {
+              // Private setup data and revocable public photos always require the current grant.
+              urlPattern: ({ url }) => /^\/api\/(?:tasting-journal(?:\/|$)|public\/sit-links\/people\/|casual-sits\/|people\/[^/]+\/casual-sits$|after-sit(?:\/|$)|me\/(?:people|kept-setups|personal-kept-setups|private-sits)(?:\/|$)|rsvp\/[^/]+\/(?:kept-setup|guest-book)(?:\/|$)|admin\/events\/[^/]+\/(?:after-sit|recap-photo-review|recap-credits|guest-book)(?:\/|$)|events\/[^/]+\/recap-photo(?:\/|$))/.test(url.pathname),
+              method: 'GET',
+              handler: 'NetworkOnly',
+              options: { fetchOptions: { cache: 'no-store' } },
+            },
+            {
               // Hashed app scripts + styles. Content-hashed per build, so once a
               // given file is cached it never changes — CacheFirst is safe and
               // fast. A new build ships new filenames (via the freshly-updated

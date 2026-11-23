@@ -37,12 +37,13 @@ export function FramedImage({ photo, src, lazy, testId }: { photo: ZoomPhotograp
 }
 
 /** One thumbnail. `size` picks the row height: 'tasting' is the smallest, 'page' the largest. */
-export function PhotographThumb({ photo, size = 'row', onOpen, testId, label }: {
+export function PhotographThumb({ photo, size = 'row', onOpen, testId, label, className }: {
   photo: ZoomPhotograph;
   size?: 'tasting' | 'row' | 'page';
   onOpen: (id: string) => void;
   testId?: string;
   label?: string;
+  className?: string;
 }) {
   return (
     <Button
@@ -53,7 +54,7 @@ export function PhotographThumb({ photo, size = 'row', onOpen, testId, label }: 
       data-testid={testId}
       data-shape={photographShape(photo.shape)}
       data-size={size}
-      className="photo-thumb"
+      className={['photo-thumb', className].filter(Boolean).join(' ')}
     >
       <FramedImage photo={photo} src={photo.smallSrc} lazy />
     </Button>

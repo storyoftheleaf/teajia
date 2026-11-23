@@ -1,3 +1,10 @@
+import { TeaCard, TeaCardMeta, TeaCardTitle } from '../components/tea/TeaCard';
+import { SitTeaTasting } from '../components/sessions/SitTeaTasting';
+import { PublicRecapPhoto } from '../components/events/PublicRecapPhoto';
+import { sitCreditLabel } from '../lib/sitCreditContract';
+import { IndexRow, SplitName } from '../components/people/immersive';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
+import type { PublicPerson } from '../types';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -30,10 +37,13 @@ interface PublicEventRecap {
     subtitle?: string;
     event_date: string;
     flyer_image_url?: string;
+    hosts?: PublicEventCredit[];
   };
   post_session: PublicPostSessionData;
   tea_menu: TeaMenuItem[];
 }
+
+type PublicEventCredit = Pick<PublicPerson, 'slug' | 'display_name' | 'portrait_url'> & { role: string };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,10 +57,11 @@ const STORAGE_KEY_PREFIX = 'teajia_recap_note_';
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 interface TeaLedgerSectionProps {
+  eventSlug: string;
   items: TeaMenuItem[];
 }
 
-const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
+const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ eventSlug, items }) => {
   const sorted = [...items].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
   return (
     <section className="mb-12">
@@ -59,52 +70,55 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
         <h2 className="h2">Teas served</h2>
       </div>
       <div className="space-y-3">
-        {sorted.map((item, idx) => (
-          <div
-            key={item.id}
-            className="p-4 bg-tea-surface border border-tea-border rounded-xl"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 mb-0.5">
-                  <span
-                    className="text-ui-20 text-tea-gold/30 leading-none shrink-0"
-                    style={{ fontFamily: 'var(--font-display)' }}
-                  >
-                    {idx + 1}
-                  </span>
-                  {item.productType && (
-                    <span className="label-caps text-tea-readgold">
-                      {item.productType}
-                    </span>
-                  )}
-                </div>
-                <h3 className="h3 mt-0.5">
-                  {item.customName || item.productName || 'Unknown tea'}
-                </h3>
-                {item.customDescription && (
-                  <p className="body-light mt-2">
-                    {item.customDescription}
-                  </p>
+        {sorted.map(item => {
+          const name = item.customName || item.productName || 'Unknown tea';
+          return (
+            <TeaCard key={item.id} title={<TeaCardTitle>{name}</TeaCardTitle>} teaType={item.productType}
+              meta={item.productType && <TeaCardMeta primary={item.productType} />}
+              actions={<>
+                <SitTeaTasting id={`event:${eventSlug}:${item.id}`} name={name} teaType={item.productType} />
+                {item.productId && (
+                  <a href={`/shop/product/${encodeURIComponent(item.productId)}`} className="btn-secondary btn-sm tap-target"
+                    aria-label={`Buy ${name}`}>
+                    <ShoppingBag className="w-4 h-4" aria-hidden="true" /> Buy this tea
+                  </a>
                 )}
-              </div>
-              {item.productId && (
-                <a
-                  href={`/shop/product/${encodeURIComponent(item.productId)}`}
-                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-ui-12 font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
-                  aria-label={`Buy ${item.customName || item.productName}`}
-                >
-                  <ShoppingBag className="w-3.5 h-3.5 group-hover:text-tea-gold transition-colors" />
-                  <span className="hidden sm:inline">Buy this tea</span>
-                </a>
-              )}
-            </div>
-          </div>
-        ))}
+              </>}>
+              {item.customDescription && <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 break-words`}>{item.customDescription}</p>}
+            </TeaCard>
+          );
+        })}
       </div>
     </section>
   );
 };
+
+function EventCredits({ people }: { people: PublicEventCredit[] }) {
+  return (
+    <section className="mb-12" aria-labelledby="event-recap-credits">
+      <h2 id="event-recap-credits" className={TYPOGRAPHY_CLASSES.h2}>Session credits</h2>
+      {people.map(person => {
+        const role = sitCreditLabel(person.role);
+        return (
+          <IndexRow
+            key={`${person.slug}-${person.role}`}
+            to={`/people/${encodeURIComponent(person.slug)}`}
+            title={
+              <span className="flex min-w-0 items-center gap-2">
+                {person.portrait_url && (
+                  <img src={person.portrait_url} alt="" loading="lazy" className="size-8 shrink-0 rounded-full object-cover" />
+                )}
+                <SplitName name={person.display_name} className="truncate" />
+              </span>
+            }
+            dek={role ?? undefined}
+            ariaLabel={`${person.display_name}, ${role}`}
+          />
+        );
+      })}
+    </section>
+  );
+}
 
 interface HostNotesSectionProps {
   notes: string;
@@ -423,7 +437,9 @@ const EventRecapPage: React.FC = () => {
         <div className="w-8 h-px bg-tea-border mx-auto mb-12" />
 
         {/* Tea Ledger */}
-        {hasTeaMenu && <TeaLedgerSection items={tea_menu} />}
+        <PublicRecapPhoto eventSlug={event.slug} />
+        {event.hosts?.length ? <EventCredits people={event.hosts.filter(person => sitCreditLabel(person.role) !== null)} /> : null}
+        {hasTeaMenu && <TeaLedgerSection eventSlug={event.slug} items={tea_menu} />}
 
         {/* Host Notes */}
         {hasHostNotes && <HostNotesSection notes={post_session.session_notes!} />}

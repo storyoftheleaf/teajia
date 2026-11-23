@@ -16,12 +16,14 @@ import { flattenTastingNotes, resolveTermLabel, resolveTermIcon, LIQUOR_COLORS }
 import { JournalSectionVoiceNote } from './JournalSectionVoiceNote';
 import { api } from '../../lib/api';
 import { persistTastingJournalEntry } from '../../lib/tastingJournalSync';
+import { journalEntryMatchesId, journalEntryTime } from '../../lib/tastingJournalRead';
 
 interface TastingJournalProps {
   onBack: () => void;
   onOrderTea?: (productId: string) => void;
   initialProductId?: string | null;
   initialEntryId?: string | null;
+  initialRecordId?: string;
 }
 
 type EventFilter = 'all' | 'event-only' | 'no-events';
@@ -33,13 +35,13 @@ export function journalEntriesForDeepLink(
   entryId?: string | null,
 ): CustomerTasting[] {
   if (entryId) {
-    return entries.filter(entry => entry.id === entryId && (!productId || entry.productId === productId));
+    return entries.filter(entry => journalEntryMatchesId(entry, entryId) && (!productId || entry.productId === productId));
   }
   if (productId) return entries.filter(entry => entry.productId === productId);
   return entries;
 }
 
-export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderTea, initialProductId, initialEntryId }) => {
+export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderTea, initialProductId, initialEntryId, initialRecordId }) => {
   const { tastingJournal, updateTasting } = useAppStore();
   const navigate = useNavigate();
   const isPlatformPrivileged = usePlatformPrivilege();
@@ -48,7 +50,14 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   const [showArchived, setShowArchived] = useState(false);
   const [shareCardEntry, setShareCardEntry] = useState<CustomerTasting | null>(null);
   const [tastingEditor, setTastingEditor] = useState<{ entryId: string; record: TastingRecord } | null>(null);
-  const editingEntry = tastingJournal.find(entry => entry.id === tastingEditor?.entryId);
+  const [dismissedInitialRecord, setDismissedInitialRecord] = useState(false);
+  const editorEntry = tastingJournal.find(entry => journalEntryMatchesId(entry, tastingEditor?.entryId));
+  const linkedEntry = initialEntryId && initialRecordId && !dismissedInitialRecord
+    ? journalEntriesForDeepLink(tastingJournal, initialProductId, initialEntryId)
+      .find(entry => !entry.archived && entry.tastings.some(record => record.id === initialRecordId))
+    : undefined;
+  const editingEntry = editorEntry ?? linkedEntry;
+  const editingRecord = tastingEditor?.record ?? linkedEntry?.tastings.find(record => record.id === initialRecordId);
   const [eventFilter, setEventFilter] = useState<EventFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
@@ -135,6 +144,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
       });
     } else if (sortMode === 'type') {
       result = [...result].sort((a, b) => (a.productType || '').localeCompare(b.productType || ''));
+    } else {
+      result = result.sort((a, b) => journalEntryTime(b) - journalEntryTime(a));
     }
     return result;
   }, [tastingJournal, initialProductId, initialEntryId, showArchived, eventFilter, searchResults, typeFilter, sortMode, eventByEntryId]);
@@ -178,7 +189,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
 
   const handleArchive = (id: string) => {
     updateTasting(id, { archived: true });
-    if (expandedId === id) setExpandedId(null);
+    setExpandedId(null);
   };
 
   const handleRestore = (id: string) => {
@@ -355,7 +366,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
               {/* Entries */}
               <div className={`space-y-2 ${(group.eventId || (!group.eventId && group.dateGroup && group.entries.length > 1)) ? 'ml-1 pl-3 border-l border-tea-border' : ''}`}>
                 {group.entries.map(entry => {
-                  const isExpanded = expandedId === entry.id;
+                  const isExpanded = journalEntryMatchesId(entry, expandedId);
                   const noteData = entry.note.tasting;
                   const allNotes = flattenTastingNotes(noteData);
                   const previewNotes = allNotes.slice(0, 3);
@@ -372,7 +383,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                     <div
                       key={entry.id}
                       data-journal-entry-id={entry.id}
-                      className={`bg-tea-surface/60 rounded-xl overflow-hidden ${initialEntryId === entry.id ? 'ring-1 ring-tea-gold/40' : ''}`}
+                      className={`bg-tea-surface/60 rounded-xl overflow-hidden ${journalEntryMatchesId(entry, initialEntryId) ? 'ring-1 ring-tea-gold/40' : ''}`}
                     >
                       {typeColor && (
                         <div style={{ height: 2, background: `linear-gradient(90deg, ${typeColor}cc, ${typeColor}20)` }} />
@@ -393,7 +404,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                 <BookOpen size={16} className="text-tea-text-dim" />
                               </div>
                             );
-                            const linkable = !!onOrderTea && !!entry.productId;
+                            const linkable = !!onOrderTea && !!entry.productId && !entry.productId.startsWith('member-tea:');
                             return linkable ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); onOrderTea!(entry.productId); }}
@@ -410,7 +421,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           <div className="flex-1 min-w-0">
                             {/* Name row */}
                             <div className="flex items-center gap-2 mb-0.5">
-                              {onOrderTea && entry.productId ? (
+                              {onOrderTea && entry.productId && !entry.productId.startsWith('member-tea:') ? (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); onOrderTea(entry.productId); }}
                                   className="group/tealink inline-flex items-baseline gap-1 text-sm font-serif text-tea-text hover:text-tea-gold focus-visible:text-tea-gold focus-visible:outline-none transition-colors text-left min-w-0"
@@ -644,8 +655,11 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         )}
       </div>
     </div>
-      {tastingEditor && editingEntry && (
-        <JournalTastingEditor entry={editingEntry} record={tastingEditor.record} onClose={() => setTastingEditor(null)} />
+      {editingRecord && editingEntry && (
+        <JournalTastingEditor entry={editingEntry} record={editingRecord} onClose={() => {
+          setDismissedInitialRecord(true);
+          setTastingEditor(null);
+        }} />
       )}
     </>
   );

@@ -1,5 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Save, Upload, Trash2, Loader2, Music, FileText, Image as ImageIcon, Leaf, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { sitLinksQuery } from '../../lib/publicSitConnections';
+import { RecapCreditEditor } from './RecapCreditEditor';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useTastingNotes } from '../hooks/useEventData';
@@ -15,6 +18,7 @@ interface PostSessionEditorProps {
 
 export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, canShareAttendeeRecap }) => {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const { data: tastingNotes = [] } = useTastingNotes(eventId);
 
   const [teaLedger, setTeaLedger] = useState('');
@@ -98,6 +102,9 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, c
       await savePostSession(api.events.upsertPostSession, eventId, {
         teaLedger, playlistUrl, gallery, sessionNotes, energy, sharedTastingNotes, hostNotes, hostChanges,
       });
+      void queryClient.invalidateQueries({ queryKey: ['sit-photo-review'] });
+      void queryClient.invalidateQueries({ queryKey: sitLinksQuery });
+      void queryClient.invalidateQueries({ queryKey: ['event-recap-public'] });
       showToast('Post-session data saved', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to save', 'error');
@@ -359,6 +366,8 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, c
           </button>
         </div>
       </Modal>
+
+      <RecapCreditEditor eventId={eventId} />
 
       {/* Tasting Notes (read-only) */}
       {tastingNotes.length > 0 && (

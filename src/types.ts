@@ -87,7 +87,8 @@ export interface TastingRecord {
    */
   reason?: string;
   /** Per-tasting provenance. Source context lives here, not at entry level. */
-  sourceType?: 'product' | 'compass' | 'event' | 'sample' | 'session';
+  sourceType?: 'product' | 'compass' | 'event' | 'sample' | 'session' | 'memberTea';
+  photoProductId?: string;
   eventId?: string;
   eventSlug?: string;
   eventTitle?: string;
@@ -105,6 +106,8 @@ export interface TastingRecord {
  * over time. The `tastings[]` array holds every recorded sitting, oldest first.
  */
 export interface CustomerTasting {
+  /** Local IDs seen before the server merge. */
+  previousIds?: string[];
   id: string;
   /** Canonical key. Renamed from teaId. Never 'quick-note' (that sentinel is gone). */
   productId: string;

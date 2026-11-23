@@ -27,3 +27,8 @@ bucket_name = "teajia-offline-fixtures-private"
 name = "PROVIDER_LIMITER"
 namespace_id = "1005"
 simple = { limit = 30, period = 60 }
+
+[[ratelimits]]
+name = "AFTER_SIT_LIMITER"
+namespace_id = "1012"
+simple = { limit = 90, period = 60 }
