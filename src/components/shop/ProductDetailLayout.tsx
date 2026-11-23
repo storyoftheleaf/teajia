@@ -34,10 +34,11 @@ export const ProductDetailPageContext = createContext<ProductPageContextValue>({
 interface ProductDetailLayoutProps {
   identity: Omit<ComponentProps<typeof AlcoveIdentityHeader>, 'variant'>;
   gallery: Omit<ComponentProps<typeof AlcoveGallery>, 'layout' | 'onExpandImage'>;
-  actions: ComponentProps<typeof ProductDetailActions>;
+  actions?: ComponentProps<typeof ProductDetailActions>;
   ownerPreviewNavigation?: ReactNode;
   facts: Fact[];
   factsTitle: string;
+  afterFacts?: ReactNode;
   order?: ReactNode;
   character?: ReactNode;
   reading?: ProductReading;
@@ -48,11 +49,12 @@ interface ProductDetailLayoutProps {
 }
 
 export function ProductDetailLayout({
-  identity, gallery, actions, facts, factsTitle, order, character, reading, related, teaOrder, modals, soldOut, ownerPreviewNavigation,
+  identity, gallery, actions, facts, factsTitle, afterFacts, order, character, reading, related, teaOrder, modals, soldOut, ownerPreviewNavigation,
 }: ProductDetailLayoutProps) {
   const { shopHref, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
   const { item } = identity;
-  const photos = useTeaFamily(ownerPreviewNavigation ? undefined : item.id);
+  const hasProductActions = Boolean(actions) && !ownerPreviewNavigation;
+  const photos = useTeaFamily(hasProductActions ? item.id : undefined);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -71,7 +73,7 @@ export function ProductDetailLayout({
   const hasShopPhotos = gallery.allImages.length > 0;
   const hasMemberPhotos = photos.row.length > 0;
   const emptyGallery = !hasShopPhotos && !hasMemberPhotos;
-  const addPhoto = ownerPreviewNavigation ? undefined : (
+  const addPhoto = !hasProductActions ? undefined : (
     <Button variant="secondary" size="sm" type="button" className={emptyGallery ? 'shrink-0' : 'product-photo-add'}
       aria-label={emptyGallery ? 'Add your own picture' : 'Add your photo'}
       title={emptyGallery ? undefined : 'Add your photo'} disabled={upload.isPending} onClick={() => {
@@ -99,7 +101,7 @@ export function ProductDetailLayout({
             </>
           )}
         </Link>
-        <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
+        {actions && <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />}
       </div>}
 
       <article className="tea-product-page mx-auto w-full max-w-screen-xl" data-sold-out={soldOut || undefined}>
@@ -115,21 +117,22 @@ export function ProductDetailLayout({
             </div>
           </div>
           <div className="tea-product-reading">
-            <AlcoveGallery key={actions.productId} {...gallery} layout="page" onExpandImage={setExpandedImage}
+            <AlcoveGallery key={item.id} {...gallery} layout="page" onExpandImage={setExpandedImage}
               addPhoto={hasShopPhotos ? addPhoto : undefined} />
-            {!ownerPreviewNavigation && isAuthenticated && <input type="file" ref={input} hidden multiple accept="image/*" aria-label="Add product photos" onChange={event => {
+            {hasProductActions && isAuthenticated && <input type="file" ref={input} hidden multiple accept="image/*" aria-label="Add product photos" onChange={event => {
               const files = Array.from(event.target.files ?? []);
               event.target.value = '';
               if (files.length) upload.mutate(files);
             }} />}
             {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
-            {!ownerPreviewNavigation && <ProductDetailActions {...actions} key={item.id} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
+            {hasProductActions && actions && <ProductDetailActions {...actions} key={item.id} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
             {visibleFacts.length > 0 && (
               <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">
                 <h2 id="tea-product-provenance-title" className="m-0 font-display text-ui-20 text-tea-text">{factsTitle}</h2>
                 <FactGrid facts={visibleFacts} />
               </section>
             )}
+            {afterFacts}
             {order && <div data-page-order data-tea-product-order={teaOrder || undefined} className="commerce-dock commerce-price-surface paper-surface dark z-nav">{order}</div>}
             {character}
             {reading && <AlcoveAboutSection reading={reading} variant="page" />}

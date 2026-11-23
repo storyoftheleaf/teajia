@@ -186,6 +186,7 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
+import { articleWisdomClaimUseRoutes, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
@@ -25092,7 +25093,7 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
   ).bind(params.slug).first() as Record<string, any> | null;
   if (!row) return json({ error: 'Article not found' }, 404);
 
-  return json(articleToApi(row));
+  return json({ ...articleToApi(row), wisdom_claim_uses: await publicArticleClaimUses(env.DB, row.id) });
 };
 
 // ── Contributors — Public ─────────────────────────────────────────────────────
@@ -31133,6 +31134,7 @@ routes.unshift(
   ['POST', '/api/transcriptions/:id/retry', familyRetryTranscription(familyDeps, handleRetryTranscription)],
   ...familyRoutes(familyDeps),
   ...familyPageRoutes<Env>({ requireContributorSteward: requireContributorEditorialSteward }),
+  ...articleWisdomClaimUseRoutes<Env>({ requireBundle }),
 );
 
 // Simple in-memory rate limiter (per-isolate; resets on cold start — good enough for abuse deterrence)

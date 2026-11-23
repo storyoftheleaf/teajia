@@ -2056,6 +2056,21 @@ CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DE
 CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_account_source_event ON articles(account_id, source_event_id) WHERE source_event_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_articles_pull_quote_subject ON articles(pull_quote_subject) WHERE pull_quote_subject IS NOT NULL;
 
+CREATE TABLE IF NOT EXISTS article_wisdom_claim_uses (
+  id INTEGER PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  article_id TEXT NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  block_index INTEGER NOT NULL,
+  claim_id TEXT NOT NULL,
+  rev_used INTEGER NOT NULL,
+  use_kind TEXT NOT NULL CHECK (use_kind IN ('prose', 'live_block')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (article_id, block_index, claim_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_article_wisdom_claim_uses_claim
+  ON article_wisdom_claim_uses (account_id, claim_id);
+
 CREATE TABLE IF NOT EXISTS article_external_sources (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,

@@ -94,6 +94,10 @@ const AccountSettingsPage = lazyWithRetry(() => import('./pages/AccountSettingsP
 const OrderHistoryPage = lazyWithRetry(() => import('./pages/OrderHistoryPage'));
 const OrderDetailPage = lazyWithRetry(() => import('./pages/OrderDetailPage'));
 const SampleHistoryPage = lazyWithRetry(() => import('./pages/SampleHistoryPage'));
+// Tea Wisdom listing pilot: fixtures and stubbed API calls, development only.
+const WisdomPilotPreview = import.meta.env.DEV
+  ? lazyWithRetry(() => import('./pages/preview/wisdomPilot/WisdomPilotPreview'))
+  : null;
 // Repository docs can contain historical external URLs and are a development
 // tool, so do not ship their raw contents in the public production bundle.
 const DeveloperDocsPage = import.meta.env.DEV
@@ -153,6 +157,8 @@ const ProducerIndexPage = lazyWithRetry(() => import('./pages/wisdom/ProducerInd
 const ProducerPage = lazyWithRetry(() => import('./pages/wisdom/ProducerPage'));
 const MarkIndexPage = lazyWithRetry(() => import('./pages/wisdom/MarkIndexPage'));
 const MarkPage = lazyWithRetry(() => import('./pages/wisdom/MarkPage'));
+// Tea Wisdom pilot: a leaf grade built from claims. Preview-only until a grade page is public.
+const GradePage = lazyWithRetry(() => import('./pages/wisdom/GradePage'));
 const StyleIndexPage = lazyWithRetry(() => import('./pages/wisdom/StyleIndexPage'));
 const StylePage = lazyWithRetry(() => import('./pages/wisdom/StylePage'));
 const RegionIndexPage = lazyWithRetry(() => import('./pages/wisdom/RegionIndexPage'));
@@ -1219,6 +1225,9 @@ const AppContent = () => {
                 <Route path="/wisdom/mark/:id" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><MarkPage /></Suspense></ErrorBoundary>
                 } />
+                <Route path="/wisdom/grade/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><GradePage /></Suspense></ErrorBoundary>
+                } />
                 <Route path="/wisdom/styles" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><StyleIndexPage /></Suspense></ErrorBoundary>
                 } />
@@ -1270,6 +1279,7 @@ const AppContent = () => {
                   <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
                   <Route path="/design/article-editor" element={<ErrorBoundary><Suspense fallback={null}><ArticleEditorHarness /></Suspense></ErrorBoundary>} />
                   <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
+                  {WisdomPilotPreview && <Route path="/preview/wisdom-pilot/*" element={<ErrorBoundary><Suspense fallback={null}><WisdomPilotPreview /></Suspense></ErrorBoundary>} />}
                 </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />

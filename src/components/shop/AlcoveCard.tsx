@@ -34,6 +34,9 @@ import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 import { minimumOrderGrams, quoteGrams, sellUnitOf } from '../../lib/teaPricing';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
+import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, useWisdomListing } from './alcove/AlcoveWisdomPassages';
+import { EMPTY_LISTING_PASSAGES, resolveListingPassages } from '../../wisdom/reference/listingPassages';
+import { listingFactsFromInventoryItem } from '../../wisdom/reference/listingFacts';
 import { productGallery, productIdentity, teaFacts, teaReading, teaRegionFields } from './productDetailFields';
 
 interface AlcoveCardProps {
@@ -134,6 +137,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [sampleError, setSampleError] = useState<string | null>(null);
 
   const { isAuthenticated: isLoggedIn } = useAuth();
+
+  const wisdomListing = useWisdomListing();
+  const wisdomPilot = wisdomListing.pilot;
 
   const handleSampleClick = () => {
     setSampleModalOpen(true);
@@ -473,9 +479,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     year: item.year,
   };
   const { catalogue: referenceCatalogue } = useTeaReferenceCatalogue(layout === 'page' && item.category === 'tea');
-  const potentialResearch = item.category === 'tea'
+  // The pilot view hides "Potential character": it falls through region and
+  // style research that no claim guards yet.
+  const potentialResearch = item.category === 'tea' && !wisdomPilot
     ? resolveProductResearch(referenceProduct)
     : null;
+  const listingFacts = wisdomListing.facts ?? listingFactsFromInventoryItem(item);
+  const wisdomPassages = layout === 'page' && item.category === 'tea'
+    ? resolveListingPassages(listingFacts, wisdomListing.claims, wisdomListing.publicPages)
+    : EMPTY_LISTING_PASSAGES;
 
   // 4. Character: exact product tasting and cited shared potential remain separate.
   const characterBand = (
@@ -483,7 +495,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       item={item}
       legacyNotes={notes}
       onTermClick={onTermClick}
-      potentialResearch={potentialResearch}
+      potentialResearch={wisdomPassages.styleReferences.length ? null : potentialResearch}
       onTaste={layout === 'page' ? undefined : onTaste}
       tastingEntry={tastingEntry}
       impressions={impressions}
@@ -570,16 +582,19 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       <ProductDetailLayout
         identity={identity}
         gallery={gallery}
-        actions={{ productId: item.id, label: 'Your tea actions',
+        actions={wisdomPilot?.externalReference ? undefined : { productId: item.id, label: 'Your tea actions',
           onTaste: onTaste && (() => onTaste(item, 'notes')),
           onEdit: isAdmin && onEditProductTasting ? () => onEditProductTasting(item) : undefined }}
-        facts={teaFacts(item, referenceCatalogue, regionFields, shopStoreSlug)}
+        facts={teaFacts(item, referenceCatalogue, regionFields, shopStoreSlug, {
+          passages: wisdomPassages.passages, grade: listingFacts.grade, search, pilot: Boolean(wisdomPilot),
+        })}
         factsTitle="Provenance"
-        order={commerceFooter('docked')}
+        afterFacts={<AlcoveWisdomPassages listing={wisdomPassages} />}
+        order={wisdomPilot?.externalReference ? undefined : commerceFooter('docked')}
         teaOrder
         character={characterBand}
         reading={reading}
-        related={<>{tableSection}{threadSection}</>}
+        related={<>{tableSection}{threadSection}<AlcoveWisdomStyleReferences listing={wisdomPassages} /></>}
         soldOut={isSoldOut}
         modals={modals}
       />

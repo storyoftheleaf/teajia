@@ -112,6 +112,14 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "teadb-menghai-county"
           ]
+        },
+        {
+          "key": "mengsong-naka",
+          "label": "Mengsong and Naka",
+          "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
+          "sourceIds": [
+            "teadb-menghai-county"
+          ]
         }
       ]
     },
@@ -185,6 +193,27 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "text": "Sheng is not given shou’s rapid fermentation. Its character instead changes gradually during storage, with leaf, liquor, aroma, and texture developing over years. Storage conditions therefore belong to the tea’s history, not as a guarantee of quality but as part of how any particular cake has evolved.",
           "sourceIds": [
             "marshaln-young-puer-2013"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shou",
+      "slug": "shou",
+      "kind": "tea_type",
+      "label": "Shou (ripe pu’er)",
+      "nativeName": "熟普洱",
+      "parentId": "puer",
+      "sourceIds": [
+        "white2tea-ripe-puer"
+      ],
+      "sections": [
+        {
+          "key": "wet-piling",
+          "label": "Wet piling",
+          "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling.",
+          "sourceIds": [
+            "white2tea-ripe-puer"
           ]
         }
       ]
@@ -289,6 +318,15 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       "author": "Leo Kwan",
       "publishedDate": "",
       "url": "https://www.teaguardian.com/what-is-tea/raw-puer-or-cooked-puer/"
+    },
+    {
+      "sourceId": "white2tea-ripe-puer",
+      "publisher": "white2tea",
+      "publisherRoleLabel": "Tea producer",
+      "title": "Ripe Puer Tea: A Beginner's Guide to Appreciating Shou",
+      "author": "",
+      "publishedDate": "",
+      "url": "https://white2tea.com/blogs/blog/ripe-puer-tea-a-beginners-guide-to-appreciating-shou"
     }
   ]
 } as const satisfies TeaReferencePageRegistry;

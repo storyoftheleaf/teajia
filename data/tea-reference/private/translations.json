@@ -2,6 +2,37 @@
   "schema_version": 1,
   "sources": [
     {
+      "source_id": "white2tea-ripe-puer",
+      "source_language": "en",
+      "content_shape": "reference",
+      "public": {
+        "publisher": "white2tea",
+        "publisher_role_label": "Tea producer",
+        "title": "Ripe Puer Tea: A Beginner's Guide to Appreciating Shou",
+        "url": "https://white2tea.com/blogs/blog/ripe-puer-tea-a-beginners-guide-to-appreciating-shou"
+      },
+      "original_title": "Ripe Puer Tea: A Beginner's Guide to Appreciating Shou",
+      "evidence": [
+        {
+          "evidence_id": "EVIDENCE-B4A4CF2B45A1A698E998DFED",
+          "locator": {
+            "heading": "What is the pile fermentation process?",
+            "section": "What is the pile fermentation process?",
+            "page": null,
+            "start": 0,
+            "end": 435
+          },
+          "excerpt_sha256": "b4a4cf2b45a1a698e998dfed04e029d88f74269205743beef42a12c03d2326a2",
+          "uses": [
+            {
+              "page_id": "shou",
+              "section_key": "wet-piling"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "source_id": "ctma-menghai-seven-mountains-2025",
       "source_language": "zh",
       "content_shape": "route",
@@ -223,6 +254,7 @@
       },
       "original_title": "Pu’erh Regions: Western Xishuangbanna, Menghai County",
       "evidence": [
+        {"evidence_id": "EVIDENCE-44D0521EB5689FC6FA0D2B95", "locator": {"heading": "Mengsong", "section": "Mengsong", "page": null, "start": 0, "end": 403}, "excerpt_sha256": "44d0521eb5689fc6fa0d2b95cb1783a41350672bc3e53e8857b170f10d624662", "uses": [{"page_id": "menghai-county", "section_key": "mengsong-naka"}]},
         {
           "evidence_id": "EVIDENCE-5F496A300F5E710FC8FA80B0",
           "locator": { "heading": "Characteristic Taste [Raw Pu’erh]", "section": "Characteristic Taste [Raw Pu’erh]", "page": null, "start": 2047, "end": 2644 },

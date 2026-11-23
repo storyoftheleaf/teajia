@@ -182,6 +182,7 @@ describe('sellable Tea Reference catalogue', () => {
       'menghai-county',
       'puer',
       'sheng',
+      'shou',
       'yunnan',
     ]);
     expect(result.families).toEqual([
@@ -200,6 +201,11 @@ describe('sellable Tea Reference catalogue', () => {
         name: 'Sheng Pu’er',
         familyId: 'puer',
         productIds: ['tea-sheng-active', 'tea-sheng-sold-out'],
+      }),
+      expect.objectContaining({
+        id: 'shou',
+        familyId: 'puer',
+        productIds: ['tea-shou-active'],
       }),
     ]);
     expect(result.origins).toEqual([

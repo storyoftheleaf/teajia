@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import { GENERATED_CLAIMS } from '../../wisdom/reference/generatedClaims';
 import type { PublicProduct } from '../../types';
 import type { PublicReferenceStatement } from '../../wisdom/receiving/previewImporter';
 import type { PublicTeaReferenceSource } from '../../wisdom/reference/types';
@@ -13,6 +15,8 @@ import {
   IndexList,
   Invitation,
   MEASURE,
+  FOOTNOTE,
+  QUIET_LINK,
   RULE_FULL,
   SPACE,
   SectionHead,
@@ -53,12 +57,25 @@ function isUsefulFact(fact: PublicReferenceStatement): boolean {
   return !GENERIC_REFERENCE_TEXT.some(pattern => pattern.test(fact.text.trim()));
 }
 
+const citedListingClaims = new Set(GENERATED_CLAIMS.filter(claim => claim.listingEligible && claim.sourceIds.length).map(claim => claim.claimId));
+
 const FactStatement: React.FC<{
   fact: PublicReferenceStatement;
-}> = ({ fact }) => {
+  detail?: React.ReactNode;
+}> = ({ fact, detail }) => {
+  const anchor = /^[a-z0-9-]+:([a-z0-9-]+)$/.exec(fact.id)?.[1];
+  const row = useRef<HTMLLIElement>(null);
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (anchor && hash === '#' + anchor) row.current?.scrollIntoView?.({ block: 'center' });
+  }, [anchor, hash]);
   return (
-    <li className={`${RULE_FULL} first:border-t-0 py-4 min-w-0`}>
+    <li ref={row} id={anchor} className={`${RULE_FULL} first:border-t-0 py-4 min-w-0`}>
       <p className={`${FACT} ${MEASURE} min-w-0 break-words`}>{fact.text}</p>
+      {detail}
+      {!detail && citedListingClaims.has(fact.id) && (fact.citations ?? [fact.citation]).map(source => (
+        <a key={source.sourceId} href={source.url} className={`${FOOTNOTE} ${QUIET_LINK} tap-target mt-2 inline-flex`}>{source.label}</a>
+      ))}
     </li>
   );
 };
@@ -69,7 +86,9 @@ export const ReferenceFactSections: React.FC<{
   products: readonly PublicProduct[];
   reportIdentity: string;
   referencePage?: TeaReferenceFlagPage;
-}> = ({ facts, products, reportIdentity, referencePage }) => {
+  /** Optional lines under a statement, e.g. a claim's scope and its Chinese terms. */
+  factDetail?: (fact: PublicReferenceStatement) => React.ReactNode;
+}> = ({ facts, products, reportIdentity, referencePage, factDetail }) => {
   const groups = groupedFacts(facts.filter(isUsefulFact));
   const availableProducts = products.filter(product => product.status !== 'Sold Out');
   const previouslyOfferedProducts = products.filter(product => product.status === 'Sold Out');
@@ -100,7 +119,7 @@ export const ReferenceFactSections: React.FC<{
           <section key={group.label} aria-labelledby={sectionId} className={`${SPACE.section} ${GROUND} py-6`}>
             <SectionHead id={sectionId} label={group.label} count={group.facts.length} />
             <ul className={`list-none m-0 p-0 ${AXIS_INDENT}`}>
-              {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} />)}
+              {group.facts.map(fact => <FactStatement key={fact.id} fact={fact} detail={factDetail?.(fact)} />)}
             </ul>
           </section>
         );

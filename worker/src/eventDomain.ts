@@ -8,12 +8,12 @@ export type EventLifecycle =
 
 export const EVENT_TRANSITIONS: Readonly<Record<EventLifecycle, readonly EventLifecycle[]>> =
   Object.freeze({
-    draft: Object.freeze(['published', 'cancelled']),
-    published: Object.freeze(['registration_closed', 'cancelled']),
-    registration_closed: Object.freeze(['completed', 'cancelled']),
-    completed: Object.freeze(['archived']),
-    cancelled: Object.freeze(['archived']),
-    archived: Object.freeze([]),
+    draft: Object.freeze(['published', 'cancelled'] as const),
+    published: Object.freeze(['registration_closed', 'cancelled'] as const),
+    registration_closed: Object.freeze(['completed', 'cancelled'] as const),
+    completed: Object.freeze(['archived'] as const),
+    cancelled: Object.freeze(['archived'] as const),
+    archived: Object.freeze([] as const),
   });
 
 export function normalizeEventUpdate(input: Record<string, unknown>): Record<string, unknown> {

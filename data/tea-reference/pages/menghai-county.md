@@ -21,3 +21,11 @@ Specialist writing often contrasts Menghai’s strength and bitterness with the 
 ## Factory-era importance {#history}
 
 The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions. [cite:teadb-menghai-county]
+
+## Mengsong and Naka {#mengsong-naka}
+
+Naka is a village in Mengsong, one of Menghai County’s tea-growing areas. [cite:teadb-menghai-county]
+
+## Where ripe pu’er began {#ripe-origins}
+
+Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.

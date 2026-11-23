@@ -1,6 +1,8 @@
 import { getTeaColor } from '../../designTokens';
 import type { InventoryItem } from '../../types';
 import { resolveLineage, resolveRecord } from '../../wisdom/productIdentity';
+import { passageAnchorId } from '../../wisdom/reference/listingPassages';
+import type { ListingPassage } from '../../wisdom/reference/claims';
 import { findProductOriginReference } from '../../wisdom/reference/catalogue';
 import type { TeaReferenceCatalogue } from '../../wisdom/reference/types';
 import { regionElevationPresentation } from '../../wisdom/regions';
@@ -42,22 +44,39 @@ export function teaRegionFields(item: InventoryItem) {
 }
 
 export function teaFacts(item: InventoryItem, catalogue: TeaReferenceCatalogue | null,
-  { region, elevation }: ReturnType<typeof teaRegionFields>, store: string | null): Fact[] {
+  { region, elevation }: ReturnType<typeof teaRegionFields>, store: string | null,
+  wisdom?: { passages: readonly ListingPassage[]; grade?: string; search: string; pilot: boolean }): Fact[] {
+  const linkFor = (field: ListingPassage['gridField']) => {
+    const passage = wisdom?.passages.find(entry => entry.gridField === field);
+    return passage ? (wisdom?.search ?? '') + '#' + passageAnchorId(passage.claim.claimId) : undefined;
+  };
+  const typeLink = linkFor('type');
+  const gradeLink = linkFor('grade');
+  const recordedType = normalizeTeaType(item.type);
+  const typeReference = recordedType && catalogue?.types.find(type => normalizeTeaType(type.id) === recordedType);
+  const family = typeReference && catalogue?.families.find(entry => entry.id === typeReference.familyId);
+  const resolved = resolveRecord(item);
   const regionName = region?.province || region?.name;
   const reference = findProductOriginReference(catalogue, item.id, item.origin);
   return [
     { label: 'Vintage', value: item.year },
+    ...(family ? [{ label: 'Tea family', value: family.name, to: '/wisdom/family/' + encodeURIComponent(family.id) }] : []),
+    ...(typeLink ? [{ label: 'Type', value: item.type, to: typeLink }] : []),
+    ...(gradeLink && wisdom?.grade ? [{
+      label: 'Grade', value: wisdom.grade.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '), to: gradeLink,
+    }] : []),
     reference ? {
       label: 'Region', value: reference.name, to: `/wisdom/region/${reference.id}`,
       state: { fromProduct: { id: item.id, slug: item.slug, name: item.variant || item.name, store, originId: reference.id } },
     } : { label: 'Region', value: regionName && regionName !== item.origin ? regionName : '' },
-    { label: 'Location', value: item.origin },
+    { label: 'Location', value: item.origin, to: linkFor('location') },
     { label: 'Leaf cultivar', value: item.cultivar ?? '' },
     { label: 'Format', value: item.form ?? '' },
     { label: elevation?.label ?? 'Elevation', value: elevation?.value ?? '' },
     { label: 'Forest cover', value: region?.forestCover ?? '' },
-    { label: 'Tree character', value: region?.treeCharacter ?? '' },
-    ...recordFacts(resolveRecord(item)),
+    { label: 'Tree character', value: wisdom?.pilot ? '' : region?.treeCharacter ?? '' },
+    // Gong Ting is a leaf grade. A match in a product name alone cannot supply it.
+    ...(wisdom?.pilot ? [] : recordFacts(resolved.mark?.id === 'gong-ting' ? { ...resolved, mark: null } : resolved)),
   ];
 }
 

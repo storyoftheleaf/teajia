@@ -36,7 +36,7 @@ export interface PublicTeaReferenceSource {
   url: string;
 }
 
-export type PublicTeaReferencePageKind = 'tea_family' | 'tea_type' | 'major_region' | 'tea_area';
+export type PublicTeaReferencePageKind = 'tea_family' | 'tea_type' | 'major_region' | 'tea_area' | 'leaf_grade';
 
 export interface PublicTeaReferencePageSection {
   key: string;
