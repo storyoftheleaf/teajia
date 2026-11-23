@@ -182,6 +182,7 @@ import { handleCurateWorkspace } from './curateWorkspaceRoutes';
 import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
+import { serveCatalogTeaReading } from './catalogTeaReading';
 import { serveStockGalleryProposal } from './stockGalleryProposal';
 import { serveYixingOwnerReview } from './yixingOwnerReview';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
@@ -31302,6 +31303,9 @@ const requestHandler = {
       return new Response(null, { status: 204, headers });
     }
 
+    if (url.pathname === '/api/admin/catalog-review/teas' || url.pathname.startsWith('/api/admin/catalog-review/teas/')) {
+      return cors(await serveCatalogTeaReading(request, env, () => getActiveAccount(request, env)), corsOrigin);
+    }
     if (url.pathname.startsWith('/api/admin/stock-gallery/')) {
       return cors(await serveStockGalleryProposal(request, env, () => getActiveAccount(request, env)), corsOrigin);
     }

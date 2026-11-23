@@ -37,6 +37,7 @@ interface ProductDetailLayoutProps {
   gallery: Omit<ComponentProps<typeof AlcoveGallery>, 'layout' | 'onExpandImage'>;
   actions?: ComponentProps<typeof ProductDetailActions>;
   ownerPreviewNavigation?: ReactNode;
+  galleryCaption?: string;
   facts: Fact[];
   factsTitle: string;
   history?: ReactNode;
@@ -51,7 +52,7 @@ interface ProductDetailLayoutProps {
 }
 
 export function ProductDetailLayout({
-  identity, gallery, actions, facts, factsTitle, history, order, tasting, reading, related, styleReference, teaOrder, modals, soldOut, ownerPreviewNavigation,
+  identity, gallery, actions, facts, factsTitle, history, order, tasting, reading, related, styleReference, teaOrder, modals, soldOut, ownerPreviewNavigation, galleryCaption,
 }: ProductDetailLayoutProps) {
   const { shopHref, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
   const { item } = identity;
@@ -121,6 +122,7 @@ export function ProductDetailLayout({
           <div className="tea-product-reading">
             <AlcoveGallery key={item.id} {...gallery} layout="page" onExpandImage={setExpandedImage}
               addPhoto={hasShopPhotos ? addPhoto : undefined} />
+            {hasShopPhotos && galleryCaption && <p className="mx-5 mt-2 text-tea-text-sec">{galleryCaption}</p>}
             {hasProductActions && isAuthenticated && <input type="file" ref={input} hidden multiple accept="image/*" aria-label="Add product photos" onChange={event => {
               const files = Array.from(event.target.files ?? []);
               event.target.value = '';

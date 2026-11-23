@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Loader2, ArrowRight, Compass, Check, FileStack } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api, API_URL, authedFetch } from '../../lib/api';
+import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
 import type { Product } from '../types';
 import { InventoryView } from './InventoryView';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
@@ -14,7 +16,27 @@ interface DraftsViewProps {
   onDraftCreated: () => void;
   onImportClick: () => void;
   onAddClick: () => void;
+  showTeaReading?: boolean;
   rates?: any;
+}
+
+function TeaReadingLink() {
+  const scope = usePrivateQueryScope();
+  const [accountId, userId] = scope.key;
+  const reading = useQuery({
+    queryKey: ['catalog-tea-reading-available', ...scope.key],
+    enabled: scope.ready,
+    queryFn: async ({ signal }) => {
+      const index = await authedFetch(API_URL + '/api/admin/catalog-review/teas', {
+        signal, expectedAuth: { accountId, userId }, cache: 'no-store', reportIncident: false,
+      });
+      return Array.isArray(index) && index.length > 0;
+    },
+    retry: false,
+  });
+  return scope.ready && reading.data ? <div className="flex shrink-0 px-4 md:px-6">
+    <Link to="/admin/catalog-review/teas" className="btn-quiet btn-sm">Tea write-ups</Link>
+  </div> : null;
 }
 
 type FilterMode = 'all' | 'review' | 'ready';
@@ -29,7 +51,7 @@ function isReadyToApprove(p: Product): boolean {
 }
 
 export const DraftsView: React.FC<DraftsViewProps> = ({
-  products, isLoading, isError, error, onDraftCreated, onImportClick, onAddClick,
+  products, isLoading, isError, error, onDraftCreated, onImportClick, onAddClick, showTeaReading,
 }) => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterMode>('all');
@@ -137,6 +159,8 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
           <span>Capture in Curate</span>
         </button>
       </div>
+
+      {showTeaReading && <TeaReadingLink />}
 
       {/* Soft fade so scrolling rows dissolve into the shelf above */}
       <div
