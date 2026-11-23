@@ -192,6 +192,9 @@ import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
 import { articleWisdomClaimUseRoutes, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
+import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
+import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
+import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, readOfferInput, recordedChestCostSql, shelfContactSql } from './personalShelf';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, ShippingNotificationEnv {
@@ -1035,11 +1038,14 @@ function buildActivityLog(
 function buildStockLedgerEntry(
   env: Env, productId: string, delta: number, balanceAfter: number, reason: string,
   userEmail?: string | null, invoiceId?: string | null, invoiceNumber?: string | null, note?: string | null,
-  accountId?: string | null
+  accountId?: string | null, requireProduct = false,
 ) {
-  return env.DB.prepare(
-    'INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null, accountId || null);
+  const values = [crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null, accountId || null];
+  return env.DB.prepare(`
+    INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ${requireProduct ? 'WHERE EXISTS (SELECT 1 FROM products WHERE id = ?)' : ''}
+  `).bind(...values, ...(requireProduct ? [productId] : []));
 }
 
 function buildStockMovementLedgerInsert(env: Env, args: {
@@ -1296,7 +1302,7 @@ async function mintProductSlug(
 // is created. Skips teaware. Mirrors the migration 048 backfill shape so old
 // and new rows look identical regardless of which path created them.
 function buildProductMirrorInserts(
-  env: Env, productId: string, accountId: string, body: Record<string, any>, forceDraftListing = false,
+  env: Env, productId: string, accountId: string, body: Record<string, any>, forceDraftListing = false, requireProduct = false,
 ): D1PreparedStatement[] {
   // Teaware: no profile/listing row per the rollout plan.
   if (body.type === 'Teaware') return [];
@@ -1319,6 +1325,7 @@ function buildProductMirrorInserts(
     : forceDraftListing ? 'draft'
     : 'active';
 
+  const productGuard = requireProduct ? 'WHERE EXISTS (SELECT 1 FROM products WHERE id = ?)' : '';
   const profileInsert = env.DB.prepare(`
     INSERT INTO tea_profiles (
       id, slug, originated_by_account_id, curated_by_account_id,
@@ -1327,7 +1334,8 @@ function buildProductMirrorInserts(
       description, lore, processing_notes, terroir, mood, experience,
       tasting_notes, image_url, canonical_photos,
       network_visible, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ${productGuard}
   `).bind(
     `prof_${productId}`, slug, accountId, accountId,
     body.product_name ?? null, body.chinese_name ?? null, body.type ?? null, body.form ?? null,
@@ -1337,7 +1345,8 @@ function buildProductMirrorInserts(
     body.tasting_notes ?? '[]',
     body.image_url ?? null,
     body.additional_images ?? '[]',
-    networkVisible, profileStatus
+    networkVisible, profileStatus,
+    ...(requireProduct ? [productId] : []),
   );
 
   const listingInsert = env.DB.prepare(`
@@ -1357,7 +1366,8 @@ function buildProductMirrorInserts(
       tasting, tasting_source,
       owner_user_id, shown_in_shop, inventory_purpose, stock_known_at,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ${productGuard}
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -1389,7 +1399,8 @@ function buildProductMirrorInserts(
     body.tasting ?? '{}', body.tasting_source ?? null,
     body.owner_user_id ?? null, body.shown_in_shop ?? 1,
     body.inventory_purpose ?? null, body.stock_known_at ?? null,
-    productId
+    productId,
+    ...(requireProduct ? [productId] : []),
   );
 
   return [profileInsert, listingInsert];
@@ -15667,6 +15678,10 @@ const handlePutUserFavorites: Handler = async (request, env) => {
 // queries. owner_user_id is the anchor; an item can later be PLACED at a
 // location — a human-approved request, never a silent write (the move).
 
+function privateChestLabel(value: string): string | null {
+  return value.trim().slice(0, 60) || null;
+}
+
 // Map a DB row to the API shape (camelCase, booleans).
 function cellarItemToApi(row: any) {
   return {
@@ -15681,9 +15696,30 @@ function cellarItemToApi(row: any) {
     placementStatus: row.placement_status ?? 'private',
     placementAccountId: row.placement_account_id ?? null,
     linkedProductId: row.linked_product_id ?? null,
-    shelfPublished: !!row.shelf_published,
+    shelfPublished: !!row.shelf_published && row.shelf_offer_name != null && row.chest_cost_amount != null
+      && row.chest_cost_currency != null && row.shelf_offer_price_amount > 0 && row.shelf_offer_price_currency != null
+      && row.placement_status === 'private' && row.shelf_offer_grams > 0 && row.shelf_offer_grams <= row.grams,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function ownedCellarItemToApi(row: any) {
+  return {
+    ...cellarItemToApi(row),
+    label: row.chest_label ?? null,
+    costAmount: row.chest_cost_amount ?? null,
+    costCurrency: row.chest_cost_currency ?? null,
+    shelfNeedsReview: !!row.shelf_published && (row.shelf_offer_name == null || row.shelf_offer_price_amount == null),
+    shelfOffer: row.shelf_offer_name == null ? null : {
+      name: row.shelf_offer_name,
+      price_amount: row.shelf_offer_price_amount ?? null,
+      price_currency: row.shelf_offer_price_currency ?? null,
+      grams: row.shelf_offer_grams,
+      type: row.shelf_offer_type ?? null,
+      year: row.shelf_offer_year ?? null,
+      origin: row.shelf_offer_origin ?? null,
+    },
   };
 }
 
@@ -15703,7 +15739,7 @@ const handleListCellar: Handler = async (request, env) => {
   const { results } = await env.DB.prepare(
     'SELECT * FROM personal_cellar_items WHERE owner_user_id = ? ORDER BY created_at DESC'
   ).bind(userId).all();
-  return json({ items: (results as any[]).map(cellarItemToApi) });
+  return json({ items: (results as any[]).map(ownedCellarItemToApi) });
 };
 
 // POST /api/me/cellar — add a tea the caller owns, with a quantity. Private.
@@ -15719,10 +15755,17 @@ const handleCreateCellarItem: Handler = async (request, env) => {
   if (body.grams !== undefined && (!Number.isFinite(grams) || grams < 0)) {
     return json({ error: 'grams must be a non-negative number' }, 400);
   }
+  if (body.label != null && typeof body.label !== 'string') return json({ error: 'Invalid Chest label' }, 400);
+  const cost = readPersonalTeaMoney(body.costAmount, body.costCurrency);
+  if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
+  if (await personalInventoryAccount(env.DB, userId)) {
+    return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
+  }
   const id = newId('cellar');
-  await env.DB.prepare(
-    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  const inserted = await env.DB.prepare(
+    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url, chest_label, chest_cost_amount, chest_cost_currency)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE personal_inventory_user_id = ?)`
   ).bind(
     id, userId, name,
     body.type ?? null,
@@ -15731,9 +15774,12 @@ const handleCreateCellarItem: Handler = async (request, env) => {
     body.notes ?? null,
     Number.isFinite(grams) ? grams : 0,
     body.image_url ?? null,
+    privateChestLabel(body.label ?? ''),
+    cost.amount, cost.currency, userId,
   ).run();
+  if (!inserted.meta.changes) return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(id).first();
-  return json({ item: cellarItemToApi(row) }, 201);
+  return json({ item: ownedCellarItemToApi(row) }, 201);
 };
 
 // PUT /api/me/cellar/:id — edit a cellar item the caller owns.
@@ -15751,7 +15797,7 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, any>;
   const EDITABLE: Record<string, string> = {
     name: 'name', type: 'type', year: 'year', origin: 'origin',
-    notes: 'notes', grams: 'grams', image_url: 'image_url',
+    notes: 'notes', grams: 'grams', image_url: 'image_url', label: 'chest_label',
   };
   const sets: string[] = [];
   const binds: any[] = [];
@@ -15760,7 +15806,14 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
     if (key === 'grams') {
       const g = Number(body.grams);
       if (!Number.isFinite(g) || g < 0) return json({ error: 'grams must be a non-negative number' }, 400);
-      sets.push(`${col} = ?`); binds.push(g);
+      sets.push(`${col} = ?`);
+      binds.push(g);
+      sets.push('shelf_published = CASE WHEN shelf_offer_grams > ? THEN 0 ELSE shelf_published END');
+      binds.push(g);
+    } else if (key === 'label') {
+      if (body.label != null && typeof body.label !== 'string') return json({ error: 'Invalid Chest label' }, 400);
+      sets.push(`${col} = ?`);
+      binds.push(privateChestLabel(body.label ?? ''));
     } else if (key === 'year') {
       sets.push(`${col} = ?`);
       binds.push(body.year != null && /^\d{4}$/.test(String(body.year)) ? Number(body.year) : null);
@@ -15768,13 +15821,24 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
       sets.push(`${col} = ?`); binds.push(body[key] ?? null);
     }
   }
+  if (body.costAmount !== undefined || body.costCurrency !== undefined) {
+    const cost = readPersonalTeaMoney(body.costAmount, body.costCurrency);
+    if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
+    sets.push('chest_cost_amount = ?', 'chest_cost_currency = ?');
+    binds.push(cost.amount, cost.currency);
+  }
   if (sets.length === 0) return json({ ok: true });
   sets.push("updated_at = datetime('now')");
-  await env.DB.prepare(
-    `UPDATE personal_cellar_items SET ${sets.join(', ')} WHERE id = ? AND owner_user_id = ?`
+  const placementGuard = body.grams === undefined ? '' : " AND placement_status <> 'placed'";
+  const saved = await env.DB.prepare(
+    `UPDATE personal_cellar_items SET ${sets.join(', ')} WHERE id = ? AND owner_user_id = ?${placementGuard}`
   ).bind(...binds, params.id, userId).run();
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
-  return json({ item: cellarItemToApi(row) });
+  if (!row) return json({ error: 'Not found' }, 404);
+  if (!saved.meta.changes && placementGuard) {
+    return json({ error: 'Stock for a placed tea is managed at its location.' }, 409);
+  }
+  return json({ item: ownedCellarItemToApi(row) });
 };
 
 // DELETE /api/me/cellar/:id — remove a cellar item the caller owns.
@@ -15811,13 +15875,15 @@ const handleRequestCellarPlacement: Handler = async (request, env, params) => {
   if (item.placement_status === 'placed') {
     return json({ error: 'Already placed at a location' }, 409);
   }
-  await env.DB.prepare(
-    `UPDATE personal_cellar_items
+  const result = await env.DB.prepare(
+    `UPDATE personal_cellar_items AS c
         SET placement_status = 'requested', placement_account_id = ?, updated_at = datetime('now')
-      WHERE id = ? AND owner_user_id = ?`
+      WHERE id = ? AND owner_user_id = ? AND placement_status IN ('private', 'requested')
+        AND NOT (${approvedShelfOfferSql})`
   ).bind(accountId, params.id, userId).run();
+  if (!result.meta.changes) return json({ error: 'Withdraw the shelf offer before requesting placement, or reload the holding.' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
-  return json({ item: cellarItemToApi(row) });
+  return row ? json({ item: ownedCellarItemToApi(row) }) : json({ error: 'Not found' }, 404);
 };
 
 // POST /api/me/cellar/:id/cancel-placement — withdraw a pending placement
@@ -15836,13 +15902,14 @@ const handleCancelCellarPlacement: Handler = async (request, env, params) => {
   if (item.placement_status !== 'requested') {
     return json({ error: 'No pending placement request to cancel' }, 409);
   }
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE personal_cellar_items
         SET placement_status = 'private', placement_account_id = NULL, updated_at = datetime('now')
-      WHERE id = ? AND owner_user_id = ?`
+      WHERE id = ? AND owner_user_id = ? AND placement_status = 'requested'`
   ).bind(params.id, userId).run();
+  if (!result.meta.changes) return json({ error: 'No pending placement request to cancel' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
-  return json({ item: cellarItemToApi(row) });
+  return row ? json({ item: ownedCellarItemToApi(row) }) : json({ error: 'Not found' }, 404);
 };
 
 // GET /api/cellar-placements — location-owner view of pending placement
@@ -15916,25 +15983,31 @@ const handleApproveCellarPlacement: Handler = async (request, env, params) => {
   nameProductColumns(body);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
+  // Claim the request and the snapshot used for the product inside the same
+  // batch. A cancellation, second approval or stock edit can win first.
+  const claimPlacement = env.DB.prepare(
+    `UPDATE personal_cellar_items
+        SET placement_status = 'placed', linked_product_id = ?, updated_at = datetime('now')
+      WHERE id = ? AND placement_status = 'requested' AND placement_account_id = ?
+        AND grams = ? AND name = ? AND type IS ? AND year IS ?
+        AND origin IS ? AND notes IS ? AND image_url IS ?`
+  ).bind(productId, item.id, accountId, item.grams, item.name, item.type, item.year, item.origin, item.notes, item.image_url);
   const insertProduct = env.DB.prepare(
-    `INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`
-  ).bind(productId, ...cols.map(c => body[c] ?? null));
-  const mirrorInserts = buildProductMirrorInserts(env, productId, accountId, body);
-  const stmts = [insertProduct, ...mirrorInserts];
+    `INSERT INTO products (id, ${cols.join(', ')})
+     SELECT ?, ${placeholders} WHERE EXISTS (
+       SELECT 1 FROM personal_cellar_items WHERE id = ? AND linked_product_id = ?
+     )`
+  ).bind(productId, ...cols.map(c => body[c] ?? null), item.id, productId);
+  const mirrorInserts = buildProductMirrorInserts(env, productId, accountId, body, false, true);
+  const stmts = [claimPlacement, insertProduct, ...mirrorInserts];
   if (grams > 0) {
     stmts.push(buildStockLedgerEntry(
       env, productId, grams, grams, 'PURCHASE_RECEIPT',
-      ctx.email, null, null, 'Placed from personal cellar', accountId
+      ctx.email, null, null, 'Placed from personal cellar', accountId, true
     ));
   }
-  stmts.push(
-    env.DB.prepare(
-      `UPDATE personal_cellar_items
-          SET placement_status = 'placed', linked_product_id = ?, updated_at = datetime('now')
-        WHERE id = ?`
-    ).bind(productId, item.id)
-  );
-  await env.DB.batch(stmts);
+  const [claimed] = await env.DB.batch(stmts);
+  if (!claimed.meta.changes) return json({ error: 'The placement or holding changed. Reload and try again.' }, 409);
 
   await auditPlatformActingWrite(env, ctx, 'cellar.placement_approved', 'product', productId, {
     cellar_item_id: item.id, owner_user_id: item.owner_user_id,
@@ -15954,12 +16027,52 @@ const handleDeclineCellarPlacement: Handler = async (request, env, params) => {
   if (item.placement_status !== 'requested' || item.placement_account_id !== ctx.accountId) {
     return json({ error: 'No pending placement request for this location' }, 409);
   }
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE personal_cellar_items
         SET placement_status = 'private', placement_account_id = NULL, updated_at = datetime('now')
-      WHERE id = ?`
-  ).bind(params.id).run();
+      WHERE id = ? AND placement_account_id = ? AND placement_status = 'requested'`
+  ).bind(params.id, ctx.accountId).run();
+  if (!result.meta.changes) return json({ error: 'No pending placement request for this location' }, 409);
   return json({ ok: true });
+};
+
+async function personalInventoryAccount(db: D1Database, userId: string) {
+  return db.prepare(`
+    SELECT a.id, a.slug, a.public_enabled
+    FROM accounts a JOIN account_members m ON m.account_id = a.id AND m.user_id = a.personal_inventory_user_id
+    WHERE a.personal_inventory_user_id = ? AND a.owner_user_id = a.personal_inventory_user_id AND a.status = 'active'
+      AND m.status = 'active' AND m.role = 'owner'
+  `).bind(userId).first<{ id: string; slug: string; public_enabled: number }>();
+}
+
+const handlePersonalInventoryAccount: Handler = async (request, env) => {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const existing = await personalInventoryAccount(env.DB, ctx.userId);
+  if (request.method === 'GET' || existing) return json({ account: existing });
+
+  const id = newId('acc');
+  const displayName = ctx.name?.trim();
+  const stem = normalizeShelfSlug(displayName || '').slice(0, 24);
+  const suffix = crypto.randomUUID().slice(0, 12);
+  const slug = `${stem || 'tea-chest'}-${suffix}`;
+  const name = displayName ? `${displayName}’s Tea Chest` : 'Tea Chest';
+  // Both statements commit together. The unique person link makes concurrent
+  // requests use the same account and never adds an owner to a different shop.
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO accounts (id, slug, name, kind, status, public_enabled, owner_user_id,
+                            personal_inventory_user_id, invoice_prefix)
+      SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA' FROM users WHERE id = ?
+      ON CONFLICT(personal_inventory_user_id) DO NOTHING
+    `).bind(id, slug, name, ctx.userId),
+    env.DB.prepare(`
+      INSERT INTO account_members (account_id, user_id, role, status)
+      SELECT id, owner_user_id, 'owner', 'active' FROM accounts WHERE id = ? AND personal_inventory_user_id = ?
+    `).bind(id, ctx.userId),
+  ]);
+  const account = await personalInventoryAccount(env.DB, ctx.userId);
+  return account ? json({ account }) : json({ error: 'Your Tea Chest account is unavailable.' }, 409);
 };
 
 // ── Standalone public shelf (stock spine step 5) ────────────────────────────
@@ -15991,7 +16104,7 @@ const handleGetMyShelf: Handler = async (request, env) => {
     enabled: !!row.shelf_enabled,
     slug: row.shelf_slug ?? null,
     title: row.shelf_title ?? null,
-    whatsapp: row.shelf_whatsapp ?? null,
+    whatsapp: normalizeShelfWhatsApp(row.shelf_whatsapp),
   });
 };
 
@@ -16005,39 +16118,69 @@ const handleUpdateMyShelf: Handler = async (request, env) => {
   const row = await env.DB.prepare('SELECT shelf_enabled FROM users WHERE id = ?').bind(userId).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
   if (!row.shelf_enabled) return json({ error: 'Shelf not enabled for this account' }, 403);
-  const body = await request.json() as { title?: string; whatsapp?: string };
+  const body = await request.json().catch(() => null) as { title?: string; whatsapp?: string } | null;
+  if (!body || typeof body !== 'object'
+    || (body.title != null && typeof body.title !== 'string')
+    || (body.whatsapp != null && typeof body.whatsapp !== 'string')) {
+    return json({ error: 'Invalid shelf settings' }, 400);
+  }
+  const contact = normalizeShelfWhatsApp(body.whatsapp);
+  if (body.whatsapp?.trim() && !contact) {
+    return json({ error: 'Enter your WhatsApp number with the country code.' }, 400);
+  }
   await env.DB.prepare(
     'UPDATE users SET shelf_title = ?, shelf_whatsapp = ? WHERE id = ?'
-  ).bind(
-    body.title?.trim() || null,
-    body.whatsapp ? String(body.whatsapp).replace(/[^\d]/g, '') || null : null,
-    userId,
-  ).run();
+  ).bind(body.title?.trim() || null, contact, userId).run();
   return json({ ok: true });
 };
 
-// POST /api/me/cellar/:id/publish-shelf — put a private cellar item on the
-// caller's public shelf. Shelf publishes location-less stock only; a placed
-// item belongs to a location, not the standalone shelf.
+// The approved buyer fields are stored separately from the private holding.
+// The guarded update serializes publication with placement, stock and contact writes.
 const handlePublishToShelf: Handler = async (request, env, params) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
   const userId = authedUserId(request);
   if (!userId) return json({ error: 'Invalid token' }, 401);
-  const user = await env.DB.prepare('SELECT shelf_enabled FROM users WHERE id = ?').bind(userId).first() as any;
-  if (!user?.shelf_enabled) return json({ error: 'Shelf not enabled for this account' }, 403);
+  if (await personalInventoryAccount(env.DB, userId)) {
+    return json({ error: 'List tea from Stock in your Tea Chest account.' }, 409);
+  }
+  const offer = readOfferInput(await request.json().catch(() => null));
+  if (!offer) return json({ error: 'Enter a public name, an offer weight, and a positive price with its currency.' }, 400);
+
+  const saved = await env.DB.prepare(`
+    UPDATE personal_cellar_items AS c
+    SET shelf_published = 1, shelf_offer_name = ?, shelf_offer_grams = ?, shelf_offer_type = ?,
+        shelf_offer_year = ?, shelf_offer_origin = ?, shelf_offer_price_amount = ?,
+        shelf_offer_price_currency = ?, updated_at = datetime('now')
+    WHERE id = ? AND owner_user_id = ? AND placement_status = 'private' AND grams >= ? AND (${recordedChestCostSql})
+      AND NOT EXISTS (SELECT 1 FROM accounts WHERE personal_inventory_user_id = c.owner_user_id)
+      AND EXISTS (
+        SELECT 1 FROM users u WHERE u.id = ? AND u.shelf_enabled = 1
+          AND u.shelf_slug <> '' AND (${shelfContactSql})
+      )
+  `).bind(offer.name, offer.grams, offer.type, offer.year, offer.origin,
+    offer.priceAmount, offer.priceCurrency, params.id, userId, offer.grams, userId).run();
+  if (saved.meta.changes) return json({ ok: true });
+
+  const seller = await env.DB.prepare(
+    'SELECT shelf_enabled, shelf_slug, shelf_whatsapp FROM users WHERE id = ?'
+  ).bind(userId).first<{ shelf_enabled: number; shelf_slug: string | null; shelf_whatsapp: string | null }>();
+  if (!seller?.shelf_enabled || !seller.shelf_slug) return json({ error: 'Shelf not enabled for this account' }, 403);
+
   const item = await env.DB.prepare(
-    'SELECT owner_user_id, placement_status FROM personal_cellar_items WHERE id = ?'
-  ).bind(params.id).first() as any;
+    'SELECT owner_user_id, placement_status, grams, chest_cost_amount, chest_cost_currency FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first<{ owner_user_id: string; placement_status: string; grams: number; chest_cost_amount: number | null; chest_cost_currency: string | null }>();
   if (!item) return json({ error: 'Not found' }, 404);
   if (item.owner_user_id !== userId) return json({ error: 'Forbidden' }, 403);
-  if (item.placement_status !== 'private') {
-    return json({ error: 'Only location-less items can go on your shelf' }, 409);
+  if (!normalizeShelfWhatsApp(seller.shelf_whatsapp)) {
+    return json({ error: 'Save your personal WhatsApp number before publishing.' }, 409);
   }
-  await env.DB.prepare(
-    "UPDATE personal_cellar_items SET shelf_published = 1, updated_at = datetime('now') WHERE id = ? AND owner_user_id = ?"
-  ).bind(params.id, userId).run();
-  return json({ ok: true });
+  if (item.placement_status !== 'private') return json({ error: 'Only location-less items can go on your shelf' }, 409);
+  if (!readPersonalTeaMoney(item.chest_cost_amount, item.chest_cost_currency)) {
+    return json({ error: 'Record what you paid in your Tea Chest before publishing.' }, 409);
+  }
+  if (item.grams < offer.grams) return json({ error: 'The offer is larger than the weight in your Chest.' }, 409);
+  return json({ error: 'The holding or shelf settings changed. Reload and try again.' }, 409);
 };
 
 // POST /api/me/cellar/:id/unpublish-shelf — take an item off the shelf.
@@ -16057,37 +16200,11 @@ const handleUnpublishFromShelf: Handler = async (request, env, params) => {
 // a direct WhatsApp contact. Public-safe fields only (no cost, no vendor).
 const handleGetPublicShelf: Handler = async (_request, env, params) => {
   const slug = normalizeShelfSlug(params.slug);
-  if (!slug) return json({ error: 'Not found' }, 404);
-  const seller = await env.DB.prepare(
-    `SELECT u.id, u.name, u.shelf_enabled, u.shelf_title, u.shelf_whatsapp,
-            contributor.id AS contributor_slug
-       FROM users u
-       LEFT JOIN contributors contributor ON contributor.user_id = u.id AND contributor.is_published = 1
-      WHERE u.shelf_slug = ?`
-  ).bind(slug).first() as any;
-  if (!seller || !seller.shelf_enabled) return json({ error: 'Shelf not found' }, 404);
-  const { results } = await env.DB.prepare(
-    `SELECT id, name, type, year, origin, grams, image_url
-       FROM personal_cellar_items
-      WHERE owner_user_id = ? AND shelf_published = 1 AND placement_status = 'private'
-      ORDER BY created_at DESC`
-  ).bind(seller.id).all();
-  return cachedJson({
-    slug,
-    title: seller.shelf_title ?? null,
-    seller_name: seller.name ?? null,
-    ...(seller.contributor_slug ? { contributor_slug: seller.contributor_slug } : {}),
-    whatsapp: seller.shelf_whatsapp ?? null,
-    items: (results as any[]).map(r => ({
-      id: r.id,
-      name: r.name,
-      type: r.type ?? null,
-      year: r.year ?? null,
-      origin: r.origin ?? null,
-      grams: Number(r.grams) || 0,
-      image_url: r.image_url ?? null,
-    })),
-  }, 30);
+  const shelf = slug ? await getPublicShelf(env.DB, slug) : null;
+  return Response.json(shelf ?? { error: 'Shelf not found' }, {
+    status: shelf ? 200 : 404,
+    headers: { 'Cache-Control': 'no-store' },
+  });
 };
 
 // PUT /api/platform/users/:id/shelf — platform-owner grant. Turns a user's
@@ -25402,9 +25519,16 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   try { publicLanguages = row.languages ? JSON.parse(row.languages as string) : []; } catch { publicLanguages = []; }
   const publicLinks = parseStoredContributorLinks(row.links as string | null);
 
-  const [publicShelf, paymentAvailability] = await Promise.all([
-    verifiedShelfSlug(env, row.user_id as string | null),
+  const [publicShelf, paymentAvailability, personalAccount] = await Promise.all([
+    getOrderableShelfSlug(env.DB, row.user_id as string | null).catch(error => {
+      if (/no such (?:table|column)/i.test(String(error))) return null;
+      throw error;
+    }),
     publicPaymentAvailability(env, slug),
+    row.user_id ? personalInventoryAccount(env.DB, String(row.user_id)).catch(error => {
+      if (/no such (?:table|column)/i.test(String(error))) return null;
+      throw error;
+    }) : null,
   ]);
 
   const effectivelyPublished = row.is_published === 1 || (!row.unpublished_at && hasPublishedArticle);
@@ -25439,7 +25563,8 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     languages: normalizeLanguages(publicLanguages),
     is_published: effectivelyPublished ? 1 : 0,
     contributor_slug: row.id,
-    ...(publicShelf ? { shelf_slug: publicShelf } : {}),
+    ...(publicShelf ? { shelf_slug: publicShelf, orderable_shelf_slug: publicShelf } : {}),
+    ...(personalAccount?.public_enabled ? { personal_store_slug: personalAccount.slug } : {}),
     articles: words,
     pull_quotes: pullQuotes,
     featured_in: featuredIn,
@@ -30787,6 +30912,8 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/cellar-placements/:id/decline', handleDeclineCellarPlacement],
 
   // Standalone public shelf (stock spine step 5).
+  ['GET',    '/api/me/tea-chest/account', handlePersonalInventoryAccount],
+  ['POST',   '/api/me/tea-chest/account', handlePersonalInventoryAccount],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],

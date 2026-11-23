@@ -1,119 +1,97 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { Loader2, Package } from 'lucide-react';
-import { api, type PublicShelfItem } from '../lib/api';
 import { PublicIdentityLinks } from '../components/profile/PublicIdentityLinks';
+import { PersonalShopTeaRow } from '../components/shop/PersonalShopTeaRow';
+import { TYPOGRAPHY_CLASSES as T } from '../designTokens';
+import { usePublicShelf } from '../hooks/usePublicShelf';
+import { hasShelfAmount, publicShelfPath, SHELF_OFFER_ANCHOR, shelfPrice, shelfWhatsAppHref } from '../lib/publicShelf';
 
-// Stock spine step 5: the standalone public shelf at /u/<slug>. A person's
-// private cellar, published with Adrian's permission. Shelf-first: the seller's
-// tea + a direct WhatsApp order, nothing else. Teajia does not take the order
-// or hold the money, the buyer deals with the seller directly.
-
-function waLink(whatsapp: string | null, item: PublicShelfItem, sellerName: string | null): string {
-  const digits = (whatsapp || '').replace(/[^\d]/g, '');
-  const msg = `Hi${sellerName ? ` ${sellerName}` : ''}, I'd like to order ${item.name}${item.year ? ` (${item.year})` : ''} from your shelf.`;
-  const text = encodeURIComponent(msg);
-  return digits ? `https://wa.me/${digits}?text=${text}` : `https://wa.me/?text=${text}`;
-}
-
-const ShelfPage: React.FC = () => {
+export default function ShelfPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { hash, state } = useLocation();
+  const { data, isLoading, isError, refetch, isFetchedAfterMount } = usePublicShelf(slug);
+  const expectedSeller = typeof state?.sellerProfile === 'string' ? state.sellerProfile : null;
+  const sellerChanged = Boolean(expectedSeller && data && data.contributor_slug !== expectedSeller);
+  const items = data?.items.filter(item => hasShelfAmount(item) && shelfPrice(item)) ?? [];
+  const offerLink = hash.startsWith(`#${SHELF_OFFER_ANCHOR}`);
+  const selected = offerLink
+    ? data && items.find(item => publicShelfPath(data.slug, item.id).endsWith(hash))
+    : undefined;
+  const destination = selected ? `${SHELF_OFFER_ANCHOR}${selected.id}` : 'shelf-offer-unavailable';
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['public-shelf', slug],
-    queryFn: () => api.shelf.getPublic(slug!),
-    enabled: !!slug,
-    retry: false,
-    staleTime: 1000 * 60,
-  });
+  // A cold link can arrive before the shelf data (and its target) renders.
+  useEffect(() => {
+    if (!offerLink || !isFetchedAfterMount || isError || sellerChanged) return;
+    const frame = requestAnimationFrame(() => {
+      const target = document.getElementById(destination);
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView({ block: 'start' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [destination, hash, isFetchedAfterMount, isError, offerLink, sellerChanged]);
 
-  if (isLoading) {
+  if (isLoading || (!isFetchedAfterMount && !isError)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-tea-bg text-tea-text-dim">
+      <div role="status" aria-label="Loading shelf" className="min-h-screen flex items-center justify-center bg-tea-bg text-tea-text-dim">
         <Loader2 size={22} className="animate-spin" />
       </div>
     );
   }
 
-  if (isError || !data) {
+  if (isError || !data || sellerChanged) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-tea-bg text-center px-6">
         <Package size={32} className="text-tea-text-dim mb-3" />
-        <h1 className="font-display text-xl text-tea-text">Shelf not found</h1>
-        <p role="alert" className="text-ui-14 text-tea-text-sec mt-1">{error instanceof Error ? error.message : "This shelf doesn't exist or isn't public."}</p>
-        <button type="button" onClick={() => refetch()} className="tap-target mt-4 text-ui-13 text-tea-gold hover:text-tea-gold-lt">Retry</button>
+        <h1 className={T.h1}>Shelf not found</h1>
+        <p role="alert" className={T.bodyLight}>This shelf is currently unavailable.</p>
+        {expectedSeller && <Link to={`/people/${encodeURIComponent(expectedSeller)}`} className="btn-quiet mt-4">Back to profile</Link>}
+        {!sellerChanged && <button type="button" onClick={() => refetch()} className="btn-quiet mt-4">Retry</button>}
       </div>
     );
   }
 
-  const heading = data.title || (data.seller_name ? `${data.seller_name}'s shelf` : 'Tea shelf');
+  if (data.store_slug) return <Navigate replace to={`/store/${encodeURIComponent(data.store_slug)}`} />;
+
+  const seller = data.seller_name?.trim();
+  const heading = data.title || (seller ? `${seller}’s tea shop` : 'Tea shop');
+  const canOrder = items.some(item => shelfWhatsAppHref(data, item));
 
   return (
     <div className="min-h-screen bg-tea-bg">
-      <div className="max-w-2xl mx-auto px-5 py-10 pb-nav-gap">
-        {/* Header, shelf-first, no bio. */}
-        <header className="mb-8">
-          <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] mb-1">A personal shelf</p>
-          <h1 className="font-display text-2xl text-tea-text">{heading}</h1>
-          <p className="text-ui-13 text-tea-text-sec mt-2">
-            Order directly with the seller over WhatsApp, they fulfil and are paid themselves.
-          </p>
-          <PublicIdentityLinks contributorSlug={data.contributor_slug} subjectName={data.seller_name || heading} className="mt-4" />
+      <div className="max-w-screen-xl mx-auto px-5 pt-8 pb-nav-gap">
+        <header className="mb-6">
+          <h1 className={`${T.h1} break-words`}>{heading}</h1>
+          {canOrder && <p className={`${T.bodyLight} mt-2`}>Arrange payment and delivery directly with {seller || 'the seller'} on WhatsApp.</p>}
+          <PublicIdentityLinks contributorSlug={data.contributor_slug} subjectName={seller || heading} className="mt-2" />
         </header>
 
-        {data.items.length === 0 ? (
-          <p className="text-ui-14 italic text-tea-text-sec py-12">
-            {data.seller_name ? `${data.seller_name} is` : 'This shelf is'} setting the shelf. Check back soon.
+        {offerLink && !selected && (
+          <p role="status" tabIndex={-1} id="shelf-offer-unavailable" className={`${T.bodyLight} mb-4 scroll-mt-24`}>
+            This offer is no longer available.
           </p>
+        )}
+
+        {items.length === 0 ? (
+          <p className={T.bodyLight}>No teas are currently for sale.</p>
         ) : (
-          /* One section per tea, an editorial spread, not a card list.
-             Full-width letterbox photo on top, prose below, hairline between. */
-          <div>
-            {data.items.map((item, i) => (
-              <section
-                key={item.id}
-                className={i > 0 ? 'mt-16 pt-16 border-t border-tea-border' : ''}
-              >
-                {item.image_url ? (
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="w-full aspect-[16/9] object-cover mb-5"
-                  />
-                ) : (
-                  <div className="w-full aspect-[16/9] bg-tea-elevated flex items-center justify-center mb-5">
-                    <Package size={28} className="text-tea-text-dim" />
-                  </div>
-                )}
-
-                <h2 className="font-display text-2xl text-tea-text">{item.name}</h2>
-                <p className="text-ui-13 text-tea-text-dim mt-1">
-                  {[item.type, item.origin, item.year].filter(Boolean).join(' · ') || '—'}
-                </p>
-
-                <div className="flex items-baseline justify-between mt-5">
-                  {item.grams > 0 ? (
-                    <p className="font-mono text-ui-13 text-tea-text-sec">{Math.round(item.grams)}g available</p>
-                  ) : (
-                    <p className="text-ui-13 italic text-tea-text-sec">Ask about availability</p>
-                  )}
-                  <a
-                    href={waLink(data.whatsapp, item, data.seller_name)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors"
-                  >
-                    Order <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
-                  </a>
-                </div>
-              </section>
-            ))}
-          </div>
+          <>
+            <h2 className={`${T.h2} mb-3`}>Teas for sale</h2>
+            {!canOrder && <p className={`${T.bodyLight} mb-3`}>WhatsApp orders are currently unavailable.</p>}
+            <div>
+              {items.map(item => (
+                <PersonalShopTeaRow
+                  key={item.id}
+                  item={item}
+                  seller={seller}
+                  headingId={`${SHELF_OFFER_ANCHOR}${item.id}`}
+                  orderHref={shelfWhatsAppHref(data, item)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
   );
-};
-
-export default ShelfPage;
+}

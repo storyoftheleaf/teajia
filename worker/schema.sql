@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     invoice_prefix TEXT,
     invoice_seq INTEGER NOT NULL DEFAULT 0,
     owner_user_id TEXT,
+    personal_inventory_user_id TEXT REFERENCES users(id),
     status TEXT DEFAULT 'active',
     trust_tier TEXT DEFAULT 'basic',
     kind TEXT NOT NULL DEFAULT 'location',
@@ -51,6 +52,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 CREATE INDEX IF NOT EXISTS idx_accounts_host_contributor
   ON accounts(host_contributor_id) WHERE host_contributor_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_accounts_kind ON accounts(kind);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_personal_inventory_user ON accounts(personal_inventory_user_id);
 
 CREATE TABLE IF NOT EXISTS account_members (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -2379,6 +2381,16 @@ CREATE TABLE IF NOT EXISTS personal_cellar_items (
 
   
   shelf_published   INTEGER NOT NULL DEFAULT 0,
+  shelf_offer_name   TEXT,
+  shelf_offer_grams  REAL,
+  shelf_offer_type   TEXT,
+  shelf_offer_year   INTEGER,
+  shelf_offer_origin TEXT,
+  chest_label        TEXT,
+  chest_cost_amount REAL,
+  chest_cost_currency TEXT,
+  shelf_offer_price_amount REAL,
+  shelf_offer_price_currency TEXT,
 
   created_at        TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
