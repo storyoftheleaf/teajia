@@ -131,6 +131,7 @@ export function ProductDetailLayout({
             {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
             {hasProductActions && actions && <ProductDetailActions {...actions} key={item.id} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
             {reading?.introduction && <p className={`${BODY} mx-5 my-[var(--space-4)] text-tea-text`}>{reading.introduction}</p>}
+            {reading?.clay && <AlcoveAboutSection reading={{ label: reading.clay.label, sections: [reading.clay] }} variant="page" />}
             {tasting}
             {visibleFacts.length > 0 && (
               <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">

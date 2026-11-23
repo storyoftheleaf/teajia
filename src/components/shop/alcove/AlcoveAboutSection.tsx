@@ -83,7 +83,8 @@ export function AlcoveAboutSection({
             {section.links?.length ? (
               <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 {section.links.map(link => <li key={link.name}>
-                  {link.href ? <Link className={`${QUIET_LINK} tap-target inline-flex items-center`} to={link.href}>{link.name} →</Link> : link.name}
+                  {link.href?.startsWith('https://') ? <a className={`${QUIET_LINK} tap-target`} href={link.href}>{link.name} →</a>
+                    : link.href ? <Link className={`${QUIET_LINK} tap-target inline-flex items-center`} to={link.href}>{link.name} →</Link> : link.name}
                 </li>)}
               </ul>
             ) : null}

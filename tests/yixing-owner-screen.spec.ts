@@ -159,6 +159,26 @@ test('review, protected photographs and the shared listing follow the saved deci
   await expect(page.getByText(shape.summary, { exact: true })).toHaveCount(0);
 });
 
+test('the owner reads a named clay suggestion beside the pot, and a denial removes it', async ({ page }) => {
+  const potWithNamedLead = { ...potWithLead, clayLead: { label: 'Possible duanni 段泥', note: 'A pale body is visible in the base view.' } };
+  await mockOwnerBoard(page, { pots: [potWithNamedLead] });
+  await page.goto(base + '/' + potWithNamedLead.id + '/listing');
+  const possible = page.getByRole('region', { name: 'Possible clay' });
+  await expect(possible.getByText(duanni.summary)).toBeVisible();
+  await possible.getByRole('link', { name: 'Review clay' }).click();
+  await page.getByRole('button', { name: 'Deny Duanni', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Undo denial' })).toBeVisible();
+  await page.getByRole('link', { name: 'Listing preview' }).click();
+  await expect(page.getByRole('region', { name: 'Clay identification' })).toBeVisible();
+  await expect(page.getByText(duanni.summary, { exact: true })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Review clay', exact: false }).click();
+  await page.getByRole('combobox', { name: 'Clay', exact: true }).selectOption(zini.id);
+  await expect(page.getByRole('status').filter({ hasText: 'Clay applied.' })).toBeVisible();
+  await page.getByRole('link', { name: 'Listing preview' }).click();
+  await expect(page.getByRole('region', { name: 'Clay', exact: true }).getByText(zini.summary)).toBeVisible();
+  await expect(page.getByText(zini.summary, { exact: true })).toHaveCount(1);
+});
+
 test('a supplied clay lead can be denied, undone and approved across reloads', async ({ page }) => {
   await mockOwnerBoard(page);
   await page.goto(base + '/' + potWithLead.id);

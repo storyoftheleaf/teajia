@@ -1,6 +1,6 @@
 import { Button } from '../../../components/shared/Button';
-import { useState, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ImageOverlayModal } from '../../../components/shop/alcove/AlcoveModals';
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
 import { BASE, EMPTY, guidePath, KINDS, potPath, saveReview, shapeEvidenceName, type ChangeClay, type ChangeShape,
@@ -16,6 +16,11 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
   draft?: Decision; onDraft: (decision: Decision) => void; onSave: (decision: Decision) => void; onReload: () => Promise<void>;
 }) {
   const [params, setParams] = useSearchParams();
+  const { hash } = useLocation();
+  const claySection = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (hash === '#clay-review') claySection.current?.scrollIntoView({ block: 'start' });
+  }, [hash, pot.id]);
   const originals = params.get('view') === 'original';
   const { urls, failed } = useReviewPhotos(pot.photos.map(p => originals ? p.originalSha256 : p.sha256), auth);
   const [zoom, setZoom] = useState<string | null>(null);
@@ -121,7 +126,7 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
             </button>
           </li>)}
         </ul>}
-        <section aria-label="Suggested clay" className="mb-3">
+        <section ref={claySection} id="clay-review" aria-label="Suggested clay" className="mb-3">
           {clayGuesses.length === 0 && <p className="text-tea-text-sec">No clay suggestion from these photos.</p>}
           {clayGuesses.map(entry => {
             const approved = draft.clay === entry.id;

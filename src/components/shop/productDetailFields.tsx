@@ -114,6 +114,7 @@ export interface ProductReading {
   label: string;
   teaser?: string;
   introduction?: string;
+  clay?: ReadingSection;
   sections: ReadingSection[];
   brewing?: string[];
 }

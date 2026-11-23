@@ -5,6 +5,7 @@ import { productGallery, productIdentity, teawareFacts, teawareReading } from '.
 import { BASE, EMPTY, guidePath, KINDS, potPath, shapeEvidenceName, type Auth, type Board, type Pot } from './data';
 import { useReviewPhotos } from './Photos';
 import { shapeEvidencePath } from './shapeData';
+import { ownerClayReading } from './clayReading';
 
 export function Listing({ board, pot, auth }: { board: Board; pot: Pot; auth: Auth }) {
   const { urls, failed } = useReviewPhotos(pot.photos.map(photo => photo.sha256), auth);
@@ -23,8 +24,13 @@ export function Listing({ board, pot, auth }: { board: Board; pot: Pot; auth: Au
     label: labels.shape, value: shapeEvidenceName(confirmed), to: shapeEvidencePath(pot.id, confirmed, true),
   });
   const facts = [...linkedFacts, ...teawareFacts(item).filter(f => !linkedFacts.some(link => link.label === f.label))];
-  const reading = teawareReading(item, null);
-  if (matches.length) reading.sections.push({ label: 'From Tea Wisdom', paragraphs: matches.map(e => e.summary) });
+  const reading = teawareReading({ ...item, description: '' }, null);
+  const [opening, ...more] = item.description.trim().split(/\n\s*\n/);
+  if (opening) reading.introduction = opening;
+  if (more.length) reading.sections.unshift({ label: 'About this piece', paragraphs: more });
+  reading.clay = ownerClayReading(pot, decision, board.reference.entries);
+  const otherReferences = matches.filter(entry => entry.kind !== 'clay' && entry.summary);
+  if (otherReferences.length) reading.sections.push({ label: 'From Tea Wisdom', paragraphs: otherReferences.map(e => e.summary) });
   return <ProductDetailLayout
     ownerPreviewNavigation={<nav aria-label="Private listing preview" className="mx-auto flex flex-wrap items-center gap-3 px-4 py-2">
       <Link className="btn-quiet btn-sm" to={potPath(pot.id)}>← Back to review</Link>
