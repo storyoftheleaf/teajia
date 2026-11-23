@@ -189,6 +189,10 @@ export const useCustomers = (options?: { enabled?: boolean }) => {
         contact_tags: Array.isArray(c.contact_tags) ? c.contact_tags : [],
         notes: c.notes || undefined,
         source: c.source || undefined,
+        // Vendor photos: the faces in the vendor gallery and pickers.
+        face_photo: c.face_photo || undefined,
+        storefront_photo: c.storefront_photo || undefined,
+        business_card_photo: c.business_card_photo || undefined,
         type: c.type || 'customer',
         userId: c.user_id || undefined,
         userLinkedAt: c.user_linked_at || undefined,

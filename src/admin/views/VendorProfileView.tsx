@@ -1,6 +1,9 @@
 import { CurateRecordTools } from '../../components/curate/CurateRecordTools';
 import { CurateQuotesPanel } from '../../components/curate/CurateQuotesPanel';
 import { CurateVendorFields } from '../../components/curate/CurateVendorFields';
+import { VendorFace } from '../../components/vendors/VendorFace';
+import { VendorFacePhotoButton } from '../../components/vendors/VendorFacePhotoButton';
+import { vendorFacePhoto } from '../../components/vendors/vendorFaces';
 /**
  * VendorProfileView, /admin/vendors/:vendorId
  *
@@ -45,9 +48,6 @@ function stockVariant(g: number): { label: string; variant: StatusPillVariant } 
   if (g < 100) return { label: 'Low', variant: 'active' };
   return { label: 'In stock', variant: 'success' };
 }
-
-const VENDOR_GRADIENT =
-  'radial-gradient(circle at 30% 30%, #c6a473, #8e6d2e 55%, #3a3126)';
 
 // ────────────────────────────────────────────────────────
 // Sub-components
@@ -173,11 +173,10 @@ export const VendorProfileView: React.FC = () => {
         {/* Identity card */}
         <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
           <div className="flex items-start gap-4">
-            <div
-              className="w-12 h-12 rounded-full flex-shrink-0"
-              style={{ background: VENDOR_GRADIENT }}
-              aria-hidden="true"
-            />
+            {/* The face Adrian knows them by. Big enough to recognise. */}
+            <div className="w-24 sm:w-28 shrink-0">
+              <VendorFace name={vendor.name} photo={vendorFacePhoto(vendor)} shape="tile" />
+            </div>
             <div className="flex-1 min-w-0">
               <h3 className="h3">{vendor.name}</h3>
               {primaryContact && (
@@ -196,6 +195,15 @@ export const VendorProfileView: React.FC = () => {
                   <StatusPill key={tag} variant="draft">{tag}</StatusPill>
                 ))}
               </div>
+              <VendorFacePhotoButton
+                vendorId={vendorId!}
+                vendorName={vendor.name}
+                hasFace={!!vendor.face_photo}
+                className="mt-3"
+              />
+              {!vendor.face_photo && vendorFacePhoto(vendor) && (
+                <p className="mt-1 text-ui-12 text-tea-text-sec">Showing their shop photo until there is a face.</p>
+              )}
             </div>
           </div>
         </section>

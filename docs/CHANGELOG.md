@@ -4,6 +4,10 @@ Scan in Curate sends the package photo to OpenAI first, using the shop's own key
 
 ## 2026-11-12: Curate's Source form follows the sitting
 
+## 2026-11-23: Vendor faces
+
+Each vendor can carry a photo of their face (`customers.face_photo`, migration 0082), added or changed from the vendor's page or from the camera on any tile in People > Suppliers > Faces, a gallery of every vendor as a face. Wherever a vendor is picked (the Curate vendor strip, Curate v2, the stock editor's supplier field, Add tea), the list shows each vendor's face beside the name and a Faces button opens the same grid to pick by sight. A vendor with no face falls back to their storefront photo, then their business card, then their initials. The customer list now also carries the storefront and business-card photos, which the Suppliers avatars were asking for and never got.
+
 ## 2026-11-21: One photo editor everywhere
 
 The people editor (portrait, gallery, QR) and the photographs on the Read stories and the home page now open the same photo editor Curate uses: the ruler to straighten, the quarter turn, enlarge, and the frame shapes. The stories' own tools (a dot to drag, a zoom slider) are retired. The people editor keeps one small step beside the editor, a tap on the face, because the page cuts a portrait three ways. The editor saves a new, already framed picture; a story keeps the untouched picture and the settings beside it so the editor reopens where it was left. Photographs placed with the old tools show exactly as before until they are edited. The editor takes a fixed frame shape (`frameAspect`), so a story frame is framed to its own proportions.
