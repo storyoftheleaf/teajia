@@ -2714,6 +2714,7 @@ ALTER TABLE customers ADD COLUMN user_linked_at TEXT;
 ALTER TABLE customers ADD COLUMN contacts TEXT;
 ALTER TABLE customers ADD COLUMN business_card_photo TEXT;
 ALTER TABLE customers ADD COLUMN storefront_photo TEXT;
+ALTER TABLE customers ADD COLUMN face_photo TEXT;
 ALTER TABLE customers ADD COLUMN latitude REAL;
 ALTER TABLE customers ADD COLUMN longitude REAL;
 ALTER TABLE customers ADD COLUMN line TEXT;

@@ -14,6 +14,9 @@ import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { VendorDetails } from './types';
+import { VendorFace } from '../vendors/VendorFace';
+import { VendorFaceSheet, VendorFacesButton } from '../vendors/VendorFaceSheet';
+import { toFaceVendor } from '../vendors/vendorFaces';
 
 /* ── Location parsing ───────────────────────────────────────
  * Pull WGS-84 coordinates out of a pasted map link OR a plain "lat, lng"
@@ -101,6 +104,11 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const vendors = useMemo(() => (customers.data ?? []).filter(customer =>
     customer.tags?.some(tag => tag.toLowerCase() === 'vendor')), [customers.data]);
   const [creatingNew, setCreatingNew] = useState(false);
+  // Pick by face (Adrian, 2026-11-23): every vendor as a photo, for when the
+  // face comes back before the name does.
+  const [facesOpen, setFacesOpen] = useState(false);
+  const faceVendors = useMemo(() => vendors.map(vendor => toFaceVendor(vendor)), [vendors]);
+  const photoByName = useMemo(() => new Map(faceVendors.map(v => [v.name.toLowerCase(), v.photo])), [faceVendors]);
   const [newName, setNewName] = useState('');
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [locInput, setLocInput] = useState('');
@@ -515,6 +523,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             >
               <X size={14} />
             </button>
+            <VendorFacesButton onClick={() => setFacesOpen(true)} label="" />
           </>
         ) : (
           <div className="flex-1 min-w-0 relative">
@@ -581,7 +590,10 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                             }}
                             className="tap-target flex min-h-tap items-center justify-between w-full px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
                           >
-                            <span>{v.name}</span>
+                            <span className="flex min-w-0 items-center gap-2">
+                              <VendorFace name={v.name} photo={photoByName.get(v.name.toLowerCase())} size={24} />
+                              <span className="truncate">{v.name}</span>
+                            </span>
                             {v.isRecent && <span className="text-ui-12 text-tea-text-dim shrink-0 ml-2">recent</span>}
                           </button>
                         ))}
@@ -616,7 +628,18 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             </AnimatePresence>
           </div>
         )}
+        {!vendorName && (
+          <VendorFacesButton onClick={() => { setSearchOpen(false); setFacesOpen(true); }} />
+        )}
       </div>
+      <VendorFaceSheet
+        open={facesOpen}
+        onClose={() => setFacesOpen(false)}
+        vendors={faceVendors}
+        loading={customers.isFetching}
+        selectedName={vendorName}
+        onPick={v => { setSearchQuery(''); setSearchOpen(false); void handleSelectVendor(v.id, v.name); }}
+      />
 
       {/* ── New vendor input (only when creating) ── */}
       <AnimatePresence>

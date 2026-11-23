@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, hasToken } from '../../lib/api';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { VendorFace } from '../vendors/VendorFace';
+import { VendorFaceSheet, VendorFacesButton } from '../vendors/VendorFaceSheet';
+import { toFaceVendor, vendorFacePhoto } from '../vendors/vendorFaces';
 
 interface VendorPickerProps {
   /**
@@ -16,7 +19,7 @@ interface VendorPickerProps {
   placeholder?: string;
 }
 
-interface Vendor { id?: string; name: string }
+interface Vendor { id?: string; name: string; photo?: string }
 
 /** True when a customer's tags say vendor, whether they arrive as an array or a string. */
 export const isVendorTagged = (tags: unknown): boolean => {
@@ -35,6 +38,9 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
   const entries = useTeaCompassStore((s) => s.entries);
   const pendingEntries = useTeaCompassStore((s) => s.pendingEntries);
   const [shopVendors, setShopVendors] = useState<Vendor[]>([]);
+  // Every shop vendor as a face, for picking by sight (Adrian, 2026-11-23).
+  const [faceRows, setFaceRows] = useState<ReturnType<typeof toFaceVendor>[]>([]);
+  const [facesOpen, setFacesOpen] = useState(false);
   const [query, setQuery] = useState('');
   // "New vendor…" with nothing typed: the same input becomes the name field.
   const [adding, setAdding] = useState(false);
@@ -48,11 +54,11 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
   useEffect(() => {
     if (!hasToken()) return;
     let live = true;
-    listing.current = api.customers.list()
-      .then((res: any) => ((res?.customers || res || []) as any[])
-        .filter((c) => isVendorTagged(c.tags))
-        .map((c) => ({ id: c.id, name: c.name })) as Vendor[])
-      .catch(() => [] as Vendor[]);
+    const rowsArrived = api.customers.list()
+      .then((res: any) => ((res?.customers || res || []) as any[]).filter((c) => isVendorTagged(c.tags)))
+      .catch(() => [] as any[]);
+    listing.current = rowsArrived.then((rows) => rows.map((c) => ({ id: c.id, name: c.name, photo: vendorFacePhoto(c) })) as Vendor[]);
+    void rowsArrived.then((rows) => { if (live) setFaceRows(rows.map((c) => toFaceVendor(c))); });
     listing.current.then((list) => { listed.current = true; if (live) setShopVendors(list); });
     return () => { live = false; };
   }, []);
@@ -80,7 +86,7 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
       seen.add(key);
       // A recent name the shop knows carries the shop's id.
       const known = shopVendors.find((s) => s.name.toLowerCase() === key);
-      out.push({ id: v.id ?? known?.id, name: v.name, recent: true });
+      out.push({ id: v.id ?? known?.id, name: v.name, photo: known?.photo, recent: true });
     }
     for (const v of shopVendors) {
       const key = v.name.toLowerCase();
@@ -157,6 +163,7 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
             Add
           </button>
         )}
+        {!adding && <VendorFacesButton onClick={() => setFacesOpen(true)} />}
         {onCancel && (
           <button type="button" onClick={onCancel} aria-label="Close vendor list" className="curate-v2-word tap-target flex min-h-tap items-center justify-center text-tea-text-sec hover:text-tea-text">
             close
@@ -179,6 +186,7 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
           <div className="max-h-[50vh] overflow-y-auto">
             {rows.map((v) => (
               <button key={v.id ?? v.name} type="button" onClick={() => choose(v)} className="curate-v2-row w-full text-left">
+                <VendorFace name={v.name} photo={v.photo} size={28} className="mr-2" />
                 <span className="curate-v2-name">{v.name}</span>
                 <span className="flex-1" />
                 {v.recent && <span className="curate-v2-label">recent</span>}
@@ -187,6 +195,13 @@ export const VendorPicker: React.FC<VendorPickerProps> = ({ onPick, onCancel, au
           </div>
         </>
       )}
+      <VendorFaceSheet
+        open={facesOpen}
+        onClose={() => setFacesOpen(false)}
+        vendors={faceRows}
+        loading={!listed.current}
+        onPick={(v) => choose({ id: v.id, name: v.name })}
+      />
     </div>
   );
 };

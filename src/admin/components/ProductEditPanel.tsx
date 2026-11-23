@@ -1,4 +1,7 @@
 import { CapturePhotoImage, getStockCapturePhotoId, useCapturePhotoUrl } from '../../components/curate/CapturePhotoImage';
+import { VendorFace } from '../../components/vendors/VendorFace';
+import { VendorFaceSheet, VendorFacesButton } from '../../components/vendors/VendorFaceSheet';
+import { toFaceVendor } from '../../components/vendors/vendorFaces';
 import { capturePhotoApi } from '../../lib/capturePhotoApi';
 import { enteredYear } from '../enteredYear';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -272,6 +275,15 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
   const [query, setQuery] = useState(value);
   const [vendorError, setVendorError] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const [facesOpen, setFacesOpen] = useState(false);
+  const faceVendors = useMemo(
+    () => customers.filter(c => c.tags?.includes('vendor')).map(c => toFaceVendor(c)),
+    [customers]
+  );
+  const photoByName = useMemo(
+    () => new Map(faceVendors.map(v => [v.name.toLowerCase(), v.photo])),
+    [faceVendors]
+  );
 
   const vendors = useMemo(
     () => customers.filter(c => c.tags?.includes('vendor')).map(c => c.name).sort((a, b) => a.localeCompare(b)),
@@ -327,6 +339,7 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
 
   return (
     <div ref={wrapperRef} className="relative flex-1">
+      <div className="flex items-center gap-1 min-w-0">
       <input
         type="text"
         value={query}
@@ -344,6 +357,15 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
         aria-label="Supplier for this tea"
         placeholder="Pick a supplier for this tea..."
       />
+      <VendorFacesButton onClick={() => { setOpen(false); setFacesOpen(true); }} label="" />
+      </div>
+      <VendorFaceSheet
+        open={facesOpen}
+        onClose={() => setFacesOpen(false)}
+        vendors={faceVendors}
+        selectedName={value}
+        onPick={v => { setQuery(v.name); void handleSelectVendor(v.name); }}
+      />
       {vendorError && <p role="alert" className="mt-1 text-ui-12 text-tea-text-sec">{vendorError}</p>}
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-xl shadow-lg max-h-48 overflow-y-auto">
@@ -355,8 +377,9 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
           )}
           {filtered.map(v => (
             <button key={v} type="button" onMouseDown={e => e.preventDefault()} onClick={() => { setQuery(v); handleSelectVendor(v); }}
-              className={`w-full text-left px-3 py-2 text-xs hover:bg-tea-bg transition-colors ${v === value ? 'text-tea-gold font-medium' : 'text-tea-text'}`}>
-              {v}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-tea-bg transition-colors flex items-center gap-2 ${v === value ? 'text-tea-gold font-medium' : 'text-tea-text'}`}>
+              <VendorFace name={v} photo={photoByName.get(v.toLowerCase())} size={24} />
+              <span className="truncate">{v}</span>
             </button>
           ))}
         </div>

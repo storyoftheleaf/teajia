@@ -335,6 +335,9 @@ export interface Customer {
   // list/get as snake_case; used for the Sources thumbnail and map link.
   business_card_photo?: string;
   storefront_photo?: string;
+  /** A photo of the vendor's face (migration 0082), shown first wherever a
+   *  vendor is picked, so a vendor remembered by face can be found by face. */
+  face_photo?: string;
   latitude?: number;
   longitude?: number;
   createdAt: string;

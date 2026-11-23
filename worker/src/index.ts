@@ -10191,7 +10191,7 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
     foldHandlesIntoContacts(body, row?.contacts);
   }
 
-  const CUSTOMER_ALLOWED_COLS = new Set(['name','chinese_name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
+  const CUSTOMER_ALLOWED_COLS = new Set(['name','chinese_name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','face_photo','latitude','longitude']);
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   const supplier = customerTagList(authorized.customer.tags).some(tag => tag.toLowerCase() === 'vendor')
     || authorized.customer.type === 'vendor' || authorized.customer.type === 'supplier';
