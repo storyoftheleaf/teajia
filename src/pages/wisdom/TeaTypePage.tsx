@@ -19,6 +19,7 @@ import {
   WisdomSubNav,
 } from './wisdomShared';
 import ReferenceFactSections from './ReferenceFactSections';
+import WisdomCitedIn from './WisdomCitedIn';
 import { previewPlaceLevel } from './previewOriginMetadata';
 import { ClaimPage } from './GradePage';
 import { WISDOM_PILOT_PREVIEW, useWisdomPilotData } from './wisdomPilotData';
@@ -98,6 +99,7 @@ const TeaTypePage: React.FC = () => {
               </IndexList>
             </section>
           )}
+          <WisdomCitedIn pageId={type.id} />
           <ReferenceFactSections
             facts={type.facts}
             sources={catalogue?.sources ?? []}

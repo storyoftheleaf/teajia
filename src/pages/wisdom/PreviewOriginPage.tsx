@@ -19,6 +19,7 @@ import {
   WisdomSubNav,
 } from './wisdomShared';
 import ReferenceFactSections from './ReferenceFactSections';
+import WisdomCitedIn from './WisdomCitedIn';
 import { previewPlaceLevel } from './previewOriginMetadata';
 import { mapSearchLink } from './mapLinks';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
@@ -151,6 +152,7 @@ const PreviewOriginPage: React.FC<{ id: string; fallback?: React.ReactNode }> = 
             </section>
           )}
 
+          <WisdomCitedIn pageId={origin.id} />
           <ReferenceFactSections
             facts={origin.facts}
             sources={catalogue?.sources ?? []}

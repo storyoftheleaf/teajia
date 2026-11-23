@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { ArticleClaimUse } from '../../wisdom/reference/claims';
-import { claimUseFlag, reviewClaimUse, wisdomDestinations } from './articleClaimUses';
+import {
+  addClaimUse,
+  claimUseFlag,
+  markClaimUseReviewed,
+  removeClaimUse,
+  reviewClaimUse,
+  searchClaims,
+  suggestClaimsForBlock,
+  wisdomDestinations,
+} from './articleClaimUses';
 import { GRADE_PILOT_PAGES, gongTingDefinition, gradePilotClaims } from './gradePilotFixtures';
 
 const prose: ArticleClaimUse = { articleId: 'a', blockIndex: 2, claimId: 'gong-ting:definition', revUsed: 1, useKind: 'prose' };
@@ -57,5 +66,32 @@ describe('Wisdom destinations from an article', () => {
       '/wisdom/grade/gong-ting',
       '/wisdom/region/menghai-county',
     ]);
+  });
+});
+
+describe('editing an article’s claim uses, for any tea', () => {
+  const claims = gradePilotClaims(2);
+
+  it('records a claim at its current revision, and re-adding the pair replaces it', () => {
+    const once = addClaimUse([], 'a', 2, gongTingDefinition(2), 'prose');
+    expect(once).toEqual([{ articleId: 'a', blockIndex: 2, claimId: 'gong-ting:definition', revUsed: 2, useKind: 'prose' }]);
+    const again = addClaimUse(once, 'a', 2, gongTingDefinition(2), 'live_block');
+    expect(again).toHaveLength(1);
+    expect(again[0].useKind).toBe('live_block');
+    expect(addClaimUse([], 'a', 0, { claimId: 'x:draft', rev: null }, 'prose')).toEqual([]);
+  });
+
+  it('clears the flag once the sentence is marked reviewed at the current revision', () => {
+    const marked = markClaimUseReviewed([prose], prose, 2);
+    expect(reviewClaimUse(marked[0], claims).needsReview).toBe(false);
+    expect(removeClaimUse(marked, marked[0])).toEqual([]);
+  });
+
+  it('suggests the claims of every page a block names, and searches by term or pinyin', () => {
+    const block = 'Special grade allows some tender stems, unlike Gong Ting.';
+    const suggested = suggestClaimsForBlock(block, claims, GRADE_PILOT_PAGES).map(claim => claim.pageId);
+    expect(new Set(suggested)).toEqual(new Set(['gong-ting', 'special-grade']));
+    expect(searchClaims('qiji', claims).map(claim => claim.claimId)).toContain('seventh-grade:definition');
+    expect(searchClaims('特级', claims).map(claim => claim.claimId)).toContain('special-grade:definition');
   });
 });

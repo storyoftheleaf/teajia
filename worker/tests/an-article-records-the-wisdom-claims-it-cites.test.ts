@@ -112,7 +112,7 @@ describe('article Wisdom claim uses', () => {
       ['grade-draft', 'draft'],
       ['grade-live', 'published'],
     ]);
-    expect(admin.articles[0].claim_ids).toEqual(['gong-ting:common-impressions', 'gong-ting:definition']);
+    expect(admin.articles[0].claim_ids).toEqual(['gong-ting:common-impressions', 'gong-ting:definition', 'special-grade:definition']);
 
     const reader = await (await call(env, 'GET', '/api/wisdom/claim-uses/articles?page_id=gong-ting', null)).json() as any;
     expect(reader.articles).toEqual([]);

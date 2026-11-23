@@ -9,7 +9,8 @@
  * Routes:
  * - GET  /api/admin/articles/:id/wisdom-claim-uses   the article's uses (publish bundle, own account)
  * - PUT  /api/admin/articles/:id/wisdom-claim-uses   replace them all in one batch
- * - GET  /api/admin/wisdom-claim-uses?page_id=…      the account's articles citing a Wisdom page, drafts included
+ * - GET  /api/admin/wisdom-claim-uses?page_id=…      the account's articles citing a Wisdom page, drafts included,
+ *                                                    each with every claim it cites
  * - GET  /api/wisdom/claim-uses/articles?page_id=…   published articles only, for signed-out readers
  *
  * The public article response carries its uses too (`publicArticleClaimUses`).
@@ -199,13 +200,17 @@ export function articleWisdomClaimUseRoutes<E extends ArticleClaimUseEnv>(
     const where = scope === 'published'
       ? `a.status = 'published'`
       : `a.account_id = ? AND a.status != 'archived'`;
-    const binds: unknown[] = scope === 'published' ? [`${pageId}:%`] : [`${pageId}:%`, scope.accountId];
+    const binds: unknown[] = scope === 'published' ? [`${pageId}:%`] : [scope.accountId, `${pageId}:%`];
     try {
       const rows = await env.DB.prepare(
+        // Every claim each citing article uses, not just this page's, so a page
+        // can link to the other Wisdom pages read alongside it.
         `SELECT a.id, a.title, a.slug, a.status, group_concat(DISTINCT u.claim_id) AS claim_ids
            FROM article_wisdom_claim_uses u
            JOIN articles a ON a.id = u.article_id AND a.account_id = u.account_id
-          WHERE u.claim_id LIKE ? AND ${where}
+          WHERE ${where}
+            AND EXISTS (SELECT 1 FROM article_wisdom_claim_uses mine
+                         WHERE mine.article_id = u.article_id AND mine.account_id = u.account_id AND mine.claim_id LIKE ?)
           GROUP BY a.id
           ORDER BY a.title ASC`,
       ).bind(...binds).all<{ id: string; title: string; slug: string; status: string; claim_ids: string | null }>();

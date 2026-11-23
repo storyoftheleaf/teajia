@@ -19,6 +19,7 @@ import {
   WisdomSubNav,
 } from './wisdomShared';
 import ReferenceFactSections from './ReferenceFactSections';
+import WisdomCitedIn from './WisdomCitedIn';
 
 const TeaFamilyPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -69,6 +70,7 @@ const TeaFamilyPage: React.FC = () => {
               ))}
             </IndexList>
           </section>
+          <WisdomCitedIn pageId={family.id} />
           <ReferenceFactSections
             facts={family.facts}
             sources={catalogue?.sources ?? []}

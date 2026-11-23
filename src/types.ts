@@ -1418,6 +1418,8 @@ export interface DbArticle {
   created_at: string;
   updated_at: string;
   blocks_preview?: string;
+  /** Tea Wisdom claims the article cites (public article response). */
+  wisdom_claim_uses?: Array<{ article_id: string; block_index: number; claim_id: string; rev_used: number; use_kind: 'prose' | 'live_block' }>;
 }
 
 // ── Collections (Phase 1) ───────────────────────────────────────────────────

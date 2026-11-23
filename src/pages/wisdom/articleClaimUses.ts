@@ -133,3 +133,74 @@ export function wisdomDestinations(
   }
   return out;
 }
+
+// ── Editing an article's uses ────────────────────────────────────────────────
+
+/** What the worker's replace route takes. */
+export interface ClaimUseInput {
+  block_index: number;
+  claim_id: string;
+  rev_used: number;
+  use_kind: 'prose' | 'live_block';
+}
+
+export function toClaimUseInput(use: ArticleClaimUse): ClaimUseInput {
+  return { block_index: use.blockIndex, claim_id: use.claimId, rev_used: use.revUsed, use_kind: use.useKind };
+}
+
+const sameUse = (a: Pick<ArticleClaimUse, 'blockIndex' | 'claimId'>, b: Pick<ArticleClaimUse, 'blockIndex' | 'claimId'>) =>
+  a.blockIndex === b.blockIndex && a.claimId === b.claimId;
+
+/** A claim can be cited only at an approved revision that is still public. */
+export function citableClaims<T extends PublicClaim>(claims: readonly T[]): T[] {
+  return claims.filter(claim => claim.rev !== null && claim.reviewState !== 'withdrawn');
+}
+
+/** Record a claim on a block at its current revision. Re-adding the same pair replaces it. */
+export function addClaimUse(
+  uses: readonly ArticleClaimUse[],
+  articleId: string,
+  blockIndex: number,
+  claim: Pick<PublicClaim, 'claimId' | 'rev'>,
+  useKind: ArticleClaimUse['useKind'],
+): ArticleClaimUse[] {
+  if (claim.rev === null) return [...uses];
+  const next: ArticleClaimUse = { articleId, blockIndex, claimId: claim.claimId, revUsed: claim.rev, useKind };
+  return [...uses.filter(use => !sameUse(use, next)), next].sort((a, b) => a.blockIndex - b.blockIndex || a.claimId.localeCompare(b.claimId));
+}
+
+export function removeClaimUse(uses: readonly ArticleClaimUse[], target: ArticleClaimUse): ArticleClaimUse[] {
+  return uses.filter(use => !sameUse(use, target));
+}
+
+/** After the sentence has been checked against the new text: the use now rests on the current revision. */
+export function markClaimUseReviewed(uses: readonly ArticleClaimUse[], target: ArticleClaimUse, currentRev: number): ArticleClaimUse[] {
+  return uses.map(use => (sameUse(use, target) ? { ...use, revUsed: currentRev } : use));
+}
+
+const words = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[’']/g, '');
+
+/**
+ * Claims whose page is named in a block's text come first, so a writer working
+ * on any tea sees the likely entries without searching. A page is "named" when
+ * its label appears in the block; a page label shorter than four letters never
+ * counts, to keep "Tea" and similar from matching everything.
+ */
+export function suggestClaimsForBlock<T extends PublicClaim>(
+  blockText: string,
+  claims: readonly T[],
+  pages: readonly Pick<DraftReferencePage, 'id' | 'label'>[],
+): T[] {
+  const text = words(blockText);
+  const named = new Set(pages.filter(page => page.label.length >= 4 && text.includes(words(page.label))).map(page => page.id));
+  return citableClaims(claims).filter(claim => named.has(claim.pageId));
+}
+
+export function searchClaims<T extends PublicClaim>(query: string, claims: readonly T[], limit = 30): T[] {
+  const needle = words(query.trim());
+  const citable = citableClaims(claims);
+  if (!needle) return citable.slice(0, limit);
+  return citable
+    .filter(claim => words(`${claim.claimId} ${claim.label} ${claim.text} ${claim.terms.map(term => `${term.original} ${term.pinyin} ${term.gloss}`).join(' ')}`).includes(needle))
+    .slice(0, limit);
+}

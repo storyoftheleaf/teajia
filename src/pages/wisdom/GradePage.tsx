@@ -10,22 +10,18 @@
  * tea-reference-preview build, from the draft module or the pilot fixtures
  * (wisdomPilotData.ts). A production visitor gets the not-found page.
  *
- * Links out: the place the grade is used (Menghai County), the parent
- * tea type when it is public, and the articles that cite the grade. A
- * signed-out reader gets published articles and public pages only.
+ * Links out come from data, for any grade: the parent tea type when it is
+ * public, the articles that cite the grade, and the other Wisdom pages those
+ * articles cite (WisdomCitedIn). A signed-out reader gets published articles
+ * and public pages only.
  */
 import React, { useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { usePrivateQueryScope } from '../../admin/hooks/usePrivateQueryScope';
-import { selectHasBundle, useAppStore } from '../../lib/store';
-import { wisdomClaimUsesApi } from '../../lib/wisdomClaimUsesApi';
 import type { PublicReferenceStatement } from '../../wisdom/receiving/previewImporter';
 import type { DraftClaim, PublicClaim, PublicTeaReferenceSource } from '../../wisdom/reference/claims';
 import {
   AXIS_INDENT,
-  FACT,
   FOOTNOTE,
   Fact,
   HoldingNotFound,
@@ -47,12 +43,7 @@ import { normalizeTeaType } from '../../wisdom/vocabulary';
 /** A tea_type page id and the recorded type its teas carry. */
 const TYPE_OF_PAGE: Record<string, string> = { shou: 'Shou', sheng: 'Sheng' };
 
-/** Where the grade name is used: the pilot grades are Menghai loose ripe pu'er grades. */
-const STANDARD_PLACE: Record<string, string> = {
-  'gong-ting': 'menghai-county',
-  'special-grade': 'menghai-county',
-  'seventh-grade': 'menghai-county',
-};
+import WisdomCitedIn from './WisdomCitedIn';
 
 type AnyClaim = DraftClaim | PublicClaim;
 
@@ -127,9 +118,6 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
       : []),
     [kind, id, publicProducts],
   );
-  const scope = usePrivateQueryScope();
-  const canPublish = useAppStore(state => selectHasBundle(state, 'publish'));
-  const canReadDraftArticles = scope.ready && canPublish;
 
   const page = data?.pages.find(candidate => candidate.id === id && candidate.kind === kind);
   const claims = useMemo(
@@ -146,23 +134,11 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
   const claimById = useMemo(() => new Map(claims.map(claim => [claim.claimId, claim])), [claims]);
   const statements = useMemo(() => claims.map(claim => asStatement(claim, data?.sources ?? [])), [claims, data]);
 
-  const places = useMemo(() => {
-    if (!page || !data) return [];
-    const candidates = [STANDARD_PLACE[page.id], page.parentId].filter((value): value is string => Boolean(value));
-    return wisdomDestinations(candidates.map(pageId => `${pageId}:page`), data.pages, false);
+  const parentType = useMemo(() => {
+    if (!page?.parentId || !data) return undefined;
+    // Public pages only: a signed-out reader is never sent to a draft.
+    return wisdomDestinations([`${page.parentId}:page`], data.pages, false)[0];
   }, [data, page]);
-  const standardPlace = places.find(place => place.pageId === STANDARD_PLACE[page?.id ?? '']);
-  const parentType = places.find(place => place.pageId === page?.parentId);
-
-  const citing = useQuery({
-    queryKey: ['wisdom-citing-articles', id, ...(canReadDraftArticles ? scope.key : ['public'])],
-    queryFn: () => wisdomClaimUsesApi.citingPage(id, canReadDraftArticles),
-    enabled: Boolean(page),
-    staleTime: 60_000,
-  });
-  const articles = (citing.data?.articles ?? []).filter(article => (
-    article.status === undefined || article.status === 'published' || (canReadDraftArticles && article.status === 'draft')
-  ));
 
   // A link from a tea's entry lands on the section it named.
   useEffect(() => {
@@ -208,34 +184,9 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
                 <Link to={parentType.href} className={`${QUIET_LINK} tap-target`}>{parentType.label}</Link>
               </Fact>
             )}
-            {standardPlace && (
-              <Fact label="Graded in">
-                <Link to={standardPlace.href} className={`${QUIET_LINK} tap-target`} data-grade-standard-place>
-                  {standardPlace.label}
-                </Link>
-              </Fact>
-            )}
-            {articles.length > 0 && (
-              <Fact label="Cited in">
-                <span className="flex flex-col gap-1">
-                  {articles.map(article => (
-                    <span key={article.id}>
-                      <Link
-                        to={article.status === 'draft'
-                          ? `/admin/magazine?article=${encodeURIComponent(article.id)}`
-                          : `/article/${encodeURIComponent(article.slug)}`}
-                        className={`${QUIET_LINK} tap-target`}
-                        data-grade-citing-article={article.slug}
-                      >
-                        {article.title}
-                      </Link>
-                      {article.status === 'draft' && <span className={FOOTNOTE}> Draft</span>}
-                    </span>
-                  ))}
-                </span>
-              </Fact>
-            )}
           </div>
+
+          <WisdomCitedIn pageId={page.id} />
 
           <ReferenceFactSections
             facts={statements}
@@ -248,11 +199,6 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
             }}
           />
 
-          {citing.isError && (
-            <p role="status" className={`${FACT} ${MEASURE} ${AXIS_INDENT} ${SPACE.section}`}>
-              The articles citing this grade could not be loaded.
-            </p>
-          )}
         </>
       )}
     </article>

@@ -9,6 +9,7 @@ import { ReadingProgress } from '../components/immersive/ReadingProgress';
 import { renderBlock } from '../components/immersive/sections';
 import { SharePanel } from '../components/article/SharePanel';
 import { GlossaryScope, TermStyle, storyTermLinker } from '../components/reader/GlossaryTerms';
+import { ArticleWisdomLinks } from './wisdom/ArticleWisdomLinks';
 import '../styles/reader-animations.css';
 
 export default function ImmersiveArticlePage() {
@@ -62,6 +63,7 @@ export default function ImmersiveArticlePage() {
           }))}
         </article>
       </GlossaryScope>
+      <ArticleWisdomLinks uses={article.wisdom_claim_uses} />
       {shareOpen && <SharePanel page={null} article={article} onClose={() => setShareOpen(false)} />}
     </div>
   );
