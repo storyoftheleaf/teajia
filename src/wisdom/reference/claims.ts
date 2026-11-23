@@ -75,6 +75,8 @@ export interface PublicClaim {
   sectionKey: string;
   label: string;
   axis: ClaimAxis;
+  /** 'trade_knowledge' claims are written in our own words and carry no citation. */
+  basis: 'sourced' | 'trade_knowledge';
   listingEligible: boolean;
   appliesWhen: ClaimAppliesWhen;
   attribution?: ClaimAttribution;
