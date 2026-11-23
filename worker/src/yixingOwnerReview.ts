@@ -4,7 +4,7 @@ const API = '/api/admin/yixing';
 const PREFIX = 'owner-review/' + ACCOUNT + '/yixing/v1/';
 const FIELDS = ['clay', 'color', 'shape'] as const;
 type Kind = typeof FIELDS[number];
-type Decision = Record<Kind, string> & { note: string; revision: number };
+type Decision = Record<Kind, string> & { note: string; revision: number; rejectedClays?: string[] };
 type Decisions = Record<string, Decision>;
 interface Board {
   version: number;
@@ -35,7 +35,15 @@ function decisionFrom(input: unknown, board: Board): Decision | null {
   for (const kind of FIELDS) {
     if (typeof row[kind] !== 'string' || (row[kind] && !board.reference.entries.some(e => e.kind === kind && e.id === row[kind]))) return null;
   }
-  return { clay: row.clay as string, color: row.color as string, shape: row.shape as string, note: row.note.trim(), revision: row.revision };
+  const decision: Decision = { clay: row.clay as string, color: row.color as string, shape: row.shape as string, note: row.note.trim(), revision: row.revision };
+  if (row.rejectedClays !== undefined) {
+    const rejected = row.rejectedClays;
+    const clays = new Set(board.reference.entries.filter(entry => entry.kind === 'clay').map(entry => entry.id));
+    if (!Array.isArray(rejected) || rejected.length > clays.size || new Set(rejected).size !== rejected.length
+      || !rejected.every(id => typeof id === 'string' && clays.has(id) && id !== decision.clay)) return null;
+    decision.rejectedClays = rejected;
+  }
+  return decision;
 }
 
 async function readDecisions(bucket: R2Bucket, key: string) {
@@ -54,14 +62,19 @@ async function saveDecision(request: Request, board: Board, potId: string, bucke
   let value: unknown;
   try { value = JSON.parse(text); } catch { return json({ error: 'Invalid JSON review' }, 400); }
   const next = decisionFrom(value, board);
-  if (!next) return json({ error: 'Choose a reference for each confirmed field and keep the note under 1,601 characters.' }, 400);
+  if (!next) return json({ error: 'Check your reference choices and rejected clays. Keep the note under 1,601 characters.' }, 400);
 
   // Conditional writes protect both simultaneous edits to one pot and edits to
   // separate pots in the same private board. Retry only the latter.
   for (let attempt = 0; attempt < 3; attempt++) {
     const { decisions, etag } = await readDecisions(bucket, key);
-    if (next.revision !== (decisions[potId]?.revision ?? 0)) break;
+    const previous = decisions[potId];
+    if (next.revision !== (previous?.revision ?? 0)) break;
     const saved = { ...next, revision: next.revision + 1 };
+    // Older clients send only confirmed fields. Confirming a clay supersedes its rejection.
+    if (next.rejectedClays === undefined && previous?.rejectedClays) {
+      saved.rejectedClays = previous.rejectedClays.filter(id => id !== next.clay);
+    }
     const result = await bucket.put(key, JSON.stringify({ ...decisions, [potId]: saved }), {
       onlyIf: etag ? { etagMatches: etag } : { etagDoesNotMatch: '*' },
       httpMetadata: { contentType: 'application/json' },

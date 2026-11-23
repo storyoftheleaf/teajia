@@ -7,7 +7,7 @@ const account = 'acc_teajia_bali';
 const prefix = 'owner-review/' + account + '/yixing/v1/';
 const hash = 'a'.repeat(64);
 const board = { version: 1, ownerUserId: 'personal-owner', pots: [{ id: 'pots-04', name: 'Private pot' }, { id: 'pots-02' }],
-  reference: { entries: [{ id: 'shape-hexagonal', kind: 'shape' }, { id: 'clay-zini', kind: 'clay' }] } };
+  reference: { entries: [{ id: 'shape-hexagonal', kind: 'shape' }, { id: 'clay-zini', kind: 'clay' }, { id: 'clay-zhuni', kind: 'clay' }] } };
 const initial = { clay: '', color: '', shape: '', note: '', revision: 0 };
 const databases: SqliteD1[] = [];
 
@@ -91,5 +91,39 @@ describe('personal Yixing pot review', () => {
     const readback = await (await call(base)).json() as { decisions: Record<string, typeof initial> };
     expect(readback.decisions['pots-04']).toEqual({ ...initial, revision: 2 });
     expect(readback.decisions['pots-02'].clay).toBe('clay-zini');
+  });
+
+  it('accepts only distinct known clay rejections compatible with the confirmed clay', async () => {
+    const { call } = setup();
+    const path = base + '/pots/pots-04';
+    for (const rejectedClays of [null, 'clay-zhuni', [42], ['unknown'], ['shape-hexagonal'], ['clay-zhuni', 'clay-zhuni'],
+      ['clay-zini', 'clay-zhuni', 'unknown'], ['clay-zini']]) {
+      expect((await call(path, 'personal-owner', 'PUT', { ...initial, clay: 'clay-zini', rejectedClays })).status).toBe(400);
+    }
+    expect(await (await call(base)).json()).toMatchObject({ decisions: {} });
+    const valid = { ...initial, clay: 'clay-zini', rejectedClays: ['clay-zhuni'] };
+    expect(await (await call(path, 'personal-owner', 'PUT', valid)).json()).toEqual({ ...valid, revision: 1 });
+  });
+
+  it('keeps private rejections per pot across legacy saves until confirmed or explicitly cleared', async () => {
+    const { call } = setup();
+    const put = (id: string, data: unknown) => call(base + '/pots/' + id, 'personal-owner', 'PUT', data);
+    const rejectedClays = ['clay-zhuni', 'clay-zini'];
+    const saves = await Promise.all([
+      put('pots-04', { ...initial, rejectedClays }),
+      put('pots-02', { ...initial, rejectedClays: ['clay-zini'] }),
+    ]);
+    expect(saves.map(s => s.status)).toEqual([200, 200]);
+    const shape = { ...initial, revision: 1, shape: 'shape-hexagonal' };
+    expect(await (await put('pots-04', shape)).json()).toEqual({ ...shape, revision: 2, rejectedClays });
+    expect((await put('pots-04', { ...shape, rejectedClays: [] })).status).toBe(409);
+    const confirm = { ...shape, revision: 2, clay: 'clay-zhuni' };
+    expect(await (await put('pots-04', confirm)).json()).toEqual({ ...confirm, revision: 3, rejectedClays: ['clay-zini'] });
+    const clear = { ...confirm, revision: 3, rejectedClays: [] };
+    expect((await put('pots-04', clear)).status).toBe(200);
+    expect(await (await call(base)).json()).toMatchObject({ decisions: {
+      'pots-04': { ...clear, revision: 4 },
+      'pots-02': { rejectedClays: ['clay-zini'], revision: 1 },
+    } });
   });
 });

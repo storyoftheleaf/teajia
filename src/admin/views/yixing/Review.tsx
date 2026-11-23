@@ -2,14 +2,14 @@ import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ImageOverlayModal } from '../../../components/shop/alcove/AlcoveModals';
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
-import { BASE, EMPTY, guidePath, KINDS, potPath, saveReview, type Auth, type Board, type Decision, type Pot } from './data';
+import { BASE, EMPTY, guidePath, KINDS, potPath, saveReview, type ChangeClay, type ClayAction, type Auth, type Board, type Decision, type Pot } from './data';
 import { useReviewPhotos } from './Photos';
 
 const FIELD_LABELS = { clay: 'Clay', color: 'Observed fired color', shape: 'Shape' };
 const fieldClass = 'mt-1 block w-full min-w-0 rounded-md border border-tea-border bg-tea-surface p-2 text-tea-text';
 
-export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onReload }: {
-  board: Board; pot: Pot; auth: Auth; draft?: Decision; onDraft: (decision: Decision) => void; onSave: (decision: Decision) => void; onReload: () => Promise<void>;
+export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onReload, onClay }: {
+  board: Board; pot: Pot; auth: Auth; onClay: ChangeClay; draft?: Decision; onDraft: (decision: Decision) => void; onSave: (decision: Decision) => void; onReload: () => Promise<void>;
 }) {
   const [params, setParams] = useSearchParams();
   const originals = params.get('view') === 'original';
@@ -22,6 +22,23 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
   const { entries } = board.reference;
   const idx = board.pots.findIndex(p => p.id === pot.id);
   const comparisons = pot.comparisonIds.flatMap(id => entries.filter(e => e.id === id));
+
+  const clayGuesses = comparisons.filter(entry => entry.kind === 'clay');
+  const otherComparisons = comparisons.filter(entry => entry.kind !== 'clay');
+
+  async function chooseClay(id: string, action: ClayAction) {
+    if (saving || conflict) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      setDraft(await onClay(pot.id, id, action, draft.revision));
+      setMessage(action === 'approve' ? (id ? 'Clay applied.' : 'Clay cleared.')
+        : action === 'deny' ? 'Suggestion denied.' : 'Denial undone.');
+    } catch (error) {
+      setConflict(error instanceof Error && 'status' in error && error.status === 409);
+      setMessage(error instanceof Error ? error.message : 'Unable to save the clay decision.');
+    } finally { setSaving(false); }
+  }
 
   function edit(key: 'note' | typeof KINDS[number], value: string) {
     const next = { ...draft, [key]: value };
@@ -68,16 +85,34 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
     </button>
     <h2 className="type-section-heading mt-4 font-display">Photo observations</h2>
     <p>{pot.observation}</p>
-    {pot.clayLead?.note && <p><strong>Visual clay lead · {pot.clayLead.label}</strong><br />{pot.clayLead.note}</p>}
-    {comparisons.length > 0 && <p className="flex flex-wrap items-baseline gap-x-2">Compare {comparisons.map(e =>
+    {otherComparisons.length > 0 && <p className="flex flex-wrap items-baseline gap-x-2">Compare {otherComparisons.map(e =>
       <Link key={e.id} className={QUIET_LINK} to={guidePath(pot, e.id)}>{e.name}</Link>)}</p>}
     <h2 className="type-section-heading mt-4 font-display">Your confirmation</h2>
-    <p className="mb-2">Check the fired color in neutral light. Use supplier records, a maker’s statement or other material evidence to identify clay. Record an unlisted or mixed color in the private note. Choose Unconfirmed to clear a selection.</p>
     <form onSubmit={submit}>
       <fieldset className="min-w-0" disabled={saving}>
+        <section aria-label="Suggested clay" className="mb-3">
+          {clayGuesses.length === 0 && <p className="text-tea-text-sec">No clay suggestion from these photos.</p>}
+          {clayGuesses.map(entry => {
+            const approved = draft.clay === entry.id;
+            const denied = draft.rejectedClays?.includes(entry.id);
+            return <div key={entry.id}>
+              <p><strong>{approved ? 'Approved clay' : denied ? 'Denied suggestion' : 'Suggested clay'} · {entry.name}</strong></p>
+              {pot.clayLead?.note && <p className="text-tea-text-sec">{pot.clayLead.note}</p>}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {approved ? <button type="button" className="btn-secondary" disabled={conflict} onClick={() => void chooseClay('', 'approve')}>Clear approval</button>
+                  : denied ? <button type="button" className="btn-secondary" disabled={conflict} onClick={() => void chooseClay(entry.id, 'undo')}>Undo denial</button>
+                    : <>
+                      <button type="button" className="btn-primary" disabled={conflict} onClick={() => void chooseClay(entry.id, 'approve')}>Approve {entry.name}</button>
+                      <button type="button" className="btn-secondary" disabled={conflict} onClick={() => void chooseClay(entry.id, 'deny')}>Deny {entry.name}</button>
+                    </>}
+              </div>
+            </div>;
+          })}
+          {!clayGuesses.length && pot.clayLead?.note && <p className="text-tea-text-sec">{pot.clayLead.note}</p>}
+        </section>
         <div className="grid gap-3 sm:grid-cols-3">
           {KINDS.map(kind => <label key={kind} className="min-w-0">{FIELD_LABELS[kind]}
-            <select className={fieldClass} name={kind} value={draft[kind]} onChange={e => edit(kind, e.target.value)}>
+            <select className={fieldClass} name={kind} value={draft[kind]} disabled={kind === 'clay' && conflict} onChange={e => kind === 'clay' ? void chooseClay(e.target.value, 'approve') : edit(kind, e.target.value)}>
               <option value="">Unconfirmed</option>
               {entries.filter(e => e.kind === kind).map(e => <option key={e.id} value={e.id}>{e.name}{e.chinese && ' · ' + e.chinese}</option>)}
             </select>

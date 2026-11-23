@@ -3,7 +3,7 @@ import { Link, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivateQueryScope } from '../../hooks/usePrivateQueryScope';
 import { QUIET_LINK } from '../../../pages/wisdom/frame';
-import { BASE, EMPTY, guidePath, KINDS, loadBoard, potPath, type Auth, type Board, type Decision } from './data';
+import { BASE, EMPTY, guidePath, KINDS, loadBoard, potPath, saveReview, type ChangeClay, type Auth, type Board, type Decision } from './data';
 import { Thumbnail } from './Photos';
 import { Guide } from './Guide';
 import { Listing } from './Listing';
@@ -32,14 +32,14 @@ function Index({ board, auth }: BoardProps) {
   </div>;
 }
 
-function PotRoute({ board, auth, preview, onSave, onReload, draft, onDraft }: BoardProps & {
-  preview?: boolean; draft?: Decision; onDraft: (decision: Decision) => void; onSave: (id: string, d: Decision) => void; onReload: () => Promise<void>;
+function PotRoute({ board, auth, preview, onSave, onReload, onClay, draft, onDraft }: BoardProps & {
+  preview?: boolean; onClay: ChangeClay; draft?: Decision; onDraft: (decision: Decision) => void; onSave: (id: string, d: Decision) => void; onReload: () => Promise<void>;
 }) {
   const { id } = useParams();
   const pot = board.pots.find(p => p.id === id);
   if (!pot) return <div className={column}><p>Pot unavailable.</p><Link className={QUIET_LINK} to={BASE}>All pots</Link></div>;
   return preview ? <Listing key={pot.id} board={board} pot={pot} auth={auth} /> : <div className={column}>
-    <Review key={pot.id} board={board} pot={pot} auth={auth} draft={draft} onDraft={onDraft} onSave={d => onSave(pot.id, d)} onReload={onReload} />
+    <Review key={pot.id} board={board} pot={pot} auth={auth} draft={draft} onClay={onClay} onDraft={onDraft} onSave={d => onSave(pot.id, d)} onReload={onReload} />
   </div>;
 }
 
@@ -48,8 +48,9 @@ export default function OwnerYixing() {
   const [accountId, userId] = scope.key;
   const auth = { accountId, userId };
   // A renewed token for the same owner must preserve in-progress edits.
-  const { pathname } = useLocation();
-  const draftScope = JSON.stringify([accountId, userId, pathname]);
+  const { pathname, search } = useLocation();
+  const guidePot = pathname === BASE + '/wisdom' && new URLSearchParams(search).get('pot');
+  const draftScope = JSON.stringify([accountId, userId, guidePot ? potPath(guidePot) : pathname]);
   const pending = useRef<{ scope: string; draft: Decision } | null>(null);
   useEffect(() => {
     if (pending.current?.scope !== draftScope || !scope.ready) pending.current = null;
@@ -79,11 +80,30 @@ export default function OwnerYixing() {
     pending.current = null;
     client.setQueryData<Board>(queryKey, old => old && ({ ...old, decisions: { ...old.decisions, [id]: decision } }));
   };
+  const onClay: ChangeClay = async (id, clayId, action, revision) => {
+    const current = result.data.decisions[id] ?? EMPTY;
+    const potScope = JSON.stringify([accountId, userId, potPath(id)]);
+    const buffered = pending.current;
+    if (revision !== current.revision || (buffered?.scope === potScope && buffered.draft.revision !== revision)) {
+      throw Object.assign(new Error('This review changed. Reload the saved choices.'), { status: 409 });
+    }
+    const rejected = new Set(current.rejectedClays);
+    if (action === 'deny') rejected.add(clayId);
+    else rejected.delete(clayId);
+    const clay = action === 'approve' ? clayId : current.clay;
+    // Save just the clay decision. Other form edits remain in the owner's draft.
+    const saved = await saveReview(id, { ...current, clay, rejectedClays: [...rejected] }, auth);
+    client.setQueryData<Board>(queryKey, old => old && ({ ...old, decisions: { ...old.decisions, [id]: saved } }));
+    const buffer = pending.current;
+    if (buffer?.scope !== potScope) return saved;
+    buffer.draft = { ...buffer.draft, clay: saved.clay, rejectedClays: saved.rejectedClays, revision: saved.revision };
+    return buffer.draft;
+  };
   const onReload = async () => { await result.refetch({ throwOnError: true }); pending.current = null; setReloadRevision(r => r + 1); };
   return <Routes key={JSON.stringify([accountId, userId, reloadRevision])}>
     <Route index element={<Index {...props} />} />
-    <Route path="wisdom" element={<div className={column}><Guide board={result.data} /></div>} />
-    <Route path=":id" element={<PotRoute {...props} {...edit} onSave={onSave} onReload={onReload} />} />
-    <Route path=":id/listing" element={<PotRoute {...props} {...edit} preview onSave={onSave} onReload={onReload} />} />
+    <Route path="wisdom" element={<div className={column}><Guide board={result.data} onClay={onClay} onReload={onReload} /></div>} />
+    <Route path=":id" element={<PotRoute {...props} {...edit} onClay={onClay} onSave={onSave} onReload={onReload} />} />
+    <Route path=":id/listing" element={<PotRoute {...props} {...edit} onClay={onClay} preview onSave={onSave} onReload={onReload} />} />
   </Routes>;
 }

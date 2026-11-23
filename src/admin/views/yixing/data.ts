@@ -13,7 +13,9 @@ export type Pot = {
   comparisonIds: string[]; photos: { role: string; sha256: string; originalSha256: string }[];
   listing: { name: string; form?: string; mark?: string; description?: string };
 };
-export type Decision = Record<Kind, string> & { note: string; revision: number };
+export type Decision = Record<Kind, string> & { note: string; revision: number; rejectedClays?: string[] };
+export type ClayAction = 'approve' | 'deny' | 'undo';
+export type ChangeClay = (potId: string, clayId: string, action: ClayAction, revision: number) => Promise<Decision>;
 export type Board = {
   reference: { title: string; scope: string; entries: Entry[] };
   pots: Pot[]; decisions: Record<string, Decision>;
