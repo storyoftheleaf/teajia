@@ -1,4 +1,4 @@
-import { useAppStore } from '../../lib/store';
+import { selectIsOwnerTier, useAppStore } from '../../lib/store';
 import { CapturePhotoApproval } from '../curate/CapturePhotoApproval';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { capturePhotoIdentity, CapturePhotoImage, CapturePhotoThumbnail, useCapturePhotoFrame, useCapturePhotoUpload, useCapturePhotoUrl } from '../curate/CapturePhotoImage';
@@ -9,6 +9,7 @@ import { capturePhotoApi } from '../../lib/capturePhotoApi';
 import { Camera, Check, ChevronLeft, ChevronRight, Edit3, ImagePlus, Maximize2, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { labelScanNotes } from '../../lib/labelScanNotes';
 import { compressImage } from '../../lib/imageCompressor';
 import { SquareCropModal } from '../shared/SquareCropModal';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
@@ -67,12 +68,13 @@ type ScanStep = 'camera' | 'scanning' | 'result' | 'denied';
  *  failure with .catch(() => null), so "no key", "provider down" and
  *  "unreadable label" all looked identical. Now each gets its own quiet
  *  state; an empty result on a leaf photo is NOT an error and stays silent. */
-type ScanErrorCode = 'no_ai_provider' | 'provider_error' | 'extract_failed';
+type ScanErrorCode = 'no_ai_provider' | 'provider_error' | 'extract_failed' | 'owner_required';
 
 function classifyScanError(err: unknown): ScanErrorCode {
   const msg = err instanceof Error ? err.message : String(err ?? '');
   if (msg.includes('no_ai_provider')) return 'no_ai_provider';
   if (msg.includes('extract_failed')) return 'extract_failed';
+  if (msg.includes('owner_required') || msg.includes('for the shop owner')) return 'owner_required';
   // Anything else (provider_error, network, timeout) reads as the scanner
   // being unreachable right now.
   return 'provider_error';
@@ -82,6 +84,7 @@ const SCAN_ERROR_COPY: Record<ScanErrorCode, string> = {
   no_ai_provider: 'Scanner unavailable',
   provider_error: 'Scanner unavailable, try again shortly',
   extract_failed: "Couldn't read this label",
+  owner_required: 'Scanning is for the shop owner',
 };
 
 function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
@@ -106,15 +109,8 @@ function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
   if (gramsRaw !== undefined && gramsRaw !== null && gramsRaw !== '' && gramsRaw !== 0) {
     data.grams = typeof gramsRaw === 'number' ? gramsRaw : parseFloat(gramsRaw) || undefined;
   }
-  const extras: string[] = [];
-  if (r.awards) extras.push(`Awards: ${r.awards}`);
-  if (r.elevation || r.altitude) extras.push(`Elevation: ${r.elevation || r.altitude}`);
-  if (r.farm || r.garden) extras.push(`Farm: ${r.farm || r.garden}`);
-  if (r.productName || r.product_name) extras.push(`Cultivar: ${r.productName || r.product_name}`);
-  if (r.vendor) extras.push(`Vendor: ${r.vendor}`);
-  if (r.description) extras.push(r.description);
-  if (r.notes) extras.push(r.notes);
-  if (extras.length > 0) data.extraNotes = extras.join(' · ');
+  const notes = labelScanNotes(r);
+  if (notes) data.extraNotes = notes;
   return data;
 }
 
@@ -132,6 +128,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   stripTarget,
   onViewerClose,
 }) => {
+  const canScan = useAppStore(selectIsOwnerTier);
   const split = scanTarget !== undefined;
   // The viewer carries its own controls (add a photo; edit and delete where the
   // form can remove one) in the 'flow' form and in the Library's viewer.
@@ -228,6 +225,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const runExtract = useCallback(
     async (file: File): Promise<{ data: ExtractedTeaData | null; error: ScanErrorCode | null }> => {
+      // Reading a label spends the shop's tokens: the owner tier only.
+      if (!canScan) return { data: null, error: null };
       try {
         const result = await api.extractFromImage(file, { skipUpload: true });
         return { data: result ? parseExtractResult(result as Record<string, any>) : null, error: null };
@@ -235,7 +234,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         return { data: null, error: classifyScanError(err) };
       }
     },
-    []
+    [canScan]
   );
 
   const handleRetryScan = useCallback(async () => {
