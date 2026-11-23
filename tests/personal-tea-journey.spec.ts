@@ -76,10 +76,10 @@ test.describe('personal tea journeys', () => {
     await expect(page.getByText(journalTea)).toBeVisible();
     await expect(page.getByText(cellarTea)).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Favorites/ })).toHaveAttribute('href', '/account/collection');
-    await expect(page.getByRole('link', { name: /Cellar/ })).toHaveAttribute('href', '/account/cellar');
+    await expect(page.getByRole('link', { name: /Tea Chest/ })).toHaveAttribute('href', '/account/cellar');
     await expectNoOverflow(page);
 
-    await page.getByRole('link', { name: /Cellar/ }).click();
+    await page.getByRole('link', { name: /Tea Chest/ }).click();
     await expect(page).toHaveURL(/\/account\/cellar$/);
     await expect(page.getByText(cellarTea)).toBeVisible();
     await expect(page.getByText(favoriteTea)).toHaveCount(0);

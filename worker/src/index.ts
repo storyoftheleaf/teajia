@@ -191,7 +191,8 @@ import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDe
 import { articleWisdomClaimUseRoutes, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
 import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
-import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, readOfferInput, shelfContactSql } from './personalShelf';
+import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
+import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, readOfferInput, recordedChestCostSql, shelfContactSql } from './personalShelf';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, ShippingNotificationEnv {
@@ -15693,7 +15694,8 @@ function cellarItemToApi(row: any) {
     placementStatus: row.placement_status ?? 'private',
     placementAccountId: row.placement_account_id ?? null,
     linkedProductId: row.linked_product_id ?? null,
-    shelfPublished: !!row.shelf_published && row.shelf_offer_name != null
+    shelfPublished: !!row.shelf_published && row.shelf_offer_name != null && row.chest_cost_amount != null
+      && row.chest_cost_currency != null && row.shelf_offer_price_amount > 0 && row.shelf_offer_price_currency != null
       && row.placement_status === 'private' && row.shelf_offer_grams > 0 && row.shelf_offer_grams <= row.grams,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -15704,9 +15706,13 @@ function ownedCellarItemToApi(row: any) {
   return {
     ...cellarItemToApi(row),
     label: row.chest_label ?? null,
-    shelfNeedsReview: !!row.shelf_published && row.shelf_offer_name == null,
+    costAmount: row.chest_cost_amount ?? null,
+    costCurrency: row.chest_cost_currency ?? null,
+    shelfNeedsReview: !!row.shelf_published && (row.shelf_offer_name == null || row.shelf_offer_price_amount == null),
     shelfOffer: row.shelf_offer_name == null ? null : {
       name: row.shelf_offer_name,
+      price_amount: row.shelf_offer_price_amount ?? null,
+      price_currency: row.shelf_offer_price_currency ?? null,
       grams: row.shelf_offer_grams,
       type: row.shelf_offer_type ?? null,
       year: row.shelf_offer_year ?? null,
@@ -15748,10 +15754,12 @@ const handleCreateCellarItem: Handler = async (request, env) => {
     return json({ error: 'grams must be a non-negative number' }, 400);
   }
   if (body.label != null && typeof body.label !== 'string') return json({ error: 'Invalid Chest label' }, 400);
+  const cost = readPersonalTeaMoney(body.costAmount, body.costCurrency);
+  if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
   const id = newId('cellar');
   await env.DB.prepare(
-    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url, chest_label)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url, chest_label, chest_cost_amount, chest_cost_currency)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, userId, name,
     body.type ?? null,
@@ -15761,6 +15769,7 @@ const handleCreateCellarItem: Handler = async (request, env) => {
     Number.isFinite(grams) ? grams : 0,
     body.image_url ?? null,
     privateChestLabel(body.label ?? ''),
+    cost.amount, cost.currency,
   ).run();
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(id).first();
   return json({ item: ownedCellarItemToApi(row) }, 201);
@@ -15804,6 +15813,12 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
     } else {
       sets.push(`${col} = ?`); binds.push(body[key] ?? null);
     }
+  }
+  if (body.costAmount !== undefined || body.costCurrency !== undefined) {
+    const cost = readPersonalTeaMoney(body.costAmount, body.costCurrency);
+    if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
+    sets.push('chest_cost_amount = ?', 'chest_cost_currency = ?');
+    binds.push(cost.amount, cost.currency);
   }
   if (sets.length === 0) return json({ ok: true });
   sets.push("updated_at = datetime('now')");
@@ -16081,18 +16096,20 @@ const handlePublishToShelf: Handler = async (request, env, params) => {
   const userId = authedUserId(request);
   if (!userId) return json({ error: 'Invalid token' }, 401);
   const offer = readOfferInput(await request.json().catch(() => null));
-  if (!offer) return json({ error: 'Enter a public name and a positive offer weight, and check the optional tea details.' }, 400);
+  if (!offer) return json({ error: 'Enter a public name, an offer weight, and a positive price with its currency.' }, 400);
 
   const saved = await env.DB.prepare(`
-    UPDATE personal_cellar_items
+    UPDATE personal_cellar_items AS c
     SET shelf_published = 1, shelf_offer_name = ?, shelf_offer_grams = ?, shelf_offer_type = ?,
-        shelf_offer_year = ?, shelf_offer_origin = ?, updated_at = datetime('now')
-    WHERE id = ? AND owner_user_id = ? AND placement_status = 'private' AND grams >= ?
+        shelf_offer_year = ?, shelf_offer_origin = ?, shelf_offer_price_amount = ?,
+        shelf_offer_price_currency = ?, updated_at = datetime('now')
+    WHERE id = ? AND owner_user_id = ? AND placement_status = 'private' AND grams >= ? AND (${recordedChestCostSql})
       AND EXISTS (
         SELECT 1 FROM users u WHERE u.id = ? AND u.shelf_enabled = 1
           AND u.shelf_slug <> '' AND (${shelfContactSql})
       )
-  `).bind(offer.name, offer.grams, offer.type, offer.year, offer.origin, params.id, userId, offer.grams, userId).run();
+  `).bind(offer.name, offer.grams, offer.type, offer.year, offer.origin,
+    offer.priceAmount, offer.priceCurrency, params.id, userId, offer.grams, userId).run();
   if (saved.meta.changes) return json({ ok: true });
 
   const seller = await env.DB.prepare(
@@ -16101,14 +16118,17 @@ const handlePublishToShelf: Handler = async (request, env, params) => {
   if (!seller?.shelf_enabled || !seller.shelf_slug) return json({ error: 'Shelf not enabled for this account' }, 403);
 
   const item = await env.DB.prepare(
-    'SELECT owner_user_id, placement_status, grams FROM personal_cellar_items WHERE id = ?'
-  ).bind(params.id).first<{ owner_user_id: string; placement_status: string; grams: number }>();
+    'SELECT owner_user_id, placement_status, grams, chest_cost_amount, chest_cost_currency FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first<{ owner_user_id: string; placement_status: string; grams: number; chest_cost_amount: number | null; chest_cost_currency: string | null }>();
   if (!item) return json({ error: 'Not found' }, 404);
   if (item.owner_user_id !== userId) return json({ error: 'Forbidden' }, 403);
   if (!normalizeShelfWhatsApp(seller.shelf_whatsapp)) {
     return json({ error: 'Save your personal WhatsApp number before publishing.' }, 409);
   }
   if (item.placement_status !== 'private') return json({ error: 'Only location-less items can go on your shelf' }, 409);
+  if (!readPersonalTeaMoney(item.chest_cost_amount, item.chest_cost_currency)) {
+    return json({ error: 'Record what you paid in your Tea Chest before publishing.' }, 409);
+  }
   if (item.grams < offer.grams) return json({ error: 'The offer is larger than the weight in your Chest.' }, 409);
   return json({ error: 'The holding or shelf settings changed. Reload and try again.' }, 409);
 };

@@ -32,7 +32,7 @@ import {
 } from '../components/people/profileFormat';
 import { useContributor } from '../hooks/useContributor';
 import { usePublicShelf } from '../hooks/usePublicShelf';
-import { publicShelfPath, shelfAmount, shelfWhatsAppHref } from '../lib/publicShelf';
+import { publicShelfPath, shelfAmount, shelfPrice, shelfWhatsAppHref } from '../lib/publicShelf';
 import type {
   ContributorArticleRef,
   ContributorFeaturedRef,
@@ -355,7 +355,7 @@ export default function ContributorProfilePage() {
                   to={publicShelfPath(shelf.slug, offer.id)}
                   state={{ sellerProfile: data.id }}
                   title={<span className="break-words">{offer.name}</span>}
-                  dek={shelfAmount(offer.grams)}
+                  dek={`${shelfAmount(offer.grams)} · ${shelfPrice(offer)}`}
                 />
               ))}
               <Link to={publicShelfPath(shelf.slug)} state={{ sellerProfile: data.id }} className="btn-quiet mt-2">

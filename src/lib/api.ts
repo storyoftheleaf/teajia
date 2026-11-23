@@ -531,9 +531,14 @@ export interface CellarItem {
   placementAccountId?: string | null;
   linkedProductId?: string | null;
   label?: string | null;
+  costAmount?: number | null;
+  costCurrency?: string | null;
   shelfPublished: boolean;
   shelfNeedsReview?: boolean;
-  shelfOffer?: ShelfOfferInput | null;
+  shelfOffer?: (Omit<ShelfOfferInput, 'price_amount' | 'price_currency'> & {
+    price_amount: number | null;
+    price_currency: string | null;
+  }) | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -554,6 +559,8 @@ export interface ShelfSettings {
 export interface ShelfOfferInput {
   name: string;
   grams: number;
+  price_amount: number;
+  price_currency: string;
   type?: string | null;
   year?: number | null;
   origin?: string | null;
@@ -567,6 +574,8 @@ export interface PublicShelfItem {
   year: number | null;
   origin: string | null;
   grams: number;
+  price_amount: number;
+  price_currency: string;
   image_url: string | null;
 }
 
@@ -4676,7 +4685,7 @@ export const api = {
     list: async (): Promise<{ items: CellarItem[] }> => {
       return authedFetch(`${API_URL}/api/me/cellar`);
     },
-    create: async (data: Partial<CellarItem> & { name: string }): Promise<{ item: CellarItem }> => {
+    create: async (data: Partial<CellarItem> & { name: string; costAmount: number; costCurrency: string }): Promise<{ item: CellarItem }> => {
       return authedFetch(`${API_URL}/api/me/cellar`, { method: 'POST', body: JSON.stringify(data) });
     },
     update: async (id: string, data: Partial<CellarItem>): Promise<{ item: CellarItem }> => {

@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 const lin = 'lin-chen-fixture';
 const shelf = 'lin-shelf-fixture';
-const autumn = { id: 'autumn-lot', name: 'Autumn oolong', type: 'Oolong', origin: 'Taiwan', year: 2025, grams: 50, image_url: null };
-const spring = { ...autumn, id: 'spring-lot', name: 'Spring oolong', year: 2026, grams: 25, image_url: '/favicon.svg' };
+const autumn = { id: 'autumn-lot', name: 'Autumn oolong', type: 'Oolong', origin: 'Taiwan', year: 2025, grams: 50, price_amount: 25, price_currency: 'USD', image_url: null };
+const spring = { ...autumn, id: 'spring-lot', name: 'Spring oolong', year: 2026, grams: 25, price_amount: 15, image_url: '/favicon.svg' };
 const whatsapp = '12025550123';
 
 // orderable_shelf_slug is emitted only by the Offers eligibility reader at
@@ -32,7 +32,9 @@ async function fixtures(page: Page, shelfContributor = () => lin) {
         slug, title: standalone ? 'Hill Tea Shelf' : 'Lin’s teas',
         seller_name: standalone ? 'Hannah Hill' : 'Lin Chen',
         whatsapp: slug === 'missing-contact' ? 'not-a-number' : whatsapp,
-        items: slug === 'empty-shelf' ? [] : [spring, autumn],
+        items: slug === 'empty-shelf' ? [] : slug === 'unpriced-shelf'
+          ? [{ ...autumn, price_amount: null, price_currency: null }]
+          : [spring, autumn],
         ...(standalone ? {} : { contributor_slug: shelfContributor() }),
       } });
     } else {
@@ -48,7 +50,7 @@ test('opens the exact reviewed profile offer and keeps collection, hosting and B
   await page.getByRole('link', { name: /Lin Chen/ }).first().click();
   await expect(page).toHaveURL(new RegExp(`/people/${lin}$`));
   const sale = page.getByRole('region', { name: 'Teas for sale' });
-  await expect(sale.getByText('50 g available')).toBeVisible();
+  await expect(sale.getByText(/50 g available · USD\s25\.00/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Open the collection Four teas I return to' })).toHaveAttribute('href', '/c/lin-collection');
   await expect(page.getByRole('link', { name: /Hosting Spring tea sit/ })).toHaveAttribute('href', '/event/spring-sit');
   await page.screenshot({ path: testInfo.outputPath('profile.png'), fullPage: true });
@@ -62,7 +64,8 @@ test('opens the exact reviewed profile offer and keeps collection, hosting and B
   const orderURL = new URL((await order.getAttribute('href'))!);
   expect(orderURL.origin + orderURL.pathname).toBe(`https://wa.me/${whatsapp}`);
   expect(orderURL.searchParams.get('text')).toContain('Autumn oolong (2025)');
-  await expect(page.getByText('Ask about price').first()).toBeVisible();
+  expect(orderURL.searchParams.get('text')).toMatch(/50 g for USD\s25\.00/);
+  await expect(order).toHaveText(/USD\s25\.00/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.screenshot({ path: testInfo.outputPath('shelf.png'), fullPage: true });
   await page.goBack();
@@ -97,6 +100,9 @@ test('keeps an unreviewed mapping off the profile and handles stale links and mi
 
   await page.goto('/u/empty-shelf');
   await expect(page.getByText('No teas are currently for sale.')).toBeVisible();
+  await page.goto('/u/unpriced-shelf#offer-autumn-lot');
+  await expect(page.getByText('No teas are currently for sale.')).toBeVisible();
+  await expect(page.locator('a[href*="wa.me"]')).toHaveCount(0);
 });
 
 test('withholds the handoff if a linked shelf resolves to another seller', async ({ page }) => {
@@ -119,7 +125,7 @@ test('Tea Chest preview uses the same Shop row as the published offer', async ({
   const offer = { ...autumn, origin: 'Nantou' };
   await page.route('**/api/me/cellar', route => route.fulfill({ json: { items: [{
     id: offer.id, name: 'Private batch name', grams: 150, label: 'Autumn tastings',
-    placementStatus: 'private', shelfPublished: true, shelfOffer: offer,
+    placementStatus: 'private', shelfPublished: true, shelfOffer: offer, costAmount: 11, costCurrency: 'AUD',
   }] } }));
   await page.route('**/api/me/shelf', route => route.fulfill({ json: { enabled: true, slug: shelf, whatsapp } }));
   await page.route(`**/api/shelf/${shelf}`, route => route.fulfill({ json: {
@@ -128,10 +134,27 @@ test('Tea Chest preview uses the same Shop row as the published offer', async ({
 
   await page.goto('/account/cellar');
   await expect(page.getByRole('heading', { name: 'Tea Chest' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add tea you own' }).click();
+  await page.getByPlaceholder('Tea name').fill('New holding');
+  const addTea = page.getByRole('button', { name: 'Add to Tea Chest' });
+  await expect(addTea).toBeDisabled();
+  await page.getByRole('spinbutton', { name: 'Purchase cost' }).fill('0');
+  await expect(addTea).toBeDisabled();
+  await page.getByRole('combobox', { name: 'Currency' }).selectOption('USD');
+  await expect(addTea).toBeEnabled();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+
   await page.getByRole('button', { name: 'Edit offer' }).click();
-  await page.getByRole('button', { name: 'Preview offer' }).click();
+  const salePrice = page.getByRole('spinbutton', { name: 'Price for 50 g' });
+  const previewOffer = page.getByRole('button', { name: 'Preview offer' });
+  await salePrice.clear();
+  await expect(previewOffer).toBeDisabled();
+  await salePrice.fill('25');
+  await previewOffer.click();
   await expect(page.getByRole('heading', { name: 'Buyer preview' })).toBeVisible();
   await expect(page.getByText('Private batch name')).toHaveCount(0);
+  await expect(page.getByText(/AUD\s11\.00/)).toHaveCount(0);
+  await expect(page.getByText(/USD\s25\.00/)).toBeVisible();
   const describeRow = async () => {
     const row = page.locator('[data-tea-ledger-row]');
     await expect(row.getByRole('heading', { name: offer.name })).toBeVisible();
@@ -142,11 +165,11 @@ test('Tea Chest preview uses the same Shop row as the published offer', async ({
     });
   };
   const previewRow = await describeRow();
-  await page.screenshot({ path: testInfo.outputPath('tea-chest-preview.png'), animations: 'disabled' });
+  await page.screenshot({ path: testInfo.outputPath('tea-chest-preview.png'), animations: 'disabled', scale: 'css' });
 
   await page.goto(`/u/${shelf}`);
   expect(await describeRow()).toEqual(previewRow);
   await expect(page.getByRole('link', { name: 'Order from Lin Chen' })).toHaveAttribute('href', /^https:\/\/wa\.me\/12025550123\?/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
-  await page.screenshot({ path: testInfo.outputPath('personal-tea-shop.png'), animations: 'disabled' });
+  await page.screenshot({ path: testInfo.outputPath('personal-tea-shop.png'), animations: 'disabled', scale: 'css' });
 });

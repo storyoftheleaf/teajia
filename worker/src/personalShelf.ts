@@ -1,3 +1,4 @@
+import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
 import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
 
 interface OfferSnapshot {
@@ -6,6 +7,8 @@ interface OfferSnapshot {
   type: string | null;
   year: number | null;
   origin: string | null;
+  priceAmount: number;
+  priceCurrency: string;
 }
 
 interface ShelfRow {
@@ -19,18 +22,22 @@ interface ShelfRow {
   type: string | null;
   year: number | null;
   origin: string | null;
+  price_amount: number | null;
+  price_currency: string | null;
 }
 
 export function readOfferInput(body: unknown): OfferSnapshot | null {
   if (!body || typeof body !== 'object') return null;
-  const { name, grams, type, year, origin } = body as Record<string, unknown>;
+  const { name, grams, type, year, origin, price_amount, price_currency } = body as Record<string, unknown>;
+  const price = readPersonalTeaMoney(price_amount, price_currency);
+  if (!price || price.amount <= 0) return null;
   if (typeof name !== 'string' || !name.trim() || name.trim().length > 120
     || typeof grams !== 'number' || !Number.isFinite(grams) || grams <= 0
     || (type != null && (typeof type !== 'string' || type.trim().length > 40))
     || (year != null && (typeof year !== 'number' || !Number.isInteger(year) || year < 1000 || year > 9999))
     || (origin != null && (typeof origin !== 'string' || origin.trim().length > 100))) return null;
   return {
-    name: name.trim(), grams,
+    name: name.trim(), grams, priceAmount: price.amount, priceCurrency: price.currency,
     type: typeof type === 'string' ? type.trim() || null : null,
     year: year ?? null,
     origin: typeof origin === 'string' ? origin.trim() || null : null,
@@ -39,9 +46,15 @@ export function readOfferInput(body: unknown): OfferSnapshot | null {
 
 // Queries use the aliases u (seller) and c (holding). A legacy shelf flag by
 // itself conveys no approval of the inherited name, weight, or photo.
+export const recordedChestCostSql = `
+  c.chest_cost_amount IS NOT NULL AND c.chest_cost_amount >= 0 AND c.chest_cost_currency IS NOT NULL
+`;
+
 export const approvedShelfOfferSql = `
   c.shelf_published = 1 AND c.placement_status = 'private'
-  AND c.shelf_offer_name IS NOT NULL
+  AND c.shelf_offer_name IS NOT NULL AND (${recordedChestCostSql})
+  AND c.shelf_offer_price_amount IS NOT NULL AND c.shelf_offer_price_amount > 0
+  AND c.shelf_offer_price_currency IS NOT NULL
   AND c.shelf_offer_grams > 0 AND c.shelf_offer_grams <= c.grams
 `;
 
@@ -70,7 +83,8 @@ export async function getPublicShelf(db: D1Database, slug: string) {
     SELECT u.shelf_title, u.name AS seller_name, u.shelf_whatsapp,
            (SELECT id FROM contributors WHERE user_id = u.id AND is_published = 1 ORDER BY id LIMIT 1) AS contributor_slug,
            c.id AS item_id, c.shelf_offer_name AS name, c.shelf_offer_grams AS grams,
-           c.shelf_offer_type AS type, c.shelf_offer_year AS year, c.shelf_offer_origin AS origin
+           c.shelf_offer_type AS type, c.shelf_offer_year AS year, c.shelf_offer_origin AS origin,
+           c.shelf_offer_price_amount AS price_amount, c.shelf_offer_price_currency AS price_currency
     FROM users u
     LEFT JOIN personal_cellar_items c
       ON c.owner_user_id = u.id AND (${approvedShelfOfferSql}) AND (${shelfContactSql})
@@ -85,7 +99,8 @@ export async function getPublicShelf(db: D1Database, slug: string) {
     seller_name: seller.seller_name,
     ...(seller.contributor_slug ? { contributor_slug: seller.contributor_slug } : {}),
     whatsapp: normalizeShelfWhatsApp(seller.shelf_whatsapp),
-    items: results.flatMap(row => row.item_id && row.name !== null && row.grams !== null ? [{
+    items: results.flatMap(row => row.item_id && row.name !== null && row.grams !== null
+      && row.price_amount !== null && row.price_currency !== null ? [{
       id: row.item_id,
       name: row.name,
       type: row.type,
@@ -93,6 +108,8 @@ export async function getPublicShelf(db: D1Database, slug: string) {
       origin: row.origin,
       grams: row.grams,
       image_url: null,
+      price_amount: row.price_amount,
+      price_currency: row.price_currency,
     }] : []),
   };
 }

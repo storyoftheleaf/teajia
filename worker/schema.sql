@@ -2385,6 +2385,10 @@ CREATE TABLE IF NOT EXISTS personal_cellar_items (
   shelf_offer_year   INTEGER,
   shelf_offer_origin TEXT,
   chest_label        TEXT,
+  chest_cost_amount REAL,
+  chest_cost_currency TEXT,
+  shelf_offer_price_amount REAL,
+  shelf_offer_price_currency TEXT,
 
   created_at        TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at        TEXT NOT NULL DEFAULT (datetime('now'))

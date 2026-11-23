@@ -5,6 +5,10 @@ import { api, type CellarItem, type ShelfOfferInput } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { CellarOfferEditor } from './CellarOfferEditor';
 
+import { enteredNumber } from '../../admin/productUpdatePayload';
+import { formatPersonalTeaMoney, readPersonalTeaMoney } from '../../lib/personalTeaMoney';
+import { emptyMoneyFields, TeaChestMoneyFields } from './TeaChestMoneyFields';
+
 const chestField = 'min-w-0 rounded-md border border-tea-border bg-tea-bg px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
 
 interface CellarViewProps {
@@ -26,6 +30,8 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const [name, setName] = useState('');
   const [grams, setGrams] = useState('');
   const [label, setLabel] = useState('');
+  const [costFields, setCostFields] = useState(emptyMoneyFields);
+  const [editCostFields, setEditCostFields] = useState(emptyMoneyFields);
   const [search, setSearch] = useState('');
   const [forSale, setForSale] = useState(false);
   const [offerId, setOfferId] = useState<string | null>(null);
@@ -38,12 +44,17 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const [editGrams, setEditGrams] = useState('');
   const [editLabel, setEditLabel] = useState('');
 
+  const cost = readPersonalTeaMoney(enteredNumber(costFields.amount), costFields.currency);
+  const editCost = readPersonalTeaMoney(enteredNumber(editCostFields.amount), editCostFields.currency);
+
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['cellar'],
     queryFn: () => api.cellar.list(),
     staleTime: 1000 * 60,
   });
   const items = data?.items ?? [];
+  const editCostRequired = Boolean(editCostFields.amount || editCostFields.currency
+    || items.find(item => item.id === editingId)?.costCurrency);
 
   // Step 5: shelf grant + identity. Only present once Adrian grants the shelf.
   const { data: shelf } = useQuery({
@@ -85,15 +96,15 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   });
 
   const createMut = useMutation({
-    mutationFn: (payload: { name: string; grams: number; label: string }) => api.cellar.create(payload),
-    onSuccess: () => { setName(''); setGrams(''); setLabel(''); setAdding(false); invalidate(); },
+    mutationFn: (payload: { name: string; grams: number; label: string; costAmount: number; costCurrency: string }) => api.cellar.create(payload),
+    onSuccess: () => { setName(''); setGrams(''); setLabel(''); setCostFields(emptyMoneyFields); setAdding(false); invalidate(); },
   });
   const removeMut = useMutation({
     mutationFn: (id: string) => api.cellar.remove(id),
     onSuccess: invalidate,
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name?: string; grams?: number; label?: string } }) => api.cellar.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<CellarItem> }) => api.cellar.update(id, data),
     onSuccess: () => { setEditingId(null); invalidate(); },
   });
   const requestMut = useMutation({
@@ -107,9 +118,9 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
 
   const submitAdd = () => {
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed || !cost) return;
     const g = Number(grams);
-    createMut.mutate({ name: trimmed, label, grams: Number.isFinite(g) && g > 0 ? g : 0 });
+    createMut.mutate({ name: trimmed, label, costAmount: cost.amount, costCurrency: cost.currency, grams: Number.isFinite(g) && g > 0 ? g : 0 });
   };
 
   const startEdit = (item: CellarItem) => {
@@ -117,12 +128,14 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
     setEditName(item.name);
     setEditGrams(String(item.grams));
     setEditLabel(item.label ?? '');
+    setEditCostFields({ amount: item.costAmount == null ? '' : String(item.costAmount), currency: item.costCurrency ?? '' });
   };
   const submitEdit = (id: string) => {
     const trimmed = editName.trim();
-    if (!trimmed) return;
+    if (!trimmed || (editCostRequired && !editCost)) return;
     const g = Number(editGrams);
-    updateMut.mutate({ id, data: { name: trimmed, label: editLabel, grams: Number.isFinite(g) && g >= 0 ? g : 0 } });
+    updateMut.mutate({ id, data: { name: trimmed, label: editLabel, grams: Number.isFinite(g) && g >= 0 ? g : 0,
+      ...(editCost && { costAmount: editCost.amount, costCurrency: editCost.currency }) } });
   };
 
   const accountName = (id: string | null | undefined): string =>
@@ -239,16 +252,17 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
             />
             <span className="text-ui-12 text-tea-text-dim">grams</span>
           </div>
+          <TeaChestMoneyFields label="Purchase cost" required value={costFields} onChange={setCostFields} fieldClass={`w-full ${chestField}`} />
           <div className="flex items-center justify-between pt-1">
             <button
-              onClick={() => { setAdding(false); setName(''); setGrams(''); setLabel(''); }}
+              onClick={() => { setAdding(false); setName(''); setGrams(''); setLabel(''); setCostFields(emptyMoneyFields); }}
               className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={submitAdd}
-              disabled={!name.trim() || createMut.isPending}
+              disabled={!name.trim() || !cost || createMut.isPending}
               className="btn-primary"
             >
               {createMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
@@ -302,6 +316,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                     className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                   />
                   <input aria-label="Private label" placeholder="Private label (optional)" maxLength={60} value={editLabel} onChange={event => setEditLabel(event.target.value)} className={`w-full ${chestField}`} />
+                  <TeaChestMoneyFields label="Purchase cost" value={editCostFields} onChange={setEditCostFields} fieldClass={`w-full ${chestField}`} />
                   <div className="flex flex-wrap items-center gap-2">
                     <input
                       aria-label="Holding weight in grams"
@@ -322,7 +337,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                     </button>
                     <button
                       onClick={() => submitEdit(item.id)}
-                      disabled={!editName.trim() || updateMut.isPending}
+                      disabled={!editName.trim() || (editCostRequired && !editCost) || updateMut.isPending}
                       className="btn-primary"
                     >
                       {updateMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Save
@@ -337,7 +352,9 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                 <div className="min-w-0 flex-1">
                   <div className="break-words text-ui-14 text-tea-text">{item.name}</div>
                   <div className="mt-0.5 break-words text-ui-12 text-tea-text-dim">
-                    {[item.type, item.origin, item.year, item.label].filter(Boolean).join(' · ')}
+                    {[item.type, item.origin, item.year, item.label,
+                      item.costAmount != null && item.costCurrency ? `Paid ${formatPersonalTeaMoney(item.costAmount, item.costCurrency)}` : null,
+                    ].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center">
@@ -428,7 +445,10 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                     {item.shelfNeedsReview && (!orderable || !item.grams) && (
                       <span className="text-ui-12 text-tea-text-sec">Previous offer needs review</span>
                     )}
-                    {orderable && item.grams > 0 && (
+                    {orderable && item.grams > 0 && (item.costAmount == null || !item.costCurrency) && (
+                      <button type="button" onClick={() => startEdit(item)} className="btn-quiet btn-sm">Add purchase cost to sell</button>
+                    )}
+                    {orderable && item.grams > 0 && item.costAmount != null && item.costCurrency && (
                       <button
                         type="button"
                         onClick={() => { publishOffer.reset(); setOfferId(item.id); }}

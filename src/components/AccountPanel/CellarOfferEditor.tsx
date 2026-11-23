@@ -3,6 +3,10 @@ import type { CellarItem, ShelfOfferInput } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { PersonalShopTeaRow } from '../shop/PersonalShopTeaRow';
 
+import { enteredNumber } from '../../admin/productUpdatePayload';
+import { readPersonalTeaMoney } from '../../lib/personalTeaMoney';
+import { TeaChestMoneyFields } from './TeaChestMoneyFields';
+
 interface CellarOfferEditorProps {
   item: CellarItem;
   whatsapp: string | null;
@@ -20,12 +24,17 @@ export function CellarOfferEditor({ item, whatsapp, saving, error, onCancel, onP
   const [type, setType] = useState(item.shelfOffer?.type ?? '');
   const [year, setYear] = useState(item.shelfOffer?.year ? String(item.shelfOffer.year) : '');
   const [origin, setOrigin] = useState(item.shelfOffer?.origin ?? '');
+  const [priceFields, setPriceFields] = useState({
+    amount: item.shelfOffer?.price_amount == null ? '' : String(item.shelfOffer.price_amount),
+    currency: item.shelfOffer?.price_currency ?? item.costCurrency ?? '',
+  });
   const [preview, setPreview] = useState<ShelfOfferInput | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, [preview]);
   const offeredGrams = Number(grams);
   const validWeight = Number.isFinite(offeredGrams) && offeredGrams > 0 && offeredGrams <= item.grams;
-  const valid = !!name.trim() && validWeight && (!year || /^[1-9]\d{3}$/.test(year));
+  const price = readPersonalTeaMoney(enteredNumber(priceFields.amount), priceFields.currency);
+  const valid = !!name.trim() && validWeight && !!price && price.amount > 0 && (!year || /^[1-9]\d{3}$/.test(year));
 
   return (
     <section aria-label="Shelf offer" className="space-y-3">
@@ -37,7 +46,8 @@ export function CellarOfferEditor({ item, whatsapp, saving, error, onCancel, onP
         <>
           <PersonalShopTeaRow
             item={{ id: item.id, name: preview.name, grams: preview.grams, type: preview.type ?? null,
-              origin: preview.origin ?? null, year: preview.year ?? null, image_url: null }}
+              origin: preview.origin ?? null, year: preview.year ?? null, image_url: null,
+              price_amount: preview.price_amount, price_currency: preview.price_currency }}
             preview={Boolean(whatsapp)}
           />
           {error && <p role="alert" className="text-ui-13 text-tea-text">{error.message}</p>}
@@ -51,8 +61,8 @@ export function CellarOfferEditor({ item, whatsapp, saving, error, onCancel, onP
       ) : (
         <form className="space-y-3" onSubmit={event => {
           event.preventDefault();
-          if (valid) setPreview({
-            name: name.trim(), grams: offeredGrams, type: type.trim() || null,
+          if (valid && price) setPreview({
+            name: name.trim(), grams: offeredGrams, price_amount: price.amount, price_currency: price.currency, type: type.trim() || null,
             year: year ? Number(year) : null, origin: origin.trim() || null,
           });
         }}>
@@ -65,6 +75,7 @@ export function CellarOfferEditor({ item, whatsapp, saving, error, onCancel, onP
             <input className={fieldClass} type="number" inputMode="decimal" step="any" max={item.grams} value={grams} onChange={event => setGrams(event.target.value)} required />
             {grams && !validWeight && <span className="block">Enter a weight above 0 g and up to {item.grams} g.</span>}
           </label>
+          <TeaChestMoneyFields label={validWeight ? `Price for ${offeredGrams} g` : "Sale price"} required positive value={priceFields} onChange={setPriceFields} fieldClass={fieldClass} />
           <div className="grid grid-cols-2 gap-2">
             <label className="block min-w-0 space-y-1 text-ui-13 text-tea-text-sec">
               <span>Tea type (optional)</span>

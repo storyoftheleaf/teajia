@@ -13,9 +13,9 @@ function database() {
   seedIdentity(db, { userId: 'other', accountId: 'other-account' });
   db.sqlite.prepare("UPDATE users SET shelf_enabled=1, shelf_slug='seller-tea', shelf_whatsapp='628123456789' WHERE id='seller'").run();
   db.sqlite.prepare(`INSERT INTO personal_cellar_items
-    (id, owner_user_id, name, type, year, origin, notes, grams, image_url, shelf_published)
+    (id, owner_user_id, name, type, year, origin, notes, grams, image_url, shelf_published, chest_cost_amount, chest_cost_currency)
     VALUES ('holding', 'seller', 'Private supplier name', 'Oolong', 2020, 'Private source',
-      'Secret sourcing note', 150, 'https://private.example/original.jpg', 0)`).run();
+      'Secret sourcing note', 150, 'https://private.example/original.jpg', 0, 9, 'AUD')`).run();
   return db;
 }
 
@@ -27,7 +27,7 @@ async function call(db: SqliteD1, path: string, method = 'GET', body?: unknown, 
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   }), { DB: db as any, JWT_SECRET: SECRET } as any);
 }
-const offer = { name: 'Mountain Oolong', grams: 50, type: 'Oolong', year: 2021, origin: 'Taiwan' };
+const offer = { name: 'Mountain Oolong', grams: 50, type: 'Oolong', year: 2021, origin: 'Taiwan', price_amount: 25, price_currency: 'USD' };
 const publish = (db: SqliteD1, body: unknown = offer, user = 'seller') =>
   call(db, '/api/me/cellar/holding/publish-shelf', 'POST', body, user);
 const publicRead = (db: SqliteD1, path: string) => worker.fetch(
@@ -37,6 +37,44 @@ const publicShelf = async (db: SqliteD1) => (await publicRead(db, '/api/shelf/se
 const holding = (db: SqliteD1) => db.sqlite.prepare("SELECT * FROM personal_cellar_items WHERE id='holding'").get() as any;
 
 describe('a personal shelf offer', () => {
+  it('requires a recorded purchase amount and currency before adding a tea', async () => {
+    const db = database();
+    const tea = { name: 'Spring oolong', grams: 120 };
+    for (const invalid of [{}, { costAmount: '', costCurrency: 'USD' }, { costAmount: 15 },
+      { costAmount: 15, costCurrency: 'UNK' }, { costAmount: -1, costCurrency: 'USD' }]) {
+      expect((await call(db, '/api/me/cellar', 'POST', { ...tea, ...invalid })).status).toBe(400);
+    }
+    const response = await call(db, '/api/me/cellar', 'POST', { ...tea, costAmount: 0, costCurrency: 'CNY' });
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ item: { costAmount: 0, costCurrency: 'Yuan' } });
+  });
+
+  it('requires a price for the offered weight and publishes only the asking price', async () => {
+    const db = database();
+    expect((await publish(db, { ...offer, price_amount: undefined, price_currency: undefined })).status).toBe(400);
+    expect((await publish(db, { ...offer, price_amount: 0 })).status).toBe(400);
+    expect((await publish(db, { ...offer, price_amount: 12.123 })).status).toBe(400);
+    expect((await publish(db)).status).toBe(200);
+    const listed = (await publicShelf(db)).items[0];
+    expect(listed).toMatchObject({ grams: 50, price_amount: 25, price_currency: 'USD' });
+    expect(listed).not.toHaveProperty('costAmount');
+    expect(listed).not.toHaveProperty('cost_amount');
+  });
+
+  it('keeps a legacy holding private until its owner records cost and approves a priced offer', async () => {
+    const db = database();
+    db.sqlite.prepare(`UPDATE personal_cellar_items
+      SET chest_cost_amount=NULL, chest_cost_currency=NULL, shelf_published=1,
+          shelf_offer_name='Old offer', shelf_offer_grams=50
+      WHERE id='holding'`).run();
+    expect((await publicShelf(db)).items).toEqual([]);
+    expect((await publish(db)).status).toBe(409);
+    expect((await call(db, '/api/me/cellar/holding', 'PUT', { costAmount: 9, costCurrency: 'AUD' })).status).toBe(200);
+    expect((await publicShelf(db)).items).toEqual([]);
+    expect((await publish(db)).status).toBe(200);
+    expect((await publicShelf(db)).items[0]).toMatchObject({ grams: 50, price_amount: 25 });
+  });
+
   it('publishes only approved buyer-safe fields, retries without duplicating, and withdraws without consuming the holding', async () => {
     const db = database();
     expect((await publish(db)).status).toBeLessThan(300);
@@ -137,6 +175,7 @@ describe('a personal shelf offer', () => {
     expect(requests).toHaveLength(1);
     expect(requests[0]).not.toHaveProperty('label');
     expect(requests[0]).not.toHaveProperty('shelfOffer');
+    expect(requests[0]).not.toHaveProperty('costAmount');
     const approvals = await Promise.all([
       call(db, '/api/cellar-placements/holding/approve', 'POST', {}, 'other'),
       call(db, '/api/cellar-placements/holding/approve', 'POST', {}, 'other'),
