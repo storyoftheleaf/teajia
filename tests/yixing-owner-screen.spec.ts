@@ -1,6 +1,8 @@
 import { expect, test, type Page } from './fixtures';
 import { injectAuth, mockInventoryApi } from './helpers/inventoryMocks';
 
+import type { Decision } from '../src/admin/views/yixing/data';
+
 const base = '/admin/yixing';
 const photo = { role: 'Main view', sha256: 'a'.repeat(64), originalSha256: 'b'.repeat(64) };
 const shape = { id: 'shape-example', kind: 'shape', name: 'Example form', summary: 'A sourced comparison.',
@@ -9,11 +11,12 @@ const pot = { id: 'pots-example', name: 'Example teapot', listing: { name: 'Exam
   photos: [photo], observation: 'Example observation.', comparisonIds: [shape.id] };
 const duanni = { id: 'clay-duanni', kind: 'clay', name: 'Duanni', summary: 'A clay reference for Duanni.',
   status: 'Clay family', sources: [] };
+const firedColor = { ...duanni, id: 'color-brown', kind: 'color', name: 'Brown' };
 const zini = { ...duanni, id: 'clay-zini', name: 'Zini', summary: 'A clay reference for Zini.' };
 const potWithLead = { ...pot, id: 'pots-with-lead', name: 'Example with a clay lead',
   clayLead: { label: 'Clay family unclear', note: 'Duanni is one lead to check.' },
   comparisonIds: [shape.id, duanni.id] };
-const board = { version: 1, reference: { title: 'Yixing teapots', scope: '', entries: [shape, duanni, zini] },
+const board = { version: 1, reference: { title: 'Yixing teapots', scope: '', entries: [shape, duanni, zini, firedColor] },
   pots: [pot, potWithLead] };
 
 test('login returns to the private pot address', async ({ page }) => {
@@ -23,11 +26,19 @@ test('login returns to the private pot address', async ({ page }) => {
   expect([...new URL(page.url()).searchParams.values()]).toContain(base + '/' + pot.id);
 });
 
-async function mockOwnerBoard(page: Page) {
+interface BoardOptions {
+  pots?: typeof board.pots;
+  decisions?: Map<string, Decision>;
+  writes?: string[];
+  conflict?: (id: string) => boolean;
+}
+
+async function mockOwnerBoard(page: Page, options: BoardOptions = {}) {
   await injectAuth(page);
   await page.route('**/api/**', route => route.fulfill({ json: {} }));
   await mockInventoryApi(page);
-  const decisions = new Map<string, { revision: number }>();
+  const decisions = options.decisions ?? new Map<string, Decision>();
+  const pots = options.pots ?? board.pots;
   const requested = new Set<string>();
   await page.route('**/api/admin/yixing**', async route => {
     const request = route.request();
@@ -39,15 +50,83 @@ async function mockOwnerBoard(page: Page) {
     }
     if (request.method() === 'PUT') {
       const id = path.split('/').pop()!;
-      expect(board.pots.some(item => item.id === id)).toBe(true);
-      const decision = { ...request.postDataJSON(), revision: (decisions.get(id)?.revision ?? 0) + 1 };
+      expect(pots.some(item => item.id === id)).toBe(true);
+      const data = request.postDataJSON();
+      options.writes?.push(id);
+      const revision = decisions.get(id)?.revision ?? 0;
+      if (options.conflict?.(id) || data.revision !== revision) {
+        return route.fulfill({ status: 409, json: { error: 'The review changed. Reopen this pot before saving.' } });
+      }
+      const decision = { ...data, revision: revision + 1 };
       decisions.set(id, decision);
       return route.fulfill({ json: decision });
     }
-    return route.fulfill({ json: { ...board, decisions: Object.fromEntries(decisions) } });
+    return route.fulfill({ json: { ...board, pots, decisions: Object.fromEntries(decisions) } });
   });
   return requested;
 }
+
+const groupPots = ['One', 'Two', 'Three'].map(name => ({ ...potWithLead, id: 'pot-' + name, name }));
+const priorDecision: Decision = { clay: '', color: firedColor.id, shape: shape.id, note: 'Recorded evidence', revision: 3, rejectedClays: [zini.id] };
+
+for (const action of ['approve', 'deny'] as const) {
+  test('grouped clay ' + action + ' saves only selected pots and persists across reload', async ({ page }) => {
+    const [first, second, untouched] = groupPots;
+    const decisions = new Map(groupPots.map(item => [item.id, { ...priorDecision }]));
+    const writes: string[] = [];
+    await mockOwnerBoard(page, { pots: [...groupPots, pot], decisions, writes });
+    await page.goto(base);
+    const group = page.getByRole('combobox', { name: 'Review by clay' });
+    await group.selectOption(duanni.id);
+    for (const item of [first, second]) await page.getByRole('checkbox', { name: 'Select ' + item.name }).check();
+    await page.getByRole('button', { name: action === 'approve' ? 'Approve selected (2)' : 'Deny selected' }).click();
+    await expect(page.getByText('2 decisions saved.')).toBeVisible();
+    expect(writes).toEqual([first.id, second.id]);
+    for (const item of [first, second]) {
+      expect(decisions.get(item.id)).toEqual({ ...priorDecision, revision: 4,
+        clay: action === 'approve' ? duanni.id : '',
+        rejectedClays: action === 'approve' ? [zini.id] : [zini.id, duanni.id] });
+    }
+    expect(decisions.get(untouched.id)).toEqual(priorDecision);
+    expect(decisions.has(pot.id)).toBe(false);
+    await page.reload();
+    await expect(group).toHaveValue(duanni.id);
+    await expect(page.getByRole('checkbox')).toHaveCount(1);
+    await expect(page.getByRole('checkbox', { name: 'Select ' + untouched.name })).not.toBeChecked();
+    await group.selectOption('confirmed');
+    const rows = page.getByRole('listitem').filter({ has: page.locator('a[href^="/admin/yixing/pot"]') });
+    await expect(rows).toHaveCount(action === 'approve' ? 2 : 0);
+    await group.selectOption('evidence');
+    await expect(rows).toHaveCount(action === 'deny' ? 3 : 1);
+    await expect(page.getByRole('link', { name: new RegExp(pot.name) })).toBeVisible();
+  });
+}
+
+test('grouped clay stops on conflict, refreshes the board and retries outstanding work only', async ({ page }) => {
+  const [first, second, third] = groupPots;
+  const decisions = new Map(groupPots.map(item => [item.id, { ...priorDecision }]));
+  const writes: string[] = [];
+  const concurrent = { ...priorDecision, note: 'Updated elsewhere', revision: 4 };
+  await mockOwnerBoard(page, { pots: groupPots, decisions, writes, conflict: id => {
+    if (id !== second.id || decisions.get(id)?.revision !== priorDecision.revision) return false;
+    decisions.set(id, concurrent);
+    return true;
+  } });
+  await page.goto(base + '?clay=' + duanni.id);
+  for (const item of groupPots) await page.getByRole('checkbox', { name: 'Select ' + item.name }).check();
+  await page.getByRole('button', { name: 'Approve selected (3)' }).click();
+  await expect(page.getByText(/1 of 3 saves confirmed/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Approve selected (0)' })).toBeDisabled();
+  expect(writes).toEqual([first.id, second.id]);
+  expect(decisions.get(second.id)).toEqual(concurrent);
+  expect(decisions.get(third.id)).toEqual(priorDecision);
+  await expect(page.getByRole('checkbox', { name: 'Select ' + first.name })).toHaveCount(0);
+  for (const item of [second, third]) await page.getByRole('checkbox', { name: 'Select ' + item.name }).check();
+  await page.getByRole('button', { name: 'Approve selected (2)' }).click();
+  await expect(page.getByText('2 decisions saved.')).toBeVisible();
+  expect(writes).toEqual([first.id, second.id, second.id, third.id]);
+  expect(decisions.get(second.id)).toEqual({ ...concurrent, clay: duanni.id, revision: 5 });
+});
 
 test('review, protected photographs and the shared listing follow the saved decision', async ({ page }) => {
   const requested = await mockOwnerBoard(page);

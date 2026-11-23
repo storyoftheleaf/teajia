@@ -1,3 +1,4 @@
+import { Button } from '../../../components/shared/Button';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CELL, FACT, LABEL, NAME_CLASS, QUIET_LINK, RULE_FULL } from '../../../pages/wisdom/wisdomShared';
@@ -51,21 +52,21 @@ export function Guide({ board, onClay, onReload }: { board: Board; onClay: Chang
     </nav>
     {chooseForPot && <p className="mb-2">Choose clay for {pot.name}</p>}
     <div className={CELL + ' mb-4 flex flex-wrap gap-x-4 gap-y-2'}>{entries.map(e =>
-      chooseForPot ? <button type="button" className="btn-chip" key={e.id} aria-label={'Apply ' + e.name}
-        disabled={saving || conflict} onClick={() => void applyClay(e.id)}>{e.name}</button>
+      chooseForPot ? <Button variant="chip" type="button" key={e.id} aria-label={'Apply ' + e.name}
+       disabled={saving || conflict} onClick={() => void applyClay(e.id)}>{e.name}</Button>
         : <Link className={QUIET_LINK} key={e.id} to={guidePath(pot, e.id, fromListing)}>{e.name}</Link>)}</div>
-    {message && <div role="alert">{message} {conflict && <button type="button" className="btn-secondary" onClick={async () => {
+    {message && <div role="alert">{message} {conflict && <Button variant="secondary" type="button" onClick={async () => {
       try { await onReload(); } catch { setMessage('Reload failed. Try again.'); }
-    }}>Reload saved choices</button>}</div>}
+    }}>Reload saved choices</Button>}</div>}
     <p className={FACT + ' mb-4'}>{reference.scope}</p>
     {entries.map(e => <section key={e.id} id={e.id} className={RULE_FULL + ' scroll-mt-1 py-4 ' + (e.id === anchor ? 'bg-tea-accent-sub px-3' : '')}>
       <h2 className={NAME_CLASS}>{e.name} {e.chinese && <span lang="zh" className="text-tea-text-sec">{e.chinese}</span>}</h2>
       {chooseForPot && anchor === e.id && <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-primary" disabled={saving || conflict}
-          onClick={() => void applyClay(e.id)}>Use {e.name} for this pot</button>
+        <Button variant="primary" type="button" disabled={saving || conflict}
+          onClick={() => void applyClay(e.id)}>Use {e.name} for this pot</Button>
         {pot.comparisonIds.includes(e.id) && board.decisions[pot.id]?.clay !== e.id && !board.decisions[pot.id]?.rejectedClays?.includes(e.id) &&
-          <button type="button" className="btn-secondary" disabled={saving || conflict}
-            onClick={() => void applyClay(e.id, 'deny')}>Deny {e.name}</button>}
+          <Button variant="secondary" type="button" disabled={saving || conflict}
+            onClick={() => void applyClay(e.id, 'deny')}>Deny {e.name}</Button>}
       </div>}
       <p className={LABEL + ' mt-1'}>{e.status}</p><p className={FACT + ' mt-2'}>{e.summary}</p>
       {!!e.cues?.length && <div className="mt-3"><p className={LABEL}>What to look for</p>

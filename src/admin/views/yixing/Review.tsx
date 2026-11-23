@@ -1,3 +1,4 @@
+import { Button } from '../../../components/shared/Button';
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ImageOverlayModal } from '../../../components/shop/alcove/AlcoveModals';
@@ -74,17 +75,17 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
     </nav>
     <div className="my-3 flex gap-3">
       {pot.photos.map((photo, i) => <figure className="m-0 min-w-0 max-w-64 flex-1" key={photo.sha256}>
-        <button type="button" className="block aspect-square w-full bg-tea-surface" aria-label={'Enlarge ' + photo.role}
-          disabled={!urls[i]} onClick={() => setZoom(urls[i])}>
+        <Button variant="plain" type="button" className="block aspect-square w-full bg-tea-surface" aria-label={'Enlarge ' + photo.role}
+         disabled={!urls[i]} onClick={() => setZoom(urls[i])}>
           {urls[i] && <img src={urls[i]} alt={photo.role} className="h-full w-full object-contain" />}
-        </button>
+        </Button>
         <figcaption className="text-tea-text-dim">{photo.role}</figcaption>
       </figure>)}
     </div>
     {failed && <p role="status">Photo unavailable</p>}
-    <button type="button" className={QUIET_LINK} onClick={() => setParams(originals ? {} : { view: 'original' })}>
+    <Button variant="plain" type="button" className={QUIET_LINK} onClick={() => setParams(originals ? {} : { view: 'original' })}>
       {originals ? 'Show listing crops' : 'Compare original photos'}
-    </button>
+    </Button>
     <h2 className="type-section-heading mt-4 font-display">Photo observations</h2>
     <p>{pot.observation}</p>
     {otherComparisons.length > 0 && <p className="flex flex-wrap items-baseline gap-x-2">Compare {otherComparisons.map(e =>
@@ -101,11 +102,11 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
               <p><strong>{approved ? 'Approved clay' : denied ? 'Denied suggestion' : 'Suggested clay'} · {entry.name}</strong></p>
               {pot.clayLead?.note && <p className="text-tea-text-sec">{pot.clayLead.note}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                {approved ? <button type="button" className="btn-secondary" disabled={conflict} onClick={() => void chooseClay('', 'approve')}>Clear approval</button>
-                  : denied ? <button type="button" className="btn-secondary" disabled={conflict} onClick={() => void chooseClay(entry.id, 'undo')}>Undo denial</button>
+                {approved ? <Button variant="secondary" type="button" disabled={conflict} onClick={() => void chooseClay('', 'approve')}>Clear approval</Button>
+                  : denied ? <Button variant="secondary" type="button" disabled={conflict} onClick={() => void chooseClay(entry.id, 'undo')}>Undo denial</Button>
                     : <>
-                      <button type="button" className="btn-primary" disabled={conflict} onClick={() => void chooseClay(entry.id, 'approve')}>Approve {entry.name}</button>
-                      <button type="button" className="btn-secondary" disabled={conflict} onClick={() => void chooseClay(entry.id, 'deny')}>Deny {entry.name}</button>
+                      <Button variant="primary" type="button" disabled={conflict} onClick={() => void chooseClay(entry.id, 'approve')}>Approve {entry.name}</Button>
+                      <Button variant="secondary" type="button" disabled={conflict} onClick={() => void chooseClay(entry.id, 'deny')}>Deny {entry.name}</Button>
                     </>}
               </div>
             </div>;
@@ -124,11 +125,11 @@ export function Review({ board, pot, auth, draft: pending, onDraft, onSave, onRe
           <textarea className={fieldClass} rows={2} maxLength={1600} value={draft.note} onChange={e => edit('note', e.target.value)} />
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button type="submit" className="btn-primary" disabled={conflict}>{saving ? 'Saving…' : 'Save review'}</button>
+          <Button variant="primary" type="submit" disabled={conflict}>{saving ? 'Saving…' : 'Save review'}</Button>
           {message && <span role="status">{message}</span>}
-          {conflict && <button type="button" className="btn-secondary" onClick={async () => {
+          {conflict && <Button variant="secondary" type="button" onClick={async () => {
             try { await onReload(); } catch { setMessage('Reload failed. Try again.'); }
-          }}>Reload saved choices</button>}
+          }}>Reload saved choices</Button>}
         </div>
       </fieldset>
     </form>

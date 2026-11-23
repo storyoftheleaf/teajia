@@ -1,3 +1,4 @@
+import { Button } from '../../../components/shared/Button';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -54,8 +55,8 @@ function ShapePhoto({ asset, label, auth, onZoom }: { asset: string; label: stri
   const photo = url && <img className="h-full w-full object-contain" src={url} alt={label} />;
   return <div ref={slot} className="flex aspect-square items-center justify-center bg-tea-bg">
     {url && onZoom
-      ? <button className="block h-full w-full focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold" type="button"
-          aria-label={'Enlarge ' + label} onClick={() => onZoom({ url, label })}>{photo}</button>
+      ? <Button variant="plain" className="block h-full w-full focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold" type="button"
+          aria-label={'Enlarge ' + label} onClick={() => onZoom({ url, label })}>{photo}</Button>
       : photo}
     {result?.key === key && result.failed && <span className={TYPE.bodyLight}>Photo unavailable</span>}
   </div>;
@@ -73,16 +74,16 @@ function PotComparison({ pot, auth, originals, onZoom }: { pot: Pot; auth: Auth;
   return <section aria-label={'Compare with ' + pot.name} className={surface + ' grid min-w-0 grid-cols-2 items-center self-start sm:block'}>
     <h2 className={TYPE.h2 + ' col-span-2 px-3 py-2 break-words'}>{pot.name}</h2>
     {photo && <div className="flex aspect-square items-center justify-center bg-tea-bg">
-      {url && <button className="block h-full w-full focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold"
-        type="button" aria-label={'Enlarge ' + label} onClick={() => onZoom({ url, label })}>
+      {url && <Button variant="plain" className="block h-full w-full focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold"
+       type="button" aria-label={'Enlarge ' + label} onClick={() => onZoom({ url, label })}>
         <img className="h-full w-full object-contain" src={url} alt={label} />
-      </button>}
+      </Button>}
       {failed && <p role="status">Photo unavailable</p>}
     </div>}
     <div className="px-3 py-2">
       {pot.photos.length > 1 ? <div aria-label="Pot photo views" className="flex flex-wrap gap-x-2">
-        {pot.photos.map((entry, index) => <button type="button" key={entry.sha256}
-          className="btn-tab" aria-pressed={index === selected} onClick={() => setSelected(index)}>{entry.role}</button>)}
+        {pot.photos.map((entry, index) => <Button variant="tab" type="button" key={entry.sha256}
+          aria-pressed={index === selected} onClick={() => setSelected(index)}>{entry.role}</Button>)}
       </div> : <p className={TYPE.bodyLight}>{photo?.role ?? 'No review photo available'}</p>}
     </div>
   </section>;
@@ -106,8 +107,8 @@ function Example({ example, auth, onZoom }: { example: ShapeExemplar; auth: Auth
     <ShapePhoto asset={view.asset} label={example.title + ' · ' + view.label} auth={auth} onZoom={onZoom} />
     <div className="space-y-2 px-3 py-2">
       {views.length > 1 && <div aria-label="Reference photo views" className="flex flex-wrap gap-x-2">
-        {views.map((entry, index) => <button type="button" key={entry.asset}
-          className="btn-tab" aria-pressed={index === selection} onClick={() => setSelection(index)}>{entry.label}</button>)}
+        {views.map((entry, index) => <Button variant="tab" type="button" key={entry.asset}
+          aria-pressed={index === selection} onClick={() => setSelection(index)}>{entry.label}</Button>)}
       </div>}
       {example.notes && <p className={TYPE.body}>{example.notes}</p>}
       <div className="flex flex-wrap gap-x-3">
@@ -228,7 +229,7 @@ export function ShapeLibrary({ board, auth, revision }: { board: Board; auth: Au
     {query.isPending || (missingSelection && query.isFetching) ? <p role="status">Opening shape library…</p>
       : !library || (query.isError && missingSelection) ? <div role="alert">
         <p>{query.error?.message ?? 'Unable to open the shape library.'}</p>
-        <button type="button" className="btn-secondary mt-2" onClick={() => void query.refetch()}>Try again</button>
+        <Button variant="secondary" type="button" className="mt-2" onClick={() => void query.refetch()}>Try again</Button>
       </div>
       : editing ? <AddShapeReference auth={auth} forms={library.forms} onCancel={() => navigate(link())}
         onSaved={({ formId, asset }) => { void query.refetch(); navigate(link(formId, asset), { replace: true }); }} />
@@ -254,9 +255,9 @@ export function ShapeLibrary({ board, auth, revision }: { board: Board; auth: Au
         <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3">
           <p className={TYPE.bodyLight} role="status">{filtered.length} {filtered.length === 1 ? 'form' : 'forms'}</p>
           {lastPage > 1 && <nav aria-label="Form pages" className="flex flex-wrap items-center gap-x-2">
-            <button className="btn-quiet tap-target" type="button" disabled={page === 1} onClick={() => goToPage(page - 1)}>Previous</button>
+            <Button variant="quiet" className="tap-target" type="button" disabled={page === 1} onClick={() => goToPage(page - 1)}>Previous</Button>
             <span className={TYPE.bodyLight}>Page {page} of {lastPage}</span>
-            <button className="btn-quiet tap-target" type="button" disabled={page === lastPage} onClick={() => goToPage(page + 1)}>Next</button>
+            <Button variant="quiet" className="tap-target" type="button" disabled={page === lastPage} onClick={() => goToPage(page + 1)}>Next</Button>
           </nav>}
         </div>
         <div className={pot ? 'grid min-w-0 items-start gap-3 sm:grid-cols-3' : undefined}>
