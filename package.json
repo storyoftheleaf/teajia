@@ -55,7 +55,10 @@
     "practice:api": "npm --prefix worker run practice",
     "practice:site": "VITE_API_URL= TEAJIA_API_PROXY=http://127.0.0.1:${PRACTICE_API_PORT:-8798} vite --host 127.0.0.1 --port ${PRACTICE_SITE_PORT:-7813} --strictPort",
     "practice": "concurrently --kill-others -n api,site -c magenta,cyan \"npm run practice:api\" \"npm run practice:site\"",
-    "practice:seed": "npm --prefix worker run practice:seed"
+    "practice:seed": "npm --prefix worker run practice:seed",
+    "tea-wisdom:compose": "node scripts/tea-wisdom-compose/compose.mjs",
+    "tea-wisdom:entries:approve": "node scripts/tea-wisdom-compose/entries-cli.mjs approve",
+    "tea-wisdom:entries:unapprove": "node scripts/tea-wisdom-compose/entries-cli.mjs unapprove"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

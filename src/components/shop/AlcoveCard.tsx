@@ -44,6 +44,9 @@ import { resolveLineage } from '../wisdom/TeaLineage';
 import { regionElevationPresentation } from '../../wisdom/regions';
 import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, passageHref, useWisdomListing } from './alcove/AlcoveWisdomPassages';
 import { AlcoveComposedEntry } from './alcove/AlcoveComposedEntry';
+import { entryClaimUses, entryLinkFor } from '../../wisdom/reference/composedEntry';
+import { GENERATED_ENTRIES } from '../../wisdom/reference/generatedEntries';
+import { GENERATED_CLAIMS } from '../../wisdom/reference/generatedClaims';
 import { EMPTY_LISTING_PASSAGES, resolveListingPassages } from '../../wisdom/reference/listingPassages';
 import { listingFactsFromInventoryItem } from '../../wisdom/reference/listingFacts';
 
@@ -142,6 +145,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // GENERATED_CLAIMS lands; `pilot` is set only on the wisdom-pilot preview pages.
   const wisdomListing = useWisdomListing();
   const wisdomPilot = wisdomListing.pilot;
+  // The tea's composed entry: the preview supplies one; the live shop shows only an approved entry.
+  const composed = wisdomListing.composed ?? (item.category === 'tea' ? GENERATED_ENTRIES[item.id] : undefined);
+  const entryClaims = wisdomListing.composed ? wisdomListing.claims : GENERATED_CLAIMS;
 
   const handleSampleClick = () => {
     setSampleModalOpen(true);
@@ -545,7 +551,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     ? resolveProductResearch(referenceProduct)
     : null;
   const wisdomPassages = item.category === 'tea'
-    ? resolveListingPassages(wisdomListing.facts ?? listingFactsFromInventoryItem(item), wisdomListing.composed ? [] : wisdomListing.claims)
+    ? resolveListingPassages(wisdomListing.facts ?? listingFactsFromInventoryItem(item), composed ? [] : wisdomListing.claims)
     : EMPTY_LISTING_PASSAGES;
   const passageFor = (field: 'region' | 'location' | 'type' | 'grade' | 'format') =>
     wisdomPassages.passages.find(passage => passage.gridField === field);
@@ -567,16 +573,19 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   // 5. About this tea: story + terroir + craft as one reading chapter
+  // A composed entry speaks for the introduction, lore, terroir and processing;
+  // mood and experience stay Adrian's own and still show.
+  const composedSpeaks = Boolean(composed);
   const aboutSection = (
     <AlcoveAboutSection
       variant={layout === 'page' ? 'page' : 'card'}
-      item={item}
+      item={composedSpeaks ? { ...item, description: '', lore: '' } : item}
       magazineUrl={magazineUrl}
-      mainStory={mainStory}
-      introduction={introduction}
+      mainStory={composedSpeaks ? '' : mainStory}
+      introduction={composedSpeaks ? '' : introduction}
       feelingDescription={item.experience || ''}
-      terroir={terroir}
-      processing={processing}
+      terroir={composedSpeaks ? '' : terroir}
+      processing={composedSpeaks ? '' : processing}
       mood={item.mood || ''}
     />
   );
@@ -698,17 +707,28 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     const regionName = ledgerRegion?.province || ledgerRegion?.name;
     const originReference = findProductOriginReference(referenceCatalogue, item.id, item.origin);
     const locationPassage = passageFor('location');
+    // With a composed entry, the Type and Location rows open the Wisdom pages the entry draws on.
+    const composedUses = composed ? entryClaimUses(composed) : [];
+    const composedPageFor = (axes: readonly string[]) => {
+      const claimId = composedUses.find(id => axes.includes(entryClaims.find(claim => claim.claimId === id)?.axis ?? ''));
+      return claimId ? entryLinkFor(claimId, entryClaims)?.split('#')[0] ?? null : null;
+    };
+    const composedTypeHref = composedPageFor(['type', 'process']);
+    const composedPlaceHref = composedPageFor(['place']);
     const facts = [
       { label: 'Vintage', value: item.year },
       // A grade row exists only when a recorded grade has a passage to explain it.
       ...(gradePassage && wisdomListing.facts?.grade ? [{ label: 'Grade', value: wisdomListing.facts.grade.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '), to: passageHref(gradePassage.claim.claimId) }] : []),
       ...(typePassage ? [{ label: 'Type', value: item.type, to: passageHref(typePassage.claim.claimId) }] : []),
+      ...(!typePassage && composedTypeHref ? [{ label: 'Type', value: item.type, to: composedTypeHref }] : []),
       originReference
         ? { label: 'Region', value: originReference.name, to: `/wisdom/region/${originReference.id}` }
         : { label: 'Region', value: regionName && regionName !== item.origin ? regionName : '' },
       locationPassage
         ? { label: 'Location', value: item.origin, to: passageHref(locationPassage.claim.claimId) }
-        : { label: 'Location', value: item.origin },
+        : composedPlaceHref
+          ? { label: 'Location', value: item.origin, to: composedPlaceHref }
+          : { label: 'Location', value: item.origin },
       { label: 'Leaf cultivar', value: item.cultivar ?? '' },
       { label: 'Format', value: item.form ?? '' },
       { label: ledgerElevation?.label ?? 'Elevation', value: ledgerElevation?.value ?? '' },
@@ -761,8 +781,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 <FactGrid facts={facts} />
               </section>
             )}
-            {wisdomListing.composed
-              ? <AlcoveComposedEntry entry={wisdomListing.composed} claims={wisdomListing.claims} />
+            {composed
+              ? <AlcoveComposedEntry entry={composed} claims={entryClaims} />
               : <AlcoveWisdomPassages listing={wisdomPassages} />}
             {!wisdomPilot?.externalReference && <div data-page-order data-tea-product-order className="commerce-dock commerce-price-surface paper-surface dark z-nav">
               {commerceFooter('docked')}

@@ -40,6 +40,11 @@ import {
 import ReferenceFactSections from './ReferenceFactSections';
 import { wisdomDestinations } from './articleClaimUses';
 import { useWisdomPilotData } from './wisdomPilotData';
+import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
+import { normalizeTeaType } from '../../wisdom/vocabulary';
+
+/** A tea_type page id and the recorded type its teas carry. */
+const TYPE_OF_PAGE: Record<string, string> = { shou: 'Shou', sheng: 'Sheng' };
 
 /** Where the grade name is used: the pilot grades are Menghai loose ripe pu'er grades. */
 const STANDARD_PLACE: Record<string, string> = {
@@ -114,6 +119,14 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
   const location = useLocation();
   const data = useWisdomPilotData();
   const signedIn = Boolean(getTokenClaims());
+  const { products: publicProducts } = useTeaReferenceCatalogue(kind === 'tea_type');
+  // A type page lists the shop's teas of that type, so a reader can go from the Wisdom page back to a tea.
+  const teas = useMemo(
+    () => (kind === 'tea_type' && TYPE_OF_PAGE[id]
+      ? publicProducts.filter(product => normalizeTeaType(product.type) === TYPE_OF_PAGE[id])
+      : []),
+    [kind, id, publicProducts],
+  );
 
   const page = data?.pages.find(candidate => candidate.id === id && candidate.kind === kind);
   const claims = useMemo(
@@ -224,7 +237,7 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
           <ReferenceFactSections
             facts={statements}
             sources={data.sources}
-            products={[]}
+            products={teas}
             reportIdentity={`${copy.label}: ${page.label}`}
             factDetail={fact => {
               const claim = claimById.get(fact.id);
