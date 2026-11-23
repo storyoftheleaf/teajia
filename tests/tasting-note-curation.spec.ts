@@ -243,8 +243,12 @@ test('a guest excerpt requires approval and an independent public placement', as
   await showPublic('listing', true);
   const journalSection = page.getByRole('region', { name: 'From the tasting journal' });
   const about = page.getByRole('region', { name: 'About this tea' });
-  const descriptorBox = journalSection.locator('xpath=../preceding-sibling::*[1]');
+  const descriptorBox = page.getByRole('region', { name: 'Character', exact: true }).locator('.alcove-record');
   await expect(descriptorBox.getByText('Honey', { exact: true })).toBeVisible();
+  await expect(descriptorBox.getByRole('region', { name: 'From the tasting journal' })).toHaveCount(0);
+  const box = await descriptorBox.boundingBox();
+  const journal = await journalSection.boundingBox();
+  expect(journal!.y).toBeGreaterThan(box!.y + box!.height);
   const expectJournalBeforeAbout = async () => {
     await expect(about).toBeVisible();
     const aboutElement = await about.elementHandle();

@@ -187,7 +187,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   const hasCharacterContent = hasTerms || quotes.length > 0;
   const hasAny = hasCharacterContent || Boolean(potentialResearch) || Boolean(onTaste);
   const journal = open && impressions.length > 0 ? (
-    <div className="px-[var(--space-4)] lg:px-[var(--space-6)]">
+    <div className="mx-5">
       <ProductImpressions impressions={impressions} />
     </div>
   ) : null;
@@ -261,7 +261,6 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
               )}
             </div>
           )}
-          {hasTerms && journal}
           {quotes.length > 0 && (
             <div className={`px-4 py-[18px] lg:px-6 lg:py-6 ${hasTerms ? 'alcove-record-said' : ''}`}>
               {quotes.map(({ text, attribution, detail, key }, i) => (
@@ -313,7 +312,7 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
       </section>
     );
 
-    return <>{character}{!hasTerms && journal}</>;
+    return <>{character}{journal}</>;
   }
 
   return (
