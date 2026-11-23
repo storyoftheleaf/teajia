@@ -16,7 +16,7 @@ function setup() {
   databases.push(db);
   for (const [userId, role, platformRole] of [
     ['personal-owner', 'owner', 'platform_owner'], ['second-owner', 'owner', 'platform_admin'],
-    ['staff', 'staff', null],
+    ['staff', 'staff', null], ['other-platform-owner', 'staff', 'platform_owner'],
   ] as const) seedIdentity(db, { accountId: account, userId, role, platformRole });
   seedIdentity(db, { accountId: 'other-shop', userId: 'other-owner', role: 'owner' });
   const objects = new Map([[prefix + 'board.json', JSON.stringify(board)], [prefix + 'media/' + hash + '.jpg', 'private photo']]);
@@ -48,6 +48,14 @@ function setup() {
 afterEach(() => { while (databases.length) databases.pop()!.close(); });
 
 describe('personal Yixing pot review', () => {
+  it('admits only the individually bound platform owner when their Bali membership is staff', async () => {
+    const { call, db } = setup();
+    db.sqlite.prepare("UPDATE account_members SET role = 'staff' WHERE user_id = ?").run('personal-owner');
+    expect((await call(base)).status).toBe(200);
+    expect((await call(base, 'other-platform-owner')).status).toBe(403);
+    db.sqlite.prepare("UPDATE users SET platform_role = NULL WHERE id = ?").run('personal-owner');
+    expect((await call(base)).status).toBe(403);
+  });
   it('requires the named person and active Bali owner membership, including for image bytes and edits', async () => {
     const { call, objects, db } = setup();
     for (const [user, shop, status] of [[null, account, 401], ['second-owner', account, 403], ['staff', account, 403],

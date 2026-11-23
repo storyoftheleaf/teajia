@@ -84,7 +84,9 @@ export async function serveYixingOwnerReview(
     if (account.accountId !== ACCOUNT) return error('Owner access required', 403);
     const member = await env.DB.prepare(
       `SELECT 1 AS permitted FROM account_members m JOIN accounts a ON a.id = m.account_id
-       WHERE m.user_id = ? AND m.account_id = ? AND m.role = 'owner' AND m.status = 'active' AND a.status = 'active'`,
+       JOIN users u ON u.id = m.user_id
+       WHERE m.user_id = ? AND m.account_id = ? AND m.status = 'active' AND a.status = 'active'
+         AND (m.role = 'owner' OR u.platform_role = 'platform_owner')`,
     ).bind(account.userId, ACCOUNT).first();
     if (!member) return error('Owner access required', 403);
     const bucket = env.ATLAS_BUCKET;

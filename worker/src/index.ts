@@ -1655,6 +1655,10 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
 // ── Product pricing calculation (mirrors the Postgres view) ──
 // ── Route Handlers ──
 
+// A secondary Google login proves its provider subject in the callback. Its
+// old user row remains for historical references and reserves its email.
+const independentLogin = 'NOT EXISTS (SELECT 1 FROM user_google_login_aliases alias WHERE alias.source_user_id = users.id)';
+
 const handleLogin: Handler = async (request, env) => {
   const body = await request.json() as { email?: string; identifier?: string; password?: string };
   // `identifier` is the preferred field (email or username); `email` kept for backwards compat.
@@ -1686,7 +1690,7 @@ const handleLogin: Handler = async (request, env) => {
   // Try DB-based auth (users table) — match on email OR username (case-insensitive)
   try {
     const user = await env.DB.prepare(
-      'SELECT * FROM users WHERE lower(email) = lower(?) OR lower(username) = lower(?) LIMIT 1'
+      `SELECT * FROM users WHERE (lower(email) = lower(?) OR lower(username) = lower(?)) AND ${independentLogin} LIMIT 1`
     ).bind(identifier, identifier).first();
     const { verified: dbVerified, isLegacy } = await verifyPasswordHash(password, user?.password_hash as string ?? '');
     if (user && dbVerified) {
@@ -1883,6 +1887,7 @@ const handleVerifySignupEmail: Handler = async (request, env) => {
     `SELECT v.id, v.user_id, v.code_hash, v.client_nonce_hash, v.failed_attempts, u.email, u.name, u.username, u.role, u.platform_role, u.session_version
      FROM identity_email_verifications v JOIN users u ON u.id = v.user_id
      WHERE v.email_normalized = ? AND v.purpose = 'signup-email' AND v.consumed_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM user_google_login_aliases alias WHERE alias.source_user_id = u.id)
        AND v.expires_at > datetime('now') ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1`
   ).bind(email).first();
   if (!challenge || Number(challenge.failed_attempts) >= 3) return restError(401, 'Invalid or expired verification code', 'verification_invalid');
@@ -2421,7 +2426,7 @@ const handleForgotPassword: Handler = async (request, env) => {
   });
 
   const user = await env.DB.prepare(
-    'SELECT id, email, name FROM users WHERE email = ?'
+    `SELECT id, email, name FROM users WHERE email = ? AND ${independentLogin}`
   ).bind(email).first();
 
   if (!user) return genericResponse;
@@ -2577,12 +2582,27 @@ const handleGoogleCallback: Handler = async (request, env) => {
   const gUser = await userInfoRes.json() as { id: string; email: string; name: string; verified_email?: boolean };
   if (gUser.verified_email !== true) return errRedirect('email_unverified');
 
-  // Find by google_id first; fall back to email to link existing accounts
-  let user = await env.DB.prepare('SELECT * FROM users WHERE google_id = ? LIMIT 1').bind(gUser.id).first() as any;
+  if (!gUser.id || !gUser.email) return errRedirect('userinfo_failed');
+
+  // An operator-provisioned alias is keyed by the confirmed Google subject.
+  // Load profile, memberships, and session version from its canonical user.
+  let user = await env.DB.prepare(
+    `SELECT profile.* FROM users credential
+     LEFT JOIN user_google_login_aliases alias ON alias.source_user_id = credential.id
+     JOIN users profile ON profile.id = COALESCE(alias.profile_user_id, credential.id)
+     WHERE credential.google_id = ? AND (alias.google_subject IS NULL OR alias.google_subject = credential.google_id)
+     LIMIT 1`
+  ).bind(gUser.id).first() as any;
   if (!user) {
     user = await env.DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(gUser.email).first() as any;
     if (user) {
-      await env.DB.prepare("UPDATE users SET google_id = ?, email_verified_at = COALESCE(email_verified_at, datetime('now')) WHERE id = ?").bind(gUser.id, user.id).run();
+      // A verified email can attach a first Google login. It must not replace
+      // an existing binding, including either subject in a linked pair.
+      const attached = await env.DB.prepare(
+        `UPDATE users SET google_id = ?, email_verified_at = COALESCE(email_verified_at, datetime('now'))
+         WHERE id = ? AND google_id IS NULL AND ${independentLogin}`
+      ).bind(gUser.id, user.id).run();
+      if (!attached.meta.changes) return errRedirect('account_error');
     }
   }
   if (!user) {
@@ -18584,7 +18604,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   if (!consumed.meta?.changes) return json(genericError, 401);
 
   if (purpose === 'signin') {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
+    const user = await env.DB.prepare(`SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE lower(email) = lower(?) AND ${independentLogin} LIMIT 1`).bind(contact).first();
     if (!user) return json(genericError, 401);
     if (!user.email_verified_at) {
       return restError(403, 'Complete signup verification or password recovery first', 'email_verification_required');
