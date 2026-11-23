@@ -174,10 +174,10 @@ async function setup(page: Page, { failStar = false }: { failStar?: boolean } = 
     if (path === '/api/user/favorites') return json({ favorites: [] });
     return json({});
   });
-  return { journal: () => journal, placements, clearDescriptors: () => { showDescriptors = false; } };
+  return { journal: () => journal, placements, offer: () => offer, clearDescriptors: () => { showDescriptors = false; } };
 }
 
-test('a guest excerpt requires approval and an independent public placement', async ({ page }) => {
+test('a guest excerpt requires approval and an independent public placement', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const state = await setup(page);
   const secret = 'Only in my journal.';
@@ -206,15 +206,31 @@ test('a guest excerpt requires approval and an independent public placement', as
   };
 
   await page.goto(productPath);
-  const feelingNote = page.getByRole('textbox', { name: 'How did this tea feel?' });
+  const feelingNote = page.getByRole('textbox', { name: 'Your experience with this tea' });
   await expect(feelingNote).toHaveCount(0);
   await page.getByRole('button', { name: 'Taste', exact: true }).click();
+  const overlay = page.locator('[data-tasting-session-overlay]');
+  await expect(overlay.getByRole('button', { name: 'All tastings', exact: true })).toHaveCount(0);
+  const photos = overlay.getByRole('group', { name: 'Your photographs' });
+  await expect(photos.getByRole('button', { name: 'Add photographs', exact: true })).toBeVisible();
+  await expect(overlay.locator('.tasting-session-header').getByRole('button', { name: 'Add photographs' })).toHaveCount(0);
+  await expect(overlay.getByRole('link', { name: 'How we use photographs' })).toHaveCount(0);
+  const picker = page.waitForEvent('filechooser');
+  await photos.getByRole('button', { name: 'Add photographs' }).click();
+  expect((await picker).isMultiple()).toBe(true);
+  await page.getByRole('button', { name: 'Dislike', exact: true }).click();
+  await expect(feelingNote).toHaveAttribute('placeholder', /what didn’t you like.*source better teas/i);
+  await expect(page.getByText('Saved to your private tasting journal.')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('private-tasting-prompt.png'), scale: 'css' });
   await feelingNote.fill(sentence);
+  await page.getByRole('button', { name: 'Neutral', exact: true }).click();
+  await expect(feelingNote).toHaveValue(sentence);
   await page.locator('nav:visible').getByRole('button', { name: 'Effect', exact: true }).click();
   await page.getByRole('button', { name: 'Calm', exact: true }).click();
   await page.getByRole('button', { name: 'Open your impression', exact: true }).click();
   await page.getByRole('button', { name: 'Save notes', exact: true }).click();
   await page.getByRole('button', { name: 'Not now', exact: true }).click();
+  expect(state.offer()).toBeUndefined();
   const saved = state.journal();
   expect(saved?.product_id).toBe(product.id);
   expect(JSON.parse(saved!.note)).toMatchObject({ personalNote: sentence, tasting: { feeling: ['calming'] } });

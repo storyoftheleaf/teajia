@@ -5,7 +5,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { HelmetProvider } from 'react-helmet-async';
 import { describe, expect, it } from 'vitest';
 import PhotographsPage from './PhotographsPage';
-import { HOW_WE_USE_PHOTOGRAPHS_PATH } from '../components/tasting/TastingPhotographRow';
 
 const source = (path: string) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
 
@@ -46,8 +45,7 @@ describe('How we use photographs', () => {
     expect(html).toMatch(/ask/i);
     expect(html).toContain('taken down');
   });
-  it('is the page the tasting notice links to, and is in no menu', () => {
-    expect(HOW_WE_USE_PHOTOGRAPHS_PATH).toBe('/photographs');
+  it('keeps its direct address and stays out of the menu', () => {
     expect(source('../App.tsx')).toContain('path="/photographs"');
     for (const nav of ['../components/BottomTabBar.tsx']) expect(source(nav)).not.toContain('/photographs');
   });

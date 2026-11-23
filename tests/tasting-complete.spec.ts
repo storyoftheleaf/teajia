@@ -217,7 +217,7 @@ test('wheel names grow with the wheel while sense captions remain small', async 
   await page.screenshot({ path: '/tmp/tasting-wheel-scaling-phone.png' });
 });
 
-test('site and tasting bars fold in sequence without moving the center', async ({ page }) => {
+test('the tasting bar shows all sections immediately and the site bar returns on exit', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.setViewportSize({ width: 390, height: 844 });
   await installCompassHarness(page);
@@ -226,29 +226,19 @@ test('site and tasting bars fold in sequence without moving the center', async (
   const site = page.getByTestId('bottom-tab-bar');
   const tasting = page.getByRole('navigation', { name: 'Tasting sections' });
   const seal = tasting.getByRole('button', { name: 'Leave tasting' });
-  const firstPosition = await seal.boundingBox();
-  await page.evaluate(() => {
-    for (const el of document.querySelectorAll('[data-testid="bottom-tab-bar"], .tasting-capsule-seal, .tasting-capsule-surface')) {
-      for (const animation of el.getAnimations()) { animation.pause(); animation.currentTime = 330; }
-    }
-  });
-  await expect(seal).toBeHidden();
-  await expect(tasting.locator('.tasting-capsule-surface')).toBeHidden();
-  await page.screenshot({ path: '/tmp/tasting-circle-handoff.png' });
-  await page.evaluate(() => {
-    for (const el of document.querySelectorAll('[data-testid="bottom-tab-bar"], .tasting-capsule-seal, .tasting-capsule-surface')) {
-      for (const animation of el.getAnimations()) animation.play();
-    }
-  });
-
-  await expect(site).toHaveCSS('animation-name', 'tasting-site-fold');
-  await expect(tasting.locator('.tasting-capsule-wing').first()).toHaveCSS('animation-delay', '0.92s');
   await expect(site).toBeHidden();
-  await expect(tasting.locator('.tasting-capsule-wing').first()).toHaveCSS('opacity', '1');
-  const settled = await seal.boundingBox();
-  expect(settled!.x).toBeCloseTo(firstPosition!.x, 1);
-  expect(settled!.y).toBeCloseTo(firstPosition!.y, 1);
-  await page.screenshot({ path: '/tmp/tasting-fold-open.png' });
+  await expect(tasting.locator('.tasting-capsule-surface')).toBeVisible();
+  await expect(seal).toBeVisible();
+  const content = await page.locator('.tasting-mobile-content').boundingBox();
+  const nav = await tasting.boundingBox();
+  expect(content!.y + content!.height).toBeLessThanOrEqual(nav!.y);
+  for (const wing of await tasting.locator('.tasting-capsule-wing').all()) {
+    await expect(wing).toHaveCSS('animation-name', 'none');
+    await expect(wing).toHaveCSS('opacity', '1');
+  }
+  for (const name of ['Texture', 'Effect', 'Taste', 'Storage']) {
+    await expect(tasting.getByRole('button', { name, exact: true })).toBeInViewport();
+  }
   await seal.click();
   // Return opens the site bar directly; there is no preliminary tasting fold.
   await expect(tasting).toHaveCount(0);

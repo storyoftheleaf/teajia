@@ -249,7 +249,9 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   await photos.getByRole('button', { name: 'Close', exact: true }).click();
 
   await row.getByRole('button', { name: 'Edit tasting for Cloud Oolong', exact: true }).click();
-  await expect(page.getByText('Adding to your note for this tea.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open your impression' })).toBeVisible();
+  await expect(page.getByText('Adding to your note for this tea.', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Start a new tasting' })).toHaveCount(0);
   await page.getByText(/^Earlier notes/).click();
   await expect(page.getByText('Orchid and warm stone', { exact: true })).toBeVisible();
   await page.screenshot({ path: test.info().outputPath('stock-existing-tasting.png') });

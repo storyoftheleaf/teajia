@@ -87,22 +87,42 @@ function TastingRatingRow({ label, rating, onChange }: {
   );
 }
 
-export function ImpressionNoteField({ label, value, onChange, rows = 4, children }: {
+interface ImpressionNoteFieldProps {
   label: string;
   value: string;
   onChange: (text: string) => void;
   rows?: number;
+  placeholder?: string;
   children?: React.ReactNode;
-}) {
+}
+
+export function ImpressionNoteField({ label, value, onChange, rows = 4, placeholder = 'Anything you’d like to add…', children }: ImpressionNoteFieldProps) {
   const notesId = useId();
   return (
     <div className="tasting-impression-notes">
       <label htmlFor={notesId} className={TYPOGRAPHY_CLASSES.label}>{label}</label>
       <textarea id={notesId} className={TYPOGRAPHY_CLASSES.bodyLight} rows={rows} value={value}
-        onChange={event => onChange(event.target.value)} placeholder="Anything you’d like to add…" />
+        onChange={event => onChange(event.target.value)} placeholder={placeholder} />
       {children}
     </div>
   );
+}
+
+function experiencePlaceholder(verdict: TastingData['impression'], wouldBuy: boolean) {
+  if (verdict === 'pass') return 'What didn’t you like? Was it the style, or did something taste off? Your feedback helps us source better teas.';
+  if (wouldBuy || verdict === 'love') return 'What made you want to drink it again?';
+  if (verdict === 'neutral') return 'What left you undecided about this tea?';
+  if (verdict === 'like') return 'What did you enjoy about drinking this tea?';
+  return 'In one sentence, what stood out while drinking this tea?';
+}
+
+export function TastingExperienceField({ label = 'Your experience with this tea', verdict, wouldBuy, ...field }:
+  Omit<ImpressionNoteFieldProps, 'label' | 'placeholder'> & {
+    label?: string;
+    verdict?: TastingData['impression'] | null;
+    wouldBuy: boolean;
+  }) {
+  return <ImpressionNoteField {...field} label={label} placeholder={experiencePlaceholder(verdict ?? undefined, wouldBuy)} />;
 }
 
 interface ImpressionControlsProps {
@@ -131,7 +151,7 @@ export function ImpressionControls({
       <button type="button" className="tap-target" aria-pressed={wouldBuy} onClick={() => onWouldBuy(!wouldBuy)}>Want to purchase this</button>
       <button type="button" className="tap-target" aria-pressed={inCollection} onClick={onCollection}
         disabled={collectionUnavailable} title={collectionUnavailable ? 'This tea is not listed in the shop' : undefined}>
-        {inCollection ? 'In my collection' : 'Add to my collection'}
+        {inCollection ? 'In my collection' : 'Save in my collection'}
       </button>
     </div>
     {ratingLabel === 'Overall' && value.rating != null && !value.quality && (
@@ -173,14 +193,15 @@ export function YourImpression({ value, ratingLabel, collectionUnavailable, sess
       </section>
     )}
     {photographRow}
-    <ImpressionNoteField label={notesLabel} value={impressionNoteText(value)} onChange={text => onChange(updateImpressionNote(value, text))}>
+    <TastingExperienceField label={notesLabel} verdict={verdict} wouldBuy={wouldBuy}
+      value={impressionNoteText(value)} onChange={text => onChange(updateImpressionNote(value, text))}>
       {notesNotice && <p className={`${TYPOGRAPHY_CLASSES.accountMeta} tasting-impression-notice`}>{notesNotice}</p>}
       {(voiceError || voiceState !== 'idle') && <p className={TYPOGRAPHY_CLASSES.accountMeta} role={voiceError ? 'alert' : 'status'}>{voiceError || (voiceState === 'recording' ? 'Recording… Tap the microphone to finish.' : 'Adding your words…')}</p>}
       {onSaveNotes && <div className="tasting-notes-save-row">
         <span className={TYPOGRAPHY_CLASSES.accountMeta} role={notesSaveError ? 'alert' : undefined}>{notesSaveError ? 'Could not save. Please try again.' : notesSaveHint}</span>
         <button type="button" className="tap-target tasting-notes-save" onClick={onSaveNotes} disabled={!canSaveNotes || savingNotes}>{savingNotes ? 'Saving…' : notesSaveError ? 'Retry save notes' : 'Save notes'}</button>
       </div>}
-    </ImpressionNoteField>
+    </TastingExperienceField>
     {historical.length > 0 && <section className="tasting-impression-history" aria-label="Earlier notes"><h3 className={TYPOGRAPHY_CLASSES.label}>Earlier notes</h3>{historical.map((note, index) => {
       const date = typeof note === 'string' ? '' : noteDateLabel(note.capturedAt);
       return <div key={typeof note === 'string' ? `legacy-${index}` : note.id}>

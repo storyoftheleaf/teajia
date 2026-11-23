@@ -115,5 +115,5 @@ export function useTastingPhotographs({ productId, enabled }: { productId: strin
     }
   }, []);
 
-  return { photos, remaining, busy, error, inShop, add, remove, reshape, clearError: () => setError('') };
+  return { photos, remaining, busy, error, inShop, add, remove, reshape };
 }

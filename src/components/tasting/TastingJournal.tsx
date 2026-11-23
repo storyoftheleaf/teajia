@@ -582,7 +582,13 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               )}
 
                               {/* Actions */}
-                              <div className="flex border-t border-tea-border mt-1 pt-2">
+                              <div className="flex flex-wrap items-center border-t border-tea-border mt-1 pt-2">
+                                {!entry.archived && (
+                                  <button type="button" className="btn-quiet"
+                                    onClick={() => setTastingEditor({ entryId: entry.id, record: latest })}>
+                                    Edit tasting note
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleShare(entry)}
                                   className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-ui-11 font-medium text-tea-text-dim hover:text-tea-text transition-colors border-r border-tea-border"

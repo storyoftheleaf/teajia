@@ -64,7 +64,7 @@ async function clearMine(page: Page, token: string, productId: string) {
   for (const photo of mine.photographs ?? []) await page.request.post(`/api/family/photographs/${photo.id}/remove`, { headers });
 }
 
-test('camera beside the microphone, photographs above notes, one tasting, then the Share step', async ({ page }) => {
+test('photo upload in the impression, one tasting, then the Share step', async ({ page }) => {
   test.setTimeout(180_000);
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -76,25 +76,20 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   await expect(page.getByText(productName).first()).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: /Add your tasting|your tasting|^Taste$/i }).first().click();
 
-  // The header: microphone and camera side by side.
-  const mic = page.getByRole('button', { name: 'Record into your notes' });
-  const camera = page.getByRole('button', { name: 'Add a photograph' });
-  await expect(mic).toBeVisible();
-  await expect(camera).toBeVisible();
-  const micBox = (await mic.boundingBox())!; const cameraBox = (await camera.boundingBox())!;
-  expect(Math.abs(micBox.y - cameraBox.y), 'camera sits level with the microphone').toBeLessThan(2);
-  expect(cameraBox.x).toBeGreaterThan(micBox.x);
-  expect(cameraBox.x - (micBox.x + micBox.width), 'camera is beside the microphone').toBeLessThan(4);
-
+  const header = page.locator('.tasting-header-controls');
+  const camera = page.getByRole('button', { name: 'Add photographs' });
+  await expect(header.getByRole('button', { name: 'Record into your notes' })).toBeVisible();
+  await expect(header.getByRole('button', { name: 'Add photographs' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open your impression' }).click();
   const row = page.getByRole('group', { name: 'Your photographs' });
-  await expect(row).toBeVisible();
-  const notesLabel = page.getByText('Your notes', { exact: true });
-  expect((await row.boundingBox())!.y, 'Your photographs sits above Your notes').toBeLessThan((await notesLabel.boundingBox())!.y);
-  await expect(page.getByRole('group', { name: 'Your photographs' }).locator('.tasting-photo-box').getByRole('link', { name: 'How we use photographs' })).toBeVisible();
-  await expect(page.getByText('may be shown on Teajia')).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'How we use photographs' })).toBeVisible();
-  await expect(page.getByText('Notes may be used to help describe the tea and help others learn about it.')).toBeVisible();
+  await expect(row.getByRole('button', { name: 'Add photographs' })).toBeVisible();
+  const picker = page.waitForEvent('filechooser');
+  await camera.click();
+  expect((await picker).isMultiple()).toBe(true);
+  const notes = page.getByRole('textbox', { name: 'Your experience with this tea' });
+  expect((await row.boundingBox())!.y).toBeLessThan((await notes.boundingBox())!.y);
+  await expect(page.getByRole('link', { name: 'How we use photographs' })).toHaveCount(0);
+  await expect(page.getByText('Saved to your private tasting journal.')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}-1-impression-empty.png` });
 
   // A large picture from the phone: shrunk and re-encoded before it goes up.
@@ -110,15 +105,16 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   expect(Math.max(created.photograph.small_width, created.photograph.small_height)).toBeLessThanOrEqual(480);
   await expect(row.locator('img')).toHaveCount(1);
 
-  // The taste page: the same camera, then back to the row.
+  // The wheel has no upload control. Both photos belong to the impression.
   // The tea page under the tasting has a Taste button of its own; the tasting's tab is the last one showing.
   await page.getByRole('button', { name: /^Taste/ }).filter({ visible: true }).last().click();
   await expect(page.getByRole('group', { name: 'Your photographs' })).toHaveCount(0);
+  await expect(input).toHaveCount(0);
+  await page.getByRole('button', { name: 'Open your impression' }).click();
   await input.setInputFiles({ name: 'tea2.jpg', mimeType: 'image/jpeg', buffer: await jpeg(page, 800, 600) });
   await expect.poll(async () => (await (await page.request.get(`/api/family/teas/${productId}/mine`, { headers: { Authorization: `Bearer ${token}` } })).json()).photographs.length).toBe(2);
   const mine = await (await page.request.get(`/api/family/teas/${productId}/mine`, { headers: { Authorization: `Bearer ${token}` } })).json();
-  expect(mine.photographs.map((p: { page: string }) => p.page).sort()).toEqual(['impression', 'taste']);
-  await page.getByRole('button', { name: 'Open your impression' }).click();
+  expect(mine.photographs.map((p: { page: string }) => p.page)).toEqual(['impression', 'impression']);
   await expect(page.getByRole('group', { name: 'Your photographs' }).locator('img')).toHaveCount(2);
 
   // A seventh is refused in a plain sentence.
@@ -158,7 +154,7 @@ test('camera beside the microphone, photographs above notes, one tasting, then t
   await expect(page.getByRole('group', { name: 'Your photographs' }).locator('img')).toHaveCount(5);
 
   // A note, saved, then the Share step with private as the default.
-  await page.getByRole('textbox', { name: 'Your notes' }).fill('Soft and sweet after the third steep.');
+  await notes.fill('Soft and sweet after the third steep.');
   await page.getByRole('button', { name: 'Save tasting' }).click();
   const share = page.getByRole('dialog', { name: 'Share this tasting' });
   await expect(share).toBeVisible();
