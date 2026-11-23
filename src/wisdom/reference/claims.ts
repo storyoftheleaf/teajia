@@ -1,5 +1,7 @@
-// Tea Wisdom claim contract. Spec: docs/_notes/tea-wisdom-claims.md
+// Tea Wisdom claim contract v2. Spec: docs/_notes/tea-wisdom-claims.md
 // One Markdown section is one claim, identified as `pageId:sectionKey`.
+// Generated modules: generatedClaims.ts (GENERATED_CLAIMS, approved only) and
+// generatedDraftClaims.ts (GENERATED_DRAFT_CLAIMS, every state; preview-only dynamic import).
 
 export type ClaimAxis =
   | 'grade'
@@ -9,6 +11,9 @@ export type ClaimAxis =
   | 'maker_history'
   | 'sensory_observation'
   | 'terminology';
+
+/** Listing ranking order. Axes not listed here never lead a listing. */
+export const LISTING_AXIS_ORDER: readonly ClaimAxis[] = ['grade', 'place', 'type', 'process'];
 
 export type ClaimSourceRole =
   | 'standard'
@@ -30,22 +35,38 @@ export interface ClaimAttribution {
   sample: string;
 }
 
+/**
+ * Deliberately snake_case: copied verbatim from claims.json.
+ * Keys are ANDed; an empty object never matches.
+ */
 export interface ClaimAppliesWhen {
+  /** normalizeTeaType output, e.g. 'Shou'. */
   type?: string;
+  /** A leaf_grade page id, e.g. 'gong-ting'. */
   grade?: string;
+  /** Whole-part equality against ListingFacts.originParts. */
   origin_includes?: readonly string[];
   /** Only valid together with origin_includes: a name may corroborate a recorded place, never supply one. */
   name_includes?: readonly string[];
+  /** normalizeTeaForm output. */
   form?: string;
 }
 
+export type ClaimRevisionOrigin = 'approved' | 'legacy_import';
+
 export interface ClaimRevision {
   rev: number;
+  origin: ClaimRevisionOrigin;
+  legacyRef?: string; // e.g. 'marks:gong-ting'
+  scope: string;
   text: string;
   approvedAt: string;
   reason: string;
+  /** Empty only for legacy_import. */
   evidenceIds: readonly string[];
 }
+
+export type ClaimReviewState = 'approved' | 'pending' | 'draft' | 'withdrawn';
 
 /** What the public and preview builds project for one claim. */
 export interface PublicClaim {
@@ -54,26 +75,31 @@ export interface PublicClaim {
   sectionKey: string;
   label: string;
   axis: ClaimAxis;
-  scope: string;
   listingEligible: boolean;
   appliesWhen: ClaimAppliesWhen;
   attribution?: ClaimAttribution;
   terms: readonly ClaimTerm[];
-  rev: number;
+  /** Current approved revision; null only for drafts (preview builds). */
+  rev: number | null;
+  scope: string;
   text: string;
+  /** May be empty for a legacy_import revision. */
   sourceIds: readonly string[];
-  /** Preview builds only. Public builds emit 'approved' claims and nothing else. */
-  reviewState: 'approved' | 'pending' | 'draft' | 'withdrawn';
+  /** Public builds emit 'approved' only. */
+  reviewState: ClaimReviewState;
+  /** Preview builds only. */
   pendingText?: string;
   previousRevisions?: readonly ClaimRevision[];
+  withdrawn?: { at: string; reason: string };
 }
 
 /** Recorded product facts the listing resolver may use. Built only from product fields, never inferred. */
 export interface ListingFacts {
   type?: string;
   grade?: string;
+  /** originRegion split on ',' and passed through normalizedWords. */
   originParts: readonly string[];
-  /** Used only to corroborate a recorded place. */
+  /** normalizedWords(name).split(' '). Used only to corroborate a recorded place. */
   nameTokens: readonly string[];
   form?: string;
 }
@@ -100,8 +126,12 @@ export interface ArticleClaimUse {
   useKind: 'prose' | 'live_block';
 }
 
-export function articleUseNeedsReview(use: ArticleClaimUse, claim: Pick<PublicClaim, 'rev' | 'reviewState'> | undefined): boolean {
+/** `claim` is looked up in the claims set in use; undefined means it is not public (withdrawn or missing). */
+export function articleUseNeedsReview(
+  use: ArticleClaimUse,
+  claim: Pick<PublicClaim, 'rev' | 'reviewState'> | undefined,
+): boolean {
   if (use.useKind === 'live_block') return false;
-  if (!claim || claim.reviewState === 'withdrawn') return true;
+  if (!claim || claim.reviewState === 'withdrawn' || claim.rev === null) return true;
   return claim.rev > use.revUsed;
 }
