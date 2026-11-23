@@ -7328,10 +7328,14 @@ body.cart-panel-open .commerce-dock {
 .photo-zoom__figure[data-shape="upright"] .photo-zoom__picture { aspect-ratio:2 / 3; }
 .photo-zoom__figure[data-shape="across"] .photo-zoom__picture { aspect-ratio:3 / 2; }
 .photo-zoom__picture img { display:block; inline-size:100%; block-size:100%; object-fit:cover; }
-.photo-zoom__under { display:flex; flex-direction:column; align-items:center; gap:var(--space-2); margin-top:var(--space-4); text-align:center; color:var(--tea-text-sec); }
-.photo-zoom__credit { margin:0; font-family:var(--font-sans); font-size:var(--fs-ui-10); letter-spacing:0.2em; text-transform:uppercase; color:var(--tea-text-sec); }
+/* Under the photograph everything keeps to the photograph's own edges, the way the
+   people editor's photo panel does: one row of words, never a cluster of boxes. */
+.photo-zoom__under { display:flex; flex-direction:column; align-items:stretch; gap:var(--space-1); margin-top:var(--space-3); text-align:left; color:var(--tea-text-sec); }
+.photo-zoom__credit { text-align:center; margin:0; font-family:var(--font-sans); font-size:var(--fs-ui-10); letter-spacing:0.2em; text-transform:uppercase; color:var(--tea-text-sec); }
 .photo-zoom__credit a { color:var(--tea-text); text-decoration:underline; text-underline-offset:4px; }
-.photo-zoom__actions { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-2); }
+.photo-zoom__actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-start; column-gap:var(--space-6); }
+/* Taking a photograph away sits apart, at the far edge. */
+.photo-zoom__last { margin-inline-start:auto; }
 .photo-zoom__note { margin:0; font-family:var(--font-body); font-size:var(--fs-ui-13); font-style:italic; color:var(--tea-text-dim); }
 .photo-shape[aria-pressed="true"] { color:var(--tea-gold-lt); background:var(--tea-accent-sub); }
 /* The crop editor's bar: Cancel, the three shapes, Save, as icons along the foot of the photograph. */
@@ -7356,7 +7360,10 @@ body.cart-panel-open .commerce-dock {
 .crop-dial__mark { position:absolute; inset-block:var(--space-1); left:50%; inline-size:2px; margin-left:-1px; background:var(--tea-gold-lt); }
 .crop-dial__input { position:absolute; inset:0; inline-size:100%; margin:0; opacity:0; pointer-events:none; }
 .crop-dial:focus-within { outline:2px solid rgb(var(--tea-gold-rgb) / 0.5); outline-offset:-2px; }
-.photo-zoom__shapes { display:flex; align-items:center; justify-content:center; gap:var(--space-1); }
+/* The shapes start at the photograph's left edge: the icon, not its tap area, meets the edge. */
+.photo-zoom__shapes { display:flex; align-items:center; justify-content:flex-start; gap:var(--space-1); margin-inline-start:calc(-1 * var(--space-2)); }
+/* Under a photograph the chosen shape is said by its colour alone; a filled box would hang past the photograph's edge. */
+.photo-zoom__shapes .photo-shape[aria-pressed="true"] { background:transparent; }
 /* A turned photograph: the stage is the turned picture's outer box, placed so the framed part fills the shape. */
 .photo-stage { position:absolute; }
 .offered-photo { position:relative; display:block; block-size:calc(var(--space-12) * 2); aspect-ratio:1; overflow:hidden; background:var(--tea-surface); }

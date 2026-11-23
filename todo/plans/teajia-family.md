@@ -24,17 +24,20 @@ Picture of the plan on the real screens: https://claude.ai/artifact/XWhzBLWs9MY5
 - Signed out, the new page offered "Log in" only. "Add your tasting" is put back beside it, because decision 15 keeps the door there. Adrian has not yet seen this on the new page.
 - A sold-out tea page carries one ask, main's "Inquire about purchasing more" in the order bar (Adrian, 2026-11-21: "Inquire only"). The family's "find me more" is off the tea page and stays on a person's own page, where a tea they tasted has gone. This narrows decision 9 and the tea page part of build stage 5.
 
-**Done since.** Guest notes now shows each offered photograph in its member's own crop and shape (it showed the middle of the picture). Checked in `tests/practice-guest-notes.spec.ts`.
+**Done since.** The zoom a family photograph opens into (tea page and tasting) is matched to the people editor's calmer photo panel: "Crop" is a bronze word, the rest are quiet words, "Remove from my page" sits at the far edge, and the shapes and words keep to the photograph's edges. The three one-tap shapes stay, as decided on 2026-11-20. Guest notes now shows each offered photograph in its member's own crop and shape (it showed the middle of the picture). Checked in `tests/practice-guest-notes.spec.ts`.
 
 **The people list is built** (Adrian said go on 2026-11-21): see "The people list" below. With it the "no gamification" rule became "order only", in this plan and in the project rules, on his word. Migration 0077 only adds two empty columns. One thing to know before shipping: anyone on the live list without a photograph leaves the list the moment this ships.
 
+**Live since 2026-11-21** (merged to main as pull request 452; the worker deployed and the live people list answers with its groups).
+
+**Found the day after, fixed on `claude/family-e2e-fixes`.** The full browser run on main went red with the merge: 35 checks failed that had passed before it. Cause: the tasting screen asked the shop for "my photographs of this tea" on every tea it opened on, shop tea or not. On a Curate entry or a session's tea the shop refuses, yet the camera and photograph row still showed, and after Save the Share step came up over the Save notes button. Now the tasting does not ask about a tea that is not a shop tea, and shows the camera, the row and the Share step only once the shop has answered for that tea (decision 8: only Teajia teas). An answer in the wrong shape no longer takes the screen down. The pull-request check only runs the specs a branch changed, which is why none of this showed before the merge.
+
 **Open, in the order to take them.**
 
-1. The family photograph zoom and the tasting's photograph row are not yet matched to the calmer people-editor photo panel that shipped on main.
-2. The storage reading in the i64os warning system (another repository) must land before launch.
-3. A lawyer's read of the "How we use photographs" page before launch.
-4. Adrian's own list for the member page and the tasting: he chose "continue from plan" on 2026-11-21, so none is expected.
-5. Adrian says ship; then the live site is proven to carry it.
+1. The storage reading in the i64os warning system (another repository) must land before launch.
+2. A lawyer's read of the "How we use photographs" page before launch.
+3. Adrian's own list for the member page and the tasting: he chose "continue from plan" on 2026-11-21, so none is expected.
+4. Adrian says ship; then the live site is proven to carry it.
 
 ## What it is
 

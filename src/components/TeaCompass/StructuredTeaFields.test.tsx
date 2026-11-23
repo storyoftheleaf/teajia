@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-vi.mock('./TeaSourcingConnections', () => ({ useTeaSupplierQuote: () => ({ quoteLine: undefined }), TeaSourcingConnections: () => <section aria-label="Connected sourcing" /> }));
+vi.mock('../curate/TeaSourcingConnections', () => ({ useTeaSupplierQuote: () => ({ quoteLine: undefined }), TeaSourcingConnections: () => <section aria-label="Connected sourcing" /> }));
 import { StructuredTeaFields } from './StructuredTeaFields';
 import { createEmptyEntry } from './types';
 

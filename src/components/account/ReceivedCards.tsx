@@ -52,7 +52,7 @@ export function ReceivedCards() {
         </div>
       ) : cardId ? (
         detail.data && <CardDetails card={detail.data.card} />
-      ) : cards.data?.cards.length ? (
+      ) : cards.data?.cards?.length ? (
         <ul className="divide-y divide-tea-border">
           {cards.data.cards.map(card => (
             <li key={card.id}>

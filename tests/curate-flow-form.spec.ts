@@ -99,7 +99,8 @@ test.describe('Curate Source form, default layout', () => {
     await expect(button(page, 'Save tea')).toBeInViewport();
     await button(page, 'Choose preset weight').click();
     await page.getByRole('dialog', { name: 'Quoted weight' }).getByRole('button', { name: '300 g', exact: true }).click();
-    await expect(page.getByLabel('Grams', { exact: true }).filter({ visible: true })).toHaveValue('300');
+    // The typed weight, not the slider beside it that shares its name.
+    await expect(page.getByRole('spinbutton', { name: 'Grams', exact: true }).filter({ visible: true })).toHaveValue('300');
     await expect(page.getByRole('dialog', { name: 'Quoted weight' })).toHaveCount(0);
     await page.screenshot({ path: info.outputPath('desktop-source.png') });
   });

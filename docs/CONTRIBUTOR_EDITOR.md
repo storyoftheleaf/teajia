@@ -72,6 +72,7 @@ people, not computers."
 - Plus Jakarta micro caps (`text-ui-10`, tracked) for field labels, three words at most.
 - Actions are Cormorant words in the reading bronze with a hairline under them,
   the same as the `/people` sheets (`GOLD_TEXT_*` in `components/people/immersive`).
+- One row, one voice under a placed photo: the one thing to do to it is a bronze word, the rest are quiet words, and taking it away sits apart at the far edge. Everything under a photo keeps to the photo's own edges. The same two voices (`src/components/shared/photoWords.ts`) are used in the zoom a family photograph opens into, on the tea page and in the tasting.
 - Upload progress is a 2px bronze line along the bottom of the frame and a number.
 - Editing a photo: "Edit photo" opens the one shared photo editor (`components/shared/SquareCropModal`, the editor Curate uses). It saves a new, already framed picture, and its focus goes back to the middle.
 - Focal point: a small ring in the text colour on a dark halo, dragged or tapped. Kept for the portrait and gallery photos, which the page cuts several ways; it is not an editor, only the point that stays in every cut.

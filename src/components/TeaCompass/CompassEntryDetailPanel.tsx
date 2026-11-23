@@ -12,7 +12,7 @@ import { LibrarySupplierActions } from './LibrarySupplierActions';
 import { libraryIdentity, libraryInlinePatch, libraryCardAmounts, type LibraryInlineField } from './libraryCardWorkflow';
 import { BottomSheet } from '../shared/BottomSheet';
 import { StructuredTeaFields } from './StructuredTeaFields';
-import { useTeaSupplier } from './TeaSourcingConnections';
+import { useTeaSupplier } from '../curate/TeaSourcingConnections';
 import React, { useEffect, useRef, useState } from 'react';
 import { TeaRecordFields, RecordVoice } from './TeaRecordFields';
 import { TeaRecordAssistant } from './TeaRecordAssistant';

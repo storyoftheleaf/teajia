@@ -86,7 +86,7 @@ test.describe('Library workspace handoffs', () => {
     await openRecordSection(page, 'Source material');
     await expect(record(page).getByRole('textbox', { name: 'Note from You', exact: true })).toHaveValue('The farmer picked this before the spring rain.');
     await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue(sourceEntry.notes);
-    await expect(record(page).getByRole('region', { name: 'Tea photos' }).getByAltText('Photo 1')).toBeVisible();
+    await expect(record(page).getByRole('region', { name: 'Tea photos' }).getByAltText('Photo 1').first()).toBeVisible();
     await openRecordSection(page, 'Story & description');
     await record(page).getByRole('textbox', { name: 'Description', exact: true }).fill('Edited description with a clear origin and harvest.');
     await record(page).getByRole('textbox', { name: 'Description', exact: true }).press('Tab');
@@ -153,7 +153,7 @@ test.describe('Library workspace handoffs', () => {
     await openRecordSection(page, 'Source material');
     await expect(record(page).getByRole('textbox', { name: 'Notes', exact: true })).toHaveValue(sourceEntry.notes);
     await expect(record(page).getByRole('button', { name: /View in Inventory/ })).toBeVisible();
-    await expect(record(page).getByRole('region', { name: 'Tea photos' }).getByAltText('Photo 1')).toBeVisible();
+    await expect(record(page).getByRole('region', { name: 'Tea photos' }).getByAltText('Photo 1').first()).toBeVisible();
     await noOverflow(page);
   });
 });

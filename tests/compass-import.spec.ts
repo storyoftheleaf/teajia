@@ -1258,7 +1258,8 @@ test.describe('analyzed inventory import review', () => {
     await expect(firstFinalizedTea.getByText('Tea record reused', { exact: true })).toBeVisible();
     await expect(firstFinalizedTea.getByText('Stock record reused', { exact: true })).toBeVisible();
     await expect(chenLedger.getByTestId('completion-ledger-row').nth(1).getByText('1001g · CNY 999999999999999.99', { exact: true })).toBeVisible();
-    await expect(chenVendorHeading).toHaveClass(/font-display/);
+    // The vendor name is a card title from the master style file, which sets the display face.
+    await expect(chenVendorHeading).toHaveClass(/type-card-title/);
     await expect(chenVendorHeading).not.toHaveClass(/text-ui-28/);
     await expect(chenLedger.getByRole('link', { name: 'Open receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-chen');
 

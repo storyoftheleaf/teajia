@@ -13,9 +13,10 @@ import type { PublicProduct } from '../types';
  * almost every reader sees. The endpoint differs between the two paths; the
  * shape it returns does not.
  */
-export const usePublicProducts = () => {
+export const usePublicProducts = (enabled = true) => {
   return useQuery({
     queryKey: ['products', 'public'],
+    enabled,
     queryFn: async (): Promise<PublicProduct[]> => {
       const data = await api.products.listPublic();
       return (data || []).map(normalizeProduct);

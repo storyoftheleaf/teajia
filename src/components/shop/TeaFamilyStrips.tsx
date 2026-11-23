@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
 import { PhotographCrop, PhotographShapeChoice, PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../shared/Photographs';
+import { PHOTO_QUIET } from '../shared/photoWords';
 import type { FamilyPhotographFrame, FamilyPhotographShape } from '../../lib/familyContract';
 import { SoldOutLine } from '../people/PersonTastings';
 import { personPath, type TeaRowPhotograph } from './useTeaFamily';
@@ -73,14 +74,14 @@ export function TeaPhotographRow({
             <div className="photo-zoom__actions">
               <PhotographCrop photo={toZoom(open)} onSave={(shape, frame) => onShape(open.id, shape, frame)} />
               {open.isCover ? (
-                <Button variant="secondary" size="sm" type="button" onClick={() => onChooseCover(null)} data-testid="cover-clear">Stop using as my cover</Button>
+                <Button variant="plain" type="button" className={PHOTO_QUIET} onClick={() => onChooseCover(null)} data-testid="cover-clear">Stop using as my cover</Button>
               ) : (
-                <Button variant="secondary" size="sm" type="button" onClick={() => onChooseCover(open.id)} data-testid="cover-choose">Use as my cover</Button>
+                <Button variant="plain" type="button" className={PHOTO_QUIET} onClick={() => onChooseCover(open.id)} data-testid="cover-choose">Use as my cover</Button>
               )}
               <Button
-                variant="quiet"
-                size="sm"
+                variant="plain"
                 type="button"
+                className={`${PHOTO_QUIET} photo-zoom__last`}
                 data-testid="photograph-remove"
                 onClick={() => {
                   setRemoveFailed(false);

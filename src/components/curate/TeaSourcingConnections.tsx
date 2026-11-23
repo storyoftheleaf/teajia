@@ -7,7 +7,7 @@ import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
 import { teaSourcingConnections } from '../../lib/teaSourcingConnections';
 import { api } from '../../lib/api';
 import { isoCurrencyCode } from '../../lib/currency';
-import type { TeaCompassEntry } from './types';
+import type { TeaCompassEntry } from '../TeaCompass/types';
 
 export function useTeaSupplier(entry?: Pick<TeaCompassEntry, 'vendorId' | 'linkedCustomerId' | 'vendorName'>) {
   const scope = usePrivateQueryScope();
