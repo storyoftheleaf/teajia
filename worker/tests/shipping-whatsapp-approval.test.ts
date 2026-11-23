@@ -21,6 +21,14 @@ describe('shipping WhatsApp provider approval',()=>{
   vi.setSystemTime(new Date('2026-11-20T00:16:00Z'));expect(await f.approved()).toBe(true);expect(f.fetcher).toHaveBeenCalledTimes(2);
   expect(f.db.sqlite.prepare('SELECT state,last_approved_at FROM shipping_whatsapp_approval').get()).toEqual({state:'approved',last_approved_at:'2026-11-20T00:16:00.000Z'});
  });
+ it('recovers a transient metadata outage within one normal refresh',async()=>{
+  const f=fixture();
+  f.fetcher.mockResolvedValueOnce(new Response(null,{status:503}));
+  expect(await f.approved()).toBe(true);
+  expect(f.fetcher).toHaveBeenCalledTimes(2);
+  expect(await f.approved()).toBe(true);
+  expect(f.fetcher).toHaveBeenCalledTimes(2);
+ });
  it('binds approval to the configured account and does not fetch for a different tenant',async()=>{const f=fixture();expect(await f.approved('foreign')).toBe(false);expect(f.fetcher).not.toHaveBeenCalled();expect(await f.approved()).toBe(true);});
  it.each(['REJECTED','PAUSED','DISABLED','PENDING','IN_APPEAL'])('does not send with provider status %s',async status=>{const f=fixture();f.fetcher.mockResolvedValue(Response.json({data:[f.template({status})]}));expect(await f.approved()).toBe(false);});
  it.each([{name:'unrelated_template'},{language:'id'},{category:'MARKETING'}])('does not accept a different template identity or category %j',async override=>{const f=fixture();f.fetcher.mockResolvedValue(Response.json({data:[f.template(override)]}));expect(await f.approved()).toBe(false);});

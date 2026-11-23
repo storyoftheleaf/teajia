@@ -60,16 +60,35 @@ function classify(data:any,c:Config):Pick<ShippingWhatsAppApproval,'state'|'code
  if(params.length!==5||params.some((n:string,i:number)=>n!==String(i+1)))return{state:'rejected',code:'whatsapp_template_parameters_mismatch'};
  return{state:'approved',code:null};
 }
+async function readTemplateApproval(c: Config, fetcher: typeof fetch): Promise<Pick<ShippingWhatsAppApproval, 'state' | 'code'>> {
+ const origin = c.transport === 'kapso' ? 'https://api.kapso.ai/meta/whatsapp' : 'https://graph.facebook.com';
+ const url = new URL(`${origin}/${c.version}/${c.businessId}/message_templates`);
+ url.searchParams.set('name', c.template);
+ url.searchParams.set('fields', 'name,status,category,language,components');
+ const headers: Record<string, string> = c.transport === 'kapso'
+  ? { 'X-API-Key': c.credential }
+  : { Authorization: 'Bearer ' + c.credential };
+ const unavailable = { state: 'unavailable', code: 'whatsapp_template_verification_unavailable' } as const;
+
+ // Only retry the read. Sending a message has its own receipt and retry rules.
+ for (let attempt = 0; attempt < 2; attempt++) {
+  try {
+   const response = await fetcher(url.href, { headers, redirect: 'error', signal: AbortSignal.timeout(5000) });
+   if (response.ok) return classify(await response.json(), c);
+   if (response.status === 401 || response.status === 403) {
+    return { state: 'unavailable', code: 'whatsapp_template_authentication_required' };
+   }
+   if (response.status < 500) return unavailable;
+   await response.body?.cancel();
+  } catch {
+   // A transport error, timeout or interrupted response can recover on the next read.
+  }
+ }
+ return unavailable;
+}
+
 async function check(db:D1Database,c:Config,fetcher:typeof fetch):Promise<ShippingWhatsAppApproval> {
- let result:Pick<ShippingWhatsAppApproval,'state'|'code'>;
- try {
-  const origin=c.transport==='kapso'?'https://api.kapso.ai/meta/whatsapp':'https://graph.facebook.com';
-  const url=new URL(`${origin}/${c.version}/${c.businessId}/message_templates`);
-  url.searchParams.set('name',c.template);url.searchParams.set('fields','name,status,category,language,components');
-  const headers:Record<string,string>=c.transport==='kapso'?{'X-API-Key':c.credential}:{Authorization:'Bearer '+c.credential};
-  const response=await fetcher(url.href,{headers,redirect:'error',signal:AbortSignal.timeout(10000)});
-  result=response.ok?classify(await response.json(),c):{state:'unavailable',code:response.status===401||response.status===403?'whatsapp_template_authentication_required':'whatsapp_template_verification_unavailable'};
- }catch{result={state:'unavailable',code:'whatsapp_template_verification_unavailable'};}
+ const result = await readTemplateApproval(c, fetcher);
  const checked_at=new Date().toISOString();
  await db.prepare(`INSERT INTO shipping_whatsapp_approval(account_id,template_name,language,business_account_id,transport,graph_version,state,code,checked_at,last_approved_at)
  VALUES(?,?,?,?,?,?,?,?,?,CASE WHEN ?='approved' THEN ? ELSE NULL END)

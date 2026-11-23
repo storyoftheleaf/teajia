@@ -31,11 +31,65 @@ describe('shipping quote save notifications',()=>{
  });
  it('does not resend unchanged quotes, but a revised quote creates its own request',async()=>{const f=await fixture();await f.quote(8);await f.quote(8);expect(f.messages).toHaveLength(1);await f.quote(9);expect(f.messages).toHaveLength(2);expect(f.db.sqlite.prepare('SELECT shipping_quote_revision FROM invoices WHERE id=?').get(f.id)!.shipping_quote_revision).toBe(2);});
  it('prefers consented WhatsApp and explicitly holds unsent messages when its setup is missing',async()=>{const f=await fixture('+14155550123',true);await f.quote(8);expect(f.messages).toHaveLength(0);expect(await(await f.request('/api/invoices/'+f.id+'/shipping-notification',undefined,true)).json()).toMatchObject({state:'config_required',channel:'whatsapp',code:'whatsapp_setup_required'});});
- it('holds WhatsApp while Meta reviews, then sends automatically after approval without another quote save',async()=>{
-  const f=await fixture('+14155550123',true);Object.assign(f.env,{WHATSAPP_TRANSPORT:'kapso',KAPSO_API_KEY:'test-kapso',WHATSAPP_ORDER_ACCOUNT_ID:'shop',WHATSAPP_SENDER_NUMBER:'+6281339712339',WHATSAPP_PHONE_NUMBER_ID:'1234567890',WHATSAPP_GRAPH_API_VERSION:'v24.0',WHATSAPP_ORDER_TEMPLATE_LANGUAGE:'en_US',SHIPPING_PAYMENT_TEMPLATE_NAME:'teajia_shipping_payment_v1',SHIPPING_PAYMENT_BUSINESS_ACCOUNT_ID:'444444444444',WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED:'false'});
-  let approved=false;let messages=0;const provider=vi.fn(async(url:any)=>{const u=new URL(String(url));expect(u.origin).toBe('https://api.kapso.ai');if(u.pathname.endsWith('/message_templates'))return Response.json({data:[{name:'teajia_shipping_payment_v1',language:'en_US',category:'UTILITY',status:approved?'APPROVED':'PENDING',components:[{type:'BODY',text:'Hi {{1}}, order {{2}} shipping {{3}}, balance {{4}}. Pay: {{5}}'}]}]});messages++;return Response.json({messages:[{id:'wa-shipping-test'}]});});vi.stubGlobal('fetch',provider);
-  await f.quote(8);expect(messages).toBe(0);expect(await(await f.request('/api/public/shipping-notifications')).json()).toMatchObject({email_enabled:true,whatsapp_state:'pending'});expect(await(await f.request('/api/invoices/'+f.id+'/shipping-notification',undefined,true)).json()).toMatchObject({state:'config_required',channel:'whatsapp',code:'whatsapp_template_pending'});
-  approved=true;await refreshShippingWhatsAppApproval(f.db as any,f.env,{force:true});await processPendingShippingQuoteNotifications(f.db as any,f.env,{accountId:'shop',invoiceId:f.id,limit:1});expect(messages).toBe(1);expect(await(await f.request('/api/public/shipping-notifications')).json()).toMatchObject({email_enabled:true,whatsapp_state:'approved'});await processPendingShippingQuoteNotifications(f.db as any,f.env,{accountId:'shop',invoiceId:f.id,limit:1});expect(messages).toBe(1);expect(await(await f.request('/api/invoices/'+f.id+'/shipping-notification',undefined,true)).json()).toMatchObject({state:'accepted',channel:'whatsapp'});
+ it('recovers a stale unavailable approval and sends the waiting quote once after approval', async () => {
+  const f = await fixture('+14155550123', true);
+  Object.assign(f.env, {
+   WHATSAPP_TRANSPORT: 'kapso', KAPSO_API_KEY: 'test-kapso', WHATSAPP_ORDER_ACCOUNT_ID: 'shop',
+   WHATSAPP_SENDER_NUMBER: '+6281339712339', WHATSAPP_PHONE_NUMBER_ID: '1234567890',
+   WHATSAPP_GRAPH_API_VERSION: 'v24.0', WHATSAPP_ORDER_TEMPLATE_LANGUAGE: 'en_US',
+   SHIPPING_PAYMENT_TEMPLATE_NAME: 'teajia_shipping_payment_v1',
+   SHIPPING_PAYMENT_BUSINESS_ACCOUNT_ID: '444444444444', WHATSAPP_CUSTOMER_CONFIRMATIONS_ENABLED: 'false',
+  });
+  let status = 'unavailable';
+  let metadataReads = 0;
+  let messages = 0;
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+   const endpoint = new URL(url);
+   expect(endpoint.origin).toBe('https://api.kapso.ai');
+   if (endpoint.pathname.endsWith('/message_templates')) {
+    metadataReads++;
+    if (status === 'unavailable') return new Response(null, { status: 503 });
+    return Response.json({ data: [{
+     name: 'teajia_shipping_payment_v1', language: 'en_US', category: 'UTILITY', status,
+     components: [{ type: 'BODY', text: 'Hi {{1}}, order {{2}} shipping {{3}}, balance {{4}}. Pay: {{5}}' }],
+    }] });
+   }
+   expect(endpoint.pathname).toBe('/meta/whatsapp/v24.0/1234567890/messages');
+   expect(init?.method).toBe('POST');
+   messages++;
+   return Response.json({ messages: [{ id: 'wa-shipping-test' }] });
+  }));
+  const readiness = async () => (await f.request('/api/public/shipping-notifications')).json();
+  const notice = async () => (await f.request('/api/invoices/' + f.id + '/shipping-notification', undefined, true)).json();
+  const runNotificationTick = async () => {
+   await refreshShippingWhatsAppApproval(f.db as any, f.env);
+   await processPendingShippingQuoteNotifications(f.db as any, f.env, { limit: 10 });
+  };
+  const ageApproval = () => f.db.exec("UPDATE shipping_whatsapp_approval SET checked_at=strftime('%Y-%m-%dT%H:%M:%fZ','now','-16 minutes')");
+  expect((await f.quote(8)).status).toBe(200);
+  expect(await readiness()).toMatchObject({ email_enabled: true, whatsapp_state: 'unavailable' });
+  expect(await notice()).toMatchObject({ state: 'config_required', code: 'whatsapp_template_verification_unavailable' });
+  expect(metadataReads).toBe(2);
+  expect(messages).toBe(0);
+
+  status = 'PENDING';
+  await runNotificationTick();
+  expect(metadataReads).toBe(2);
+  ageApproval();
+  await runNotificationTick();
+  expect(await readiness()).toMatchObject({ email_enabled: true, whatsapp_state: 'pending' });
+  expect(await notice()).toMatchObject({ state: 'config_required', code: 'whatsapp_template_pending' });
+  expect(messages).toBe(0);
+
+  status = 'APPROVED';
+  ageApproval();
+  await runNotificationTick();
+  expect(await readiness()).toMatchObject({ email_enabled: true, whatsapp_state: 'approved' });
+  expect(await notice()).toMatchObject({ state: 'accepted', channel: 'whatsapp' });
+  await runNotificationTick();
+  expect((await f.quote(8)).status).toBe(200);
+  expect(metadataReads).toBe(4);
+  expect(messages).toBe(1);
  });
  it('does not send a shipping payment request for deliberately free shipping',async()=>{const f=await fixture();await f.quote(0);expect(f.messages).toHaveLength(0);expect(f.db.sqlite.prepare('SELECT COUNT(*) AS n FROM shipping_payment_notifications').get()!.n).toBe(0);});
  it('does not expose another store notice or accept unauthenticated status reads',async()=>{const f=await fixture();expect((await f.request('/api/invoices/'+f.id+'/shipping-notification')).status).toBe(401);const foreign=await signedToken(f.env.JWT_SECRET,{sub:'foreign-owner',email:'foreign@example.test',active_account_id:'foreign',role:'owner'});const r=await worker.fetch(new Request('https://api.teajia.com/api/invoices/'+f.id+'/shipping-notification',{headers:{Authorization:'Bearer '+foreign,'X-Teajia-Account':'foreign'}}),f.env,{}as any);expect(r.status).toBe(404);});
