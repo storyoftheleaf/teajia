@@ -28,7 +28,7 @@ afterEach(() => {
 
 /** A D1 stand-in with one store, 'shop-one', and an empty shelf; it counts
  *  visibility checks separately from full catalogue builds. */
-function countingDb() {
+function countingDb(personalSeller: string | null = null) {
   const calls = { queries: 0, visibilityChecks: 0, catalogueBuilds: 0 };
   let publicStore = true;
   const statement = (sql: string) => {
@@ -36,9 +36,9 @@ function countingDb() {
       bind: () => stmt,
       first: async () => {
         calls.queries += 1;
-        if (/SELECT id FROM accounts WHERE slug/i.test(sql)) {
+        if (/FROM accounts a\s+WHERE a\.slug\s*=\s*\?/i.test(sql)) {
           calls.visibilityChecks += 1;
-          return publicStore ? { id: 'acc-one' } : null;
+          return publicStore ? { id: 'acc-one', personal_inventory_user_id: personalSeller } : null;
         }
         return null;
       },
@@ -94,6 +94,18 @@ describe('the public catalogue is built once per cache window, not once per visi
     closeStore();
     expect((await call(db, '/api/s/shop-one/products')).status).toBe(404);
     expect(calls.catalogueBuilds).toBe(1);
+  });
+
+  it('reads personal offers fresh so a withdrawal cannot survive in the edge cache', async () => {
+    const { db, calls } = countingDb('seller-one');
+    for (let visit = 0; visit < 2; visit++) {
+      const response = await call(db, '/api/s/shop-one/products');
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+    }
+    expect(store.size).toBe(0);
+    expect(calls.visibilityChecks).toBe(2);
+    expect(calls.catalogueBuilds).toBe(2);
   });
 
   it('never stores a failure', async () => {

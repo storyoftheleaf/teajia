@@ -239,4 +239,20 @@ describe('personal seller Stock, checkout and Sales', () => {
       .toMatchObject({ code: 'store_has_no_payment_method' });
     expect(await json(await request(db, '/api/invoices', { actor: seller.actor }))).toEqual([]);
   });
+
+  it('hides offers and rejects a new checkout when the personal owner loses active membership', async () => {
+    const db = database();
+    const seller = await createSeller(db, mei);
+    const offerId = await publish(db, seller);
+    const catalogue = `/api/s/${seller.slug}/products`;
+    const path = `${catalogue}/${offerId}`;
+    const tea = await json<PublicProduct>(await request(db, path));
+    expect((await request(db, catalogue)).headers.get('Cache-Control')).toBe('no-store');
+    db.sqlite.prepare("UPDATE account_members SET status='inactive' WHERE account_id=? AND user_id=?")
+      .run(seller.actor.accountId, seller.actor.userId);
+    expect((await request(db, catalogue)).status).toBe(404);
+    expect((await request(db, path)).status).toBe(404);
+    expect((await submit(db, checkout(seller.slug, tea, 'inactive-owner'))).status).toBe(404);
+    expect(db.sqlite.prepare('SELECT id FROM invoices WHERE account_id=?').all(seller.actor.accountId)).toEqual([]);
+  });
 });

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CellarItem, ShelfOfferInput } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { PersonalShopTeaRow } from '../shop/PersonalShopTeaRow';
+import { Button } from '../shared/Button';
 
 import { enteredNumber } from '../../admin/productUpdatePayload';
 import { readPersonalTeaMoney } from '../../lib/personalTeaMoney';
@@ -52,10 +53,10 @@ export function CellarOfferEditor({ item, whatsapp, saving, error, onCancel, onP
           />
           {error && <p role="alert" className="text-ui-13 text-tea-text">{error.message}</p>}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <button type="button" className="btn-secondary" disabled={saving} onClick={() => setPreview(null)}>Back to details</button>
-            <button type="button" className="btn-primary" disabled={!whatsapp || !valid || saving} onClick={() => onPublish(preview)}>
+            <Button type="button" variant="secondary" disabled={saving} onClick={() => setPreview(null)}>Back to details</Button>
+            <Button type="button" disabled={!whatsapp || !valid || saving} onClick={() => onPublish(preview)}>
               {saving ? 'Publishing…' : 'Publish offer'}
-            </button>
+            </Button>
           </div>
         </>
       ) : (
@@ -92,8 +93,8 @@ export function CellarOfferEditor({ item, whatsapp, saving, error, onCancel, onP
           </label>
           <p className="text-ui-12 text-tea-text-dim">Use only details you want buyers to see. Keep supplier names and sourcing details in your Tea Chest.</p>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={!valid}>Preview offer</button>
+            <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
+            <Button type="submit" disabled={!valid}>Preview offer</Button>
           </div>
         </form>
       )}

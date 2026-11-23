@@ -24,7 +24,7 @@ class FakeLimiter {
 
 class WritesOnlyDb {
   rows: Record<string, unknown>[] = [];
-  // Fixed answer for the cart branch's own account lookup (getPublicAccountIdBySlug),
+  // Fixed answer for the cart branch's public store lookup,
   // so a cart payload can reach its post-lookup field checks (Location, Phone)
   // instead of stopping at "Store not found" first.
   accountId = 'acc_cart_test';
@@ -33,7 +33,12 @@ class WritesOnlyDb {
     let values: unknown[] = [];
     const statement = {
       bind: (...next: unknown[]) => { values = next; return statement; },
-      first: async () => (normalized.startsWith('select id from accounts') ? { id: this.accountId } : null),
+      first: async () => {
+        if (normalized.includes('from accounts a where a.slug = ?') && values[0] === 'bali') {
+          return { id: this.accountId, personal_inventory_user_id: null };
+        }
+        return null;
+      },
       all: async () => { const row = await statement.first(); return { results: row == null ? [] : [row] }; },
       run: async () => {
         const table = normalized.startsWith('insert into inquiries') ? 'inquiries'

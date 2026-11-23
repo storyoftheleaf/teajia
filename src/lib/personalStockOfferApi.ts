@@ -1,4 +1,5 @@
-import { authedFetch, getApiOrigin, type ShelfOfferInput } from './api';
+import { authedFetch, getApiOrigin } from './api';
+import type { ShelfOfferInput, TeaChestAccount } from './teaChestTypes';
 
 interface PersonalStockOffer extends ShelfOfferInput {
   product_id: string;
@@ -21,4 +22,11 @@ export const personalStockOfferApi = {
   withdraw: (id: string): Promise<{ ok: boolean }> => authedFetch(offerUrl(id), {
     method: 'DELETE', callerRefreshesCommerce: true,
   }),
+};
+
+const accountUrl = () => `${getApiOrigin()}/api/me/tea-chest/account`;
+
+export const teaChestStockAccountApi = {
+  get: (): Promise<{ account: TeaChestAccount | null }> => authedFetch(accountUrl()),
+  create: (): Promise<{ account: TeaChestAccount }> => authedFetch(accountUrl(), { method: 'POST' }),
 };

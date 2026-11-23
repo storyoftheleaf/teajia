@@ -5,6 +5,7 @@ import { api, type CellarItem, type ShelfOfferInput } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { CellarOfferEditor } from './CellarOfferEditor';
 import { TeaChestStockLinks, useTeaChestStockAccount } from './TeaChestStockLinks';
+import { Button } from '../shared/Button';
 
 import { enteredNumber } from '../../admin/productUpdatePayload';
 import { formatPersonalTeaMoney, readPersonalTeaMoney } from '../../lib/personalTeaMoney';
@@ -231,13 +232,12 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
               placeholder="WhatsApp with country code"
               className="min-w-0 flex-1 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-13 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
             />
-            <button
+            <Button type="button" variant="secondary" size="sm"
               onClick={() => saveShelfMut.mutate({ title: shelfTitle, whatsapp })}
               disabled={saveShelfMut.isPending || !shelfDirty}
-              className="btn-secondary btn-sm"
             >
               Save shelf
-            </button>
+            </Button>
           </div>
           {!orderable && <p className="text-ui-12 text-tea-text-sec">Save your personal WhatsApp number to take inquiries.</p>}
           {saveShelfMut.error && <p role="alert" className="text-ui-13 text-tea-text">{saveShelfMut.error.message}</p>}
@@ -245,8 +245,8 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-tab" aria-pressed={!showForSale} onClick={() => setForSale(false)}>All teas</button>
-        {shelfEnabled && <button type="button" className="btn-tab" aria-pressed={showForSale} onClick={() => setForSale(true)}>For sale</button>}
+        <Button type="button" variant="tab" aria-pressed={!showForSale} onClick={() => setForSale(false)}>All teas</Button>
+        {shelfEnabled && <Button type="button" variant="tab" aria-pressed={showForSale} onClick={() => setForSale(true)}>For sale</Button>}
         <input
           type="search"
           aria-label="Filter Tea Chest by tea or label"
@@ -490,14 +490,12 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                       </button>
                     )}
                     {(item.shelfPublished || item.shelfNeedsReview) && (
-                      <button
-                        type="button"
+                      <Button type="button" variant="quiet" size="sm"
                         onClick={() => withdrawOffer.mutate(item.id)}
                         disabled={withdrawOffer.isPending}
-                        className="btn-quiet btn-sm"
                       >
                         Withdraw offer
-                      </button>
+                      </Button>
                     )}
                   </>
                 )}

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, stubBrowserServices, test } from './fixtures';
 
 interface Seller {
   name: string;
@@ -12,9 +12,15 @@ interface Seller {
 
 const usingLocalWorker = process.env.TEAJIA_PERSONAL_PILOT_BROWSER === '1';
 test.skip(!usingLocalWorker, 'Requires the loopback personal seller Worker fixtures');
+test.use({ serviceWorkers: 'block' });
 
-test('publishes from Stock, buys from the profile, pays the seller, and preserves the private holding', async ({ page, browser, request, baseURL }, testInfo) => {
+test('publishes from Stock, buys from the profile, pays the seller, and preserves the private holding', async ({ page, context, browser, request, baseURL }, testInfo) => {
   test.setTimeout(60_000);
+  if (!baseURL || !/^http:\/\/(?:127\.0\.0\.1|localhost):\d+$/.test(baseURL)) {
+    throw new Error('Use an isolated loopback Vite site for the personal seller pilot.');
+  }
+  const external = (url: URL) => /^https?:$/.test(url.protocol) && url.origin !== baseURL;
+  await context.route(external, route => route.abort());
   const fixturesResponse = await request.get('/api/pilot-test-fixtures');
   expect(fixturesResponse.ok()).toBe(true);
   const { seller, other, offer, privateLabel } = await fixturesResponse.json() as {
@@ -25,14 +31,16 @@ test('publishes from Stock, buys from the profile, pays the seller, and preserve
   const sourcePath = `/api/products/${encodeURIComponent(seller.holdingId)}`;
   const sellerProductPath = `/api/s/${seller.slug}/products`;
   const profilePath = `/people/${seller.profile}`;
-  const owner = await browser.newContext({ baseURL, viewport: page.viewportSize() ?? undefined });
+  const owner = await browser.newContext({ baseURL, viewport: page.viewportSize() ?? undefined, serviceWorkers: 'block' });
   try {
+    await stubBrowserServices(owner);
+    await owner.route(external, route => route.abort());
     await owner.addInitScript(token => localStorage.setItem('teajia_token', token), seller.token);
     const stock = await owner.newPage();
     await stock.emulateMedia({ reducedMotion: 'reduce' });
     await stock.goto(stockPath);
     const editor = stock.getByRole('region', { name: 'Seller offer' });
-    await expect(editor.getByText('Private stock')).toBeVisible();
+    await expect(editor.getByText('Private stock')).toBeVisible({ timeout: 15_000 });
     await editor.getByRole('button', { name: 'Offer for sale' }).click();
     const offerForm = stock.getByRole('dialog', { name: 'Offer for sale' });
     await offerForm.getByLabel('Public tea name').fill(offer.name);

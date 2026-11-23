@@ -39,8 +39,8 @@ async function request(db: any, path: string, method = 'GET', body?: unknown) {
 
 describe('budget refusal responses preserve committed outcomes', () => {
   it('replaces a swallowed public lookup failure with an explicit non-retryable budget response', async () => {
-    const { wrapped } = fixture(sql => /FROM accounts WHERE slug/.test(sql) ? 101 : 1);
-    // getPublicAccountIdBySlug catches errors and returns null (formerly 404).
+    const { wrapped } = fixture(sql => /FROM accounts a\s+WHERE a\.slug\s*=\s*\?/i.test(sql) ? 101 : 1);
+    // The public store lookup catches DB errors. The budget response still takes precedence over 404.
     const response = await request(wrapped, '/api/s/shop/products');
     expect(response.status).toBe(503);
     expect(response.headers.get('Retry-After')).toBeNull();

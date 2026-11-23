@@ -1,4 +1,11 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
+
+test.use({ serviceWorkers: 'block' });
+
+test.beforeEach(async ({ context, baseURL }) => {
+  const origin = new URL(baseURL!).origin;
+  await context.route(url => /^https?:$/.test(url.protocol) && url.origin !== origin, route => route.abort());
+});
 
 const lin = 'lin-chen-fixture';
 const shelf = 'lin-shelf-fixture';
