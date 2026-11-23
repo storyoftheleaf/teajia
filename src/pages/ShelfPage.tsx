@@ -2,11 +2,10 @@ import { useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Loader2, Package } from 'lucide-react';
 import { PublicIdentityLinks } from '../components/profile/PublicIdentityLinks';
-import { TeaCard, TeaCardTitle } from '../components/tea/TeaCard';
+import { PersonalShopTeaRow } from '../components/shop/PersonalShopTeaRow';
 import { TYPOGRAPHY_CLASSES as T } from '../designTokens';
 import { usePublicShelf } from '../hooks/usePublicShelf';
-import { mediaUrl } from '../lib/mediaUrl';
-import { hasShelfAmount, publicShelfPath, SHELF_OFFER_ANCHOR, shelfAmount, shelfWhatsAppHref } from '../lib/publicShelf';
+import { publicShelfPath, SHELF_OFFER_ANCHOR, shelfWhatsAppHref } from '../lib/publicShelf';
 
 export default function ShelfPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -52,14 +51,13 @@ export default function ShelfPage() {
   }
 
   const seller = data.seller_name?.trim();
-  const heading = data.title || (seller ? `${seller}’s tea shelf` : 'Tea shelf');
+  const heading = data.title || (seller ? `${seller}’s tea shop` : 'Tea shop');
   const canOrder = data.items.some(item => shelfWhatsAppHref(data, item));
 
   return (
     <div className="min-h-screen bg-tea-bg">
-      <div className="max-w-2xl mx-auto px-5 pt-8 pb-nav-gap">
+      <div className="max-w-screen-xl mx-auto px-5 pt-8 pb-nav-gap">
         <header className="mb-6">
-          {seller && <p className={`${T.label} break-words`}>Personal shelf · {seller}</p>}
           <h1 className={`${T.h1} break-words`}>{heading}</h1>
           {canOrder && <p className={`${T.bodyLight} mt-2`}>Arrange payment and delivery directly with {seller || 'the seller'} on WhatsApp.</p>}
           <PublicIdentityLinks contributorSlug={data.contributor_slug} subjectName={seller || heading} className="mt-2" />
@@ -77,39 +75,16 @@ export default function ShelfPage() {
           <>
             <h2 className={`${T.h2} mb-3`}>Teas for sale</h2>
             {!canOrder && <p className={`${T.bodyLight} mb-3`}>WhatsApp orders are currently unavailable.</p>}
-            <div className="grid gap-3">
-              {data.items.map(item => {
-                const order = shelfWhatsAppHref(data, item);
-                const facts = [item.type, item.origin, item.year].filter(Boolean).join(' · ');
-                return (
-                  <TeaCard
-                    key={item.id}
-                    title={(
-                      <TeaCardTitle id={`${SHELF_OFFER_ANCHOR}${item.id}`} tabIndex={-1} className="break-words scroll-mt-24">
-                        {item.name}
-                      </TeaCardTitle>
-                    )}
-                    actions={(
-                      <>
-                        <p className={`${T.bodyLight} py-2`}>{hasShelfAmount(item) ? shelfAmount(item.grams) : 'Availability unconfirmed'}</p>
-                        {order && (
-                          <a href={order} target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm my-1 max-w-full">
-                            <span className="truncate">{seller ? `Order from ${seller}` : 'Ask on WhatsApp'}</span>
-                          </a>
-                        )}
-                      </>
-                    )}
-                  >
-                    {(item.image_url || facts || order) && <div className="flex gap-3 items-start pb-3">
-                      {item.image_url && <img src={mediaUrl(item.image_url)} alt="" loading="lazy" className="size-16 rounded-md object-cover" />}
-                      <div className={`${T.bodyLight} min-w-0 break-words`}>
-                        {facts && <p>{facts}</p>}
-                        {order && <p>Ask about price</p>}
-                      </div>
-                    </div>}
-                  </TeaCard>
-                );
-              })}
+            <div>
+              {data.items.map(item => (
+                <PersonalShopTeaRow
+                  key={item.id}
+                  item={item}
+                  seller={seller}
+                  headingId={`${SHELF_OFFER_ANCHOR}${item.id}`}
+                  orderHref={shelfWhatsAppHref(data, item)}
+                />
+              ))}
             </div>
           </>
         )}

@@ -190,7 +190,8 @@ import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
 import { articleWisdomClaimUseRoutes, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
-import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, normalizeShelfWhatsApp, readOfferInput, shelfContactSql } from './personalShelf';
+import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
+import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, readOfferInput, shelfContactSql } from './personalShelf';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, ShippingNotificationEnv {
@@ -25488,7 +25489,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     languages: normalizeLanguages(publicLanguages),
     is_published: effectivelyPublished ? 1 : 0,
     contributor_slug: row.id,
-    ...(publicShelf ? { shelf_slug: publicShelf } : {}),
+    ...(publicShelf ? { shelf_slug: publicShelf, orderable_shelf_slug: publicShelf } : {}),
     articles: words,
     pull_quotes: pullQuotes,
     featured_in: featuredIn,

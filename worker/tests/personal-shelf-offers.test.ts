@@ -85,7 +85,7 @@ describe('a personal shelf offer', () => {
     expect(await person()).toMatchObject({ id: 'seller-profile' });
     expect(await person()).not.toHaveProperty('shelf_slug');
     expect((await publish(db)).status).toBe(200);
-    expect(await person()).toMatchObject({ shelf_slug: 'seller-tea' });
+    expect(await person()).toMatchObject({ shelf_slug: 'seller-tea', orderable_shelf_slug: 'seller-tea' });
     expect((await call(db, '/api/me/shelf', 'PUT', { whatsapp: '' })).status).toBe(200);
     expect(await publicShelf(db)).toMatchObject({ slug: 'seller-tea', whatsapp: null, items: [] });
     expect(await person()).not.toHaveProperty('shelf_slug');

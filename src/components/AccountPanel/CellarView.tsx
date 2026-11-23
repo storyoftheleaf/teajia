@@ -204,7 +204,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
         {shelfEnabled && <button type="button" className="btn-tab" aria-pressed={showForSale} onClick={() => setForSale(true)}>For sale</button>}
         <input
           type="search"
-          aria-label="Filter Chest by tea or label"
+          aria-label="Filter Tea Chest by tea or label"
           placeholder="Filter by tea or label"
           value={search}
           onChange={event => setSearch(event.target.value)}
@@ -252,7 +252,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
               className="btn-primary"
             >
               {createMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-              Add to Chest
+              Add to Tea Chest
             </button>
           </div>
         </div>
@@ -272,7 +272,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
         </div>
       ) : isError ? (
         <div role="alert" className="rounded-xl border border-tea-border bg-tea-surface p-5 text-center">
-          <p className="text-ui-14 text-tea-text-sec">We couldn't load your cellar right now.</p>
+          <p className="text-ui-14 text-tea-text-sec">We couldn't load your Tea Chest right now.</p>
           <button
             onClick={() => refetch()}
             className="tap-target mt-3 text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt"
@@ -283,7 +283,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center text-center py-10 text-tea-text-sec">
           <Package size={28} className="text-tea-text-dim mb-2" />
-          <p className="text-ui-14">Your Chest is empty.</p>
+          <p className="text-ui-14">Your Tea Chest is empty.</p>
         </div>
       ) : visibleItems.length === 0 ? (
         <p className="text-ui-14 text-tea-text-sec">{search ? 'No teas match your filter.' : 'You have no teas for sale.'}</p>
@@ -353,7 +353,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                       </button>
                       {!item.shelfPublished && <button
                         onClick={() => removeMut.mutate(item.id)}
-                        aria-label="Remove from cellar"
+                        aria-label="Remove from Tea Chest"
                         className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
                       >
                         <Trash2 size={14} />

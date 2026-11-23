@@ -111,3 +111,42 @@ test('withholds the handoff if a linked shelf resolves to another seller', async
   await expect(page.locator('a[href*="wa.me"]')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Back to profile' })).toHaveAttribute('href', `/people/${lin}`);
 });
+
+test('Tea Chest preview uses the same Shop row as the published offer', async ({ page }, testInfo) => {
+  await fixtures(page);
+  const tokenPart = Buffer.from(JSON.stringify({ sub: 'seller', exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url');
+  await page.addInitScript(token => localStorage.setItem('teajia_token', token), `header.${tokenPart}.signature`);
+  const offer = { ...autumn, origin: 'Nantou' };
+  await page.route('**/api/me/cellar', route => route.fulfill({ json: { items: [{
+    id: offer.id, name: 'Private batch name', grams: 150, label: 'Autumn tastings',
+    placementStatus: 'private', shelfPublished: true, shelfOffer: offer,
+  }] } }));
+  await page.route('**/api/me/shelf', route => route.fulfill({ json: { enabled: true, slug: shelf, whatsapp } }));
+  await page.route(`**/api/shelf/${shelf}`, route => route.fulfill({ json: {
+    slug: shelf, seller_name: 'Lin Chen', whatsapp, items: [offer],
+  } }));
+
+  await page.goto('/account/cellar');
+  await expect(page.getByRole('heading', { name: 'Tea Chest' })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit offer' }).click();
+  await page.getByRole('button', { name: 'Preview offer' }).click();
+  await expect(page.getByRole('heading', { name: 'Buyer preview' })).toBeVisible();
+  await expect(page.getByText('Private batch name')).toHaveCount(0);
+  const describeRow = async () => {
+    const row = page.locator('[data-tea-ledger-row]');
+    await expect(row.getByRole('heading', { name: offer.name })).toBeVisible();
+    return row.evaluate(el => {
+      const title = el.querySelector('h3')!;
+      const style = getComputedStyle(title);
+      return { text: el.textContent, font: style.font, color: style.color, wash: getComputedStyle(el).backgroundImage };
+    });
+  };
+  const previewRow = await describeRow();
+  await page.screenshot({ path: testInfo.outputPath('tea-chest-preview.png'), animations: 'disabled' });
+
+  await page.goto(`/u/${shelf}`);
+  expect(await describeRow()).toEqual(previewRow);
+  await expect(page.getByRole('link', { name: 'Order from Lin Chen' })).toHaveAttribute('href', /^https:\/\/wa\.me\/12025550123\?/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.screenshot({ path: testInfo.outputPath('personal-tea-shop.png'), animations: 'disabled' });
+});
