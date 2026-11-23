@@ -1,0 +1,150 @@
+#!/usr/bin/env node
+// Tea Wisdom composer (phase 2 of todo/plans/tea-wisdom-composed-entry.md).
+//
+// Writes one draft entry per tea from the public record and the Wisdom claims
+// that match it, with Claude on this Mac (Opus writes, Sonnet checks). Drafts
+// land in data/tea-reference/entries/<productId>.json for Adrian to approve.
+// Nothing is written to the shop.
+//
+//   node scripts/tea-wisdom-compose/compose.mjs --products <public-products.json> [--type Shou] [--ids a,b] [--limit 3]
+//
+// The product list is read from a file (fetch it once with curl from
+// https://www.teajia.com/api/products/public). Each tea costs two model calls.
+import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { build } from 'esbuild';
+import { buildWisdom } from '../tea-reference-markdown/lib/page-builder.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ENTRIES = path.join(ROOT, 'data', 'tea-reference', 'entries');
+const RULES = JSON.parse(await fs.readFile(path.join(ROOT, 'scripts', 'tea-wisdom-compose', 'rules.json'), 'utf8'));
+const STYLE = await fs.readFile(path.join(ROOT, 'docs', 'PRODUCT_DESCRIPTION_STYLE.md'), 'utf8');
+
+const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, all) => (
+  value.startsWith('--') ? [...pairs, [value.slice(2), all[index + 1]?.startsWith('--') ? 'true' : all[index + 1] ?? 'true']] : pairs
+), []));
+if (!args.products) { console.error('Pass --products <file> (the public product list).'); process.exit(2); }
+
+const log = (line) => process.stdout.write(`${new Date().toISOString().slice(11, 19)}  ${line}\n`);
+
+// The selection and checks are the shop's own TypeScript, bundled for Node.
+const bundle = path.join(os.tmpdir(), `tea-wisdom-compose-${process.pid}.mjs`);
+await build({ entryPoints: [path.join(ROOT, 'src', 'wisdom', 'compose', 'composeInputs.ts')], bundle: true, format: 'esm', platform: 'node', outfile: bundle, logLevel: 'error' });
+const { composeInputs, entryProblems } = await import(pathToFileURL(bundle).href);
+
+const wisdom = await buildWisdom({
+  pagesDirectory: path.join(ROOT, 'data', 'tea-reference', 'pages'),
+  translationsPath: path.join(ROOT, 'data', 'tea-reference', 'private', 'translations.json'),
+  claimsPath: path.join(ROOT, 'data', 'tea-reference', 'claims.json'),
+});
+// Drafts are composed against draft claims too; approving an entry later requires its claims approved.
+const claims = wisdom.draftClaims.map(claim => ({ ...claim, text: claim.pendingText ?? claim.text }));
+
+function claude(model, prompt) {
+  return new Promise((resolve, reject) => {
+    const child = execFile('claude', ['-p', '--model', model, '--no-session-persistence', '--output-format', 'text'], { maxBuffer: 4 << 20, timeout: 240_000 }, (error, stdout) => (
+      error ? reject(error) : resolve(stdout)
+    ));
+    child.stdin.end(prompt);
+  });
+}
+
+function jsonFrom(text) {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end < start) throw new Error('no JSON object in the reply');
+  return JSON.parse(text.slice(start, end + 1));
+}
+
+const claimBrief = (claim) => ({ id: claim.claimId, label: claim.label, text: claim.text, terms: claim.terms });
+
+function writePrompt(inputs, fixes = []) {
+  const layers = Object.fromEntries(Object.entries(inputs.layers).map(([layer, list]) => [layer, list.map(claimBrief)]));
+  return `You write the one "About this tea" entry for a product page on teajia.com, a tea shop. Follow the house style guide below exactly.
+
+THE HOUSE STYLE GUIDE
+${STYLE}
+
+HOW AN ENTRY IS BUILT
+- Story paragraphs (one to three), most specific layer first: lot (from the record notes), grade, place, age, type. Use only the layers supplied. Skip a missing layer; never guess.
+- The reader may already know the tea's type. Put general knowledge in a clause and lead with what is specific to this tea.
+- Story paragraphs carry place, craft, history and how the tea has changed with age. No taste or texture words in them at all (no sweet, smooth, woody, earthy, aroma, notes). Those go only in the notice.
+- Then one brewing paragraph, from the brewing claim, fitted to this tea's form.
+- Then, only if a notice layer is supplied, one short sentence of what people often notice in the style (not this lot), from the notice claims, and a styleName such as "ripe pu’er" or "aged ripe pu’er".
+- Mark each term you take from a claim as [shown words](claim-id), using only the claim ids supplied, once per claim at most. Mark the words a reader would want to learn more about.
+- From the record notes, keep only statements about this lot's own history, storage or making. Ignore tree age, altitude and anything about taste in them.
+- Every number you write must come from the inputs. Write ages in words where it reads better. No dashes of any kind, no superlatives, no exclamation marks.
+- Write in your own words; do not copy claim sentences whole.
+
+THE TEA
+${JSON.stringify(inputs.record, null, 2)}
+
+THE CLAIMS YOU MAY USE, BY LAYER
+${JSON.stringify(layers, null, 2)}
+${fixes.length ? `\nYOUR LAST DRAFT FAILED THESE CHECKS. FIX THEM:\n${fixes.map(fix => `- ${fix.where}: ${fix.problem}`).join('\n')}\n` : ''}
+Reply with one JSON object and nothing else:
+{"paragraphs":[{"layer":"lot|grade|place|age|type","text":"..."}],"brewing":{"layer":"brewing","text":"..."},"notice":{"layer":"notice","styleName":"...","text":"..."} or null}`;
+}
+
+function checkPrompt(inputs, entry) {
+  return `You are checking a tea product description before a shop owner approves it. The description may only state what the inputs support. List every sentence that says something the inputs do not support, and every sentence that describes how this particular lot tastes. Wording and style are not your concern.
+
+INPUTS
+${JSON.stringify({ record: inputs.record, claims: Object.values(inputs.layers).flat().map(claimBrief) }, null, 2)}
+
+DESCRIPTION
+${JSON.stringify(entry, null, 2)}
+
+Reply with one JSON object and nothing else: {"unsupported":[{"sentence":"...","why":"..."}]}`;
+}
+
+async function composeOne(product) {
+  const inputs = composeInputs(product, claims, { thisYear: new Date().getFullYear(), noNotice: RULES.noNotice });
+  let entry;
+  let problems = [];
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    log(`${product.product_name}: writing (attempt ${attempt})`);
+    const draft = jsonFrom(await claude('opus', writePrompt(inputs, problems)));
+    entry = { productId: product.id, paragraphs: draft.paragraphs ?? [], ...(draft.brewing ? { brewing: draft.brewing } : {}), ...(draft.notice ? { notice: draft.notice } : {}), missing: inputs.missing };
+    problems = entryProblems(entry, inputs);
+    if (!problems.length) break;
+    log(`${product.product_name}: ${problems.length} check(s) failed: ${problems.map(p => p.problem).join('; ')}`);
+  }
+  log(`${product.product_name}: checking against the inputs`);
+  const check = jsonFrom(await claude('sonnet', checkPrompt(inputs, entry)));
+  const unsupported = check.unsupported ?? [];
+  const ready = problems.length === 0 && unsupported.length === 0;
+  const claimUses = [...new Set([...entry.paragraphs, entry.brewing, entry.notice].filter(Boolean)
+    .flatMap(part => [...part.text.matchAll(/\]\(([a-z0-9-]+:[a-z0-9-]+)\)/g)].map(match => match[1])))]
+    .map(claimId => ({ claimId, rev: claims.find(claim => claim.claimId === claimId)?.rev ?? null }));
+  const file = {
+    status: ready ? 'draft' : 'needs_review',
+    composedAt: new Date().toISOString(),
+    writer: 'claude opus', checker: 'claude sonnet',
+    record: { id: product.id, name: product.product_name, chineseName: product.chinese_name ?? null, type: product.type ?? null, form: product.form ?? null, year: product.year ?? null, origin: inputs.record.origin ?? null, stockGrams: product.stock_grams ?? null, pricePerGramUsd: product.retail_price_per_gram_usd ?? null, tags: product.tasting_notes ?? [] },
+    entry,
+    claimUses,
+    problems,
+    unsupported,
+  };
+  await fs.writeFile(path.join(ENTRIES, `${product.id}.json`), `${JSON.stringify(file, null, 2)}\n`);
+  log(`${product.product_name}: ${ready ? 'ready for review' : `needs review (${problems.length + unsupported.length} flag(s))`}`);
+  return file;
+}
+
+const all = JSON.parse(await fs.readFile(path.resolve(args.products), 'utf8'));
+let products = all.filter(product => product.type && !product.teaware_category);
+if (args.type) products = products.filter(product => new RegExp(args.type, 'i').test(product.type));
+if (args.ids) products = products.filter(product => args.ids.split(',').includes(product.id));
+if (args.limit) products = products.slice(0, Number(args.limit));
+await fs.mkdir(ENTRIES, { recursive: true });
+log(`${products.length} tea(s) to compose, ${products.length * 2} to ${products.length * 4} model calls`);
+const results = [];
+for (const product of products) {
+  try { results.push(await composeOne(product)); } catch (error) { log(`${product.product_name}: failed: ${error.message}`); }
+}
+await fs.rm(bundle, { force: true });
+log(`done: ${results.filter(r => r.status === 'draft').length} ready, ${results.filter(r => r.status !== 'draft').length} need review, ${products.length - results.length} failed`);
