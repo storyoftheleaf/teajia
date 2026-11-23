@@ -549,6 +549,12 @@ export interface CellarPlacementRequest extends CellarItem {
 }
 
 // Stock spine step 5: the seller's own shelf settings (grant state + identity).
+export interface TeaChestAccount {
+  id: string;
+  slug: string;
+  public_enabled: number;
+}
+
 export interface ShelfSettings {
   enabled: boolean;
   slug: string | null;
@@ -581,6 +587,7 @@ export interface PublicShelfItem {
 
 export interface PublicShelf {
   slug: string;
+  store_slug?: string;
   title: string | null;
   seller_name: string | null;
   whatsapp: string | null;
@@ -4682,6 +4689,12 @@ export const api = {
 
   // Stock spine step 4: the personal cellar: location-less, person-owned stock.
   cellar: {
+    getStockAccount: async (): Promise<{ account: TeaChestAccount | null }> => {
+      return authedFetch(`${API_URL}/api/me/tea-chest/account`);
+    },
+    createStockAccount: async (): Promise<{ account: TeaChestAccount }> => {
+      return authedFetch(`${API_URL}/api/me/tea-chest/account`, { method: 'POST' });
+    },
     list: async (): Promise<{ items: CellarItem[] }> => {
       return authedFetch(`${API_URL}/api/me/cellar`);
     },

@@ -16,6 +16,7 @@ interface ShelfRow {
   seller_name: string | null;
   shelf_whatsapp: string | null;
   contributor_slug: string | null;
+  store_slug: string | null;
   item_id: string | null;
   name: string | null;
   grams: number | null;
@@ -69,6 +70,7 @@ export async function getOrderableShelfSlug(db: D1Database, userId: string | nul
   const seller = await db.prepare(`
     SELECT u.shelf_slug FROM users u
     WHERE u.id = ? AND u.shelf_enabled = 1 AND u.shelf_slug <> '' AND (${shelfContactSql})
+      AND NOT EXISTS (SELECT 1 FROM accounts WHERE personal_inventory_user_id = u.id)
       AND EXISTS (
         SELECT 1 FROM personal_cellar_items c
         WHERE c.owner_user_id = u.id AND (${approvedShelfOfferSql})
@@ -80,14 +82,18 @@ export async function getOrderableShelfSlug(db: D1Database, userId: string | nul
 export async function getPublicShelf(db: D1Database, slug: string) {
   // One statement gives the buyer a consistent snapshot of contact and stock.
   const { results } = await db.prepare(`
-    SELECT u.shelf_title, u.name AS seller_name, u.shelf_whatsapp,
+    SELECT u.shelf_title, u.name AS seller_name, CASE WHEN a.id IS NULL THEN u.shelf_whatsapp END AS shelf_whatsapp,
+           CASE WHEN a.status = 'active' AND a.public_enabled = 1 AND a.owner_user_id = u.id
+             AND EXISTS (SELECT 1 FROM account_members m WHERE m.account_id = a.id AND m.user_id = u.id
+               AND m.status = 'active' AND m.role = 'owner') THEN a.slug END AS store_slug,
            (SELECT id FROM contributors WHERE user_id = u.id AND is_published = 1 ORDER BY id LIMIT 1) AS contributor_slug,
            c.id AS item_id, c.shelf_offer_name AS name, c.shelf_offer_grams AS grams,
            c.shelf_offer_type AS type, c.shelf_offer_year AS year, c.shelf_offer_origin AS origin,
            c.shelf_offer_price_amount AS price_amount, c.shelf_offer_price_currency AS price_currency
     FROM users u
+    LEFT JOIN accounts a ON a.personal_inventory_user_id = u.id
     LEFT JOIN personal_cellar_items c
-      ON c.owner_user_id = u.id AND (${approvedShelfOfferSql}) AND (${shelfContactSql})
+      ON a.id IS NULL AND c.owner_user_id = u.id AND (${approvedShelfOfferSql}) AND (${shelfContactSql})
     WHERE u.shelf_slug = ? AND u.shelf_enabled = 1
     ORDER BY c.created_at DESC, c.id
   `).bind(slug).all<ShelfRow>();
@@ -95,6 +101,7 @@ export async function getPublicShelf(db: D1Database, slug: string) {
   if (!seller) return null;
   return {
     slug,
+    ...(seller.store_slug ? { store_slug: seller.store_slug } : {}),
     title: seller.shelf_title,
     seller_name: seller.seller_name,
     ...(seller.contributor_slug ? { contributor_slug: seller.contributor_slug } : {}),

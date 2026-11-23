@@ -19,11 +19,11 @@ function database() {
   return db;
 }
 
-async function call(db: SqliteD1, path: string, method = 'GET', body?: unknown, user = 'seller') {
+async function call(db: SqliteD1, path: string, method = 'GET', body?: unknown, user = 'seller', accountId = `${user}-account`) {
   const token = await signedToken(SECRET, { sub: user, email: `${user}@test.dev`, name: user,
-    active_account_id: `${user}-account`, platform_role: null });
+    active_account_id: accountId, platform_role: null });
   return worker.fetch(new Request(`https://worker.test${path}`, {
-    method, headers: { Authorization: `Bearer ${token}`, 'X-Teajia-Account': `${user}-account`, 'Content-Type': 'application/json' },
+    method, headers: { Authorization: `Bearer ${token}`, 'X-Teajia-Account': accountId, 'Content-Type': 'application/json' },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   }), { DB: db as any, JWT_SECRET: SECRET } as any);
 }
@@ -35,6 +35,126 @@ const publicRead = (db: SqliteD1, path: string) => worker.fetch(
 );
 const publicShelf = async (db: SqliteD1) => (await publicRead(db, '/api/shelf/seller-tea')).json() as Promise<any>;
 const holding = (db: SqliteD1) => db.sqlite.prepare("SELECT * FROM personal_cellar_items WHERE id='holding'").get() as any;
+
+describe('a personal Tea Chest using Stock and Sales', () => {
+  it('provisions one private account for the authenticated person and keeps it separate from the main Shop', async () => {
+    const db = database();
+    const path = '/api/me/tea-chest/account';
+    expect(await (await call(db, path)).json()).toEqual({ account: null });
+    const [first, retry] = await Promise.all([call(db, path, 'POST'), call(db, path, 'POST')]);
+    expect(first.status).toBe(200);
+    const { account } = await first.json() as { account: { id: string; slug: string } };
+    expect(await retry.json()).toEqual({ account });
+    expect(account.id).not.toBe('seller-account');
+    expect(await (await call(db, path, 'GET', undefined, 'other')).json()).toEqual({ account: null });
+    expect((await publicRead(db, `/api/s/${account.slug}/products`)).status).toBe(404);
+    expect((await call(db, '/api/accounts/switch', 'POST', { account_id: account.id }, 'other')).status).toBe(403);
+    const switched = await call(db, '/api/accounts/switch', 'POST', { account_id: account.id });
+    expect(switched.status).toBe(200);
+    expect(await switched.json()).toMatchObject({ active_account_id: account.id });
+    expect(db.sqlite.prepare('SELECT owner_user_id, public_enabled FROM accounts WHERE id=?').get(account.id))
+      .toEqual({ owner_user_id: 'seller', public_enabled: 0 });
+  });
+
+  it('connects an opened personal store to the main checkout under the seller’s account', async () => {
+    const db = database();
+    seedIdentity(db, { userId: 'main-owner', accountId: 'acc_teajia_bali', accountSlug: 'teajia-bali' });
+    db.sqlite.prepare(`INSERT INTO products(id,account_id,type,product_name,status,is_public,shown_in_shop,
+      stock_grams,cost_amount,cost_currency,fixed_retail_price_usd)
+      VALUES ('main-tea','acc_teajia_bali','Oolong','Main Shop tea','Active',1,1,30,1,'USD',0.5)`).run();
+    const { account } = await (await call(db, '/api/me/tea-chest/account', 'POST')).json() as {
+      account: { id: string; slug: string };
+    };
+    const scoped = (path: string, method: string, body?: unknown) =>
+      call(db, path, method, body, 'seller', account.id);
+    expect((await scoped(`/api/accounts/${account.id}`, 'PUT', { public_enabled: true })).status).toBe(409);
+    db.sqlite.prepare(`INSERT INTO contributors(id,account_id,user_id,display_name,is_published)
+      VALUES ('seller-public',?,'seller','Seller',1)`).run(account.id);
+    db.sqlite.prepare(`INSERT INTO payment_methods(id,contributor_id,method_type,label,recipient_name,account_identifier,is_published)
+      VALUES ('seller-bank','seller-public','bank_transfer','Bank transfer','Seller','Synthetic reference',1)`).run();
+    const tee = await scoped('/api/products', 'POST', {
+      product_name: 'Personal Spring oolong', type: 'Oolong', stock_grams: 150,
+      cost_amount: 9, cost_currency: 'USD', fixed_retail_price_usd: 0.5,
+      status: 'Active', is_public: 1, shown_in_shop: 1, owner_user_id: 'seller',
+    });
+    expect(tee.status).toBe(201);
+    const { id: productId } = await tee.json() as { id: string };
+    expect((await scoped(`/api/accounts/${account.id}`, 'PUT', { public_enabled: true })).status).toBe(200);
+    expect(await publicShelf(db)).toMatchObject({ store_slug: account.slug, items: [], whatsapp: null });
+    expect(await (await publicRead(db, '/api/people/seller-public')).json()).toMatchObject({ personal_store_slug: account.slug });
+    const publicProducts = await publicRead(db, `/api/s/${account.slug}/products`);
+    expect(publicProducts.status).toBe(200);
+    expect(await publicProducts.json()).toMatchObject([{ id: productId, stock_grams: 150 }]);
+    const mainProducts = await publicRead(db, '/api/products/public');
+    const mainCatalog = await mainProducts.json() as Array<{ id: string }>;
+    expect(mainCatalog.map(item => item.id)).toEqual(['main-tea']);
+
+    const request = new Request('https://worker.test/api/inquiries', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source: 'website', store_slug: account.slug, tracking_token: 'synthetic-personal-shop-order-000000000001',
+        ref_number: 'TJ-WEB-PERSONAL-1', customer_name: 'Buyer', customer_contact: 'buyer@example.test',
+        customer_location: 'Tokyo, Japan', currency: 'USD', total_estimate_usd: 1,
+        items: [{ id: productId, name: 'Personal Spring oolong', category: 'tea',
+          storeSlug: account.slug, quantityGrams: 50, packGrams: 25, packs: 2, pricePerGram: 0.02, totalPrice: 1 }],
+      }),
+    });
+    const checkout = await worker.fetch(request, {
+      DB: db, JWT_SECRET: SECRET, INQUIRY_LIMITER: { limit: async () => ({ success: true }) },
+    } as never, {} as never);
+    expect(checkout.status, await checkout.clone().text()).toBe(201);
+    const { invoice_id } = await checkout.json() as { invoice_id: string };
+    expect(db.sqlite.prepare('SELECT account_id, status FROM invoices WHERE id=?').get(invoice_id))
+      .toEqual({ account_id: account.id, status: 'Draft' });
+    expect(db.sqlite.prepare('SELECT quantity, price_at_sale FROM invoice_line_items WHERE invoice_id=?').get(invoice_id))
+      .toEqual({ quantity: 50, price_at_sale: 0.6 });
+    expect((await scoped(`/api/invoices/${invoice_id}`, 'PUT', { status: 'Pending' })).status).toBe(200);
+    const tracked = await publicRead(db, '/api/inquiries/synthetic-personal-shop-order-000000000001');
+    expect(tracked.status).toBe(200);
+    expect(await tracked.json()).toMatchObject({ payment: {
+      total_usd: 30, pay_url: expect.stringContaining('/people/seller-public/pay?'),
+    } });
+    const paid = { amount_usd: 30, method_label: 'Bank transfer', request_id: 'personal-checkout-confirm' };
+    expect((await scoped(`/api/invoices/${invoice_id}/payments`, 'POST', paid)).status).toBe(201);
+    expect(db.sqlite.prepare('SELECT stock_grams FROM products WHERE id=?').get(productId)).toEqual({ stock_grams: 100 });
+  });
+
+  it('uses canonical Stock and Sales for an owner’s 50 g sale while leaving the shop closed', async () => {
+    const db = database();
+    const { account } = await (await call(db, '/api/me/tea-chest/account', 'POST')).json() as {
+      account: { id: string; slug: string };
+    };
+    const scoped = (path: string, method: string, body?: unknown) =>
+      call(db, path, method, body, 'seller', account.id);
+    const created = await scoped('/api/products', 'POST', {
+      product_name: 'Personal Autumn oolong', type: 'Oolong', stock_grams: 150,
+      cost_amount: 9, cost_currency: 'USD', fixed_retail_price_usd: 50,
+      status: 'Active', is_public: 0, shown_in_shop: 0, owner_user_id: 'seller',
+    });
+    expect(created.status).toBe(201);
+    const { id: productId } = await created.json() as { id: string };
+    expect((await publicRead(db, `/api/s/${account.slug}/products`)).status).toBe(404);
+    expect(await (await publicRead(db, '/api/products/public')).text()).not.toContain(productId);
+
+    const order = await scoped('/api/invoices', 'POST', {
+      invoice: { customer_name: 'Buyer', display_currency: 'USD', status: 'Pending' },
+      lineItems: [{ product_id: productId, quantity: 50, price_at_sale: 0.5 }],
+    });
+    expect(order.status).toBe(201);
+    const { id: invoiceId } = await order.json() as { id: string };
+    expect(db.sqlite.prepare(`SELECT account_id, sold_by_user_id, payment_recipient_user_id
+      FROM invoices WHERE id=?`).get(invoiceId)).toEqual({
+      account_id: account.id, sold_by_user_id: 'seller', payment_recipient_user_id: 'seller',
+    });
+    expect(db.sqlite.prepare(`SELECT owner_share_value FROM invoice_line_items WHERE invoice_id=?`).get(invoiceId))
+      .toEqual({ owner_share_value: 100 });
+    const payment = { amount_usd: 25, method_label: 'Cash', request_id: 'tea-chest-sale-once' };
+    expect((await scoped(`/api/invoices/${invoiceId}/payments`, 'POST', payment)).status).toBe(201);
+    expect((await scoped(`/api/invoices/${invoiceId}/payments`, 'POST', payment)).ok).toBe(true);
+    expect(db.sqlite.prepare('SELECT stock_grams FROM products WHERE id=?').get(productId)).toEqual({ stock_grams: 100 });
+    expect(db.sqlite.prepare('SELECT grams FROM personal_cellar_items WHERE id=?').get('holding')).toEqual({ grams: 150 });
+  });
+});
 
 describe('a personal shelf offer', () => {
   it('requires a recorded purchase amount and currency before adding a tea', async () => {

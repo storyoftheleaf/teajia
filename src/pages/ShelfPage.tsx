@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { Loader2, Package } from 'lucide-react';
 import { PublicIdentityLinks } from '../components/profile/PublicIdentityLinks';
 import { PersonalShopTeaRow } from '../components/shop/PersonalShopTeaRow';
@@ -50,6 +50,8 @@ export default function ShelfPage() {
       </div>
     );
   }
+
+  if (data.store_slug) return <Navigate replace to={`/store/${encodeURIComponent(data.store_slug)}`} />;
 
   const seller = data.seller_name?.trim();
   const heading = data.title || (seller ? `${seller}’s tea shop` : 'Tea shop');

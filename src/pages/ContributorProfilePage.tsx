@@ -346,6 +346,11 @@ export default function ContributorProfilePage() {
             {data.chinese_name && <p className="mt-2 text-ui-22 leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>
+          {data.personal_store_slug && (
+            <Link to={`/store/${encodeURIComponent(data.personal_store_slug)}`} className="btn-secondary">
+              Shop {data.display_name}’s teas
+            </Link>
+          )}
           {showOffers && shelf && (
             <section aria-label="Teas for sale">
               <GroupHead label="Teas for sale" />

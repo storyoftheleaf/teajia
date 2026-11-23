@@ -4,6 +4,7 @@ import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink, Pencil,
 import { api, type CellarItem, type ShelfOfferInput } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { CellarOfferEditor } from './CellarOfferEditor';
+import { TeaChestStockLinks, useTeaChestStockAccount } from './TeaChestStockLinks';
 
 import { enteredNumber } from '../../admin/productUpdatePayload';
 import { formatPersonalTeaMoney, readPersonalTeaMoney } from '../../lib/personalTeaMoney';
@@ -24,6 +25,7 @@ const PLACEMENT_LABEL: Record<CellarItem['placementStatus'], string> = {
 
 export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const qc = useQueryClient();
+  const stockAccount = useTeaChestStockAccount();
   const memberships = useAppStore(s => s.memberships);
   const activeAccount = useAppStore(s => s.activeAccount);
 
@@ -144,6 +146,35 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
     ?? 'a location';
 
   const layout = embedded ? 'py-6 space-y-5' : 'px-6 pt-6 pb-6 space-y-5';
+  const stockLinks = <TeaChestStockLinks
+    account={stockAccount.data?.account}
+    loading={stockAccount.isLoading}
+    error={stockAccount.error}
+  />;
+  if (stockAccount.data?.account || (stockAccount.data?.account === null && items.length === 0 && !isLoading)) {
+    return (
+      <div className={layout}>
+        {stockLinks}
+        {items.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-ui-14 text-tea-text">Previous holdings</h2>
+            <ul className="divide-y divide-tea-border">
+              {items.map(item => (
+                <li key={item.id} className="flex items-start gap-2 justify-between py-2">
+                  <div className="min-w-0 break-words text-ui-14 text-tea-text">
+                    <p>{item.name}</p>
+                    {item.label && <p className="text-ui-12 text-tea-text-sec">{item.label}</p>}
+                    {item.notes && <p className="text-ui-12 text-tea-text-sec">{item.notes}</p>}
+                  </div>
+                  <span className="shrink-0 text-ui-13 text-tea-text-sec">{item.grams} g</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    );
+  }
   const offerItem = items.find(item => item.id === offerId);
   if (offerItem) {
     return (
@@ -165,6 +196,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
 
   return (
     <div className={layout}>
+      {stockLinks}
 
       {/* Step 5: public shelf. Appears only once Adrian grants it. */}
       {shelfEnabled && shelf?.slug && (

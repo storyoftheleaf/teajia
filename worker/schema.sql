@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     invoice_prefix TEXT,
     invoice_seq INTEGER NOT NULL DEFAULT 0,
     owner_user_id TEXT,
+    personal_inventory_user_id TEXT REFERENCES users(id),
     status TEXT DEFAULT 'active',
     trust_tier TEXT DEFAULT 'basic',
     kind TEXT NOT NULL DEFAULT 'location',
@@ -51,6 +52,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 CREATE INDEX IF NOT EXISTS idx_accounts_host_contributor
   ON accounts(host_contributor_id) WHERE host_contributor_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_accounts_kind ON accounts(kind);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_personal_inventory_user ON accounts(personal_inventory_user_id);
 
 CREATE TABLE IF NOT EXISTS account_members (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),

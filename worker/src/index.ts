@@ -15756,10 +15756,14 @@ const handleCreateCellarItem: Handler = async (request, env) => {
   if (body.label != null && typeof body.label !== 'string') return json({ error: 'Invalid Chest label' }, 400);
   const cost = readPersonalTeaMoney(body.costAmount, body.costCurrency);
   if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
+  if (await personalInventoryAccount(env.DB, userId)) {
+    return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
+  }
   const id = newId('cellar');
-  await env.DB.prepare(
+  const inserted = await env.DB.prepare(
     `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url, chest_label, chest_cost_amount, chest_cost_currency)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE personal_inventory_user_id = ?)`
   ).bind(
     id, userId, name,
     body.type ?? null,
@@ -15769,8 +15773,9 @@ const handleCreateCellarItem: Handler = async (request, env) => {
     Number.isFinite(grams) ? grams : 0,
     body.image_url ?? null,
     privateChestLabel(body.label ?? ''),
-    cost.amount, cost.currency,
+    cost.amount, cost.currency, userId,
   ).run();
+  if (!inserted.meta.changes) return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(id).first();
   return json({ item: ownedCellarItemToApi(row) }, 201);
 };
@@ -16029,6 +16034,45 @@ const handleDeclineCellarPlacement: Handler = async (request, env, params) => {
   return json({ ok: true });
 };
 
+async function personalInventoryAccount(db: D1Database, userId: string) {
+  return db.prepare(`
+    SELECT a.id, a.slug, a.public_enabled
+    FROM accounts a JOIN account_members m ON m.account_id = a.id AND m.user_id = a.personal_inventory_user_id
+    WHERE a.personal_inventory_user_id = ? AND a.owner_user_id = a.personal_inventory_user_id AND a.status = 'active'
+      AND m.status = 'active' AND m.role = 'owner'
+  `).bind(userId).first<{ id: string; slug: string; public_enabled: number }>();
+}
+
+const handlePersonalInventoryAccount: Handler = async (request, env) => {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const existing = await personalInventoryAccount(env.DB, ctx.userId);
+  if (request.method === 'GET' || existing) return json({ account: existing });
+
+  const id = newId('acc');
+  const displayName = ctx.name?.trim();
+  const stem = normalizeShelfSlug(displayName || '').slice(0, 24);
+  const suffix = crypto.randomUUID().slice(0, 12);
+  const slug = `${stem || 'tea-chest'}-${suffix}`;
+  const name = displayName ? `${displayName}’s Tea Chest` : 'Tea Chest';
+  // Both statements commit together. The unique person link makes concurrent
+  // requests use the same account and never adds an owner to a different shop.
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO accounts (id, slug, name, kind, status, public_enabled, owner_user_id,
+                            personal_inventory_user_id, invoice_prefix)
+      SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA' FROM users WHERE id = ?
+      ON CONFLICT(personal_inventory_user_id) DO NOTHING
+    `).bind(id, slug, name, ctx.userId),
+    env.DB.prepare(`
+      INSERT INTO account_members (account_id, user_id, role, status)
+      SELECT id, owner_user_id, 'owner', 'active' FROM accounts WHERE id = ? AND personal_inventory_user_id = ?
+    `).bind(id, ctx.userId),
+  ]);
+  const account = await personalInventoryAccount(env.DB, ctx.userId);
+  return account ? json({ account }) : json({ error: 'Your Tea Chest account is unavailable.' }, 409);
+};
+
 // ── Standalone public shelf (stock spine step 5) ────────────────────────────
 //
 // The top of the spine: a person publishes their private cellar (step 4) at
@@ -16095,6 +16139,9 @@ const handlePublishToShelf: Handler = async (request, env, params) => {
   if (authErr) return authErr;
   const userId = authedUserId(request);
   if (!userId) return json({ error: 'Invalid token' }, 401);
+  if (await personalInventoryAccount(env.DB, userId)) {
+    return json({ error: 'List tea from Stock in your Tea Chest account.' }, 409);
+  }
   const offer = readOfferInput(await request.json().catch(() => null));
   if (!offer) return json({ error: 'Enter a public name, an offer weight, and a positive price with its currency.' }, 400);
 
@@ -16104,6 +16151,7 @@ const handlePublishToShelf: Handler = async (request, env, params) => {
         shelf_offer_year = ?, shelf_offer_origin = ?, shelf_offer_price_amount = ?,
         shelf_offer_price_currency = ?, updated_at = datetime('now')
     WHERE id = ? AND owner_user_id = ? AND placement_status = 'private' AND grams >= ? AND (${recordedChestCostSql})
+      AND NOT EXISTS (SELECT 1 FROM accounts WHERE personal_inventory_user_id = c.owner_user_id)
       AND EXISTS (
         SELECT 1 FROM users u WHERE u.id = ? AND u.shelf_enabled = 1
           AND u.shelf_slug <> '' AND (${shelfContactSql})
@@ -25469,12 +25517,16 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   try { publicLanguages = row.languages ? JSON.parse(row.languages as string) : []; } catch { publicLanguages = []; }
   const publicLinks = parseStoredContributorLinks(row.links as string | null);
 
-  const [publicShelf, paymentAvailability] = await Promise.all([
+  const [publicShelf, paymentAvailability, personalAccount] = await Promise.all([
     getOrderableShelfSlug(env.DB, row.user_id as string | null).catch(error => {
       if (/no such (?:table|column)/i.test(String(error))) return null;
       throw error;
     }),
     publicPaymentAvailability(env, slug),
+    row.user_id ? personalInventoryAccount(env.DB, String(row.user_id)).catch(error => {
+      if (/no such (?:table|column)/i.test(String(error))) return null;
+      throw error;
+    }) : null,
   ]);
 
   const effectivelyPublished = row.is_published === 1 || (!row.unpublished_at && hasPublishedArticle);
@@ -25510,6 +25562,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     is_published: effectivelyPublished ? 1 : 0,
     contributor_slug: row.id,
     ...(publicShelf ? { shelf_slug: publicShelf, orderable_shelf_slug: publicShelf } : {}),
+    ...(personalAccount?.public_enabled ? { personal_store_slug: personalAccount.slug } : {}),
     articles: words,
     pull_quotes: pullQuotes,
     featured_in: featuredIn,
@@ -30857,6 +30910,8 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/cellar-placements/:id/decline', handleDeclineCellarPlacement],
 
   // Standalone public shelf (stock spine step 5).
+  ['GET',    '/api/me/tea-chest/account', handlePersonalInventoryAccount],
+  ['POST',   '/api/me/tea-chest/account', handlePersonalInventoryAccount],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],

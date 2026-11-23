@@ -173,3 +173,25 @@ test('Tea Chest preview uses the same Shop row as the published offer', async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.screenshot({ path: testInfo.outputPath('personal-tea-shop.png'), animations: 'disabled', scale: 'css' });
 });
+
+test('an existing personal shelf address opens the standard account storefront and cart', async ({ page }) => {
+  await fixtures(page);
+  const store = 'lin-tea-chest';
+  await page.route(`**/api/shelf/${shelf}`, route => route.fulfill({ json: {
+    slug: shelf, store_slug: store, seller_name: 'Lin Chen', whatsapp: null, items: [],
+  } }));
+  await page.route(`**/api/s/${store}`, route => route.fulfill({ json: {
+    id: 'lin-account', slug: store, name: 'Lin Chen’s Tea Chest', public_enabled: 1, currency_default: 'USD',
+  } }));
+  await page.route(`**/api/s/${store}/events`, route => route.fulfill({ json: [] }));
+  await page.route(`**/api/s/${store}/products`, route => route.fulfill({ json: [{
+    id: autumn.id, slug: autumn.id, product_name: autumn.name, type: autumn.type, stock_grams: 150,
+    retail_price_per_gram_usd: 0.5, given_name: autumn.name, form: 'Loose', year: autumn.year,
+  }] }));
+  await page.goto(`/u/${shelf}`);
+  await expect(page).toHaveURL(new RegExp(`/store/${store}$`));
+  await expect(page.getByRole('heading', { name: 'Lin Chen’s Tea Chest' })).toBeVisible();
+  const standardRow = page.locator('[data-tea-ledger-row]');
+  await expect(standardRow.getByRole('heading', { name: autumn.name })).toBeVisible();
+  await expect(standardRow.getByRole('button', { name: /add.*autumn oolong to cart/i })).toBeVisible();
+});
