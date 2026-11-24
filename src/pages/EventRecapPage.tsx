@@ -139,7 +139,8 @@ const EventRecapPage: React.FC = () => {
   const sharedNotes = Array.isArray(extra?.shared_tasting_notes) ? extra.shared_tasting_notes : [];
   return (
     <div className="min-h-screen bg-tea-bg pb-nav-gap-lg lg:pb-12">
-      <div className="mx-auto max-w-2xl px-6 pt-6 pb-nav-gap">
+      {/* Phone: reach past the page frame so each block runs edge to edge. */}
+      <div className="-mx-4 max-w-2xl px-6 pt-6 pb-nav-gap sm:mx-auto">
         <SitRecap recap={recap.data} />
         {(sharedNotes.length > 0 || extra?.playlist_url) && <div className="mt-12">
           {sharedNotes.length > 0 && <SharedNotesSection notes={sharedNotes} />}

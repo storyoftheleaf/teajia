@@ -5,10 +5,9 @@ import { casualSitPhotoUrl, casualSitRecapPath, usePublicCasualSits } from '../.
 import { useFormalSessionCards } from '../../lib/publicSessionCards';
 import { recapPath } from '../../lib/publicSitConnections';
 import { sitProfileCreditVerb } from '../../lib/sitCreditContract';
-import { formatEventLong } from '../people/profileFormat';
 import { GroupHead } from '../people/immersive';
 import {
-  LeadPhoto, NextSitRow, OpenRecapRow, PhotoStrip, PouredTeas, SessionBlock, SessionHead, SessionNote,
+  LeadPhoto, NextSitRow, OpenRecapRow, PhotoStrip, PouredTeas, sessionDate, SessionBlock, SessionHead, SessionNote,
 } from './SessionBlocks';
 import type { SessionPhotoSource } from './SessionPhoto';
 
@@ -77,7 +76,7 @@ export function ProfileSessions({ profile, name, next }: {
           <SessionBlock key={sit.id}>
             {sit.photo && <LeadPhoto source={sit.photo} to={sit.href} title={sit.title} />}
             <PhotoStrip photos={sit.small} more={sit.more} to={sit.href} />
-            <SessionHead date={formatEventLong(sit.date)} part={sit.part} title={sit.title} to={sit.href} people={sit.people} />
+            <SessionHead date={sessionDate(sit.date)} part={sit.part} title={sit.title} to={sit.href} people={sit.people} />
             {sit.note && <SessionNote text={sit.note.text} by={sit.note.by} className="mx-6 mb-[18px] mt-4" />}
             {!sit.note && <div className="h-4" />}
             <PouredTeas teas={sit.teas} />

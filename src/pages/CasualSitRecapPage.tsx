@@ -10,7 +10,7 @@ export default function CasualSitRecapPage() {
   const result = usePublicCasualSit(slug);
   const sit = result.isSuccess && !result.isError ? result.data.recap : undefined;
   return (
-    <div className="mx-auto min-h-screen max-w-2xl px-6 pt-6 pb-nav-gap">
+    <div className="-mx-4 min-h-screen max-w-2xl px-6 pt-6 pb-nav-gap sm:mx-auto">
       {result.isPending && <p role="status" className="text-ui-14 text-tea-text-sec">Opening the recap…</p>}
       {!result.isPending && !sit && (
         <>

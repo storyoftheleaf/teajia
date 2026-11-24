@@ -2,9 +2,8 @@ import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { SessionGuestItem, SessionPhotograph } from '../../../shared/sessionTea';
 import { sessionPhotoSrc, useRecapSeat, useSendRecapNote, type PublicRecapTea, type PublicSitRecap } from '../../lib/publicSitRecap';
-import { formatEventLong } from '../people/profileFormat';
 import { Button } from '../shared/Button';
-import { pouredLabel, SectionRule, SessionBlock, SessionHead, SessionNote } from './SessionBlocks';
+import { pouredLabel, SectionRule, sessionDate, SessionBlock, SessionHead, SessionNote } from './SessionBlocks';
 import { SessionPhoto, type SessionPhotoSource } from './SessionPhoto';
 import { SessionTeaRow } from './SessionTeaRow';
 
@@ -110,7 +109,7 @@ export function SitRecap({ recap, photo, guestBook = true }: {
     <article data-testid="sit-recap">
       <SessionBlock testId="recap-head">
         {lead && <SessionPhoto source={lead} />}
-        <SessionHead date={formatEventLong(recap.event_date)} part="Session recap" title={recap.title} people={recap.people} />
+        <SessionHead date={sessionDate(recap.event_date)} part="Session recap" title={recap.title} people={recap.people} level="h1" />
         {recap.note ? <SessionNote text={recap.note.text} by={recap.note.by} className="mx-6 mb-[18px] mt-4" /> : <div className="h-4" />}
       </SessionBlock>
 

@@ -56,6 +56,13 @@ export function SessionNote({ text, by, className = '' }: { text: string; by: Se
   );
 }
 
+/** "Mon 23 Nov": the short date a session leads with. */
+export function sessionDate(value: string): string {
+  const day = new Date(value);
+  if (Number.isNaN(day.getTime())) return value;
+  return day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '');
+}
+
 export function pouredLabel(count: number) {
   return `Poured · ${countWord(count)} ${count === 1 ? 'tea' : 'teas'}`;
 }
@@ -100,16 +107,19 @@ export function PhotoStrip({ photos, more, to }: { photos: SessionPhotograph[]; 
 }
 
 /** The session header: date and part, title, people. */
-export function SessionHead({ date, part, title, to, people }: {
+export function SessionHead({ date, part, title, to, people, level = 'h3' }: {
   date: string; part: string; title: string; to?: string; people: SessionPerson[];
+  /** The recap page names the sit as its page title. */
+  level?: 'h1' | 'h3';
 }) {
+  const Heading = level;
   const heading = <span className="font-display text-ui-24 leading-tight text-tea-text">{title}</span>;
   return (
     <div className="grid gap-1.5 px-6 pt-4">
       <p className="m-0 font-sans text-ui-10 uppercase tracking-[0.16em] text-tea-text-dim">
         <span className="text-tea-gold-lt">{date}</span> · {part}
       </p>
-      <h3 className="m-0">{to ? <Link to={to} className="hover:text-tea-gold-lt">{heading}</Link> : heading}</h3>
+      <Heading className="m-0 font-normal">{to ? <Link to={to} className="hover:text-tea-gold-lt">{heading}</Link> : heading}</Heading>
       <SessionPeople people={people} />
     </div>
   );
@@ -145,7 +155,7 @@ export function NextSitRow({ slug, title, date, host }: { slug: string; title: s
 /** One session as an edge-to-edge block on the lifted ground. */
 export function SessionBlock({ children, testId = 'session-block' }: { children: ReactNode; testId?: string }) {
   return (
-    <article className="-mx-6 grid border-y border-tea-border bg-tea-surface [&+&]:mt-8" data-testid={testId}>
+    <article className="-mx-6 grid border-y border-tea-border bg-tea-surface" data-testid={testId}>
       {children}
     </article>
   );
