@@ -194,8 +194,10 @@ describe('sellable Tea Reference catalogue', () => {
       'sheng',
       'shou',
       'taiwan-oolong',
+      'white',
       'y562',
       'yunnan',
+      'yunnan-white',
     ]);
     expect(result.families).toEqual([
       // Oolong's kit is approved, so the Taiwan oolongs reach its family; a Sheng-sounding name changes nothing.

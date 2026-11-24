@@ -304,8 +304,10 @@ test('validates every canonical Markdown file but generates only the approved, r
     'sheng',
     'shou',
     'taiwan-oolong',
+    'white',
     'y562',
     'yunnan',
+    'yunnan-white',
   ]);
   assert.ok(registry.pages.every(page => ['tea_family', 'tea_type', 'major_region', 'tea_area', 'named_tea'].includes(page.kind)));
   assert.doesNotMatch(JSON.stringify(registry), /reference_topic|mountain-circuit|mountain-names|xishuangbanna-tea-mountains/i);
@@ -319,7 +321,6 @@ test('validates every canonical Markdown file but generates only the approved, r
     'sheng-and-shou-puer',
     'puer-geographic-hierarchy',
     'puer-village-naming',
-    'white',
   ]) {
     assert.equal(publicPageIds.has(heldId), false, `${heldId} must remain excluded`);
   }

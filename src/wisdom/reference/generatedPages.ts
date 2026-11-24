@@ -911,6 +911,76 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "white",
+      "slug": "white",
+      "kind": "tea_family",
+      "label": "White tea (bai cha)",
+      "nativeName": "白茶",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What white tea is",
+          "text": "White tea is the tea made with the fewest steps: the leaf is only withered and dried. It is never heated to stop its change, never rolled and never bruised, so the leaf keeps its natural shape and the white down on its buds stays, which gives the tea its name. It oxidises only lightly and slowly as it withers, by the leaf’s own enzymes; the Chinese trade calls it slightly fermented. White tea is made mainly in Fujian, and other regions, Yunnan among them, now make it too.",
+          "sourceIds": []
+        },
+        {
+          "key": "making",
+          "label": "How white tea is made",
+          "text": "Withering is the step that makes white tea. The leaf is spread out and left to lose its water slowly, over roughly one to three days, and in that time small changes soften its grassy edge and shape its aroma and taste. It can be withered in the sun, indoors in moving air, or indoors with gentle warmth, and many makers combine them, choosing by the weather. Too short a wither leaves the tea grassy and bitter; too long leaves it thin and dull, and the maker judges by the leaf’s softness and smell. The leaf is then dried at low heat until it keeps, and sorted.",
+          "sourceIds": []
+        },
+        {
+          "key": "grades",
+          "label": "The kinds of white tea",
+          "text": "White tea is sold by how the leaf was picked. Silver Needle, the top grade and picked in spring, is buds alone. White Peony is a bud with one or two leaves. Gong Mei and Shou Mei are larger, more mature leaf, often picked later in the year, and are the usual leaf for pressed cakes. A grade name says how the leaf was picked; it says nothing about where it grew.",
+          "sourceIds": []
+        },
+        {
+          "key": "fuding-and-zhenghe",
+          "label": "Fuding and Zhenghe",
+          "text": "The two main homes of white tea are Fuding and Zhenghe, both in Fujian, and each grows its own cultivar: Fuding Da Bai, with large, plump, downy buds, and Zhenghe Da Bai, a taller bush with smaller buds. Fuding is the home of Silver Needle and of the best-known white tea; Zhenghe, further inland, is described as making a fuller tea. Jianyang is a white tea county too, known mostly for Gong Mei and Shou Mei.",
+          "sourceIds": []
+        },
+        {
+          "key": "pressing",
+          "label": "Pressed white tea",
+          "text": "White tea was sold loose until recently. Pressed cakes appeared in the 2000s and became common in the 2010s, mostly made from Shou Mei and Gong Mei, because a cake is easier to keep. Pressed and kept, white tea moves from light and floral towards something deeper and sweeter.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How white tea began",
+          "text": "White tea in its present form is a Fujian tea of roughly the last two centuries, from the late Qing dynasty. Older Chinese writings use the name white tea for other teas, and the exact year and place of the first white tea are not settled.",
+          "sourceIds": []
+        },
+        {
+          "key": "ageing",
+          "label": "Keeping and ageing white tea",
+          "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
+          "sourceIds": []
+        },
+        {
+          "key": "brewing",
+          "label": "Brewing white tea",
+          "text": "The more delicate the leaf, the cooler the water. Silver Needle and young White Peony take water well below the boil, roughly 75 to 95°C; Shou Mei and aged white tea take water near or at the boil. In a gaiwan or small pot, about 3 to 7 grams to 100 to 150 ml, with short steeps that lengthen each round. White tea is light and bulky, so weigh it rather than measure by the spoon.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "In young white tea: a sweet, light cup, often floral, with hay and a honeyed finish. Silver Needle is the softest, with hay and gentle flowers; White Peony is fuller; Gong Mei and Shou Mei are stronger and rounder, with dried fruit and herbs.",
+          "sourceIds": []
+        },
+        {
+          "key": "notice-aged",
+          "label": "What people often notice in aged white tea",
+          "text": "Honey, dried fruit or jujube, something herbal and woody, a rounder, thicker body and a darker, redder liquor, with less lift in the aroma than a young tea.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "y562",
       "slug": "y562",
       "kind": "named_tea",
@@ -992,6 +1062,65 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "teadb-yunnan-overview"
           ]
+        }
+      ]
+    },
+    {
+      "id": "yunnan-white",
+      "slug": "yunnan-white",
+      "kind": "tea_type",
+      "label": "Yunnan white",
+      "nativeName": "云南白茶",
+      "parentId": "white",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What Yunnan white is",
+          "text": "Yunnan white is white tea made from Yunnan’s large-leaf tea plants, rather than from the small and medium-leaf bush cultivars of Fujian. It is mostly picked in spring, as buds or a bud with one to three leaves, and its buds are typically large and silver-haired. Unlike Fuding white tea it is mostly not sold by grade.",
+          "sourceIds": []
+        },
+        {
+          "key": "making",
+          "label": "How Yunnan white is made",
+          "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
+          "sourceIds": []
+        },
+        {
+          "key": "moonlight-white",
+          "label": "Moonlight White",
+          "text": "Moonlight White, yue guang bai, is the best-known Yunnan white. Its home is Jinggu County in Pu’er City, and the Jinggu tea is made from the Jinggu Da Bai Cha variety, whose mother tree grows in Yangta village; other Yunnan makers use the name too. Two explanations are given for the name: the look of the leaf, dark on top and silver beneath, like the moon in a dark sky, and a story that it was picked or withered by moonlight.",
+          "sourceIds": []
+        },
+        {
+          "key": "yabao",
+          "label": "Yabao",
+          "text": "Yabao is made from the buds of wild-growing or old trees in south-west Yunnan, picked in late winter or early spring before they open and sun-dried with little else done to them. It is mostly sold as white tea. Which plant the buds come from is not settled: some are said to be from a wild tea species, not the cultivated tea plant.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How Yunnan white began",
+          "text": "Yunnan white is a recent tea in the market. The name Moonlight White and the trade in Yunnan white tea have grown popular only in recent years, though local practice may be older.",
+          "sourceIds": []
+        },
+        {
+          "key": "ageing",
+          "label": "Keeping Yunnan white",
+          "text": "Yunnan white is pressed and kept like Fujian white, and some keep it for years, but there is no agreed view of how long it should be kept or how it compares with aged Fujian white; some say it is best within a few years.",
+          "sourceIds": []
+        },
+        {
+          "key": "brewing",
+          "label": "Brewing Yunnan white",
+          "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "A honeyed, sweet cup, often richer and fuller than Fujian white, with little bitterness, sometimes fruit like apricot or melon and a hay or herbal note. Yabao is sweet and silky, often with pine or herbal notes.",
+          "sourceIds": []
         }
       ]
     }
