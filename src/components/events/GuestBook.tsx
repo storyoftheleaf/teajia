@@ -6,6 +6,8 @@ import { afterSitGuestBook, GUEST_BOOK_NOTE_LIMIT, type GuestBookEntryDraft, typ
 import { guestBookPhotoApi, type OwnPhoto } from '../../lib/guestBookPhotoApi';
 import { useAppStore } from '../../lib/store';
 import { Button } from '../shared/Button';
+import { Modal } from '../shared/Modal';
+import { OwnerSitPhotoPermission } from './OwnerSitPhotoPermission';
 import { GuestBookEntries, GuestBookPhotoPicker, GUEST_BOOK_PHOTOS_QUERY, GUEST_BOOK_PHOTO_STATE } from './GuestBookPhotos';
 
 type Identity = { accountId: string | null; userId: string };
@@ -18,12 +20,12 @@ type Write =
 
 const EMPTY_DRAFT: Draft = { note: '', confirmed: false };
 
-export function GuestBook({ token, afterSitKey }: { token: string; afterSitKey: string }) {
+export function GuestBook({ token, afterSitKey, setupId }: { token: string; afterSitKey: string; setupId: string }) {
   const userId = useAppStore(state => state.activeUserId);
   const accountId = useAppStore(state => state.activeAccountId);
   if (!userId) return null;
   return <GuestBookPanel key={JSON.stringify([userId, accountId, afterSitKey])} token={token}
-    afterSitKey={afterSitKey} identity={{ accountId, userId }} />;
+    afterSitKey={afterSitKey} setupId={setupId} identity={{ accountId, userId }} />;
 }
 
 function contributionStatus(note: GuestBookStatus | undefined, photos: OwnPhoto[]) {
@@ -37,7 +39,9 @@ function contributionStatus(note: GuestBookStatus | undefined, photos: OwnPhoto[
   return GUEST_BOOK_PHOTO_STATE.passed;
 }
 
-function GuestBookPanel({ token, afterSitKey, identity }: { token: string; afterSitKey: string; identity: Identity }) {
+function GuestBookPanel({ token, afterSitKey, setupId, identity }: {
+  token: string; afterSitKey: string; setupId: string; identity: Identity;
+}) {
   const headingId = useId();
   const countId = useId();
   const client = useQueryClient();
@@ -54,6 +58,7 @@ function GuestBookPanel({ token, afterSitKey, identity }: { token: string; after
     staleTime: 0, gcTime: 0, retry: false,
   });
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [permissionPhoto, setPermissionPhoto] = useState<string | null>(null);
   const refresh = () => Promise.all([
     client.invalidateQueries({ queryKey: noteKey, exact: true }),
     client.invalidateQueries({ queryKey: photoKey, exact: true }),
@@ -107,7 +112,11 @@ function GuestBookPanel({ token, afterSitKey, identity }: { token: string; after
     <ul aria-label="Your attached photos" className="my-2 divide-y divide-tea-border">
       {contributed.map(photo => (
         <li key={photo.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
-          <p className="min-w-0 break-words text-ui-13 text-tea-text-sec">{photo.alt_text ?? 'Saved photo'}</p>
+          <p className="min-w-0 break-words text-ui-13 text-tea-text-sec">{photo.alt_text ?? photo.tea_name ?? 'Saved photo'}</p>
+          {!draft && (
+            <Button type="button" variant="quiet" size="sm" disabled={write.isPending}
+              onClick={() => setPermissionPhoto(photo.id)}>Public photo permission</Button>
+          )}
           {(draft || contributed.length > 1) && (
             <Button type="button" variant="quiet" size="sm" disabled={write.isPending} onClick={() => {
               if (photo.grant_id) write.mutate({ action: 'withdraw-photo', grantId: photo.grant_id });
@@ -174,7 +183,7 @@ function GuestBookPanel({ token, afterSitKey, identity }: { token: string; after
                       photo: photoId ? { photoId, grantId: crypto.randomUUID() } : undefined, confirmed: false,
                     })} />
                 ) : (
-                  <p className="text-ui-13 text-tea-text-sec">To add a photo, save it with your setup above.</p>
+                  <p className="text-ui-13 text-tea-text-sec">To add a photo, choose a tea or the whole setup above and save your photo there.</p>
                 )}
                 {photoUnavailable && (
                   <div className="flex flex-wrap items-center gap-2">
@@ -214,6 +223,11 @@ function GuestBookPanel({ token, afterSitKey, identity }: { token: string; after
                   </Button>
                 </div>
               </>
+            )}
+            {permissionPhoto && contributed.some(photo => photo.id === permissionPhoto) && (
+              <Modal isOpen title="Public photo permission" onClose={() => setPermissionPhoto(null)}>
+                <OwnerSitPhotoPermission setupId={setupId} photoId={permissionPhoto} scope={identity} showUnavailable />
+              </Modal>
             )}
             {write.isError && (
               <p role="alert" className="mt-2 text-ui-13 text-tea-text-sec">

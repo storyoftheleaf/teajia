@@ -7,18 +7,19 @@ export type FormalSessionCard = {
   title: string;
   event_date: string;
   role?: SitCreditRole;
+  host?: string;
   writing: string;
   galleryPhoto: string | null;
   teas: Array<{ id: string; name: string; type: string | null }>;
 };
 
-export function useFormalSessionCards(profile: string) {
+export function useFormalSessionCards(profile?: string) {
   return useQuery({
     queryKey: ['public-sit-links', 'session-cards', profile],
     queryFn: async ({ signal }): Promise<FormalSessionCard[]> => {
-      const path = '/people/' + encodeURIComponent(profile) + '?view=cards';
+      const path = profile ? '/people/' + encodeURIComponent(profile) + '?view=cards' : '/recent';
       const response = await fetchWithTimeout(API_URL + '/api/public/sit-links' + path, {
-        signal, cache: 'no-store', reportIncident: false,
+        signal, ...(profile ? {} : { method: 'POST' }), cache: 'no-store', reportIncident: false,
       });
       if (!response.ok) throw new Error('Could not open sessions.');
       const { recaps } = await response.json();

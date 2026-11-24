@@ -91,7 +91,7 @@ function SitRecap({ recap, deviceKey, credential }: { recap: AfterSitRecap; devi
       )}
       <PrivateKeptSetup token={credential} setupId={recap.event.id} teas={recap.teas}
         afterSit={{ cacheKey: deviceKey, deviceFallback: <DeviceSetup key={deviceKey} recap={recap} deviceKey={deviceKey} /> }} />
-      <GuestBook token={credential} afterSitKey={deviceKey} />
+      <GuestBook token={credential} afterSitKey={deviceKey} setupId={recap.event.id} />
     </>
   );
 }

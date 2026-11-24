@@ -3708,6 +3708,7 @@ CREATE TABLE IF NOT EXISTS sit_photo_public_permissions (
   credit TEXT NOT NULL CHECK (length(trim(credit)) BETWEEN 1 AND 120),
   offered_at TEXT NOT NULL,
   revoked_at TEXT,
+  can_show_in_brewing INTEGER NOT NULL DEFAULT 0 CHECK (can_show_in_brewing IN (0, 1)),
   UNIQUE (account_id, event_id, id),
   FOREIGN KEY (account_id, user_id, event_id, photo_id)
     REFERENCES private_kept_setup_photos(account_id, user_id, event_id, id) ON DELETE CASCADE,

@@ -80,7 +80,15 @@ function parseStringArray(value: unknown): string[] {
 function parseTeaLedger(value: unknown): Record<string, unknown> | null {
   const parsed = parseJson(value);
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-  return parsed as Record<string, unknown>;
+  const ledger = parsed as Record<string, unknown>;
+  if (!Array.isArray(ledger.served_teas)) return ledger;
+  return {
+    served_teas: ledger.served_teas.flatMap(value => {
+      if (!value || typeof value !== 'object') return [];
+      const { id, name } = value as Record<string, unknown>;
+      return typeof id === 'string' && typeof name === 'string' ? [{ id, name }] : [];
+    }),
+  };
 }
 
 export function publicPostSessionProjection(row: Record<string, unknown>) {

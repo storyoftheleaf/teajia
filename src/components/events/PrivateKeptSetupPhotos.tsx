@@ -131,7 +131,7 @@ function SubjectPhotos({ scope, endpoint, setupId, teaId, memberSit }: {
               readOnly={memberSit && !photo.own}
               shared={memberSit && photo.own ? Boolean(photo.shared) : undefined}
               onShareChanged={() => queryClient.invalidateQueries({ queryKey })}
-              publicPermission={setupId ? { setupId, photoId: photo.id, teaId: photo.tea_id } : undefined} onRemoved={() => {
+              publicPermission={setupId ? { setupId, photoId: photo.id } : undefined} onRemoved={() => {
                 queryClient.setQueryData<{ photos: SetupPhoto[] }>(queryKey, previous => ({
                   photos: (previous?.photos ?? []).filter(item => item.id !== photo.id),
                 }));
@@ -163,7 +163,7 @@ function SubjectPhotos({ scope, endpoint, setupId, teaId, memberSit }: {
 }
 
 function SetupPhotoTile({ url, scope, label, publicPermission, onRemoved, readOnly, shared, onShareChanged }: {
-  url: string; scope: ScopedMember; label: string; publicPermission?: { setupId: string; photoId: string; teaId: string | null };
+  url: string; scope: ScopedMember; label: string; publicPermission?: { setupId: string; photoId: string };
   onRemoved: () => void; readOnly: boolean; shared?: boolean; onShareChanged: () => void;
 }) {
   const [src, setSrc] = useState<string>();
@@ -211,7 +211,7 @@ function SetupPhotoTile({ url, scope, label, publicPermission, onRemoved, readOn
       </Button>
       <Modal isOpen={open} title={readOnly ? "Shared sit photo" : "Private photo"} onClose={() => setOpen(false)}>
         <img src={src} alt={readOnly ? "Photo shared with this sit" : "Your private photo"} className="w-full max-h-[60dvh] object-contain" />
-        {open && publicPermission && !publicPermission.teaId && (
+        {open && publicPermission && (
           <OwnerSitPhotoPermission {...publicPermission} scope={scope} />
         )}
         {open && publicPermission && <OwnerGuestBookPhoto eventId={publicPermission.setupId} photoId={publicPermission.photoId} identity={scope} />}

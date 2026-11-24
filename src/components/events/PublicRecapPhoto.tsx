@@ -3,12 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useBlobObjectUrl } from '../../hooks/useBlobObjectUrl';
 import { recapPhotoPublicQuery, revocableSitPhotoApi } from '../../lib/revocableSitPhotoApi';
 
-export function PublicRecapPhoto({ eventSlug }: { eventSlug: string }) {
+export function PublicRecapPhoto({ eventSlug, placement }: { eventSlug: string; placement?: 'essay' }) {
   const figure = useRef<HTMLElement>(null);
   const [restoring, setRestoring] = useState(false);
   const { data, isFetching, isError, refetch } = useQuery({
-    queryKey: [...recapPhotoPublicQuery, eventSlug],
-    queryFn: ({ signal }) => revocableSitPhotoApi.forPublicRecap(eventSlug, signal),
+    queryKey: [...recapPhotoPublicQuery, eventSlug, placement ?? 'recap'],
+    queryFn: ({ signal }) => revocableSitPhotoApi.forPublicRecap(eventSlug, signal, placement),
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',
@@ -39,10 +39,14 @@ export function PublicRecapPhoto({ eventSlug }: { eventSlug: string }) {
   if (!data || !imageUrl || isFetching || isError || restoring) return null;
   return (
     <figure ref={figure} className="mb-8">
-      <img src={imageUrl} alt={data.alt_text} className="w-full rounded-md" />
+      <img src={imageUrl} alt={data.alt_text} className="max-h-[45dvh] max-w-full rounded-md object-contain" />
       <figcaption className="mt-2 text-ui-13 text-tea-text-sec">
+        {data.tea && <p className="mb-1 break-words text-tea-text">{data.tea.name}</p>}
         {data.observation && <p className="mb-1 whitespace-pre-wrap break-words">{data.observation}</p>}
         <p className="break-words">Photo by {data.credit}</p>
+        {!placement && data.canShowInBrewing && (
+          <a className="btn-quiet btn-sm tap-target mt-1" href="/tea-feed">Brewing experiences</a>
+        )}
       </figcaption>
     </figure>
   );

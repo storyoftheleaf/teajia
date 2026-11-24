@@ -1,3 +1,4 @@
+import { PublicRecapPhoto } from '../../components/events/PublicRecapPhoto';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, Save, Loader2, Plus, Trash2, ArrowUp, ArrowDown,
@@ -23,6 +24,7 @@ import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant, Contribu
 const IMMERSIVE_TEMPLATE = 'immersive_scroll';
 
 interface ArticleEditorModalProps {
+  sessionPhotoSlug?: string;
   isOpen: boolean;
   onClose: () => void;
   initialData?: DbArticle;
@@ -457,6 +459,7 @@ const PreviewPane: React.FC<{
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
+  sessionPhotoSlug,
   isOpen,
   onClose,
   initialData,
@@ -819,6 +822,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         {/* Left panel: Block editor (55%) */}
         <div className="flex-1 lg:w-[55%] overflow-y-auto pb-nav-gap lg:pb-4">
           <div className="max-w-2xl mx-auto px-4 md:px-6 py-5 space-y-3">
+            {sessionPhotoSlug && <PublicRecapPhoto eventSlug={sessionPhotoSlug} placement="essay" />}
 
             {blocks.length === 0 && (
               <div className="py-12 text-center text-tea-text-dim text-sm border border-dashed border-tea-border rounded-xl">

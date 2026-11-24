@@ -38,6 +38,9 @@ const formalSessionCardColumns = `
     WHERE ps.event_id = e.id AND ps.account_id = e.account_id LIMIT 1) AS writing,
   (SELECT CASE WHEN json_valid(ps.gallery_images) THEN json_extract(ps.gallery_images, '$[0]') END
     FROM event_post_session ps WHERE ps.event_id = e.id AND ps.account_id = e.account_id LIMIT 1) AS gallery_photo,
+  (SELECT CASE WHEN json_valid(ps.tea_ledger) THEN
+    CASE WHEN json_type(ps.tea_ledger, '$.served_teas') = 'array' THEN json_extract(ps.tea_ledger, '$.served_teas') END
+    END FROM event_post_session ps WHERE ps.event_id = e.id AND ps.account_id = e.account_id LIMIT 1) AS served_teas_json,
   (SELECT json_group_array(json_object('id', menu.id, 'name', menu.name, 'type', menu.type))
     FROM (SELECT m.id, COALESCE(NULLIF(trim(m.custom_name), ''), p.product_name) AS name,
       p.type AS type
@@ -47,13 +50,20 @@ const formalSessionCardColumns = `
       ORDER BY m.brew_order ASC NULLS LAST, m.id LIMIT 3) AS menu
     WHERE menu.name IS NOT NULL) AS teas_json`;
 
+type SessionCardTea = { id: string; name: string; type: string | null };
 type SessionCardRow = { slug: string; title: string; event_date: string; writing: string | null;
-  gallery_photo: unknown; teas_json: string; role?: SitCreditRole; host?: string };
-function sessionCards(rows: SessionCardRow[]) {
-  return rows.map(({ writing, gallery_photo, teas_json, ...row }) => ({
+  gallery_photo: unknown; served_teas_json: string | null; teas_json: string; role?: SitCreditRole; host?: string };
+function sessionCards(rows: SessionCardRow[], includeGallery = true) {
+  return rows.map(({ writing, gallery_photo, served_teas_json, teas_json, ...row }) => ({
     ...row, writing: writing?.trim().slice(0, 280) ?? '',
-    galleryPhoto: typeof gallery_photo === 'string' ? gallery_photo : null,
-    teas: JSON.parse(teas_json) as { id: string; name: string; type: string | null }[],
+    galleryPhoto: includeGallery && typeof gallery_photo === 'string' ? gallery_photo : null,
+    teas: served_teas_json === null
+      ? JSON.parse(teas_json) as SessionCardTea[]
+      : (JSON.parse(served_teas_json) as unknown[]).slice(0, 3).flatMap(tea => {
+        if (!tea || typeof tea !== 'object' || !('id' in tea) || !('name' in tea)
+          || typeof tea.id !== 'string' || typeof tea.name !== 'string' || !tea.name.trim()) return [];
+        return [{ id: tea.id, name: tea.name, type: null }];
+      }),
   }));
 }
 
@@ -73,6 +83,16 @@ export function publicSitRoutes<E extends Env>(deps: {
       AND c.id = ? AND p.event_id IS NOT NULL ORDER BY e.event_date DESC, e.id DESC LIMIT 16`,
     ).bind(slug).all();
     return json({ recaps: recaps.results });
+  };
+
+  const recent: Handler<E> = async (_request, { DB }) => {
+    const recaps = await DB.prepare(
+      `SELECT ${formalSessionCardColumns}, a.name AS host
+       FROM events e JOIN accounts a ON a.id = e.account_id
+       WHERE e.network_discovery = 1 AND ${publishedSitRecap}
+       ORDER BY e.event_date DESC, e.id DESC LIMIT 24`,
+    ).all<SessionCardRow>();
+    return json({ recaps: sessionCards(recaps.results, false) });
   };
 
   const myProfile: Handler<E> = async (request, env, { slug, eventSlug }) => {
@@ -161,6 +181,7 @@ export function publicSitRoutes<E extends Env>(deps: {
   };
 
   return [
+    ['POST', '/api/public/sit-links/recent', recent],
     ['GET', '/api/public/sit-links/people/:slug', fromProfile],
     ['GET', '/api/me/people/:slug/sit-placements', myProfile],
     ['PUT', '/api/me/people/:slug/sit-placements/:eventSlug', myProfile],

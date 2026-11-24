@@ -1,6 +1,7 @@
 import { currentAfterSitLink } from './afterSitCredential';
 import { privateAttendeeSeatMatch } from './privateSessionReflections';
 import { eraseKeptSetup } from './privateKeptSetupPhotos';
+import { sessionServedTeas } from './sessionServedTeas';
 
 type Scope = { accountId: string; userId: string };
 type Tea = { id: string; name: string; productId?: string };
@@ -12,16 +13,7 @@ type KeptSetupRow = {
   saved_at: string;
 };
 
-const teaName = "COALESCE(NULLIF(trim(m.custom_name), ''), NULLIF(trim(p.given_name), ''), NULLIF(trim(p.product_name), ''))";
-export const namedSetupTeas = `
-  SELECT m.id, ${teaName} AS name, p.id AS product_id
-  FROM event_tea_menu m
-  LEFT JOIN products p ON p.id = m.product_id AND p.account_id = m.account_id
-  WHERE m.event_id = a.event_id AND m.account_id = a.account_id
-    AND (m.reveal_date IS NULL OR datetime(m.reveal_date) <= datetime('now'))
-    AND ${teaName} IS NOT NULL
-  ORDER BY m.brew_order ASC NULLS LAST, m.id ASC
-`;
+export const namedSetupTeas = sessionServedTeas('a.account_id', 'a.event_id');
 type SetupAccess = string | { credentialHash: string };
 
 function setupEligibility(scope: Scope, access: SetupAccess) {

@@ -72,13 +72,14 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ eventSlug, items })
       <div className="space-y-3">
         {sorted.map(item => {
           const name = item.customName || item.productName || 'Unknown tea';
+          const shopPath = item.shopPath ?? (item.productId ? '/shop/product/' + encodeURIComponent(item.productId) : null);
           return (
             <TeaCard key={item.id} title={<TeaCardTitle>{name}</TeaCardTitle>} teaType={item.productType}
               meta={item.productType && <TeaCardMeta primary={item.productType} />}
               actions={<>
                 <SitTeaTasting id={`event:${eventSlug}:${item.id}`} name={name} teaType={item.productType} />
-                {item.productId && (
-                  <a href={`/shop/product/${encodeURIComponent(item.productId)}`} className="btn-secondary btn-sm tap-target"
+                {shopPath && (
+                  <a href={shopPath} className="btn-secondary btn-sm tap-target"
                     aria-label={`Buy ${name}`}>
                     <ShoppingBag className="w-4 h-4" aria-hidden="true" /> Buy this tea
                   </a>

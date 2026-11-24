@@ -3,12 +3,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { revocableSitPhotoApi, recapPhotoPublicQuery } from '../../lib/revocableSitPhotoApi';
 import { Button } from '../shared/Button';
 
-type Props = { setupId: string; photoId: string; scope: { accountId: string | null; userId: string } };
+type Props = {
+  setupId: string; photoId: string; scope: { accountId: string | null; userId: string };
+  showUnavailable?: boolean;
+};
 
-export function OwnerSitPhotoPermission({ setupId, photoId, scope }: Props) {
+export function OwnerSitPhotoPermission({ setupId, photoId, scope, showUnavailable = false }: Props) {
   const label = useId();
   const queryClient = useQueryClient();
   const [credit, setCredit] = useState('');
+  const [canShowInBrewing, setCanShowInBrewing] = useState(false);
   const [version, setVersion] = useState(() => crypto.randomUUID());
   const queryKey = ['sit-photo-owner-permission', scope.accountId, scope.userId, setupId, photoId];
   const status = useQuery({
@@ -24,8 +28,11 @@ export function OwnerSitPhotoPermission({ setupId, photoId, scope }: Props) {
   };
 
   const offer = useMutation({
-    mutationFn: () => revocableSitPhotoApi.offer(setupId, photoId, { id: version, credit }, scope),
-    onSuccess: () => setCredit(''),
+    mutationFn: () => revocableSitPhotoApi.offer(setupId, photoId, { id: version, credit, canShowInBrewing }, scope),
+    onSuccess: () => {
+      setCredit('');
+      setCanShowInBrewing(false);
+    },
     onSettled: refresh,
   });
   const withdraw = useMutation({
@@ -43,7 +50,13 @@ export function OwnerSitPhotoPermission({ setupId, photoId, scope }: Props) {
       <Button type="button" variant="quiet" size="sm" onClick={() => void status.refetch()}>Try again</Button>
     </div>
   );
-  if (!status.data || (!status.data.eligible && !status.data.permission)) return null;
+  if (!status.data || (!status.data.eligible && !status.data.permission)) {
+    return showUnavailable ? (
+      <p role="status" className="p-4 text-ui-13 text-tea-text-sec">
+        {status.isPending ? 'Checking public permission…' : 'This photo cannot be offered for public use on this session.'}
+      </p>
+    ) : null;
+  }
   const permission = status.data.permission;
   const busy = offer.isPending || withdraw.isPending || status.isFetching;
   return (
@@ -56,6 +69,7 @@ export function OwnerSitPhotoPermission({ setupId, photoId, scope }: Props) {
               ? 'Approved for the public recap.' : permission.status === 'offered' && status.data.eligible
                 ? 'Offered to the host for review.' : 'Permission granted. This photo is currently unavailable for the recap.'}
             {' '}Credit: {permission.credit}
+            {permission.canShowInBrewing && ' · Also offered for Brewing experiences and the photo essay.'}
           </p>
           {withdraw.isError && <p role="alert" className="text-ui-13 text-tea-text-sec">Couldn’t withdraw permission. Try again.</p>}
           <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => withdraw.mutate(permission.id)}>
@@ -71,6 +85,11 @@ export function OwnerSitPhotoPermission({ setupId, photoId, scope }: Props) {
             Public credit
             <input className="btn-field mt-1 w-full" value={credit} onChange={event => setCredit(event.currentTarget.value)}
               placeholder="Name or pen name" maxLength={120} disabled={busy} />
+          </label>
+          <label className="flex min-h-tap cursor-pointer items-center gap-2 text-ui-13 text-tea-text-sec">
+            <input type="checkbox" className="h-4 w-4 shrink-0 accent-tea-gold" checked={canShowInBrewing}
+              disabled={busy} onChange={event => setCanShowInBrewing(event.currentTarget.checked)} />
+            <span>Also allow this photo and credit in Brewing experiences and the photo essay.</span>
           </label>
           {withdraw.isSuccess && <p className="text-ui-13 text-tea-text-sec" role="status">Public permission withdrawn. Your private photo is still saved.</p>}
           {offer.isError && <p role="alert" className="text-ui-13 text-tea-text-sec">Couldn’t offer this photo. Check the permission and try again.</p>}

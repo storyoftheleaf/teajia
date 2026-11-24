@@ -218,6 +218,7 @@ export interface TeaMenuItem {
   id: string;
   eventId: string;
   productId?: string;
+  shopPath?: string;
   customName?: string;
   customDescription?: string;
   teaType?: string;

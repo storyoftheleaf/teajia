@@ -122,6 +122,8 @@ import {
 } from './teaMasterSales';
 import { isoCurrencyCode } from '../../src/lib/currency';
 import { buildEventArticleDraft } from './eventArticleDraft';
+import { minimumOrderGrams, sellUnitOf } from '../../src/lib/teaPricing';
+import { readSessionServedTeas } from './sessionServedTeas';
 import { decodeWordforgeDraft, isWordforgeManagedArticle, upsertWordforgeDraft, WordforgeDraftError, WORDFORGE_DRAFT_MAX_BYTES } from './wordforgeArticleDraft';
 import {
   EVENT_TRANSITIONS,
@@ -12408,7 +12410,7 @@ async function publicEventHosts(env: Env, eventId: string, accountId: string) {
 // whose host published the recap from a public, active account.
 const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.flyer_image_url, e.event_date
+    `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.flyer_image_url, e.event_date, a.slug AS account_slug
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ?
@@ -12422,7 +12424,7 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
   if (!event) return json({ error: 'Recap not found' }, 404);
 
   const postSession = await env.DB.prepare(
-    `SELECT id, session_notes, playlist_url, gallery_images, shared_tasting_notes
+    `SELECT id, session_notes, playlist_url, gallery_images, shared_tasting_notes, tea_ledger
      FROM event_post_session WHERE event_id = ? AND account_id = ?`
   ).bind(event.id, event.account_id).first();
 
@@ -12450,7 +12452,7 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
      ORDER BY etm.brew_order ASC NULLS LAST`
   ).bind(event.id, event.account_id).all();
 
-  const teaMenu = (menuRows.results ?? []).map((m) => ({
+  const historicalMenu = (menuRows.results ?? []).map((m) => ({
     id: m.id,
     eventId: m.event_id,
     productId: m.product_id || undefined,
@@ -12462,6 +12464,31 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
     productType: m.product_type || undefined,
     productImageUrl: m.product_image_url || undefined,
   }));
+
+  const ledger = publicPostSessionProjection({ tea_ledger: postSession.tea_ledger }).tea_ledger;
+  const accountId = String(event.account_id);
+  const eventId = String(event.id);
+  const saved = Array.isArray(ledger?.served_teas) ? await readSessionServedTeas(env.DB, accountId, eventId) : null;
+  const teaMenu = saved ? await Promise.all(saved.results.map(async (item, position) => {
+    const [tea] = item.product_id ? await fetchPublicProductsForAccount(env, accountId, item.product_id) : [];
+    const rate = tea?.fixed_retail_price_usd ?? tea?.retail_price_per_gram_usd;
+    const pack = sellUnitOf(typeof tea?.form === 'string' ? tea.form : undefined,
+      typeof tea?.piece_weight_g === 'number' ? tea.piece_weight_g : undefined, Boolean(tea?.sold_in_whole_units));
+    const orderable = tea?.status === 'Active' && tea.type !== 'Teaware' && tea.type !== 'Misc'
+      && typeof rate === 'number' && Number.isFinite(rate) && rate >= 0
+      && typeof tea.stock_grams === 'number' && tea.stock_grams >= minimumOrderGrams(pack?.grams)
+      && !tea.orders_paused;
+    return {
+      id: item.id,
+      eventId,
+      customName: item.name,
+      brewOrder: position,
+      ...(orderable ? {
+        shopPath: '/shop/product/' + encodeURIComponent(String(tea.slug || item.product_id))
+          + '?store=' + encodeURIComponent(String(event.account_slug)),
+      } : {}),
+    };
+  })) : historicalMenu;
 
   const hosts = await publicEventHosts(env, String(event.id), String(event.account_id));
 

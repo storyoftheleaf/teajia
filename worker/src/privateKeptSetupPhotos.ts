@@ -1,4 +1,5 @@
 import { privatePhotoResponse as response, readPrivatePhotoUpload, servePrivatePhotoObject, validatePrivatePhotoBytes } from './privatePhotoUpload';
+import { readSessionServedTeas } from './sessionServedTeas';
 
 type Scope = { accountId: string; userId: string };
 type Photo = { id: string; tea_id: string | null; created_at: string };
@@ -80,7 +81,12 @@ export async function serveKeptSetupPhotos(
   if (upload.error) return upload.error;
   const { photoId, teaId, image } = upload;
   if (teaId && !(JSON.parse(kept.teas_json) as { id: string }[]).some(tea => tea.id === teaId)) {
-    return response({ error: 'That tea is not part of this saved setup.' }, 400);
+    // Existing snapshots keep their older teas. A guest may also attach a
+    // photo to a tea the host subsequently recorded for this exact session.
+    const current = await readSessionServedTeas(db, scope.accountId, eventId);
+    if (!current.results.some(tea => tea.id === teaId)) {
+      return response({ error: 'That tea is not part of this saved setup.' }, 400);
+    }
   }
 
   const readPhoto = () => db.prepare(

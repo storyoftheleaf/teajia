@@ -43,9 +43,10 @@ function teaLedgerRows(value: unknown): SourceRow[] {
   if (typeof value === 'string') {
     try { parsed = JSON.parse(value); } catch { return []; }
   }
-  const rows = Array.isArray(parsed)
-    ? parsed
-    : (parsed && typeof parsed === 'object' && Array.isArray((parsed as SourceRow).teas) ? (parsed as SourceRow).teas : []);
+  const ledger = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as SourceRow : {};
+  const rows = Array.isArray(parsed) ? parsed
+    : Array.isArray(ledger.served_teas) ? ledger.served_teas
+    : Array.isArray(ledger.teas) ? ledger.teas : [];
   return rows.filter((tea): tea is SourceRow => !!tea && typeof tea === 'object' && !Array.isArray(tea));
 }
 
@@ -75,9 +76,9 @@ export function buildEventArticleDraft(event: SourceRow, postSession: SourceRow 
   for (const tea of teas) {
     const name = nonEmpty(tea.name) || nonEmpty(tea.product_name) || nonEmpty(tea.custom_name);
     const detail = nonEmpty(tea.notes) || nonEmpty(tea.description) || nonEmpty(tea.tasting_notes);
-    if (name && detail) {
+    if (name) {
       blocks.push({ type: 'section_heading', text: name });
-      blocks.push({ type: 'paragraph', text: detail });
+      if (detail) blocks.push({ type: 'paragraph', text: detail });
     }
   }
   for (const url of gallery) blocks.push({ type: 'image', url, description: '' });

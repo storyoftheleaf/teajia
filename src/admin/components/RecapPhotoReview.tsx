@@ -52,7 +52,8 @@ function ReviewPanel({ eventId, scope }: { eventId: string; scope: Scope }) {
             {list.data?.permissions.map(item => (
               <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <p className="min-w-0 break-words text-ui-13 text-tea-text-sec">
-                  {item.credit} · {item.status === 'placed' ? 'In the public recap' : 'Offered'}
+                  {item.credit}{item.tea && <> · {item.tea.name}</>} · {item.status === 'placed' ? 'In the public recap' : 'Offered'}
+                  {item.canShowInBrewing && ' · Also offered for Brewing experiences and the photo essay'}
                 </p>
                 <Button type="button" variant="secondary" size="sm" onClick={() => setSelected(item)}>
                   Preview<span className="sr-only"> photo by {item.credit}</span>

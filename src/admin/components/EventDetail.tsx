@@ -889,6 +889,11 @@ export const EventDetail: React.FC = () => {
         {/* ── Post-Session tab ── */}
         {activeTab === 'post-session' && (
           <div className="space-y-6">
+            <PostSessionEditor
+              key={event.id}
+              eventId={event.id}
+              canShareAttendeeRecap={event.lifecycleStatus === 'completed' && event.recapStatus !== 'published'}
+            />
             <section aria-labelledby="photo-essay-draft-heading" className="rounded-md border border-tea-border bg-tea-surface p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -921,11 +926,6 @@ export const EventDetail: React.FC = () => {
                 <RecapPhotoReview eventId={event.id} />
               </>
             )}
-            <PostSessionEditor
-              key={event.id}
-              eventId={event.id}
-              canShareAttendeeRecap={event.lifecycleStatus === 'completed' && event.recapStatus !== 'published'}
-            />
           </div>
         )}
 
@@ -1253,6 +1253,7 @@ export const EventDetail: React.FC = () => {
       <ArticleEditorModal
         isOpen={!!draftArticle}
         initialData={draftArticle ?? undefined}
+        sessionPhotoSlug={draftArticle ? event.slug : undefined}
         onClose={() => setDraftArticle(null)}
       />
     </div>

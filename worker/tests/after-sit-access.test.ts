@@ -100,6 +100,21 @@ describe('after-sit access', () => {
     expect(db.sqlite.prepare('SELECT count(*) AS count FROM private_kept_setups').get()).toEqual({ count: 0 });
   });
 
+  it('shares only the recorded served tea names and IDs and keeps existing snapshots independent', async () => {
+    const credential = await newCredential();
+    expect((await save(credential, 'guest')).status).toBe(200);
+    db.exec(`
+      UPDATE event_post_session SET tea_ledger = '{"served_teas":[{"id":"actual-chest-tea","name":"Stored White","source":"chest","source_id":"private-chest-ref"},{"id":"actual-shop-tea","name":"Poured Red","source":"shop","source_id":"private-stock-ref","shop_slug":"shop-a"}]}' WHERE event_id = 'event-a';
+    `);
+    expect(await (await recap(credential)).json()).toMatchObject({
+      teas: [{ id: 'actual-chest-tea', name: 'Stored White' }, { id: 'actual-shop-tea', name: 'Poured Red' }],
+    });
+    expect((await save(credential, 'guest')).status).toBe(200);
+    expect(db.sqlite.prepare('SELECT teas_json FROM private_kept_setups').get()).toEqual({
+      teas_json: '[{"id":"first-tea","name":"White tea"},{"id":"second-tea","name":"Red tea"}]',
+    });
+  });
+
   it('requires the gather account and the exact confirmed attended seat of a completed sit', async () => {
     const params = { attendeeId: 'attendee', eventId: 'event-a' };
     expect((await call('POST', issuePath, {}, undefined, params)).status).toBe(403);

@@ -103,6 +103,34 @@ describe('public sit connections', () => {
     expect(await cards()).toEqual({ recaps: [] });
   });
 
+  it('uses served tea snapshots in Brewing experiences and excludes recaps without public discovery', async () => {
+    const recent = async () => {
+      const response = await call('POST', '/api/public/sit-links/recent', {});
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+      return response.json();
+    };
+    db.exec(`
+      INSERT INTO event_tea_menu (id, event_id, account_id, custom_name)
+      VALUES ('planned', 'event-a', 'shop-a', 'Planned tea');
+      UPDATE event_post_session SET
+        gallery_images = '["/recap-gallery.jpg"]',
+        tea_ledger = '{"served_teas":[{"id":"served","name":"Chest tea","source":"chest","source_id":"private-chest-id"}]}'
+        WHERE event_id = 'event-a';
+    `);
+    expect(await recent()).toMatchObject({
+      recaps: [{ slug: 'white-tea', galleryPhoto: null, teas: [{ id: 'served', name: 'Chest tea', type: null }] }],
+    });
+    expect(JSON.stringify(await recent())).not.toContain('private-chest-id');
+    db.exec(`UPDATE event_post_session SET tea_ledger = '{"served_teas":[]}' WHERE event_id = 'event-a'`);
+    expect(await recent()).toMatchObject({ recaps: [{ teas: [] }] });
+    db.exec("UPDATE events SET network_discovery = 0 WHERE id = 'event-a'");
+    expect(await recent()).toEqual({ recaps: [] });
+    db.exec("UPDATE events SET network_discovery = 1, recap_status = 'draft' WHERE id = 'event-a'");
+    expect(await recent()).toEqual({ recaps: [] });
+    db.exec("UPDATE events SET recap_status = 'published', public_visibility = 'unlisted' WHERE id = 'event-a'");
+    expect(await recent()).toEqual({ recaps: [] });
+  });
+
   it('withdraw public links if the recap, shop, credit, or profile is taken down', async () => {
     await show('lin', 'lin-user', 'lead_host');
     await show('mei', 'mei-user', 'guest_host');

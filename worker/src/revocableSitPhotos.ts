@@ -1,10 +1,12 @@
 import { FAMILY_FULL_MAX_BYTES } from '../../src/lib/familyContract';
 import { publicSitPhotoJpeg } from './revocableSitPhotoJpeg';
+import { sessionServedTeaName } from './sessionServedTeas';
 
 type Scope = { accountId: string; userId: string };
-type Permission = { id: string; credit: string; placed: number };
+type PhotoTea = { tea_id?: string | null; tea_name?: string | null; can_show_in_brewing?: number };
+type Permission = PhotoTea & { id: string; credit: string; placed: number };
 type OfferedSource = { id: string; credit: string; object_key: string };
-type RecapPlacement = OfferedSource & { alt_text: string; observation: string | null };
+type RecapPlacement = OfferedSource & PhotoTea & { alt_text: string; observation: string | null };
 
 const noStore = {
   'Cache-Control': 'private, no-store',
@@ -27,6 +29,13 @@ const publicRecap = `${completedPublicEvent} AND e.recap_status = 'published'
                 WHERE recap.event_id = e.id AND recap.account_id = e.account_id)`;
 const currentAttendee = `seat.account_id = p.account_id AND seat.event_id = p.event_id AND seat.user_id = p.user_id
     AND seat.status = 'confirmed' AND seat.attended = 1`;
+const servedTea = sessionServedTeaName();
+const eligiblePhotoSubject = `(p.tea_id IS NULL OR ${servedTea} IS NOT NULL)`;
+const photoTeaSelection = `p.tea_id, ${servedTea} AS tea_name, g.can_show_in_brewing`;
+const photoTeaView = (photo: PhotoTea) => photo.tea_id && photo.tea_name
+  ? { tea: { id: photo.tea_id, name: photo.tea_name } } : {};
+const additionalUseView = (photo: PhotoTea) => photo.can_show_in_brewing === 1
+  ? { canShowInBrewing: true as const } : {};
 const placedVersion = 'r.account_id = g.account_id AND r.event_id = g.event_id AND r.permission_id = g.id';
 
 /**
@@ -39,12 +48,12 @@ export const activeSitPhotoPermissionSelect = `
   JOIN event_attendees seat ON seat.id = g.attendee_id AND ${currentAttendee}
   JOIN events e ON e.id = p.event_id AND e.account_id = p.account_id
   JOIN accounts host ON host.id = e.account_id
-  WHERE g.revoked_at IS NULL AND p.tea_id IS NULL AND ${completedPublicEvent}
+  WHERE g.revoked_at IS NULL AND ${eligiblePhotoSubject} AND ${completedPublicEvent}
 `;
 
 const recapAudienceSelect = `${activeSitPhotoPermissionSelect} AND g.audience = 'public_recap'`;
 const publicRecapPlacement = `
-  SELECT g.id, g.credit, p.object_key, r.alt_text, r.observation
+  SELECT g.id, g.credit, p.object_key, r.alt_text, r.observation, ${photoTeaSelection}
   FROM sit_photo_recap_placements r
   JOIN (
     SELECT g.id ${recapAudienceSelect} AND ${publicRecap} AND e.slug = ?
@@ -55,11 +64,12 @@ const publicRecapPlacement = `
 
 const permissionView = (permission: Permission | null) => permission && {
   id: permission.id, credit: permission.credit, status: permission.placed === 1 ? 'placed' : 'offered',
+  ...photoTeaView(permission), ...additionalUseView(permission),
 };
 
 async function readPermission(db: D1Database, photo: string[]) {
   return db.prepare(
-    `SELECT g.id, g.credit, EXISTS (SELECT 1 FROM sit_photo_recap_placements r WHERE ${placedVersion}) AS placed
+    `SELECT g.id, g.credit, ${photoTeaSelection}, EXISTS (SELECT 1 FROM sit_photo_recap_placements r WHERE ${placedVersion}) AS placed
      FROM private_kept_setup_photos p JOIN sit_photo_public_permissions g ON ${exactPhoto}
      WHERE ${ownedPhoto} AND g.audience = 'public_recap' AND g.revoked_at IS NULL`
   ).bind(...photo).first<Permission>();
@@ -76,7 +86,7 @@ export async function serveOwnerSitPhotoPermission(
          JOIN events e ON e.id = seat.event_id AND e.account_id = seat.account_id
          JOIN accounts host ON host.id = e.account_id
          WHERE ${currentAttendee} AND ${completedPublicEvent}
-       ) AND p.tea_id IS NULL AS eligible
+       ) AND ${eligiblePhotoSubject} AS eligible
        FROM private_kept_setup_photos p WHERE ${ownedPhoto}`
     ).bind(...photo).first<{ eligible: number }>();
     if (!source) return missing();
@@ -84,7 +94,7 @@ export async function serveOwnerSitPhotoPermission(
     return json({ eligible: source.eligible === 1, permission: permissionView(grant) });
   }
 
-  const body = await request.json().catch(() => null) as { id?: unknown; credit?: unknown } | null;
+  const body = await request.json().catch(() => null) as { id?: unknown; credit?: unknown; canShowInBrewing?: unknown } | null;
   if (typeof body?.id !== 'string' || !versionPattern.test(body.id)) {
     return json({ error: 'Choose the current permission.' }, 400);
   }
@@ -100,20 +110,24 @@ export async function serveOwnerSitPhotoPermission(
 
   const credit = typeof body.credit === 'string' ? body.credit.trim() : '';
   if (!credit || credit.length > 120) return json({ error: 'Enter a credit of up to 120 characters.' }, 400);
+  if (body.canShowInBrewing !== undefined && typeof body.canShowInBrewing !== 'boolean') {
+    return json({ error: 'Choose where to offer the photo.' }, 400);
+  }
+  const canShowInBrewing = body.canShowInBrewing === true ? 1 : 0;
   const inserted = await db.prepare(
     `INSERT INTO sit_photo_public_permissions
-       (id, account_id, user_id, event_id, photo_id, attendee_id, audience, credit, offered_at)
-     SELECT ?, p.account_id, p.user_id, p.event_id, p.id, seat.id, 'public_recap', ?, ?
+       (id, account_id, user_id, event_id, photo_id, attendee_id, audience, credit, offered_at, can_show_in_brewing)
+     SELECT ?, p.account_id, p.user_id, p.event_id, p.id, seat.id, 'public_recap', ?, ?, ?
      FROM private_kept_setup_photos p
      JOIN events e ON e.id = p.event_id AND e.account_id = p.account_id
      JOIN accounts host ON host.id = e.account_id
      JOIN event_attendees seat ON ${currentAttendee}
-     WHERE ${ownedPhoto} AND p.tea_id IS NULL AND ${completedPublicEvent}
+     WHERE ${ownedPhoto} AND ${eligiblePhotoSubject} AND ${completedPublicEvent}
      ORDER BY seat.id LIMIT 1
      ON CONFLICT DO NOTHING`
-  ).bind(body.id, credit, new Date().toISOString(), ...photo).run();
+  ).bind(body.id, credit, new Date().toISOString(), canShowInBrewing, ...photo).run();
   const grant = await readPermission(db, photo);
-  if (grant?.id === body.id && grant.credit === credit) {
+  if (grant?.id === body.id && grant.credit === credit && grant.can_show_in_brewing === canShowInBrewing) {
     return json({ permission: permissionView(grant) }, inserted.meta?.changes ? 201 : 200);
   }
   return json({ error: 'This photo or permission has changed. Check the current permission.' }, 409);
@@ -150,7 +164,7 @@ export async function serveRecapPhotoReview(
 
   if (!grantId) {
     const { results } = await db.prepare(
-      `SELECT g.id, g.credit, EXISTS (SELECT 1 FROM sit_photo_recap_placements r WHERE ${placedVersion}) AS placed
+      `SELECT g.id, g.credit, ${photoTeaSelection}, EXISTS (SELECT 1 FROM sit_photo_recap_placements r WHERE ${placedVersion}) AS placed
        ${recapAudienceSelect} AND g.account_id = ? AND g.event_id = ?
        ORDER BY placed DESC, g.offered_at DESC, g.id`
     ).bind(scope.accountId, eventId).all<Permission>();
@@ -204,13 +218,15 @@ export async function serveRecapPhotoReview(
 export async function servePublicRecapPhoto(
   request: Request, db: D1Database, bucket: R2Bucket | undefined, slug: string, grantId?: string,
 ) {
-  const source = () => db.prepare(
-    grantId ? `${publicRecapPlacement} WHERE g.id = ?` : publicRecapPlacement
-  ).bind(...(grantId ? [slug, grantId] : [slug])).first<RecapPlacement>();
+  const placement = new URL(request.url).searchParams.get('placement');
+  const needsExplicitConsent = placement === 'brewing' || placement === 'essay';
+  const source = () => db.prepare(`${publicRecapPlacement}
+    WHERE (? IS NULL OR g.id = ?) AND (? = 0 OR g.can_show_in_brewing = 1)`
+  ).bind(slug, grantId ?? null, grantId ?? null, needsExplicitConsent ? 1 : 0).first<RecapPlacement>();
   const placed = await source();
   if (!grantId) {
     return json({ photo: placed ? {
-      id: placed.id, credit: placed.credit, alt_text: placed.alt_text, observation: placed.observation,
+      id: placed.id, credit: placed.credit, alt_text: placed.alt_text, observation: placed.observation, ...photoTeaView(placed), ...additionalUseView(placed),
     } : null });
   }
   if (!placed) return missing();

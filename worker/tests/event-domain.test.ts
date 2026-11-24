@@ -93,6 +93,18 @@ describe('event domain', () => {
     );
   });
 
+  it('keeps saved Tea Chest identities and legacy fields out of attendee recap data', () => {
+    const projection = publicPostSessionProjection({
+      event_id: 'sit',
+      tea_ledger: JSON.stringify({
+        served_teas: [{ id: 'served-tea', name: 'Spring Shui Xian', source: 'chest',
+          source_id: 'private-holding', product_id: 'private-product', shop_slug: 'private-shop' }],
+        legacy_tea_ledger: { private_key: 'legacy value' },
+      }),
+    });
+    expect(projection.tea_ledger).toEqual({ served_teas: [{ id: 'served-tea', name: 'Spring Shui Xian' }] });
+  });
+
   it('projects only public post-session fields and safely parses JSON', () => {
     expect(publicPostSessionProjection({
       event_id: 'event-1',

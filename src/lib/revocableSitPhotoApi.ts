@@ -1,8 +1,9 @@
 import { API_URL, authedBlobFetch, authedFetch } from './api';
 
-export type SitPhotoReviewEntry = { id: string; credit: string; status: 'offered' | 'placed' };
+type ServedPhotoTea = { id: string; name: string };
+export type SitPhotoReviewEntry = { id: string; credit: string; status: 'offered' | 'placed'; tea?: ServedPhotoTea; canShowInBrewing?: boolean };
 type Identity = { accountId: string | null; userId: string };
-type PublicRecapPhotoDetails = { id: string; credit: string; alt_text: string; observation: string | null };
+type PublicRecapPhotoDetails = { id: string; credit: string; alt_text: string; observation: string | null; tea?: ServedPhotoTea; canShowInBrewing?: boolean };
 
 const component = encodeURIComponent;
 const ownerEndpoint = (eventId: string, photoId: string) =>
@@ -18,7 +19,7 @@ export const revocableSitPhotoApi = {
   ownerStatus: (eventId: string, photoId: string, scope: Identity): Promise<{
     eligible: boolean; permission: SitPhotoReviewEntry | null;
   }> => authedFetch(ownerEndpoint(eventId, photoId), options(scope)),
-  offer: (eventId: string, photoId: string, permission: { id: string; credit: string }, scope: Identity):
+  offer: (eventId: string, photoId: string, permission: { id: string; credit: string; canShowInBrewing?: boolean }, scope: Identity):
     Promise<{ permission: SitPhotoReviewEntry }> => authedFetch(ownerEndpoint(eventId, photoId), {
     ...options(scope), method: 'PUT', body: JSON.stringify(permission),
   }),
@@ -32,15 +33,16 @@ export const revocableSitPhotoApi = {
     authedFetch(`${reviewEndpoint(eventId)}/${component(grantId)}`, {
       ...options(scope), method: 'PUT', body: JSON.stringify(placement),
     }),
-  forPublicRecap: async (slug: string, signal: AbortSignal) => {
+  forPublicRecap: async (slug: string, signal: AbortSignal, placement?: 'brewing' | 'essay') => {
     const url = publicEndpoint(slug);
+    const purpose = placement ? `?placement=${component(placement)}` : '';
     // Read-only POSTs also bypass old clients' GET-only service-worker caches.
     const init = { method: 'POST', cache: 'no-store', credentials: 'omit', signal } as const;
-    const status = await fetch(url, init);
+    const status = await fetch(url + purpose, init);
     if (!status.ok) return null;
     const { photo } = await status.json() as { photo: PublicRecapPhotoDetails | null };
-    if (!photo) return null;
-    const image = await fetch(`${url}/${component(photo.id)}`, init);
+    if (!photo || (placement && !photo.canShowInBrewing)) return null;
+    const image = await fetch(`${url}/${component(photo.id)}${purpose}`, init);
     if (!image.ok || image.headers.get('Content-Type') !== 'image/jpeg') return null;
     return { ...photo, image: await image.blob() };
   },

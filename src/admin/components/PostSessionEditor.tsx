@@ -1,14 +1,15 @@
-import React, { useState, useRef } from 'react';
-import { Save, Upload, Trash2, Loader2, Music, FileText, Image as ImageIcon, Leaf, X } from 'lucide-react';
+import React, { useId, useState, useRef } from 'react';
+import { Save, Upload, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { sitLinksQuery } from '../../lib/publicSitConnections';
 import { RecapCreditEditor } from './RecapCreditEditor';
+import { ServedTeasEditor } from './ServedTeasEditor';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
-import { useTastingNotes } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { Modal } from '../../components/shared/Modal';
-import { TastingNote } from '../../types/events';
+import { Button } from '../../components/shared/Button';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { createPostSessionLoadCoordinator, createPostSessionUploadGuard, postSessionUploadErrorMessage, runPostSessionUpload, savePostSession } from './PostSessionEditorContract';
 
 interface PostSessionEditorProps {
@@ -19,7 +20,8 @@ interface PostSessionEditorProps {
 export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, canShareAttendeeRecap }) => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const { data: tastingNotes = [] } = useTastingNotes(eventId);
+  const recapId = useId();
+  const [showMore, setShowMore] = useState(false);
 
   const [teaLedger, setTeaLedger] = useState('');
   const [playlistUrl, setPlaylistUrl] = useState('');
@@ -56,6 +58,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, c
     loaderRef.current = createPostSessionLoadCoordinator(
       api.events.getPostSession,
       () => {
+        setShowMore(false);
         setTeaLedger('');
         setPlaylistUrl('');
         setGallery([]);
@@ -164,186 +167,106 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, c
 
   const embedUrl = getEmbedUrl();
 
-  // Render leaf rating
-  const renderLeaves = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Leaf
-        key={i}
-        size={10}
-        className={i < rating ? 'text-tea-gold' : 'text-tea-text-sec/30'}
-        fill={i < rating ? 'currentColor' : 'none'}
-      />
-    ));
-  };
+  const secondaryText = TYPOGRAPHY_CLASSES.bodyLight + ' text-tea-text-sec';
+  const control = 'input-field w-full text-ui-16';
 
   return (
-    <div className="space-y-6">
-      {/* Tea Ledger */}
-      <div>
-        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
-          <FileText size={10} /> Tea Ledger (JSON)
-        </label>
-        <textarea
-          value={teaLedger}
-          onChange={(e) => setTeaLedger(e.target.value)}
-          className="w-full border border-tea-border bg-tea-bg rounded-md p-3 text-xs text-tea-text font-mono outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[120px] resize-y"
-          placeholder='{"teas": [{"name": "Dancong", "grams": 5, "steeps": 8}]}'
-          spellCheck={false}
-        />
-      </div>
-
-      {/* Playlist URL */}
-      <div>
-        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
-          <Music size={10} /> Playlist URL
-        </label>
-        <input
-          type="text"
-          value={playlistUrl}
-          onChange={(e) => setPlaylistUrl(e.target.value)}
-          className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
-          placeholder="https://open.spotify.com/playlist/..."
-        />
-        {embedUrl && (
-          <div className="mt-3 rounded-md overflow-hidden border border-tea-border">
-            <iframe
-              src={embedUrl}
-              width="100%"
-              height={isSpotify ? 152 : 200}
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              className="border-0"
-              title="Playlist embed"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Gallery */}
-      <div>
-        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
-          <ImageIcon size={10} /> Gallery
-        </label>
-
-        {gallery.length > 0 && (
-          <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-3">
-            {gallery.map((url, idx) => (
-              <div key={idx} className="relative aspect-square rounded-md overflow-hidden border border-tea-border group">
-                <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
-                <button
-                  onClick={() => removeGalleryImage(idx)}
-                  className="absolute top-1 right-1 bg-tea-bg/80 text-tea-text p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X size={10} />
-                </button>
-                <div className="absolute bottom-1 left-1 bg-tea-bg/60 text-tea-text-sec text-ui-9 px-1 rounded">
-                  {idx + 1}
+    <div className="space-y-3">
+      <div className="grid min-w-0 items-start gap-3 xl:grid-cols-2">
+        <section aria-labelledby={recapId} className="min-w-0 rounded-md border border-tea-border bg-tea-surface p-4">
+          <h3 id={recapId} className={TYPOGRAPHY_CLASSES.h3}>Session recap</h3>
+          <label htmlFor={recapId + '-note'} className={`mt-2 block ${secondaryText}`}>What would you like guests to remember?</label>
+          <textarea
+            id={recapId + '-note'}
+            value={sessionNotes}
+            onChange={event => setSessionNotes(event.target.value)}
+            className={`mt-1 resize-y ${control}`}
+            rows={3}
+            placeholder="Notes about the session, observations, highlights..."
+          />
+          {gallery.length > 0 && (
+            <div className="mt-3 grid grid-cols-3 gap-2 md:grid-cols-4">
+              {gallery.map((url, index) => (
+                <div key={`${url}-${index}`} className="relative aspect-square overflow-hidden rounded-md border border-tea-border">
+                  <img src={url} alt={`Recap photo ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
+                  <Button type="button" variant="icon" size="sm" aria-label={`Remove recap photo ${index + 1}`}
+                    className="tap-target absolute right-1 top-1 bg-tea-bg"
+                    icon={<X size={14} />} onClick={() => removeGalleryImage(index)} />
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" size="sm" loading={uploading}
+              icon={<Upload size={14} />} onClick={() => fileInputRef.current?.click()}>
+              Add photos
+            </Button>
+            <Button type="button" variant="quiet" size="sm" onClick={() => setShowMore(true)}>Optional details</Button>
           </div>
-        )}
+          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+        </section>
 
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-2 border border-dashed border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
-        >
-          {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-          {uploading ? 'Uploading...' : 'Add Images'}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleImageUpload}
-          className="hidden"
-        />
+        <ServedTeasEditor eventId={eventId} value={teaLedger} onChange={setTeaLedger}
+          disabled={!ledgerLoaded || loadError || saving} />
       </div>
 
-      {/* Session Notes */}
-      <div>
-        <label className="label-caps text-tea-text-sec block mb-2">Session Notes</label>
-        <textarea
-          value={sessionNotes}
-          onChange={(e) => setSessionNotes(e.target.value)}
-          className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
-          placeholder="Notes about the session, observations, highlights..."
-        />
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-2">
-        <div>
-          <label className="label-caps text-tea-text-sec block mb-2">Host Notes</label>
-          <textarea
-            value={hostNotes}
-            onChange={(e) => setHostNotes(e.target.value)}
-            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
-            placeholder="Your observations as host"
-          />
-        </div>
-        <div>
-          <label className="label-caps text-tea-text-sec block mb-2">Host Changes</label>
-          <textarea
-            value={hostChanges}
-            onChange={(e) => setHostChanges(e.target.value)}
-            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
-            placeholder="What you would change next time"
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-2">
-        <div>
-          <label className="label-caps text-tea-text-sec block mb-2">Session Energy</label>
-          <select
-            value={energy}
-            onChange={(e) => setEnergy(e.target.value)}
-            className="w-full border border-tea-border bg-tea-bg rounded-md px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold"
-          >
-            <option value="">Not recorded</option>
-            <option value="intimate_warm">Intimate and warm</option>
-            <option value="lively">Lively</option>
-            <option value="contemplative">Contemplative</option>
-            <option value="exploratory">Exploratory</option>
-            <option value="meditative">Meditative</option>
-          </select>
-        </div>
-        <div>
-          <label className="label-caps text-tea-text-sec block mb-2">Shared Tasting Notes</label>
-          <textarea
-            value={sharedTastingNotes}
-            onChange={(e) => setSharedTastingNotes(e.target.value)}
-            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
-            placeholder="One note per line"
-          />
-        </div>
-      </div>
-
-      {/* Save button */}
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-tea-border">
-        {loadError && (
-          <p className="mr-auto self-center text-xs text-tea-text-sec">Post-session data could not be loaded.</p>
-        )}
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-tea-border pt-2">
+        {loadError && <p role="alert" className={`mr-auto ${secondaryText}`}>Post-session data could not be loaded.</p>}
         {canShareAttendeeRecap && (
-          <button
-            type="button"
+          <Button type="button" variant="secondary"
             disabled={!ledgerLoaded || loadError || saving || sharing || !sessionNotes.trim() || sessionNotes.trim().length > 12000}
-            onClick={() => setRecapToShare(sessionNotes.trim())}
-            className="tap-target rounded-md border border-tea-border px-3 text-ui-13 text-tea-text-sec disabled:opacity-40"
-          >
+            onClick={() => setRecapToShare(sessionNotes.trim())}>
             Share recap with attendees
-          </button>
+          </Button>
         )}
-        <button
-          onClick={handleSave}
-          disabled={saving || !ledgerLoaded || loadError}
-          className="btn-primary"
-        >
-          {saving || !ledgerLoaded ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-          {!ledgerLoaded ? 'Loading Post-Session' : 'Save Post-Session'}
-        </button>
+        <Button type="button" onClick={handleSave} icon={<Save size={14} />} loading={saving}
+          disabled={!ledgerLoaded || loadError || uploading}>
+          {!ledgerLoaded ? 'Loading recap' : 'Save Post-Session'}
+        </Button>
       </div>
+
+      <Modal isOpen={showMore} onClose={() => setShowMore(false)} title="Optional recap details" className="pb-nav" initialFocus="container">
+        <div className="space-y-3 p-4">
+          <label className={`block ${secondaryText}`}>
+            Playlist URL
+            <input type="url" value={playlistUrl} onChange={event => setPlaylistUrl(event.target.value)} className={control} />
+          </label>
+          {embedUrl && (
+            <div className="overflow-hidden rounded-md border border-tea-border">
+              <iframe src={embedUrl} width="100%" height={isSpotify ? 152 : 200}
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                className="border-0" title="Playlist embed" />
+            </div>
+          )}
+          <label className={`block ${secondaryText}`}>
+            Host notes
+            <textarea value={hostNotes} onChange={event => setHostNotes(event.target.value)} className={control} rows={2} />
+          </label>
+          <label className={`block ${secondaryText}`}>
+            What would you change next time?
+            <textarea value={hostChanges} onChange={event => setHostChanges(event.target.value)} className={control} rows={2} />
+          </label>
+          <label className={`block ${secondaryText}`}>
+            Session energy
+            <select value={energy} className={control} onChange={event => setEnergy(event.target.value)}>
+              <option value="">Not recorded</option>
+              <option value="intimate_warm">Intimate and warm</option>
+              <option value="lively">Lively</option>
+              <option value="contemplative">Contemplative</option>
+              <option value="exploratory">Exploratory</option>
+              <option value="meditative">Meditative</option>
+            </select>
+          </label>
+          <label className={`block ${secondaryText}`}>
+            Shared tasting notes
+            <textarea value={sharedTastingNotes} onChange={event => setSharedTastingNotes(event.target.value)}
+              className={control} rows={3} placeholder="One note per line" />
+          </label>
+          <div className="flex justify-end">
+            <Button type="button" variant="secondary" onClick={() => setShowMore(false)}>Done</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={recapToShare !== null && canShareAttendeeRecap}
@@ -369,42 +292,6 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, c
 
       <RecapCreditEditor eventId={eventId} />
 
-      {/* Tasting Notes (read-only) */}
-      {tastingNotes.length > 0 && (
-        <div className="pt-4 border-t border-tea-border">
-          <h3 className="label-caps text-tea-text-sec mb-3 flex items-center gap-1.5">
-            <Leaf size={10} /> Submitted Tasting Notes
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-tea-border">
-                  <th className="text-left label-caps text-tea-text-dim py-2 px-2">Guest</th>
-                  <th className="text-left label-caps text-tea-text-dim py-2 px-2">Tea</th>
-                  <th className="text-left label-caps text-tea-text-dim py-2 px-2">Rating</th>
-                  <th className="text-left label-caps text-tea-text-dim py-2 px-2">Impression</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tastingNotes.map(note => (
-                  <tr key={note.id} className="border-b border-tea-border">
-                    <td className="py-2 px-2 text-tea-text-sec text-xs">Anonymous</td>
-                    <td className="py-2 px-2 text-tea-text text-xs">{note.teaName || '—'}</td>
-                    <td className="py-2 px-2">
-                      <div className="flex items-center gap-0.5">
-                        {renderLeaves(note.rating ?? 0)}
-                      </div>
-                    </td>
-                    <td className="py-2 px-2 text-tea-text-sec text-xs max-w-[200px] truncate" title={note.impression}>
-                      {note.impression || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

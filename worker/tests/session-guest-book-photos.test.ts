@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { afterSitRoutes } from '../src/afterSitAccess';
 import { serveGuestBookReview } from '../src/sessionGuestBook';
-import { servePublicRecapPhoto, serveRecapPhotoReview } from '../src/revocableSitPhotos';
+import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from '../src/revocableSitPhotos';
 import { seedIdentity, SqliteD1 } from './helpers/sqliteD1';
 
 const photoId = '9dc818e0-c31e-44c5-94ec-c8014694fc1d';
@@ -20,7 +20,7 @@ const databases: SqliteD1[] = [];
 afterEach(() => databases.splice(0).forEach(db => db.close()));
 
 async function fixture() {
-  const sql = new SqliteD1('migrations', '0116');
+  const sql = new SqliteD1('migrations', '0117');
   databases.push(sql);
   const db = sql as unknown as D1Database;
   seedIdentity(sql, { userId: 'owner', accountId: 'shop' });
@@ -213,6 +213,38 @@ describe('formal attendee Guest Book photos', () => {
     expect((await bytes()).status).toBe(404);
     expect((await review('GET', undefined, grantId)).status).toBe(404);
     expect((await include()).status).toBe(409);
+    expect(sql.sqlite.prepare('SELECT id FROM private_kept_setup_photos').get()).toEqual({ id: photoId });
+  });
+
+  it('withdraws all authorised placements of the exact Guest Book photo', async () => {
+    const { sql, db, env, request, offer, include, bytes, book, owner } = await fixture();
+    sql.exec(`
+      UPDATE event_post_session SET tea_ledger = '{"served_teas":[{"id":"tea-served","name":"Spring Shui Xian","source":"chest"}]}';
+      UPDATE private_kept_setup_photos SET tea_id = 'tea-served';
+    `);
+    expect((await offer()).status).toBe(201);
+    expect((await include()).status).toBe(200);
+    const scope = { accountId: 'shop', userId: 'owner' };
+    const permission = { id: secondGrant, credit: 'Guest Credit', canShowInBrewing: true };
+    expect((await serveOwnerSitPhotoPermission(
+      request('PUT', undefined, permission), db, scope, 'event', photoId,
+    )).status).toBe(201);
+    expect((await serveRecapPhotoReview(
+      request('PUT', undefined, { alt_text: 'Tea setup', observation: '' }), db, env.ATLAS_BUCKET, scope, 'event', secondGrant,
+    )).status).toBe(200);
+    const publicPhoto = (method: string, surface: string) => servePublicRecapPhoto(
+      new Request('https://teajia.test/?placement=' + surface, { method }), db, env.ATLAS_BUCKET, 'tea-sit', secondGrant,
+    );
+    expect((await publicPhoto('HEAD', 'recap')).status).toBe(200);
+    expect((await publicPhoto('HEAD', 'brewing')).status).toBe(200);
+    expect((await publicPhoto('HEAD', 'essay')).status).toBe(200);
+
+    expect((await book('owner', owner, 'entry-withdraw')).status).toBe(200);
+    expect((await bytes()).status).toBe(404);
+    for (const surface of ['recap', 'brewing', 'essay']) {
+      expect((await publicPhoto('GET', surface)).status).toBe(404);
+      expect((await publicPhoto('HEAD', surface)).status).toBe(404);
+    }
     expect(sql.sqlite.prepare('SELECT id FROM private_kept_setup_photos').get()).toEqual({ id: photoId });
   });
 

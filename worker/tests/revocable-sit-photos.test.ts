@@ -22,12 +22,13 @@ const strippedBytes = new Uint8Array([
 const grant = '17478d56-6370-44c1-ac4b-9bcd7068b14a';
 const anotherGrant = '48c2a3d5-7415-4305-aff2-ded94b97b011';
 const placement = { alt_text: 'A small teapot and two cups on a wood table', observation: 'We shared the last pour.' };
-const request = (method = 'GET', body?: object) => new Request('https://teajia.test/', {
+const request = (method = 'GET', body?: object, surface?: 'brewing' | 'essay') =>
+  new Request('https://teajia.test/' + (surface ? '?placement=' + surface : ''), {
   method, ...(body ? { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } } : {}),
 });
 
 function fixture() {
-  const sql = new SqliteD1('migrations', '0107');
+  const sql = new SqliteD1('migrations', '0117');
   databases.push(sql);
   const db = sql as unknown as D1Database;
   const owner = seedIdentity(sql, { userId: 'guest', accountId: 'shop', role: 'viewer' });
@@ -57,8 +58,8 @@ function fixture() {
     serveOwnerSitPhotoPermission(request(method, body), db, identity, 'sit', photoId);
   const review = (method = 'GET', body?: object, identity = editor, grantId?: string) =>
     serveRecapPhotoReview(request(method, body), db, bucket, identity, 'sit', grantId);
-  const publicRead = (grantId?: string, slug = 'the-sit', method = 'GET') =>
-    servePublicRecapPhoto(request(method), db, bucket, slug, grantId);
+  const publicRead = (grantId?: string, slug = 'the-sit', method = 'GET', surface?: 'brewing' | 'essay') =>
+    servePublicRecapPhoto(request(method, undefined, surface), db, bucket, slug, grantId);
   const original = (method = 'GET', identity = owner) =>
     serveKeptSetupPhotos(request(method), db, bucket, identity, 'sit', 'our-photo');
   const offer = (id = grant, photoId = 'our-photo') => permission('PUT', { id, credit: 'Fixture Photo Credit' }, owner, photoId);
@@ -114,6 +115,44 @@ describe('public recap photo permission', () => {
     expect(remove).not.toHaveBeenCalled();
     const legacy = sql.sqlite.prepare('SELECT gallery_images FROM event_post_session WHERE event_id = ?').get('sit');
     expect(legacy?.gallery_images).toBe('["https://fixture.test/legacy.jpg"]');
+  });
+
+  it('uses the exact served tea name and only opens extra placements with explicit permission', async () => {
+    const { sql, owner, editor, permission, review, publicRead, offer, approve } = fixture();
+    sql.exec(`
+      UPDATE event_post_session SET tea_ledger = '{"served_teas":[{"id":"tea","name":"Spring Shui Xian","source":"chest","source_id":"private-chest-id"}]}' WHERE event_id = 'sit';
+    `);
+    const tea = { id: 'tea', name: 'Spring Shui Xian' };
+    expect(await (await permission('GET', undefined, owner, 'tea-photo')).json()).toEqual({ eligible: true, permission: null });
+    expect((await offer(grant, 'tea-photo')).status).toBe(201);
+    expect((await approve()).status).toBe(200);
+    expect(await (await publicRead()).json()).toEqual({
+      photo: { id: grant, credit: 'Fixture Photo Credit', ...placement, tea },
+    });
+    for (const surface of ['brewing', 'essay'] as const) {
+      expect(await (await publicRead(undefined, 'the-sit', 'GET', surface)).json()).toEqual({ photo: null });
+      expect((await publicRead(grant, 'the-sit', 'GET', surface)).status).toBe(404);
+    }
+    // A replay of an old permission ID cannot expand its audience.
+    const publicGrant = { id: grant, credit: 'Fixture Photo Credit', canShowInBrewing: true };
+    expect((await permission('PUT', publicGrant, owner, 'tea-photo')).status).toBe(409);
+    expect((await permission('DELETE', { id: grant }, owner, 'tea-photo')).status).toBe(200);
+    const extraGrant = { ...publicGrant, id: anotherGrant };
+    expect((await permission('PUT', extraGrant, owner, 'tea-photo')).status).toBe(201);
+    expect((await permission('PUT', extraGrant, owner, 'tea-photo')).status).toBe(200);
+    expect(await (await review('GET', undefined, editor)).json()).toEqual({ published: true, permissions: [
+      { ...extraGrant, status: 'offered', tea },
+    ] });
+    expect((await approve(anotherGrant)).status).toBe(200);
+    for (const surface of ['brewing', 'essay'] as const) {
+      expect(await (await publicRead(undefined, 'the-sit', 'GET', surface)).json()).toEqual({
+        photo: { ...extraGrant, ...placement, tea },
+      });
+      expect((await publicRead(anotherGrant, 'the-sit', 'GET', surface)).status).toBe(200);
+    }
+    sql.exec(`UPDATE event_post_session SET tea_ledger = '{"served_teas":[]}' WHERE event_id = 'sit'`);
+    expect(await (await publicRead()).json()).toEqual({ photo: null });
+    expect((await publicRead(anotherGrant, 'the-sit', 'HEAD', 'essay')).status).toBe(404);
   });
 
   it('checks current attendance, publication and host visibility before returning the placement and direct bytes', async () => {

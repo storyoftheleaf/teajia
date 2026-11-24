@@ -3,6 +3,7 @@ import { privateAttendeeSeatMatch } from './privateSessionReflections';
 import { privatePhotoHeaders } from './privatePhotoUpload';
 import { GUEST_BOOK_NOTE_LIMIT, guestBookEntryKeys, prepareGuestBookNote } from './sessionGuestBook';
 import { readSitPhotoRendition, sitPhotoRenditionResponse } from './revocableSitPhotos';
+import { sessionServedTeaName } from './sessionServedTeas';
 
 export type GuestBookPhotoInput = { action?: unknown; photoId?: unknown; grantId?: unknown; description?: unknown };
 type Scope = { accountId: string; userId: string };
@@ -26,13 +27,26 @@ const roster = `FROM session_guest_book_photos g
   WHERE g.revoked_at IS NULL AND contributor.status = 'confirmed' AND contributor.attended = 1
     AND ${eventCheck}`;
 const visiblePhoto = 'g.id, contributor.full_name AS display_name, g.alt_text, g.user_id';
-const sourceDescription = `COALESCE(NULLIF(?, ''), (
+const servedTea = sessionServedTeaName();
+const sourceDescription = `COALESCE(NULLIF(?, ''), 'Photo of ' || ${servedTea}, (
   SELECT 'Photo of ' || substr(trim(json_extract(tea.value, '$.name')), 1, 240)
   FROM private_kept_setups k, json_each(k.teas_json) tea
   WHERE k.account_id = p.account_id AND k.user_id = p.user_id AND k.event_id = p.event_id
     AND json_extract(tea.value, '$.id') = p.tea_id AND trim(json_extract(tea.value, '$.name')) <> ''
   LIMIT 1
 ), CASE WHEN p.tea_id IS NULL THEN 'Photo of the tea setup' ELSE 'Photo shared at this sit' END)`;
+
+function revokePublicUses(
+  db: D1Database, guestBookPhotoWhere: string, binds: string[], now: string,
+) {
+  return db.prepare(`UPDATE sit_photo_public_permissions AS permission SET revoked_at = ?
+    WHERE permission.revoked_at IS NULL AND EXISTS (
+      SELECT 1 FROM session_guest_book_photos g
+      WHERE g.revoked_at IS NULL AND ${guestBookPhotoWhere}
+        AND g.account_id = permission.account_id AND g.event_id = permission.event_id
+        AND g.user_id = permission.user_id AND g.photo_id = permission.photo_id
+    )`).bind(now, ...binds);
+}
 
 function guestSeat(db: D1Database, binds: string[]) {
   return db.prepare(`SELECT a.account_id, a.event_id, a.id FROM event_attendees a WHERE ${guestCheck}`)
@@ -62,7 +76,7 @@ export async function serveGuestBookPhotos(
         AND g.account_id = ? AND g.event_id = ? AND g.status = 'included'
         ORDER BY g.offered_at DESC, g.id`).bind(...event).all<{ user_id: string }>(),
       db.prepare(`SELECT p.id, p.tea_id, p.created_at,
-          json_extract(tea.value, '$.name') AS tea_name,
+          COALESCE(${servedTea}, json_extract(tea.value, '$.name')) AS tea_name,
           g.id AS grant_id, g.status, g.alt_text
         FROM private_kept_setup_photos p
         JOIN private_kept_setups k
@@ -90,11 +104,15 @@ export async function serveGuestBookPhotos(
   }
   if (action === 'photo-withdraw') {
     if (!isId(grantId)) return missing();
-    const removed = await db.prepare(
-      `UPDATE session_guest_book_photos SET revoked_at = COALESCE(revoked_at, ?)
-       WHERE id = ? AND account_id = ? AND event_id = ? AND user_id = ?
-         AND EXISTS (SELECT 1 FROM event_attendees a WHERE ${guestCheck} AND a.id = ?)`
-    ).bind(new Date().toISOString(), grantId, ...event, scope.userId, ...binds, seat.id).run();
+    const now = new Date().toISOString();
+    const match = `g.id = ? AND g.account_id = ? AND g.event_id = ? AND g.user_id = ?
+      AND EXISTS (SELECT 1 FROM event_attendees a WHERE ${guestCheck} AND a.id = ?)`;
+    const photoBinds = [grantId, ...event, scope.userId, ...binds, seat.id];
+    const [, removed] = await db.batch([
+      revokePublicUses(db, match, photoBinds, now),
+      db.prepare(`UPDATE session_guest_book_photos AS g SET revoked_at = COALESCE(revoked_at, ?)
+        WHERE ${match}`).bind(now, ...photoBinds),
+    ]);
     return removed.meta?.changes ? json({ success: true }) : missing();
   }
   if (action !== 'photo-offer') return json({ error: 'Choose a Guest Book photo action.' }, 400);
@@ -171,10 +189,12 @@ export async function withdrawGuestBookEntry(db: D1Database, scope: Scope, crede
   const contribution = `account_id = ? AND event_id = ? AND user_id = ?
     AND EXISTS (SELECT 1 FROM event_attendees a WHERE ${guestCheck} AND a.id = ?)`;
   const scoped = [seat.account_id, seat.event_id, scope.userId, ...binds, seat.id];
+  const now = new Date().toISOString();
   await db.batch([
+    revokePublicUses(db, contribution, scoped, now),
     db.prepare(`DELETE FROM session_guest_book WHERE ${contribution}`).bind(...scoped),
     db.prepare(`UPDATE session_guest_book_photos SET revoked_at = ?
-      WHERE revoked_at IS NULL AND ${contribution}`).bind(new Date().toISOString(), ...scoped),
+      WHERE revoked_at IS NULL AND ${contribution}`).bind(now, ...scoped),
   ]);
   return await guestSeat(db, binds) ? json({ success: true }) : ineligible();
 }
@@ -191,8 +211,14 @@ export async function serveOwnerGuestBookPhoto(
   }
   const body = await request.json().catch(() => null) as { grantId?: unknown } | null;
   if (!isId(body?.grantId)) return missing();
-  const removed = await db.prepare(`UPDATE session_guest_book_photos AS g SET revoked_at = COALESCE(revoked_at, ?)
-    WHERE ${match} AND g.id = ?`).bind(new Date().toISOString(), ...binds, body.grantId).run();
+  const now = new Date().toISOString();
+  const grant = `${match} AND g.id = ?`;
+  const photoBinds = [...binds, body.grantId];
+  const [, removed] = await db.batch([
+    revokePublicUses(db, grant, photoBinds, now),
+    db.prepare(`UPDATE session_guest_book_photos AS g SET revoked_at = COALESCE(revoked_at, ?)
+      WHERE ${grant}`).bind(now, ...photoBinds),
+  ]);
   return removed.meta?.changes ? json({ success: true }) : missing();
 }
 
