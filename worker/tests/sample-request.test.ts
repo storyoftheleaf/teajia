@@ -41,7 +41,7 @@ class SampleRequestDb {
       first: async () => {
         if (normalized.includes('select session_version from users')) return { session_version: 0 };
         if (normalized.includes('select 1 from accounts')) return { 1: 1 };
-        if (normalized.includes('select given_name, product_name, type from products')) {
+        if (normalized.startsWith('select p.given_name, p.product_name, p.type from products p where p.id = ? and p.account_id = ?')) {
           return values[0] === 'product-1' && values[1] === ACCOUNT_ID
             ? { given_name: 'Rou Gui', product_name: 'Rou Gui', type: 'Oolong' }
             : null;

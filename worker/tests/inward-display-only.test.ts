@@ -122,6 +122,8 @@ it('preserves ordinary counted publication and resumes Inward after a verified c
   expect(await (await request(shop + '/counted')).json()).toMatchObject({ id: other, stock_grams: 200, retail_price_per_gram_usd: 2 });
   const countedOrder = await order(other, 'website');
   expect(countedOrder.status, await countedOrder.text()).toBe(201);
+  const countedSample = await request('/api/samples/request', 'POST', { product_id: other, quantity_grams: 25 }, 'owner');
+  expect(countedSample.status, await countedSample.text()).toBe(201);
 
   expect((await request('/api/products/' + id + '/shown', 'PUT', { shown_in_shop: true }, 'owner')).status).toBe(200);
   db.sqlite.prepare("UPDATE products SET stock_known_at='2026-11-24' WHERE id=?").run(id);
