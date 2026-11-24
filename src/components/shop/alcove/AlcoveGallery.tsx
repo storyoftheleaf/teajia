@@ -9,6 +9,8 @@ interface AlcoveGalleryProps {
   squarePage?: boolean;
   featured?: boolean;
   addPhoto?: React.ReactNode;
+  /** Thumbnails that follow the shop's own in the same strip, before the add tile. */
+  trailing?: React.ReactNode;
 }
 
 export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
@@ -19,6 +21,7 @@ export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
   squarePage = false,
   featured = false,
   addPhoto,
+  trailing,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   if (allImages.length === 0) return null;
@@ -95,11 +98,11 @@ export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
           })}
         </div>
 
-        {(imageUrls.length > 1 || addPhoto) && (
+        {(imageUrls.length > 1 || addPhoto || trailing) && (
           <div
             role="group"
             aria-label="Photo thumbnails"
-            className={`alcove-page-gallery-thumbnails mt-3 flex flex-wrap justify-center gap-2 ${!addPhoto && imageUrls.length <= 2 ? 'md:hidden' : ''}`}
+            className={`alcove-page-gallery-thumbnails mt-3 flex flex-wrap justify-center gap-2 ${!addPhoto && !trailing && imageUrls.length <= 2 ? 'md:hidden' : ''}`}
           >
             {imageUrls.map((url, index) => (
               <button
@@ -116,6 +119,7 @@ export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
                 <img src={url} alt="" loading="lazy" className="alcove-thumb-img !opacity-100" />
               </button>
             ))}
+            {trailing}
             {addPhoto}
           </div>
         )}

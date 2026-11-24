@@ -17,10 +17,12 @@ import { personPath, type TeaRowPhotograph } from './useTeaFamily';
 const ROW_LIMIT = 8;
 
 export function TeaPhotographRow({
-  photographs, teaName, onChooseCover, onRemove, onShape, onShare, addPhoto,
+  photographs, teaName, onChooseCover, onRemove, onShape, onShare, addPhoto, inline = false,
 }: {
   photographs: TeaRowPhotograph[];
   addPhoto?: ReactNode;
+  /** Sit inside another strip (the shop's thumbnails) instead of a row of its own. */
+  inline?: boolean;
   teaName: string;
   onChooseCover: (photographId: string | null) => void;
   onShare?: (photographId: string, choice: 'page' | 'private') => Promise<void>;
@@ -51,8 +53,8 @@ export function TeaPhotographRow({
   const close = () => { setOpenId(null); setRemoveFailed(false); setShareFailed(false); };
 
   return (
-    <div className="mx-5 mt-3 lg:mx-6" data-testid="tea-photographs">
-      <ul className="photo-row" aria-label={`Photographs of ${teaName}`}>
+    <div className={inline ? 'contents' : 'mx-5 mt-3 lg:mx-6'} data-testid="tea-photographs">
+      <ul className={inline ? 'photo-row photo-row--inline' : 'photo-row'} aria-label={`Photographs of ${teaName}`}>
         {shown.map(photo => (
           <li key={photo.id} data-mine={photo.mine ? 'true' : undefined} data-cover={photo.isCover ? 'true' : undefined} data-lead={photo.isLead ? 'true' : undefined}>
             <PhotographThumb photo={toZoom(photo)} onOpen={setOpenId} testId="tea-photograph" />

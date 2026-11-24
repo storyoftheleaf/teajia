@@ -79,6 +79,8 @@ export function ProductDetailLayout({
   });
   const hasShopPhotos = gallery.allImages.length > 0;
   const hasMemberPhotos = photos.row.length > 0;
+  // Only a tea's square gallery carries the family in its thumbnail strip.
+  const joinStrip = hasShopPhotos && hasMemberPhotos && Boolean(gallery.squarePage) && !gallery.featured;
   const emptyGallery = !hasShopPhotos && !hasMemberPhotos;
   const addPhoto = !hasProductActions ? undefined : (
     <Button variant="secondary" size="sm" type="button" className={emptyGallery ? 'shrink-0' : 'product-photo-add'}
@@ -89,6 +91,13 @@ export function ProductDetailLayout({
       }}>
       {emptyGallery ? '+ Add your own picture' : <Icons.Plus aria-hidden="true" />}
     </Button>
+  );
+  // The family's photographs join the shop's thumbnails in one strip, the add
+  // tile last (Adrian, 2026-11-24). With no shop photo they make the row alone.
+  const memberRow = (inline: boolean) => (
+    <TeaPhotographRow photographs={photos.row} teaName={item.name} onChooseCover={photos.chooseCover}
+      onRemove={photos.removeOwn} onShape={photos.reshapeOwn} onShare={photos.shareOwn}
+      inline={inline} addPhoto={inline || hasShopPhotos ? undefined : addPhoto} />
   );
   const visibleFacts = facts.filter(fact => fact.value?.trim() || fact.content);
   return (
@@ -123,14 +132,13 @@ export function ProductDetailLayout({
           </div>
           <div className="tea-product-reading">
             <AlcoveGallery key={`gallery-${item.id}`} {...gallery} layout="page" onExpandImage={setExpandedImage}
+              trailing={joinStrip ? memberRow(true) : undefined}
               addPhoto={hasShopPhotos ? addPhoto : undefined} />
             {hasShopPhotos && galleryCaption && <p className="mx-5 mt-2 text-tea-text-sec">{galleryCaption}</p>}
             {/* Photos come first (Adrian, 2026-11-24): the shop's, then the family's
                 as one row of equal thumbnails. Who took one shows only when it is
                 opened. With no photos at all, the add button stands in their place. */}
-            {hasMemberPhotos && <TeaPhotographRow photographs={photos.row} teaName={item.name} onChooseCover={photos.chooseCover}
-              onRemove={photos.removeOwn} onShape={photos.reshapeOwn} onShare={photos.shareOwn}
-              addPhoto={hasShopPhotos ? undefined : addPhoto} />}
+            {hasMemberPhotos && !joinStrip && memberRow(false)}
             {emptyGallery && addPhoto && <div className="tea-product-photo-empty">{addPhoto}</div>}
             {hasProductActions && isAuthenticated && <input type="file" ref={input} hidden multiple accept="image/*" aria-label="Add product photos" onChange={event => {
               const files = Array.from(event.target.files ?? []);

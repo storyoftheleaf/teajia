@@ -7412,6 +7412,10 @@ body.cart-panel-open .commerce-dock {
   aspect-ratio: 1;
 }
 .photo-row .product-photo-add { --photo-add-size: calc(var(--space-12) * 1.5); }
+/* Inside the shop's thumbnail strip the family's photographs are the same size
+   as the shop's thumbnails and the add tile, so the strip reads as one row. */
+.photo-row--inline, .photo-row--inline > li { display: contents; }
+.alcove-page-gallery-thumbnails .photo-thumb { height: var(--space-12); }
 .tea-product-account {
   display: flex;
   flex-wrap: wrap;
