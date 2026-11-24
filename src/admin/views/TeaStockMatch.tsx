@@ -54,8 +54,8 @@ export function TeaStockMatch({ intake, photoIndex, expected, saving, error, onC
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
       <p className="text-ui-13 text-tea-text-sec">{intake.title}</p>
       {showPhoto ? <>
-        <Button ref={backFromPhoto} type="button" variant="quiet" size="sm" onClick={() => setShowPhoto(false)}>
-          <ArrowLeft size={16} aria-hidden="true" />Back to comparison
+        <Button ref={backFromPhoto} type="button" variant="quiet" size="sm" icon={<ArrowLeft size={16} aria-hidden="true" />} onClick={() => setShowPhoto(false)}>
+          Back to comparison
         </Button>
         <figure className="space-y-1">
           <img className="max-h-96 w-full rounded-md bg-tea-bg object-contain" src={photo} alt={'Source photo for ' + intake.title} />
@@ -85,9 +85,9 @@ export function TeaStockMatch({ intake, photoIndex, expected, saving, error, onC
             </div>
             {photo && <div className="w-24 max-w-full rounded-md border border-tea-border">
               <img className="aspect-square w-full rounded-md bg-tea-bg object-cover" src={photo} alt="" />
-              <Button ref={photoButton} type="button" variant="quiet" size="sm" className="w-full" onClick={() => {
+              <Button ref={photoButton} type="button" variant="quiet" size="sm" fullWidth icon={<Camera size={14} aria-hidden="true" />} onClick={() => {
                 photoViewed.current = true; setShowPhoto(true);
-              }}><Camera size={14} aria-hidden="true" />View photo</Button>
+              }}>View photo</Button>
             </div>}
           </div>
           {intake.nextCheck && <p className="break-words text-ui-12 text-tea-text-sec">
@@ -108,8 +108,8 @@ export function TeaStockMatch({ intake, photoIndex, expected, saving, error, onC
               <input className="input-field min-h-tap px-3 py-2" type="search" value={searchInput} onChange={event => setSearchInput(event.target.value)}
                 placeholder="Tea name or Stock ID" maxLength={128} />
             </label>
-            <Button variant="secondary" disabled={saving || searchInput.trim().length < 2}>
-              <Search size={16} aria-hidden="true" />Search
+            <Button variant="secondary" icon={<Search size={16} aria-hidden="true" />} disabled={saving || searchInput.trim().length < 2}>
+              Search
             </Button>
           </form>
           {options.isFetching && <p role="status" className="text-ui-13 text-tea-text-sec">Looking in Stock…</p>}

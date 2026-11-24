@@ -98,9 +98,9 @@ function IntakeReading({ id }: { id: string }) {
       <figcaption className="flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec">
         <span>{page.packageOnly ? 'Private package reference' : 'Intake photograph'}</span>
         <span className="flex min-w-0 flex-wrap items-center gap-1">
-          {openMatch && <Button type="button" variant="quiet" size="sm" onClick={openMatch}>
-            <Search size={14} aria-hidden="true" />Compare with Stock</Button>}
-          {page.photos.length > 1 && <Button variant="quiet" size="sm" onClick={() => setPhoto(value => (value + 1) % page.photos.length)}>
+          {openMatch && <Button type="button" variant="quiet" size="sm" icon={<Search size={14} aria-hidden="true" />} onClick={openMatch}>
+            Compare with Stock</Button>}
+          {page.photos.length > 1 && <Button variant="plain" className="btn-quiet btn-sm" onClick={() => setPhoto(value => (value + 1) % page.photos.length)}>
             Photo {photo + 1} of {page.photos.length}<ArrowRight size={14} aria-hidden="true" /></Button>}
         </span>
       </figcaption>
