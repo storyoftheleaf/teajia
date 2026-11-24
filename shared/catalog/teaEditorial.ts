@@ -6,7 +6,7 @@ export type EditorialPassage = {
 };
 export type TeaEditorialPacket = {
   passages: EditorialPassage[];
-  holds: TeaCitation[]; histories: (TeaCitation & { wisdom: string })[];
+  holds: (TeaCitation & { sources?: TeaCitation[] })[]; histories: (TeaCitation & { wisdom: string })[];
   intake: Record<string, { nextCheck: string }>;
 };
 export type PassageVerdict = { decision: TeaVerdict; version: number };
