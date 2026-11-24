@@ -1,0 +1,91 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T10:09:34.851Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "186380ba-6839-448f-baaf-2b84ef7e5556",
+    "name": "Mahei Gushu Red",
+    "chineseName": "麻黑古树红茶",
+    "type": "Red",
+    "form": "Loose Leaf",
+    "year": 2025,
+    "origin": "Mahei, Yiwu, Xishuangbanna, Yunnan, China",
+    "stockGrams": 1000,
+    "pricePerGramUsd": 0.25,
+    "tags": []
+  },
+  "entry": {
+    "productId": "186380ba-6839-448f-baaf-2b84ef7e5556",
+    "paragraphs": [
+      {
+        "layer": "named",
+        "text": "The name reads as a place, a description and a style. [Mahei](mahei-gushu-red:tea-name) is the village in Yiwu, gushu means old tree, as the label describes it, and hong cha means red tea. A section of the old [Tea Horse Road](mahei:village-road-and-harvest) passes through the village, and in April 2024 the farmer Ding Wanchun told local reporters his family needed more than twenty pickers a day for the spring harvest."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was made into [red tea](red:definition), the fully oxidised tea English calls black. It was [withered, then rolled](dian-hong:making) to break its cells so oxidation could begin, left until it turned from green to reddish brown, and then dried. It belongs to the newer branch sold as [old-tree red](dian-hong:old-tree-and-sun-dried), which has no agreed definition or standard."
+      },
+      {
+        "layer": "age",
+        "text": "This is a 2025 tea, one year old. Yunnan red tea is [kept for freshness](dian-hong:ageing) rather than for age, and the trade drinks it within its first one to three years."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Dian Hong",
+      "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "mahei-gushu-red:tea-name",
+      "rev": 1
+    },
+    {
+      "claimId": "mahei:village-road-and-harvest",
+      "rev": 1
+    },
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:making",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:old-tree-and-sun-dried",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "It was withered, then rolled to break its cells so oxidation could begin, left until it turned from green to reddish brown, and then dried.",
+      "words": "dried with heat",
+      "why": "Drying over heat comes only from the Dian Hong making claim. The general red tea claim does not say how the leaf is dried. The old-tree and sun-dried claim says the trade does not agree whether old-tree red counts as Dian Hong, and that some Yunnan red is dried in the sun instead. The record and notes do not say how this lot was dried, so drying with heat is a process step stated for this lot without support."
+    }
+  ],
+  "approvedAt": "2026-11-24T10:13:24.794Z"
+}

@@ -99,6 +99,94 @@
     ]
   },
   {
+    "id": "dian-hong:ageing",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age."
+      }
+    ]
+  },
+  {
+    "id": "dian-hong:brewing",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens."
+      }
+    ]
+  },
+  {
+    "id": "dian-hong:common-impressions",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness."
+      }
+    ]
+  },
+  {
+    "id": "dian-hong:definition",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style."
+      }
+    ]
+  },
+  {
+    "id": "dian-hong:history",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s."
+      }
+    ]
+  },
+  {
+    "id": "dian-hong:large-leaf",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold."
+      }
+    ]
+  },
+  {
+    "id": "dian-hong:making",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were."
+      }
+    ]
+  },
+  {
+    "id": "dian-hong:old-tree-and-sun-dried",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong."
+      }
+    ]
+  },
+  {
     "id": "greater-yiwu:common-character",
     "public": true,
     "withdrawn": false,
@@ -451,6 +539,83 @@
       {
         "rev": 1,
         "text": "Modern Pu’er includes sheng and shou. Their processing paths differ, but both sit within a twentieth-century industry that restored tea gardens, expanded production, and developed distinct forms for domestic and export markets."
+      }
+    ]
+  },
+  {
+    "id": "red:ageing",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Red tea has no tradition of ageing. It is a tea to drink fresh: sealed, it keeps its quality for about a year and a half to three years, and after that it turns flatter."
+      }
+    ]
+  },
+  {
+    "id": "red:brewing",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf."
+      }
+    ]
+  },
+  {
+    "id": "red:common-impressions",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
+      }
+    ]
+  },
+  {
+    "id": "red:definition",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Red tea is the tea English calls black tea. The Chinese name follows the colour of the brewed cup, which is red; the English one follows the dry leaf, which is dark. It is the fully oxidised tea: once the leaf’s cells are broken, its own enzymes work on it until it has turned from green to reddish brown. The Chinese trade calls that step fermentation."
+      }
+    ]
+  },
+  {
+    "id": "red:history",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "By the trade’s own telling, red tea began in the Wuyi mountains of northern Fujian, around Tongmu, in the seventeenth century, though no record says exactly how or when it was first made. Dutch traders and then the British East India Company carried it to Europe under the names Bohea and Souchong. In the nineteenth century the craft spread to other Chinese provinces, among them Anhui, where Keemun began late in the Qing dynasty, and the British, having taken Chinese plants and tea makers to India, planted red tea in Assam and later Darjeeling. Taiwan’s red tea dates from the Japanese period, at Yuchi near Sun Moon Lake, and Yunnan’s Dian Hong from the late 1930s."
+      }
+    ]
+  },
+  {
+    "id": "red:making",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Red tea is made in four steps, each with a reason. The fresh leaf is withered, spread out until it loses water and goes soft enough to work. It is rolled, twisted and bruised so its juices and enzymes meet and the change can begin. It is left to oxidise in warmth and damp air, and the maker judges it by smell and colour, as the grassy smell turns floral or fruity and the leaf turns reddish brown. Then it is dried with hot air, which ends the change and makes the tea stable. Graded teas are then sorted and blended."
+      }
+    ]
+  },
+  {
+    "id": "red:whole-and-broken",
+    "public": true,
+    "withdrawn": false,
+    "revisions": [
+      {
+        "rev": 1,
+        "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea."
       }
     ]
   },
