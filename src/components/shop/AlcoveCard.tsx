@@ -609,6 +609,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
+  // The tasting journal sits with "What people often notice" (Adrian, 2026-11-24):
+  // inside the composed entry, above Brewing, when the tea has one.
+  const pageJournal = <ProductImpressions impressions={impressions.filter(note => note.productId === item.id)} />;
+
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
     return (
@@ -623,12 +627,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         })}
         factsTitle="Provenance"
         history={composed
-          ? <AlcoveComposedEntry entry={composed} claims={entryClaims} />
+          ? <AlcoveComposedEntry entry={composed} claims={entryClaims} journal={pageJournal} />
           : <AlcoveWisdomPassages listing={wisdomPassages} />}
         order={wisdomPilot?.externalReference || item.ordersPaused ? undefined : commerceFooter('docked')}
         teaOrder
         tasting={characterBand}
-        journal={<div className="mx-5"><ProductImpressions impressions={impressions.filter(note => note.productId === item.id)} /></div>}
+        journal={composed ? undefined : <div className="mx-5">{pageJournal}</div>}
         reading={reading}
         related={<>{tableSection}{threadSection}</>}
         styleReference={<AlcoveWisdomStyleReferences listing={wisdomPassages} />}
