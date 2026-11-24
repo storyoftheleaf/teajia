@@ -180,6 +180,7 @@ describe('sellable Tea Reference catalogue', () => {
       'dark',
       'dian-hong',
       'greater-yiwu',
+      'lapsang',
       'lincang',
       'liu-bao',
       'mahei',
