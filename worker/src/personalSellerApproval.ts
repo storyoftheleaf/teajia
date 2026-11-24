@@ -25,13 +25,21 @@ export async function personalSellerApproved(db: D1Database, accountId: string):
  * orders and the shop setting stay as they were.
  */
 export async function setPersonalSellerApproval(db: D1Database, userId: string, approved: boolean, actorId: string) {
-  const account = await db.prepare(
-    'SELECT id FROM accounts WHERE personal_inventory_user_id = ? AND owner_user_id = personal_inventory_user_id',
-  ).bind(userId).first<{ id: string }>();
-  if (!account) return null;
-  await db.prepare(approved
-    ? `UPDATE accounts SET personal_seller_approved_at = COALESCE(personal_seller_approved_at, ?), personal_seller_approved_by = COALESCE(personal_seller_approved_by, ?) WHERE id = ?`
-    : `UPDATE accounts SET personal_seller_approved_at = NULL, personal_seller_approved_by = NULL WHERE id = ?`,
-  ).bind(...(approved ? [new Date().toISOString(), actorId, account.id] : [account.id])).run();
-  return { account_id: account.id, approved };
+  // The approval lives on the person (0121), so it can be given before they
+  // open a Tea Chest; any Tea Chest they already have gets the same mark.
+  const now = new Date().toISOString();
+  const [person] = await db.batch([
+    db.prepare(approved
+      ? 'UPDATE users SET seller_approved_at = COALESCE(seller_approved_at, ?), seller_approved_by = COALESCE(seller_approved_by, ?) WHERE id = ?'
+      : 'UPDATE users SET seller_approved_at = NULL, seller_approved_by = NULL WHERE id = ?',
+    ).bind(...(approved ? [now, actorId, userId] : [userId])),
+    db.prepare(approved
+      ? `UPDATE accounts SET personal_seller_approved_at = COALESCE(personal_seller_approved_at, ?), personal_seller_approved_by = COALESCE(personal_seller_approved_by, ?)
+         WHERE personal_inventory_user_id = ? AND owner_user_id = personal_inventory_user_id`
+      : `UPDATE accounts SET personal_seller_approved_at = NULL, personal_seller_approved_by = NULL
+         WHERE personal_inventory_user_id = ? AND owner_user_id = personal_inventory_user_id`,
+    ).bind(...(approved ? [now, actorId, userId] : [userId])),
+  ]);
+  if (!person.meta?.changes) return null;
+  return { approved };
 }

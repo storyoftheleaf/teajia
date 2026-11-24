@@ -106,3 +106,35 @@ describe('only people Adrian approves may sell', () => {
     expect(await order.json()).toEqual({ error: 'Store not found' });
   });
 });
+
+describe('approving a person before they open a Tea Chest', () => {
+  const iris = { userId: 'iris', name: 'Iris', profile: 'iris-profile', destination: 'Synthetic Iris account 5150' };
+  const approveIris = (db: SqliteD1, approved: boolean, actor = adrian) =>
+    request(db, `/api/platform/users/${iris.userId}/seller-approval`, { actor, method: 'PUT', body: { approved } });
+
+  async function fresh() {
+    const db = new SqliteD1('migrations');
+    databases.push(db);
+    seedIdentity(db, { userId: 'adrian', accountId: 'platform-home', platformRole: 'platform_owner' });
+    seedIdentity(db, { userId: iris.userId, accountId: `${iris.userId}-home`, publicEnabled: false });
+    return db;
+  }
+
+  it('waits on the person and applies the moment their Tea Chest opens', async () => {
+    const db = await fresh();
+    expect(await json(await approveIris(db, true))).toEqual({ ok: true, may_sell: true });
+    const seller = await createSeller(db, iris, false, false);
+    expect(db.sqlite.prepare('SELECT personal_seller_approved_at IS NOT NULL AS approved FROM accounts WHERE id = ?').get(seller.actor.accountId))
+      .toEqual({ approved: 1 });
+    await json(await openStore(db, seller.actor));
+    await json(await request(db, seller.offerPath, { actor: seller.actor, method: 'POST', body: offer }), 201);
+  });
+
+  it('withdrawn before the Tea Chest opens, it stays shut', async () => {
+    const db = await fresh();
+    await json(await approveIris(db, true));
+    await json(await approveIris(db, false));
+    const seller = await createSeller(db, iris, false, false);
+    expect((await openStore(db, seller.actor)).status).toBe(403);
+  });
+});

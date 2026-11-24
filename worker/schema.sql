@@ -3905,3 +3905,7 @@ ALTER TABLE session_guest_book ADD COLUMN public_recap INTEGER NOT NULL DEFAULT 
 -- 0120_personal_seller_approval.sql
 ALTER TABLE accounts ADD COLUMN personal_seller_approved_at TEXT;
 ALTER TABLE accounts ADD COLUMN personal_seller_approved_by TEXT REFERENCES users(id);
+
+-- 0121_seller_approval_ahead.sql
+ALTER TABLE users ADD COLUMN seller_approved_at TEXT;
+ALTER TABLE users ADD COLUMN seller_approved_by TEXT;

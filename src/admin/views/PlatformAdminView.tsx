@@ -274,13 +274,13 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                 </button>
               )}
               {isPlatformOwner && (
-                <label className={`inline-flex min-h-tap items-center gap-2 text-ui-13 ${user.has_tea_chest ? 'cursor-pointer text-tea-text-sec' : 'text-tea-text-dim'}`}
-                  title={user.has_tea_chest ? undefined : 'Opens once they start a Tea Chest'}>
+                <label className="inline-flex min-h-tap cursor-pointer items-center gap-2 text-ui-13 text-tea-text-sec"
+                  title={user.has_tea_chest ? undefined : 'Applies as soon as they open a Tea Chest'}>
                   <input type="checkbox" role="switch" className="h-4 w-4 shrink-0 accent-tea-gold"
                     checked={!!user.may_sell} aria-checked={!!user.may_sell}
-                    disabled={!user.has_tea_chest || busy === `sell-${user.id}`}
+                    disabled={busy === `sell-${user.id}`}
                     onChange={() => void handleToggleMaySell(user)} data-testid="may-sell-switch" />
-                  May sell on Teajia{!user.has_tea_chest && <span className="text-ui-11">· no Tea Chest yet</span>}
+                  May sell on Teajia{!user.has_tea_chest && <span className="text-ui-11 text-tea-text-dim">· no Tea Chest yet</span>}
                 </label>
               )}
               <button type="button" onClick={() => handleResendInvite(user)} disabled={busy === `invite-${user.id}`}

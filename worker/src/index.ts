@@ -16286,8 +16286,10 @@ const handlePersonalInventoryAccount: Handler = async (request, env) => {
   await env.DB.batch([
     env.DB.prepare(`
       INSERT INTO accounts (id, slug, name, kind, status, public_enabled, owner_user_id,
-                            personal_inventory_user_id, invoice_prefix, contact_email)
-      SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA', NULLIF(trim(email), '') FROM users WHERE id = ?
+                            personal_inventory_user_id, invoice_prefix, contact_email,
+                            personal_seller_approved_at, personal_seller_approved_by)
+      SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA', NULLIF(trim(email), ''),
+             seller_approved_at, seller_approved_by FROM users WHERE id = ?
       ON CONFLICT(personal_inventory_user_id) DO NOTHING
     `).bind(id, slug, name, ctx.userId),
     env.DB.prepare(`
@@ -16662,8 +16664,8 @@ const handleSellerApproval: Handler = async (request, env, params) => {
   if (typeof body?.approved !== 'boolean') return json({ error: 'Say whether this person may sell.' }, 400);
   const actor = parseToken(isAuthed(request)!);
   const result = await setPersonalSellerApproval(env.DB, params.id, body.approved, actor?.sub ?? 'unknown');
-  if (!result) return json({ error: 'This person has not opened a Tea Chest yet.' }, 404);
-  await logPlatformAction(env, 'seller.approval_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { approved: body.approved, account_id: result.account_id });
+  if (!result) return json({ error: 'User not found' }, 404);
+  await logPlatformAction(env, 'seller.approval_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { approved: body.approved });
   return json({ ok: true, may_sell: body.approved });
 };
 
@@ -22394,8 +22396,9 @@ const handlePlatformListUsers: Handler = async (request, env) => {
   const { results } = await env.DB.prepare(
     `SELECT u.id, u.email, u.name, u.username, u.platform_role, u.created_at,
             u.shelf_enabled, u.shelf_slug,
-            (SELECT CASE WHEN pa.personal_seller_approved_at IS NOT NULL THEN 2 ELSE 1 END FROM accounts pa
-              WHERE pa.personal_inventory_user_id = u.id LIMIT 1) AS seller_state,
+            (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id LIMIT 1) AS seller_state,
+            (u.seller_approved_at IS NOT NULL OR EXISTS (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id
+              AND pa.personal_seller_approved_at IS NOT NULL)) AS seller_approved,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -22418,7 +22421,7 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     shelf_enabled: !!u.shelf_enabled,
     shelf_slug: u.shelf_slug ?? null,
     has_tea_chest: u.seller_state != null,
-    may_sell: u.seller_state === 2,
+    may_sell: u.seller_approved === 1,
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
