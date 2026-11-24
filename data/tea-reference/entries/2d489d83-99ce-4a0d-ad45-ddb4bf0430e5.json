@@ -1,0 +1,74 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T12:31:52.989Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "2d489d83-99ce-4a0d-ad45-ddb4bf0430e5",
+    "name": "Meizhan Oolong",
+    "chineseName": "梅占乌龙",
+    "type": "Oolong",
+    "form": "Rolled",
+    "year": 2004,
+    "origin": "Wuyi Mountains, Fujian, China",
+    "stockGrams": 900,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "2d489d83-99ce-4a0d-ad45-ddb4bf0430e5",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "[Meizhan](yancha:meizhan) is a Fujian cultivar that came from Anxi, and here it is made as [Wuyi rock tea](yancha:definition), the oolong of the Wuyi mountains in northern Fujian. It is not one of the four famous bushes of Wuyi, and it is less famous than Rougui or Shui Xian. The bushes of this area grow among rock, on ledges and terraces in cliff country. The leaf is finished over charcoal in several rounds, with rests between them, and that [charcoal roast](yancha:making) dries the tea so it keeps."
+      },
+      {
+        "layer": "age",
+        "text": "This leaf was made in 2004, so it has had twenty-two years. The rock tea that gets kept this long is the medium to full roast kind, and the heavier the roast, the longer it is said to hold. Damp is the real danger in storage. Tea that takes it on [goes green again](yancha:ageing), and a careful low roast can drive the moisture back out."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Wuyi tea is usually brewed gongfu style with water at or near the boil, about 95 to 100°C, and about 5 to 8 grams of leaf in a 100 to 120 ml gaiwan, a third to a half full. A quick rinse, poured off at once, is common. Steeps start short, about 5 to 20 seconds, and grow a few seconds longer each round, and good rock tea gives seven steeps or more. In a larger pot, use about 2 to 5 grams for 250 to 350 ml and steep two to three minutes."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Wuyi rock tea",
+      "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "yancha:meizhan",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:making",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T13:33:40.940Z"
+}

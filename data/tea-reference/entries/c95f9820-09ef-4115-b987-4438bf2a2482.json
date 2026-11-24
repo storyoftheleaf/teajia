@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T12:36:49.571Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "c95f9820-09ef-4115-b987-4438bf2a2482",
+    "name": "Rougui",
+    "chineseName": "肉桂乌龙",
+    "type": "Oolong",
+    "form": "Loose",
+    "year": null,
+    "origin": "Wuyi Mountains, Fujian, China",
+    "stockGrams": 1200,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "c95f9820-09ef-4115-b987-4438bf2a2482",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Rougui is a [Wuyi cultivar](yancha:rougui) whose name means cassia, after cassia bark. It dates from the Qing dynasty and is now widely planted in the [Wuyi mountains](yancha:definition) of northern Fujian, where the bushes grow among rock, in crevices, on ledges and on cliff terraces, in soil weathered from the stone."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf is made as an [oolong](oolong:definition), partly oxidised, and twisted into long thin strips. What sets it apart is the [charcoal roast](yancha:making), given in several rounds with rests of weeks or months between them. The roast dries the tea so that it keeps, and its strength is matched to the leaf."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Wuyi tea is usually brewed gongfu style with water at or near the boil, about 95 to 100°C, and about 5 to 8 grams of leaf in a 100 to 120 ml gaiwan, a third to a half full. A quick rinse, poured off at once, is common. Steeps start short, about 5 to 20 seconds, and grow a few seconds longer each round, and good rock tea gives seven steeps or more. In a larger pot, use about 2 to 5 grams for 250 to 350 ml and steep two to three minutes."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Wuyi rock tea",
+      "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "yancha:rougui",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:making",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T13:33:41.764Z"
+}

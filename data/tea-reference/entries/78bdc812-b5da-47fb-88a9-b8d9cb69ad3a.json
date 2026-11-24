@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T12:33:49.753Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "78bdc812-b5da-47fb-88a9-b8d9cb69ad3a",
+    "name": "Muyun Da Hong Pao",
+    "chineseName": "母韵大红袍",
+    "type": "Oolong",
+    "form": "Loose",
+    "year": null,
+    "origin": "Wuyi Mountains, Fujian, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "78bdc812-b5da-47fb-88a9-b8d9cb69ad3a",
+    "paragraphs": [
+      {
+        "layer": "named",
+        "text": "[Da Hong Pao](yancha:da-hong-pao), Big Red Robe, began with six old bushes on a cliff at Jiulongke in Wuyi, known as the mother trees, and no one has picked them since 2006. Most tea sold under the name today blends several Wuyi cultivars. A purebred line also exists: Qidan, grown from cuttings of those six bushes."
+      },
+      {
+        "layer": "type",
+        "text": "It is a [Wuyi rock tea](yancha:definition), the [partly oxidised](oolong:definition) tea of the mountains around Wuyishan City in northern Fujian, and only leaf from that area may carry the name. The bushes grow among rock, in crevices and on ledges and terraces, in soil weathered from the cliffs. The leaf is twisted into long thin strips and finished over charcoal in several rounds, with weeks or months of rest between them. This [roast](yancha:making) dries the tea so that it keeps."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Wuyi tea is usually brewed gongfu style with water at or near the boil, about 95 to 100°C, and about 5 to 8 grams of leaf in a 100 to 120 ml gaiwan, a third to a half full. A quick rinse, poured off at once, is common. Steeps start short, about 5 to 20 seconds, and grow a few seconds longer each round, and good rock tea gives seven steeps or more. In a larger pot, use about 2 to 5 grams for 250 to 350 ml and steep two to three minutes."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Wuyi rock tea",
+      "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "yancha:da-hong-pao",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:making",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T13:33:41.293Z"
+}
