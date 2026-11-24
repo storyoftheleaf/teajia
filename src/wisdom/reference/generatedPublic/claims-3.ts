@@ -3,6 +3,186 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "shou:age-young",
+    "pageId": "shou",
+    "sectionKey": "age-young",
+    "label": "Young ripe pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "堆味",
+        "pinyin": "duī wèi",
+        "gloss": "pile taste"
+      }
+    ],
+    "rev": 1,
+    "scope": "Ripe pu'er under about five years",
+    "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:brewing",
+    "pageId": "shou",
+    "sectionKey": "brewing",
+    "label": "Brewing ripe pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Gongfu brewing of ripe pu'er in general",
+    "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:brewing-pressed",
+    "pageId": "shou",
+    "sectionKey": "brewing-pressed",
+    "label": "Breaking a pressed tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Cakes, bricks and tuo",
+    "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:common-impressions",
+    "pageId": "shou",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The ripe style, not any lot",
+    "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:definition",
+    "pageId": "shou",
+    "sectionKey": "definition",
+    "label": "What ripe pu’er is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "熟普洱",
+        "pinyin": "shú pǔ’ěr",
+        "gloss": "ripe pu’er"
+      }
+    ],
+    "rev": 1,
+    "scope": "Ripe pu'er in general",
+    "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:notice-aged",
+    "pageId": "shou",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged ripe pu’er",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "陈香",
+        "pinyin": "chén xiāng",
+        "gloss": "aged aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "The aged ripe style, not any lot",
+    "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:piling-1973",
+    "pageId": "shou",
+    "sectionKey": "piling-1973",
+    "label": "Yunnan learns the pile",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Yunnan state factories, 1973 to 1975",
+    "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:piling-history",
+    "pageId": "shou",
+    "sectionKey": "piling-history",
+    "label": "How piling came to be",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Trade history before 1973",
+    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "shou:piling-today",
+    "pageId": "shou",
+    "sectionKey": "piling-today",
+    "label": "Piling today",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Current factory practice in general",
+    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "shou:wet-piling",
     "pageId": "shou",
     "sectionKey": "wet-piling",
@@ -26,6 +206,277 @@ export const PART: readonly PublicClaim[] = [
     "sourceIds": [
       "white2tea-ripe-puer"
     ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:ageing",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Taiwan oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老茶",
+        "pinyin": "lǎo chá",
+        "gloss": "old tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:baozhong",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "baozhong",
+    "label": "Baozhong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "baozhong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "包種",
+        "pinyin": "bāozhǒng",
+        "gloss": "wrapped kind"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:brewing",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "brewing",
+    "label": "Brewing Taiwan oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:common-impressions",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:definition",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "definition",
+    "label": "What Taiwan oolong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "青心烏龍",
+        "pinyin": "qīngxīn wūlóng",
+        "gloss": "Qingxin oolong"
+      },
+      {
+        "original": "金萱",
+        "pinyin": "jīnxuān",
+        "gloss": "Jinxuan"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:dong-ding",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "dong-ding",
+    "label": "Dong Ding",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "dong",
+        "ding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "凍頂",
+        "pinyin": "dòngdǐng",
+        "gloss": "Dong Ding"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:high-mountain",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "high-mountain",
+    "label": "High mountain tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "high",
+        "mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "高山茶",
+        "pinyin": "gāoshān chá",
+        "gloss": "high mountain tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:history",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "history",
+    "label": "How Taiwan oolong grew",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:notice-aged",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Taiwan oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "taiwan-oolong:oriental-beauty",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "oriental-beauty",
+    "label": "Oriental Beauty",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "oriental",
+        "beauty"
+      ]
+    },
+    "terms": [
+      {
+        "original": "東方美人",
+        "pinyin": "dōngfāng měirén",
+        "gloss": "Oriental Beauty"
+      },
+      {
+        "original": "膨風茶",
+        "pinyin": "pèngfēng chá",
+        "gloss": "bragging tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
+    "sourceIds": [],
     "reviewState": "approved"
   },
   {

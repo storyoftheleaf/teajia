@@ -914,13 +914,22 @@ export const PART: readonly DraftClaim[] = [
       "type": "Oolong"
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -935,34 +944,22 @@ export const PART: readonly DraftClaim[] = [
       "type": "Oolong"
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:common-impressions",
-    "pageId": "oolong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   }
 ];

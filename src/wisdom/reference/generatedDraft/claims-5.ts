@@ -5,6 +5,226 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "taiwan-oolong:high-mountain",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "high-mountain",
+    "label": "High mountain tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "high",
+        "mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "高山茶",
+        "pinyin": "gāoshān chá",
+        "gloss": "high mountain tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:history",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "history",
+    "label": "How Taiwan oolong grew",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:notice-aged",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Taiwan oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:oriental-beauty",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "oriental-beauty",
+    "label": "Oriental Beauty",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "oriental",
+        "beauty"
+      ]
+    },
+    "terms": [
+      {
+        "original": "東方美人",
+        "pinyin": "dōngfāng měirén",
+        "gloss": "Oriental Beauty"
+      },
+      {
+        "original": "膨風茶",
+        "pinyin": "pèngfēng chá",
+        "gloss": "bragging tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:living-culture",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "living-culture",
+    "label": "Living tea culture",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:mountain-names",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "mountain-names",
+    "label": "Mountain names",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:regional-grouping",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "regional-grouping",
+    "label": "A regional grouping",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
     "claimId": "y562:designers",
     "pageId": "y562",
     "sectionKey": "designers",

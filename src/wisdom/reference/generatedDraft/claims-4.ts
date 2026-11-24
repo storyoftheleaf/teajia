@@ -5,6 +5,106 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "sheng:history",
+    "pageId": "sheng",
+    "sectionKey": "history",
+    "label": "How the trade grew",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er in general",
+        "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:history-modern",
+    "pageId": "sheng",
+    "sectionKey": "history-modern",
+    "label": "Collectors and mountains",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [
+      {
+        "original": "古树",
+        "pinyin": "gǔ shù",
+        "gloss": "old trees"
+      }
+    ],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er in general",
+        "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:identity",
+    "pageId": "sheng",
+    "sectionKey": "identity",
+    "label": "What sheng means",
+    "axis": "type",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Sheng Pu’er",
+    "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
+    "sourceIds": [
+      "teaguardian-raw-cooked-puer"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Sheng Pu’er",
+        "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-3BB473838666F92132E285E0"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "sheng:making",
     "pageId": "sheng",
     "sectionKey": "making",
@@ -623,13 +723,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "old tea"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -656,13 +765,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "wrapped kind"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -680,13 +798,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -704,13 +831,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -739,13 +875,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Jinxuan"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -773,197 +918,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Dong Ding"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:high-mountain",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "high-mountain",
-    "label": "High mountain tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ],
-      "name_includes": [
-        "high",
-        "mountain"
-      ]
-    },
-    "terms": [
+    "reviewState": "approved",
+    "previousRevisions": [
       {
-        "original": "高山茶",
-        "pinyin": "gāoshān chá",
-        "gloss": "high mountain tea"
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
-    "previousRevisions": [],
     "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:history",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "history",
-    "label": "How Taiwan oolong grew",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ]
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:notice-aged",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Taiwan oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ]
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:oriental-beauty",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "oriental-beauty",
-    "label": "Oriental Beauty",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ],
-      "name_includes": [
-        "oriental",
-        "beauty"
-      ]
-    },
-    "terms": [
-      {
-        "original": "東方美人",
-        "pinyin": "dōngfāng měirén",
-        "gloss": "Oriental Beauty"
-      },
-      {
-        "original": "膨風茶",
-        "pinyin": "pèngfēng chá",
-        "gloss": "bragging tea"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "xishuangbanna-tea-mountains:living-culture",
-    "pageId": "xishuangbanna-tea-mountains",
-    "sectionKey": "living-culture",
-    "label": "Living tea culture",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "xishuangbanna-tea-mountains:mountain-names",
-    "pageId": "xishuangbanna-tea-mountains",
-    "sectionKey": "mountain-names",
-    "label": "Mountain names",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "xishuangbanna-tea-mountains:regional-grouping",
-    "pageId": "xishuangbanna-tea-mountains",
-    "sectionKey": "regional-grouping",
-    "label": "A regional grouping",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
   }
 ];

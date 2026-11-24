@@ -2947,9 +2947,19 @@
           "gloss": "blue-green tea"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -2968,9 +2978,19 @@
           "gloss": "tossing the leaf in rounds"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -2989,9 +3009,19 @@
           "gloss": "roasting"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3010,9 +3040,19 @@
           "gloss": "rock rhyme"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3025,9 +3065,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3040,9 +3090,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3055,9 +3115,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3070,9 +3140,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3085,9 +3165,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3114,9 +3204,19 @@
           "gloss": "Jinxuan"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3142,9 +3242,19 @@
           "gloss": "high mountain tea"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3170,9 +3280,19 @@
           "gloss": "Dong Ding"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3197,9 +3317,19 @@
           "gloss": "wrapped kind"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3230,9 +3360,19 @@
           "gloss": "bragging tea"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3248,9 +3388,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3272,9 +3422,19 @@
           "gloss": "old tea"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3290,9 +3450,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3308,9 +3478,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -3326,9 +3506,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+          "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
+          "approved_at": "2026-11-24",
+          "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     }
   ]

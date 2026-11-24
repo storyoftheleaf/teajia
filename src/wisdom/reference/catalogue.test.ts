@@ -187,22 +187,26 @@ describe('sellable Tea Reference catalogue', () => {
       'malaysian-returned-liu-bao',
       'menghai-county',
       'nanqiao-ruigong-brick',
+      'oolong',
       'puer',
       'red',
       'san-he-liu-bao',
       'sheng',
       'shou',
+      'taiwan-oolong',
       'y562',
       'yunnan',
     ]);
     expect(result.families).toEqual([
+      // Oolong's kit is approved, so the Taiwan oolongs reach its family; a Sheng-sounding name changes nothing.
+      expect.objectContaining({ id: 'oolong', productIds: ['tea-oolong', 'tea-oolong-sheng-name'] }),
       expect.objectContaining({
         id: 'puer',
         name: 'Pu’er',
         productIds: ['tea-sheng-active', 'tea-sheng-sold-out', 'tea-shou-active'],
       }),
     ]);
-    expect(result.families[0].facts.map(fact => fact.text)).toContain(
+    expect(result.families.find(family => family.id === 'puer')!.facts.map(fact => fact.text)).toContain(
       'Pu’er belongs to Yunnan’s long tea history. The name now gathers a family of teas whose identity is tied not only to manufacture, but also to material, place, and the traditions that developed around them.',
     );
     expect(result.types).toEqual([
@@ -217,6 +221,7 @@ describe('sellable Tea Reference catalogue', () => {
         familyId: 'puer',
         productIds: ['tea-shou-active'],
       }),
+      expect.objectContaining({ id: 'taiwan-oolong', familyId: 'oolong', productIds: ['tea-oolong', 'tea-oolong-sheng-name'] }),
     ]);
     expect(result.origins).toEqual([
       expect.objectContaining({ id: 'greater-yiwu', parentId: 'yunnan', productIds: ['tea-sheng-active'] }),

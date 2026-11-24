@@ -5,6 +5,36 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "oolong:common-impressions",
+    "pageId": "oolong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "oolong:definition",
     "pageId": "oolong",
     "sectionKey": "definition",
@@ -27,13 +57,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "blue-green tea"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -54,13 +93,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "rock rhyme"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -75,13 +123,22 @@ export const PART: readonly DraftClaim[] = [
       "type": "Oolong"
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -102,13 +159,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "tossing the leaf in rounds"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -123,13 +189,22 @@ export const PART: readonly DraftClaim[] = [
       "type": "Oolong"
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -150,13 +225,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "roasting"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -862,106 +946,6 @@ export const PART: readonly DraftClaim[] = [
         "approvedAt": "2026-11-24",
         "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
         "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:history",
-    "pageId": "sheng",
-    "sectionKey": "history",
-    "label": "How the trade grew",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:history-modern",
-    "pageId": "sheng",
-    "sectionKey": "history-modern",
-    "label": "Collectors and mountains",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "古树",
-        "pinyin": "gǔ shù",
-        "gloss": "old trees"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:identity",
-    "pageId": "sheng",
-    "sectionKey": "identity",
-    "label": "What sheng means",
-    "axis": "type",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
-    "sourceIds": [
-      "teaguardian-raw-cooked-puer"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-3BB473838666F92132E285E0"
-        ]
       }
     ],
     "pageVisibility": "public"
