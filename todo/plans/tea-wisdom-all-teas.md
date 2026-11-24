@@ -40,6 +40,25 @@ A style kit adds only what differs from its type.
 6. **Corrections (phase 4 of the pilot plan).** When a kit section changes, every entry that used it is flagged and a fresh draft waits beside the live one.
 7. **Intake (phase 5).** A grade field on the tea record; when a tea moves from Curate to the shop, its entry is drafted and lands in Adrian's approval list, so new teas never wait for a batch.
 
+## What success looks like
+
+Each can be checked by looking, or by one command:
+
+1. **Every tea has an entry.** On teajia.com, every tea's product page shows one written entry (story, brewing, what people often notice), not stacked Wisdom blocks. Check: the count of approved entries in `src/wisdom/reference/generatedEntries.ts` equals the count of public teas, less the ones held with a written reason.
+2. **No tea waits for a batch.** A tea moved from Curate to the shop has a draft in Adrian's approval list the same day.
+3. **Every link goes somewhere worth going.** Each underlined term opens a Wisdom page with more than the sentence it came from, at the right section. Check: every link on a product page lands on a page with two or more sections.
+4. **Nothing is invented.** Every sentence rests on the tea's record or an approved claim. Check: each draft passes both checks, and Adrian approves without rewriting.
+5. **One fix reaches every tea.** Correcting a kit section flags every entry that used it and puts a fresh draft beside it. Check: edit one section in the practice shop; the affected entries show the flag.
+6. **Thin teas still read well.** A tea with only a name, year and type gets a full, true entry from its type, style and age. Check: Adrian reads three thin entries and is happy with them.
+
+## How to run each step
+
+- **Count the stock (step 1).** Reconnect the Teajia shop connection, then read every tea's type, style, year and origin, and write the counts into this file.
+- **Writer for every type (step 2).** In `src/wisdom/compose/composeInputs.ts`, replace `TYPE_PAGE` and the `shou:` keys with a lookup of the type and style pages and their section keys. Run `npx vitest run src/wisdom/compose` and `node --test scripts/tea-wisdom-compose/tests/*.test.mjs`.
+- **A kit (step 4).** Write the research prompt into the vault (`Teajia/Research/tea-wisdom/<kit>.md`), run it through Claude and Hermes, and draft the sections into `data/tea-reference/pages/<kit>.md`, each saying why. Build `npm run tea-reference:pages`, publish an approval page like the ripe kit's, then on Adrian's word run `node scripts/tea-reference-markdown/claims-cli.mjs approve <page>:<section> --reason "…" --scope "…"` for each section.
+- **Compose a batch (step 5).** Fetch the product list once (`curl https://www.teajia.com/api/products/public`). Run `node scripts/tea-wisdom-compose/compose.mjs --products <file> --type <type>`; the claude CLI must be signed in on the Claude plan, not API billing. Read each draft at `/preview/wisdom-pilot/drafts/<id>` in `npm run practice`, run `npm run tea-wisdom:entries:approve <id>` for the clean ones, then the checks and `test:mobile`, then push once.
+- **Corrections and intake (steps 6 and 7).** Follow phases 4 and 5 of [tea-wisdom-composed-entry.md](tea-wisdom-composed-entry.md).
+
 ## First kits, from the public shop
 
 | Kit | Teas it unlocks today | Notes |
