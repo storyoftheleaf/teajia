@@ -5,6 +5,119 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "y562:little-black-box",
+    "pageId": "y562",
+    "sectionKey": "little-black-box",
+    "label": "Yunnan’s little black box",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
+    "sourceIds": [
+      "china-tea-catalogue-y562",
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
+        "evidenceIds": [
+          "EVIDENCE-99F92222EEA66297BE2ECBA5",
+          "EVIDENCE-E21387EE2A807C8BD28E7236",
+          "EVIDENCE-6C6F4F073EDB7261F39C85AB"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "y562:original-blend",
+    "pageId": "y562",
+    "sectionKey": "original-blend",
+    "label": "The tea behind the code",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+    "sourceIds": [
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
+        "evidenceIds": [
+          "EVIDENCE-A4817C0FA41A69E66E2BF23B"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yunnan-mountain-names:market-names",
+    "pageId": "yunnan-mountain-names",
+    "sectionKey": "market-names",
+    "label": "Names in the tea market",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
+    "sourceIds": [
+      "ctma-yunnan-108-mountains-2026"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "yunnan-mountain-names:reading-the-list",
+    "pageId": "yunnan-mountain-names",
+    "sectionKey": "reading-the-list",
+    "label": "What a list can tell us",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
+    "sourceIds": [
+      "ctma-yunnan-108-mountains-2026"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
     "claimId": "yunnan:geographic-frame",
     "pageId": "yunnan",
     "sectionKey": "geographic-frame",
