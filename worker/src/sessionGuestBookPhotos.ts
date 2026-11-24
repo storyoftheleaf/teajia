@@ -1,6 +1,7 @@
 import { currentAfterSitLink } from './afterSitCredential';
 import { privateAttendeeSeatMatch } from './privateSessionReflections';
 import { privatePhotoHeaders } from './privatePhotoUpload';
+import { GUEST_BOOK_NOTE_LIMIT, guestBookEntryKeys, prepareGuestBookNote } from './sessionGuestBook';
 import { readSitPhotoRendition, sitPhotoRenditionResponse } from './revocableSitPhotos';
 
 export type GuestBookPhotoInput = { action?: unknown; photoId?: unknown; grantId?: unknown; description?: unknown };
@@ -24,7 +25,7 @@ const roster = `FROM session_guest_book_photos g
   JOIN accounts shop ON shop.id = e.account_id
   WHERE g.revoked_at IS NULL AND contributor.status = 'confirmed' AND contributor.attended = 1
     AND ${eventCheck}`;
-const visiblePhoto = 'g.id, contributor.full_name AS display_name, g.alt_text';
+const visiblePhoto = 'g.id, contributor.full_name AS display_name, g.alt_text, g.user_id';
 const sourceDescription = `COALESCE(NULLIF(?, ''), (
   SELECT 'Photo of ' || substr(trim(json_extract(tea.value, '$.name')), 1, 240)
   FROM private_kept_setups k, json_each(k.teas_json) tea
@@ -59,7 +60,7 @@ export async function serveGuestBookPhotos(
     const [gallery, own] = await Promise.all([
       db.prepare(`SELECT ${visiblePhoto} ${roster}
         AND g.account_id = ? AND g.event_id = ? AND g.status = 'included'
-        ORDER BY g.offered_at DESC, g.id`).bind(...event).all(),
+        ORDER BY g.offered_at DESC, g.id`).bind(...event).all<{ user_id: string }>(),
       db.prepare(`SELECT p.id, p.tea_id, p.created_at,
           json_extract(tea.value, '$.name') AS tea_name,
           g.id AS grant_id, g.status, g.alt_text
@@ -72,7 +73,8 @@ export async function serveGuestBookPhotos(
         WHERE ${ownSource}
         ORDER BY p.created_at DESC, p.id`).bind(...event, scope.userId).all(),
     ]);
-    return await guestSeat(db, binds) ? json({ gallery: gallery.results, own: own.results }) : ineligible();
+    const entries = await guestBookEntryKeys(gallery.results, seat.account_id, seat.event_id);
+    return await guestSeat(db, binds) ? json({ gallery: entries, own: own.results }) : ineligible();
   }
   if (action === 'photo-bytes' || action === 'private-photo-preview') {
     if (action === 'photo-bytes' ? !isId(grantId) : !isId(photoId)) return missing();
@@ -96,31 +98,85 @@ export async function serveGuestBookPhotos(
     return removed.meta?.changes ? json({ success: true }) : missing();
   }
   if (action !== 'photo-offer') return json({ error: 'Choose a Guest Book photo action.' }, 400);
+  return saveGuestBookPhoto(db, scope, seat, binds, { photoId, grantId, description });
+}
+
+async function saveGuestBookPhoto(
+  db: D1Database, scope: Scope, seat: Seat, binds: string[], { photoId, grantId, description }: GuestBookPhotoInput,
+  note = '',
+) {
   const alt = typeof description === 'string' ? description.trim() : '';
   if (!isId(grantId) || !isId(photoId) || alt.length > 250) {
     return json({ error: 'Choose a photo and keep any description to 250 characters.' }, 400);
   }
-
-  const [, inserted] = await db.batch([
-    db.prepare(`UPDATE event_attendees AS a SET user_id = ?
-      WHERE a.user_id IS NULL AND ${guestCheck} AND a.id = ?
-        AND EXISTS (SELECT 1 FROM private_kept_setup_photos p WHERE ${ownSource} AND p.id = ?)`)
-      .bind(scope.userId, ...binds, seat.id, ...event, scope.userId, photoId),
-    db.prepare(`INSERT INTO session_guest_book_photos
-        (id, account_id, event_id, attendee_id, user_id, photo_id, alt_text, status, offered_at)
-      SELECT ?, p.account_id, p.event_id, a.id, p.user_id, p.id, ${sourceDescription}, 'pending', ?
+  const event = [seat.account_id, seat.event_id];
+  const eligibility = `${guestCheck} AND a.id = ?`;
+  const eligibilityBinds = [...binds, seat.id];
+  const now = new Date().toISOString();
+  // Check both the owner's live slot and the submitted grant ID before either
+  // component writes. D1 runs the batch in one transaction. Existing grants
+  // can stay visible until withdrawn, but cannot admit another active photo.
+  const emptySlot = `NOT EXISTS (SELECT 1 FROM session_guest_book_photos existing
+    WHERE existing.account_id = p.account_id AND existing.event_id = p.event_id
+      AND existing.user_id = p.user_id AND existing.revoked_at IS NULL)
+    AND NOT EXISTS (SELECT 1 FROM session_guest_book_photos previous WHERE previous.id = ?)`;
+  const canOffer = `EXISTS (SELECT 1 FROM private_kept_setup_photos p
+    WHERE p.account_id = a.account_id AND p.event_id = a.event_id
+      AND p.user_id = ? AND p.id = ? AND ${emptySlot})`;
+  const eligibleToOffer = `${eligibility} AND ${canOffer}`;
+  const offerBinds = [...eligibilityBinds, scope.userId, photoId, grantId];
+  const claim = db.prepare(`UPDATE event_attendees AS a SET user_id = ?
+    WHERE a.user_id IS NULL AND ${eligibleToOffer}`).bind(scope.userId, ...offerBinds);
+  const offer = db.prepare(`INSERT INTO session_guest_book_photos
+      (id, account_id, event_id, attendee_id, user_id, photo_id, alt_text, status, offered_at)
+    SELECT ?, p.account_id, p.event_id, a.id, p.user_id, p.id, ${sourceDescription}, 'pending', ?
       FROM private_kept_setup_photos p
       JOIN event_attendees a ON a.account_id = p.account_id AND a.event_id = p.event_id AND a.user_id = p.user_id
-      WHERE ${ownSource} AND p.id = ? AND ${guestCheck} AND a.id = ?
-      ON CONFLICT DO NOTHING`)
-      .bind(grantId, alt, new Date().toISOString(), ...event, scope.userId, photoId, ...binds, seat.id),
-  ]);
-  if (inserted.meta?.changes) return json({ success: true }, 201);
-  const same = await db.prepare(`SELECT 1 ${roster} AND g.id = ? AND g.account_id = ?
-    AND g.event_id = ? AND g.attendee_id = ? AND g.user_id = ? AND g.photo_id = ? AND g.alt_text = ${sourceDescription}`)
-    .bind(grantId, ...event, seat.id, scope.userId, photoId, alt).first();
+    WHERE p.user_id = ? AND p.id = ? AND ${eligibility} AND ${emptySlot}`)
+    .bind(grantId, alt, now, scope.userId, photoId, ...eligibilityBinds, grantId);
+  const statements = note
+    ? [claim, prepareGuestBookNote(db, scope.userId, note, now, eligibleToOffer, offerBinds), offer]
+    : [claim, offer];
+  const written = await db.batch(statements);
+  if (written.at(-1)?.meta?.changes) return json({ success: true }, 201);
+
+  // Exact retries leave both moderator decisions and newer guest edits alone.
+  // Reusing an old grant to submit a different note is a conflict.
+  const sameNote = note ? `AND EXISTS (SELECT 1 FROM session_guest_book b
+    WHERE b.account_id = g.account_id AND b.event_id = g.event_id AND b.user_id = g.user_id AND b.note = ?)` : '';
+  const same = await db.prepare(`SELECT 1 ${roster} AND g.id = ? AND g.account_id = ? AND g.event_id = ?
+    AND g.attendee_id = ? AND g.user_id = ? AND g.photo_id = ? AND g.alt_text = ${sourceDescription} ${sameNote}`)
+    .bind(grantId, ...event, seat.id, scope.userId, photoId, alt, ...(note ? [note] : [])).first();
   return same && await guestSeat(db, binds) ? json({ success: true })
-    : json({ error: 'This photo or contribution has changed. Check the current contribution.' }, 409);
+    : json({ error: 'This entry already has a photo, or the photo changed. Check your current entry.' }, 409);
+}
+
+export async function saveGuestBookEntryWithPhoto(
+  db: D1Database, scope: Scope, credentialHash: string, note: unknown, photo: unknown,
+) {
+  const binds = [credentialHash, scope.accountId, scope.userId, scope.userId];
+  const seat = await guestSeat(db, binds);
+  if (!seat) return ineligible();
+  if (note !== undefined && (typeof note !== 'string' || note.trim().length > GUEST_BOOK_NOTE_LIMIT)) {
+    return json({ error: 'Keep your note to 280 characters.' }, 400);
+  }
+  if (!photo || typeof photo !== 'object' || Array.isArray(photo)) return json({ error: 'Choose a photo.' }, 400);
+  return saveGuestBookPhoto(db, scope, seat, binds, photo, typeof note === 'string' ? note.trim() : '');
+}
+
+export async function withdrawGuestBookEntry(db: D1Database, scope: Scope, credentialHash: string) {
+  const binds = [credentialHash, scope.accountId, scope.userId, scope.userId];
+  const seat = await guestSeat(db, binds);
+  if (!seat) return ineligible();
+  const contribution = `account_id = ? AND event_id = ? AND user_id = ?
+    AND EXISTS (SELECT 1 FROM event_attendees a WHERE ${guestCheck} AND a.id = ?)`;
+  const scoped = [seat.account_id, seat.event_id, scope.userId, ...binds, seat.id];
+  await db.batch([
+    db.prepare(`DELETE FROM session_guest_book WHERE ${contribution}`).bind(...scoped),
+    db.prepare(`UPDATE session_guest_book_photos SET revoked_at = ?
+      WHERE revoked_at IS NULL AND ${contribution}`).bind(new Date().toISOString(), ...scoped),
+  ]);
+  return await guestSeat(db, binds) ? json({ success: true }) : ineligible();
 }
 
 export async function serveOwnerGuestBookPhoto(
@@ -151,8 +207,8 @@ export async function reviewGuestBookPhotos(
   if (!grantId) {
     const { results } = await db.prepare(`SELECT ${visiblePhoto}, g.status ${scoped}
       ORDER BY CASE g.status WHEN 'pending' THEN 0 WHEN 'included' THEN 1 ELSE 2 END, g.offered_at DESC, g.id`)
-      .bind(...event).all();
-    return json({ photos: results });
+      .bind(...event).all<{ user_id: string }>();
+    return json({ photos: await guestBookEntryKeys(results, accountId, eventId) });
   }
   if (!isId(grantId)) return missing();
   const source = () => db.prepare(`SELECT p.object_key ${scoped} AND g.id = ?`)

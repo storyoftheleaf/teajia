@@ -1,11 +1,14 @@
 import { serveGuestBook } from './sessionGuestBook';
-import { reviewGuestBookPhotos, serveGuestBookPhotos, serveOwnerGuestBookPhoto, type GuestBookPhotoInput } from './sessionGuestBookPhotos';
+import {
+  reviewGuestBookPhotos, saveGuestBookEntryWithPhoto, serveGuestBookPhotos, serveOwnerGuestBookPhoto,
+  withdrawGuestBookEntry, type GuestBookPhotoInput,
+} from './sessionGuestBookPhotos';
 import { afterSitCredentialFormat, createAfterSitCredential, hashAfterSitCredential } from './afterSitCredential';
 import { getKeptSetup, namedSetupTeas, saveKeptSetup } from './privateKeptSetups';
 import { eraseKeptSetup } from './privateKeptSetupPhotos';
 
 type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
-type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown };
+type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown; photo?: unknown };
 const guestBookPhotoActions = new Set<unknown>(['photos-read', 'photo-bytes', 'private-photo-preview', 'photo-offer', 'photo-withdraw']);
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
 type Authorization<E, Scope> = (request: Request, env: E) => Promise<Scope | { error: Response }>;
@@ -126,10 +129,14 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
   });
 
   const guestBook = withLink(async (request, env, hash, body) => {
-    const { action, note } = body;
+    const { action, note, photo } = body;
     const photos = guestBookPhotoActions.has(action);
-    const method = action === 'read' ? 'GET' : action === 'send' ? 'PUT' : action === 'withdraw' ? 'DELETE' : null;
-    if (!method && !photos) return json({ error: 'Choose a Guest Book action.' }, 400);
+    const withPhoto = action === 'entry-save' && photo !== undefined;
+    const wholeEntry = action === 'entry-withdraw';
+    const method = action === 'read' ? 'GET'
+      : action === 'send' || (action === 'entry-save' && !withPhoto) ? 'PUT'
+      : action === 'withdraw' ? 'DELETE' : null;
+    if (!method && !photos && !withPhoto && !wholeEntry) return json({ error: 'Choose a Guest Book action.' }, 400);
     const actor = await deps.requireUser(request, env);
     if ('error' in actor) return privateResponse(actor.error);
     const seat = await env.DB.prepare(
@@ -139,6 +146,8 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     ).bind(hash).first<{ account_id: string; magic_token: string }>();
     if (!seat) return unavailable();
     const scope = { accountId: seat.account_id, userId: actor.userId };
+    if (withPhoto) return privateResponse(await saveGuestBookEntryWithPhoto(env.DB, scope, hash, note, photo));
+    if (wholeEntry) return privateResponse(await withdrawGuestBookEntry(env.DB, scope, hash));
     if (photos) return privateResponse(await serveGuestBookPhotos(request, env.DB, env.ATLAS_BUCKET, scope, hash, body));
 
     if (!method || !seat.magic_token) return unavailable();

@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { afterSitRoutes } from '../src/afterSitAccess';
+import { serveGuestBookReview } from '../src/sessionGuestBook';
 import { servePublicRecapPhoto, serveRecapPhotoReview } from '../src/revocableSitPhotos';
 import { seedIdentity, SqliteD1 } from './helpers/sqliteD1';
 
 const photoId = '9dc818e0-c31e-44c5-94ec-c8014694fc1d';
 const grantId = '17478d56-6370-44c1-ac4b-9bcd7068b14a';
+const alternatePhoto = '83741bb3-4220-4d65-b10b-2f0727ea1b88';
+const sparePhoto = 'c90b7b58-286e-420a-98ae-d28e275cd982';
 const secondGrant = '48c2a3d5-7415-4305-aff2-ded94b97b011';
 const description = 'Two cups beside a teapot';
 const jpeg = Uint8Array.from([255, 216, 255, 192, 0, 7, 8, 0, 64, 0, 64, 255, 218, 0, 2, 36, 255, 217]);
@@ -96,12 +99,105 @@ describe('formal attendee Guest Book photos', () => {
 
     const list = await gallery();
     expect(list.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(await list.json()).toEqual({ gallery: [{ id: grantId, alt_text: description, display_name: 'Photo Guest' }], own: [] });
+    expect(await list.json()).toEqual({ gallery: [{ id: grantId, alt_text: description, display_name: 'Photo Guest', entry_key: expect.stringMatching(/^[a-f0-9]{64}$/) }], own: [] });
     const image = await bytes();
     expect(image.headers.get('Content-Type')).toBe('image/jpeg');
     expect(image.headers.get('Cache-Control')).toBe('private, no-store');
     expect(image.headers.get('CDN-Cache-Control')).toBe('no-store');
     expect(new Uint8Array(await image.arrayBuffer())).toEqual(jpeg);
+  });
+
+  it('sends one combined entry atomically and safely retries an identical submission', async () => {
+    const { book, owner, viewer, db, sql, request, bytes, include, review, gallery } = await fixture();
+    const note = 'I remember the aroma as the tea cooled.';
+    const photo = { photoId, grantId, description };
+    const save = (input: object) => book('owner', owner, 'entry-save', input);
+    const entry = () => sql.sqlite.prepare('SELECT id, note, revision, status FROM session_guest_book').get();
+
+    expect((await book('', owner, 'entry-save', { note, photo })).status).toBe(401);
+    expect((await book('viewer', owner, 'entry-save', { note, photo })).status).toBe(403);
+    expect((await book('owner', owner, 'reply', { note })).status).toBe(400);
+    expect((await save({})).status).toBe(400);
+    expect((await save({ note, photo: { ...photo, photoId: alternatePhoto } })).status).toBe(409);
+    expect(entry()).toBeUndefined();
+    expect((await save({ note, photo })).status).toBe(201);
+    const firstEntry = entry()!;
+    expect(firstEntry).toMatchObject({ note, revision: 1, status: 'pending' });
+    expect((await save({ note, photo })).status).toBe(200);
+    expect(entry()).toEqual(firstEntry);
+
+    const noteReview = await serveGuestBookReview(request('GET'), db, 'shop', 'event');
+    const staffNotes = (await noteReview.json()).entries;
+    const staffPhotos = (await (await review()).json()).photos;
+    const key = staffNotes[0].entry_key;
+    expect(key).toMatch(/^[a-f0-9]{64}$/);
+    expect(staffPhotos[0]).toMatchObject({ entry_key: key });
+    expect(staffPhotos[0]).not.toHaveProperty('user_id');
+    expect(staffNotes[0]).not.toHaveProperty('user_id');
+    const approved = await serveGuestBookReview(
+      request('POST', undefined, { action: 'include', revision: 1 }), db, 'shop', 'event', firstEntry.id as string,
+    );
+    expect(approved.status).toBe(200);
+    expect((await include()).status).toBe(200);
+    const attendeeNotes = (await (await book('viewer', viewer, 'read')).json()).entries;
+    const attendeePhotos = (await (await gallery()).json()).gallery;
+    expect(attendeeNotes).toEqual([{ id: firstEntry.id, display_name: 'Photo Guest', note, entry_key: key }]);
+    expect(attendeePhotos).toEqual([{ id: grantId, display_name: 'Photo Guest', alt_text: description, entry_key: key }]);
+    expect((await save({ note, photo })).status).toBe(200);
+    expect(entry()).toMatchObject({ revision: 1, status: 'included' });
+
+    expect((await save({ note: 'Edited later.' })).status).toBe(200);
+    expect((await save({ note, photo })).status).toBe(409);
+    expect(entry()).toMatchObject({ note: 'Edited later.', revision: 2, status: 'pending' });
+    expect((await book('viewer', owner, 'entry-withdraw')).status).toBe(403);
+    expect((await bytes()).status).toBe(200);
+    expect((await book('owner', owner, 'entry-withdraw')).status).toBe(200);
+    expect((await book('owner', owner, 'entry-withdraw')).status).toBe(200);
+    expect(entry()).toBeUndefined();
+    expect((await bytes()).status).toBe(404);
+    expect((await review('GET', undefined, grantId)).status).toBe(404);
+    expect(sql.sqlite.prepare('SELECT id FROM private_kept_setup_photos').get()).toEqual({ id: photoId });
+    expect((await save({ note, photo })).status).toBe(409);
+    expect(entry()).toBeUndefined();
+  });
+
+  it('serializes concurrent photo offers and preserves earlier extra photos until explicitly withdrawn', async () => {
+    const { book, owner, sql, gallery } = await fixture();
+    for (const id of [alternatePhoto, sparePhoto]) {
+      sql.sqlite.prepare(`INSERT INTO private_kept_setup_photos
+        (account_id, user_id, event_id, id, tea_id, object_key, created_at)
+        VALUES ('shop', 'owner', 'event', ?, NULL, ?, '2026-11-20')`)
+        .run(id, `private-kept-setups/${id}.jpg`);
+    }
+
+    const write = (id: string, grant: string, note: string) =>
+      book('owner', owner, 'entry-save', { note, photo: { photoId: id, grantId: grant } });
+    const requests = [
+      write(photoId, grantId, 'First text'),
+      write(alternatePhoto, secondGrant, 'Second text'),
+    ];
+    const statuses = (await Promise.all(requests)).map(response => response.status);
+    expect([...statuses].sort()).toEqual([201, 409]);
+    expect(sql.sqlite.prepare('SELECT note FROM session_guest_book').get())
+      .toEqual({ note: statuses[0] === 201 ? 'First text' : 'Second text' });
+    const firstGrant = statuses[0] === 201 ? grantId : secondGrant;
+    const historicallyExtra = statuses[0] === 201 ? secondGrant : grantId;
+    const historicalSource = statuses[0] === 201 ? alternatePhoto : photoId;
+    sql.sqlite.prepare(`UPDATE session_guest_book_photos SET status = 'included' WHERE id = ?`).run(firstGrant);
+    sql.sqlite.prepare(`INSERT INTO session_guest_book_photos
+      (id, account_id, event_id, attendee_id, user_id, photo_id, alt_text, status, offered_at)
+      VALUES (?, 'shop', 'event', 'seat-owner', 'owner', ?, 'Earlier photo', 'included', '2026-11-20')`)
+      .run(historicallyExtra, historicalSource);
+    const historical = (await (await gallery()).json()).gallery;
+    expect(historical.map((item: { id: string }) => item.id).sort()).toEqual([grantId, secondGrant].sort());
+    expect(historical[0].entry_key).toBe(historical[1].entry_key);
+    const newPhoto = { photoId: sparePhoto, grantId: '5948d330-2336-4726-8540-0b49c913adb1' };
+    expect((await book('owner', owner, 'photo-offer', newPhoto)).status).toBe(409);
+    expect((await book('owner', owner, 'photo-withdraw', { grantId: historicallyExtra })).status).toBe(200);
+    expect((await book('owner', owner, 'entry-save', { photo: newPhoto })).status).toBe(409);
+    expect((await book('owner', owner, 'photo-withdraw', { grantId: firstGrant })).status).toBe(200);
+    expect((await book('owner', owner, 'entry-save', { photo: newPhoto })).status).toBe(201);
+    expect(sql.sqlite.prepare('SELECT count(*) AS active FROM session_guest_book_photos WHERE revoked_at IS NULL').get()).toEqual({ active: 1 });
   });
 
   it('separates attendee-only grants from public use and preserves the original on withdrawal after link expiry', async () => {

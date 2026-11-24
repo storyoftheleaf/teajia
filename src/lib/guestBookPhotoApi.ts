@@ -1,7 +1,7 @@
 import { API_URL, authedBlobFetch, authedFetch } from './api';
 import type { GuestBookAction, GuestBookStatus } from './guestBookApi';
 
-export type GuestBookPhoto = { id: string; display_name: string; alt_text: string };
+export type GuestBookPhoto = { id: string; entry_key?: string; display_name: string; alt_text: string };
 export type ReviewPhoto = GuestBookPhoto & { status: GuestBookStatus };
 export type OwnPhoto = {
   id: string; tea_name: string | null; created_at: string; grant_id: string | null; status: GuestBookStatus | null; alt_text: string | null;
