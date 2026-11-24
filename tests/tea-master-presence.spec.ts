@@ -165,7 +165,7 @@ test.describe('selected by, on the tea', () => {
     // `business_name || display_name` ("Tanaka Tea House") turns this red.
     await expect(rows.nth(0)).toHaveAttribute('href', '/people/kenji-tanaka');
     await expect(rows.nth(0).locator('.tj-people-title')).toHaveText('Kenji Tanaka');
-    await expect(rows.nth(0)).toHaveAccessibleName('Kenji Tanaka, who selected this tea');
+    await expect(rows.nth(0)).toHaveAccessibleName('Kenji Tanaka, who selected this item');
     await expect(rows.nth(0)).not.toContainText('Tanaka Tea House');
     await expect(rows.nth(0).locator('.italic').first()).toHaveText('Tanaka');
     await expect(rows.nth(1)).toHaveAttribute('href', '/people/amara-osei');

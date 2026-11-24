@@ -71,7 +71,7 @@ test.describe('Curate Source form, default layout', () => {
     await page.getByTestId('curate-taste-button').filter({ visible: true }).click();
     await page.getByRole('button', { name: 'Open your impression', exact: true }).click();
     await page.getByRole('button', { name: 'Love', exact: true }).click();
-    await page.getByRole('button', { name: /^(Leave tasting|Close)$/ }).click();
+    await page.getByRole('button', { name: 'Leave tasting', exact: true }).click();
     await page.getByRole('button', { name: 'Save and close', exact: true }).click();
 
     const rating = page.getByRole('radiogroup', { name: 'Quality rating' });

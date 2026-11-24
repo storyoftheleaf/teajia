@@ -2,7 +2,7 @@
   "meta": {
     "name": "Teajia Tea Wisdom Base",
     "version": "1.0.0",
-    "generatedAt": "2026-11-23",
+    "generatedAt": "2026-11-24",
     "license": "CC BY 4.0, see LICENSE.txt",
     "homepage": "https://teajia.com",
     "contact": "hello@teajia.com",
@@ -13,7 +13,7 @@
       "producers": 10,
       "styles": 10,
       "marks": 15,
-      "namedTeas": 18,
+      "namedTeas": 22,
       "vocabulary": 25,
       "researchSources": 1,
       "citations": 1,
@@ -7793,6 +7793,28 @@
       "description": "Named for a quality the collector found in the cup beyond ordinary flavor. Mountain, village and vintage are unrecorded."
     },
     {
+      "id": "mahei-gushu-red",
+      "name": "Mahei Gushu Red",
+      "chineseName": "麻黑古树红茶",
+      "altNames": [],
+      "type": "Red",
+      "region": "Mahei, Yiwu, Yunnan",
+      "country": "China",
+      "provenance": "partial",
+      "tradition": "Place and style names"
+    },
+    {
+      "id": "malaysian-returned-liu-bao",
+      "name": "Malaysian Returned Liu Bao",
+      "chineseName": "马来回流六堡茶",
+      "altNames": [],
+      "type": "Dark",
+      "region": "Guangxi",
+      "country": "China",
+      "provenance": "partial",
+      "tradition": "Trade names"
+    },
+    {
       "id": "mercy",
       "name": "Mercy",
       "chineseName": "慈悲",
@@ -7821,6 +7843,20 @@
       "provenance": "undisclosed",
       "tradition": "Chinese private-collection naming",
       "description": "Qi yuan carries the sense of a destined, unexpected encounter. The collector who stored it named it for the circumstance of finding it, not for its origin, which is unrecorded beyond the Yunnan province."
+    },
+    {
+      "id": "nanqiao-ruigong-brick",
+      "name": "Nanqiao Ruigong Brick",
+      "chineseName": "南峤瑞贡金砖",
+      "altNames": [
+        "Ruigong Golden Brick"
+      ],
+      "type": "Shou",
+      "form": "Brick",
+      "region": "Menghai, Yunnan",
+      "country": "China",
+      "provenance": "partial",
+      "tradition": "Factory brands"
     },
     {
       "id": "new-rainbow",
@@ -7875,6 +7911,19 @@
       "provenance": "undisclosed",
       "tradition": "Chinese private-collection naming",
       "description": "A bold personal name within the same private collection as Courage, Wisdom and Mercy. Mountain, village and vintage are unrecorded."
+    },
+    {
+      "id": "san-he-liu-bao",
+      "name": "San He Liu Bao",
+      "chineseName": "三鹤六堡茶",
+      "altNames": [
+        "Three Cranes Liu Bao"
+      ],
+      "type": "Dark",
+      "region": "Wuzhou, Guangxi",
+      "country": "China",
+      "provenance": "partial",
+      "tradition": "Factory brands"
     },
     {
       "id": "tea-masters-cake",

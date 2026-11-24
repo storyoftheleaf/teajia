@@ -120,7 +120,7 @@ export function ProductDetailLayout({
             </div>
           </div>
           <div className="tea-product-reading">
-            <AlcoveGallery key={item.id} {...gallery} layout="page" onExpandImage={setExpandedImage}
+            <AlcoveGallery key={`gallery-${item.id}`} {...gallery} layout="page" onExpandImage={setExpandedImage}
               addPhoto={hasShopPhotos ? addPhoto : undefined} />
             {hasShopPhotos && galleryCaption && <p className="mx-5 mt-2 text-tea-text-sec">{galleryCaption}</p>}
             {hasProductActions && isAuthenticated && <input type="file" ref={input} hidden multiple accept="image/*" aria-label="Add product photos" onChange={event => {
@@ -129,7 +129,7 @@ export function ProductDetailLayout({
               if (files.length) upload.mutate(files);
             }} />}
             {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
-            {hasProductActions && actions && <ProductDetailActions {...actions} key={item.id} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
+            {hasProductActions && actions && <ProductDetailActions {...actions} key={`actions-${item.id}`} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
             {reading?.introduction && <p className={`${BODY} mx-5 my-[var(--space-4)] text-tea-text`}>{reading.introduction}</p>}
             {reading?.clay && <AlcoveAboutSection reading={{ label: reading.clay.label, sections: [reading.clay] }} variant="page" />}
             {tasting}
