@@ -84,7 +84,8 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
   // step never takes a tap meant for Weigh between them.
   const stepClass = 'relative inline-flex h-6 w-6 before:absolute before:-inset-y-2.5 before:-inset-x-1.5 before:content-[\'\'] items-center justify-center rounded border border-tea-border text-ui-14 leading-none transition-colors disabled:cursor-default disabled:opacity-40 focus-visible:outline focus-visible:outline-tea-gold';
 
-  const priceText = item.exactPackPriceUsd == null ? formatPrice(current.totalUsd) : formatPersonalTeaMoney(current.totalUsd, 'USD');
+  // Outside the shop every price box reads the same way, in the visitor's chosen currency.
+  const priceText = item.exactPackPriceUsd == null || href ? formatPrice(current.totalUsd) : formatPersonalTeaMoney(current.totalUsd, 'USD');
   const priceBox = 'flex h-9 items-baseline justify-center gap-2 whitespace-nowrap rounded-md border border-tea-border px-1 pt-[10px] transition-colors focus-visible:outline focus-visible:outline-tea-gold';
   const countClass = 'rounded px-1.5 py-2 -my-1 focus-visible:outline focus-visible:outline-tea-gold';
   const countWord = (count ?? (item.exactPackPriceUsd == null ? 'weigh' : 'pack')) === 'pack' ? 'Pack' : 'Weigh';

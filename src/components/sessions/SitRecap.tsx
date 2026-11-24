@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { SessionGuestItem, SessionPhotograph } from '../../../shared/sessionTea';
 import { sessionPhotoSrc, useRecapSeat, useSendRecapNote, type PublicRecapTea, type PublicSitRecap } from '../../lib/publicSitRecap';
 import { Button } from '../shared/Button';
+import { PeopleNav, StickyChrome, useReadingProgress } from '../people/immersive';
 import { pouredLabel, SectionRule, sessionDate, SessionBlock, SessionHead, SessionNote } from './SessionBlocks';
 import { SessionPhoto, useSessionPhotoImage, type SessionPhotoSource } from './SessionPhoto';
 import { BREWING_EXPERIENCES_OPEN } from '../../lib/brewingExperiences';
@@ -113,8 +114,15 @@ export function SitRecap({ recap, photo, guestBook = true }: {
   const seat = useRecapSeat(guestBook ? recap.slug : '');
   const lead = photo === undefined ? { kind: 'formal' as const, slug: recap.slug, fallback: recap.galleryPhoto } : photo;
   const host = recap.people.find(person => person.role === 'lead_host') ?? recap.people[0];
+  const progress = useReadingProgress();
   return (
     <article data-testid="sit-recap">
+      {/* The bar the drawing shows: back to the host, "Session" on the right. */}
+      <div className="-mx-6 -mt-6 mb-0">
+        <StickyChrome>
+          <PeopleNav eyebrow="Session" progress={progress} backTo={host ? `/people/${encodeURIComponent(host.slug)}` : '/people'} backLabel={host?.name} />
+        </StickyChrome>
+      </div>
       <SessionBlock testId="recap-head">
         {lead && <SessionPhoto source={lead} />}
         {lead && BREWING_EXPERIENCES_OPEN && <BrewingLink source={lead} />}

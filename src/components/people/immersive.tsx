@@ -50,20 +50,22 @@ export function StickyChrome({ children }: { children: ReactNode }) {
 }
 
 /** The nav: back chevron and wordmark on the left, the eyebrow on the right, the gold progress line under it. */
-export function PeopleNav({ eyebrow, progress, backTo, chevron = true, eyebrowTone = 'dim' }: { eyebrow: string; progress: number; backTo: string; chevron?: boolean; /** 'sec' when the eyebrow is a person's name (canvas version 28). */ eyebrowTone?: 'dim' | 'sec' }) {
+export function PeopleNav({ eyebrow, progress, backTo, chevron = true, eyebrowTone = 'dim', backLabel }: { eyebrow: string; progress: number; backTo: string; chevron?: boolean; /** 'sec' when the eyebrow is a person's name (canvas version 28). */ eyebrowTone?: 'dim' | 'sec'; /** Names where the chevron goes back to (a sit recap: the host), in place of the wordmark. */ backLabel?: string }) {
   return (
     <nav
       aria-label="Site"
       className="relative flex h-12 items-center justify-between gap-4 border-b border-tea-border px-5"
       style={WASH}
     >
-      <Link to={backTo} className="flex h-full min-w-tap items-center gap-2 text-tea-text" aria-label={chevron ? 'Back to all people' : 'Teajia'}>
+      <Link to={backTo} className="flex h-full min-w-tap items-center gap-2 text-tea-text" aria-label={backLabel ? `Back to ${backLabel}` : chevron ? 'Back to all people' : 'Teajia'}>
         {chevron && (
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
             <path d="M9.5 3.5L5 7.5l4.5 4" stroke="var(--tea-gold)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
-        <span className="font-display text-ui-17 font-semibold uppercase tracking-[0.14em]">Teajia</span>
+        {backLabel
+          ? <span className="font-sans text-ui-11 uppercase tracking-[0.16em]">{backLabel}</span>
+          : <span className="font-display text-ui-17 font-semibold uppercase tracking-[0.14em]">Teajia</span>}
       </Link>
       <span className={`whitespace-nowrap font-sans text-ui-10 uppercase tracking-[0.2em] ${eyebrowTone === 'sec' ? 'text-tea-text-sec' : 'text-tea-text-dim'}`}>{eyebrow}</span>
       <ProgressTrack progress={progress} />
