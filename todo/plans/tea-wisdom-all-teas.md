@@ -32,7 +32,7 @@ A style kit adds only what differs from its type.
 
 ## Steps
 
-1. **Count the stock by type and style.** Read the full inventory, private teas included, through the Teajia shop connection (its token is rejected today; Adrian reconnects it). Output: a table of how many teas each kit would unlock. The public shop alone shows 21 teas: 13 ripe, 5 Liu Bao, 1 raw pu'er, 1 red.
+1. **Count the stock by type and style.** Done 2026-11-24: 223 teas, see [Stock count](#stock-count). Read the full inventory, private teas included, through the Teajia shop connection (its token is rejected today; Adrian reconnects it). Output: a table of how many teas each kit would unlock. The public shop alone shows 21 teas: 13 ripe, 5 Liu Bao, 1 raw pu'er, 1 red.
 2. **One writer for every type.** Replace the ripe-only lookups in `composeInputs.ts` with a type and style lookup from the Wisdom pages; take the style names and age-band edges from each kit's page; keep every check. Add a style layer. About half a day.
 3. **Named teas feed the entry instead of being skipped.** Agree with the integration owner how a confirmed named tea's sourced history becomes the entry's lead layer, so Y562 and the other named teas get an entry that carries their history. A design call to settle before building.
 4. **A kit factory.** For each kit, in order of teas unlocked: a research prompt (Claude reads the open Chinese trade sites; Hermes reads Zhihu, Baidu Baike and Xiaohongshu, which block Claude), notes saved in the vault under `Teajia/Research/tea-wisdom/`, the drafted sections, and an approval page like the ripe kit's. About 1 to 2 hours of research per kit, then Adrian's approval.
@@ -59,15 +59,44 @@ Each can be checked by looking, or by one command:
 - **Compose a batch (step 5).** Fetch the product list once (`curl https://www.teajia.com/api/products/public`). Run `node scripts/tea-wisdom-compose/compose.mjs --products <file> --type <type>`; the claude CLI must be signed in on the Claude plan, not API billing. Read each draft at `/preview/wisdom-pilot/drafts/<id>` in `npm run practice`, run `npm run tea-wisdom:entries:approve <id>` for the clean ones, then the checks and `test:mobile`, then push once.
 - **Corrections and intake (steps 6 and 7).** Follow phases 4 and 5 of [tea-wisdom-composed-entry.md](tea-wisdom-composed-entry.md).
 
-## First kits, from the public shop
+## Stock count
 
-| Kit | Teas it unlocks today | Notes |
-|---|---|---|
-| Liu Bao (style, inside Dark) | 5 | all 1990s aged Guangxi tea; basket ageing, what "Malaysian returned" means; two have named-tea pages |
-| Raw pu'er age bands (Sheng) | 1 | `sheng.md` exists and is sourced; raw ages very differently from ripe |
-| Red (type) | 1 | Mahei Gushu Red, 2025; has a named-tea page |
+Read on 2026-11-24 straight from the shop database, one read-only query of 351 rows. The shop connection was paused by the shared-allowance guard that day, and Adrian approved the direct read. It covers every tea on the main shop account (`acc_teajia_bali`), private, draft, sold-out and archived ones included. Teaware, Misc, three TEST ONLY rows and eight rows on test accounts are left out. That leaves **223 teas, of which 21 are public** (public means `is_public`, `shown_in_shop`, and Active or Sold Out). Each style comes from the record's origin, Chinese name and processing notes, never from the English name alone. "Sheng Puer" and "Shou Puer" are counted as Sheng and Shou. Nothing in the shop was changed.
 
-The order after these comes from step 1.
+Each tea needs its type kit, then its style kit if it has one, so a type kit always comes before its styles. "Aged" means 15 years or older by the record's year.
+
+| Order | Kit | Teas it unlocks | Public now | Notes |
+|---|---|---|---|---|
+| done | Shou (type) | 49 | 14 | Built. 8 approved; 41 waiting to be composed (2 have named-tea pages: Y562, Nanqiao Ruigong) |
+| 1 | Sheng (type, with age bands) | 48 | 1 | 36 aged, 2 young, 10 with no year. `sheng.md` already exists and is sourced |
+| 2 | Oolong (type) | 40 | 0 | Every oolong also needs its style kit below |
+| 3 | Dark (type) | 23 | 5 | 16 aged |
+| 4 | Red (type) | 20 | 1 | |
+| 5 | Taiwan oolong (style) | 15 | 0 | High mountain, Dong Ding, Nantou roasted, Beipu, palace grade; 10 aged |
+| 6 | White (type) | 13 | 0 | |
+| 7 | Liu Bao (style, Dark) | 11 | 5 | All aged; 2 have named-tea pages (San He, Malaysian Returned). The only style kit that unlocks public teas |
+| 8 | Yancha (style, Oolong) | 9 | 0 | Rougui, Da Hong Pao, Meizhan |
+| 9 | Yunnan white (style) | 9 | 0 | Includes one Yabao (wild buds) |
+| 10 | Taiwan red (style) | 8 | 0 | 4 from Yuchi, Sun Moon Lake, 1977 to 1981 |
+| 11 | Anhua dark (style) | 8 | 0 | Huangye, graded leaf, Gongjian, one Bai Liang roll. No Fu brick in stock |
+| 12 | Tieguanyin (style) | 7 | 0 | 6 from Anxi, 1 from Muzha, Taiwan |
+| 13 | Dian Hong, Yunnan red (style) | 7 | 1 | Mahei Gushu Red has a named-tea page |
+| 14 | Lapsang and Wuyi red (style) | 5 | 0 | Two from 1920 and 1934 |
+| 15 | Green (type) | 4 | 0 | 3 aged (two pre-war Japanese, one 1950 Taiwanese) |
+| 16 | Purple leaf sheng (style) | 4 | 0 | |
+| 17 | Dan Cong (style) | 4 | 0 | |
+| 18 | Fujian white (style) | 4 | 0 | Fuding and Zhenghe |
+| 19 | GABA oolong (style) | 3 | 0 | 4 more are named GABA but have no notes (see below) |
+| 20 | Small kits, 1 or 2 teas each | 10 | 0 | Liu An 2, Oriental Beauty 2, Japanese steamed green 2, citrus-aged 2 (one Xiao Qing Gan, one Taiwan sour citrus), Sichuan Kang brick 1, Chinese pan-fired green 1 |
+| none | Yellow, Herbal | 0 | 0 | No stock |
+
+**26 teas wait on their records**, not on a kit, and are not counted in the type rows above:
+
+- 7 pu'er filed as Dark: five Liao Fu loose lots from northern Vietnam, the 1998 Menghai Jia Ji Tuo and the Yiwu Mushroom. Their notes say pu'er. Moving them to Sheng or Shou lets them use those kits.
+- 2 red filed as Green: the two Qing Mao Hong Cha, whose notes say red tea.
+- 17 thin or mistyped: no processing notes, and the name points to another type or says nothing. Examples: "oolong", "te quan yin", "Phoenix Mountain" and "High Mountain" are filed as Dark; also "cvb", "red bag", Universe, Orange Master Box, four GABA-named teas, Shenhua Native Red and the 1990 Pre-Qingming green.
+
+Approved composed entries today: 8, all Shou. Named-tea Wisdom pages tied to a tea: 5 (Y562, Nanqiao Ruigong, San He Liu Bao, Malaysian Returned Liu Bao, Mahei Gushu Red).
 
 ## Held from the pilot
 
@@ -75,6 +104,6 @@ Y562, Naka, Yiwu Gushu, Ripe Puerh Brick and Pasha (reasons in the pilot plan, "
 
 ## Needs Adrian
 
-- Reconnect the Teajia shop connection so step 1 can read the full stock.
+- Fix the 26 tea records listed under Stock count (type or processing notes), so they can be composed.
 - Approve each kit on its page, and each batch of entries.
 - Settle step 3 with the integration owner.
