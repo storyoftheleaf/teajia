@@ -306,6 +306,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'taiwan-oolong',
     'white',
     'y562',
+    'yancha',
     'yunnan',
     'yunnan-white',
   ]);

@@ -196,6 +196,7 @@ describe('sellable Tea Reference catalogue', () => {
       'taiwan-oolong',
       'white',
       'y562',
+      'yancha',
       'yunnan',
       'yunnan-white',
     ]);
