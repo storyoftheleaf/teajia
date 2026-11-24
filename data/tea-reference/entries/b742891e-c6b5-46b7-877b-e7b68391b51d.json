@@ -1,0 +1,78 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T15:09:30.365Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "b742891e-c6b5-46b7-877b-e7b68391b51d",
+    "name": "Lapsang Souchong",
+    "chineseName": "正山小种",
+    "type": "Red",
+    "form": "Loose",
+    "year": 1920,
+    "origin": "Wuyi Mountains, Fujian, China",
+    "stockGrams": 176,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "b742891e-c6b5-46b7-877b-e7b68391b51d",
+    "paragraphs": [
+      {
+        "layer": "age",
+        "text": "A loose [red tea](red:definition) from the Wuyi Mountains of Fujian, dated 1920. At one hundred and six years it stands outside anything the style itself describes: Lapsang has no recognised tradition of [long ageing](lapsang:ageing), and no category of decades-old red tea is set down. It is kept the way Lapsang is kept. It stays sealed, dry, cool and away from light, because a smoky tea scents whatever sits near it."
+      },
+      {
+        "layer": "type",
+        "text": "[Zhengshan Xiaozhong](lapsang:definition) is the red tea of Tongmu, in the Wuyi mountains of northern Fujian. Lapsang Souchong is the name the West took for it from the Fuzhou dialect. Traditionally the leaf is dried over a fire of local pine in a [qinglou](lapsang:smoke). This is a wooden drying house of several floors, with the fire at the bottom and the leaf on bamboo mats above, so the heat and smoke rise through it. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. It is often called the [oldest red tea](lapsang:history), though the dates given for its beginning differ."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Lapsang Souchong",
+      "text": "The smoke softer and further back, with dried fruit coming forward."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:smoke",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:history",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T15:14:33.473Z"
+}

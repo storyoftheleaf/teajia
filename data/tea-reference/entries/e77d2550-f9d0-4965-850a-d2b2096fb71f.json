@@ -1,0 +1,71 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T15:11:11.631Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "e77d2550-f9d0-4965-850a-d2b2096fb71f",
+    "name": "Zhuangyuan Hong",
+    "chineseName": "状元红",
+    "type": "Red",
+    "form": "Loose",
+    "year": null,
+    "origin": "Wuyi Mountains, Fujian, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "e77d2550-f9d0-4965-850a-d2b2096fb71f",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Zhuangyuan Hong is a loose [red tea](red:definition) from the Wuyi Mountains in Fujian. It is the tea English calls black tea, and it is fully oxidised: once the leaf's cells are broken, the leaf's own enzymes turn it from green to reddish brown. The Chinese trade calls that step [fermentation](red:definition)."
+      },
+      {
+        "layer": "type",
+        "text": "These mountains hold the oldest name in red tea. [Zhengshan Xiaozhong](lapsang:history), the red tea of [Tongmu](lapsang:definition), is called the ancestor of all red tea, though the dates given for its birth differ. It reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Lapsang Souchong",
+      "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:history",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T15:14:34.092Z"
+}

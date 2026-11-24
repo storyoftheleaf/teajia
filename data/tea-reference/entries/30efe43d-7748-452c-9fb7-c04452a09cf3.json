@@ -1,0 +1,74 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T15:10:04.862Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "30efe43d-7748-452c-9fb7-c04452a09cf3",
+    "name": "Lapsang Souchong",
+    "chineseName": "正山小种",
+    "type": "Red",
+    "form": "Loose",
+    "year": 1934,
+    "origin": "Wuyi Mountains, Fujian, China",
+    "stockGrams": 46,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "30efe43d-7748-452c-9fb7-c04452a09cf3",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A loose [Lapsang Souchong](lapsang:definition) from the Wuyi Mountains of Fujian, dated 1934. Lapsang Souchong is the Western name for Zhengshan Xiaozhong, the [red tea](red:definition) of Tongmu in the Wuyi mountains of northern Fujian. The style is called the [ancestor of red tea](lapsang:history), and it reached Europe through Dutch and then British trade."
+      },
+      {
+        "layer": "age",
+        "text": "At ninety-two years this tea sits outside any known practice. Lapsang has [no recognised tradition of long ageing](lapsang:ageing), and no category of red tea kept for decades has been described. The change that is recorded for the style belongs to its first few years, in storage kept sealed, dry, cool and away from light."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Lapsang Souchong",
+      "text": "The smoke softer and further back, with dried fruit coming forward."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "lapsang:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:history",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T15:14:33.654Z"
+}

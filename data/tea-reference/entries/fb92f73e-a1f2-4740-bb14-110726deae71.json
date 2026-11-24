@@ -1,0 +1,79 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T15:10:36.485Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "fb92f73e-a1f2-4740-bb14-110726deae71",
+    "name": "Zhengshan Xiaozhong",
+    "chineseName": "正山小种",
+    "type": "Red",
+    "form": "Loose",
+    "year": null,
+    "origin": "Wuyi Mountains, Fujian, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "fb92f73e-a1f2-4740-bb14-110726deae71",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Zhengshan Xiaozhong is a [red tea](red:definition), the fully oxidised tea English calls black, from the Wuyi Mountains of northern Fujian. The style belongs to Tongmu, whose home villages and gardens lie inside the mountains' nature reserve. [Zhengshan](lapsang:definition), true mountain, names that core; tea made the same way beyond it is called waishan. Abroad it goes by Lapsang Souchong, a name taken from the Fuzhou dialect."
+      },
+      {
+        "layer": "type",
+        "text": "It is counted as the [oldest red tea](lapsang:history), though the dates given for its beginning differ, and it reached Europe through Dutch and then British trade. In the making, the oxidised leaf goes into a hot pan, [guo hong guo](lapsang:making), which halts oxidation quickly, and is rolled again while hot to shape the strip. The traditional tea is then dried over local pine in a [qinglou](lapsang:smoke), a wooden house of several floors with the fire at the bottom, so the heat and smoke rise through leaf laid on bamboo mats above."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Lapsang Souchong",
+      "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:history",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:making",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:smoke",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T15:14:33.890Z"
+}
