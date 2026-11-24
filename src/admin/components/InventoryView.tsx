@@ -135,29 +135,6 @@ function isInventoryToastType(type: string): type is 'success' | 'error' | 'info
 // Shared inline-edit components + ProductEditPanel (extracted for reuse)
 import { GhostInput, GhostTextarea, GhostAutocompleteInput, GhostSelect, VendorPicker, ImageManager, ProductEditPanel, CollapsibleSection, buildProductUpdatePayload } from './ProductEditPanel';
 
-/**
- * SavedPill, micro feedback for successful inline edits
- * Renders "✓ Saved" with fade-in animation, pointer-events-none
- */
-const SavedPill: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
-  if (!isVisible) return null;
-
-  return (
-    <span
-      className={`
-        inline-block px-2 py-0.5 rounded-full
-        text-ui-10 text-tea-gold font-medium
-        whitespace-nowrap pointer-events-none
-        animate-fadeIn
-      `}
-      aria-live="polite"
-      aria-atomic="true"
-    >
-      ✓ Saved
-    </span>
-  );
-};
-
 export const InventoryView: React.FC<InventoryViewProps> = ({
   products, isLoading, isError, error, onImportClick, onAddClick, onRefresh, onProductsChanged, onProductDeleted,
   externalCategory = 'tea', externalSearchQuery = '',

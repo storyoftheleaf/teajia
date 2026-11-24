@@ -9,6 +9,17 @@ export function teaPurchaseQuote(item: InventoryItem, preferredGrams = 50) {
   const pricePerGram = Number.parseFloat(item.price_per_gram ?? '');
   const stock = Math.floor(item.stock_g ?? 0);
   const sellUnit = sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits);
+  if (item.exactPackPriceUsd != null) {
+    if (!sellUnit || item.stock_g < sellUnit.grams) return null;
+    return {
+      grams: sellUnit.grams,
+      leafUsd: item.exactPackPriceUsd,
+      handlingUsd: 0,
+      totalUsd: item.exactPackPriceUsd,
+      unitGrams: sellUnit.grams,
+      wholePieceGrams: sellUnit.grams,
+    };
+  }
   const minimum = minimumOrderGrams(sellUnit?.grams);
   if (!Number.isFinite(pricePerGram) || pricePerGram < 0 || stock < minimum) return null;
   const requested = Number.isFinite(preferredGrams) ? Math.round(preferredGrams) : minimum;

@@ -1,3 +1,5 @@
+import type { CellarItem, CellarPlacementRequest, PublicShelf, ShelfOfferInput, ShelfSettings } from './teaChestTypes';
+export type { CellarItem, CellarPlacementRequest, PublicShelf, PublicShelfItem, ShelfOfferInput, ShelfSettings, TeaChestAccount } from './teaChestTypes';
 import type { ShippingPaymentNotification } from './shippingNotification';
 import type { TrackedOrder } from './orderTrackingTypes';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
@@ -515,57 +517,6 @@ export interface PlatformStockRow {
   owner_user_id: string | null;
   owner_name: string | null;
   owner_email: string | null;
-}
-
-// Stock spine step 4: one item in a user's personal cellar.
-export interface CellarItem {
-  id: string;
-  name: string;
-  type?: string | null;
-  year?: number | null;
-  origin?: string | null;
-  notes?: string | null;
-  grams: number;
-  imageUrl?: string | null;
-  placementStatus: 'private' | 'requested' | 'placed';
-  placementAccountId?: string | null;
-  linkedProductId?: string | null;
-  shelfPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CellarPlacementRequest extends CellarItem {
-  ownerName?: string | null;
-  ownerEmail?: string | null;
-}
-
-// Stock spine step 5: the seller's own shelf settings (grant state + identity).
-export interface ShelfSettings {
-  enabled: boolean;
-  slug: string | null;
-  title: string | null;
-  whatsapp: string | null;
-}
-
-// One item on a public shelf, public-safe fields only.
-export interface PublicShelfItem {
-  id: string;
-  name: string;
-  type: string | null;
-  year: number | null;
-  origin: string | null;
-  grams: number;
-  image_url: string | null;
-}
-
-export interface PublicShelf {
-  slug: string;
-  title: string | null;
-  seller_name: string | null;
-  whatsapp: string | null;
-  contributor_slug?: string | null;
-  items: PublicShelfItem[];
 }
 
 export interface PurchaseArrivalHistory {
@@ -4672,7 +4623,7 @@ export const api = {
     list: async (): Promise<{ items: CellarItem[] }> => {
       return authedFetch(`${API_URL}/api/me/cellar`);
     },
-    create: async (data: Partial<CellarItem> & { name: string }): Promise<{ item: CellarItem }> => {
+    create: async (data: Partial<CellarItem> & { name: string; costAmount: number; costCurrency: string }): Promise<{ item: CellarItem }> => {
       return authedFetch(`${API_URL}/api/me/cellar`, { method: 'POST', body: JSON.stringify(data) });
     },
     update: async (id: string, data: Partial<CellarItem>): Promise<{ item: CellarItem }> => {
@@ -4706,8 +4657,8 @@ export const api = {
     updateShelf: async (data: { title?: string; whatsapp?: string }): Promise<{ ok: boolean }> => {
       return authedFetch(`${API_URL}/api/me/shelf`, { method: 'PUT', body: JSON.stringify(data) });
     },
-    publishToShelf: async (id: string): Promise<{ ok: boolean }> => {
-      return authedFetch(`${API_URL}/api/me/cellar/${id}/publish-shelf`, { method: 'POST' });
+    publishToShelf: async (id: string, offer: ShelfOfferInput): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/publish-shelf`, { method: 'POST', body: JSON.stringify(offer) });
     },
     unpublishFromShelf: async (id: string): Promise<{ ok: boolean }> => {
       return authedFetch(`${API_URL}/api/me/cellar/${id}/unpublish-shelf`, { method: 'POST' });

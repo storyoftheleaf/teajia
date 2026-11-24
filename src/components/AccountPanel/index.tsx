@@ -506,7 +506,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     panelView === 'signin' ? 'Sign In' :
     panelView === 'signup' ? 'Create Account' :
     panelView === 'journal' ? 'Tasting Journal' :
-    panelView === 'cellar' ? 'My Cellar' :
+    panelView === 'cellar' ? 'Tea Chest' :
     'Your Table';
 
   // Filtered memberships for location switcher

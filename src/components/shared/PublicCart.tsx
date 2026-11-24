@@ -10,6 +10,7 @@ import { useRates } from '../../admin/hooks/useAdminData';
 import { useShopPrice } from '../shop/shopPrice';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { isoCurrencyCode } from '../../lib/currency';
+import { formatPersonalTeaMoney } from '../../lib/personalTeaMoney';
 import { Button } from './Button';
 import { Icons } from '../Icons';
 import { CartItemRow } from './CartItem';
@@ -81,7 +82,7 @@ function requestIdentity(payloadKey: string) {
   return { ref: createHumanOrderRef(), trackingToken: createTrackingToken(), payloadKey };
 }
 
-export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onUpdatePacks, onAddItem, isOpen, whatsappNumber, contactEmail, checkoutState = 'ready', onRetryStore, onClose }) => {
+export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onUpdatePacks, onAddItem, isOpen, whatsappNumber, contactEmail, canBePaid, checkoutState = 'ready', onRetryStore, onClose }) => {
   const isBaliStore = storeSlug === 'teajia-bali';
   const [details, setDetails] = useState(() => readCheckoutDetails(isBaliStore));
   const [whatsappConsent, setWhatsappConsent] = useState(false);
@@ -102,16 +103,19 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   const clearPublicCart = useAppStore(s => s.clearPublicCart);
   const { data: rates = [] } = useRates();
   const shopPrice = useShopPrice();
-  const channels = resolveContactChannels({ whatsappNumber, email: contactEmail, message: '' });
+  const isFixedPackOrder = (placedOrder?.items ?? cart).some(item => item.exactPackPriceUsd != null);
+  const channels = resolveContactChannels({ whatsappNumber: isFixedPackOrder ? undefined : whatsappNumber, email: contactEmail, message: '' });
   const replyMode: 'whatsapp' | 'website' = replyChoice === 'website' || !channels.whatsapp ? 'website' : 'whatsapp';
   const channel: ReplyChannel = replyMode === 'website' ? 'website' : details.contact.trim() ? 'whatsapp' : 'whatsapp-chat';
   const subtotal = useMemo(() => cart.reduce((total, item) => total + item.totalPrice, 0), [cart]);
-  const unavailable = checkoutState !== 'ready';
+  const paymentUnavailable = isFixedPackOrder && canBePaid === false;
+  const unavailable = checkoutState !== 'ready' || paymentUnavailable;
   /* The shop keys yuan and Taiwan dollars as 'Yuan' and 'NT'; an order names
      its money by ISO code, which is what the server checks for. Sending the
      shop key refused every order placed in yuan with "Currency must be a
      three-letter code", and the error sat off screen, so the button looked dead. */
-  const orderCurrency = isoCurrencyCode(shopPrice.code);
+  const orderCurrency = isFixedPackOrder ? 'USD' : isoCurrencyCode(shopPrice.code);
+  const formatTotal = isFixedPackOrder ? (usd: number) => formatPersonalTeaMoney(usd, orderCurrency) : shopPrice.total;
 
   useEffect(() => {
     if (isOpen) setRecentRequests(readRecentOrderRequests(storeSlug));
@@ -155,7 +159,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   const submitOrder = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving.current || placedOrder) return;
-    if (unavailable) { setCheckoutError('We could not check the shop. Please retry.'); return; }
+    if (unavailable) { setCheckoutError(paymentUnavailable ? 'This seller cannot accept payment right now.' : 'We could not check the shop. Please retry.'); return; }
     const nextErrors = validateCheckoutDetails(details, channel, isBaliStore);
     const requestWhatsApp = channel === 'whatsapp' && whatsappConsent;
     if (requestWhatsApp && !internationalWhatsAppNumber(details.contact)) nextErrors.contact = 'Include + and your country code, for example +62…';
@@ -200,13 +204,13 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         type: 'inquiry', ref: result.ref_number, invoiceNumber: result.invoice_number, trackingUrl,
         customerName: details.name.trim(), customerContact: contact, customerLocation: location,
         notes: details.notes.trim(), currency: orderCurrency,
-        items: savedItems.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams, packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs', price: shopPrice.total(item.totalPrice / (item.packs ?? 1)), total: shopPrice.total(item.totalPrice) })),
-        subtotal: shopPrice.total(savedSubtotal), total: shopPrice.total(total),
+        items: savedItems.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams, packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs', price: formatTotal(item.totalPrice / (item.packs ?? 1)), total: formatTotal(item.totalPrice) })),
+        subtotal: formatTotal(savedSubtotal), total: formatTotal(total),
       });
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(false);
-      setPlacedOrder({ request, items: savedItems, total: shopPrice.total(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? shopPrice.total(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
+      setPlacedOrder({ request, items: savedItems, total: formatTotal(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? formatTotal(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
       clearPublicCart();
@@ -241,7 +245,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         <Icons.Close className="w-5 h-5" />
       </button>
       <h2 className="flex-1 min-w-0 font-display text-ui-22 leading-none text-tea-text">{placedOrder ? 'Request received' : 'Your order'}</h2>
-      {!placedOrder && rates.length > 0 && <select aria-label="Currency" value={currency} onChange={event => setCurrency(event.target.value as Currency)} disabled={isPersisting} className="checkout-currency">
+      {!placedOrder && !isFixedPackOrder && rates.length > 0 && <select aria-label="Currency" value={currency} onChange={event => setCurrency(event.target.value as Currency)} disabled={isPersisting} className="checkout-currency">
         {rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}
       </select>}
     </div>
@@ -263,7 +267,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               <span className="block font-display text-ui-22 leading-tight text-tea-text">{item.name}</span>
               <span className="num text-ui-13 text-tea-text-sec">{item.category === 'tea' ? `${(item.packs ?? 1) > 1 ? `${item.packs} × ` : ''}${item.packGrams ?? item.quantityGrams}g` : `${item.quantityGrams} pieces`}</span>
             </span>
-            <span className="num text-ui-17 text-tea-text shrink-0">{shopPrice.total(item.totalPrice)}</span>
+            <span className="num text-ui-17 text-tea-text shrink-0">{formatTotal(item.totalPrice)}</span>
           </div>)}
           {placedOrder.shippingTotal && <div className="flex items-baseline justify-between gap-3">
             <span className="font-body text-ui-13 text-tea-text-sec">US shipping</span>
@@ -302,9 +306,10 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         </div> : <form id="checkout-form" ref={formRef} onSubmit={submitOrder} noValidate>
           <fieldset disabled={isPersisting} className="min-w-0 space-y-7">
             <legend className="sr-only">Your tea selection and delivery details</legend>
+            {isFixedPackOrder && <p className="mb-3 text-ui-13 text-tea-text-sec">Order from {storeName}</p>}
             <div className="space-y-7 !mt-0">{cart.map(item => <CartItemRow key={lineKeyOf(item)} item={item} onRemove={removeItem} onUpdateQuantity={onUpdateQuantity} onUpdatePacks={onUpdatePacks} onNavigate={onClose} />)}</div>
             {unavailable && <div role="status" className={`${T.bodyLight} text-tea-text bg-tea-surface p-3`}>
-              <p>{checkoutState === 'loading' ? 'Checking the shop’s ordering details…' : 'We could not check the shop. Your basket is safe.'}</p>
+              <p>{paymentUnavailable ? 'This seller cannot accept payment right now.' : checkoutState === 'loading' ? 'Checking the shop’s ordering details…' : 'We could not check the shop. Your basket is safe.'}</p>
               {checkoutState === 'error' && onRetryStore && <button type="button" onClick={onRetryStore} className="checkout-text-action">Retry shop details</button>}
             </div>}
             <fieldset className="min-w-0 space-y-3">
@@ -320,7 +325,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               {isBaliStore && isUsDelivery(details) && field('state', 'State (two-letter code)', { autoComplete: 'address-level1', maxLength: 2, placeholder: 'CA' })}
               {(details.delivery === 'indonesia' || details.delivery === 'international') && field('postcode', isUsDelivery(details) ? 'ZIP code' : 'Postcode (optional)', { autoComplete: 'postal-code' })}
               {details.delivery !== 'bali-pickup' && field('address', isBaliStore ? 'Street address and apartment' : 'Street address (optional)', { autoComplete: 'street-address', maxLength: 500 })}
-              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay right away.' : 'Pay for your tea first. Shipping is quoted and charged separately later.'}</p>
+              <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{isFixedPackOrder ? 'The seller confirms your order before you pay. Shipping is quoted separately.' : details.delivery === 'bali-pickup' ? 'Pickup is free. If we can confirm your order now, you can pay right away.' : 'Pay for your tea first. Shipping is quoted and charged separately later.'}</p>
             </fieldset>
             <fieldset className="space-y-3 min-w-0">
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
@@ -358,7 +363,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         : <Button fullWidth onClick={onClose}>Continue browsing</Button> : cart.length > 0 ? <>
         <div className="flex items-center gap-4">
           <div className="flex flex-col gap-1 shrink-0">
-            <span className="num text-ui-26 leading-none text-tea-text"><span className="sr-only">{cart.every(item => item.category === 'tea') ? 'Tea subtotal' : 'Tea & teaware subtotal'} </span>{shopPrice.total(subtotal)}</span>
+            <span className="num text-ui-26 leading-none text-tea-text"><span className="sr-only">{cart.every(item => item.category === 'tea') ? 'Tea subtotal' : 'Tea & teaware subtotal'} </span>{formatTotal(subtotal)}</span>
             <span className="font-body text-ui-11 leading-none text-tea-text-sec">{details.delivery === 'bali-pickup' ? 'Free pickup' : 'Shipping charged later'}</span>
           </div>
           <Button type="submit" form="checkout-form" fullWidth className="flex-1 min-w-0 whitespace-nowrap !px-4" loading={isPersisting} disabled={unavailable}>{isPersisting ? 'Saving request…' : 'Place order request'}</Button>

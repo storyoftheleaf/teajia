@@ -106,8 +106,9 @@ class FakeStatement {
     if (sql.includes('select id from teaware_collection where id = ? and account_id = ?')) {
       return { id: 'teaware_test' };
     }
-    if (sql.includes('select id from products where id = ? and account_id = ?')) {
-      return { id: 'prod_test' };
+    if (sql.includes('select id from products where id = ? and account_id = ?')
+      || sql.includes('select id, personal_offer_source_id from products where id = ? and account_id = ?')) {
+      return { id: 'prod_test', personal_offer_source_id: null };
     }
     if (sql.includes('from customers where id = ? and account_id = ?')) {
       return customerExists ? { id: 'cus_test', account_id: ACCOUNT_ID, name: 'Customer', contacts: '[]', tags: '[]' } : null;

@@ -80,6 +80,8 @@ export function normalizeProduct(p: any): PublicProduct {
     form: p.form || undefined,
     pieceWeightG: p.piece_weight_g != null ? Number(p.piece_weight_g) : undefined,
     soldInWholeUnits: !!p.sold_in_whole_units,
+    exactPackPriceUsd: typeof p.exact_pack_price_usd === 'number' && p.exact_pack_price_usd > 0
+      ? p.exact_pack_price_usd : undefined,
     givenName: given.name,
     chineseName: p.chinese_name || '',
     productName: product.name,

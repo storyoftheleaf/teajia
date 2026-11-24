@@ -61,15 +61,16 @@ export function normalizeCartPackGrams(item: Pick<PublicCartItem, 'category' | '
 
 /** A line rebuilt around a pack size and a count, with every derived figure redone. */
 function withPacking(item: PublicCartItem, packGrams: number, packs: number): PublicCartItem {
-  const count = Math.min(99, Math.max(1, Math.round(packs)));
-  const size = normalizeCartPackGrams(item, packGrams);
+  const exactPack = item.exactPackPriceUsd != null && item.unitGrams;
+  const count = exactPack ? 1 : Math.min(99, Math.max(1, Math.round(packs)));
+  const size = exactPack || normalizeCartPackGrams(item, packGrams);
   return {
     ...item,
     packGrams: size,
     packs: count,
     lineKey: cartLineKey(item.id, size),
     quantityGrams: size * count,
-    totalPrice: lineTotal(item, size, count),
+    totalPrice: item.exactPackPriceUsd ?? lineTotal(item, size, count),
   };
 }
 
@@ -413,7 +414,7 @@ const createdAppStore = create<AppState>()(
             return {
               publicCart: state.publicCart.map((c) =>
                 lineKeyOf(c) === key
-                  ? withPacking({ ...c, unitGrams: item.unitGrams ?? c.unitGrams }, size, packCountOf(c) + packCountOf(item))
+                  ? withPacking({ ...c, pricePerGram: item.pricePerGram, exactPackPriceUsd: item.exactPackPriceUsd, unitGrams: item.unitGrams ?? c.unitGrams }, size, packCountOf(c) + packCountOf(item))
                   : c
               ),
               cartLastAddedAt: Date.now(),

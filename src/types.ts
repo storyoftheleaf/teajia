@@ -5,6 +5,7 @@
 import { NON_TEA_TYPES, type TeaType } from './wisdom';
 import type { NoteEntry } from './lib/noteEntries';
 export type { NoteEntry } from './lib/noteEntries';
+export type { CustomerOrderDetail } from './lib/orderTrackingTypes';
 import type { FamilyPageTier, FamilyPersonTasting } from './lib/familyContract';
 export { TEA_TYPES, type TeaType, NON_TEA_TYPES } from './wisdom';
 
@@ -496,6 +497,8 @@ export interface ContributorProfile {
   hosting: ContributorHostingRef | null;
   accounts?: ContributorAccountRef[];
   shelf_slug?: string | null;
+  orderable_shelf_slug?: string | null;
+  personal_store_slug?: string;
   has_payment_methods?: boolean;
   payment_accounts?: Array<{ slug: string; name: string }>;
   host_account: ContributorHostAccount | null;
@@ -681,6 +684,7 @@ export interface CartItem {
    */
   lineKey?: string;
   pricePerGram: number;
+  exactPackPriceUsd?: number;
   totalPrice: number;
   /**
    * The weight of one unbroken piece of this tea, when it is pressed into one.
@@ -754,6 +758,8 @@ export interface InventoryItem {
    * weighed out on the shop's usual ladder.
    */
   soldInWholeUnits?: boolean;
+  /** Seller-set price of the complete fixed-weight pack, in USD. */
+  exactPackPriceUsd?: number;
   name: string;
   year: string;
   origin: string;
@@ -830,6 +836,8 @@ export interface PublicProduct {
    * because it decides which amounts a reader may choose at all.
    */
   soldInWholeUnits?: boolean;
+  /** Seller-set price of the complete fixed-weight pack, in USD. */
+  exactPackPriceUsd?: number;
   givenName: string;
   chineseName?: string;
   productName: string;
@@ -1674,31 +1682,4 @@ export interface CurateReceiptProposal {
   status: 'pending' | 'accepted' | 'rejected'; idempotency_key: string; ledger_id?: string | null;
   proposed_by_user_id: string; reviewed_by_user_id?: string | null; reviewed_at?: string | null;
   created_at: string; updated_at: string;
-}
-
-export interface CustomerOrderDetail {
-  id: string;
-  invoice_number: string;
-  status: string;
-  created_at: string;
-  payment_date: string | null;
-  fulfilled_at: string | null;
-  refund_required?: boolean;
-  refunded_usd?: number;
-  refund_due_usd?: number;
-  currency: string;
-  items: Array<{
-    id: string;
-    product_id: string | null;
-    name: string;
-    quantity: number;
-    quantity_unit?: 'g' | 'unit';
-    unit_price_usd: number;
-    line_total_usd: number;
-  }>;
-  subtotal_amount_usd: number;
-  shipping_amount_usd: number;
-  shipping_quote_status?: 'requested' | 'confirmed' | null;
-  total_amount_usd: number;
-  contact: { whatsapp: string | null; email: string | null };
 }

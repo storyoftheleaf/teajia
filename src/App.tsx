@@ -598,7 +598,8 @@ const AppContent = () => {
       packGrams: qty,
       packs: 1,
       pricePerGram,
-      totalPrice: total,
+      exactPackPriceUsd: item.exactPackPriceUsd,
+      totalPrice: item.exactPackPriceUsd ?? total,
       /* A sealed unit ships as it is, exactly as an unbroken cake does, so the
          cart prices it the same way. */
       wholePieceGrams: item.category === 'tea'

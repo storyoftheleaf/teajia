@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, expect, it } from 'vitest';
@@ -26,6 +27,8 @@ it('pairs the shipped connector over HTTP, searches and reads the real Worker qu
   const connectorModule = await import('../../scripts/ar-create-teajia-connector.mjs');
   const db = new SqliteD1('migrations', '0046');
   cleanup.push(() => db.close());
+  // Exercise the original connector schema through today's membership check.
+  db.exec(readFileSync(new URL('../migrations/0085_personal_inventory_account.sql', import.meta.url), 'utf8'));
   seedIdentity(db, { userId: 'ar-owner', accountId: 'ar-shop', role: 'owner', bundles: ['gather', 'catalog'] });
   seedIdentity(db, { userId: 'ar-other-owner', accountId: 'ar-other-shop', role: 'owner', bundles: ['gather', 'catalog'] });
   db.sqlite.prepare('INSERT INTO tea_compass_entries(id,user_id,account_id,name,notes,description) VALUES(?,?,?,?,?,?)')

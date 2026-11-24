@@ -8,7 +8,7 @@ interface TeaSaveTileProps {
   saved: boolean;
   background: string;
   savedColor: string;
-  onToggle: (event: MouseEvent<HTMLButtonElement>) => void;
+  onToggle?: (event: MouseEvent<HTMLButtonElement>) => void;
   /** Drawn in the year's place, for a row that has no year (teaware). */
   mark?: ReactNode;
 }
@@ -16,6 +16,8 @@ interface TeaSaveTileProps {
 /** The date and action share a single compact tile and a single tap target. */
 export function TeaSaveTile({ year, name, saved, background, savedColor, onToggle, mark }: TeaSaveTileProps) {
   const [animateSave, setAnimateSave] = useState(false);
+  const date = <span className={`tea-save-tile-year${String(year ?? '').length > 4 ? ' tea-save-tile-year-long' : ''}`}>{mark ?? (year || '—')}</span>;
+  if (!onToggle) return <span className="tea-save-tile" style={{ backgroundColor: background }}>{date}</span>;
   return (
     <button
       type="button"
@@ -36,7 +38,7 @@ export function TeaSaveTile({ year, name, saved, background, savedColor, onToggl
         if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
       }}
     >
-      <span className={`tea-save-tile-year${String(year ?? '').length > 4 ? ' tea-save-tile-year-long' : ''}`}>{mark ?? (year || '—')}</span>
+      {date}
       <span className={`tea-save-tile-action ${TYPOGRAPHY_CLASSES.label}`}>
         {saved && <Check size={10} weight="bold" aria-hidden="true" />}
         {saved ? 'Saved' : 'Save'}
