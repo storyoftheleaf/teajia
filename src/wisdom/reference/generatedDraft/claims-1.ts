@@ -299,6 +299,227 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
+    "claimId": "dian-hong:ageing",
+    "pageId": "dian-hong",
+    "sectionKey": "ageing",
+    "label": "Keeping Dian Hong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:brewing",
+    "pageId": "dian-hong",
+    "sectionKey": "brewing",
+    "label": "Brewing Dian Hong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:common-impressions",
+    "pageId": "dian-hong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:definition",
+    "pageId": "dian-hong",
+    "sectionKey": "definition",
+    "label": "What Dian Hong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "滇红",
+        "pinyin": "diān hóng",
+        "gloss": "Yunnan red"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:history",
+    "pageId": "dian-hong",
+    "sectionKey": "history",
+    "label": "How Dian Hong began",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:large-leaf",
+    "pageId": "dian-hong",
+    "sectionKey": "large-leaf",
+    "label": "Why the large leaf matters",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "金毫",
+        "pinyin": "jīn háo",
+        "gloss": "golden buds"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:making",
+    "pageId": "dian-hong",
+    "sectionKey": "making",
+    "label": "How Dian Hong is made",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "金芽",
+        "pinyin": "jīn yá",
+        "gloss": "golden bud"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dian-hong:old-tree-and-sun-dried",
+    "pageId": "dian-hong",
+    "sectionKey": "old-tree-and-sun-dried",
+    "label": "Old-tree and sun-dried red",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "古树",
+        "pinyin": "gǔ shù",
+        "gloss": "old trees"
+      },
+      {
+        "original": "晒红",
+        "pinyin": "shài hóng",
+        "gloss": "sun-dried red"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "gong-ting:appearance",
     "pageId": "gong-ting",
     "sectionKey": "appearance",
@@ -722,233 +943,6 @@ export const PART: readonly DraftClaim[] = [
         "origin": "approved",
         "scope": "Liu Bao under about five years",
         "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:brewing",
-    "pageId": "liu-bao",
-    "sectionKey": "brewing",
-    "label": "Brewing Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:common-impressions",
-    "pageId": "liu-bao",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "红浓陈醇",
-        "pinyin": "hóng nóng chén chún",
-        "gloss": "red, thick, aged, mellow"
-      },
-      {
-        "original": "槟榔香",
-        "pinyin": "bīng láng xiāng",
-        "gloss": "betel nut aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:definition",
-    "pageId": "liu-bao",
-    "sectionKey": "definition",
-    "label": "What Liu Bao is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六堡茶",
-        "pinyin": "liù bǎo chá",
-        "gloss": "Liu Bao tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:history",
-    "pageId": "liu-bao",
-    "sectionKey": "history",
-    "label": "How the trade fell and returned",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:making-factory",
-    "pageId": "liu-bao",
-    "sectionKey": "making-factory",
-    "label": "The factory way",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "冷水渥堆",
-        "pinyin": "lěng shuǐ wò duī",
-        "gloss": "cold-water piling"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:making-traditional",
-    "pageId": "liu-bao",
-    "sectionKey": "making-traditional",
-    "label": "The farmhouse way",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "篓装",
-        "pinyin": "lǒu zhuāng",
-        "gloss": "basket packing"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
         "approvedAt": "2026-11-24",
         "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
         "evidenceIds": []

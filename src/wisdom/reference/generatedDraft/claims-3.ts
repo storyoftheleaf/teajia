@@ -5,6 +5,382 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "red:common-impressions",
+    "pageId": "red",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "red:definition",
+    "pageId": "red",
+    "sectionKey": "definition",
+    "label": "What red tea is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red"
+    },
+    "terms": [
+      {
+        "original": "红茶",
+        "pinyin": "hóng chá",
+        "gloss": "red tea"
+      },
+      {
+        "original": "发酵",
+        "pinyin": "fā jiào",
+        "gloss": "fermentation"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Red tea is the tea English calls black tea. The Chinese name follows the colour of the brewed cup, which is red; the English one follows the dry leaf, which is dark. It is the fully oxidised tea: once the leaf’s cells are broken, its own enzymes work on it until it has turned from green to reddish brown. The Chinese trade calls that step fermentation.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Red tea is the tea English calls black tea. The Chinese name follows the colour of the brewed cup, which is red; the English one follows the dry leaf, which is dark. It is the fully oxidised tea: once the leaf’s cells are broken, its own enzymes work on it until it has turned from green to reddish brown. The Chinese trade calls that step fermentation.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "red:history",
+    "pageId": "red",
+    "sectionKey": "history",
+    "label": "How red tea spread",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "By the trade’s own telling, red tea began in the Wuyi mountains of northern Fujian, around Tongmu, in the seventeenth century, though no record says exactly how or when it was first made. Dutch traders and then the British East India Company carried it to Europe under the names Bohea and Souchong. In the nineteenth century the craft spread to other Chinese provinces, among them Anhui, where Keemun began late in the Qing dynasty, and the British, having taken Chinese plants and tea makers to India, planted red tea in Assam and later Darjeeling. Taiwan’s red tea dates from the Japanese period, at Yuchi near Sun Moon Lake, and Yunnan’s Dian Hong from the late 1930s.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "By the trade’s own telling, red tea began in the Wuyi mountains of northern Fujian, around Tongmu, in the seventeenth century, though no record says exactly how or when it was first made. Dutch traders and then the British East India Company carried it to Europe under the names Bohea and Souchong. In the nineteenth century the craft spread to other Chinese provinces, among them Anhui, where Keemun began late in the Qing dynasty, and the British, having taken Chinese plants and tea makers to India, planted red tea in Assam and later Darjeeling. Taiwan’s red tea dates from the Japanese period, at Yuchi near Sun Moon Lake, and Yunnan’s Dian Hong from the late 1930s.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "red:making",
+    "pageId": "red",
+    "sectionKey": "making",
+    "label": "How red tea is made",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red"
+    },
+    "terms": [
+      {
+        "original": "萎凋",
+        "pinyin": "wěi diāo",
+        "gloss": "withering"
+      },
+      {
+        "original": "揉捻",
+        "pinyin": "róu niǎn",
+        "gloss": "rolling"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Red tea is made in four steps, each with a reason. The fresh leaf is withered, spread out until it loses water and goes soft enough to work. It is rolled, twisted and bruised so its juices and enzymes meet and the change can begin. It is left to oxidise in warmth and damp air, and the maker judges it by smell and colour, as the grassy smell turns floral or fruity and the leaf turns reddish brown. Then it is dried with hot air, which ends the change and makes the tea stable. Graded teas are then sorted and blended.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Red tea is made in four steps, each with a reason. The fresh leaf is withered, spread out until it loses water and goes soft enough to work. It is rolled, twisted and bruised so its juices and enzymes meet and the change can begin. It is left to oxidise in warmth and damp air, and the maker judges it by smell and colour, as the grassy smell turns floral or fruity and the leaf turns reddish brown. Then it is dried with hot air, which ends the change and makes the tea stable. Graded teas are then sorted and blended.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "red:whole-and-broken",
+    "pageId": "red",
+    "sectionKey": "whole-and-broken",
+    "label": "Whole leaf and broken leaf",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red"
+    },
+    "terms": [
+      {
+        "original": "工夫红茶",
+        "pinyin": "gōng fu hóng chá",
+        "gloss": "gongfu red tea"
+      },
+      {
+        "original": "红碎茶",
+        "pinyin": "hóng suì chá",
+        "gloss": "broken red tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:aging-warehouse",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "aging-warehouse",
+    "label": "A warehouse built for aging",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
+    "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
+    "sourceIds": [
+      "cns-wuzhou-aging-warehouse"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
+        "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-AC2A67D3B1B5B15ED4E41970"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:basket-weavers",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "basket-weavers",
+    "label": "The basket makers",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Baskets used by Wuzhou Tea Factory.",
+    "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
+    "sourceIds": [
+      "china-coop-san-he-baskets"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Baskets used by Wuzhou Tea Factory.",
+        "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-01935FA9B3ED16A899C96AE0",
+          "EVIDENCE-3C9F563CB37502F0AAAE5274"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:cold-water-piling",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "cold-water-piling",
+    "label": "Water and the Wuzhou pile",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory’s documented processing history.",
+    "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
+    "sourceIds": [
+      "mofcom-three-cranes"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Wuzhou Tea Factory’s documented processing history.",
+        "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-8214350D25B5D7AAC7EC2C99",
+          "EVIDENCE-15FF408CEBEE1FB22D9133A5",
+          "EVIDENCE-032891B0557E265ACEF9BA27",
+          "EVIDENCE-5A3694521BEEDB837DC86DA9"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:export-buyers",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "export-buyers",
+    "label": "What buyers wanted from the leaf",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Cangwu County export trade in 1959.",
+    "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
+    "sourceIds": [
+      "guangxi-archives-liubao"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Cangwu County export trade in 1959.",
+        "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-E2B7E17EF2EC4C244C0DE398",
+          "EVIDENCE-FC7A270106D6F64BE874A1FA",
+          "EVIDENCE-3390025E05FABA35E65109A2"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:three-cranes",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "three-cranes",
+    "label": "The three cranes",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
+    "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
+    "sourceIds": [
+      "mofcom-three-cranes"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
+        "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-AEDB9F86CC043681D5AA7735",
+          "EVIDENCE-5A42B40D3004267C273C17CB",
+          "EVIDENCE-D7706B13A0199430490E0D3A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:age-young",
+    "pageId": "sheng",
+    "sectionKey": "age-young",
+    "label": "Young raw pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Raw pu'er under about three to five years",
+    "text": "Under about three to five years a raw pu’er is young. Its cup is pale, yellow-green to pale gold, fresh and lean, with a bite of bitterness and astringency that is meant to turn sweet in the throat. Some drink it young for that liveliness; others treat it as a tea to put away.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er under about three to five years",
+        "text": "Under about three to five years a raw pu’er is young. Its cup is pale, yellow-green to pale gold, fresh and lean, with a bite of bitterness and astringency that is meant to turn sweet in the throat. Some drink it young for that liveliness; others treat it as a tea to put away.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:ageing",
+    "pageId": "sheng",
+    "sectionKey": "ageing",
+    "label": "Raw pu’er with age",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Raw pu'er past its first years",
+    "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er past its first years",
+        "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "sheng:aging",
     "pageId": "sheng",
     "sectionKey": "aging",
@@ -585,384 +961,6 @@ export const PART: readonly DraftClaim[] = [
         "approvedAt": "2026-11-23",
         "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
         "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:common-impressions",
-    "pageId": "shou",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The ripe style, not any lot",
-    "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The ripe style, not any lot",
-        "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:definition",
-    "pageId": "shou",
-    "sectionKey": "definition",
-    "label": "What ripe pu’er is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "熟普洱",
-        "pinyin": "shú pǔ’ěr",
-        "gloss": "ripe pu’er"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er in general",
-    "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er in general",
-        "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:notice-aged",
-    "pageId": "shou",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged ripe pu’er",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "陈香",
-        "pinyin": "chén xiāng",
-        "gloss": "aged aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "The aged ripe style, not any lot",
-    "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The aged ripe style, not any lot",
-        "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-1973",
-    "pageId": "shou",
-    "sectionKey": "piling-1973",
-    "label": "Yunnan learns the pile",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan state factories, 1973 to 1975",
-    "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Yunnan state factories, 1973 to 1975",
-        "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-history",
-    "pageId": "shou",
-    "sectionKey": "piling-history",
-    "label": "How piling came to be",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Trade history before 1973",
-    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Trade history before 1973",
-        "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-today",
-    "pageId": "shou",
-    "sectionKey": "piling-today",
-    "label": "Piling today",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Current factory practice in general",
-    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Current factory practice in general",
-        "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:wet-piling",
-    "pageId": "shou",
-    "sectionKey": "wet-piling",
-    "label": "Wet piling",
-    "axis": "process",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "渥堆",
-        "pinyin": "wò duī",
-        "gloss": "wet piling"
-      }
-    ],
-    "rev": 2,
-    "scope": "The wet-pile process in general",
-    "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
-    "sourceIds": [
-      "white2tea-ripe-puer"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu’er",
-        "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved this general process passage for verified ripe pu’er types.",
-        "evidenceIds": [
-          "EVIDENCE-B4A4CF2B45A1A698E998DFED"
-        ]
-      },
-      {
-        "rev": 2,
-        "origin": "approved",
-        "scope": "The wet-pile process in general",
-        "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": [
-          "EVIDENCE-B4A4CF2B45A1A698E998DFED"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "xishuangbanna-tea-mountains:living-culture",
-    "pageId": "xishuangbanna-tea-mountains",
-    "sectionKey": "living-culture",
-    "label": "Living tea culture",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "xishuangbanna-tea-mountains:mountain-names",
-    "pageId": "xishuangbanna-tea-mountains",
-    "sectionKey": "mountain-names",
-    "label": "Mountain names",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "xishuangbanna-tea-mountains:regional-grouping",
-    "pageId": "xishuangbanna-tea-mountains",
-    "sectionKey": "regional-grouping",
-    "label": "A regional grouping",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "y562:designers",
-    "pageId": "y562",
-    "sectionKey": "designers",
-    "label": "A tiger and a hand-painted carton",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "y562"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
-    "sourceIds": [
-      "puer-magazine-export-cartons",
-      "puer-magazine-jixing-design"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Jixing Y562 export tea and its documented historical versions.",
-        "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
-        "evidenceIds": [
-          "EVIDENCE-6C6F4F073EDB7261F39C85AB",
-          "EVIDENCE-F630243D3CB7302997F8EC8E",
-          "EVIDENCE-2410F22AE4B69A942FA64699"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "y562:export-trade",
-    "pageId": "y562",
-    "sectionKey": "export-trade",
-    "label": "The box was part of the tea’s story",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "y562"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
-    "sourceIds": [
-      "puer-magazine-export-cartons"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Jixing Y562 export tea and its documented historical versions.",
-        "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
-        "evidenceIds": [
-          "EVIDENCE-F15BA92DF3957EB2BB4959D9",
-          "EVIDENCE-55FC506828F74D8F0C72ADAB"
-        ]
       }
     ],
     "pageVisibility": "public"

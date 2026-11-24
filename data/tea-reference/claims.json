@@ -2464,6 +2464,317 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "red:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "红茶",
+          "pinyin": "hóng chá",
+          "gloss": "red tea"
+        },
+        {
+          "original": "发酵",
+          "pinyin": "fā jiào",
+          "gloss": "fermentation"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "red:making",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "萎凋",
+          "pinyin": "wěi diāo",
+          "gloss": "withering"
+        },
+        {
+          "original": "揉捻",
+          "pinyin": "róu niǎn",
+          "gloss": "rolling"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "red:whole-and-broken",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "工夫红茶",
+          "pinyin": "gōng fu hóng chá",
+          "gloss": "gongfu red tea"
+        },
+        {
+          "original": "红碎茶",
+          "pinyin": "hóng suì chá",
+          "gloss": "broken red tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "red:history",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "red:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "red:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "red:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dian-hong:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "滇红",
+          "pinyin": "diān hóng",
+          "gloss": "Yunnan red"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dian-hong:large-leaf",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "金毫",
+          "pinyin": "jīn háo",
+          "gloss": "golden buds"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dian-hong:history",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dian-hong:making",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "金芽",
+          "pinyin": "jīn yá",
+          "gloss": "golden bud"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dian-hong:old-tree-and-sun-dried",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "古树",
+          "pinyin": "gǔ shù",
+          "gloss": "old trees"
+        },
+        {
+          "original": "晒红",
+          "pinyin": "shài hóng",
+          "gloss": "sun-dried red"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dian-hong:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dian-hong:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dian-hong:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "yunnan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

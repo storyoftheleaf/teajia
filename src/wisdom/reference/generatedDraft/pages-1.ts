@@ -61,6 +61,58 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "dian-hong",
+    "slug": "dian-hong",
+    "kind": "tea_type",
+    "label": "Dian Hong (Yunnan red)",
+    "visibility": "public",
+    "nativeName": "滇红",
+    "parentId": "red",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Dian Hong is",
+        "sourceIds": []
+      },
+      {
+        "key": "large-leaf",
+        "label": "Why the large leaf matters",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Dian Hong began",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Dian Hong is made",
+        "sourceIds": []
+      },
+      {
+        "key": "old-tree-and-sun-dried",
+        "label": "Old-tree and sun-dried red",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping Dian Hong",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Dian Hong",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "gong-ting",
     "slug": "gong-ting",
     "kind": "leaf_grade",
@@ -460,6 +512,52 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": [
           "ctma-puer-history-2021"
         ]
+      }
+    ]
+  },
+  {
+    "id": "red",
+    "slug": "red",
+    "kind": "tea_family",
+    "label": "Red tea (hong cha)",
+    "visibility": "public",
+    "nativeName": "红茶",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What red tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How red tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "whole-and-broken",
+        "label": "Whole leaf and broken leaf",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How red tea spread",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping red tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing red tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
       }
     ]
   },

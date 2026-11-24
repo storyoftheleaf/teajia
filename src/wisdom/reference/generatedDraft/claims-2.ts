@@ -5,6 +5,233 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "liu-bao:brewing",
+    "pageId": "liu-bao",
+    "sectionKey": "brewing",
+    "label": "Brewing Liu Bao",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:common-impressions",
+    "pageId": "liu-bao",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "红浓陈醇",
+        "pinyin": "hóng nóng chén chún",
+        "gloss": "red, thick, aged, mellow"
+      },
+      {
+        "original": "槟榔香",
+        "pinyin": "bīng láng xiāng",
+        "gloss": "betel nut aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:definition",
+    "pageId": "liu-bao",
+    "sectionKey": "definition",
+    "label": "What Liu Bao is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "六堡茶",
+        "pinyin": "liù bǎo chá",
+        "gloss": "Liu Bao tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:history",
+    "pageId": "liu-bao",
+    "sectionKey": "history",
+    "label": "How the trade fell and returned",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:making-factory",
+    "pageId": "liu-bao",
+    "sectionKey": "making-factory",
+    "label": "The factory way",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "冷水渥堆",
+        "pinyin": "lěng shuǐ wò duī",
+        "gloss": "cold-water piling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:making-traditional",
+    "pageId": "liu-bao",
+    "sectionKey": "making-traditional",
+    "label": "The farmhouse way",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "篓装",
+        "pinyin": "lǒu zhuāng",
+        "gloss": "basket packing"
+      }
+    ],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "liu-bao:nanyang-trade",
     "pageId": "liu-bao",
     "sectionKey": "nanyang-trade",
@@ -706,241 +933,45 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
-    "claimId": "san-he-liu-bao:aging-warehouse",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "aging-warehouse",
-    "label": "A warehouse built for aging",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
-    "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
-    "sourceIds": [
-      "cns-wuzhou-aging-warehouse"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
-        "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-AC2A67D3B1B5B15ED4E41970"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:basket-weavers",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "basket-weavers",
-    "label": "The basket makers",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Baskets used by Wuzhou Tea Factory.",
-    "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
-    "sourceIds": [
-      "china-coop-san-he-baskets"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Baskets used by Wuzhou Tea Factory.",
-        "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-01935FA9B3ED16A899C96AE0",
-          "EVIDENCE-3C9F563CB37502F0AAAE5274"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:cold-water-piling",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "cold-water-piling",
-    "label": "Water and the Wuzhou pile",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Wuzhou Tea Factory’s documented processing history.",
-    "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
-    "sourceIds": [
-      "mofcom-three-cranes"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Wuzhou Tea Factory’s documented processing history.",
-        "text": "Wuzhou Tea Factory dates its cold-water piling method to 1958. Workers moisten the leaves and heap them for fermentation. Zhou Mingliang was among the first technicians to practise it. In 1963, Qin Jiquan joined the factory and learned it on shift. When He Meizhen joined the factory in 1988, Qin was one of the senior technicians who taught her.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-8214350D25B5D7AAC7EC2C99",
-          "EVIDENCE-15FF408CEBEE1FB22D9133A5",
-          "EVIDENCE-032891B0557E265ACEF9BA27",
-          "EVIDENCE-5A3694521BEEDB837DC86DA9"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:export-buyers",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "export-buyers",
-    "label": "What buyers wanted from the leaf",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Cangwu County export trade in 1959.",
-    "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
-    "sourceIds": [
-      "guangxi-archives-liubao"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Cangwu County export trade in 1959.",
-        "text": "In July 1959, Guangxi’s trade department circulated an account from tea makers in Buyi, in Cangwu County. Export buyers wanted a brighter, deeper red in the cup and a tighter twist to the leaf. The makers lowered the heat of the firing pan and rolled the leaves more firmly. The circular records how they changed their work in response to buyers overseas.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-E2B7E17EF2EC4C244C0DE398",
-          "EVIDENCE-FC7A270106D6F64BE874A1FA",
-          "EVIDENCE-3390025E05FABA35E65109A2"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:three-cranes",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "three-cranes",
-    "label": "The three cranes",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
-    "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
-    "sourceIds": [
-      "mofcom-three-cranes"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Wuzhou Tea Factory and the Three Cranes mark.",
-        "text": "San He means “Three Cranes.” Wuzhou Tea Factory traces the birds on its trademark to Hegang Tower beside the factory. The works opened for the export trade in 1953. The factory registered the Three Cranes mark in October 1991, nearly four decades later.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-AEDB9F86CC043681D5AA7735",
-          "EVIDENCE-5A42B40D3004267C273C17CB",
-          "EVIDENCE-D7706B13A0199430490E0D3A"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:age-young",
-    "pageId": "sheng",
-    "sectionKey": "age-young",
-    "label": "Young raw pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er under about three to five years",
-    "text": "Under about three to five years a raw pu’er is young. Its cup is pale, yellow-green to pale gold, fresh and lean, with a bite of bitterness and astringency that is meant to turn sweet in the throat. Some drink it young for that liveliness; others treat it as a tea to put away.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er under about three to five years",
-        "text": "Under about three to five years a raw pu’er is young. Its cup is pale, yellow-green to pale gold, fresh and lean, with a bite of bitterness and astringency that is meant to turn sweet in the throat. Some drink it young for that liveliness; others treat it as a tea to put away.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:ageing",
-    "pageId": "sheng",
+    "claimId": "red:ageing",
+    "pageId": "red",
     "sectionKey": "ageing",
-    "label": "Raw pu’er with age",
+    "label": "Keeping red tea",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Sheng"
+      "type": "Red"
     },
     "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er past its first years",
-    "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
+    "rev": null,
+    "scope": "",
+    "text": "Red tea has no tradition of ageing. It is a tea to drink fresh: sealed, it keeps its quality for about a year and a half to three years, and after that it turns flatter.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er past its first years",
-        "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
+    "reviewState": "draft",
+    "pendingText": "Red tea has no tradition of ageing. It is a tea to drink fresh: sealed, it keeps its quality for about a year and a half to three years, and after that it turns flatter.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "red:brewing",
+    "pageId": "red",
+    "sectionKey": "brewing",
+    "label": "Brewing red tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf.",
+    "previousRevisions": [],
     "pageVisibility": "public"
   }
 ];
