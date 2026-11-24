@@ -17,7 +17,7 @@ import type { InventoryItem } from '../types';
 import type { Product } from '../admin/types';
 import { useAppStore } from '../lib/store';
 import { tastingReturnPath } from '../lib/authNavigation';
-import { buildPublicProductHref, findProductByRouteParam, resolveInventoryStoreSlug } from '../lib/publicProductNavigation';
+import { buildPublicProductHref, DEFAULT_PUBLIC_STORE_SLUG, findProductByRouteParam, resolveInventoryStoreSlug } from '../lib/publicProductNavigation';
 import { fetchStore, fetchStoreProduct } from '../lib/storefrontApi';
 import { resolveContactChannels } from '../lib/contact';
 import { teawareOrderSizes, teawareUnitPrice } from '../lib/teawareOrder';
@@ -68,24 +68,30 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const persistedStoreSlug = useAppStore(state => state.shopStoreSlug);
-  const storeSlug = searchParams.get('store')?.trim() || persistedStoreSlug;
+  const requestedStoreSlug = searchParams.get('store')?.trim();
+  const storeSlug = requestedStoreSlug || persistedStoreSlug;
   const shopHref = storeSlug ? `/shop?store=${encodeURIComponent(storeSlug)}` : '/shop';
   const { inventory, isLoading, isError: inventoryError, refetch: refetchInventory } = useInventory();
   const { isAdmin, isAuthenticated } = useAuth();
 
-  const browseItem = useMemo(() => findProductByRouteParam(inventory, routeKey), [inventory, routeKey]);
+  const scopedListing = Boolean(requestedStoreSlug && requestedStoreSlug !== DEFAULT_PUBLIC_STORE_SLUG);
+  const browseItem = useMemo(() => scopedListing ? null : findProductByRouteParam(inventory, routeKey), [scopedListing, inventory, routeKey]);
   const activeStore = resolveInventoryStoreSlug(searchParams, persistedStoreSlug);
   const linkedProduct = useQuery({
     queryKey: ['storefront', 'product', activeStore, routeKey],
     queryFn: () => fetchStoreProduct(activeStore, routeKey!),
-    enabled: !!routeKey && !isLoading && !browseItem,
+    enabled: !!routeKey && (scopedListing || (!isLoading && !browseItem)),
+    refetchOnMount: scopedListing ? 'always' : true,
     retry: false,
   });
-  const item = browseItem ?? linkedProduct.data;
-  const soldOutStore = useQuery({
+  // A seller link must confirm the exact listing with that seller's product reader.
+  // In particular an older list snapshot cannot reopen a withdrawn offer.
+  const checkingSeller = scopedListing && !linkedProduct.isFetchedAfterMount && !linkedProduct.isError;
+  const item = browseItem ?? (checkingSeller || linkedProduct.isError ? null : linkedProduct.data);
+  const productStore = useQuery({
     queryKey: ['storefront', 'store', activeStore],
     queryFn: () => fetchStore(activeStore),
-    enabled: !!item && item.stock_g <= 0,
+    enabled: !!item && (item.stock_g <= 0 || item.exactPackPriceUsd != null),
     retry: false,
   });
 
@@ -194,7 +200,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   }, [adminTastingItem, adminRecord]);
 
   // Inventory still loading on a cold load: hold the frame, don't 404 early.
-  if (!item && (isLoading || linkedProduct.isLoading)) {
+  if (!item && (checkingSeller || (!scopedListing && isLoading) || linkedProduct.isLoading)) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <EmblemLoader />
@@ -202,14 +208,14 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     );
   }
 
-  if (!item && (linkedProduct.isError || inventoryError)) {
+  if (!item && (linkedProduct.isError || (!scopedListing && inventoryError))) {
     return (
       <div role="alert" className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
         <h1 className="h2 mb-3">Product unavailable</h1>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mb-6 max-w-md`}>
           We could not load this product right now. Please try again.
         </p>
-        <button type="button" onClick={() => { void refetchInventory(); if (routeKey) void linkedProduct.refetch(); }} className="btn-primary btn-primary-lg tap-target">
+        <button type="button" onClick={() => { if (!scopedListing) void refetchInventory(); if (routeKey) void linkedProduct.refetch(); }} className="btn-primary btn-primary-lg tap-target">
           Try again
         </button>
       </div>
@@ -266,12 +272,13 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const cultivarUrl = lineageCultivar ? `${siteOrigin}${cultivarPath(lineageCultivar.id)}` : null;
   const productHref = buildPublicProductHref({ id: item.id, slug: item.slug }, storeSlug);
   const productUrl = `${siteOrigin}${productHref}`;
-  const soldOutStoreProfile = soldOutStore.data?.slug === activeStore ? soldOutStore.data : undefined;
-  const contact = isSoldOut && soldOutStoreProfile ? resolveContactChannels({
-    whatsappNumber: soldOutStoreProfile.whatsapp_number,
-    email: soldOutStoreProfile.contact_email,
+  const storeProfile = productStore.data?.slug === activeStore ? productStore.data : undefined;
+  const sellerStore = item.exactPackPriceUsd != null ? storeProfile : undefined;
+  const contact = isSoldOut && storeProfile ? resolveContactChannels({
+    whatsappNumber: storeProfile.whatsapp_number,
+    email: storeProfile.contact_email,
     subject: item.category === 'tea' ? `Purchase inquiry for ${item.name}` : `Restock alert for ${item.name}`,
-    message: `Hello ${soldOutStoreProfile.name}, ${item.category === 'tea'
+    message: `Hello ${storeProfile.name}, ${item.category === 'tea'
       ? `I’m interested in purchasing more ${item.name}. Could you keep me in mind if you find it again or source something similar?`
       : `please let me know when ${item.name} is back in stock.`}\n${siteOrigin}${buildPublicProductHref(item, activeStore)}`,
   }) : undefined;
@@ -325,7 +332,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   // a price the page itself does not charge, which is the mismatch schema.org
   // rich results are built to flag.
   const quotedTotal = (quantity: number) => unitPrice != null ? unitPrice * quantity :
-    quoteGrams(pricePerGram, quantity, { wholePieceGrams: wholePiece?.grams }).totalUsd;
+    (item.exactPackPriceUsd ?? quoteGrams(pricePerGram, quantity, { wholePieceGrams: wholePiece?.grams }).totalUsd);
   const availability = isSoldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
   const quantityOffers = (priceKnown ? presets : []).map(quantity => ({
     '@type': 'Offer',
@@ -334,7 +341,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
     priceCurrency: offerCurrency,
     eligibleQuantity: { '@type': 'QuantitativeValue', value: quantity, unitCode: isWare ? 'H87' : 'GRM' },
     availability,
-    seller: { '@type': 'Organization', name: 'Teajia' },
+    ...(storeProfile?.name || item.exactPackPriceUsd == null ? {
+      seller: { '@type': 'Organization', name: storeProfile?.name ?? 'Teajia' },
+    } : {}),
     url: productUrl,
   }));
   // Sold out or stocked under the smallest preset, there is no quantity to
@@ -453,7 +462,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
-      <ProductDetailPageContext.Provider value={{ shopHref, crumbType, selectedBy, onCartClick, cartItemCount }}>
+      <ProductDetailPageContext.Provider value={{
+        shopHref: sellerStore ? `/store/${encodeURIComponent(sellerStore.slug)}` : shopHref,
+        shopName: sellerStore?.name, crumbType: sellerStore ? null : crumbType, selectedBy, onCartClick, cartItemCount,
+      }}>
         <ProductDetailContent
           key={item.id}
           item={item}

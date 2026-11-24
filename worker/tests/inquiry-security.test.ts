@@ -41,12 +41,12 @@ class InquiryDb {
     const statement = {
       bind: (...next: unknown[]) => { values = next; return statement; },
       first: async () => {
-        if (normalized.includes('select id from accounts where slug = ?')) {
+        if (normalized.includes('from accounts a where a.slug = ?')) {
           const account = this.accounts.get(String(values[0]));
           if (!account) return null;
-          if (normalized.includes("status = 'active'") && account.status !== 'active') return null;
-          if (normalized.includes('public_enabled = 1') && account.public_enabled !== 1) return null;
-          return { id: account.id };
+          if (normalized.includes("a.status = 'active'") && account.status !== 'active') return null;
+          if (normalized.includes('a.public_enabled = 1') && account.public_enabled !== 1) return null;
+          return { id: account.id, personal_inventory_user_id: null };
         }
         if (normalized.includes('from inquiries where tracking_token_hash = ?')) {
           if (this.tokenLookupMisses > 0) {

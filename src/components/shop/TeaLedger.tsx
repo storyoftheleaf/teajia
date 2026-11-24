@@ -166,20 +166,22 @@ export function TeaLedger({
   );
 }
 
-export type TeaLedgerIdentity = Pick<InventoryItem, 'name' | 'year' | 'type' | 'origin' | 'description' | 'terroir' | 'processingNotes'>;
+export type TeaLedgerIdentity = Pick<InventoryItem, 'name' | 'year' | 'type' | 'origin'>
+  & Partial<Pick<InventoryItem, 'description' | 'terroir' | 'processingNotes'>>;
 
 interface TeaLedgerRowProps {
   item: TeaLedgerIdentity;
   showType: boolean;
   saved: boolean;
-  onToggleSave: (event: MouseEvent<HTMLButtonElement>) => void;
-  onOpen: () => void;
+  onToggleSave?: (event: MouseEvent<HTMLButtonElement>) => void;
+  onOpen?: () => void;
   tastingCount?: number;
   recommended?: boolean;
   trailing?: ReactNode;
   selected?: boolean;
   expanded?: boolean;
   openLabel?: string;
+  headingId?: string;
   /** Leads the second line in place of the type, for a row that is not a tea (teaware's material). */
   label?: string | null;
   /** Drawn in the Save tile when the row has no year to show. */
@@ -187,7 +189,7 @@ interface TeaLedgerRowProps {
 }
 
 /** The shop's tea row, shared verbatim with Library; actions belong to the caller. */
-export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, recommended, trailing, selected, expanded, openLabel, label, mark }: TeaLedgerRowProps) {
+export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tastingCount = 0, recommended, trailing, selected, expanded, openLabel, headingId, label, mark }: TeaLedgerRowProps) {
   const { theme } = useTheme();
   const rowTones = getTeaLedgerTones(item.type, theme);
   const origin = splitOrigin(item.origin || '');
@@ -196,23 +198,23 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
   return (
     <div
       data-tea-ledger-row
-      role="button"
-      tabIndex={0}
-      aria-label={openLabel ?? `View ${item.name}`}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-label={onOpen ? openLabel ?? `View ${item.name}` : undefined}
       aria-description={recommended ? 'Adrian’s pick' : undefined}
       aria-expanded={expanded}
       aria-current={selected ? true : undefined}
       style={{
         backgroundImage: `linear-gradient(to right, ${rowTones.wash}, transparent 38%)`,
       }}
-      className={`tea-ledger-row -mx-4 px-4 border-b border-tea-border transition-colors cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30${selected ? ' bg-tea-accent-sub' : ''}`}
+      className={`tea-ledger-row -mx-4 px-4 border-b border-tea-border transition-colors${onOpen ? ' cursor-pointer hover:bg-tea-text/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/30' : ''}${selected ? ' bg-tea-accent-sub' : ''}`}
       onClick={onOpen}
       /* The ground and the rule reach back across the shop's
          gutter, so the row is a field the content sits inside
          rather than a band that begins where the block begins.
          Same on both sides, so nothing lands on a rule's end. */
       onKeyDown={event => {
-        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+        if (onOpen && event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
           onOpen();
         }
@@ -231,7 +233,7 @@ export function TeaLedgerRow({ item, showType, saved, onToggleSave, onOpen, tast
 
         <div className="tea-ledger-identity min-w-0 flex-1">
           <div className="flex min-w-0 items-start gap-2">
-            <h3 className="min-w-0 truncate sm:overflow-visible sm:whitespace-normal sm:break-words font-display text-ui-18 font-medium leading-tight text-tea-text lg:text-ui-20">
+            <h3 id={headingId} tabIndex={headingId ? -1 : undefined} className="scroll-mt-24 min-w-0 truncate sm:overflow-visible sm:whitespace-normal sm:break-words font-display text-ui-18 font-medium leading-tight text-tea-text lg:text-ui-20">
               {item.name}
             </h3>
             {tastingCount > 0 && (

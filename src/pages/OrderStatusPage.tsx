@@ -112,7 +112,7 @@ const OrderStatusPage: React.FC = () => {
     Boolean(inquiry?.payment?.pay_url || shouldOfferPaymentClaim(inquiry?.payment));
   const formatStoredUsd = (amount: number) => {
     const safe = Number.isFinite(amount) ? amount : 0;
-    if (sameCurrency(inquiry?.currency, shopPrice.code)) return shopPrice.total(safe);
+    if (sameCurrency(inquiry?.currency, shopPrice.code) && (shopPrice.code !== 'USD' || Number.isInteger(safe))) return shopPrice.total(safe);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

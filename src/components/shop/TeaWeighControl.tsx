@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { InventoryItem } from '../../types';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { TEA_PRICING } from '../../lib/teaPricing';
+import { formatPersonalTeaMoney } from '../../lib/personalTeaMoney';
 
 export interface WeighOption {
   grams: number;
@@ -105,13 +106,13 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
                 Contrast separates them, the weight dim and the price bright. */}
             <span className="num text-ui-12 tabular-nums text-tea-text-dim">{current.grams}g</span>
             <span data-testid="grid-price" className="num text-ui-12 font-medium tabular-nums text-tea-text">
-              {formatPrice(current.totalUsd)}
+              {item.exactPackPriceUsd == null ? formatPrice(current.totalUsd) : formatPersonalTeaMoney(current.totalUsd, 'USD')}
             </span>
           </>
         )}
       </button>
 
-      {(options.length > 1 || onChooseAmount) && (
+      {item.exactPackPriceUsd == null && (options.length > 1 || onChooseAmount) && (
         <div className="flex items-center justify-between">
           <button type="button" aria-label="Weigh less" disabled={atMin} onClick={step(-1)} onKeyDown={stopKeys} className={`${stepClass} text-tea-text-dim enabled:hover:border-tea-gold`}>
             &minus;

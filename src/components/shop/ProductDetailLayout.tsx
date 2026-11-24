@@ -22,6 +22,7 @@ import { TeaPhotographRow } from './TeaFamilyStrips';
 
 interface ProductPageContextValue {
   shopHref: string;
+  shopName?: string;
   crumbType?: string | null;
   selectedBy: Awaited<ReturnType<typeof api.products.getSelectedBy>>['selected_by'];
   onCartClick?: () => void;
@@ -54,7 +55,7 @@ interface ProductDetailLayoutProps {
 export function ProductDetailLayout({
   identity, gallery, actions, facts, factsTitle, history, order, tasting, reading, related, styleReference, teaOrder, modals, soldOut, ownerPreviewNavigation, galleryCaption,
 }: ProductDetailLayoutProps) {
-  const { shopHref, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
+  const { shopHref, shopName, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
   const { item } = identity;
   const hasProductActions = Boolean(actions) && !ownerPreviewNavigation;
   const photos = useTeaFamily(hasProductActions ? item.id : undefined);
@@ -92,11 +93,11 @@ export function ProductDetailLayout({
       {ownerPreviewNavigation ?? <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
         <Link
           to={shopHref}
-          aria-label="Back to shop"
+          aria-label={shopName ? `Back to ${shopName}` : 'Back to shop'}
           className="btn-quiet btn-sm"
         >
           <Icons.Back className="h-3.5 w-3.5" />
-          <span>Shop</span>
+          <span className="min-w-0 truncate">{shopName ?? 'Shop'}</span>
           {crumbType && (
             <>
               <span aria-hidden="true" className="text-tea-text-dim">/</span>

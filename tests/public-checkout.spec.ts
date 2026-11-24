@@ -279,7 +279,7 @@ test.describe('guest public checkout', () => {
     await page.getByLabel('Your name', { exact: true }).fill('Guest Customer');
     await page.getByLabel('Your WhatsApp number', { exact: true }).fill('+6281234567890');
     await page.getByRole('button', { name: 'Place order request', exact: true }).click();
-    expect(requests).toHaveLength(1);
+    await expect.poll(() => requests).toHaveLength(1);
     expect(requests[0].source).toBe('website');
     expect(requests[0].customer_contact).toBe('+6281234567890');
     expect(requests[0].whatsapp_confirmation_consent).toBe(false);

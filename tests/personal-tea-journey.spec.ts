@@ -76,10 +76,10 @@ test.describe('personal tea journeys', () => {
     await expect(page.getByText(journalTea)).toBeVisible();
     await expect(page.getByText(cellarTea)).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Favorites/ })).toHaveAttribute('href', '/account/collection');
-    await expect(page.getByRole('link', { name: /Cellar/ })).toHaveAttribute('href', '/account/cellar');
+    await expect(page.getByRole('link', { name: /Tea Chest/ })).toHaveAttribute('href', '/account/cellar');
     await expectNoOverflow(page);
 
-    await page.getByRole('link', { name: /Cellar/ }).click();
+    await page.getByRole('link', { name: /Tea Chest/ }).click();
     await expect(page).toHaveURL(/\/account\/cellar$/);
     await expect(page.getByText(cellarTea)).toBeVisible();
     await expect(page.getByText(favoriteTea)).toHaveCount(0);
@@ -93,4 +93,40 @@ test.describe('personal tea journeys', () => {
       expect(linksBox && bottomNavBox && linksBox.y + linksBox.height <= bottomNavBox.y).toBe(true);
     }
   });
+});
+
+test('a new Tea Chest opens the existing Stock and Sales for its own account', async ({ page }, testInfo) => {
+  await prepare(page);
+  const chest = { id: 'acct-chest', slug: 'keeper-tea-chest', public_enabled: 0 };
+  let account: typeof chest | null = null;
+  let selected: string | null = null;
+  await page.route('**/api/me/cellar', route => route.fulfill({ json: { items: [] } }));
+  await page.route('**/api/me/tea-chest/account', route => {
+    if (route.request().method() === 'POST') account = chest;
+    return route.fulfill({ json: { account } });
+  });
+  await page.route('**/api/accounts/switch', route => {
+    selected = route.request().postDataJSON().account_id;
+    const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+    const switched = makeFakeJWT({
+      ...claims, active_account_id: chest.id,
+      memberships: [{ account_id: chest.id, account_name: 'Tea Keeper’s Tea Chest', role: 'owner',
+        slug: chest.slug, account_kind: 'master', bundles: ['catalog', 'stock', 'sell'] }],
+    });
+    return route.fulfill({ json: { token: switched } });
+  });
+  await page.goto('/account/cellar');
+  await expect(page.getByRole('heading', { name: 'Tea Chest' })).toBeVisible();
+  const stock = page.getByRole('button', { name: 'Open Stock' });
+  await expect(stock).toBeEnabled();
+  await expect(page.getByRole('link', { name: 'View your shop' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Add tea you own' })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('tea-chest.png'), scale: 'css' });
+  await stock.click();
+  await expect(page).toHaveURL(/\/admin\/stock$/);
+  expect(selected).toEqual(chest.id);
+  await page.goto('/account/cellar');
+  await page.getByRole('button', { name: 'Open Sales' }).click();
+  await expect(page).toHaveURL(/\/admin\/(orders|activity)/);
+  expect(selected).toEqual(chest.id);
 });
