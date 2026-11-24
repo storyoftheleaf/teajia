@@ -5,6 +5,62 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "dark",
+    "slug": "dark",
+    "kind": "tea_family",
+    "label": "Dark tea (hei cha)",
+    "visibility": "public",
+    "nativeName": "黑茶",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What dark tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "why",
+        "label": "Why it was made",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How dark tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How the trade grew",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Dark tea and age",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing dark tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing-simmer",
+        "label": "Simmering older dark tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing-pressed",
+        "label": "Breaking a pressed dark tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "gong-ting",
     "slug": "gong-ting",
     "kind": "leaf_grade",
@@ -108,6 +164,78 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": [
           "teadb-lincang"
         ]
+      }
+    ]
+  },
+  {
+    "id": "liu-bao",
+    "slug": "liu-bao",
+    "kind": "tea_type",
+    "label": "Liu Bao",
+    "visibility": "public",
+    "nativeName": "六堡茶",
+    "parentId": "dark",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Liu Bao is",
+        "sourceIds": []
+      },
+      {
+        "key": "nanyang-trade",
+        "label": "Who drank it, and why",
+        "sourceIds": []
+      },
+      {
+        "key": "making-traditional",
+        "label": "The farmhouse way",
+        "sourceIds": []
+      },
+      {
+        "key": "making-factory",
+        "label": "The factory way",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How the trade fell and returned",
+        "sourceIds": []
+      },
+      {
+        "key": "age-young",
+        "label": "Young Liu Bao",
+        "sourceIds": []
+      },
+      {
+        "key": "age-settling",
+        "label": "Five to ten years",
+        "sourceIds": []
+      },
+      {
+        "key": "age-aged",
+        "label": "Ten years and more",
+        "sourceIds": []
+      },
+      {
+        "key": "old-stock",
+        "label": "Old stock",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Liu Bao",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged Liu Bao",
+        "sourceIds": []
       }
     ]
   },

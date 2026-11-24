@@ -1497,6 +1497,422 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "dark:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "黑茶",
+          "pinyin": "hēi chá",
+          "gloss": "dark tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dark:why",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "边销茶",
+          "pinyin": "biān xiāo chá",
+          "gloss": "border tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dark:making",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "渥堆",
+          "pinyin": "wò duī",
+          "gloss": "piling"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dark:history",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dark:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dark:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dark:brewing-simmer",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "煮",
+          "pinyin": "zhǔ",
+          "gloss": "simmering"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dark:brewing-pressed",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dark:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "六堡茶",
+          "pinyin": "liù bǎo chá",
+          "gloss": "Liu Bao tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:nanyang-trade",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:making-traditional",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "篓装",
+          "pinyin": "lǒu zhuāng",
+          "gloss": "basket packing"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:making-factory",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "冷水渥堆",
+          "pinyin": "lěng shuǐ wò duī",
+          "gloss": "cold-water piling"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:history",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:age-young",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:age-settling",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:age-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:old-stock",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "回流",
+          "pinyin": "huí liú",
+          "gloss": "returned"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "红浓陈醇",
+          "pinyin": "hóng nóng chén chún",
+          "gloss": "red, thick, aged, mellow"
+        },
+        {
+          "original": "槟榔香",
+          "pinyin": "bīng láng xiāng",
+          "gloss": "betel nut aroma"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-bao:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "guangxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "槟榔香",
+          "pinyin": "bīng láng xiāng",
+          "gloss": "betel nut aroma"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

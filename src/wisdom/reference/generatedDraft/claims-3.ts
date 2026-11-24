@@ -5,6 +5,561 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "shou:common-impressions",
+    "pageId": "shou",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The ripe style, not any lot",
+    "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The ripe style, not any lot",
+        "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:definition",
+    "pageId": "shou",
+    "sectionKey": "definition",
+    "label": "What ripe pu’er is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "熟普洱",
+        "pinyin": "shú pǔ’ěr",
+        "gloss": "ripe pu’er"
+      }
+    ],
+    "rev": 1,
+    "scope": "Ripe pu'er in general",
+    "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Ripe pu'er in general",
+        "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:notice-aged",
+    "pageId": "shou",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged ripe pu’er",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "陈香",
+        "pinyin": "chén xiāng",
+        "gloss": "aged aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "The aged ripe style, not any lot",
+    "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The aged ripe style, not any lot",
+        "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:piling-1973",
+    "pageId": "shou",
+    "sectionKey": "piling-1973",
+    "label": "Yunnan learns the pile",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Yunnan state factories, 1973 to 1975",
+    "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Yunnan state factories, 1973 to 1975",
+        "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:piling-history",
+    "pageId": "shou",
+    "sectionKey": "piling-history",
+    "label": "How piling came to be",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Trade history before 1973",
+    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Trade history before 1973",
+        "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:piling-today",
+    "pageId": "shou",
+    "sectionKey": "piling-today",
+    "label": "Piling today",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Current factory practice in general",
+    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Current factory practice in general",
+        "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:wet-piling",
+    "pageId": "shou",
+    "sectionKey": "wet-piling",
+    "label": "Wet piling",
+    "axis": "process",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "渥堆",
+        "pinyin": "wò duī",
+        "gloss": "wet piling"
+      }
+    ],
+    "rev": 2,
+    "scope": "The wet-pile process in general",
+    "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
+    "sourceIds": [
+      "white2tea-ripe-puer"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Ripe pu’er",
+        "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved this general process passage for verified ripe pu’er types.",
+        "evidenceIds": [
+          "EVIDENCE-B4A4CF2B45A1A698E998DFED"
+        ]
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "The wet-pile process in general",
+        "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": [
+          "EVIDENCE-B4A4CF2B45A1A698E998DFED"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:living-culture",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "living-culture",
+    "label": "Living tea culture",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:mountain-names",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "mountain-names",
+    "label": "Mountain names",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "xishuangbanna-tea-mountains:regional-grouping",
+    "pageId": "xishuangbanna-tea-mountains",
+    "sectionKey": "regional-grouping",
+    "label": "A regional grouping",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "y562:designers",
+    "pageId": "y562",
+    "sectionKey": "designers",
+    "label": "A tiger and a hand-painted carton",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
+    "sourceIds": [
+      "puer-magazine-export-cartons",
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
+        "evidenceIds": [
+          "EVIDENCE-6C6F4F073EDB7261F39C85AB",
+          "EVIDENCE-F630243D3CB7302997F8EC8E",
+          "EVIDENCE-2410F22AE4B69A942FA64699"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "y562:export-trade",
+    "pageId": "y562",
+    "sectionKey": "export-trade",
+    "label": "The box was part of the tea’s story",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
+    "sourceIds": [
+      "puer-magazine-export-cartons"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
+        "evidenceIds": [
+          "EVIDENCE-F15BA92DF3957EB2BB4959D9",
+          "EVIDENCE-55FC506828F74D8F0C72ADAB"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "y562:little-black-box",
+    "pageId": "y562",
+    "sectionKey": "little-black-box",
+    "label": "Yunnan’s little black box",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
+    "sourceIds": [
+      "china-tea-catalogue-y562",
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
+        "evidenceIds": [
+          "EVIDENCE-99F92222EEA66297BE2ECBA5",
+          "EVIDENCE-E21387EE2A807C8BD28E7236",
+          "EVIDENCE-6C6F4F073EDB7261F39C85AB"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "y562:original-blend",
+    "pageId": "y562",
+    "sectionKey": "original-blend",
+    "label": "The tea behind the code",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "y562"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Jixing Y562 export tea and its documented historical versions.",
+    "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+    "sourceIds": [
+      "puer-magazine-jixing-design"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Jixing Y562 export tea and its documented historical versions.",
+        "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
+        "evidenceIds": [
+          "EVIDENCE-A4817C0FA41A69E66E2BF23B"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yunnan-mountain-names:market-names",
+    "pageId": "yunnan-mountain-names",
+    "sectionKey": "market-names",
+    "label": "Names in the tea market",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
+    "sourceIds": [
+      "ctma-yunnan-108-mountains-2026"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "yunnan-mountain-names:reading-the-list",
+    "pageId": "yunnan-mountain-names",
+    "sectionKey": "reading-the-list",
+    "label": "What a list can tell us",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
+    "sourceIds": [
+      "ctma-yunnan-108-mountains-2026"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "yunnan:geographic-frame",
+    "pageId": "yunnan",
+    "sectionKey": "geographic-frame",
+    "label": "The geographic frame",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Yunnan Pu’er Regions",
+    "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
+    "sourceIds": [
+      "teadb-yunnan-overview"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Yunnan Pu’er Regions",
+        "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-FD526336F67070D4C3DD64DF"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yunnan:reading-labels",
+    "pageId": "yunnan",
+    "sectionKey": "reading-labels",
+    "label": "Read labels with care",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Yunnan Pu’er Regions",
+    "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
+    "sourceIds": [
+      "teadb-yunnan-overview"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Yunnan Pu’er Regions",
+        "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-3EE3ABDD50251B7812F1C99A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "yunnan:regional-map",
     "pageId": "yunnan",
     "sectionKey": "regional-map",
