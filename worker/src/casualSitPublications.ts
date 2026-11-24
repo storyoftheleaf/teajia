@@ -1,6 +1,7 @@
 import { casualSitLimits, type CasualSitPublicationStatus, type CasualSitRecap } from '../../shared/casualSitPublication';
 import { FAMILY_PAGE_NOT_HIDDEN_SQL } from './familyPersonTastings';
 import { readSitPhotoRendition, sitPhotoRenditionResponse } from './revocableSitPhotos';
+import { resolveSessionTeas, type PublicProductReader } from './sessionTeas';
 
 type Env = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
 type UserAuth<E> = (request: Request, env: E) => Promise<{ userId: string } | { error: Response }>;
@@ -39,13 +40,28 @@ const currentPhoto = `
 const publicColumns = `publication.slug, publication.title, publication.writing, publication.tea_name,
   sit.sit_date AS date, c.id AS profile_slug, c.display_name AS host_name,
   CASE WHEN publication.link_shop_tea = 1 THEN product.id END AS product_id,
-  CASE WHEN photo.id IS NOT NULL THEN publication.photo_public_id END AS photo_public_id, publication.photo_alt`;
+  CASE WHEN photo.id IS NOT NULL THEN publication.photo_public_id END AS photo_public_id, publication.photo_alt,
+  sit.owner_user_id, CASE WHEN publication.tea_name = sit.tea_name THEN sit.tea_id END AS recorded_tea_id`;
 
 type PublicRow = {
   slug: string; title: string; writing: string; tea_name: string; date: string;
   profile_slug: string; host_name: string; product_id: string | null;
   photo_public_id: string | null; photo_alt: string | null;
+  owner_user_id: string; recorded_tea_id: string | null;
 };
+/**
+ * The poured tea as a record. A linked shop tea resolves in the shop; an
+ * unlinked one resolves only as a holding in the host's own Tea Chest, and
+ * only when the published name is the name the sit recorded.
+ */
+async function withTeas(db: D1Database, readPublic: PublicProductReader | undefined, shop: string, row: PublicRow) {
+  const recap = projectRecap(row);
+  const productId = row.product_id ?? row.recorded_tea_id;
+  const [tea] = await resolveSessionTeas(db, readPublic ?? (() => Promise.resolve(null)),
+    row.product_id ? shop : null, [row.owner_user_id], [{ menuId: null, productId, name: row.tea_name }]);
+  return { ...recap, teas: tea ? [tea] : [] };
+}
+
 function projectRecap(row: PublicRow): CasualSitRecap {
   return {
     slug: row.slug, title: row.title, date: row.date, writing: row.writing,
@@ -169,19 +185,23 @@ async function publish(
 export function casualSitPublicationRoutes<E extends Env>(deps: {
   requireUser: UserAuth<E>;
   shopAccountId: string;
+  readPublic?: (env: E) => PublicProductReader;
 }): [string, string, Handler<E>][] {
   const base = `SELECT ${publicColumns} ${currentPublication} ${currentPhoto}
     ${publicShopTea('?1')} WHERE ${publicProfile}`;
-  const list: Handler<E> = async (_request, { DB }, { slug }) => {
+  const list: Handler<E> = async (_request, env, { slug }) => {
+    const { DB } = env;
     const query = DB.prepare(`${base} AND c.id = ?2
       ORDER BY sit.sit_date DESC, publication.published_at DESC, publication.slug DESC LIMIT 24`);
     const { results } = await query.bind(deps.shopAccountId, slug).all<PublicRow>();
-    return json({ recaps: results.map(projectRecap) });
+    const reader = deps.readPublic?.(env);
+    return json({ recaps: await Promise.all(results.map(row => withTeas(DB, reader, deps.shopAccountId, row))) });
   };
-  const recap: Handler<E> = async (_request, { DB }, { slug }) => {
+  const recap: Handler<E> = async (_request, env, { slug }) => {
+    const { DB } = env;
     const row = await DB.prepare(`${base} AND publication.slug = ?2`)
       .bind(deps.shopAccountId, slug).first<PublicRow>();
-    return row ? json({ recap: projectRecap(row) }) : missing();
+    return row ? json({ recap: await withTeas(DB, deps.readPublic?.(env), deps.shopAccountId, row) }) : missing();
   };
   const photo: Handler<E> = async (request, { DB, ATLAS_BUCKET }, { slug, photoId }) => {
     const read = () => DB.prepare(

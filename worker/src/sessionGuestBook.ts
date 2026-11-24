@@ -1,3 +1,4 @@
+import { sessionServedTeas } from './sessionServedTeas';
 import { hashAfterSitCredential } from './afterSitCredential';
 import { privateAttendeeMatch } from './privateSessionReflections';
 
@@ -5,17 +6,35 @@ type Scope = { accountId: string; userId: string };
 const reply = (body: object, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
 export const GUEST_BOOK_NOTE_LIMIT = 280;
 
+/** Which served tea a guest's note names, and whether they agreed to the public recap. */
+export type GuestBookPlacement = { teaId?: unknown; publicRecap?: unknown };
+
+export function guestBookPlacement(input: GuestBookPlacement | null | undefined) {
+  return {
+    teaId: typeof input?.teaId === 'string' && input.teaId.length <= 120 ? input.teaId : null,
+    publicRecap: input?.publicRecap === true ? 1 : 0,
+  };
+}
+
+/** The served tea id, or NULL when it is not one of this sit's served teas. */
+const sitServedTea = `(SELECT tea.id FROM (${sessionServedTeas('a.account_id', 'a.event_id')}) AS tea WHERE tea.id = ?)`;
+
 export function prepareGuestBookNote(
   db: D1Database, userId: string, note: string, now: string, seatCheck: string, binds: string[],
+  placement: GuestBookPlacement = {},
 ) {
+  const { teaId, publicRecap } = guestBookPlacement(placement);
   return db.prepare(
-    `INSERT INTO session_guest_book (id, account_id, event_id, attendee_id, user_id, note, status, updated_at)
-     SELECT ?, a.account_id, a.event_id, a.id, ?, ?, 'pending', ?
+    `INSERT INTO session_guest_book (id, account_id, event_id, attendee_id, user_id, note, status, updated_at, tea_id, public_recap)
+     SELECT ?, a.account_id, a.event_id, a.id, ?, ?, 'pending', ?, ${sitServedTea}, ?
      FROM event_attendees a WHERE ${seatCheck}
      ON CONFLICT(account_id, event_id, user_id) DO UPDATE
-     SET note = excluded.note, status = 'pending', revision = revision + 1, updated_at = excluded.updated_at
-     WHERE session_guest_book.note <> excluded.note`
-  ).bind(crypto.randomUUID(), userId, note, now, ...binds);
+     SET note = excluded.note, tea_id = excluded.tea_id, public_recap = excluded.public_recap,
+       status = 'pending', revision = revision + 1, updated_at = excluded.updated_at
+     WHERE session_guest_book.note <> excluded.note
+       OR session_guest_book.tea_id IS NOT excluded.tea_id
+       OR session_guest_book.public_recap <> excluded.public_recap`
+  ).bind(crypto.randomUUID(), userId, note, now, teaId, publicRecap, ...binds);
 }
 
 export function guestBookEntryKeys<T extends { user_id: string }>(rows: T[], accountId: string, eventId: string) {
@@ -50,7 +69,7 @@ export async function serveGuestBook(request: Request, db: D1Database, scope: Sc
          AND b.status = 'included' ORDER BY b.updated_at ASC, b.id ASC`
       ).bind(...where).all<{ user_id: string }>(),
       db.prepare(
-        'SELECT id, status, note FROM session_guest_book WHERE account_id = ? AND event_id = ? AND user_id = ?'
+        'SELECT id, status, note, tea_id, public_recap FROM session_guest_book WHERE account_id = ? AND event_id = ? AND user_id = ?'
       ).bind(...where, scope.userId).first(),
     ]);
     const entries = await guestBookEntryKeys(included.results, scope.accountId, seat.event_id);
@@ -66,18 +85,19 @@ export async function serveGuestBook(request: Request, db: D1Database, scope: Sc
     return reply({ success: true });
   }
 
-  const body = await request.json().catch(() => null) as { note?: unknown } | null;
+  const body = await request.json().catch(() => null) as ({ note?: unknown } & GuestBookPlacement) | null;
   const note = typeof body?.note === 'string' ? body.note.trim() : '';
   if (!note || note.length > GUEST_BOOK_NOTE_LIMIT) return reply({ error: 'Write a note of up to 280 characters.' }, 400);
   const [, written] = await db.batch([
     db.prepare(`UPDATE event_attendees AS a SET user_id = ? WHERE a.user_id IS NULL AND ${seatCheck}`)
       .bind(scope.userId, ...binds),
-    prepareGuestBookNote(db, scope.userId, note, new Date().toISOString(), seatCheck, binds),
+    prepareGuestBookNote(db, scope.userId, note, new Date().toISOString(), seatCheck, binds, body ?? {}),
   ]);
   if (!written.meta?.changes) {
     const identical = await db.prepare(
-      'SELECT 1 FROM session_guest_book WHERE account_id = ? AND event_id = ? AND user_id = ? AND note = ?'
-    ).bind(...where, scope.userId, note).first();
+      `SELECT 1 FROM session_guest_book WHERE account_id = ? AND event_id = ? AND user_id = ? AND note = ?
+       AND public_recap = ?`
+    ).bind(...where, scope.userId, note, guestBookPlacement(body).publicRecap).first();
     if (!identical) return reply({ error: 'Confirm your attendance before sharing.' }, 403);
   }
   return reply({ success: true });

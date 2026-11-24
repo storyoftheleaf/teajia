@@ -3897,3 +3897,7 @@ BEGIN
   DELETE FROM after_sit_extra_access
     WHERE attendee_id = OLD.id AND event_id = OLD.event_id AND account_id = OLD.account_id;
 END;
+
+-- 0119_guest_book_note_tea.sql
+ALTER TABLE session_guest_book ADD COLUMN tea_id TEXT;
+ALTER TABLE session_guest_book ADD COLUMN public_recap INTEGER NOT NULL DEFAULT 0 CHECK (public_recap IN (0, 1));

@@ -70,9 +70,13 @@ function sessionCards(rows: SessionCardRow[], includeGallery = true) {
 export function publicSitRoutes<E extends Env>(deps: {
   requireUser: Auth<E, { userId: string }>;
   requireEditor: Auth<E, { accountId: string }>;
+  /** The full profile card: people, photographs and poured teas (publicSessions.ts). */
+  cards?: (env: E, contributor: string) => Promise<unknown[]>;
 }): [string, string, Handler<E>][] {
-  const fromProfile: Handler<E> = async (request, { DB }, { slug }) => {
+  const fromProfile: Handler<E> = async (request, env, { slug }) => {
+    const { DB } = env;
     const cards = new URL(request.url).searchParams.get('view') === 'cards';
+    if (cards && deps.cards) return json({ recaps: await deps.cards(env, slug) });
     if (cards) {
       const recaps = await DB.prepare(`SELECT ${formalSessionCardColumns}, ec.role ${exactPublicCredit}
         AND c.id = ? AND p.event_id IS NOT NULL ORDER BY e.event_date DESC, e.id DESC LIMIT 16`)

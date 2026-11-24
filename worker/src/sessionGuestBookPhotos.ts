@@ -1,7 +1,7 @@
 import { currentAfterSitLink } from './afterSitCredential';
 import { privateAttendeeSeatMatch } from './privateSessionReflections';
 import { privatePhotoHeaders } from './privatePhotoUpload';
-import { GUEST_BOOK_NOTE_LIMIT, guestBookEntryKeys, prepareGuestBookNote } from './sessionGuestBook';
+import { GUEST_BOOK_NOTE_LIMIT, guestBookEntryKeys, prepareGuestBookNote, type GuestBookPlacement } from './sessionGuestBook';
 import { readSitPhotoRendition, sitPhotoRenditionResponse } from './revocableSitPhotos';
 import { sessionServedTeaName } from './sessionServedTeas';
 
@@ -121,7 +121,7 @@ export async function serveGuestBookPhotos(
 
 async function saveGuestBookPhoto(
   db: D1Database, scope: Scope, seat: Seat, binds: string[], { photoId, grantId, description }: GuestBookPhotoInput,
-  note = '',
+  note = '', placement: GuestBookPlacement = {},
 ) {
   const alt = typeof description === 'string' ? description.trim() : '';
   if (!isId(grantId) || !isId(photoId) || alt.length > 250) {
@@ -153,7 +153,7 @@ async function saveGuestBookPhoto(
     WHERE p.user_id = ? AND p.id = ? AND ${eligibility} AND ${emptySlot}`)
     .bind(grantId, alt, now, scope.userId, photoId, ...eligibilityBinds, grantId);
   const statements = note
-    ? [claim, prepareGuestBookNote(db, scope.userId, note, now, eligibleToOffer, offerBinds), offer]
+    ? [claim, prepareGuestBookNote(db, scope.userId, note, now, eligibleToOffer, offerBinds, placement), offer]
     : [claim, offer];
   const written = await db.batch(statements);
   if (written.at(-1)?.meta?.changes) return json({ success: true }, 201);
@@ -170,7 +170,7 @@ async function saveGuestBookPhoto(
 }
 
 export async function saveGuestBookEntryWithPhoto(
-  db: D1Database, scope: Scope, credentialHash: string, note: unknown, photo: unknown,
+  db: D1Database, scope: Scope, credentialHash: string, note: unknown, photo: unknown, placement: GuestBookPlacement = {},
 ) {
   const binds = [credentialHash, scope.accountId, scope.userId, scope.userId];
   const seat = await guestSeat(db, binds);
@@ -179,7 +179,7 @@ export async function saveGuestBookEntryWithPhoto(
     return json({ error: 'Keep your note to 280 characters.' }, 400);
   }
   if (!photo || typeof photo !== 'object' || Array.isArray(photo)) return json({ error: 'Choose a photo.' }, 400);
-  return saveGuestBookPhoto(db, scope, seat, binds, photo, typeof note === 'string' ? note.trim() : '');
+  return saveGuestBookPhoto(db, scope, seat, binds, photo, typeof note === 'string' ? note.trim() : '', placement);
 }
 
 export async function withdrawGuestBookEntry(db: D1Database, scope: Scope, credentialHash: string) {

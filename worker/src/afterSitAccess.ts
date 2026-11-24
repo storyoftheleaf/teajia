@@ -8,7 +8,7 @@ import { getKeptSetup, namedSetupTeas, saveKeptSetup } from './privateKeptSetups
 import { eraseKeptSetup } from './privateKeptSetupPhotos';
 
 type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
-type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown; photo?: unknown };
+type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown; photo?: unknown; teaId?: unknown; publicRecap?: unknown };
 const guestBookPhotoActions = new Set<unknown>(['photos-read', 'photo-bytes', 'private-photo-preview', 'photo-offer', 'photo-withdraw']);
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
 type Authorization<E, Scope> = (request: Request, env: E) => Promise<Scope | { error: Response }>;
@@ -141,7 +141,7 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
   });
 
   const guestBook = withLink(async (request, env, hash, body) => {
-    const { action, note, photo } = body;
+    const { action, note, photo, teaId, publicRecap } = body;
     const photos = guestBookPhotoActions.has(action);
     const withPhoto = action === 'entry-save' && photo !== undefined;
     const wholeEntry = action === 'entry-withdraw';
@@ -158,12 +158,12 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     ).bind(hash).first<{ account_id: string; magic_token: string }>();
     if (!seat) return unavailable();
     const scope = { accountId: seat.account_id, userId: actor.userId };
-    if (withPhoto) return privateResponse(await saveGuestBookEntryWithPhoto(env.DB, scope, hash, note, photo));
+    if (withPhoto) return privateResponse(await saveGuestBookEntryWithPhoto(env.DB, scope, hash, note, photo, { teaId, publicRecap }));
     if (wholeEntry) return privateResponse(await withdrawGuestBookEntry(env.DB, scope, hash));
     if (photos) return privateResponse(await serveGuestBookPhotos(request, env.DB, env.ATLAS_BUCKET, scope, hash, body));
 
     if (!method || !seat.magic_token) return unavailable();
-    const input = new Request(request.url, { method, body: method === 'PUT' ? JSON.stringify({ note }) : undefined });
+    const input = new Request(request.url, { method, body: method === 'PUT' ? JSON.stringify({ note, teaId, publicRecap }) : undefined });
     return privateResponse(await serveGuestBook(input, env.DB, scope, seat.magic_token, hash));
   });
 

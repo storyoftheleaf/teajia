@@ -1,5 +1,7 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { publicSitRoutes } from './publicSitConnections';
+import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
+import type { PublicProductReader } from './sessionTeas';
 import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddress, type OrderNoticeAccount } from './orderNoticeRecipient';
 import { connectedSitDemoRoutes } from './connectedSitDemo';
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
@@ -23390,6 +23392,11 @@ async function fetchPublicProductsForAccount(
   });
 }
 
+/** A poured tea's public listing, read through the shop's own catalogue rule. */
+function sessionTeaReader(env: Env): PublicProductReader {
+  return async (accountId, productId) => (await fetchPublicProductsForAccount(env, accountId, productId))[0] ?? null;
+}
+
 // GET /api/s/:slug/products — PUBLIC products for a store
 // Short 10s cache so admin tasting edits reflect quickly on the public page;
 // product data changes throughout the day and we don't want a 60s stale window
@@ -31421,11 +31428,17 @@ const routes: [string, string, Handler][] = [
   ...casualSitPublicationRoutes<Env>({
     requireUser: requireAuthenticatedUser,
     shopAccountId: BALI_ACCOUNT_ID,
+    readPublic: sessionTeaReader,
   }),
   ...connectedSitDemoRoutes<Env>({ accountId: BALI_ACCOUNT_ID, requireOwner: requireOwnerTier }),
   ...publicSitRoutes<Env>({
     requireUser: requireAuthenticatedUser,
     requireEditor: (request, env) => requireBundle(request, env, 'publish'),
+    cards: (env, contributor) => formalSessionCardsFor(env.DB, sessionTeaReader(env), contributor),
+  }),
+  ...publicSessionRoutes<Env>({
+    requireUser: requireAuthenticatedUser,
+    readPublic: sessionTeaReader,
   }),
   ...afterSitRoutes<Env>({
     requireHost: (request, env) => requireBundle(request, env, 'gather'),

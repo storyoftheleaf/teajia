@@ -20,7 +20,7 @@ const databases: SqliteD1[] = [];
 afterEach(() => databases.splice(0).forEach(db => db.close()));
 
 async function fixture() {
-  const sql = new SqliteD1('migrations', '0118');
+  const sql = new SqliteD1('migrations', '0119');
   databases.push(sql);
   const db = sql as unknown as D1Database;
   seedIdentity(sql, { userId: 'owner', accountId: 'shop' });

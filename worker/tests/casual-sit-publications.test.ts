@@ -116,6 +116,8 @@ describe('a member publishes a casual sit', () => {
     expect(recaps[1]).toEqual({
       slug, title: draft.title, writing: draft.writing, date: '2026-11-22',
       tea: { name: draft.teaName, productId: 'public-product' },
+      // No shop reader here, so the shop tea resolves without a listing or price.
+      teas: [expect.objectContaining({ kind: 'tea', id: null, name: draft.teaName, href: null })],
       host: { slug: 'person-host', name: 'Host Public Name' }, photo: null,
     });
     expect(await (await detail(slug)).json()).toEqual({ recap: recaps[1] });
