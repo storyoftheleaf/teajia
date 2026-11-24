@@ -155,6 +155,11 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     // Saving a field on a vendor: the way the shop's server does it, a handle
     // (wechat, instagram) is folded into the contacts list and a contacts list
     // sent in a body REPLACES the stored one.
+    // The vendor page reads what a vendor's teas sold for and their orders
+    // (since #460). A vendor in these tests has neither, so both are empty.
+    if (route.request().method() === 'GET' && /^\/api\/customers\/[^/]+\/(product-sales|orders)$/.test(path)) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    }
     const customerPut = path.match(/^\/api\/customers\/([^/]+)$/);
     if (customerPut && route.request().method() === 'PUT') {
       const index = customers.findIndex((row) => row.id === customerPut[1]);
