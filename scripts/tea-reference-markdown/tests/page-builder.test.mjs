@@ -288,6 +288,7 @@ test('validates every canonical Markdown file but generates only the approved, r
   assert.equal(markdownFiles.length, 21);
   assert.deepEqual(registry.pages.map(page => page.id), [
     'dark',
+    'dian-hong',
     'greater-yiwu',
     'lincang',
     'liu-bao',
@@ -297,6 +298,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'menghai-county',
     'nanqiao-ruigong-brick',
     'puer',
+    'red',
     'san-he-liu-bao',
     'sheng',
     'shou',
@@ -316,7 +318,6 @@ test('validates every canonical Markdown file but generates only the approved, r
     'puer-geographic-hierarchy',
     'puer-village-naming',
     'oolong',
-    'red',
     'white',
   ]) {
     assert.equal(publicPageIds.has(heldId), false, `${heldId} must remain excluded`);

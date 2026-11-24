@@ -178,6 +178,7 @@ describe('sellable Tea Reference catalogue', () => {
 
     expect(result.pages.map(page => page.id)).toEqual([
       'dark',
+      'dian-hong',
       'greater-yiwu',
       'lincang',
       'liu-bao',
@@ -187,6 +188,7 @@ describe('sellable Tea Reference catalogue', () => {
       'menghai-county',
       'nanqiao-ruigong-brick',
       'puer',
+      'red',
       'san-he-liu-bao',
       'sheng',
       'shou',
