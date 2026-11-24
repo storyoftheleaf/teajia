@@ -7416,6 +7416,7 @@ body.cart-panel-open .commerce-dock {
    as the shop's thumbnails and the add tile, so the strip reads as one row. */
 .photo-row--inline, .photo-row--inline > li { display: contents; }
 .alcove-page-gallery-thumbnails .photo-thumb { height: var(--space-12); }
+.curator-choice__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding-block: var(--space-2); border-top: var(--border-w) solid var(--tea-border); }
 /* On a wide screen the strip has room: every thumbnail, and the add tile, is
    twice the phone size, the same size as a family photo on a page (Adrian, 2026-11-24). */
 @media (min-width: 48rem) {

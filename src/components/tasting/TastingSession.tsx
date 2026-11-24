@@ -19,6 +19,7 @@ import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
+import { CuratorNotesChoice } from './CuratorNotesChoice';
 import { YourImpression, appendImpressionTranscript, sealEarlierDraft, updateImpressionNote } from './YourImpression';
 import { TastingPhotographRow, NOTES_NOTICE } from './TastingPhotographRow';
 import { TastingSequenceNav, type TastingSequence } from './TastingSequenceNav';
@@ -698,6 +699,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     onSaveNotes={() => { void handleSaveThenShare(); }} canSaveNotes={canSave && silentVoice.state === 'idle'}
                     savingNotes={saveState === 'saving'} notesSaveError={saveState === 'error'}
                     notesSaveHint={verdictRequired && verdict === null ? 'Choose an impression above to save.' : undefined}/>
+                  {/* The shop's own notes on its own tea: which ones show on the tea page. */}
+                  {adminMode && <CuratorNotesChoice value={tastingData} onChange={handleTastingChange} />}
                   {journalForOffer && <TastingExcerptOffer key={journalForOffer.id} productId={item.id}
                     entryId={journalForOffer.id} privateSentence={journalForOffer.note.personalNote ?? ''} />}
                 </div>
