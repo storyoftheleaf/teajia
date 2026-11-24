@@ -67,6 +67,8 @@ describe('a personal Tea Chest using Stock and Sales', () => {
     };
     const scoped = (path: string, method: string, body?: unknown) =>
       call(db, path, method, body, 'seller', account.id);
+    // Adrian approved this seller (0120), so the remaining gate is payability.
+    db.sqlite.prepare('UPDATE accounts SET personal_seller_approved_at = ? WHERE id = ?').run('2026-11-24T00:00:00Z', account.id);
     expect((await scoped(`/api/accounts/${account.id}`, 'PUT', { public_enabled: true })).status).toBe(409);
     db.sqlite.prepare(`INSERT INTO contributors(id,account_id,user_id,display_name,is_published)
       VALUES ('seller-public',?,'seller','Seller',1)`).run(account.id);

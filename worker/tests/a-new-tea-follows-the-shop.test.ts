@@ -74,6 +74,7 @@ function liveShapedDatabase() {
   // Give current authentication its account metadata while keeping the old
   // product defaults that make this test sensitive to omitted money columns.
   db.exec(read('../migrations/0085_personal_inventory_account.sql'));
+  db.exec(read('../migrations/0120_personal_seller_approval.sql'));
   seedIdentity(db, { userId: OWNER, accountId: ACCOUNT, role: 'owner', bundles: ['catalog', 'stock', 'publish', 'sell'] });
   db.sqlite.prepare(
     "INSERT OR IGNORE INTO exchange_rates (currency, rate_to_usd, last_updated) VALUES ('Yuan', 7.12, datetime('now'))",

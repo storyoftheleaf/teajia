@@ -17,6 +17,7 @@ function seed() {
   db.sqlite.exec(`
     UPDATE users SET email = 'mei@seller.test' WHERE id = 'seller';
     UPDATE accounts SET personal_inventory_user_id = 'seller', owner_user_id = 'seller', contact_email = NULL,
+      personal_seller_approved_at = '2026-11-24T00:00:00Z',
       default_shipping_rate_per_kg = 0, default_shipping_rate_currency = 'USD' WHERE id = 'chest';
     INSERT OR REPLACE INTO exchange_rates (currency, rate_to_usd) VALUES ('USD', 1);
     INSERT INTO products (id, account_id, type, product_name, form, cost_amount, cost_currency, quantity_purchased, stock_grams)
