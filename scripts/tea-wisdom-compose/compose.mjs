@@ -74,7 +74,8 @@ THE HOUSE STYLE GUIDE
 ${STYLE}
 
 HOW AN ENTRY IS BUILT
-- Story paragraphs (one to three), most specific layer first: lot (from the record notes), grade, place, age, type. Use only the layers supplied. Skip a missing layer; never guess.
+- Story paragraphs (one to three), most specific layer first: lot (from the record notes), named, grade, place, age, type.
+- The named layer, when present, is the sourced history of this exact tea. Lead with it, keep its facts exactly as given (names, dates, places, people), and do not add to them. Use only the layers supplied. Skip a missing layer; never guess.
 - Where a claim gives a reason (why the pile exists, why it is turned, why storage matters), carry the reason into the story; a fact with its why reads better than a fact alone.
 - The reader may already know the tea's type. Put general knowledge in a clause and lead with what is specific to this tea.
 - Story paragraphs carry place, craft, history and how the tea has changed with age. No taste or texture words in them at all (no sweet, smooth, woody, earthy, aroma, notes). Those go only in the notice.
@@ -101,7 +102,7 @@ THE CLAIMS YOU MAY USE, BY LAYER
 ${JSON.stringify(layers, null, 2)}
 ${fixes.length ? `\nYOUR LAST DRAFT FAILED THESE CHECKS. FIX THEM:\n${fixes.map(fix => `- ${fix.where}: ${fix.problem}`).join('\n')}\n` : ''}
 Reply with one JSON object and nothing else:
-{"paragraphs":[{"layer":"lot|grade|place|age|type","text":"..."}]}`;
+{"paragraphs":[{"layer":"lot|named|grade|place|age|type","text":"..."}]}`;
 }
 
 function checkPrompt(inputs, entry) {

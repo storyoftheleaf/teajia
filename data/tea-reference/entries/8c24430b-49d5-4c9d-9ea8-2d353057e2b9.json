@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-23T12:55:27.631Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-24T07:03:23.164Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -25,12 +25,12 @@
     "productId": "8c24430b-49d5-4c9d-9ea8-2d353057e2b9",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A brick of [ripe pu’er](shou:definition) from Menghai, in Yunnan, pressed in 2009. Before pressing, its leaf went through the [wet pile](shou:wet-piling): heaped damp and covered so the heat of the microbes could work on it, then turned about once a week to let air in, for one to two months before drying. Yunnan’s factories brought that method into production in 1973, thirty-six years before this brick was made."
+        "layer": "named",
+        "text": "The Nanqiao in this brick’s name belongs to Menghai County [Nanqiao Tea Company](nanqiao-ruigong-brick:nanqiao-name), founded in February 2004, which kept the old name of the county around Mengzhe in southern Yunnan. It sells under the brand Che Fo Nan, and its teas have gone to Hong Kong, Taiwan and Southeast Asia. Ruigong bricks travel that trade: at a [Malaysian tea fair](nanqiao-ruigong-brick:malaysian-tea-fair) in 2022, the exhibitor Quanyuxuan offered five of them together at stall 27, a ripe pressing from 2008."
       },
       {
-        "layer": "age",
-        "text": "At seventeen years it is past the ten-year mark the trade uses for [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, so the way it has been kept matters as much as the years."
+        "layer": "type",
+        "text": "This one is [ripe pu’er](shou:definition) from Menghai leaf, made as a brick in 2009. Its leaf was [heaped in a damp pile](shou:wet-piling), warmed by its own microbes and turned to let air in. The method was meant to give in weeks what drinkers in Hong Kong and Guangdong once waited years for. At seventeen years it counts as [aged ripe pu’er](shou:age-aged). The leaf still changes slowly with the air and moisture around it, so how it has been kept matters as much as the years."
       }
     ],
     "brewing": {
@@ -49,6 +49,14 @@
     ]
   },
   "claimUses": [
+    {
+      "claimId": "nanqiao-ruigong-brick:nanqiao-name",
+      "rev": 1
+    },
+    {
+      "claimId": "nanqiao-ruigong-brick:malaysian-tea-fair",
+      "rev": 1
+    },
     {
       "claimId": "shou:definition",
       "rev": 1
@@ -75,6 +83,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-23T13:13:02.851Z"
+  "unsupported": [
+    {
+      "sentence": "Ruigong bricks travel that trade: at a Malaysian tea fair in 2022, the exhibitor Quanyuxuan offered five of them together at stall 27, a ripe pressing from 2008.",
+      "words": "Ruigong bricks travel that trade",
+      "why": "The fair claim does not say who made Quanyuxuan's Ruigong bricks. No claim says they came from Nanqiao Tea Company or were part of its export trade to Hong Kong, Taiwan and Southeast Asia. The link was made by the writer."
+    }
+  ]
 }

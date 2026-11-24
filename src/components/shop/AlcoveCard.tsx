@@ -37,6 +37,7 @@ import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { resolveTermLabel } from '../../data/tastingTaxonomy';
 import { AlcoveWisdomPassages, AlcoveWisdomStyleReferences, useWisdomListing } from './alcove/AlcoveWisdomPassages';
 import { AlcoveComposedEntry } from './alcove/AlcoveComposedEntry';
+import { entryClaimUses } from '../../wisdom/reference/composedEntry';
 import { GENERATED_ENTRIES } from '../../wisdom/reference/generatedEntries';
 import { GENERATED_CLAIMS } from '../../wisdom/reference/generatedClaims';
 import { EMPTY_LISTING_PASSAGES, resolveListingPassages } from '../../wisdom/reference/listingPassages';
@@ -501,8 +502,17 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     ? listingFacts : { ...listingFacts, namedTeaId: undefined };
   // The tea's one composed entry: the preview supplies a draft; the live shop shows
   // an approved entry, except on a confirmed named tea, whose sourced history leads.
+  // A named tea's history stays hidden until its Wisdom page is known to be public.
+  // An entry that carries that history therefore shows only once that is confirmed;
+  // an entry without it gives way to the sourced history passages when they can show.
+  const approvedEntry = GENERATED_ENTRIES[item.id];
+  const entryCarriesNamedHistory = Boolean(namedTeaId && approvedEntry
+    && entryClaimUses(approvedEntry).some(id => id.startsWith(`${namedTeaId}:`)));
+  const approvedForPage = entryCarriesNamedHistory
+    ? (publicFacts.namedTeaId ? approvedEntry : undefined)
+    : (publicFacts.namedTeaId ? undefined : approvedEntry);
   const composed = layout === 'page' && item.category === 'tea'
-    ? wisdomListing.composed ?? (publicFacts.namedTeaId ? undefined : GENERATED_ENTRIES[item.id])
+    ? wisdomListing.composed ?? approvedForPage
     : undefined;
   const entryClaims = wisdomListing.composed ? wisdomListing.claims : GENERATED_CLAIMS;
   const wisdomPassages = layout === 'page' && item.category === 'tea' && !composed

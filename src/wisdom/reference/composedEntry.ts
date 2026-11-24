@@ -34,7 +34,7 @@ function pageRoute(claim: Pick<PublicClaim, 'axis' | 'pageId' | 'sectionKey'>): 
   }
 }
 
-export type EntryLayer = 'lot' | 'maker' | 'grade' | 'place' | 'age' | 'type';
+export type EntryLayer = 'lot' | 'named' | 'maker' | 'grade' | 'place' | 'age' | 'type';
 
 export interface ComposedParagraph {
   layer: EntryLayer | 'brewing' | 'notice';

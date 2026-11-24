@@ -1,0 +1,90 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T07:01:56.717Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "b11a8bad-89d9-4518-9406-25145d4c6e2c",
+    "name": "San He Liu Bao",
+    "chineseName": "三鹤六堡茶",
+    "type": "Dark",
+    "form": "Loose Leaf",
+    "year": "1990s",
+    "origin": "Wuzhou, Guangxi, China",
+    "stockGrams": 600,
+    "pricePerGramUsd": 0.38,
+    "tags": []
+  },
+  "entry": {
+    "productId": "b11a8bad-89d9-4518-9406-25145d4c6e2c",
+    "paragraphs": [
+      {
+        "layer": "named",
+        "text": "San He means [Three Cranes](san-he-liu-bao:three-cranes), the mark of Wuzhou Tea Factory, whose birds come from Hegang Tower beside the works. The factory opened for the export trade in 1953 and registered the mark in October 1991, early in the decade this [Liu Bao](liu-bao:definition) was made."
+      },
+      {
+        "layer": "named",
+        "text": "The factory dates its [cold-water piling](san-he-liu-bao:cold-water-piling) to 1958: workers wet the leaf and heap it so it darkens, a steadier route than the [farmhouse steaming](liu-bao:making-factory). The tea then rests in [handwoven bamboo baskets](san-he-liu-bao:basket-weavers), whose weave holds its shape and lets air through, inside a [brick and timber aging warehouse](san-he-liu-bao:aging-warehouse) begun the year the factory opened, its wooden boards there to moderate moisture and temperature."
+      },
+      {
+        "layer": "age",
+        "text": "The shop records Guangzhou as a storage stop for this tea. At thirty-one years it is three times past the decade after which the trade counts a Liu Bao as [aged](liu-bao:age-aged), and where it was kept has shaped it as much as how long."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Liu Bao",
+      "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "san-he-liu-bao:three-cranes",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "san-he-liu-bao:cold-water-piling",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:making-factory",
+      "rev": 1
+    },
+    {
+      "claimId": "san-he-liu-bao:basket-weavers",
+      "rev": 1
+    },
+    {
+      "claimId": "san-he-liu-bao:aging-warehouse",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T07:03:36.020Z"
+}

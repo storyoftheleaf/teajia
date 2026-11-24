@@ -127,3 +127,10 @@ Y562, Naka, Yiwu Gushu, Ripe Puerh Brick and Pasha (reasons in the pilot plan, "
 - Fix the type or notes of any of the 26 records listed under Stock count that will go public; the rest can stay as they are.
 - Approve each kit on its page, and each batch of entries.
 - Settle step 3 with the integration owner.
+
+## Progress (2026-11-24)
+
+- Step 2 done (b46f8d80): the writer composes for any type and style; Wisdom builds family and style pages beyond pu'er (68052164).
+- Step 3 done: a confirmed named tea's sourced history (`named_tea_history` on its page, lot confirmed in `namedTeaLots.ts`) is the entry's lead layer, and the writer reads only reviewed lot prose, never prose the review superseded. On the product page an entry carrying named history shows only once the named page is confirmed public; an entry without it gives way to the sourced passages.
+- Live or ready: 8 ripe, 3 Liu Bao, and the named San He, Malaysian Returned and Y562.
+- Held: Nanqiao Ruigong Brick (its draft ties the 2022 Malaysian fair bricks to its maker, which no source says), Mahei Gushu Red (no red tea kit yet), and the ripe holds from the pilot (Naka, Yiwu Gushu, Ripe Puerh Brick, Pasha).

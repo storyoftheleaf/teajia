@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-23T12:53:56.336Z",
+  "status": "approved",
+  "composedAt": "2026-11-24T07:01:10.367Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -19,12 +19,16 @@
     "productId": "cb7efd7b-9da6-4dc8-be76-3c7e69bdb02e",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "Y562 is a named export recipe of the Yunnan Tea Import and Export Company, sold under Jixing, meaning fortune, the company’s export brand. In the old coding the Y marks the company and the number stands for leaf grade and factory. A grade of five to six points to fine, tender leaf, unlike the coarse leaf in ripe bricks from the same years. The leaf came from Menghai."
+        "layer": "named",
+        "text": "Y562 is the export code for a loose [ripe pu’er](shou:definition) from Yunnan, which drinkers nicknamed the [“little black box”](y562:little-black-box) after its carton. The Jixing mark on the front shows a tiger coming downhill. The box was made to carry the province’s [own brand](y562:export-trade). Much of Yunnan’s loose pu’er once travelled in bulk, and in Japan importers repacked it under their own labels. In 1980 Yunnan brought packaging and tea export designers together to change that, so Y562 carried Chinese lettering on the front and “Superior Yunnan Pu-erh Tea” on the back."
+      },
+      {
+        "layer": "named",
+        "text": "Tang Zheng drew the tiger from an openwork jade pendant, and Yin Huize framed the lettering with patterns taken from Chinese lacquerware. The two took cartons painted by hand to the spring [Canton Fair](y562:designers), and buyers ordered from those samples. Pu’er magazine describes the [original blend](y562:original-blend) as grades five and six of ripe tea from Menghai Tea Factory. Its yellow box companion, Y671, used grades six and seven from Kunming Tea Factory."
       },
       {
         "layer": "age",
-        "text": "It was made as [ripe pu’er](shou:definition). The pile was developed to give, in weeks, what Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. This lot dates from 1993, twenty years after Yunnan’s state factories brought [wet piling](shou:wet-piling) into production. It was kept loose in a box rather than pressed, and has spent the years since in dry storage in Hong Kong. At thirty-three years it is well past the ten the trade counts for [aged ripe pu’er](shou:age-aged), where storage shapes the leaf as much as time does."
+        "text": "This box dates from 1993, twenty years after Yunnan’s state factories brought the [wet pile](shou:wet-piling) into production, which places it in the style’s third decade. At thirty-three years it counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing with the air and moisture around it, so its storage has shaped it as much as its age."
       }
     ],
     "brewing": {
@@ -45,25 +49,42 @@
   "claimUses": [
     {
       "claimId": "shou:definition",
-      "rev": null
+      "rev": 1
+    },
+    {
+      "claimId": "y562:little-black-box",
+      "rev": 1
+    },
+    {
+      "claimId": "y562:export-trade",
+      "rev": 1
+    },
+    {
+      "claimId": "y562:designers",
+      "rev": 1
+    },
+    {
+      "claimId": "y562:original-blend",
+      "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
-      "rev": null
+      "rev": 2
     },
     {
       "claimId": "shou:age-aged",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "shou:notice-aged",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-24T07:03:36.257Z"
 }

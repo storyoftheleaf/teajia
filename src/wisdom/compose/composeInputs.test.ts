@@ -40,6 +40,30 @@ describe('composeInputs for any kit', () => {
   });
 });
 
+describe('composeInputs for a named tea', () => {
+  const superseded = "San He, meaning Three Cranes, is the house brand of the Wuzhou Tea Factory, founded in 1953. Wuzhou is where modern liu bao production was concentrated, and the factory became the best-known name in the category, its mark widely respected across southern China and Southeast Asia.";
+  const sanHe = { id: 'b11a8bad-89d9-4518-9406-25145d4c6e2c', product_name: 'San He Liu Bao', type: 'Dark', form: 'Loose Leaf', year: '1990s', origin_region: 'Wuzhou, Guangxi', origin_country: 'China', lore: superseded, processing_notes: 'anything' };
+
+  it('leads with the named history and keeps the Liu Bao kit behind it', () => {
+    const inputs = composeInputs(sanHe, claims, { thisYear: 2026, pages });
+    expect(ids(inputs.layers.named)).toEqual(expect.arrayContaining(['san-he-liu-bao:three-cranes']));
+    expect(ids(inputs.layers.named).every(id => id.startsWith('san-he-liu-bao:'))).toBe(true);
+    expect(ids(inputs.layers.type)[0]).toBe('liu-bao:definition');
+  });
+
+  it('never feeds the writer prose the review superseded', () => {
+    const inputs = composeInputs(sanHe, claims, { thisYear: 2026, pages });
+    expect(inputs.record.notes).not.toContain(superseded);
+    // San He's review replaces nothing in its lore, so the superseded lore is simply dropped.
+    expect(inputs.record.notes).toEqual(['anything']);
+  });
+
+  it('gives a tea that is not a confirmed lot no named layer, whatever its name', () => {
+    const inputs = composeInputs({ ...sanHe, id: 'someone-else' }, claims, { thisYear: 2026, pages });
+    expect(inputs.layers.named).toBeUndefined();
+  });
+});
+
 describe('composeInputs', () => {
   it('reads years and decades', () => {
     expect(yearOf(1990)).toEqual({ label: '1990', year: 1990 });

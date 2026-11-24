@@ -11,6 +11,7 @@
 import type { DraftReferencePage, PublicClaim } from '../reference/claims';
 import { appliesTo } from '../reference/listingPassages';
 import { listingFacts } from '../reference/listingFacts';
+import { reviewedLotProse } from '../reference/namedTeaLots';
 import { entrySegments, type ComposedEntry, type ComposedParagraph } from '../reference/composedEntry';
 
 /** The public product fields the writer may see. Mirrors /api/products/public. */
@@ -44,7 +45,8 @@ export interface ComposeInputs {
     notes: string[];
   };
   /** Claims the writer may use, by layer. */
-  layers: Partial<Record<'grade' | 'place' | 'age' | 'type', PublicClaim[]>>;
+  /** `named`: the sourced history of this exact tea, when its lot is a confirmed named tea. It leads. */
+  layers: Partial<Record<'named' | 'grade' | 'place' | 'age' | 'type', PublicClaim[]>>;
   /**
    * Brewing and the style line come straight from the kit, worded once in
    * Wisdom and fitted only to the tea's form and age. The writer never
@@ -97,7 +99,7 @@ export function composeInputs(
   options: { thisYear: number; noNotice?: readonly string[]; pages: readonly KitPage[] },
 ): ComposeInputs {
   const origin = [product.origin_region, product.origin_country].filter(Boolean).join(', ');
-  const facts = listingFacts({ type: product.type, form: product.form, originRegion: origin, name: product.product_name });
+  const facts = listingFacts({ id: product.id, type: product.type, form: product.form, originRegion: origin, name: product.product_name });
   const live = claims.filter(usable);
   // The tea's kit pages, most specific first: a type within a family (Liu Bao, Shou) before the family (Dark, Pu'er).
   const kinds = new Map(options.pages.map(page => [page.id, page]));
@@ -121,6 +123,11 @@ export function composeInputs(
   const missing: string[] = [];
 
   const layers: ComposeInputs['layers'] = {};
+  // A confirmed named tea (namedTeaLots.ts) brings its own sourced history, in its page's section order.
+  const named = facts.namedTeaId
+    ? live.filter(claim => claim.pageId === facts.namedTeaId && claim.axis === 'named_tea_history')
+    : [];
+  if (named.length) layers.named = named;
   const place = live.filter(claim => claim.axis === 'place' && appliesTo(claim.appliesWhen, facts));
   if (place.length) layers.place = place;
   else missing.push('A Wisdom entry for its place, or a more specific origin');
@@ -166,7 +173,12 @@ export function composeInputs(
       ...(year ? { year: year.label } : {}),
       ...(ageYears !== undefined ? { ageYears } : {}),
       ...(origin ? { origin } : {}),
-      notes: [product.lore, product.terroir, product.processing_notes].map(text => text?.trim()).filter((text): text is string => Boolean(text)),
+      // Reviewed lot prose only: on a named tea, prose the review superseded is replaced or dropped, never fed in.
+      notes: [
+        reviewedLotProse(product.id, 'lore', product.lore),
+        reviewedLotProse(product.id, 'terroir', product.terroir),
+        reviewedLotProse(product.id, 'processingNotes', product.processing_notes),
+      ].map(text => text?.trim()).filter((text): text is string => Boolean(text)),
     },
     layers,
     fixed,
