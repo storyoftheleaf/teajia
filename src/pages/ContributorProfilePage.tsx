@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { PersonTastingsSection, SoldOutLine } from '../components/people/PersonTastings';
 import { ReportPageLine } from '../components/people/ReportPageLine';
@@ -31,6 +32,12 @@ import {
   websiteLabel,
 } from '../components/people/profileFormat';
 import { useContributor } from '../hooks/useContributor';
+import { usePublicShelf } from '../hooks/usePublicShelf';
+import { publicShelfPath, shelfAmount, shelfPrice, shelfWhatsAppHref } from '../lib/publicShelf';
+import { formatPersonalTeaMoney } from '../lib/personalTeaMoney';
+import { buildPublicProductHref } from '../lib/publicProductNavigation';
+import { fetchStoreProducts } from '../lib/storefrontApi';
+import { teaPurchaseQuote } from '../lib/shopPurchase';
 import type {
   ContributorArticleRef,
   ContributorFeaturedRef,
@@ -203,7 +210,35 @@ function Section({ id, children, testId }: { id?: string; children: ReactNode; t
 export default function ContributorProfilePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError, error, refetch } = useContributor(slug);
-  const rootRef = useReveals([data?.id]);
+  const storeSlug = data?.personal_store_slug;
+  const storeOffers = useQuery({
+    queryKey: ['storefront', 'products', storeSlug],
+    queryFn: () => fetchStoreProducts(storeSlug!),
+    enabled: Boolean(storeSlug),
+    refetchOnMount: 'always',
+    retry: false,
+  });
+  const { data: shelf, isError: shelfError, isFetchedAfterMount: shelfRead } = usePublicShelf(
+    storeSlug ? null : data?.orderable_shelf_slug,
+  );
+  const legacyShelf = !shelfError && shelfRead && shelf && !shelf.store_slug && shelf.contributor_slug === data?.id
+    && shelf.slug === data?.orderable_shelf_slug && shelf.seller_name?.trim() ? shelf : null;
+  const offers = storeSlug
+    ? (!storeOffers.isError && storeOffers.isFetchedAfterMount ? storeOffers.data ?? [] : []).flatMap(item => {
+      if (item.category !== 'tea' || item.exactPackPriceUsd == null) return [];
+      const pack = teaPurchaseQuote(item);
+      if (!pack) return [];
+      return [{ id: item.id, name: item.name, href: buildPublicProductHref({ id: item.id }, storeSlug),
+        detail: `${pack.grams} g · ${formatPersonalTeaMoney(pack.totalUsd, 'USD')}` }];
+    }).slice(0, 2)
+    : (legacyShelf?.items ?? []).filter(item => shelfWhatsAppHref(legacyShelf!, item)).slice(0, 2).map(item => ({
+      id: item.id, name: item.name, href: publicShelfPath(legacyShelf!.slug, item.id),
+      detail: `${shelfAmount(item.grams)} · ${shelfPrice(item)}`,
+    }));
+  const allOffersHref = storeSlug ? `/store/${encodeURIComponent(storeSlug)}`
+    : legacyShelf ? publicShelfPath(legacyShelf.slug) : null;
+  const showOffers = offers.length > 0;
+  const rootRef = useReveals([data?.id, showOffers]);
   // A Read story published or taken down from its own page, once this browser knows.
   const readStates = useKnownReadOverrides();
   const progress = useReadingProgress();
@@ -284,6 +319,35 @@ export default function ContributorProfilePage() {
   const collectionTitle = collection?.title ?? '';
   const [collectionFirst, ...collectionRest] = collectionTitle.split(' ');
 
+  const teasSection = hasTeas && (
+    <Section id="teas" testId="profile-teas">
+      <div className={SIDE}>
+        <GroupHead label="The teas" />
+        {collection && (
+          <div className="mt-3.5">
+            <Cover to={teasHref} image={collection.hero_image_url} imageOpacity={0.55} height={128} fadeFull testId="profile-collection" ariaLabel={`Open the collection ${collection.title}`}>
+              <Kicker size={8.5} className="mb-[7px]">My collection · {countWord(collection.item_count)} teas</Kicker>
+              <span className="block font-display text-[25px] leading-none text-tea-text">
+                {collectionFirst}
+                {collectionRest.length > 0 && <> <span className="italic text-tea-readgold">{collectionRest.join(' ')}</span></>}
+              </span>
+            </Cover>
+          </div>
+        )}
+        {shownTeas.length > 0 && (
+          <div>
+            {shownTeas.map(tea => <TeaRow key={tea.tea_profile_id} tea={tea} />)}
+          </div>
+        )}
+        {moreTeas > 0 && (
+          <a href={teasHref} className="tap-target mt-1.5 inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">
+            And {countWord(moreTeas)} more, in the {collection ? 'collection' : 'selection'}
+          </a>
+        )}
+      </div>
+    </Section>
+  );
+
   return (
     <PeopleRoot rootRef={rootRef} testId="creator-profile">
       <StickyChrome>
@@ -309,6 +373,23 @@ export default function ContributorProfilePage() {
             {data.chinese_name && <p className="mt-2 text-ui-22 leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>
+          {showOffers && allOffersHref && (
+            <section aria-label="Teas for sale">
+              <GroupHead label="Teas for sale" />
+              {offers.map(offer => (
+                <IndexRow
+                  key={offer.id}
+                  to={offer.href}
+                  state={{ sellerProfile: data.id }}
+                  title={<span className="break-words">{offer.name}</span>}
+                  dek={offer.detail}
+                />
+              ))}
+              <Link to={allOffersHref} state={{ sellerProfile: data.id }} className="btn-quiet mt-2">
+                View all teas for sale
+              </Link>
+            </section>
+          )}
           {/* Where to find them, as one line under the name and only when there
               is something: the event they host next, and their own table.
               These were two whole sections further down until 2026-09-29. */}
@@ -331,6 +412,8 @@ export default function ContributorProfilePage() {
               stays: someone who came to pay should not have to scroll. */}
           <HubCells cells={cells} testId="profile-hub" />
         </header>
+
+        {showOffers && teasSection}
 
         {/* ── In my words ────────────────────────────────────────────────── */}
         {hasWords && (
@@ -375,35 +458,7 @@ export default function ContributorProfilePage() {
           </Section>
         )}
 
-        {/* ── The teas ───────────────────────────────────────────────────── */}
-        {hasTeas && (
-          <Section id="teas" testId="profile-teas">
-            <div className={SIDE}>
-              <GroupHead label="The teas" />
-              {collection && (
-                <div className="mt-3.5">
-                  <Cover to={teasHref} image={collection.hero_image_url} imageOpacity={0.55} height={128} fadeFull testId="profile-collection" ariaLabel={`Open the collection ${collection.title}`}>
-                    <Kicker size={8.5} className="mb-[7px]">My collection · {countWord(collection.item_count)} teas</Kicker>
-                    <span className="block font-display text-[25px] leading-none text-tea-text">
-                      {collectionFirst}
-                      {collectionRest.length > 0 && <> <span className="italic text-tea-readgold">{collectionRest.join(' ')}</span></>}
-                    </span>
-                  </Cover>
-                </div>
-              )}
-              {shownTeas.length > 0 && (
-                <div>
-                  {shownTeas.map(tea => <TeaRow key={tea.tea_profile_id} tea={tea} />)}
-                </div>
-              )}
-              {moreTeas > 0 && (
-                <a href={teasHref} className="tap-target mt-1.5 inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.26em] text-tea-readgold hover:text-tea-gold-lt">
-                  And {countWord(moreTeas)} more, in the {collection ? 'collection' : 'selection'}
-                </a>
-              )}
-            </div>
-          </Section>
-        )}
+        {!showOffers && teasSection}
 
         {/* ── Tastings ───────────────────────────────────────────────────── */}
         <PersonTastingsSection tastings={tastings} />

@@ -42,6 +42,7 @@ import { getThemeColor } from '../themeUtils';
 import { INVENTORY_TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getTeaReadiness } from './inventory/domain';
 import { StockListingReview } from './inventory/StockListingReview';
+import { StockOfferSource } from './inventory/StockPersonalOffer';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -1376,7 +1377,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
           {/* Scrollable content. Identity card lives here too, scrolls with
               everything else instead of staying fixed under the nav row. */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
+          {product.personalOfferSourceId ? <StockOfferSource product={product} titleId={titleId} /> : <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
             {/* Identity card. Neutral admin surface; the type color signal
                 lives as a 2px left bar so the rest of the card is calm.
                 The bar is a child element rather than an inset box-shadow: an
@@ -1469,7 +1470,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             <PhoneTeaHeader product={product} incoming={incoming} onChangeStock={onOpenStockMovement} onRecount={onRecount} onAction={onTeaAction} />
 
-            {effectivePurpose(product) === 'working' && <StockListingReview key={`${activeAccountId}:${product.id}`}
+            <StockListingReview key={`${activeAccountId}:${product.id}`}
               product={product} entryId={sharedRecordId}
               openRequested={openListingReview} onOpenHandled={onListingReviewOpened} returnTo={listingReturnTo}
               canList={canList} canPublish={canPublish} isOwner={isOwnerTier} problem={publicationProblem}
@@ -1481,7 +1482,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 await api.products.updateShown(product.id, value);
                 await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [product.id] });
               }}
-            />}
+            />
             <div className="px-3 pb-3 flex flex-wrap gap-1.5">
               <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`} title="Starred, promoted on collection pages">
                 <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
@@ -2075,7 +2076,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* Collections moved into the Placement section above. */}
 
             <div className="pb-16" />
-          </div>
+          </div>}
         </>)}
       </div>
 

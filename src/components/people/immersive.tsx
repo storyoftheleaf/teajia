@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, type LinkProps } from 'react-router-dom';
 import { ProgressTrack } from '../../pages/read/immersive';
 
 // The Read section's design and interaction, for the people pages.
@@ -156,20 +156,21 @@ interface IndexRowProps {
   rubric?: ReactNode;
   testId?: string;
   ariaLabel?: string;
+  state?: LinkProps['state'];
 }
 
 /** The index row: title over an italic dek, an optional caps rubric on the right. */
-export function IndexRow({ to, external, title, dek, rubric, testId, ariaLabel }: IndexRowProps) {
+export function IndexRow({ to, external, title, dek, rubric, testId, ariaLabel, state }: IndexRowProps) {
   const body = <RowBody title={title} dek={dek} rubric={rubric} />;
   return external ? (
     <a href={to} target="_blank" rel="noopener noreferrer" className={ROW_CLASS} data-testid={testId} aria-label={ariaLabel}>{body}</a>
   ) : (
-    <Link to={to} className={ROW_CLASS} data-testid={testId} aria-label={ariaLabel}>{body}</Link>
+    <Link to={to} state={state} className={ROW_CLASS} data-testid={testId} aria-label={ariaLabel}>{body}</Link>
   );
 }
 
 /** The same row as a button, for a row that acts (copy a WeChat id) rather than opens. */
-export function IndexRowButton({ onClick, title, dek, rubric, testId, ariaLabel }: Omit<IndexRowProps, 'to' | 'external'> & { onClick: () => void }) {
+export function IndexRowButton({ onClick, title, dek, rubric, testId, ariaLabel }: Omit<IndexRowProps, 'to' | 'external' | 'state'> & { onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className={ROW_CLASS} data-testid={testId} aria-label={ariaLabel}>
       <RowBody title={title} dek={dek} rubric={rubric} />

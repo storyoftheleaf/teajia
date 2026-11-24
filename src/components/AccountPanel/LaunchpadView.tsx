@@ -340,7 +340,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       // Stock spine step 4: the personal cellar, tea the user actually owns,
       // with a quantity. Private; distinct from "remember" (favorited shop teas).
       id: 'cellar',
-      verb: 'cellar',
+      verb: 'Tea Chest',
       hint: 'tea you own',
       icon: <Package {...ICON_PROPS} />,
       onClick: onOpenCellar,

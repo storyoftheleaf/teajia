@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 const destinations = [
   { key: 'journal', label: 'Journal', to: '/account/journal' },
   { key: 'favorites', label: 'Favorites', to: '/account/collection' },
-  { key: 'cellar', label: 'Cellar', to: '/account/cellar' },
+  { key: 'cellar', label: 'Tea Chest', to: '/account/cellar' },
 ] as const;
 
 type PersonalTeaModel = (typeof destinations)[number]['key'];

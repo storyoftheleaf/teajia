@@ -220,9 +220,10 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
      to it a second time. */
   const resolvedTotal = (usd: number) => (formatTotal ? formatTotal(usd) : fmtShopPrice(usd));
   /* What Add commits, from the same call the list and the bar display. */
-  const addTotalUsd = isTea
+  const fixedPack = item.exactPackPriceUsd != null;
+  const addTotalUsd = item.exactPackPriceUsd ?? (isTea
     ? quoteGrams(pricePerGram, grams, { wholePieceGrams: wholePiece?.grams }).totalUsd
-    : pricePerGram * grams;
+    : pricePerGram * grams);
   const publicCart = useAppStore(st => st.publicCart);
   const orderTotalUsd = publicCart.reduce((sum, line) => sum + (line.totalPrice ?? 0), 0);
   /* What the order actually holds of THIS tea, which is not the same fact as
@@ -349,7 +350,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           Standing them open put the whole price list permanently on screen,
           which reads as a rate card rather than a shop. Resting, this is one
           line: what is currently chosen, and the way to change it. */}
-      {!isSoldOut && (cells.length > 0 || isDocked && isTea) && (
+      {!fixedPack && !isSoldOut && (cells.length > 0 || isDocked && isTea) && (
         <div className={isDocked ? '' : 'mb-1.5'}>
           {isRail || (isDocked && onChooseAmount) ? null : amountToggle}
 
@@ -409,7 +410,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             </div>
           )}
           {!dockedSoldOut && <div className="alcove-dock-decision" role="group" aria-label="Choose and add a tea amount">
-            <button
+            {fixedPack ? <span className="font-display text-ui-17 tabular-nums text-tea-text">{grams} g</span> : <button
               type="button"
               onClick={() => setAmountsOpen(open => !open)}
               aria-expanded={amountsOpen}
@@ -421,7 +422,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               <span aria-hidden="true" className="ml-auto shrink-0 font-sans text-ui-9 text-tea-text-dim">
                 {amountsOpen ? '▴' : '▾'}
               </span>
-            </button>
+            </button>}
             <span className="alcove-dock-cta-total shrink-0 tabular-nums" data-testid="buyer-selected-total">
               <span className="sr-only">Total </span>{resolvedTotal(addTotalUsd)}
             </span>
@@ -587,7 +588,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
                 <span className="alcove-order-total">
                   {formatPrice ? total : `$${total}`}
                 </span>
-                {pricePerGram > 0 && completeRateLabel && (isTea || grams > 1) && (
+                {fixedPack ? <span className="alcove-order-rate">{grams} g pack</span> : pricePerGram > 0 && completeRateLabel && (isTea || grams > 1) && (
                   <span className="alcove-order-rate">{completeRateLabel}</span>
                 )}
               </span>

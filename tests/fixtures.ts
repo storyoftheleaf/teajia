@@ -18,25 +18,29 @@
  * Specs import `test` and `expect` from here, never from '@playwright/test'
  * directly; that is what makes the rule impossible to forget.
  */
-import { test as base } from '@playwright/test';
+import { test as base, type BrowserContext } from '@playwright/test';
 import { CORS, stubMeteredMedia } from './shared/media-stub';
 
 export * from '@playwright/test';
 
+export async function stubBrowserServices(context: BrowserContext) {
+  await stubMeteredMedia(context, /\/api\/media\//);
+  /* Every /read page asks which stories were published or taken down from
+     their own page (migration 0030). The default answer is "none", so the
+     ARTICLE_LIVE map decides exactly as it did before that existed; a spec
+     about publishing registers its own page.route, which wins over this. */
+  await context.route(/\/api\/public\/read\/publish-state$/, (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ states: {} }) }));
+  // A reader starts without a verified editor grant. Layout specs that
+  // model an editor override this response; real JWT authorization is proved
+  // in read-delivery-boundary.spec.ts against the seeded Worker.
+  await context.route(/\/api\/read\/session$/, route =>
+    route.fulfill({ json: { editor: false }, headers: CORS }));
+}
+
 export const test = base.extend({
   context: async ({ context }, use) => {
-    await stubMeteredMedia(context, /\/api\/media\//);
-    /* Every /read page asks which stories were published or taken down from
-       their own page (migration 0030). The default answer is "none", so the
-       ARTICLE_LIVE map decides exactly as it did before that existed; a spec
-       about publishing registers its own page.route, which wins over this. */
-    await context.route(/\/api\/public\/read\/publish-state$/, (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ states: {} }) }));
-    // A reader starts without a verified editor grant. Layout specs that
-    // model an editor override this response; real JWT authorization is proved
-    // in read-delivery-boundary.spec.ts against the seeded Worker.
-    await context.route(/\/api\/read\/session$/, route =>
-      route.fulfill({ json: { editor: false }, headers: CORS }));
+    await stubBrowserServices(context);
     await use(context);
   },
 });

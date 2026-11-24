@@ -194,6 +194,9 @@ import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
 import { articleWisdomClaimUseRoutes, moveClaimUsesWithBlocks, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
+import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
+import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
+import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, personalInventoryAccessSql, readOfferInput, recordedChestCostSql, shelfContactSql } from './personalShelf';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
 interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, ShippingNotificationEnv {
@@ -578,6 +581,8 @@ async function loadMemberships(env: Env, userId: string, strict = false): Promis
        FROM account_members am
        JOIN accounts a ON a.id = am.account_id
        WHERE am.user_id = ? AND am.status = 'active'
+       AND (a.personal_inventory_user_id IS NULL OR
+         (a.personal_inventory_user_id = am.user_id AND a.owner_user_id = am.user_id AND am.role = 'owner'))
        ORDER BY am.joined_at ASC`
     ).bind(userId).all();
     return (results as any[]).map(r => {
@@ -662,11 +667,18 @@ async function getAccountIdBySlug(env: Env, slug: string): Promise<string | null
 }
 
 async function getPublicAccountIdBySlug(env: Env, slug: string): Promise<string | null> {
+  return (await getPublicStoreIdentity(env, slug))?.id ?? null;
+}
+
+async function getPublicStoreIdentity(env: Env, slug: string) {
   try {
-    const row = await env.DB.prepare(
-      "SELECT id FROM accounts WHERE slug = ? AND status = 'active' AND public_enabled = 1"
-    ).bind(slug).first();
-    return row ? (row.id as string) : null;
+    return await env.DB.prepare(`
+      SELECT a.id, a.personal_inventory_user_id FROM accounts a
+      WHERE a.slug = ? AND a.status = 'active' AND a.public_enabled = 1
+        AND (a.personal_inventory_user_id IS NULL OR (a.owner_user_id = a.personal_inventory_user_id
+          AND EXISTS (SELECT 1 FROM account_members m WHERE m.account_id = a.id AND m.user_id = a.owner_user_id
+                       AND m.role = 'owner' AND m.status = 'active')))
+    `).bind(slug).first<{ id: string; personal_inventory_user_id: string | null }>();
   } catch {
     return null;
   }
@@ -730,15 +742,17 @@ async function getActiveAccount(
     return { error: restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' }) };
   }
 
-  // Platform owner and platform admin bypass account membership checks —
-  // they have access to every account, with all bundles. Suspension still applies.
+  // Platform staff can act in ordinary shops. Personal Stock requires the
+  // person whose holding and sales records are in the account.
   if (dbPlatformRole === 'platform_owner' || dbPlatformRole === 'platform_admin') {
     const headerAccount = request.headers.get('X-Teajia-Account');
     const requested = headerAccount || claims.active_account_id || null;
     if (!requested) return { error: restError(403, 'Account access denied', 'account_access_denied') };
     try {
-      const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(requested).first();
-      if (acct && acct.status === 'suspended') {
+      const acct = await env.DB.prepare(`SELECT status FROM accounts WHERE id = ? AND ${personalInventoryAccessSql}`)
+        .bind(requested, claims.sub).first();
+      if (!acct) return { error: restError(403, 'Account access denied', 'account_access_denied') };
+      if (acct.status === 'suspended') {
         return { error: restError(403, 'This account has been suspended. Reactivate via the platform admin panel.', 'account_suspended') };
       }
     } catch {
@@ -781,7 +795,9 @@ async function getActiveAccount(
       `SELECT am.role, am.permissions, a.kind
        FROM account_members am
        JOIN accounts a ON a.id = am.account_id
-       WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'`
+       WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'
+       AND (a.personal_inventory_user_id IS NULL OR
+         (a.personal_inventory_user_id = am.user_id AND a.owner_user_id = am.user_id AND am.role = 'owner'))`
     ).bind(claims.sub, requested).first();
     if (row) {
       membership = {
@@ -1037,11 +1053,14 @@ function buildActivityLog(
 function buildStockLedgerEntry(
   env: Env, productId: string, delta: number, balanceAfter: number, reason: string,
   userEmail?: string | null, invoiceId?: string | null, invoiceNumber?: string | null, note?: string | null,
-  accountId?: string | null
+  accountId?: string | null, requireProduct = false,
 ) {
-  return env.DB.prepare(
-    'INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null, accountId || null);
+  const values = [crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null, accountId || null];
+  return env.DB.prepare(`
+    INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ${requireProduct ? 'WHERE EXISTS (SELECT 1 FROM products WHERE id = ?)' : ''}
+  `).bind(...values, ...(requireProduct ? [productId] : []));
 }
 
 function buildStockMovementLedgerInsert(env: Env, args: {
@@ -1298,7 +1317,7 @@ async function mintProductSlug(
 // is created. Skips teaware. Mirrors the migration 048 backfill shape so old
 // and new rows look identical regardless of which path created them.
 function buildProductMirrorInserts(
-  env: Env, productId: string, accountId: string, body: Record<string, any>, forceDraftListing = false,
+  env: Env, productId: string, accountId: string, body: Record<string, any>, forceDraftListing = false, requireProduct = false,
 ): D1PreparedStatement[] {
   // Teaware: no profile/listing row per the rollout plan.
   if (body.type === 'Teaware') return [];
@@ -1321,6 +1340,7 @@ function buildProductMirrorInserts(
     : forceDraftListing ? 'draft'
     : 'active';
 
+  const productGuard = requireProduct ? 'WHERE EXISTS (SELECT 1 FROM products WHERE id = ?)' : '';
   const profileInsert = env.DB.prepare(`
     INSERT INTO tea_profiles (
       id, slug, originated_by_account_id, curated_by_account_id,
@@ -1329,7 +1349,8 @@ function buildProductMirrorInserts(
       description, lore, processing_notes, terroir, mood, experience,
       tasting_notes, image_url, canonical_photos,
       network_visible, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ${productGuard}
   `).bind(
     `prof_${productId}`, slug, accountId, accountId,
     body.product_name ?? null, body.chinese_name ?? null, body.type ?? null, body.form ?? null,
@@ -1339,7 +1360,8 @@ function buildProductMirrorInserts(
     body.tasting_notes ?? '[]',
     body.image_url ?? null,
     body.additional_images ?? '[]',
-    networkVisible, profileStatus
+    networkVisible, profileStatus,
+    ...(requireProduct ? [productId] : []),
   );
 
   const listingInsert = env.DB.prepare(`
@@ -1359,7 +1381,8 @@ function buildProductMirrorInserts(
       tasting, tasting_source,
       owner_user_id, shown_in_shop, inventory_purpose, stock_known_at,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ${productGuard}
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -1391,7 +1414,8 @@ function buildProductMirrorInserts(
     body.tasting ?? '{}', body.tasting_source ?? null,
     body.owner_user_id ?? null, body.shown_in_shop ?? 1,
     body.inventory_purpose ?? null, body.stock_known_at ?? null,
-    productId
+    productId,
+    ...(requireProduct ? [productId] : []),
   );
 
   return [profileInsert, listingInsert];
@@ -2720,7 +2744,7 @@ const PUBLIC_FIELDS = [
   // Whether that piece is the ONLY way this tea is sold. Public because it
   // decides which amounts the shop may offer at all: a sealed box has no 25 g
   // rung, and a reader who cannot see that picks an amount nobody can send.
-  'sold_in_whole_units',
+  'sold_in_whole_units', 'exact_pack_price_usd',
   // The plant. Public because it is a pointer into the open wisdom base rather
   // than a fact about the business: the shop stores the cultivar's written name
   // and the base resolves it to a page. No cost, supply or margin travels with
@@ -2931,6 +2955,13 @@ const handleCreateProduct: Handler = async (request, env) => {
   body.account_id = accountId;
   if (body.owner_user_id === undefined) body.owner_user_id = ctx.role === 'owner' ? ctx.userId : null;
 
+  if (body.is_public !== 1 && body.shown_in_shop !== 1) {
+    const personal = await personalInventoryAccount(env.DB, ctx.userId);
+    if (personal?.id === accountId) {
+      body.is_public ??= 0;
+      body.shown_in_shop ??= 0;
+    }
+  }
   const explicitlyPublishes = body.is_public === 1 || body.shown_in_shop === 1;
   body.is_public ??= 1;
   body.shown_in_shop ??= body.is_public && ctx.role === 'owner' ? 1 : 0;
@@ -3459,9 +3490,16 @@ async function applyProductUpdate(
   // buildProductMirrorStmts, both of which read body.cost_currency.
   canonicalizeCostCurrency(body);
 
-  const ownedProduct = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).first();
+  const ownedProduct = await env.DB.prepare(
+    'SELECT id, personal_offer_source_id FROM products WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first<{ id: string; personal_offer_source_id: string | null }>();
   if (!ownedProduct) return json({ error: 'Product not found' }, 404);
+  const publishingPersonalHolding = (body.is_public || body.shown_in_shop) && await env.DB.prepare(
+    'SELECT 1 FROM products WHERE account_id = ? AND personal_offer_source_id = ? LIMIT 1'
+  ).bind(accountId, params.id).first();
+  if (ownedProduct.personal_offer_source_id || publishingPersonalHolding) {
+    return restError(409, 'Manage this public offer from its private Stock holding.', 'personal_offer_managed');
+  }
 
   const publication = allowedColumns === PRODUCT_PUBLICATION_UPDATE_COLUMNS || allowedColumns === PRODUCT_VISIBILITY_UPDATE_COLUMNS
     ? await checkProductPublication(env, accountId, params.id, publicationPatchFromColumns(body), undefined,
@@ -3699,6 +3737,12 @@ const handleDeleteProduct: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+
+  const hasOffer = await env.DB.prepare(`
+    SELECT 1 FROM products p WHERE p.account_id = ? AND
+      (p.personal_offer_source_id = ? OR (p.id = ? AND p.personal_offer_source_id IS NOT NULL)) LIMIT 1
+  `).bind(accountId, params.id, params.id).first();
+  if (hasOffer) return restError(409, 'The holding and its offer are part of the Stock record.', 'personal_offer_managed');
 
   // No Curate tea is left pointing at a product that is gone. The unlink runs
   // first, while the product still proves it belongs to this account.
@@ -4399,8 +4443,9 @@ function buildPayUrl(
 async function resolveInvoicePayments(
   env: Env,
   invoices: PayableInvoice[],
-  checkBankOnly = false,
+  checkOnly: boolean | 'any_method' = false,
 ): Promise<Map<string, InvoicePaymentInfo>> {
+  const checkBankOnly = checkOnly === true;
   const resolved = new Map<string, InvoicePaymentInfo>();
   const rows = invoices.filter(invoice => invoice.id && invoice.account_id);
   for (const invoice of invoices) resolved.set(invoice.id, { ...NO_PAYMENT });
@@ -4445,7 +4490,7 @@ async function resolveInvoicePayments(
   //     the three numbers even when no recipient or no transfer details resolve.
   const [ledger, checkoutHolds] = await Promise.all([
     loadInvoiceLedgerTotals(env, rows.map(invoice => invoice.id)),
-    checkBankOnly ? new Map<string, CheckoutPaymentHold>() : loadCheckoutPaymentHolds(env, rows.map(invoice => invoice.id)),
+    checkOnly ? new Map<string, CheckoutPaymentHold>() : loadCheckoutPaymentHolds(env, rows.map(invoice => invoice.id)),
   ]);
   const money = new Map<string, InvoiceMoney>();
   const holdInfo = new Map<string, Pick<InvoicePaymentInfo, 'payment_deadline' | 'hold_expired'>>();
@@ -4472,7 +4517,7 @@ async function resolveInvoicePayments(
   //    step of the recipient chain).
   const accountIds = [...new Set(rows.map(invoice => invoice.account_id as string))];
   const accountResult = await env.DB.prepare(
-    `SELECT id, slug, name, owner_user_id, public_enabled, status
+    `SELECT id, slug, name, owner_user_id, public_enabled, status, personal_inventory_user_id
        FROM accounts WHERE id IN (${accountIds.map(() => '?').join(', ')})`
   ).bind(...accountIds).all();
   const accounts = new Map<string, Record<string, any>>();
@@ -4484,7 +4529,8 @@ async function resolveInvoicePayments(
   const recipientByInvoice = new Map<string, string>();
   for (const invoice of rows) {
     const account = accounts.get(invoice.account_id as string);
-    const userId = invoice.payment_recipient_user_id
+    const userId = account?.personal_inventory_user_id
+      || invoice.payment_recipient_user_id
       || invoice.sold_by_user_id
       || (account?.owner_user_id as string | null)
       || null;
@@ -4494,9 +4540,10 @@ async function resolveInvoicePayments(
   if (userIds.length === 0) return resolved;
 
   const contributorResult = await env.DB.prepare(
-    `SELECT id, user_id, display_name, account_id, face_of_account_id
-       FROM contributors
-      WHERE is_published = 1 AND user_id IN (${userIds.map(() => '?').join(', ')})`
+    `SELECT c.id, c.user_id, c.display_name, c.account_id, c.face_of_account_id, c.page_tier,
+            (${FAMILY_PAGE_NOT_HIDDEN_SQL}) AS pay_page_visible
+       FROM contributors c
+      WHERE c.is_published = 1 AND c.user_id IN (${userIds.map(() => '?').join(', ')}) ORDER BY c.id`
   ).bind(...userIds).all();
   const contributorsByUser = new Map<string, Array<Record<string, any>>>();
   for (const row of (contributorResult.results ?? []) as Array<Record<string, any>>) {
@@ -4523,9 +4570,9 @@ async function resolveInvoicePayments(
       `SELECT ca.contributor_id, ca.account_id
          FROM contributor_accounts ca
          JOIN accounts a ON a.id = ca.account_id
-        WHERE a.public_enabled = 1 AND a.status = 'active'
+        WHERE (a.public_enabled = 1 OR ? = 1) AND a.status = 'active'
           AND ca.contributor_id IN (${contributorIds.map(() => '?').join(', ')})`
-    ).bind(...contributorIds).all(),
+    ).bind(checkOnly === 'any_method' ? 1 : 0, ...contributorIds).all(),
   ]);
   const methodsByContributor = new Map<string, PaymentMethodRow[]>();
   for (const row of (methodResult.results ?? []) as unknown as PaymentMethodRow[]) {
@@ -4576,9 +4623,13 @@ async function resolveInvoicePayments(
   for (const invoice of rows) {
     const userId = recipientByInvoice.get(invoice.id);
     if (!userId) continue;
-    const candidates = contributorsByUser.get(userId);
-    if (!candidates || candidates.length === 0) continue;
     const accountId = invoice.account_id as string;
+    const account = accounts.get(accountId);
+    const samePerson = contributorsByUser.get(userId) ?? [];
+    const candidates = account?.personal_inventory_user_id
+      ? samePerson.filter(row => row.pay_page_visible && familyPageAllowsPay(familyPageTierOf(row.page_tier)))
+      : samePerson;
+    if (candidates.length === 0) continue;
     // One user can hold several contributor rows. Prefer the one that belongs
     // to (or fronts, or is linked to) the store this invoice came from.
     const contributor = candidates.find(row => row.account_id === accountId)
@@ -4592,7 +4643,6 @@ async function resolveInvoicePayments(
     // actually linked to; anything else 404s there. Without the link we fall
     // back to their personal default methods, exactly as that page does.
     const linked = storeLinks.has(`${contributorId}::${accountId}`);
-    const account = accounts.get(accountId);
     const publishedMethods = resolvePublishedPaymentMethods(
       methodsByContributor.get(contributorId) ?? [],
       linked ? accountId : null,
@@ -4622,7 +4672,7 @@ async function resolveInvoicePayments(
     // its link, and that link now asks for the balance rather than the total.
     // This is the only place the decision is made, so every surface inherits it.
     const settled = amounts.outstanding_usd <= 0 || String(invoice.status || '') === 'Void';
-    if (settled || checkBankOnly || checkoutPaymentRefusal(checkoutHolds.get(invoice.id))) {
+    if (settled || checkOnly || checkoutPaymentRefusal(checkoutHolds.get(invoice.id))) {
       resolved.set(invoice.id, {
         ...amounts,
         recipient_slug: contributorId,
@@ -6143,6 +6193,14 @@ const handleUpdateInvoice: Handler = async (request, env, params, execution) => 
         }
       }
 
+      const withdrawn = await env.DB.prepare(`
+        SELECT 1 FROM invoice_line_items l JOIN products p ON p.id = l.product_id AND p.account_id = l.account_id
+        WHERE l.account_id = ? AND l.invoice_id = ? AND p.personal_offer_withdrawn_at IS NOT NULL LIMIT 1
+      `).bind(accountId, params.id).first();
+      if (withdrawn) {
+        await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);
+        return restError(409, 'The seller withdrew this offer.', 'personal_offer_withdrawn');
+      }
       const seller = invoice.sold_by_user_id
         ? await invoiceSellerAuthorizationContext(env, accountId, invoice)
         : { actorUserId: ctx.userId, actorRole: ctx.role };
@@ -6589,9 +6647,12 @@ const handleIncrementStock: Handler = async (request, env) => {
 
   // Read current balance so the ledger row records an accurate balance_after.
   const product = await env.DB.prepare(
-    'SELECT stock_grams, given_name, product_name FROM products WHERE id = ? AND account_id = ?'
-  ).bind(product_id, accountId).first<{ stock_grams: number; given_name: string | null; product_name: string }>();
+    'SELECT stock_grams, given_name, product_name, personal_offer_source_id FROM products WHERE id = ? AND account_id = ?'
+  ).bind(product_id, accountId).first<{ stock_grams: number; given_name: string | null; product_name: string; personal_offer_source_id: string | null }>();
   if (!product) return json({ error: 'not_found' }, 404);
+  if (product.personal_offer_source_id) {
+    return restError(409, 'Add stock to the private holding for this offer.', 'personal_offer_managed');
+  }
 
   const balanceAfter = Number(product.stock_grams || 0) + amount;
   const batchId = batch_id || await defaultBatchId(env, accountId);
@@ -6745,9 +6806,13 @@ const handleCancelInvoice: Handler = async (request, env) => {
       const sold = await env.DB.prepare(`SELECT p.id,CASE WHEN sl.movement_unit='unit' THEN 'Teaware' ELSE 'Tea' END AS type,-SUM(sl.delta) AS quantity FROM stock_ledger sl JOIN products p ON p.id=sl.product_id AND p.account_id=sl.account_id WHERE sl.source_invoice_id=? AND sl.account_id=? AND sl.reason IN ('PAYMENT_CONFIRMED','FULFILLMENT') GROUP BY p.id,sl.movement_unit`).bind(invoiceId,ctx.accountId).all();
       for (const line of sold.results as any[]) {
         const column = line.type === 'Teaware' ? 'quantity_units' : 'stock_grams';
-        restore.push(env.DB.prepare(`UPDATE products SET ${column}=COALESCE(${column},0)+?,status=CASE WHEN status='Sold Out' THEN 'Active' ELSE status END,sold_out_at=CASE WHEN status='Sold Out' THEN NULL ELSE sold_out_at END WHERE id=? AND account_id=? AND EXISTS(SELECT 1 FROM invoices WHERE id=? AND account_id=? AND fulfillment_claim_token=? AND inventory_deducted=1)`).bind(line.quantity,line.id,ctx.accountId,invoiceId,ctx.accountId,claim));
-        restore.push(env.DB.prepare(`INSERT INTO stock_ledger(id,account_id,product_id,delta,balance_after,movement_unit,reason,source_invoice_id,user_email,note) SELECT ?,?,?,?,p.${column},?,'CANCELLATION_RETURN',?,?,'Unshipped goods returned on cancellation' FROM products p WHERE p.id=? AND p.account_id=? AND EXISTS(SELECT 1 FROM invoices WHERE id=? AND fulfillment_claim_token=?)`).bind(crypto.randomUUID(),ctx.accountId,line.id,line.quantity,line.type==='Teaware'?'unit':'gram',invoiceId,ctx.email,line.id,ctx.accountId,invoiceId,claim));
-        if (column==='stock_grams') restore.push(env.DB.prepare(`UPDATE product_listings SET stock_grams=COALESCE(stock_grams,0)+?,status=CASE WHEN status IN ('Sold Out','archived') THEN 'active' ELSE status END,sold_out_at=NULL WHERE legacy_product_id=? AND account_id=?`).bind(line.quantity,line.id,ctx.accountId));
+        // Resolve the destination inside the batch in case withdrawal won the race.
+        const returnTo = `COALESCE((SELECT personal_offer_source_id FROM products
+          WHERE id=? AND account_id=? AND personal_offer_withdrawn_at IS NOT NULL), ?)`;
+        const destination = [line.id, ctx.accountId, line.id];
+        restore.push(env.DB.prepare(`UPDATE products SET ${column}=COALESCE(${column},0)+?,status=CASE WHEN status='Sold Out' THEN 'Active' ELSE status END,sold_out_at=CASE WHEN status='Sold Out' THEN NULL ELSE sold_out_at END WHERE id=${returnTo} AND account_id=? AND EXISTS(SELECT 1 FROM invoices WHERE id=? AND account_id=? AND fulfillment_claim_token=? AND inventory_deducted=1)`).bind(line.quantity,...destination,ctx.accountId,invoiceId,ctx.accountId,claim));
+        restore.push(env.DB.prepare(`INSERT INTO stock_ledger(id,account_id,product_id,delta,balance_after,movement_unit,reason,source_invoice_id,user_email,note) SELECT ?,?,p.id,?,p.${column},?,'CANCELLATION_RETURN',?,?,'Unshipped goods returned on cancellation' FROM products p WHERE p.id=${returnTo} AND p.account_id=? AND EXISTS(SELECT 1 FROM invoices WHERE id=? AND fulfillment_claim_token=?)`).bind(crypto.randomUUID(),ctx.accountId,line.quantity,line.type==='Teaware'?'unit':'gram',invoiceId,ctx.email,...destination,ctx.accountId,invoiceId,claim));
+        if (column==='stock_grams') restore.push(env.DB.prepare(`UPDATE product_listings SET stock_grams=COALESCE(stock_grams,0)+?,status=CASE WHEN status IN ('Sold Out','archived') THEN 'active' ELSE status END,sold_out_at=NULL WHERE legacy_product_id=${returnTo} AND account_id=?`).bind(line.quantity,...destination,ctx.accountId));
       }
       restore.push(...buildSettlementReversalStatements(env,{accountId:ctx.accountId,invoiceId}));
     }
@@ -14773,9 +14838,10 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
 // Draft, held or sold-out tea answers exactly as an unknown id does. Only the
 // unauthenticated request path reads this; staff doors price any tea they own.
 const PUBLIC_REQUEST_PRODUCT = `p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active'
-  AND NOT ${INWARD_ORDERS_PAUSED_SQL}`;
+  AND NOT ${INWARD_ORDERS_PAUSED_SQL}
+  AND (p.personal_offer_source_id IS NULL OR (p.personal_offer_withdrawn_at IS NULL AND p.stock_grams > 0))`;
 
-async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>) {
+async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>, sellerUserId: string | null) {
   const productIds = catalogProductIds(items);
   const [productRows, rateRows] = await Promise.all([
     productIds.length ? env.DB.prepare(
@@ -14790,6 +14856,7 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
   const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
   const products = new Map<string, Record<string, any>>();
   for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
+    if (sellerUserId && row.owner_user_id && row.owner_user_id !== sellerUserId) throw new Error('Store or items not found');
     const priced = addPricingFields(row, rates, shopDefaultPerKgUsd);
     const currency = String(row.cost_currency || '').trim();
     if (row.fixed_retail_price_usd == null && (row.cost_amount == null || (currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency)))) {
@@ -14797,11 +14864,18 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
     }
     products.set(row.id as string, priced);
   }
+  const requestedOffers = new Set<string>();
   return items.map(item => {
     const packing = inquiryPacking(item);
     if (!packing) throw new Error('This request contains an invalid pack quantity.');
     const quantity = packing.packGrams * packing.packs;
     const product = products.get(String(item.id || ''));
+    if (product?.personal_offer_pack_price_usd != null) {
+      if (quantity !== Number(product.piece_weight_g) || requestedOffers.has(product.id)) {
+        throw new Error('Choose one pack at the offered weight.');
+      }
+      requestedOffers.add(product.id);
+    }
     const name = String(product?.given_name || product?.product_name || item.name || 'Item');
     return {
       product_id: product ? String(product.id) : null,
@@ -14906,8 +14980,13 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     const normalized = normalizeCartInquiry(body);
     if (!normalized.ok) return json({ error: normalized.error }, 400);
 
-    const accountId = await getPublicAccountIdBySlug(env, normalized.value.storeSlug);
-    if (!accountId) return json({ error: 'Store not found' }, 404);
+    const store = await getPublicStoreIdentity(env, normalized.value.storeSlug);
+    if (!store) return json({ error: 'Store not found' }, 404);
+    const accountId = store.id;
+    const personalSeller = store.personal_inventory_user_id;
+    if (personalSeller && (source !== 'website' || whatsappHandoff)) {
+      return restError(400, 'Use website checkout to order from this seller.', 'personal_store_checkout_required');
+    }
     if (whatsappHandoff) {
       const business = await env.DB.prepare('SELECT whatsapp_number FROM accounts WHERE id=?').bind(accountId).first<{ whatsapp_number: string | null }>();
       const businessNumber = business?.whatsapp_number?.trim() || '';
@@ -14996,6 +15075,13 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
     }
 
     if (source === 'website') {
+      if (personalSeller) {
+        if (normalized.value.items.some(item => (item as Record<string, unknown>).custom === true)) {
+          return restError(400, 'Choose tea from this seller’s shop.', 'personal_store_catalogue_required');
+        }
+        const gap = await personalSellerPayabilityGap(env, accountId, personalSeller);
+        if (gap) return restError(409, 'This seller cannot accept payment right now.', STORE_PAYABILITY_REFUSALS[gap].code);
+      }
       if (normalized.value.storeSlug === 'teajia-bali' && !pickupRequested) {
         if (body.delivery_country !== 'US') return json({ error: 'Shipping is currently available to the United States only.' }, 400);
         const addressErrors = validateUsShippingAddress(usAddress);
@@ -15009,14 +15095,14 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       }
       let lines: Awaited<ReturnType<typeof pricedRequestLines>>;
       try {
-        lines = await pricedRequestLines(env, accountId, normalized.value.items as Array<Record<string, any>>);
+        lines = await pricedRequestLines(env, accountId, normalized.value.items as Array<Record<string, any>>, personalSeller);
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : 'Could not price this request' }, 400);
       }
       const serverSubtotalUsd = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
       const shipping = null as { usd: number; packedGrams: number } | null;
       const pickup = pickupRequested && accountId === env.SHOP_PICKUP_ACCOUNT_ID && !deliveryAddress;
-      const livePayPal = accountId === env.PAYPAL_LIVE_ACCOUNT_ID && paypalLiveEnabled(request,env);
+      const livePayPal = !personalSeller && accountId === env.PAYPAL_LIVE_ACCOUNT_ID && paypalLiveEnabled(request,env);
       const payableTea = livePayPal && (usShippingRequested || pickupRequested);
       let checkout: { ownerId: string; lines: Awaited<ReturnType<typeof authorizeInvoiceLines>> } | null = null;
       // Unpriced, unknown-stock and mixed-owner baskets go through review.
@@ -15082,7 +15168,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
           ).bind(invoiceId, accountId, invoiceNumber, name, customerPhone, normalized.value.currency,buyerId,buyerLibrary,
             shipping ? shipping.usd : 0, checkout && pickup ? PICKUP_DESTINATION : location || null,
             deliveryAddress || null, shipping?.packedGrams ?? null, requestId, checkout ? 'Pending' : 'Draft', `From order request ${normalized.value.refNumber}. ${whatsappHandoff ? handoffNote : `Reply to: ${contact}.`} ${notes ? `Customer note: ${notes}. ` : ''}${checkout ? livePayPal ? 'Awaiting PayPal payment. Shipping quoted separately where applicable.' : 'Awaiting bank transfer.' : 'Review prices and availability before sending.'}`,
-            checkout?.ownerId ?? null, checkout?.ownerId ?? null,
+            personalSeller || checkout?.ownerId || null, personalSeller || checkout?.ownerId || null,
             pickupRequested ? 'bali_pickup' : usShippingRequested ? 'us_shipping' : null,
             pickupRequested ? null : 'requested', paymentDeadline),
           ...lines.map(line => env.DB.prepare(
@@ -15678,6 +15764,10 @@ const handlePutUserFavorites: Handler = async (request, env) => {
 // queries. owner_user_id is the anchor; an item can later be PLACED at a
 // location — a human-approved request, never a silent write (the move).
 
+function privateChestLabel(value: string): string | null {
+  return value.trim().slice(0, 60) || null;
+}
+
 // Map a DB row to the API shape (camelCase, booleans).
 function cellarItemToApi(row: any) {
   return {
@@ -15692,9 +15782,30 @@ function cellarItemToApi(row: any) {
     placementStatus: row.placement_status ?? 'private',
     placementAccountId: row.placement_account_id ?? null,
     linkedProductId: row.linked_product_id ?? null,
-    shelfPublished: !!row.shelf_published,
+    shelfPublished: !!row.shelf_published && row.shelf_offer_name != null && row.chest_cost_amount != null
+      && row.chest_cost_currency != null && row.shelf_offer_price_amount > 0 && row.shelf_offer_price_currency != null
+      && row.placement_status === 'private' && row.shelf_offer_grams > 0 && row.shelf_offer_grams <= row.grams,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function ownedCellarItemToApi(row: any) {
+  return {
+    ...cellarItemToApi(row),
+    label: row.chest_label ?? null,
+    costAmount: row.chest_cost_amount ?? null,
+    costCurrency: row.chest_cost_currency ?? null,
+    shelfNeedsReview: !!row.shelf_published && (row.shelf_offer_name == null || row.shelf_offer_price_amount == null),
+    shelfOffer: row.shelf_offer_name == null ? null : {
+      name: row.shelf_offer_name,
+      price_amount: row.shelf_offer_price_amount ?? null,
+      price_currency: row.shelf_offer_price_currency ?? null,
+      grams: row.shelf_offer_grams,
+      type: row.shelf_offer_type ?? null,
+      year: row.shelf_offer_year ?? null,
+      origin: row.shelf_offer_origin ?? null,
+    },
   };
 }
 
@@ -15714,7 +15825,7 @@ const handleListCellar: Handler = async (request, env) => {
   const { results } = await env.DB.prepare(
     'SELECT * FROM personal_cellar_items WHERE owner_user_id = ? ORDER BY created_at DESC'
   ).bind(userId).all();
-  return json({ items: (results as any[]).map(cellarItemToApi) });
+  return json({ items: (results as any[]).map(ownedCellarItemToApi) });
 };
 
 // POST /api/me/cellar — add a tea the caller owns, with a quantity. Private.
@@ -15730,10 +15841,17 @@ const handleCreateCellarItem: Handler = async (request, env) => {
   if (body.grams !== undefined && (!Number.isFinite(grams) || grams < 0)) {
     return json({ error: 'grams must be a non-negative number' }, 400);
   }
+  if (body.label != null && typeof body.label !== 'string') return json({ error: 'Invalid Chest label' }, 400);
+  const cost = readPersonalTeaMoney(body.costAmount, body.costCurrency);
+  if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
+  if (await personalInventoryAccount(env.DB, userId)) {
+    return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
+  }
   const id = newId('cellar');
-  await env.DB.prepare(
-    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  const inserted = await env.DB.prepare(
+    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url, chest_label, chest_cost_amount, chest_cost_currency)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE personal_inventory_user_id = ?)`
   ).bind(
     id, userId, name,
     body.type ?? null,
@@ -15742,9 +15860,12 @@ const handleCreateCellarItem: Handler = async (request, env) => {
     body.notes ?? null,
     Number.isFinite(grams) ? grams : 0,
     body.image_url ?? null,
+    privateChestLabel(body.label ?? ''),
+    cost.amount, cost.currency, userId,
   ).run();
+  if (!inserted.meta.changes) return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(id).first();
-  return json({ item: cellarItemToApi(row) }, 201);
+  return json({ item: ownedCellarItemToApi(row) }, 201);
 };
 
 // PUT /api/me/cellar/:id — edit a cellar item the caller owns.
@@ -15762,7 +15883,7 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, any>;
   const EDITABLE: Record<string, string> = {
     name: 'name', type: 'type', year: 'year', origin: 'origin',
-    notes: 'notes', grams: 'grams', image_url: 'image_url',
+    notes: 'notes', grams: 'grams', image_url: 'image_url', label: 'chest_label',
   };
   const sets: string[] = [];
   const binds: any[] = [];
@@ -15771,7 +15892,14 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
     if (key === 'grams') {
       const g = Number(body.grams);
       if (!Number.isFinite(g) || g < 0) return json({ error: 'grams must be a non-negative number' }, 400);
-      sets.push(`${col} = ?`); binds.push(g);
+      sets.push(`${col} = ?`);
+      binds.push(g);
+      sets.push('shelf_published = CASE WHEN shelf_offer_grams > ? THEN 0 ELSE shelf_published END');
+      binds.push(g);
+    } else if (key === 'label') {
+      if (body.label != null && typeof body.label !== 'string') return json({ error: 'Invalid Chest label' }, 400);
+      sets.push(`${col} = ?`);
+      binds.push(privateChestLabel(body.label ?? ''));
     } else if (key === 'year') {
       sets.push(`${col} = ?`);
       binds.push(body.year != null && /^\d{4}$/.test(String(body.year)) ? Number(body.year) : null);
@@ -15779,13 +15907,24 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
       sets.push(`${col} = ?`); binds.push(body[key] ?? null);
     }
   }
+  if (body.costAmount !== undefined || body.costCurrency !== undefined) {
+    const cost = readPersonalTeaMoney(body.costAmount, body.costCurrency);
+    if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
+    sets.push('chest_cost_amount = ?', 'chest_cost_currency = ?');
+    binds.push(cost.amount, cost.currency);
+  }
   if (sets.length === 0) return json({ ok: true });
   sets.push("updated_at = datetime('now')");
-  await env.DB.prepare(
-    `UPDATE personal_cellar_items SET ${sets.join(', ')} WHERE id = ? AND owner_user_id = ?`
+  const placementGuard = body.grams === undefined ? '' : " AND placement_status <> 'placed'";
+  const saved = await env.DB.prepare(
+    `UPDATE personal_cellar_items SET ${sets.join(', ')} WHERE id = ? AND owner_user_id = ?${placementGuard}`
   ).bind(...binds, params.id, userId).run();
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
-  return json({ item: cellarItemToApi(row) });
+  if (!row) return json({ error: 'Not found' }, 404);
+  if (!saved.meta.changes && placementGuard) {
+    return json({ error: 'Stock for a placed tea is managed at its location.' }, 409);
+  }
+  return json({ item: ownedCellarItemToApi(row) });
 };
 
 // DELETE /api/me/cellar/:id — remove a cellar item the caller owns.
@@ -15822,13 +15961,15 @@ const handleRequestCellarPlacement: Handler = async (request, env, params) => {
   if (item.placement_status === 'placed') {
     return json({ error: 'Already placed at a location' }, 409);
   }
-  await env.DB.prepare(
-    `UPDATE personal_cellar_items
+  const result = await env.DB.prepare(
+    `UPDATE personal_cellar_items AS c
         SET placement_status = 'requested', placement_account_id = ?, updated_at = datetime('now')
-      WHERE id = ? AND owner_user_id = ?`
+      WHERE id = ? AND owner_user_id = ? AND placement_status IN ('private', 'requested')
+        AND NOT (${approvedShelfOfferSql})`
   ).bind(accountId, params.id, userId).run();
+  if (!result.meta.changes) return json({ error: 'Withdraw the shelf offer before requesting placement, or reload the holding.' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
-  return json({ item: cellarItemToApi(row) });
+  return row ? json({ item: ownedCellarItemToApi(row) }) : json({ error: 'Not found' }, 404);
 };
 
 // POST /api/me/cellar/:id/cancel-placement — withdraw a pending placement
@@ -15847,13 +15988,14 @@ const handleCancelCellarPlacement: Handler = async (request, env, params) => {
   if (item.placement_status !== 'requested') {
     return json({ error: 'No pending placement request to cancel' }, 409);
   }
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE personal_cellar_items
         SET placement_status = 'private', placement_account_id = NULL, updated_at = datetime('now')
-      WHERE id = ? AND owner_user_id = ?`
+      WHERE id = ? AND owner_user_id = ? AND placement_status = 'requested'`
   ).bind(params.id, userId).run();
+  if (!result.meta.changes) return json({ error: 'No pending placement request to cancel' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
-  return json({ item: cellarItemToApi(row) });
+  return row ? json({ item: ownedCellarItemToApi(row) }) : json({ error: 'Not found' }, 404);
 };
 
 // GET /api/cellar-placements — location-owner view of pending placement
@@ -15927,25 +16069,31 @@ const handleApproveCellarPlacement: Handler = async (request, env, params) => {
   nameProductColumns(body);
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
+  // Claim the request and the snapshot used for the product inside the same
+  // batch. A cancellation, second approval or stock edit can win first.
+  const claimPlacement = env.DB.prepare(
+    `UPDATE personal_cellar_items
+        SET placement_status = 'placed', linked_product_id = ?, updated_at = datetime('now')
+      WHERE id = ? AND placement_status = 'requested' AND placement_account_id = ?
+        AND grams = ? AND name = ? AND type IS ? AND year IS ?
+        AND origin IS ? AND notes IS ? AND image_url IS ?`
+  ).bind(productId, item.id, accountId, item.grams, item.name, item.type, item.year, item.origin, item.notes, item.image_url);
   const insertProduct = env.DB.prepare(
-    `INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`
-  ).bind(productId, ...cols.map(c => body[c] ?? null));
-  const mirrorInserts = buildProductMirrorInserts(env, productId, accountId, body);
-  const stmts = [insertProduct, ...mirrorInserts];
+    `INSERT INTO products (id, ${cols.join(', ')})
+     SELECT ?, ${placeholders} WHERE EXISTS (
+       SELECT 1 FROM personal_cellar_items WHERE id = ? AND linked_product_id = ?
+     )`
+  ).bind(productId, ...cols.map(c => body[c] ?? null), item.id, productId);
+  const mirrorInserts = buildProductMirrorInserts(env, productId, accountId, body, false, true);
+  const stmts = [claimPlacement, insertProduct, ...mirrorInserts];
   if (grams > 0) {
     stmts.push(buildStockLedgerEntry(
       env, productId, grams, grams, 'PURCHASE_RECEIPT',
-      ctx.email, null, null, 'Placed from personal cellar', accountId
+      ctx.email, null, null, 'Placed from personal cellar', accountId, true
     ));
   }
-  stmts.push(
-    env.DB.prepare(
-      `UPDATE personal_cellar_items
-          SET placement_status = 'placed', linked_product_id = ?, updated_at = datetime('now')
-        WHERE id = ?`
-    ).bind(productId, item.id)
-  );
-  await env.DB.batch(stmts);
+  const [claimed] = await env.DB.batch(stmts);
+  if (!claimed.meta.changes) return json({ error: 'The placement or holding changed. Reload and try again.' }, 409);
 
   await auditPlatformActingWrite(env, ctx, 'cellar.placement_approved', 'product', productId, {
     cellar_item_id: item.id, owner_user_id: item.owner_user_id,
@@ -15965,13 +16113,282 @@ const handleDeclineCellarPlacement: Handler = async (request, env, params) => {
   if (item.placement_status !== 'requested' || item.placement_account_id !== ctx.accountId) {
     return json({ error: 'No pending placement request for this location' }, 409);
   }
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE personal_cellar_items
         SET placement_status = 'private', placement_account_id = NULL, updated_at = datetime('now')
-      WHERE id = ?`
-  ).bind(params.id).run();
+      WHERE id = ? AND placement_account_id = ? AND placement_status = 'requested'`
+  ).bind(params.id, ctx.accountId).run();
+  if (!result.meta.changes) return json({ error: 'No pending placement request for this location' }, 409);
   return json({ ok: true });
 };
+
+async function personalInventoryAccount(db: D1Database, userId: string) {
+  return db.prepare(`
+    SELECT a.id, a.slug, a.public_enabled
+    FROM accounts a JOIN account_members m ON m.account_id = a.id AND m.user_id = a.personal_inventory_user_id
+    WHERE a.personal_inventory_user_id = ? AND a.owner_user_id = a.personal_inventory_user_id AND a.status = 'active'
+      AND m.status = 'active' AND m.role = 'owner'
+  `).bind(userId).first<{ id: string; slug: string; public_enabled: number }>();
+}
+
+async function orderablePersonalStore(db: D1Database, userId: string) {
+  const account = await personalInventoryAccount(db, userId);
+  if (!account?.public_enabled) return null;
+  const active = await db.prepare(`
+    SELECT 1 FROM products WHERE account_id = ? AND status = 'Active' AND is_public = 1 AND shown_in_shop = 1
+      AND CASE WHEN type = 'Teaware' THEN COALESCE(quantity_units, stock_grams, 0) ELSE stock_grams END > 0
+      AND personal_offer_withdrawn_at IS NULL LIMIT 1
+  `).bind(account.id).first();
+  return active ? account : null;
+}
+
+const handlePersonalInventoryAccount: Handler = async (request, env) => {
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const existing = await personalInventoryAccount(env.DB, ctx.userId);
+  if (request.method === 'GET' || existing) return json({ account: existing });
+
+  const id = newId('acc');
+  const displayName = ctx.name?.trim();
+  const stem = normalizeShelfSlug(displayName || '').slice(0, 24);
+  const suffix = crypto.randomUUID().slice(0, 12);
+  const slug = `${stem || 'tea-chest'}-${suffix}`;
+  const name = displayName ? `${displayName}’s Tea Chest` : 'Tea Chest';
+  // Both statements commit together. The unique person link makes concurrent
+  // requests use the same account and never adds an owner to a different shop.
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO accounts (id, slug, name, kind, status, public_enabled, owner_user_id,
+                            personal_inventory_user_id, invoice_prefix)
+      SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA' FROM users WHERE id = ?
+      ON CONFLICT(personal_inventory_user_id) DO NOTHING
+    `).bind(id, slug, name, ctx.userId),
+    env.DB.prepare(`
+      INSERT INTO account_members (account_id, user_id, role, status)
+      SELECT id, owner_user_id, 'owner', 'active' FROM accounts WHERE id = ? AND personal_inventory_user_id = ?
+    `).bind(id, ctx.userId),
+  ]);
+  const account = await personalInventoryAccount(env.DB, ctx.userId);
+  return account ? json({ account }) : json({ error: 'Your Tea Chest account is unavailable.' }, 409);
+};
+
+type PersonalStockOffer = {
+  product_id: string;
+  name: string;
+  grams: number;
+  available_grams: number;
+  type: string;
+  year: number | null;
+  origin: string | null;
+  price_amount: number;
+  price_currency: string;
+  price_usd: number;
+};
+
+function readPersonalStockOffer(db: D1Database, accountId: string, sourceId: string) {
+  return db.prepare(`
+    SELECT id AS product_id, product_name AS name, piece_weight_g AS grams, stock_grams AS available_grams,
+           type, year, origin_region AS origin, personal_offer_price_amount AS price_amount,
+           personal_offer_price_currency AS price_currency, personal_offer_pack_price_usd AS price_usd
+      FROM products WHERE account_id = ? AND personal_offer_source_id = ? AND personal_offer_withdrawn_at IS NULL
+  `).bind(accountId, sourceId).first<PersonalStockOffer>();
+}
+
+const handlePersonalStockOffer: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+  const account = await personalInventoryAccount(env.DB, userId);
+  if (account?.id !== accountId) return restError(403, 'Open your personal Stock account first.', 'personal_stock_required');
+  const source = await env.DB.prepare(`
+    SELECT id, type, status, stock_grams, is_public, shown_in_shop, quantity_purchased,
+           cost_amount, cost_currency, cost_currency_source, shipping_rate_per_kg
+      FROM products WHERE id = ? AND account_id = ? AND (owner_user_id IS NULL OR owner_user_id = ?)
+       AND personal_offer_source_id IS NULL
+  `).bind(params.id, accountId, userId).first<Record<string, any>>();
+  if (!source) return restError(404, 'Holding not found.', 'holding_not_found');
+  const current = await readPersonalStockOffer(env.DB, accountId, params.id);
+  if (request.method === 'GET') return json({ offer: current });
+  if (request.method === 'DELETE') return withdrawPersonalStockOffer(env, ctx, source.id, current);
+
+  const input = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const offer = readOfferInput(input);
+  const type = offer?.type || source.type;
+  if (!offer || !Number.isInteger(offer.grams) || offer.grams > 9999 || !isTeaType(type)) {
+    return restError(400, 'Enter a public tea name, a whole number of grams, and its positive price and currency.', 'invalid_personal_offer');
+  }
+  if (current) {
+    if (current.name === offer.name && current.grams === offer.grams && current.type === type
+      && current.year === offer.year && current.origin === offer.origin
+      && current.price_amount === offer.priceAmount && current.price_currency === offer.priceCurrency) {
+      return json(input?.preview === true ? current : { product_id: current.product_id, offer: current });
+    }
+    return restError(409, 'Withdraw the existing offer before publishing another.', 'personal_offer_exists');
+  }
+  if (source.status !== 'Active' || !isTeaType(source.type) || source.is_public !== 0 || source.shown_in_shop !== 0
+    || Number(source.stock_grams) < offer.grams) {
+    return restError(409, 'Use an active private tea holding with enough stock to make this offer.', 'personal_offer_insufficient_stock');
+  }
+  const cost = readPersonalTeaMoney(source.cost_amount, source.cost_currency);
+  if (!cost || !source.cost_currency_source || !(Number(source.quantity_purchased) > 0)) {
+    return restError(409, 'Record the holding’s purchase amount, currency, and weight before listing it.', 'personal_offer_cost_required');
+  }
+  if (!account.public_enabled) return restError(409, 'Open your shop in Store Settings before publishing.', 'personal_shop_closed');
+  const gap = await personalSellerPayabilityGap(env, accountId, userId);
+  if (gap) {
+    const refusal = STORE_PAYABILITY_REFUSALS[gap];
+    return restError(409, refusal.message, refusal.code);
+  }
+  const rates = new Map<string, number>((await env.DB.prepare(
+    'SELECT currency, rate_to_usd FROM exchange_rates'
+  ).all<{ currency: string; rate_to_usd: number }>()).results.map(row => [row.currency, row.rate_to_usd]));
+  const rate = offer.priceCurrency === 'USD' ? 1 : lookupRateToUsd(rates, offer.priceCurrency);
+  const priceUsd = rate && Number.isFinite(rate) && rate > 0 ? roundUsd(offer.priceAmount * rate) : null;
+  if (!priceUsd || !Number.isSafeInteger(Math.round(priceUsd * 100))) {
+    return restError(400, 'This price cannot be quoted in US dollars at the current exchange rate.', 'personal_offer_price_unavailable');
+  }
+  if (input?.preview === true) return json({ price_usd: priceUsd, price_amount: offer.priceAmount, price_currency: offer.priceCurrency });
+  if (input?.expected_price_usd !== undefined && input.expected_price_usd !== priceUsd) {
+    return restError(409, 'The checkout price changed. Preview it again before publishing.', 'personal_offer_price_changed');
+  }
+
+  const productId = crypto.randomUUID();
+  const stamp = new Date().toISOString();
+  const guard = crypto.randomUUID();
+  // The transfer carries the holding's per-gram cost basis into the pack in
+  // its original currency. The transfer ledger records no new purchase.
+  const sku: Record<string, any> = nameProductColumns({
+    account_id: accountId, type, product_name: offer.name, given_name: offer.name,
+    year: offer.year, origin_region: offer.origin, status: 'Active',
+    stock_grams: offer.grams, stock_known_at: stamp, stock_movement_guard: guard,
+    is_public: 1, shown_in_shop: 1, show_wisdom: 0, owner_user_id: userId,
+    inventory_purpose: 'working',
+    cost_amount: (cost.amount / Number(source.quantity_purchased)) * offer.grams,
+    cost_currency: cost.currency, cost_currency_source: source.cost_currency_source,
+    quantity_purchased: offer.grams, shipping_rate_per_kg: source.shipping_rate_per_kg,
+    fixed_retail_price_usd: priceUsd / offer.grams, piece_weight_g: offer.grams, sold_in_whole_units: 1,
+    personal_offer_source_id: source.id, personal_offer_pack_price_usd: priceUsd,
+    personal_offer_price_amount: offer.priceAmount, personal_offer_price_currency: offer.priceCurrency,
+  });
+  sku.slug = await mintProductSlug(env, sku, productId);
+  const columns = Object.keys(sku);
+  const guardHolding = `WHERE EXISTS (
+    SELECT 1 FROM products WHERE id = ? AND account_id = ? AND personal_offer_source_id = ?
+  )`;
+  const insertOffer = env.DB.prepare(`
+    INSERT INTO products (id, ${columns.join(', ')})
+    SELECT ?, ${columns.map(() => '?').join(', ')}
+      FROM products h JOIN accounts a ON a.id = h.account_id
+     WHERE h.id = ? AND h.account_id = ? AND h.personal_offer_source_id IS NULL
+       AND (h.owner_user_id IS NULL OR h.owner_user_id = ?) AND h.status = 'Active'
+       AND h.is_public = 0 AND h.shown_in_shop = 0 AND h.type = ?
+       AND h.cost_amount IS ? AND h.cost_currency IS ? AND h.cost_currency_source IS ?
+       AND h.quantity_purchased IS ? AND h.shipping_rate_per_kg IS ?
+       AND h.stock_grams = ? AND h.stock_grams - COALESCE((
+         SELECT SUM(held_grams) FROM stock_holds
+          WHERE account_id = h.account_id AND product_id = h.id
+            AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))
+       ), 0) >= ?
+       AND a.status = 'active' AND a.public_enabled = 1 AND a.personal_inventory_user_id = ?
+       AND a.owner_user_id = a.personal_inventory_user_id
+       AND EXISTS (SELECT 1 FROM account_members m WHERE m.account_id = a.id AND m.user_id = a.owner_user_id
+                    AND m.role = 'owner' AND m.status = 'active')
+       AND NOT EXISTS (SELECT 1 FROM products o WHERE o.account_id = h.account_id
+                       AND o.personal_offer_source_id = h.id AND o.personal_offer_withdrawn_at IS NULL)
+  `).bind(productId, ...columns.map(column => sku[column] ?? null),
+    source.id, accountId, userId, source.type, source.cost_amount, source.cost_currency, source.cost_currency_source,
+    source.quantity_purchased, source.shipping_rate_per_kg, source.stock_grams, offer.grams, userId);
+  const sourceAfter = Number(source.stock_grams) - offer.grams;
+  const [inserted] = await env.DB.batch([
+    insertOffer,
+    env.DB.prepare(`UPDATE products SET stock_grams = ?, stock_known_at = ?, stock_movement_guard = ?, updated_at = datetime('now')
+      ${guardHolding} AND id = ? AND account_id = ?`)
+      .bind(sourceAfter, stamp, guard, productId, accountId, source.id, source.id, accountId),
+    env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, updated_at = datetime('now')
+      ${guardHolding} AND legacy_product_id = ? AND account_id = ?`)
+      .bind(sourceAfter, stamp, productId, accountId, source.id, source.id, accountId),
+    ...buildProductMirrorInserts(env, productId, accountId, sku, false, true),
+    ...personalOfferTransferLedger(env, ctx, {
+      guard, note: 'Stock allocated to a personal offer',
+      sourceId: source.id, sourceDelta: -offer.grams, sourceAfter,
+      offerId: productId, offerDelta: offer.grams, offerAfter: offer.grams,
+    }),
+  ]);
+  const published = await readPersonalStockOffer(env.DB, accountId, source.id);
+  if (!inserted.meta.changes) {
+    if (published?.name === offer.name && published.grams === offer.grams && published.type === type
+      && published.year === offer.year && published.origin === offer.origin
+      && published.price_amount === offer.priceAmount && published.price_currency === offer.priceCurrency) {
+      return json({ product_id: published.product_id, offer: published });
+    }
+    return restError(409, 'The holding changed or some stock is reserved. Refresh Stock and try again.', 'personal_offer_conflict');
+  }
+  return json({ product_id: productId, offer: published }, 201);
+};
+
+function personalOfferTransferLedger(env: Env, ctx: AccountCtx, transfer: {
+  guard: string; note: string;
+  sourceId: string; sourceDelta: number; sourceAfter: number;
+  offerId: string; offerDelta: number; offerAfter: number;
+}) {
+  const records = [
+    { productId: transfer.sourceId, delta: transfer.sourceDelta, balanceAfter: transfer.sourceAfter },
+    { productId: transfer.offerId, delta: transfer.offerDelta, balanceAfter: transfer.offerAfter },
+  ];
+  return records.filter(record => record.delta !== 0).map(record => buildStockMovementLedgerInsert(env, {
+    ...record, id: crypto.randomUUID(), unit: 'g', movementType: 'transfer',
+    idempotencyKey: `personal-offer:${transfer.guard}:${record.productId}`,
+    note: transfer.note, accountId: ctx.accountId, userEmail: ctx.email,
+    fingerprint: transfer.guard, guard: transfer.guard,
+  }));
+}
+
+async function withdrawPersonalStockOffer(env: Env, ctx: AccountCtx, sourceId: string, offer: PersonalStockOffer | null) {
+  if (!offer) return json({ ok: true, restored_grams: 0 });
+  const { accountId } = ctx;
+  const guard = crypto.randomUUID();
+  const restore = Number(offer.available_grams);
+  const stamp = new Date().toISOString();
+  const claim = env.DB.prepare(`
+    UPDATE products SET personal_offer_withdrawn_at = ?, status = 'Archived', is_public = 0, shown_in_shop = 0,
+      stock_grams = 0, stock_movement_guard = ?, updated_at = datetime('now')
+    WHERE id = ? AND account_id = ? AND personal_offer_source_id = ?
+      AND personal_offer_withdrawn_at IS NULL AND stock_grams = ?
+      AND NOT EXISTS (SELECT 1 FROM stock_holds
+        WHERE account_id = ? AND product_id = ?
+          AND (expires_at IS NULL OR julianday(expires_at) > julianday('now')))
+  `).bind(stamp, guard, offer.product_id, accountId, sourceId, restore, accountId, offer.product_id);
+  const claimed = `EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`;
+  const [result] = await env.DB.batch([
+    claim,
+    env.DB.prepare(`UPDATE products SET stock_grams = COALESCE(stock_grams,0) + ?, stock_known_at = ?,
+      status = CASE WHEN ? > 0 AND status = 'Sold Out' THEN 'Active' ELSE status END,
+      sold_out_at = CASE WHEN ? > 0 AND status = 'Sold Out' THEN NULL ELSE sold_out_at END,
+      stock_movement_guard = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${claimed}`)
+      .bind(restore, stamp, restore, restore, guard, sourceId, accountId, offer.product_id, accountId, guard),
+    env.DB.prepare(`UPDATE product_listings SET stock_grams = (
+        SELECT stock_grams FROM products WHERE id = ? AND account_id = ?
+      ), stock_known_at = ?, updated_at = datetime('now'),
+      status = CASE WHEN ? > 0 AND status = 'Sold Out' THEN 'active' ELSE status END,
+      sold_out_at = CASE WHEN ? > 0 AND status = 'Sold Out' THEN NULL ELSE sold_out_at END
+      WHERE legacy_product_id = ? AND account_id = ? AND ${claimed}`)
+      .bind(sourceId, accountId, stamp, restore, restore, sourceId, accountId, offer.product_id, accountId, guard),
+    env.DB.prepare(`UPDATE product_listings SET stock_grams = 0, status = 'archived', is_public = 0, shown_in_shop = 0,
+      updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND ${claimed}`)
+      .bind(offer.product_id, accountId, offer.product_id, accountId, guard),
+    env.DB.prepare(`UPDATE tea_profiles SET network_visible = 0, status = 'archived' WHERE id = ? AND ${claimed}`)
+      .bind(`prof_${offer.product_id}`, offer.product_id, accountId, guard),
+    ...[sourceId, offer.product_id].filter(() => restore > 0).map(productId => env.DB.prepare(`
+      INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason,
+                                movement_type, user_email, note, account_id)
+      SELECT ?, id, ?, stock_grams, 'gram', 'TRANSFER', 'transfer', ?, 'Personal offer withdrawn', ?
+        FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?
+    `).bind(crypto.randomUUID(), productId === sourceId ? restore : -restore, ctx.email, accountId, productId, accountId, guard)),
+  ]);
+  if (result.meta.changes) return json({ ok: true, restored_grams: restore });
+  if (!await readPersonalStockOffer(env.DB, accountId, sourceId)) return json({ ok: true, restored_grams: 0 });
+  return restError(409, 'This offer changed or is reserved for an order. Refresh Stock or resolve the order first.', 'personal_offer_reserved');
+}
 
 // ── Standalone public shelf (stock spine step 5) ────────────────────────────
 //
@@ -16002,7 +16419,7 @@ const handleGetMyShelf: Handler = async (request, env) => {
     enabled: !!row.shelf_enabled,
     slug: row.shelf_slug ?? null,
     title: row.shelf_title ?? null,
-    whatsapp: row.shelf_whatsapp ?? null,
+    whatsapp: normalizeShelfWhatsApp(row.shelf_whatsapp),
   });
 };
 
@@ -16016,39 +16433,69 @@ const handleUpdateMyShelf: Handler = async (request, env) => {
   const row = await env.DB.prepare('SELECT shelf_enabled FROM users WHERE id = ?').bind(userId).first() as any;
   if (!row) return json({ error: 'Not found' }, 404);
   if (!row.shelf_enabled) return json({ error: 'Shelf not enabled for this account' }, 403);
-  const body = await request.json() as { title?: string; whatsapp?: string };
+  const body = await request.json().catch(() => null) as { title?: string; whatsapp?: string } | null;
+  if (!body || typeof body !== 'object'
+    || (body.title != null && typeof body.title !== 'string')
+    || (body.whatsapp != null && typeof body.whatsapp !== 'string')) {
+    return json({ error: 'Invalid shelf settings' }, 400);
+  }
+  const contact = normalizeShelfWhatsApp(body.whatsapp);
+  if (body.whatsapp?.trim() && !contact) {
+    return json({ error: 'Enter your WhatsApp number with the country code.' }, 400);
+  }
   await env.DB.prepare(
     'UPDATE users SET shelf_title = ?, shelf_whatsapp = ? WHERE id = ?'
-  ).bind(
-    body.title?.trim() || null,
-    body.whatsapp ? String(body.whatsapp).replace(/[^\d]/g, '') || null : null,
-    userId,
-  ).run();
+  ).bind(body.title?.trim() || null, contact, userId).run();
   return json({ ok: true });
 };
 
-// POST /api/me/cellar/:id/publish-shelf — put a private cellar item on the
-// caller's public shelf. Shelf publishes location-less stock only; a placed
-// item belongs to a location, not the standalone shelf.
+// The approved buyer fields are stored separately from the private holding.
+// The guarded update serializes publication with placement, stock and contact writes.
 const handlePublishToShelf: Handler = async (request, env, params) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
   const userId = authedUserId(request);
   if (!userId) return json({ error: 'Invalid token' }, 401);
-  const user = await env.DB.prepare('SELECT shelf_enabled FROM users WHERE id = ?').bind(userId).first() as any;
-  if (!user?.shelf_enabled) return json({ error: 'Shelf not enabled for this account' }, 403);
+  if (await personalInventoryAccount(env.DB, userId)) {
+    return json({ error: 'List tea from Stock in your Tea Chest account.' }, 409);
+  }
+  const offer = readOfferInput(await request.json().catch(() => null));
+  if (!offer) return json({ error: 'Enter a public name, an offer weight, and a positive price with its currency.' }, 400);
+
+  const saved = await env.DB.prepare(`
+    UPDATE personal_cellar_items AS c
+    SET shelf_published = 1, shelf_offer_name = ?, shelf_offer_grams = ?, shelf_offer_type = ?,
+        shelf_offer_year = ?, shelf_offer_origin = ?, shelf_offer_price_amount = ?,
+        shelf_offer_price_currency = ?, updated_at = datetime('now')
+    WHERE id = ? AND owner_user_id = ? AND placement_status = 'private' AND grams >= ? AND (${recordedChestCostSql})
+      AND NOT EXISTS (SELECT 1 FROM accounts WHERE personal_inventory_user_id = c.owner_user_id)
+      AND EXISTS (
+        SELECT 1 FROM users u WHERE u.id = ? AND u.shelf_enabled = 1
+          AND u.shelf_slug <> '' AND (${shelfContactSql})
+      )
+  `).bind(offer.name, offer.grams, offer.type, offer.year, offer.origin,
+    offer.priceAmount, offer.priceCurrency, params.id, userId, offer.grams, userId).run();
+  if (saved.meta.changes) return json({ ok: true });
+
+  const seller = await env.DB.prepare(
+    'SELECT shelf_enabled, shelf_slug, shelf_whatsapp FROM users WHERE id = ?'
+  ).bind(userId).first<{ shelf_enabled: number; shelf_slug: string | null; shelf_whatsapp: string | null }>();
+  if (!seller?.shelf_enabled || !seller.shelf_slug) return json({ error: 'Shelf not enabled for this account' }, 403);
+
   const item = await env.DB.prepare(
-    'SELECT owner_user_id, placement_status FROM personal_cellar_items WHERE id = ?'
-  ).bind(params.id).first() as any;
+    'SELECT owner_user_id, placement_status, grams, chest_cost_amount, chest_cost_currency FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first<{ owner_user_id: string; placement_status: string; grams: number; chest_cost_amount: number | null; chest_cost_currency: string | null }>();
   if (!item) return json({ error: 'Not found' }, 404);
   if (item.owner_user_id !== userId) return json({ error: 'Forbidden' }, 403);
-  if (item.placement_status !== 'private') {
-    return json({ error: 'Only location-less items can go on your shelf' }, 409);
+  if (!normalizeShelfWhatsApp(seller.shelf_whatsapp)) {
+    return json({ error: 'Save your personal WhatsApp number before publishing.' }, 409);
   }
-  await env.DB.prepare(
-    "UPDATE personal_cellar_items SET shelf_published = 1, updated_at = datetime('now') WHERE id = ? AND owner_user_id = ?"
-  ).bind(params.id, userId).run();
-  return json({ ok: true });
+  if (item.placement_status !== 'private') return json({ error: 'Only location-less items can go on your shelf' }, 409);
+  if (!readPersonalTeaMoney(item.chest_cost_amount, item.chest_cost_currency)) {
+    return json({ error: 'Record what you paid in your Tea Chest before publishing.' }, 409);
+  }
+  if (item.grams < offer.grams) return json({ error: 'The offer is larger than the weight in your Chest.' }, 409);
+  return json({ error: 'The holding or shelf settings changed. Reload and try again.' }, 409);
 };
 
 // POST /api/me/cellar/:id/unpublish-shelf — take an item off the shelf.
@@ -16068,37 +16515,11 @@ const handleUnpublishFromShelf: Handler = async (request, env, params) => {
 // a direct WhatsApp contact. Public-safe fields only (no cost, no vendor).
 const handleGetPublicShelf: Handler = async (_request, env, params) => {
   const slug = normalizeShelfSlug(params.slug);
-  if (!slug) return json({ error: 'Not found' }, 404);
-  const seller = await env.DB.prepare(
-    `SELECT u.id, u.name, u.shelf_enabled, u.shelf_title, u.shelf_whatsapp,
-            contributor.id AS contributor_slug
-       FROM users u
-       LEFT JOIN contributors contributor ON contributor.user_id = u.id AND contributor.is_published = 1
-      WHERE u.shelf_slug = ?`
-  ).bind(slug).first() as any;
-  if (!seller || !seller.shelf_enabled) return json({ error: 'Shelf not found' }, 404);
-  const { results } = await env.DB.prepare(
-    `SELECT id, name, type, year, origin, grams, image_url
-       FROM personal_cellar_items
-      WHERE owner_user_id = ? AND shelf_published = 1 AND placement_status = 'private'
-      ORDER BY created_at DESC`
-  ).bind(seller.id).all();
-  return cachedJson({
-    slug,
-    title: seller.shelf_title ?? null,
-    seller_name: seller.name ?? null,
-    ...(seller.contributor_slug ? { contributor_slug: seller.contributor_slug } : {}),
-    whatsapp: seller.shelf_whatsapp ?? null,
-    items: (results as any[]).map(r => ({
-      id: r.id,
-      name: r.name,
-      type: r.type ?? null,
-      year: r.year ?? null,
-      origin: r.origin ?? null,
-      grams: Number(r.grams) || 0,
-      image_url: r.image_url ?? null,
-    })),
-  }, 30);
+  const shelf = slug ? await getPublicShelf(env.DB, slug) : null;
+  return Response.json(shelf ?? { error: 'Shelf not found' }, {
+    status: shelf ? 200 : 404,
+    headers: { 'Cache-Control': 'no-store' },
+  });
 };
 
 // PUT /api/platform/users/:id/shelf — platform-owner grant. Turns a user's
@@ -17012,6 +17433,9 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
   }
   const product = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(productId, ctx.accountId).first() as any;
   if (!product) return { status: 404, value: { error: 'Product not found' } };
+  if (product.personal_offer_source_id) {
+    return { status: 409, value: { error: 'Make stock changes on the private holding for this offer.' } };
+  }
   if ((product.type === 'Teaware' ? 'unit' : 'g') !== input.unit) return { status: 400, value: { error: 'Stock unit does not match this product' } };
   if (input.batch_id && !extras.allowNewBatchId && !await env.DB.prepare('SELECT id FROM batches WHERE id = ? AND account_id = ?').bind(input.batch_id, ctx.accountId).first()) return { status: 404, value: { error: 'Batch not found' } };
   if (input.source_compass_entry_id && !await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ?').bind(input.source_compass_entry_id, ctx.accountId).first()) return { status: 404, value: { error: 'Curate entry not found' } };
@@ -17027,6 +17451,9 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
     if (input.destination_product_id === productId) return { status: 400, value: { error: 'Transfer destination must differ from source' } };
     destination = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(input.destination_product_id, ctx.accountId).first() as any;
     if (!destination) return { status: 404, value: { error: 'Transfer destination not found' } };
+    if (destination.personal_offer_source_id) {
+      return { status: 409, value: { error: 'Transfer stock to the private holding for this offer.' } };
+    }
     const sameIdentity = product.source_compass_entry_id && product.source_compass_entry_id === destination.source_compass_entry_id;
     const sourceCategory = product.type === 'Teaware' ? 'teaware' : 'tea';
     const destinationCategory = destination.type === 'Teaware' ? 'teaware' : 'tea';
@@ -18717,33 +19144,44 @@ const handleGetJourney: Handler = async (request, env, params) => {
 
 // ── Samples ──
 
-/**
- * Whether this request may see who supplied a sample: the vendor's name, their
- * WeChat or phone, and the shop's own notes. Only people in the shop that owns
- * the sample, and the platform owner. Being signed in is not enough: sample
- * labels are handed out, and any customer with an account who opened one used
- * to see the supplier's contact.
- */
-async function canSeeSampleSource(request: Request, env: Env, accountId: unknown): Promise<boolean> {
-  const token = isAuthed(request);
-  if (!token || typeof accountId !== 'string' || !accountId) return false;
-  if (await validateSessionToken(token, env)) return false;
-  const claims = parseToken(token);
-  if (!claims) return false;
-  if (claims.sub === 'env-admin' || claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin') return true;
-  try {
-    const member = await env.DB.prepare(
-      "SELECT 1 AS ok FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'"
-    ).bind(claims.sub, accountId).first();
-    return !!member;
-  } catch {
-    return false;
-  }
+// Shop-owned legacy rows have no individual attribution. Only the recorded,
+// active account owner can read their private fields from a label.
+async function isSampleShopOwner(env: Env, accountId: string | null, userId: string | null): Promise<boolean> {
+  if (!accountId || !userId) return false;
+  return !!await env.DB.prepare(
+    `SELECT 1 FROM accounts a
+     JOIN account_members m ON m.account_id = a.id AND m.user_id = a.owner_user_id
+     WHERE a.id = ? AND a.owner_user_id = ? AND a.status = 'active'
+       AND m.status = 'active' AND m.role = 'owner'`
+  ).bind(accountId, userId).first();
 }
 
-function stripSampleSource(sample: Record<string, any>): Record<string, any> {
-  const { source_id, source_name, source_contact, notes, ...rest } = sample;
-  return rest;
+const SAMPLE_LABEL_SELECT = `
+  SELECT s.*, c.user_id AS compass_owner_id, ss.purpose AS set_purpose,
+         ss.source_id AS set_source_id, ss.source_name AS set_source_name,
+         p.id AS public_product_id
+  FROM tea_samples s
+  LEFT JOIN tea_sample_sets ss ON ss.id = s.set_id AND ss.account_id IS s.account_id
+  LEFT JOIN tea_compass_entries c ON c.id = s.compass_entry_id AND c.account_id = s.account_id
+  LEFT JOIN accounts a ON a.id = s.account_id AND a.status = 'active' AND a.public_enabled = 1
+  LEFT JOIN products p ON p.id = s.product_id AND p.account_id = a.id
+    AND p.is_public = 1 AND p.shown_in_shop = 1 AND p.status IN ('Active', 'Sold Out')
+    AND p.type <> 'Teaware'
+`;
+
+function sampleLabelText(value: unknown, sourceRefs: unknown[]): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const normalized = value.normalize('NFKC').toLowerCase();
+  if (/https?:|data:|blob:|\/api\/|www\.|\S+@\S+/.test(normalized)) return null;
+  if (sourceRefs.some(ref => typeof ref === 'string' && ref.trim()
+    && normalized.includes(ref.trim().normalize('NFKC').toLowerCase()))) return null;
+  return value;
+}
+
+function sampleLabelResponse(data: unknown): Response {
+  const response = json(data);
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 }
 
 function parseSampleRow(row: Record<string, any>): Record<string, any> {
@@ -18772,50 +19210,102 @@ function parseTastingRow(row: Record<string, any>): Record<string, any> {
   };
 }
 
+function viewSampleLabel(row: Record<string, any>, userId: string | null, shopOwner: boolean) {
+  const { compass_owner_id, set_purpose, set_source_id, set_source_name, public_product_id, ...sample } = row;
+  // Curate batches can contain samples from different authors. Authorize the
+  // sample against its own source record, independently of the set.
+  const ownerId = sample.compass_entry_id ? compass_owner_id : sample.user_id;
+  const isCustomerRequest = sample.created_by === 'customer' || set_purpose === 'customer-request';
+  const canSeeSource = isCustomerRequest || (!sample.compass_entry_id && ownerId == null)
+    ? shopOwner
+    : userId !== null && userId === ownerId;
+  if (canSeeSource) return { sample: parseSampleRow(sample), canSeeSource };
+
+  // Existing label identity is the public tea name. Suppress known supplier
+  // references in legacy label text. Original photos have no sample-level
+  // publication record, even when uploaded to a public media path.
+  const sourceRefs = [sample.source_id, sample.source_name, set_source_id, set_source_name];
+  return {
+    canSeeSource,
+    sample: {
+      id: sample.id,
+      name: sampleLabelText(sample.name, sourceRefs) ?? 'Tea sample',
+      chinese_name: sampleLabelText(sample.chinese_name, sourceRefs),
+      type: sampleLabelText(sample.type, sourceRefs),
+      form: sampleLabelText(sample.form, sourceRefs),
+      year: typeof sample.year === 'number' ? sample.year : null,
+      origin_region: sampleLabelText(sample.origin_region, sourceRefs),
+      product_id: public_product_id,
+      set_id: sample.set_id,
+      status: sample.status,
+      grams: sample.grams_known === 0 ? null : sample.grams,
+      grams_known: sample.grams_known !== 0,
+      photos: [],
+    },
+  };
+}
+
+function publicSampleTasting(row: Record<string, any>) {
+  return {
+    id: row.id,
+    rating: typeof row.rating === 'number' ? row.rating : null,
+    verdict: ['love', 'like', 'neutral', 'pass'].includes(row.verdict) ? row.verdict : 'neutral',
+    created_at: row.created_at,
+  };
+}
+
 // Public: GET /api/samples/:id
 const handleGetSample: Handler = async (request, env, params) => {
-  const sample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ? AND archived_at IS NULL').bind(params.id).first();
-  if (!sample) return json({ error: 'Sample not found' }, 404);
+  const row = await env.DB.prepare(`${SAMPLE_LABEL_SELECT} WHERE s.id = ? AND s.archived_at IS NULL`)
+    .bind(params.id).first<Record<string, any>>();
+  if (!row) return json({ error: 'Sample not found' }, 404);
+
+  const user = await optionalAuthenticatedUser(request, env);
+  const userId = user?.userId ?? null;
+  const shopOwner = await isSampleShopOwner(env, row.account_id, userId);
+  const { sample, canSeeSource } = viewSampleLabel(row, userId, shopOwner);
 
   const tastings = await env.DB.prepare(
-    'SELECT * FROM tea_sample_tastings WHERE sample_id = ? ORDER BY created_at DESC'
-  ).bind(params.id).all();
+    `SELECT * FROM tea_sample_tastings
+     WHERE sample_id = ? AND (account_id IS NULL OR account_id = ?) ORDER BY created_at DESC`
+  ).bind(params.id, row.account_id || BALI_ACCOUNT_ID).all<Record<string, any>>();
 
-  let parsed = parseSampleRow(sample as Record<string, any>);
-
-  // Who supplied it is the shop's business only.
-  if (!await canSeeSampleSource(request, env, (sample as Record<string, unknown>).account_id)) {
-    parsed = stripSampleSource(parsed);
-  }
-
-  return json({
-    ...parsed,
-    tastings: (tastings.results as Record<string, any>[]).map(parseTastingRow),
+  return sampleLabelResponse({
+    ...sample,
+    tastings: tastings.results.map(canSeeSource ? parseTastingRow : publicSampleTasting),
   });
 };
 
 // Public: GET /api/samples/set/:setId
 const handleGetSamplesBySet: Handler = async (request, env, params) => {
-  const set = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?').bind(params.setId).first();
+  const set = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?')
+    .bind(params.setId).first<Record<string, any>>();
   if (!set) return json({ error: 'Sample set not found' }, 404);
 
   const samples = await env.DB.prepare(
-    'SELECT * FROM tea_samples WHERE set_id = ? AND archived_at IS NULL ORDER BY created_at DESC'
-  ).bind(params.setId).all();
+    `${SAMPLE_LABEL_SELECT} WHERE s.set_id = ? AND s.account_id IS ? AND s.archived_at IS NULL ORDER BY s.created_at DESC`
+  ).bind(params.setId, set.account_id).all<Record<string, any>>();
 
-  const insider = await canSeeSampleSource(request, env, (set as Record<string, unknown>).account_id);
+  const user = await optionalAuthenticatedUser(request, env);
+  const userId = user?.userId ?? null;
+  const shopOwner = await isSampleShopOwner(env, set.account_id, userId);
+  const canSeeSetSource = set.purpose === 'customer-request' || set.user_id == null
+    ? shopOwner
+    : userId !== null && userId === set.user_id;
+  const publicPurpose = ['customer-request', 'customer-gifted', 'event', 'panel'].includes(set.purpose)
+    ? set.purpose : 'sourcing';
+  const publicName = publicPurpose === 'event' || publicPurpose === 'panel'
+    ? sampleLabelText(set.name, [set.source_id, set.source_name]) : null;
 
-  const parsedSamples = (samples.results as Record<string, any>[]).map(s => {
-    const parsed = parseSampleRow(s);
-    return insider ? parsed : stripSampleSource(parsed);
+  return sampleLabelResponse({
+    set: canSeeSetSource ? parseSampleSetRow(set) : {
+      id: set.id,
+      name: publicName ?? 'Tea samples',
+      purpose: publicPurpose,
+      archived: Boolean(set.archived),
+    },
+    samples: samples.results.map(row => viewSampleLabel(row, userId, shopOwner).sample),
   });
-
-  let parsedSet = parseSampleSetRow(set as Record<string, any>);
-  if (!insider) {
-    const { source_id, source_name, notes, user_id, shared_with, panel_account_ids, ...publicSet } = parsedSet;
-    parsedSet = { ...publicSet, name: parsedSet.purpose === 'sourcing' || (source_name && String(parsedSet.name).includes(String(source_name))) ? 'Tea samples' : parsedSet.name };
-  }
-  return json({ set: parsedSet, samples: parsedSamples });
 };
 
 // Public/Guest: POST /api/samples/:id/tastings
@@ -20387,9 +20877,10 @@ const handleSwitchAccount: Handler = async (request, env) => {
 
   // Platform owners switching into a non-member account: verify the target exists.
   if (!isMember && isPlatform) {
-    const exists = await env.DB.prepare('SELECT id FROM accounts WHERE id = ?')
+    const exists = await env.DB.prepare('SELECT id, personal_inventory_user_id FROM accounts WHERE id = ?')
       .bind(body.account_id).first();
     if (!exists) return json({ error: 'Account not found' }, 404);
+    if (exists.personal_inventory_user_id) return restError(403, 'Account access denied', 'account_access_denied');
     await logPlatformAction(env, 'platform.acting_as.entered', claims.sub, claims.email,
       'account', body.account_id, {});
   }
@@ -20421,6 +20912,10 @@ const handleGetAccount: Handler = async (request, env, params) => {
   }
   const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first() as any;
   if (!acc) return json({ error: 'Account not found' }, 404);
+  if (acc.personal_inventory_user_id &&
+    (acc.personal_inventory_user_id !== ctx.userId || acc.owner_user_id !== ctx.userId)) {
+    return restError(403, 'Account access denied', 'account_access_denied');
+  }
   // Redact secrets. Surface only the presence flag and last-4 for display.
   const has_openai_key = Boolean(acc.openai_api_key_encrypted);
   const openai_key_last4 = (acc.openai_api_key_last4 as string | null) || null;
@@ -20478,6 +20973,11 @@ const STORE_RECIPIENT_CANDIDATES = `
 `;
 
 async function storePayabilityGap(env: Env, accountId: string): Promise<StorePayabilityGap | null> {
+  const personal = await env.DB.prepare(`
+    SELECT personal_inventory_user_id FROM accounts WHERE id = ? AND personal_inventory_user_id IS NOT NULL
+  `).bind(accountId).first<{ personal_inventory_user_id: string }>();
+  if (personal) return personalSellerPayabilityGap(env, accountId, personal.personal_inventory_user_id);
+
   const candidates = await env.DB.prepare(STORE_RECIPIENT_CANDIDATES)
     .bind(accountId, accountId, accountId, accountId)
     .all<Record<string, any>>();
@@ -20504,6 +21004,17 @@ async function storePayabilityGap(env: Env, accountId: string): Promise<StorePay
 // branches on to link straight to where it is fixed. A disabled control with no
 // explanation is the version that generates a message to Adrian instead of
 // preventing one.
+async function personalSellerPayabilityGap(env: Env, accountId: string, userId: string): Promise<StorePayabilityGap | null> {
+  const account = await personalInventoryAccount(env.DB, userId);
+  if (account?.id !== accountId) return 'no_recipient';
+  const payments = await resolveInvoicePayments(env, [{
+    id: 'personal-seller-payment-check', account_id: accountId, payment_recipient_user_id: userId, total_usd: 0,
+  }], 'any_method');
+  const result = payments.get('personal-seller-payment-check');
+  if (!result?.recipient_slug) return 'profile_not_published';
+  return result.has_methods ? null : 'no_payment_method';
+}
+
 const STORE_PAYABILITY_REFUSALS: Record<StorePayabilityGap, { message: string; code: string }> = {
   no_recipient: {
     message: 'No Tea Master profile is linked to this store, so there is nobody for a customer to pay. Create yours before opening the shop.',
@@ -21843,9 +22354,10 @@ const handlePlatformAllStock: Handler = async (request, env) => {
        FROM products p
        JOIN accounts a ON a.id = p.account_id
        LEFT JOIN users u ON u.id = p.owner_user_id
-      WHERE p.status != 'Archived'
+      WHERE p.status != 'Archived' AND (a.personal_inventory_user_id IS NULL
+        OR (a.personal_inventory_user_id = ? AND a.owner_user_id = a.personal_inventory_user_id))
       ORDER BY a.is_platform_owner DESC, a.name ASC, p.created_at DESC`
-  ).all();
+  ).bind(authedUserId(request)).all();
 
   return json({ stock: (results as any[]) ?? [] });
 };
@@ -22685,6 +23197,7 @@ async function fetchPublicProductsForAccount(
               p.cost_amount, p.cost_currency, p.quantity_purchased,
               p.shipping_rate_per_kg, p.fixed_retail_price_usd,
               p.material, p.capacity_ml, p.teaware_category, p.teaware_details, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
+              p.personal_offer_pack_price_usd AS exact_pack_price_usd,
               p.tasting, p.tasting_source,
               p.cultivar,
               (SELECT COUNT(*) > 0 FROM collection_items ci
@@ -22707,6 +23220,7 @@ async function fetchPublicProductsForAccount(
        JOIN accounts account ON account.id = p.account_id AND account.status = 'active' AND account.public_enabled = 1
        LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
        WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND ${visibilityFilter} AND p.account_id = ?1${productFilter}
+         AND p.personal_offer_withdrawn_at IS NULL
        ORDER BY p.created_at DESC`
     ).bind(...(productId ? [accountId, productId] : [accountId])),
   ]);
@@ -22728,7 +23242,7 @@ async function fetchPublicProductsForAccount(
     const withPricing = addPricingFields(p, rates, shopDefaultPerKgUsd);
     const safe: Record<string, unknown> = {};
     for (const key of PUBLIC_FIELDS) {
-      if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
+      if (key in withPricing && (key !== 'exact_pack_price_usd' || withPricing[key] != null)) safe[key] = withPricing[key];
     }
     attachPublicTeawareDetails(safe, p);
     if (accountId === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
@@ -22744,19 +23258,24 @@ async function fetchPublicProductsForAccount(
 const handleGetPublicAccountProducts: Handler = async (request, env, params) => {
   // Recheck the store on every request, including edge-cache hits, so closing
   // a store cannot leave a cached catalogue available for its remaining TTL.
-  const accountId = await getPublicAccountIdBySlug(env, params.slug);
-  if (!accountId) return json({ error: 'Store not found' }, 404);
+  const account = await getPublicStoreIdentity(env, params.slug);
+  if (!account) return json({ error: 'Store not found' }, 404);
+  if (account.personal_inventory_user_id) {
+    return Response.json(await fetchPublicProductsForAccount(env, account.id), { headers: { 'Cache-Control': 'no-store' } });
+  }
   return edgeCached(request, 10, async () => {
-    return cachedJson(await fetchPublicProductsForAccount(env, accountId), 10);
+    return cachedJson(await fetchPublicProductsForAccount(env, account.id), 10);
   });
 };
 
 const handleGetPublicAccountProduct: Handler = async (_request, env, params) => {
-  const accountId = await getPublicAccountIdBySlug(env, params.slug);
-  if (!accountId) return json({ error: 'Store not found' }, 404);
-  const [product] = await fetchPublicProductsForAccount(env, accountId, params.id);
+  const account = await getPublicStoreIdentity(env, params.slug);
+  if (!account) return json({ error: 'Store not found' }, 404);
+  const [product] = await fetchPublicProductsForAccount(env, account.id, params.id);
   if (!product) return json({ error: 'Product not found' }, 404);
-  return cachedJson(product, 10);
+  return account.personal_inventory_user_id
+    ? Response.json(product, { headers: { 'Cache-Control': 'no-store' } })
+    : cachedJson(product, 10);
 };
 
 // GET /api/s/:slug/events — PUBLIC active events for a store
@@ -25419,9 +25938,16 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
   try { publicLanguages = row.languages ? JSON.parse(row.languages as string) : []; } catch { publicLanguages = []; }
   const publicLinks = parseStoredContributorLinks(row.links as string | null);
 
-  const [publicShelf, paymentAvailability] = await Promise.all([
-    verifiedShelfSlug(env, row.user_id as string | null),
+  const [publicShelf, paymentAvailability, personalAccount] = await Promise.all([
+    getOrderableShelfSlug(env.DB, row.user_id as string | null).catch(error => {
+      if (/no such (?:table|column)/i.test(String(error))) return null;
+      throw error;
+    }),
     publicPaymentAvailability(env, slug),
+    row.user_id ? orderablePersonalStore(env.DB, String(row.user_id)).catch(error => {
+      if (/no such (?:table|column)/i.test(String(error))) return null;
+      throw error;
+    }) : null,
   ]);
 
   const effectivelyPublished = row.is_published === 1 || (!row.unpublished_at && hasPublishedArticle);
@@ -25456,7 +25982,8 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     languages: normalizeLanguages(publicLanguages),
     is_published: effectivelyPublished ? 1 : 0,
     contributor_slug: row.id,
-    ...(publicShelf ? { shelf_slug: publicShelf } : {}),
+    ...(publicShelf ? { shelf_slug: publicShelf, orderable_shelf_slug: publicShelf } : {}),
+    ...(personalAccount ? { personal_store_slug: personalAccount.slug } : {}),
     articles: words,
     pull_quotes: pullQuotes,
     featured_in: featuredIn,
@@ -28169,10 +28696,15 @@ const handleUpdateListing: Handler = async (request, env) => {
   try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
 
   // Verify caller owns the listing
-  const owned = await env.DB.prepare(
-    'SELECT id FROM product_listings WHERE id = ? AND account_id = ?'
-  ).bind(listingId, accountId).first();
+  const owned = await env.DB.prepare(`
+    SELECT l.id, p.personal_offer_source_id FROM product_listings l
+      LEFT JOIN products p ON p.id = l.legacy_product_id AND p.account_id = l.account_id
+      WHERE l.id = ? AND l.account_id = ?
+  `).bind(listingId, accountId).first();
   if (!owned) return json({ error: 'Listing not found or not yours.' }, 404);
+  if (owned.personal_offer_source_id) {
+    return restError(409, 'Manage this public offer from its private Stock holding.', 'personal_offer_managed');
+  }
 
   const updates: string[] = [];
   const binds: any[] = [];
@@ -30475,6 +31007,9 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/products/:id/publication', handleUpdateProductPublication],
   ['PUT', '/api/products/:id/shown', handleUpdateProductVisibility],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
+  ['GET', '/api/products/:id/personal-offer', handlePersonalStockOffer],
+  ['POST', '/api/products/:id/personal-offer', handlePersonalStockOffer],
+  ['DELETE', '/api/products/:id/personal-offer', handlePersonalStockOffer],
   ['POST', '/api/products/:id/featured', handleSetProductFeatured],
   ['POST', '/api/products/:id/enhance-image', handleEnhanceProductImage],
   ['GET', '/api/products/:id/events', handleGetProductEvents],
@@ -30833,6 +31368,8 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/cellar-placements/:id/decline', handleDeclineCellarPlacement],
 
   // Standalone public shelf (stock spine step 5).
+  ['GET',    '/api/me/tea-chest/account', handlePersonalInventoryAccount],
+  ['POST',   '/api/me/tea-chest/account', handlePersonalInventoryAccount],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],

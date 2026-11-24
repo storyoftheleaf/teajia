@@ -33,6 +33,11 @@ export function quoteInquiryLine(item: Record<string, any>, product: Record<stri
   const packing = inquiryPacking(item);
   if (!packing) throw new Error('Invalid pack quantity');
   const isWare = product.type === 'Teaware';
+  const exactPackPrice = product.personal_offer_pack_price_usd;
+  if (exactPackPrice != null) {
+    if (packing.packGrams !== product.piece_weight_g || packing.packs !== 1) throw new Error('Choose one pack at the offered weight.');
+    return Number(exactPackPrice);
+  }
   const rawPrice = isWare
     ? (product.fixed_retail_price_usd ?? product.retail_price_per_gram_usd)
     : product.retail_price_per_gram_usd;

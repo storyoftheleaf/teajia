@@ -15,7 +15,7 @@ describe('PersonalTeaLinks', () => {
     expect(html).toContain('href="/account/collection"');
     expect(html).toContain('Favorites');
     expect(html).toContain('href="/account/cellar"');
-    expect(html).toContain('Cellar');
+    expect(html).toContain('Tea Chest');
     expect(html).not.toContain('href="/account/journal"');
   });
 });
