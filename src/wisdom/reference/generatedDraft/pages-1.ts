@@ -871,6 +871,11 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": []
       },
       {
+        "key": "muzha",
+        "label": "Muzha Tieguanyin",
+        "sourceIds": []
+      },
+      {
         "key": "history",
         "label": "How Taiwan oolong grew",
         "sourceIds": []
@@ -898,52 +903,58 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
-    "id": "white",
-    "slug": "white",
-    "kind": "tea_family",
-    "label": "White tea (bai cha)",
+    "id": "tieguanyin",
+    "slug": "tieguanyin",
+    "kind": "tea_type",
+    "label": "Tieguanyin",
     "visibility": "public",
-    "nativeName": "白茶",
+    "nativeName": "铁观音",
+    "parentId": "oolong",
     "sourceIds": [],
     "sections": [
       {
         "key": "definition",
-        "label": "What white tea is",
+        "label": "What Tieguanyin is",
+        "sourceIds": []
+      },
+      {
+        "key": "guanyin-rhyme",
+        "label": "Guanyin rhyme",
         "sourceIds": []
       },
       {
         "key": "making",
-        "label": "How white tea is made",
+        "label": "How Tieguanyin is made",
+        "sourceIds": []
+      },
+      {
+        "key": "styles",
+        "label": "Light, roasted and aged",
         "sourceIds": []
       },
       {
         "key": "grades",
-        "label": "The kinds of white tea",
+        "label": "Grades",
         "sourceIds": []
       },
       {
-        "key": "fuding-and-zhenghe",
-        "label": "Fuding and Zhenghe",
-        "sourceIds": []
-      },
-      {
-        "key": "pressing",
-        "label": "Pressed white tea",
+        "key": "osmanthus",
+        "label": "Osmanthus Tieguanyin",
         "sourceIds": []
       },
       {
         "key": "history",
-        "label": "How white tea began",
+        "label": "How Tieguanyin began",
         "sourceIds": []
       },
       {
         "key": "ageing",
-        "label": "Keeping and ageing white tea",
+        "label": "Keeping and ageing Tieguanyin",
         "sourceIds": []
       },
       {
         "key": "brewing",
-        "label": "Brewing white tea",
+        "label": "Brewing Tieguanyin",
         "sourceIds": []
       },
       {
@@ -953,7 +964,7 @@ export const PART: readonly DraftReferencePage[] = [
       },
       {
         "key": "notice-aged",
-        "label": "What people often notice in aged white tea",
+        "label": "What people often notice in aged Tieguanyin",
         "sourceIds": []
       }
     ]

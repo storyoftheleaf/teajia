@@ -4558,6 +4558,304 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "铁观音",
+          "pinyin": "tiě guānyīn",
+          "gloss": "iron Guanyin"
+        },
+        {
+          "original": "安溪",
+          "pinyin": "ānxī",
+          "gloss": "Anxi"
+        },
+        {
+          "original": "西坪",
+          "pinyin": "xīpíng",
+          "gloss": "Xiping"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:guanyin-rhyme",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "观音韵",
+          "pinyin": "guānyīn yùn",
+          "gloss": "Guanyin rhyme"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "绿叶红镶边",
+          "pinyin": "lǜyè hóng xiāngbiān",
+          "gloss": "green leaf, red rim"
+        },
+        {
+          "original": "包揉",
+          "pinyin": "bāo róu",
+          "gloss": "cloth-wrap rolling"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:styles",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "清香",
+          "pinyin": "qīngxiāng",
+          "gloss": "light fragrance"
+        },
+        {
+          "original": "浓香",
+          "pinyin": "nóngxiāng",
+          "gloss": "strong fragrance"
+        },
+        {
+          "original": "陈香",
+          "pinyin": "chénxiāng",
+          "gloss": "aged fragrance"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:grades",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "特级",
+          "pinyin": "tèjí",
+          "gloss": "special grade"
+        },
+        {
+          "original": "一级",
+          "pinyin": "yījí",
+          "gloss": "first grade"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:osmanthus",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ],
+        "name_includes": [
+          "osmanthus"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "桂花铁观音",
+          "pinyin": "guìhuā tiěguānyīn",
+          "gloss": "osmanthus Tieguanyin"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:muzha",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan",
+          "muzha"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "木柵鐵觀音",
+          "pinyin": "mùzhà tiěguānyīn",
+          "gloss": "Muzha Tieguanyin"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "老铁",
+          "pinyin": "lǎo tiě",
+          "gloss": "old Tie"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "tieguanyin:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "anxi"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

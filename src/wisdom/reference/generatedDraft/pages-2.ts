@@ -5,6 +5,67 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "white",
+    "slug": "white",
+    "kind": "tea_family",
+    "label": "White tea (bai cha)",
+    "visibility": "public",
+    "nativeName": "白茶",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What white tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How white tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "grades",
+        "label": "The kinds of white tea",
+        "sourceIds": []
+      },
+      {
+        "key": "fuding-and-zhenghe",
+        "label": "Fuding and Zhenghe",
+        "sourceIds": []
+      },
+      {
+        "key": "pressing",
+        "label": "Pressed white tea",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How white tea began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing white tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing white tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged white tea",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "xishuangbanna-tea-mountains",
     "slug": "xishuangbanna-tea-mountains",
     "kind": "reference_topic",

@@ -53,7 +53,7 @@ describe('composeInputs for any kit', () => {
     expect(type).toContain('oolong:definition');
     expect(ids(inputs.layers.age)).toEqual(['taiwan-oolong:ageing']);
     expect(inputs.fixed.notice?.styleName).toBe('aged Taiwan oolong');
-    const anxi = composeInputs({ ...dongDing, id: 'tgy', product_name: 'Tie Guan Yin', origin_region: 'Anxi, Fujian', origin_country: 'China' }, claims, { thisYear: 2026, pages });
+    const anxi = composeInputs({ ...dongDing, id: 'dc', product_name: 'Mi Lan Xiang', origin_region: 'Phoenix, Guangdong', origin_country: 'China' }, claims, { thisYear: 2026, pages });
     expect(ids(anxi.layers.type)[0]).toBe('oolong:definition');
     expect(ids(anxi.layers.age)).toEqual(['oolong:ageing']);
     expect(anxi.fixed.notice?.styleName).toBe('aged oolong');
@@ -83,6 +83,24 @@ describe('composeInputs for any kit', () => {
     const meizhan = composeInputs({ ...rougui, id: 'mz', product_name: 'Meizhan Yancha', year: 1990 }, claims, { thisYear: 2026, pages });
     expect(ids(meizhan.layers.age)).toEqual(['yancha:ageing']);
     expect(meizhan.fixed.notice?.styleName).toBe('aged Wuyi rock tea');
+  });
+
+  it('gives an Anxi Tieguanyin its kit, osmanthus only when scented, and Muzha only the Muzha section', () => {
+    const anxi = { id: 'tgy', product_name: 'Tie Guan Yin', type: 'Oolong', form: 'Rolled', year: 1988, origin_region: 'Anxi, Fujian', origin_country: 'China' };
+    const inputs = composeInputs(anxi, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type[0]).toBe('tieguanyin:definition');
+    expect(type).toContain('oolong:definition');
+    expect(type).not.toContain('tieguanyin:osmanthus');
+    expect(type).not.toContain('taiwan-oolong:muzha');
+    expect(ids(inputs.layers.age)).toEqual(['tieguanyin:ageing']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged Tieguanyin');
+    const scented = ids(composeInputs({ ...anxi, id: 'os', product_name: 'Osmanthus Tieguanyin', year: null }, claims, { thisYear: 2026, pages }).layers.type);
+    expect(scented).toContain('tieguanyin:osmanthus');
+    const muzha = ids(composeInputs({ ...anxi, id: 'mz', product_name: 'Taiwan Tie Guan Yin', year: 1972, origin_region: 'Muzha, Taipei', origin_country: 'Taiwan' }, claims, { thisYear: 2026, pages }).layers.type);
+    expect(muzha).toContain('taiwan-oolong:definition');
+    expect(muzha).toContain('taiwan-oolong:muzha');
+    expect(muzha).not.toContain('tieguanyin:definition');
   });
 
   it('gives a dark tea outside Guangxi only the family kit', () => {
