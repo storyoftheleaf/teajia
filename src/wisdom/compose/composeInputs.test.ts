@@ -103,6 +103,17 @@ describe('composeInputs for any kit', () => {
     expect(muzha).not.toContain('tieguanyin:definition');
   });
 
+  it('gives a 1920 Wuyi Lapsang the Lapsang kit, whose ageing replaces the red family line', () => {
+    const lapsang = { id: 'ls', product_name: 'Lapsang Souchong', type: 'Red', form: 'Loose', year: 1920, origin_region: 'Wuyi Mountains, Fujian', origin_country: 'China' };
+    const inputs = composeInputs(lapsang, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type[0]).toBe('lapsang:definition');
+    expect(type).toContain('lapsang:smoke');
+    expect(type).toContain('red:definition');
+    expect(ids(inputs.layers.age)).toEqual(['lapsang:ageing']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged Lapsang Souchong');
+  });
+
   it('gives a dark tea outside Guangxi only the family kit', () => {
     const inputs = composeInputs({ ...liuBao, id: 'fu', product_name: 'Fu Brick', origin_region: 'Anhua, Hunan', form: 'Brick' }, claims, { thisYear: 2026, pages });
     expect(ids(inputs.layers.type)).not.toContain('liu-bao:definition');

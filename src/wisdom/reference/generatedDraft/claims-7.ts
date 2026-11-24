@@ -5,6 +5,204 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "yunnan-white:ageing",
+    "pageId": "yunnan-white",
+    "sectionKey": "ageing",
+    "label": "Keeping Yunnan white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Yunnan white is pressed and kept like Fujian white, and some keep it for years, but there is no agreed view of how long it should be kept or how it compares with aged Fujian white; some say it is best within a few years.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Yunnan white is pressed and kept like Fujian white, and some keep it for years, but there is no agreed view of how long it should be kept or how it compares with aged Fujian white; some say it is best within a few years.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yunnan-white:brewing",
+    "pageId": "yunnan-white",
+    "sectionKey": "brewing",
+    "label": "Brewing Yunnan white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yunnan-white:common-impressions",
+    "pageId": "yunnan-white",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "A honeyed, sweet cup, often richer and fuller than Fujian white, with little bitterness, sometimes fruit like apricot or melon and a hay or herbal note. Yabao is sweet and silky, often with pine or herbal notes.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "A honeyed, sweet cup, often richer and fuller than Fujian white, with little bitterness, sometimes fruit like apricot or melon and a hay or herbal note. Yabao is sweet and silky, often with pine or herbal notes.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yunnan-white:definition",
+    "pageId": "yunnan-white",
+    "sectionKey": "definition",
+    "label": "What Yunnan white is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Yunnan white is white tea made from Yunnan’s large-leaf tea plants, rather than from the small and medium-leaf bush cultivars of Fujian. It is mostly picked in spring, as buds or a bud with one to three leaves, and its buds are typically large and silver-haired. Unlike Fuding white tea it is mostly not sold by grade.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Yunnan white is white tea made from Yunnan’s large-leaf tea plants, rather than from the small and medium-leaf bush cultivars of Fujian. It is mostly picked in spring, as buds or a bud with one to three leaves, and its buds are typically large and silver-haired. Unlike Fuding white tea it is mostly not sold by grade.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yunnan-white:history",
+    "pageId": "yunnan-white",
+    "sectionKey": "history",
+    "label": "How Yunnan white began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Yunnan white is a recent tea in the market. The name Moonlight White and the trade in Yunnan white tea have grown popular only in recent years, though local practice may be older.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Yunnan white is a recent tea in the market. The name Moonlight White and the trade in Yunnan white tea have grown popular only in recent years, though local practice may be older.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yunnan-white:making",
+    "pageId": "yunnan-white",
+    "sectionKey": "making",
+    "label": "How Yunnan white is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "yunnan-white:moonlight-white",
     "pageId": "yunnan-white",
     "sectionKey": "moonlight-white",

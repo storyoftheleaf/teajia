@@ -185,6 +185,58 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "lapsang",
+    "slug": "lapsang",
+    "kind": "tea_type",
+    "label": "Lapsang Souchong (Zhengshan Xiaozhong)",
+    "visibility": "public",
+    "nativeName": "正山小种",
+    "parentId": "red",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Lapsang Souchong is",
+        "sourceIds": []
+      },
+      {
+        "key": "smoke",
+        "label": "Smoked and unsmoked",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Lapsang is made",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Lapsang began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Lapsang",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Lapsang",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in Lapsang kept for years",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "lincang",
     "slug": "lincang",
     "kind": "major_region",
@@ -898,73 +950,6 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "notice-aged",
         "label": "What people often notice in aged Taiwan oolong",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "tieguanyin",
-    "slug": "tieguanyin",
-    "kind": "tea_type",
-    "label": "Tieguanyin",
-    "visibility": "public",
-    "nativeName": "铁观音",
-    "parentId": "oolong",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What Tieguanyin is",
-        "sourceIds": []
-      },
-      {
-        "key": "guanyin-rhyme",
-        "label": "Guanyin rhyme",
-        "sourceIds": []
-      },
-      {
-        "key": "making",
-        "label": "How Tieguanyin is made",
-        "sourceIds": []
-      },
-      {
-        "key": "styles",
-        "label": "Light, roasted and aged",
-        "sourceIds": []
-      },
-      {
-        "key": "grades",
-        "label": "Grades",
-        "sourceIds": []
-      },
-      {
-        "key": "osmanthus",
-        "label": "Osmanthus Tieguanyin",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How Tieguanyin began",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Keeping and ageing Tieguanyin",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing Tieguanyin",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged Tieguanyin",
         "sourceIds": []
       }
     ]

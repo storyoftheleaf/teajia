@@ -4856,6 +4856,194 @@
       "current_rev": null,
       "revisions": [],
       "withdrawn": null
+    },
+    {
+      "claim_id": "lapsang:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "正山小种",
+          "pinyin": "zhèngshān xiǎozhǒng",
+          "gloss": "true mountain small kind"
+        },
+        {
+          "original": "桐木",
+          "pinyin": "tóngmù",
+          "gloss": "Tongmu"
+        },
+        {
+          "original": "外山",
+          "pinyin": "wàishān",
+          "gloss": "outer mountain"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "lapsang:smoke",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "松烟",
+          "pinyin": "sōngyān",
+          "gloss": "pine smoke"
+        },
+        {
+          "original": "青楼",
+          "pinyin": "qīnglóu",
+          "gloss": "drying house"
+        },
+        {
+          "original": "桂圆",
+          "pinyin": "guìyuán",
+          "gloss": "longan"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "lapsang:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "过红锅",
+          "pinyin": "guò hóngguō",
+          "gloss": "through the hot pan"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "lapsang:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "金骏眉",
+          "pinyin": "jīn jùn méi",
+          "gloss": "Jin Jun Mei"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "lapsang:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "lapsang:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "lapsang:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "lapsang:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Red",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }
