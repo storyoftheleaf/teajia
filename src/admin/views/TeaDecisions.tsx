@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BookOpen, Camera, Check, ChevronRight, FileText, Fingerprint, List, PenLine, Search } from 'lucide-react';
 import { TeaCard } from '../../components/tea/TeaCard';
+import { Button } from '../../components/shared/Button';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { API_URL, authedFetch } from '../../lib/api';
 import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
@@ -98,8 +99,8 @@ function IntakeReading({ id }: { id: string }) {
         alt={(page.packageOnly ? 'Package for ' : '') + page.title} />
       <figcaption className="flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec">
         <span>{page.packageOnly ? 'Private package reference' : 'Intake photograph'}</span>
-        {page.photos.length > 1 && <button className="btn-quiet btn-sm" onClick={() => setPhoto(value => (value + 1) % page.photos.length)}>
-          Photo {photo + 1} of {page.photos.length}<ArrowRight size={14} aria-hidden="true" /></button>}
+        {page.photos.length > 1 && <Button variant="plain" className="btn-quiet btn-sm" onClick={() => setPhoto(value => (value + 1) % page.photos.length)}>
+          Photo {photo + 1} of {page.photos.length}<ArrowRight size={14} aria-hidden="true" /></Button>}
       </figcaption>
     </figure>}
     <div className="min-w-0 space-y-3">
@@ -136,11 +137,11 @@ function PassageReading({ passage, verdict, decide }: {
       <span role="status" className="text-ui-13">{verdict ? labels[verdict] : 'Unreviewed'}</span>
       <div className="flex flex-wrap items-center gap-2">
         {verdict && verdict !== 'withdrawn' &&
-          <button className="btn-quiet btn-sm" disabled={busy} onClick={() => void save('withdrawn')}>Withdraw decision</button>}
-        <button className="btn-secondary btn-sm" disabled={busy || verdict === 'declined'} onClick={() => void save('declined')}>Decline</button>
-        <button className="btn-primary btn-sm" disabled={busy || verdict === 'approved'} onClick={() => void save('approved')}>
-          <Check size={16} aria-hidden="true" />Approve wording
-        </button>
+          <Button variant="quiet" size="sm" disabled={busy} onClick={() => void save('withdrawn')}>Withdraw decision</Button>}
+        <Button variant="secondary" size="sm" disabled={busy || verdict === 'declined'} onClick={() => void save('declined')}>Decline</Button>
+        <Button variant="primary" size="sm" icon={<Check size={16} aria-hidden="true" />} disabled={busy || verdict === 'approved'} onClick={() => void save('approved')}>
+          Approve wording
+        </Button>
       </div>
     </div>
     <p className="text-ui-12 text-tea-text-sec">Your decision stays private. Publication is a separate step.</p>

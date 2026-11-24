@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowUpRight, BookOpen, Check, ChevronDown, Package, Plus, Search, ShoppingBag, UserRound } from 'lucide-react';
 import { Modal } from '../../components/shared/Modal';
+import { Button } from '../../components/shared/Button';
 import { VendorFace } from '../../components/vendors/VendorFace';
 import { VendorFacesButton, VendorFaceSheet } from '../../components/vendors/VendorFaceSheet';
 import { filterFaceVendors, toFaceVendor, type FaceVendor } from '../../components/vendors/vendorFaces';
@@ -102,18 +103,18 @@ export function TeaDecisionConnection({ target, title, shop, wisdom, identity }:
       {connection?.finding && <p className="whitespace-pre-wrap break-words text-ui-13 text-tea-text-sec">
         {connection.finding.resolved ? 'Original check · ' + identity.evidence : 'Finding so far · ' + connection.finding.text}
       </p>}
-      <button type="button" className="btn-primary btn-sm" onClick={() => start('finding')} disabled={!connection}>
+      <Button type="button" variant="primary" size="sm" onClick={() => start('finding')} disabled={!connection}>
         {connection?.finding ? 'Update finding' : identity.action}
-      </button>
+      </Button>
     </section>}
 
     {(connection?.canAssignVendor || hasLinks) && <div className="grid min-w-0 gap-4 xl:grid-cols-2">
       {connection?.canAssignVendor && <section aria-label="Vendor and people" className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
           <h3 className={T.h3}>Vendor &amp; people</h3>
-          <button type="button" className="btn-secondary btn-sm" onClick={() => start('vendor')}>
-            <UserRound size={16} aria-hidden="true" />{connection.vendorId ? 'Change vendor' : 'Choose vendor'}
-          </button>
+          <Button type="button" variant="secondary" size="sm" icon={<UserRound size={16} aria-hidden="true" />} onClick={() => start('vendor')}>
+            {connection.vendorId ? 'Change vendor' : 'Choose vendor'}
+          </Button>
         </div>
         <div className="flex min-w-0 items-center gap-2 border-y border-tea-border py-2 text-ui-13">
           {connection.vendor ? <>
@@ -133,7 +134,7 @@ export function TeaDecisionConnection({ target, title, shop, wisdom, identity }:
         </ul>
       </section>}
     </div>}
-    {!missing && query.isError && <p role="alert" className="text-ui-13 text-tea-text-sec">Connections are unavailable. <button className="btn-quiet btn-sm" onClick={() => void query.refetch()}>Retry</button></p>}
+    {!missing && query.isError && <p role="alert" className="text-ui-13 text-tea-text-sec">Connections are unavailable. <Button variant="quiet" size="sm" onClick={() => void query.refetch()}>Retry</Button></p>}
     {message && !edit && <p role={message.error ? 'alert' : 'status'} className="text-ui-13 text-tea-text-sec">{message.text}</p>}
     {edit?.kind === 'vendor' && <VendorEditor title={title} expected={edit.expected}
       vendors={directory.data ?? []} loading={directory.isPending} failed={directory.isError} retry={() => void directory.refetch()}
@@ -203,18 +204,18 @@ function VendorEditor({ title, expected, vendors, loading, failed, retry, saving
           {duplicate && <p className="text-ui-13 text-tea-text-sec">Choose the existing vendor by that name.</p>}
           {createError && <p role="alert" className="text-ui-13">{createError}</p>}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <button className="btn-quiet btn-sm" type="button" disabled={busy} onClick={() => setAdding(false)}>Back</button>
-            <button className="btn-primary btn-sm" disabled={busy || !name.trim() || duplicate || loading || failed}>Create vendor</button>
+            <Button variant="quiet" size="sm" type="button" disabled={busy} onClick={() => setAdding(false)}>Back</Button>
+            <Button variant="primary" size="sm" disabled={busy || !name.trim() || duplicate || loading || failed}>Create vendor</Button>
           </div>
         </form> : <>
           <p className={T.label} id="tea-review-vendor-label">Proposed vendor</p>
           <div className="flex min-w-0 items-center gap-1">
-            <button type="button" className="btn-field min-w-0 flex-1" aria-labelledby="tea-review-vendor-label tea-review-vendor-value"
+            <Button type="button" variant="plain" className="btn-field min-w-0 flex-1" aria-labelledby="tea-review-vendor-label tea-review-vendor-value"
               aria-expanded={open} aria-controls="tea-review-vendor-options" onClick={() => setOpen(value => !value)} disabled={busy}>
               <span className="min-w-0 truncate" id="tea-review-vendor-value">
                 {selected?.name || (vendorId ? 'Current vendor' : expected.vendorId ? 'Clear vendor link' : 'Select existing vendor')}
               </span><ChevronDown size={16} className="shrink-0" aria-hidden="true" />
-            </button>
+            </Button>
             <VendorFacesButton label="" onClick={() => { if (!busy) { setOpen(false); setFaces(true); } }} />
           </div>
           {open && <div id="tea-review-vendor-options" className="space-y-2 rounded-md border border-tea-border p-2">
@@ -222,31 +223,31 @@ function VendorEditor({ title, expected, vendors, loading, failed, retry, saving
               <Search size={16} className="shrink-0" aria-hidden="true" />
               <input type="search" aria-label="Search vendors" className="input-field min-h-tap min-w-0 px-3 py-2" value={search} onChange={event => setSearch(event.target.value)} />
             </label>
-            {failed ? <p role="alert" className="text-ui-13">Vendors are unavailable. <button className="btn-quiet btn-sm" onClick={retry}>Retry</button></p> :
+            {failed ? <p role="alert" className="text-ui-13">Vendors are unavailable. <Button variant="quiet" size="sm" onClick={retry}>Retry</Button></p> :
               loading ? <p role="status" className="text-ui-13">Looking up vendors…</p> :
               choices.length ? <ul className="max-h-52 overflow-y-auto">
-                {choices.map(vendor => vendor.id && <li key={vendor.id}><button type="button" disabled={busy}
+                {choices.map(vendor => vendor.id && <li key={vendor.id}><Button type="button" variant="plain" disabled={busy}
                   className="btn-quiet w-full justify-start"
                   aria-pressed={vendor.id === vendorId}
                   onClick={() => pick({ id: vendor.id!, name: vendor.name })}>
                   <span aria-hidden="true"><VendorFace name={vendor.name} photo={vendor.photo} size={24} /></span>
                   <span className="min-w-0 truncate">{vendor.name}</span>
                   {vendor.id === vendorId && <Check size={14} aria-hidden="true" className="ml-auto shrink-0" />}
-                </button></li>)}
+                </Button></li>)}
               </ul> : <p className="text-ui-13 text-tea-text-sec">No matching vendors.</p>}
           </div>}
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-quiet btn-sm" disabled={busy || loading || failed} onClick={() => setAdding(true)}><Plus size={16} aria-hidden="true" />New vendor</button>
-            {expected.vendorId && <button type="button" className="btn-quiet btn-sm" disabled={busy} onClick={() => {
+            <Button type="button" variant="quiet" size="sm" icon={<Plus size={16} aria-hidden="true" />} disabled={busy || loading || failed} onClick={() => setAdding(true)}>New vendor</Button>
+            {expected.vendorId && <Button type="button" variant="quiet" size="sm" disabled={busy} onClick={() => {
               setSelected(null); setVendorId(null); setOpen(false);
-            }}>Clear link</button>}
+            }}>Clear link</Button>}
           </div>
           <p className="text-ui-12 text-tea-text-sec">{expected.stockId ? 'Saves the private supplier link for this Stock record.' : 'Saves the supplier on this intake. The Stock match stays open.'}</p>
           {error && <p role="alert" className="text-ui-13">{error}</p>}
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tea-border pt-3">
-            <button type="button" className="btn-quiet" disabled={busy} onClick={onCancel}>Cancel</button>
-            <button type="button" className="btn-primary" disabled={busy || vendorId === expected.vendorId}
-              onClick={() => onSave(vendorId)}>{vendorId ? 'Save vendor' : 'Confirm clear'}</button>
+            <Button type="button" variant="quiet" disabled={busy} onClick={onCancel}>Cancel</Button>
+            <Button type="button" variant="primary" disabled={busy || vendorId === expected.vendorId}
+              onClick={() => onSave(vendorId)}>{vendorId ? 'Save vendor' : 'Confirm clear'}</Button>
           </div>
         </>}
       </div>
@@ -274,8 +275,8 @@ function FindingEditor({ title, action, label, expected, saving, error, onCancel
       <label className="flex min-h-tap items-center gap-2 text-ui-13"><input type="checkbox" checked={resolved} onChange={event => setResolved(event.target.checked)} />This resolves the check</label>
       {error && <p role="alert" className="text-ui-13">{error}</p>}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tea-border pt-3">
-        <button type="button" className="btn-quiet" disabled={saving} onClick={onCancel}>Cancel</button>
-        <button className="btn-primary" disabled={saving || !text.trim()}>Save finding</button>
+        <Button type="button" variant="quiet" disabled={saving} onClick={onCancel}>Cancel</Button>
+        <Button variant="primary" disabled={saving || !text.trim()}>Save finding</Button>
       </div>
     </form>
   </Modal>;
