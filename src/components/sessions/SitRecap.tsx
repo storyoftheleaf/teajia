@@ -4,7 +4,8 @@ import type { SessionGuestItem, SessionPhotograph } from '../../../shared/sessio
 import { sessionPhotoSrc, useRecapSeat, useSendRecapNote, type PublicRecapTea, type PublicSitRecap } from '../../lib/publicSitRecap';
 import { Button } from '../shared/Button';
 import { pouredLabel, SectionRule, sessionDate, SessionBlock, SessionHead, SessionNote } from './SessionBlocks';
-import { SessionPhoto, type SessionPhotoSource } from './SessionPhoto';
+import { SessionPhoto, useSessionPhotoImage, type SessionPhotoSource } from './SessionPhoto';
+import { BREWING_EXPERIENCES_OPEN } from '../../lib/brewingExperiences';
 import { SessionTeaRow } from './SessionTeaRow';
 
 // A sit's recap, ordered by tea (approved drawing, 2026-11-24): the host's
@@ -27,6 +28,13 @@ function PhotoGrid({ photos, columns, caption }: {
       ))}
     </div>
   );
+}
+
+/** Under the lead photograph, when its guest also offered it for Brewing experiences. */
+function BrewingLink({ source }: { source: SessionPhotoSource }) {
+  const { query } = useSessionPhotoImage(source);
+  if (!query.data?.canShowInBrewing) return null;
+  return <div className="px-6 pt-2"><Link className="btn-quiet btn-sm" to="/tea-feed">Brewing experiences</Link></div>;
 }
 
 const signed = (photo: SessionPhotograph) => (photo.by ? `${photo.by.name}, ${photo.by.part}` : '');
@@ -109,6 +117,7 @@ export function SitRecap({ recap, photo, guestBook = true }: {
     <article data-testid="sit-recap">
       <SessionBlock testId="recap-head">
         {lead && <SessionPhoto source={lead} />}
+        {lead && BREWING_EXPERIENCES_OPEN && <BrewingLink source={lead} />}
         <SessionHead date={sessionDate(recap.event_date)} part="Session recap" title={recap.title} people={recap.people} level="h1" />
         {recap.note ? <SessionNote text={recap.note.text} by={recap.note.by} className="mx-6 mb-[18px] mt-4" /> : <div className="h-4" />}
       </SessionBlock>
