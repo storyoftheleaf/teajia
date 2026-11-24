@@ -22,7 +22,7 @@ import {
 import { Product } from './types';
 import { authPagePath } from '../lib/authNavigation';
 import { adminShellNeedsProducts } from './productQueries';
-import { adminAuthReturnTo } from './authNavigation';
+import { adminAuthReturnTo, adminLandingPath, adminLandingRedirect } from './authNavigation';
 import { carryQuery } from './carryQuery';
 
 import { useProducts, useRates } from './hooks/useAdminData';
@@ -389,6 +389,15 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const loading = productsLoading;
   const activeMembership = memberships.find((m) => m.account_id === activeAccountId);
 
+  const needsMembershipGate = shouldShowNoMembershipGate({
+    isAuthenticated, isDevAdmin, platformRole, membershipCount: memberships.length,
+  });
+  const landingPath = adminLandingPath({
+    isAdmin, isOwnerTier,
+    hasCatalog: hasCatalogBundle, hasStock: hasStockBundle, hasSell: hasSellBundle,
+    hasGather: hasGatherBundle, hasPublish: hasPublishBundle, hasMembers: hasMembersBundle,
+  }, platformRole);
+
   // Every admin entry and expired session uses the same sign-in page. Keep
   // filters, anchors, and pending consent requests attached to the return trip.
   useEffect(() => {
@@ -396,24 +405,22 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       if (isLocalTeaReferenceReview) return;
       if (isLoggedIn && (location.pathname === '/admin' || location.pathname === '/admin/')) {
         const returnTo = adminAuthReturnTo(location);
-        navigate(returnTo === location.pathname + location.search + location.hash ? '/admin/compass' : returnTo, { replace: true });
+        if (returnTo !== location.pathname + location.search + location.hash) {
+          navigate(returnTo, { replace: true });
+        } else if (!needsMembershipGate) {
+          navigate(landingPath, { replace: true });
+        }
       } else if (!isLoggedIn && location.pathname.startsWith('/admin')) {
         navigate(authPagePath('signin', adminAuthReturnTo(location)), { replace: true });
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, [isLocalTeaReferenceReview, isLoggedIn, navigate, location.pathname, location.search, location.hash]);
+  }, [isLocalTeaReferenceReview, isLoggedIn, landingPath, needsMembershipGate, navigate, location.pathname, location.search, location.hash]);
 
   // Close registry drawer when navigating to a different route
   useEffect(() => {
     setIsCartOpen(false);
   }, [location.pathname]);
-
-  // Gate: authenticated user with no memberships yet, show waiting screen
-  const isPlatformTier = platformRole === 'platform_owner' || platformRole === 'platform_admin';
-  const needsMembershipGate = shouldShowNoMembershipGate({
-    isAuthenticated, isDevAdmin, platformRole, membershipCount: memberships.length,
-  });
 
   // The editorial receiver is a local preview-only surface with no database,
   // mutation, or persistence. Let it render against its local GET endpoints
@@ -517,7 +524,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
         <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture || isOnIntake ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
               <Route path="/" element={null} />
-              <Route path="home" element={<Navigate to={carryQuery("../compass", location.search)} replace />} />
+              <Route path="home" element={<Navigate to={adminLandingRedirect(landingPath, location.search, hasCatalogBundle)} replace />} />
 
               {/* Member tools, all authenticated members */}
               <Route path="compass" element={
@@ -684,7 +691,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   splat route resolves against the whole unmatched path, so "home"
                   from /admin/members went to /admin/members/home, which matched
                   this route again and grew /home/home/home forever. */}
-              <Route path="*" element={<Navigate to={carryQuery("/admin/compass", location.search)} replace />} />
+              <Route path="*" element={<Navigate to={adminLandingRedirect(landingPath, location.search, hasCatalogBundle)} replace />} />
           </Routes>
         </div>
 

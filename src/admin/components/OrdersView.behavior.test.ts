@@ -248,7 +248,7 @@ describe('cancelled order refund recovery', () => {
     await page.evaluate(() => (window as any).ordersViewTest.mount());
     await show();
     expect(await page.getByLabel('Refund amount USD').isDisabled()).toBe(true);
-    await page.screenshot({ path: 'outputs/flow-repair-2026-10-28/refund-mobile.png', fullPage: true });
+    await page.screenshot({ path: 'test-results/flow-repair-2026-10-28/refund-mobile.png', fullPage: true });
     await page.getByRole('button', { name: 'Retry refund record', exact: true }).click();
     await expect.poll(() => page.evaluate(() => (window as any).ordersViewTest.refundCalls().length)).toBe(2);
     expect(await page.evaluate(() => (window as any).ordersViewTest.refundCalls()[1])).toEqual(first);

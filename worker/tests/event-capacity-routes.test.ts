@@ -162,6 +162,34 @@ describe('atomic event capacity routes', () => {
       ]);
   });
 
+  it('offers the freed seat to the first waitlisted guest after cancellation', async () => {
+    const db = seedCapacityDb();
+    fillEvent(db);
+    addParticipation(db, { id: 'waitlisted-later', status: 'waitlist' });
+    addParticipation(db, { id: 'waitlisted-first', status: 'waitlist' });
+    db.sqlite.prepare('UPDATE event_attendees SET waitlist_position = ? WHERE id = ?')
+      .run(1, 'waitlisted-first');
+    db.sqlite.prepare('UPDATE event_attendees SET waitlist_position = ? WHERE id = ?')
+      .run(2, 'waitlisted-later');
+
+    const result = await invoke(db, '/api/rsvp/token-confirmed-a', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelled' }),
+    });
+
+    expect(result.response.status).toBe(200);
+    expect(db.sqlite.prepare(`SELECT id, (claim_expires_at IS NOT NULL) AS offered
+      FROM event_attendees WHERE status = 'waitlist' ORDER BY waitlist_position`).all())
+      .toEqual([
+        { id: 'waitlisted-first', offered: 1 },
+        { id: 'waitlisted-later', offered: 0 },
+      ]);
+    expect(db.sqlite.prepare(`SELECT attendee_id, type, status
+      FROM event_notifications WHERE event_id = 'event-a' AND type = 'waitlist_promotion'`).all())
+      .toEqual([{ attendee_id: 'waitlisted-first', type: 'waitlist_promotion', status: 'pending' }]);
+  });
+
   it('rejects a waitlist claim at capacity without consuming its offer', async () => {
     const db = seedCapacityDb();
     fillEvent(db);

@@ -478,9 +478,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     };
   }, [entry?.name, entry?.vendorName, fuseIndex, allEntries.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle photo extraction results, auto-fill empty fields only
+  // Fill fields that are still empty when the scan finishes.
   const handleExtracted = useCallback(
     (data: ExtractedTeaData) => {
+      const entry = useTeaCompassStore.getState().getEntry(entryId);
       if (!entry) return;
       const updates: Record<string, unknown> = {};
       const summaryParts: string[] = [];
@@ -516,7 +517,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         summaryParts.push(data.region);
         fillOriginCountry(data.region, entry.originCountry, updates);
       }
-      if (data.price != null && !entry.priceAmount) {
+      if (data.price != null && entry.priceAmount == null) {
         updates.priceAmount = data.price;
         // The label said which money; it beats a currency nobody chose.
         if (data.currency && !(entry.touchedFields ?? []).includes('priceCurrency')) {
@@ -542,7 +543,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         extractionTimerRef.current = setTimeout(() => setExtractionSummary(null), 3000);
       }
     },
-    [entry, entryId, updateEntry]
+    [entryId, updateEntry]
   );
 
   const handlePhotoTaken = useCallback(

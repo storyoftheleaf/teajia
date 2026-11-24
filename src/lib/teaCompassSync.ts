@@ -303,13 +303,18 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     // version wins the merge.
     const CLIENT_ONLY_FIELDS = [
       'vendorDetails', 'tastingHistory', 'isSample',
-      'sampleGrams', 'sampleVerdict', 'sampleWouldBuy', 'tasteOrder',
+      'sampleGrams', 'sampleVerdict', 'sampleWouldBuy', 'tasteOrder', 'touchedFields',
     ] as const;
     const withClientFields = (server: TeaCompassEntry, local: TeaCompassEntry): TeaCompassEntry => {
       const out: any = { ...server };
       for (const field of CLIENT_ONLY_FIELDS) {
         const val = (local as any)[field];
         if (val !== undefined && out[field] === undefined) out[field] = val;
+      }
+      // A deliberate local choice only describes the same currency. A server
+      // change must not inherit that choice from the previous value.
+      if (server.touchedFields === undefined && local.priceCurrency !== server.priceCurrency) {
+        out.touchedFields = local.touchedFields?.filter(field => field !== 'priceCurrency');
       }
       // teaKey IS a server column, but the bulk-sync handler historically
       // dropped it, so old server rows carry null. Never let a null server

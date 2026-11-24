@@ -28,7 +28,7 @@ vi.mock('./api', () => ({
 // TypeScript project (the Worker has its own typecheck).
 const workerCodecPath = '../../worker/src/compassCodec.ts';
 const { COMPASS_COLUMNS, decodeCompassWrite } = await import(workerCodecPath);
-import { createEmptyEntry } from '../components/TeaCompass/types';
+import { compassEntryToProductDraft, createEmptyEntry } from '../components/TeaCompass/types';
 import { useTeaCompassStore } from './teaCompassStore';
 import { compassPersonKey } from './teaCompassStore';
 import { useAppStore } from './store';
@@ -60,6 +60,42 @@ describe('Compass sync acknowledgements', () => {
       pendingPromotions: [],
       syncError: false,
     });
+  });
+
+  it('keeps a carried-over currency unstated after hydrating a synced capture', async () => {
+    const capture = { ...entry('unstated'), synced: true, priceAmount: 50, touchedFields: ['priceAmount'] };
+    useTeaCompassStore.setState({ entries: [capture] });
+    listMock.mockResolvedValue({ entries: [{ id: capture.id, name: capture.name, price_amount: 50, price_currency: capture.priceCurrency }] });
+
+    await hydrateCompassEntries('acct-a');
+
+    const hydrated = useTeaCompassStore.getState().getEntry(capture.id)!;
+    expect(hydrated.touchedFields).toEqual(['priceAmount']);
+    expect(compassEntryToProductDraft(hydrated).cost_currency).toBeUndefined();
+  });
+
+  it('keeps a matching chosen currency stated when a synced capture is hydrated', async () => {
+    const capture = { ...entry('stated'), synced: true, priceAmount: 50, priceCurrency: 'HKD' as const, touchedFields: ['priceAmount', 'priceCurrency'] };
+    useTeaCompassStore.setState({ entries: [capture] });
+    listMock.mockResolvedValue({ entries: [{ id: capture.id, name: capture.name, price_amount: 50, price_currency: 'HKD' }] });
+
+    await hydrateCompassEntries('acct-a');
+
+    const hydrated = useTeaCompassStore.getState().getEntry(capture.id)!;
+    expect(hydrated.touchedFields).toEqual(['priceAmount', 'priceCurrency']);
+    expect(compassEntryToProductDraft(hydrated).cost_currency).toBe('HKD');
+  });
+
+  it('does not apply a local currency choice to a different currency returned by sync', async () => {
+    const capture = { ...entry('changed'), synced: true, priceAmount: 50, priceCurrency: 'HKD' as const, touchedFields: ['priceCurrency'] };
+    useTeaCompassStore.setState({ entries: [capture] });
+    listMock.mockResolvedValue({ entries: [{ id: capture.id, name: capture.name, price_amount: 50, price_currency: 'Yuan' }] });
+
+    await hydrateCompassEntries('acct-a');
+
+    const hydrated = useTeaCompassStore.getState().getEntry(capture.id)!;
+    expect(hydrated.priceCurrency).toBe('Yuan');
+    expect(compassEntryToProductDraft(hydrated).cost_currency).toBeUndefined();
   });
 
   it('keeps A drafts and offline saves private when B signs into the same shop, then restores A', async () => {

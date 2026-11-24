@@ -588,9 +588,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
     };
   }, [entry?.name, entry?.vendorName, fuseIndex, allEntries.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle photo extraction results, auto-fill empty fields only
+  // Fill fields that are still empty when the scan finishes.
   const handleExtracted = useCallback(
     (data: ExtractedTeaData) => {
+      const entry = useTeaCompassStore.getState().getEntry(entryId);
       if (!entry) return;
       const updates: Record<string, unknown> = {};
       const summaryParts: string[] = [];
@@ -630,7 +631,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
         summaryParts.push(data.region);
         fillOriginCountry(data.region, entry.originCountry, updates);
       }
-      if (data.price != null && !entry.priceAmount) {
+      if (data.price != null && entry.priceAmount == null) {
         updates.priceAmount = data.price;
       }
       if (data.grams != null && !entry.pricePerUnitGrams) {
@@ -652,15 +653,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
         extractionTimerRef.current = setTimeout(() => setExtractionSummary(null), 3000);
       }
     },
-    [entry, entryId, updateEntry]
+    [entryId, updateEntry]
   );
 
   const handlePhotoTaken = useCallback(
     (url: string) => {
-      if (!entry) return;
-      updateEntry(entryId, { photos: [...entry.photos, url] });
+      const current = useTeaCompassStore.getState().getEntry(entryId);
+      if (!current || current.photos.includes(url)) return;
+      updateEntry(entryId, { photos: [...current.photos, url] });
     },
-    [entry, entryId, updateEntry]
+    [entryId, updateEntry]
   );
 
   const handlePhotoReplaced = useCallback(
@@ -672,18 +674,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSaveStateCh
       //      we must swap it for newUrl so the thumbnail re-renders. Without
       //      this, the user sees their edits "save" but the strip keeps
       //      showing the stale image.
-      if (!entry || oldUrl === newUrl) return;
-      let changed = false;
-      const updated = entry.photos.map((u) => {
-        if (u === oldUrl) {
-          changed = true;
-          return newUrl;
-        }
-        return u;
-      });
-      if (changed) updateEntry(entryId, { photos: updated });
+      const current = useTeaCompassStore.getState().getEntry(entryId);
+      if (!current || oldUrl === newUrl || !current.photos.includes(oldUrl)) return;
+      updateEntry(entryId, { photos: current.photos.map(url => url === oldUrl ? newUrl : url) });
     },
-    [entry, entryId, updateEntry]
+    [entryId, updateEntry]
   );
 
   // Cleanup timers

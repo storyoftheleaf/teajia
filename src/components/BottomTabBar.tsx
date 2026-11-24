@@ -8,7 +8,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
 import { useAuth } from '../hooks/useAuth';
 import { useSiteProblemCount } from '../lib/useSiteIncidents';
-import { ADMIN_BAR_TABS, type AdminTab } from './adminBarTabs';
+import { getAdminBarTabs, type AdminTab } from './adminBarTabs';
 
 
 
@@ -66,7 +66,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   // end (useQuietChrome in read/conversation, styled by conversation.css).
   const shouldHide = hidden;
 
-  const { activeAccount, upcomingEventsCount } = useAppStore();
+  const { activeAccount, upcomingEventsCount, isDevAdmin } = useAppStore();
   const auth = useAuth();
   // Owner only: the person glyph turns terracotta while something needs fixing.
   const siteProblems = useSiteProblemCount(auth.isAdmin);
@@ -78,6 +78,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const hasStockBundle = useAppStore(s => selectHasBundle(s, 'stock'));
   const hasSellBundle = useAppStore(s => selectHasBundle(s, 'sell'));
   const isOwnerTier = useAppStore(selectIsOwnerTier);
+  const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
+  const hasGather = useAppStore(s => selectHasBundle(s, 'gather'));
+  const hasPublish = useAppStore(s => selectHasBundle(s, 'publish'));
+  const hasMembers = useAppStore(s => selectHasBundle(s, 'members'));
+  const canOpenDashboard = isOwnerTier || isAdmin || isDevAdmin;
   const isStaff = hasSellBundle
     || auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
   const runsAShop = isAdmin || (isOwnerTier && (hasStockBundle || hasSellBundle));
@@ -86,7 +91,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     ?? null;
 
   // Admin tab definitions (path-based routing), one set per role.
-  const [adminLeftTabs, adminRightTabs] = ADMIN_BAR_TABS[runsAShop ? 'shop' : isStaff ? 'staff' : 'member'];
+  const [adminLeftTabs, adminRightTabs] = getAdminBarTabs(runsAShop ? 'shop' : isStaff ? 'staff' : 'member', {
+    isAdmin: isAdmin || isDevAdmin, isOwnerTier,
+    hasCatalog, hasStock: hasStockBundle, hasSell: hasSellBundle, hasGather, hasPublish, hasMembers,
+  });
 
   const renderAdminTabButton = (tab: AdminTab, index: number) => {
     const isActive = location.pathname === tab.path || location.pathname.startsWith(tab.path + '/');
@@ -138,7 +146,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       if (isOnAdmin) {
         onMenuClose?.();
         onAccountClose?.();
-        navigate('/admin/dashboard');
+        navigate(canOpenDashboard ? '/admin/dashboard' : '/admin');
         return;
       }
       onMenuClose?.();

@@ -127,12 +127,18 @@ import {
   type AuthorizedInvoiceLine,
 } from './teaMasterSales';
 import { isoCurrencyCode } from '../../src/lib/currency';
+import { articleToApi, slugifyArticle as slugify } from './articlePresentation';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { minimumOrderGrams, sellUnitOf } from '../../src/lib/teaPricing';
 import { readSessionServedTeas } from './sessionServedTeas';
 import { decodeWordforgeDraft, isWordforgeManagedArticle, upsertWordforgeDraft, WordforgeDraftError, WORDFORGE_DRAFT_MAX_BYTES } from './wordforgeArticleDraft';
 import {
+  EVENT_LIFECYCLE_BY_STATUS,
+  EVENT_STATUS_BY_LIFECYCLE,
   EVENT_TRANSITIONS,
+  cascadeWaitlist,
+  isEventLifecycle,
+  isLegacyEventStatus,
   normalizeEventUpdate,
   normalizeRsvpUpdate,
   publicPostSessionProjection,
@@ -12358,28 +12364,6 @@ const handleExtractFromImage: Handler = async (request, env) => {
   return json(extracted);
 };
 
-// ── Waitlist Cascade Helper ──
-async function cascadeWaitlist(env: Env, eventId: string, claimWindowMinutes: number): Promise<void> {
-  const next = await env.DB.prepare(
-    `SELECT id FROM event_attendees
-     WHERE event_id = ? AND status = 'waitlist'
-     ORDER BY waitlist_position ASC, created_at ASC LIMIT 1`
-  ).bind(eventId).first();
-
-  if (next) {
-    const expiresAt = new Date(Date.now() + claimWindowMinutes * 60 * 1000).toISOString();
-    await env.DB.prepare(
-      `UPDATE event_attendees SET claim_expires_at = ? WHERE id = ?`
-    ).bind(expiresAt, next.id).run();
-
-    // Create a waitlist_promotion notification
-    await env.DB.prepare(
-      `INSERT INTO event_notifications (id, event_id, attendee_id, type, message_template, status)
-       VALUES (?, ?, ?, 'waitlist_promotion', 'A spot has opened up! Claim it before it expires.', 'pending')`
-    ).bind(crypto.randomUUID(), eventId, next.id).run();
-  }
-}
-
 function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: true }>): Response {
   if (result.code === 'capacity_conflict') {
     return json({ error: 'Event capacity reached', code: 'capacity_conflict' }, 409);
@@ -12999,7 +12983,7 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
     }
 
     // Cascade waitlist
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
+    await cascadeWaitlist(env.DB, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
 
     return json({
       success: true,
@@ -13069,7 +13053,7 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
 
     // If removing plus one and there are waitlisted people, cascade
     if (plusOneUpdate.newPlusOne < plusOneUpdate.oldPlusOne) {
-      await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
+      await cascadeWaitlist(env.DB, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
     }
   }
 
@@ -13097,7 +13081,7 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
       `UPDATE event_attendees SET claim_expires_at = NULL WHERE id = ?`
     ).bind(attendee.id).run();
 
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
+    await cascadeWaitlist(env.DB, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
 
     return json({ error: 'Claim window has expired' }, 410);
   }
@@ -13495,37 +13479,6 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 
 // ── Event Admin Routes ──
 
-const EVENT_LIFECYCLE_BY_STATUS = {
-  draft: 'draft',
-  active: 'published',
-  closed: 'registration_closed',
-  archived: 'archived',
-} as const;
-
-const EVENT_LIFECYCLE_STATUSES = new Set([
-  'draft',
-  'published',
-  'registration_closed',
-  'completed',
-  'cancelled',
-  'archived',
-]);
-
-const EVENT_STATUS_BY_LIFECYCLE: Readonly<Record<EventLifecycle, keyof typeof EVENT_LIFECYCLE_BY_STATUS>> = {
-  draft: 'draft',
-  published: 'active',
-  registration_closed: 'closed',
-  completed: 'closed',
-  cancelled: 'closed',
-  archived: 'archived',
-};
-
-const isLegacyEventStatus = (value: unknown): value is keyof typeof EVENT_LIFECYCLE_BY_STATUS =>
-  typeof value === 'string' && Object.prototype.hasOwnProperty.call(EVENT_LIFECYCLE_BY_STATUS, value);
-
-const isEventLifecycleStatus = (value: unknown): value is EventLifecycle =>
-  typeof value === 'string' && EVENT_LIFECYCLE_STATUSES.has(value);
-
 const handleGetEvents: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
@@ -13605,7 +13558,7 @@ const handleCreateEvent: Handler = async (request, env) => {
   }
   const lifecycleStatus = EVENT_LIFECYCLE_BY_STATUS[eventStatus];
   if (body.lifecycle_status !== undefined) {
-    if (!isEventLifecycleStatus(body.lifecycle_status)) {
+    if (!isEventLifecycle(body.lifecycle_status)) {
       return json({ error: 'Invalid lifecycle_status' }, 400);
     }
     if (body.lifecycle_status !== lifecycleStatus) {
@@ -13670,7 +13623,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   const body = normalizeEventUpdate(await request.json() as Record<string, any>) as Record<string, any>;
   delete body.account_id;
 
-  if (body.lifecycle_status !== undefined && !isEventLifecycleStatus(body.lifecycle_status)) {
+  if (body.lifecycle_status !== undefined && !isEventLifecycle(body.lifecycle_status)) {
     return json({ error: 'Invalid lifecycle_status' }, 400);
   }
   if (body.status !== undefined && !isLegacyEventStatus(body.status)) {
@@ -13685,13 +13638,13 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   let requestedLifecycle: EventLifecycle | undefined;
   let currentLifecycle: EventLifecycle | undefined;
   if (body.lifecycle_status !== undefined || body.status !== undefined) {
-    if (!isEventLifecycleStatus(currentEvent.lifecycle_status)) {
+    if (!isEventLifecycle(currentEvent.lifecycle_status)) {
       return json({ error: 'Event has an invalid lifecycle status' }, 409);
     }
     currentLifecycle = currentEvent.lifecycle_status;
   }
 
-  if (isEventLifecycleStatus(body.lifecycle_status)) {
+  if (isEventLifecycle(body.lifecycle_status)) {
     requestedLifecycle = body.lifecycle_status;
     const compatibleStatus = EVENT_STATUS_BY_LIFECYCLE[requestedLifecycle];
     if (body.status !== undefined && body.status !== compatibleStatus) {
@@ -13970,7 +13923,7 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
   await ensureContactRelationship(env, accountId, body.customer_id, 'event_guest', 'workflow', 'event_attendee', params.id);
 
   if (body.status === 'cancelled' && attendee.status !== 'cancelled') {
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
+    await cascadeWaitlist(env.DB, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
   }
 
   return json({ success: true });
@@ -18335,7 +18288,7 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
   ]);
 
   // F39: Auto-promote first waitlisted attendee when a spot is freed by denial
-  await cascadeWaitlist(env, attendee.event_id as string, (attendee.claim_window_minutes as number) || 60);
+  await cascadeWaitlist(env.DB, attendee.event_id as string, (attendee.claim_window_minutes as number) || 60);
 
   return json({ success: true, status: 'denied' });
 };
@@ -25367,22 +25320,6 @@ const handlePutWordforgeArticle: Handler = async (request, env, params) => {
     throw error;
   }
 };
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-function articleToApi(row: Record<string, any>) {
-  const parseArray = (value: unknown) => {
-    if (Array.isArray(value)) return value;
-    try { return value ? JSON.parse(String(value)) : []; } catch { return []; }
-  };
-  return { ...row, tags: parseArray(row.tags), blocks: parseArray(row.blocks), subject_ids: parseArray(row.subject_ids) };
-}
 
 function parseArticleSubjectIds(value: unknown): string[] | null {
   if (value === undefined || value === null) return [];

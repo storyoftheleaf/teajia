@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { combineToolModules } from '../src/mcpTools/registry';
-import { eventsToolModule, EVENT_STATUS_BY_LIFECYCLE } from '../src/mcpTools/events';
+import { eventsToolModule } from '../src/mcpTools/events';
 import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
 
 /*
@@ -12,11 +12,6 @@ import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
  * guest's phone number read out loud in an answer to "who is coming", a
  * published event the public site cannot see, and a confirmation ticket that
  * can be spent more than once.
- *
- * Two of these tests read source text rather than behaviour. That is on
- * purpose: this module has to duplicate two constants it cannot import, and a
- * duplicated constant that nothing compares is the shape that gave this shop
- * four freight rates at once.
  */
 
 const databases: SqliteD1[] = [];
@@ -119,21 +114,7 @@ describe('module registration', () => {
   });
 });
 
-// ── the constants this module had to copy ──
-
-describe('what this module had to duplicate, and what it must not', () => {
-  it('maps lifecycle to the legacy status column exactly as index.ts does', () => {
-    // events.status is what every public route still selects on, so a drift
-    // here publishes an event no visitor can see — with nothing failing.
-    const block = source('index.ts').match(
-      /const EVENT_STATUS_BY_LIFECYCLE[^=]*=\s*\{([^}]*)\}/,
-    );
-    expect(block, 'EVENT_STATUS_BY_LIFECYCLE not found in index.ts').toBeTruthy();
-    const theirs: Record<string, string> = {};
-    for (const [, key, value] of block![1].matchAll(/(\w+):\s*'([^']+)'/g)) theirs[key] = value;
-    expect(theirs).toEqual(EVENT_STATUS_BY_LIFECYCLE);
-  });
-
+describe('shared confirmation tickets', () => {
   it('keeps no ticket mechanism of its own', () => {
     // The preview/confirm ticket lives in mcpTools/tickets.ts, once. Four
     // modules each writing their own is how the guard drifts, so this module
