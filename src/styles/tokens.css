@@ -763,6 +763,25 @@ body {
 /* quiet: words only until the pointer arrives. */
 .btn-quiet { background: transparent; color: var(--tea-text-sec); }
 .btn-quiet:hover:not(:disabled) { background: var(--tea-accent-sub); color: var(--tea-text); }
+/* The quiet ribbon on a tea page (Adrian, 2026-11-24): quiet buttons as spaced
+   gold capitals, equal cells between two hairlines, a hairline between them. */
+.tea-product-ribbon > .btn-quiet {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  min-block-size: var(--tap-min);
+  justify-content: center;
+  border-radius: 0;
+  font-size: var(--fs-ui-12);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--tea-gold-lt);
+}
+.tea-product-ribbon > .btn-quiet:hover { color: var(--tea-text); }
+.tea-product-ribbon > .btn-quiet + .btn-quiet { border-inline-start: var(--border-w) solid var(--tea-keyline); }
+.tea-product-ribbon > .btn-quiet[aria-pressed="true"] { color: var(--tea-text); }
+@media (max-width: 23.99rem) {
+  .tea-product-ribbon > .btn-quiet { padding-inline: var(--space-1); font-size: var(--fs-ui-11); letter-spacing: 0.5px; }
+}
 
 /* icon: square, the height of its size. */
 .btn-icon { width: var(--control-h); min-width: var(--tap-min); padding: 0; background: transparent; color: var(--tea-text-sec); }
