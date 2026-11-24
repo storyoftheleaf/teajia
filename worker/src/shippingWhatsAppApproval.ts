@@ -60,7 +60,15 @@ function classify(data:any,c:Config):Pick<ShippingWhatsAppApproval,'state'|'code
  if(params.length!==5||params.some((n:string,i:number)=>n!==String(i+1)))return{state:'rejected',code:'whatsapp_template_parameters_mismatch'};
  return{state:'approved',code:null};
 }
-async function readTemplateApproval(c: Config, fetcher: typeof fetch): Promise<Pick<ShippingWhatsAppApproval, 'state' | 'code'>> {
+interface ApprovalAttempt {
+ attempt: number;
+ transport: 'kapso' | 'meta';
+ outcome: 'http_response' | 'timeout' | 'transport_error' | 'response_read_error';
+ httpStatus: number | null;
+ elapsedMs: number;
+}
+
+async function readTemplateApproval(c: Config, fetcher: typeof fetch, onAttempt?: (attempt: ApprovalAttempt) => void): Promise<Pick<ShippingWhatsAppApproval, 'state' | 'code'>> {
  const origin = c.transport === 'kapso' ? 'https://api.kapso.ai/meta/whatsapp' : 'https://graph.facebook.com';
  const url = new URL(`${origin}/${c.version}/${c.businessId}/message_templates`);
  url.searchParams.set('name', c.template);
@@ -71,9 +79,14 @@ async function readTemplateApproval(c: Config, fetcher: typeof fetch): Promise<P
  const unavailable = { state: 'unavailable', code: 'whatsapp_template_verification_unavailable' } as const;
 
  // Only retry the read. Sending a message has its own receipt and retry rules.
- for (let attempt = 0; attempt < 2; attempt++) {
+ for (let attempt = 1; attempt <= 2; attempt++) {
+  const startedAt = Date.now();
+  const signal = AbortSignal.timeout(5000);
+  let httpStatus: number | null = null;
+  let outcome: ApprovalAttempt['outcome'] = 'http_response';
   try {
-   const response = await fetcher(url.href, { headers, redirect: 'error', signal: AbortSignal.timeout(5000) });
+   const response = await fetcher(url.href, { headers, redirect: 'error', signal });
+   httpStatus = response.status;
    if (response.ok) return classify(await response.json(), c);
    if (response.status === 401 || response.status === 403) {
     return { state: 'unavailable', code: 'whatsapp_template_authentication_required' };
@@ -81,14 +94,17 @@ async function readTemplateApproval(c: Config, fetcher: typeof fetch): Promise<P
    if (response.status < 500) return unavailable;
    await response.body?.cancel();
   } catch {
-   // A transport error, timeout or interrupted response can recover on the next read.
+   // Use a fixed class. Errors and responses can contain provider identifiers.
+   outcome = signal.aborted ? 'timeout' : httpStatus === null ? 'transport_error' : 'response_read_error';
+  } finally {
+   onAttempt?.({ attempt, transport: c.transport, outcome, httpStatus, elapsedMs: Math.max(0, Date.now() - startedAt) });
   }
  }
  return unavailable;
 }
 
-async function check(db:D1Database,c:Config,fetcher:typeof fetch):Promise<ShippingWhatsAppApproval> {
- const result = await readTemplateApproval(c, fetcher);
+async function check(db:D1Database,c:Config,fetcher:typeof fetch,onAttempt?: (attempt: ApprovalAttempt) => void):Promise<ShippingWhatsAppApproval> {
+ const result = await readTemplateApproval(c, fetcher, onAttempt);
  const checked_at=new Date().toISOString();
  await db.prepare(`INSERT INTO shipping_whatsapp_approval(account_id,template_name,language,business_account_id,transport,graph_version,state,code,checked_at,last_approved_at)
  VALUES(?,?,?,?,?,?,?,?,?,CASE WHEN ?='approved' THEN ? ELSE NULL END)
@@ -99,13 +115,13 @@ async function check(db:D1Database,c:Config,fetcher:typeof fetch):Promise<Shippi
  return{...result,checked_at};
 }
 /** Called by the existing hourly tick even without queued orders; a quote can also refresh stale evidence. */
-export async function refreshShippingWhatsAppApproval(db:D1Database,env:ShippingWhatsAppApprovalEnv,options:{force?:boolean;fetcher?:typeof fetch}={}):Promise<ShippingWhatsAppApproval> {
+export async function refreshShippingWhatsAppApproval(db:D1Database,env:ShippingWhatsAppApprovalEnv,options:{force?:boolean;fetcher?:typeof fetch;onAttempt?: (attempt: ApprovalAttempt) => void}={}):Promise<ShippingWhatsAppApproval> {
  const c=configuration(env);if(!c)return{state:'config_required',code:'whatsapp_template_setup_required',checked_at:null};
  const row=await cached(db,c);if(!options.force&&fresh(row,c))return publicStatus(row!);
  let requests=active.get(db);if(!requests){requests=new Map();active.set(db,requests);}
  const key=JSON.stringify([c.accountId,c.businessId,c.template,c.language,c.transport,c.version]);
  const inFlight=requests.get(key);if(inFlight)return inFlight;
- const promise=check(db,c,options.fetcher||fetch);requests.set(key,promise);
+ const promise=check(db,c,options.fetcher||fetch,options.onAttempt);requests.set(key,promise);
  try{return await promise;}finally{requests.delete(key);}
 }
 export async function isShippingWhatsAppApproved(db:D1Database,env:ShippingWhatsAppApprovalEnv,accountId:string,options:{fetcher?:typeof fetch}={}):Promise<boolean> {
