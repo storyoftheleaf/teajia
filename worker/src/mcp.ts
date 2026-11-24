@@ -57,6 +57,7 @@ import { curatePromotionTools } from './mcpTools/curatePromotion';
 import { curateDrivePhotosModule } from './mcpTools/curateDrivePhotos';
 import { supplierRenameTools } from './mcpTools/supplierRename';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
+import { teaPageContentTools } from './mcpTools/teaPageContent';
 import type { CurateReceiptService, InventoryReceiptService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -7138,6 +7139,7 @@ const TOOL_MODULES: ToolModule[] = [
   curateDrivePhotosModule,
   supplierRenameTools,
   curateDisplayNameTools,
+  teaPageContentTools,
 ];
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);

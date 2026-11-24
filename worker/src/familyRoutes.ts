@@ -215,6 +215,88 @@ const dayFull = () => refuse(429, 'That is as many photographs as one day takes.
 
 // ── The routes ─────────────────────────────────────────────────────────────
 
+// ── The shop's offered pile and what it does with a photograph ─────────────
+//
+// Exported so the admin routes and the MCP tools (mcpTools/teaPageContent.ts)
+// run the same statements. Every query is bound to the shop's account.
+
+export const FAMILY_OWNER_ACTIONS = OWNER_ACTIONS;
+export type FamilyOwnerAction = OwnerAction;
+
+/**
+ * Every photograph ever offered to this shop, newest first. With a secret the
+ * two addresses are signed for a few hours, as the admin screen needs; without
+ * one they are the canonical addresses, which load only while the picture is
+ * on show.
+ */
+export async function listOfferedPhotographs(db: D1Database, accountId: string, secret: string | undefined): Promise<(FamilyOfferedPhotograph & { hidden: boolean })[]> {
+  const { results } = await db.prepare(
+    `SELECT p.*, ${AUTHOR_COLUMNS},
+            COALESCE(NULLIF(pr.given_name, ''), pr.product_name) AS product_name,
+            EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id) AS hidden
+       FROM member_photographs p
+       JOIN users u ON u.id = p.author_user_id
+       LEFT JOIN products pr ON pr.id = p.product_id AND pr.account_id = p.account_id
+      WHERE p.account_id = ? AND p.offered_at IS NOT NULL
+      ORDER BY p.offered_at DESC
+      LIMIT 200`,
+  ).bind(accountId).all<PhotoRow & { author_name: string | null; page_id: string | null; product_name: string | null; hidden: number }>();
+  return Promise.all((results ?? []).map(async row => ({
+    ...(await signPhotograph(secret, sharedPhoto(row))),
+    product_id: row.product_id,
+    product_name: row.product_name,
+    share_state: row.share_state,
+    shop_use: row.shop_use,
+    removed_by_author: row.removed_by_member_at !== null,
+    offered_at: row.offered_at!,
+    hidden: Number(row.hidden) === 1,
+  })));
+}
+
+export type ShopPhotograph = { id: string; product_id: string; shop_use: string; shop_use_before_lead: string | null; offered_at: string | null };
+
+/** One photograph in this shop, offered or not. */
+export async function readShopPhotograph(db: D1Database, accountId: string, id: string): Promise<ShopPhotograph | null> {
+  return db.prepare(
+    `SELECT id, product_id, shop_use, shop_use_before_lead, offered_at FROM member_photographs WHERE id = ? AND account_id = ?`,
+  ).bind(id, accountId).first<ShopPhotograph>();
+}
+
+export type PhotographUseOutcome =
+  | { row: Record<string, unknown> | null }
+  | { refused: { status: number; error: string; code: string } };
+
+/** Place, lead, pass or restore one offered photograph. */
+export async function applyPhotographUse(db: D1Database, shop: ShopCtx, id: string, action: OwnerAction): Promise<PhotographUseOutcome> {
+  const photo = await readShopPhotograph(db, shop.accountId, id);
+  if (!photo) return { refused: { status: 404, error: 'That photograph is not in this shop.', code: 'photograph_not_found' } };
+  if (!photo.offered_at) return { refused: { status: 409, error: 'Only a photograph offered to Teajia can be used.', code: 'not_offered' } };
+  const decided = `shop_decided_at = datetime('now'), shop_decided_by = ?, updated_at = datetime('now')`;
+  if (action === 'lead') {
+    await db.batch([
+      // The tea's previous lead steps back to what it was before.
+      db.prepare(
+        `UPDATE member_photographs SET shop_use = COALESCE(shop_use_before_lead, 'none'), shop_use_before_lead = NULL, ${decided}
+          WHERE account_id = ? AND product_id = ? AND shop_use = 'lead' AND id <> ?`,
+      ).bind(shop.userId, shop.accountId, photo.product_id, photo.id),
+      db.prepare(
+        `UPDATE member_photographs
+            SET shop_use_before_lead = CASE WHEN shop_use = 'lead' THEN shop_use_before_lead ELSE shop_use END,
+                shop_use = 'lead', ${decided}
+          WHERE id = ? AND account_id = ?`,
+      ).bind(shop.userId, photo.id, shop.accountId),
+    ]);
+  } else {
+    const next = action === 'place' ? `'placed'` : action === 'pass' ? `'passed'`
+      : `CASE WHEN shop_use = 'lead' THEN COALESCE(shop_use_before_lead, 'none') ELSE 'none' END`;
+    await db.prepare(
+      `UPDATE member_photographs SET shop_use = ${next}, shop_use_before_lead = NULL, ${decided} WHERE id = ? AND account_id = ?`,
+    ).bind(shop.userId, photo.id, shop.accountId).run();
+  }
+  const row = await db.prepare('SELECT id, product_id, shop_use FROM member_photographs WHERE id = ?').bind(photo.id).first<Record<string, unknown>>();
+  return { row };
+}
+
 export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string, string, FamilyHandler<E>][] {
   /** A tea a member may photograph: in the shop, or any tea of the caller's own account when they catalogue it. */
   async function photographableProduct(request: Request, env: E, productId: string): Promise<ProductRow | null> {
@@ -550,64 +632,15 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
   const offeredPile: FamilyHandler<E> = async (request, env) => {
     const shop = await deps.requireBundle(request, env, 'publish');
     if ('error' in shop) return shop.error;
-    const { results } = await env.DB.prepare(
-      `SELECT p.*, ${AUTHOR_COLUMNS},
-              COALESCE(NULLIF(pr.given_name, ''), pr.product_name) AS product_name,
-              EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id) AS hidden
-         FROM member_photographs p
-         JOIN users u ON u.id = p.author_user_id
-         LEFT JOIN products pr ON pr.id = p.product_id AND pr.account_id = p.account_id
-        WHERE p.account_id = ? AND p.offered_at IS NOT NULL
-        ORDER BY p.offered_at DESC
-        LIMIT 200`,
-    ).bind(shop.accountId).all<PhotoRow & { author_name: string | null; page_id: string | null; product_name: string | null; hidden: number }>();
-    return json({
-      photographs: await Promise.all((results ?? []).map(async row => ({
-        ...(await signPhotograph(env.JWT_SECRET, sharedPhoto(row))),
-        product_id: row.product_id,
-        product_name: row.product_name,
-        share_state: row.share_state,
-        shop_use: row.shop_use,
-        removed_by_author: row.removed_by_member_at !== null,
-        offered_at: row.offered_at!,
-        hidden: Number(row.hidden) === 1,
-      }))),
-    });
+    return json({ photographs: await listOfferedPhotographs(env.DB, shop.accountId, env.JWT_SECRET) });
   };
 
   // POST /api/admin/family/photographs/:id/(place|lead|pass|restore)
   const ownerAction = (action: OwnerAction): FamilyHandler<E> => async (request, env, params) => {
     const shop = await deps.requireBundle(request, env, 'publish');
     if ('error' in shop) return shop.error;
-    const photo = await env.DB.prepare(
-      `SELECT id, product_id, shop_use, shop_use_before_lead, offered_at FROM member_photographs WHERE id = ? AND account_id = ?`,
-    ).bind(params.id, shop.accountId).first<{ id: string; product_id: string; shop_use: string; shop_use_before_lead: string | null; offered_at: string | null }>();
-    if (!photo) return refuse(404, 'That photograph is not in this shop.', 'photograph_not_found');
-    if (!photo.offered_at) return refuse(409, 'Only a photograph offered to Teajia can be used.', 'not_offered');
-    const decided = `shop_decided_at = datetime('now'), shop_decided_by = ?, updated_at = datetime('now')`;
-    if (action === 'lead') {
-      await env.DB.batch([
-        // The tea's previous lead steps back to what it was before.
-        env.DB.prepare(
-          `UPDATE member_photographs SET shop_use = COALESCE(shop_use_before_lead, 'none'), shop_use_before_lead = NULL, ${decided}
-            WHERE account_id = ? AND product_id = ? AND shop_use = 'lead' AND id <> ?`,
-        ).bind(shop.userId, shop.accountId, photo.product_id, photo.id),
-        env.DB.prepare(
-          `UPDATE member_photographs
-              SET shop_use_before_lead = CASE WHEN shop_use = 'lead' THEN shop_use_before_lead ELSE shop_use END,
-                  shop_use = 'lead', ${decided}
-            WHERE id = ? AND account_id = ?`,
-        ).bind(shop.userId, photo.id, shop.accountId),
-      ]);
-    } else {
-      const next = action === 'place' ? `'placed'` : action === 'pass' ? `'passed'`
-        : `CASE WHEN shop_use = 'lead' THEN COALESCE(shop_use_before_lead, 'none') ELSE 'none' END`;
-      await env.DB.prepare(
-        `UPDATE member_photographs SET shop_use = ${next}, shop_use_before_lead = NULL, ${decided} WHERE id = ? AND account_id = ?`,
-      ).bind(shop.userId, photo.id, shop.accountId).run();
-    }
-    const row = await env.DB.prepare('SELECT id, product_id, shop_use FROM member_photographs WHERE id = ?').bind(photo.id).first();
-    return json(row);
+    const outcome = await applyPhotographUse(env.DB, shop, params.id, action);
+    return 'refused' in outcome ? refuse(outcome.refused.status, outcome.refused.error, outcome.refused.code) : json(outcome.row);
   };
 
   // POST /api/admin/family/hide and /api/admin/family/unhide { target_kind, target_id }

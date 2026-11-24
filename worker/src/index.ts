@@ -143,6 +143,10 @@ import {
   type ReservePartySeatsResult,
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalContainsExcerpt, parseCandidateInput, parseExcerptOffer } from './tastingNoteCuration';
+import {
+  approveTastingExcerptOffer, dismissTastingExcerptOffer, listTastingExcerptCandidates, matchesTastingOffer,
+  readExcerptPlacements, setTastingExcerptPlacements, type ExcerptStatus,
+} from './tastingExcerptReview';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { handoffToRepair } from './problemAlerts';
 import { parseExtractReply } from './extractImageReply';
@@ -20109,59 +20113,14 @@ const handleListCustomerTastingNotes: Handler = async (request, env) => {
   })));
 };
 
-function matchesTastingOffer(body: Record<string, unknown>, offer: Record<string, any>) {
-  return (body.edited_text === undefined || body.edited_text === offer.source_text)
-    && (body.attribution_name === undefined || body.attribution_name === offer.attribution_name)
-    && (body.attribution_detail === undefined || body.attribution_detail === null
-      || body.attribution_detail === '');
-}
-
 async function approveTastingExcerpt(env: Env, ctx: AccountCtx, id: string, body: Record<string, unknown>) {
-  const offer = await env.DB.prepare(`
-    SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND offered_at IS NOT NULL
-  `).bind(id, ctx.accountId).first<Record<string, any>>();
-  if (!offer) return json({ error: 'Offer not found' }, 404);
-  if (!matchesTastingOffer(body, offer)) return json({ error: 'Approval must use the offered excerpt and byline' }, 422);
-  if (offer.status !== 'starred') return json({ error: 'Offer already resolved' }, 409);
-
-  const now = new Date().toISOString();
-  const impressionId = crypto.randomUUID();
-  try {
-    const [impression] = await env.DB.batch([
-      env.DB.prepare(`
-        INSERT INTO product_impressions
-          (id, account_id, product_id, candidate_id, text, attribution_name, published_at, published_by, created_at)
-        SELECT ?, account_id, product_id, id, source_text, attribution_name, ?, ?, ?
-        FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND offered_at = ? AND status = 'starred'
-        ON CONFLICT(candidate_id) DO UPDATE SET id = excluded.id, product_id = excluded.product_id,
-          account_id = excluded.account_id, text = excluded.text, attribution_name = excluded.attribution_name,
-          attribution_detail = NULL, published_at = excluded.published_at, published_by = excluded.published_by,
-          show_on_listing = 0, show_on_main_page = 0
-      `).bind(impressionId, now, ctx.userId, now, id, ctx.accountId, offer.offered_at),
-      env.DB.prepare(`
-        UPDATE tasting_note_candidates SET status = 'promoted', promoted_at = ?, promoted_by = ?, updated_at = ?
-        WHERE id = ? AND account_id = ? AND status = 'starred'
-          AND EXISTS (SELECT 1 FROM product_impressions WHERE id = ? AND candidate_id = tasting_note_candidates.id)
-      `).bind(now, ctx.userId, now, id, ctx.accountId, impressionId),
-    ]);
-    if (!impression.meta.changes) return json({ error: 'Offer already resolved or withdrawn' }, 409);
-  } catch {
-    return json({ error: 'Approval could not be completed', retryable: true }, 500);
-  }
-  return json({
-    id: impressionId, status: 'promoted', productId: offer.product_id, text: offer.source_text,
-    attributionName: offer.attribution_name, attributionDetail: null, publishedAt: now,
-    showOnListing: false, showOnMainPage: false,
-  }, 201);
+  const outcome = await approveTastingExcerptOffer(env.DB, ctx, id, body);
+  return json(outcome.body, outcome.status);
 }
 
 async function dismissTastingExcerpt(env: Env, ctx: AccountCtx, id: string) {
-  const now = new Date().toISOString();
-  const result = await env.DB.prepare(`
-    UPDATE tasting_note_candidates SET status = 'dismissed', dismissed_at = ?, dismissed_by = ?, updated_at = ?
-    WHERE id = ? AND account_id = ? AND status = 'starred' AND offered_at IS NOT NULL
-  `).bind(now, ctx.userId, now, id, ctx.accountId).run();
-  return result.meta.changes ? json({ success: true }) : json({ error: 'Pending offer not found' }, 409);
+  const outcome = await dismissTastingExcerptOffer(env.DB, ctx, id);
+  return json(outcome.body, outcome.status);
 }
 
 const handleDecideCustomerTastingNote: Handler = async (request, env) => {
@@ -20185,19 +20144,7 @@ const handleListTastingNoteCandidates: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const status = new URL(request.url).searchParams.get('status') || 'starred';
   if (!['starred', 'promoted', 'dismissed'].includes(status)) return json({ error: 'Invalid status' }, 400);
-  const { results } = await env.DB.prepare(`
-    SELECT c.*, i.id AS impression_id, i.show_on_listing, i.show_on_main_page,
-           COALESCE(p.given_name, p.product_name) AS product_name
-    FROM tasting_note_candidates c
-    JOIN products p ON p.id = c.product_id AND p.account_id = c.account_id
-    LEFT JOIN product_impressions i ON i.candidate_id = c.id AND i.account_id = c.account_id AND c.status = 'promoted'
-    WHERE c.account_id = ? AND c.status = ? AND c.offered_at IS NOT NULL
-    ORDER BY c.offered_at DESC
-  `).bind(ctx.accountId, status).all<Record<string, any>>();
-  return json(results.map(row => ({
-    ...candidateToApi(row), productName: row.product_name, impressionId: row.impression_id,
-    showOnListing: row.show_on_listing === 1, showOnMainPage: row.show_on_main_page === 1,
-  })));
+  return json(await listTastingExcerptCandidates(env.DB, ctx.accountId, status as ExcerptStatus));
 };
 
 const handleUpdateTastingNoteCandidate: Handler = async (request, env, params) => {
@@ -20236,27 +20183,10 @@ const handleUpdateTastingExcerptPlacements: Handler = async (request, env, param
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
-  const listing = body?.show_on_listing;
-  const mainPage = body?.show_on_main_page;
-  if ((listing === undefined && mainPage === undefined)
-      || (listing !== undefined && typeof listing !== 'boolean')
-      || (mainPage !== undefined && typeof mainPage !== 'boolean')) {
-    return json({ error: 'Provide one or both placement booleans' }, 400);
-  }
-  const row = await env.DB.prepare(`
-    UPDATE product_impressions SET show_on_listing = COALESCE(?, show_on_listing),
-      show_on_main_page = COALESCE(?, show_on_main_page)
-    WHERE id = ? AND account_id = ? AND EXISTS (
-      SELECT 1 FROM tasting_note_candidates c WHERE c.id = product_impressions.candidate_id
-        AND c.account_id = product_impressions.account_id AND c.product_id = product_impressions.product_id
-        AND c.offered_at IS NOT NULL AND c.status = 'promoted'
-    )
-    RETURNING show_on_listing, show_on_main_page
-  `).bind(listing === undefined ? null : Number(listing), mainPage === undefined ? null : Number(mainPage),
-    params.id, ctx.accountId).first<{ show_on_listing: number; show_on_main_page: number }>();
-  return row
-    ? json({ showOnListing: row.show_on_listing === 1, showOnMainPage: row.show_on_main_page === 1 })
-    : json({ error: 'Approved excerpt not found' }, 404);
+  const placements = readExcerptPlacements(body);
+  if (!placements) return json({ error: 'Provide one or both placement booleans' }, 400);
+  const outcome = await setTastingExcerptPlacements(env.DB, ctx.accountId, params.id, placements);
+  return json(outcome.body, outcome.status);
 };
 
 const TASTING_LOT_IS_PUBLIC = `
