@@ -3,7 +3,6 @@ import { publicSitRoutes } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
 import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddress, type OrderNoticeAccount } from './orderNoticeRecipient';
-import { connectedSitDemoRoutes } from './connectedSitDemo';
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
@@ -31430,7 +31429,6 @@ const routes: [string, string, Handler][] = [
     shopAccountId: BALI_ACCOUNT_ID,
     readPublic: sessionTeaReader,
   }),
-  ...connectedSitDemoRoutes<Env>({ accountId: BALI_ACCOUNT_ID, requireOwner: requireOwnerTier }),
   ...publicSitRoutes<Env>({
     requireUser: requireAuthenticatedUser,
     requireEditor: (request, env) => requireBundle(request, env, 'publish'),
