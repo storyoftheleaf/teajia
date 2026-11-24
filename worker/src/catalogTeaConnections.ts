@@ -1,17 +1,35 @@
 import type { TeaEditorialPacket } from '../../shared/catalog/teaEditorial';
-import type { TeaConnection, TeaConnectionEdit, TeaIdentityFinding } from '../../shared/catalog/teaConnection';
+import type { TeaConnection, TeaConnectionEdit, TeaIdentityFinding, TeaIntakePage, TeaReviewProgress, TeaStockRecord } from '../../shared/catalog/teaConnection';
 import { customerTagList } from './customerContactHandles';
 
 type Scope = { accountId: string; userId: string };
 type IndexItem = { id: string; digest: string };
-type StockRow = { id: string; vendor_id: string | null };
+type StockRow = Omit<TeaStockRecord, 'listingPublic' | 'listingReviewable'> & {
+  vendor_id: string | null;
+  listingPublic: number;
+  listingReviewable: number;
+};
 type ContactRow = { id: string; name: string; tags: string | null };
-type PrivateState = { vendorId?: string | null; finding?: TeaIdentityFinding; version: number };
+type PrivateState = {
+  vendorId?: string | null;
+  finding?: TeaIdentityFinding;
+  match?: { stockId: string; evidence: string; revision: string };
+  version: number;
+};
+const stockFields = `id, vendor_id, COALESCE(NULLIF(given_name, ''), product_name) AS name,
+  chinese_name AS chineseName, year, form,
+  (is_public = 1 AND shown_in_shop = 1 AND status IN ('Active', 'Sold Out')) AS listingPublic,
+  (COALESCE(inventory_purpose, CASE WHEN is_sample = 1 THEN 'sample'
+    WHEN is_personal = 1 THEN 'personal' ELSE 'working' END) = 'working') AS listingReviewable`;
+
+function stockRecord({ id, name, chineseName, year, form, listingPublic, listingReviewable }: StockRow): TeaStockRecord {
+  return { id, name, chineseName, year, form, listingPublic: Boolean(listingPublic), listingReviewable: Boolean(listingReviewable) };
+}
 
 async function readStock(db: D1Database, accountId: string, locator: string, bySlug: boolean) {
   const query = bySlug
-    ? 'SELECT id, vendor_id FROM products WHERE account_id = ? AND (id = ?2 OR slug = ?2) LIMIT 2'
-    : 'SELECT id, vendor_id FROM products WHERE account_id = ? AND id = ?';
+    ? `SELECT ${stockFields} FROM products WHERE account_id = ? AND (id = ?2 OR slug = ?2) LIMIT 2`
+    : `SELECT ${stockFields} FROM products WHERE account_id = ? AND id = ?`;
   const result = await db.prepare(query).bind(accountId, locator).all<StockRow>();
   return result.results.length === 1 ? result.results[0] : null;
 }
@@ -41,11 +59,14 @@ async function resolveTarget(request: Request, db: D1Database, bucket: R2Bucket,
     if (!entry || !/^[a-f0-9]{64}$/.test(entry.digest)) return null;
     const page = await bucket.get(root + 'pages/' + entry.digest + '.json');
     if (!page) return null;
-    const { stockId } = await page.json<{ stockId?: string }>();
+    const { stockId, stockCandidateIds, title, evidence } = await page.json<Pick<TeaIntakePage, 'stockId' | 'stockCandidateIds' | 'title' | 'evidence'>>();
     const stock = stockId ? await readStock(db, scope.accountId, stockId, false) : null;
     // A missing or cross-account Stock row cannot become an intake assignment.
     if (stockId && !stock) return null;
-    return { view, stock, revision: entry.digest, stateId: await hashKey('intake:' + id), canAssignVendor: true };
+    return {
+      view, stock, stockCandidateIds, sourceText: [title, evidence].filter(Boolean).join(' ').slice(0, 4096),
+      revision: entry.digest, stateId: await hashKey('intake:' + id), canAssignVendor: true,
+    };
   }
 
   if (view !== 'editorial' && view !== 'holds' && view !== 'histories') return null;
@@ -80,10 +101,59 @@ function readContact(db: D1Database, accountId: string, id: string | null, activ
 function isEdit(input: unknown): input is TeaConnectionEdit {
   if (!input || typeof input !== 'object' || !('expected' in input) || !input.expected || typeof input.expected !== 'object') return false;
   if (!('action' in input)) return false;
+  if (input.action === 'clear-match') return true;
   if (input.action === 'vendor') return 'vendorId' in input &&
     (input.vendorId === null || (typeof input.vendorId === 'string' && input.vendorId.length > 0 && input.vendorId.length <= 128));
+  if (input.action === 'match') return 'stockId' in input && typeof input.stockId === 'string' &&
+    input.stockId.length > 0 && input.stockId.length <= 128 && 'evidence' in input &&
+    typeof input.evidence === 'string' && input.evidence.length <= 4000 && input.evidence.trim().length > 0;
   return input.action === 'finding' && 'text' in input && typeof input.text === 'string' && input.text.trim().length > 0
     && input.text.length <= 4000 && 'resolved' in input && typeof input.resolved === 'boolean';
+}
+
+async function stockOptions(db: D1Database, accountId: string, search: string, candidates: string[] | undefined, sourceText: string | undefined) {
+  const tea = "account_id = ? AND teaware_category IS NULL AND lower(type) <> 'teaware'";
+  if (search.length >= 2) {
+    const result = await db.prepare(`SELECT ${stockFields} FROM products WHERE ${tea}
+      AND (id = ?2 OR instr(lower(COALESCE(given_name, '')), lower(?2))
+        OR instr(lower(product_name), lower(?2)) OR instr(COALESCE(chinese_name, ''), ?2))
+      ORDER BY id = ?2 DESC, name, year, id LIMIT 16`).bind(accountId, search).all<StockRow>();
+    return result.results.map(stockRecord);
+  }
+  const ids = Array.isArray(candidates) ? candidates.filter(id => typeof id === 'string').slice(0, 16) : [];
+  if (search) return [];
+  if (ids.length) {
+    const result = await db.prepare(`SELECT ${stockFields} FROM products WHERE ${tea}
+      AND id IN (${ids.map(() => '?').join(', ')}) ORDER BY name, year, id`).bind(accountId, ...ids).all<StockRow>();
+    return result.results.map(stockRecord);
+  }
+  if (!sourceText) return [];
+  // Older packets carry prose evidence. A recorded name supplies a lead, never an exact association.
+  const result = await db.prepare(`SELECT ${stockFields} FROM products WHERE ${tea}
+    AND ((length(trim(chinese_name)) >= 4 AND instr(?2, trim(chinese_name)))
+      OR (length(trim(given_name)) >= 7 AND instr(trim(given_name), ' ') AND instr(lower(?2), lower(trim(given_name))))
+      OR (length(trim(product_name)) >= 7 AND instr(trim(product_name), ' ') AND instr(lower(?2), lower(trim(product_name)))))
+    ORDER BY name, year, id LIMIT 8`).bind(accountId, sourceText).all<StockRow>();
+  return result.results.map(stockRecord);
+}
+
+async function readReviewProgress(db: D1Database, bucket: R2Bucket, root: string, scope: Scope, items: IndexItem[]): Promise<TeaReviewProgress> {
+  const editorial = await bucket.get(root + 'editorial.json');
+  const packet = editorial ? await editorial.json<TeaEditorialPacket>() : undefined;
+  const entries = items.map(item => ({ id: item.id, revision: item.digest, kind: 'intake' as const }));
+  const holds = (packet?.holds ?? []).map(item => ({ id: item.url, revision: '', kind: 'holds' as const }));
+  const progress = await Promise.all([...entries, ...holds].map(async entry => {
+    const suffix = await hashKey(entry.kind + ':' + entry.id);
+    const object = await bucket.get(root + 'connections/' + suffix + '.json');
+    const state = object ? await object.json<PrivateState>() : undefined;
+    if (entry.kind === 'holds') return state?.finding?.resolved ? entry : null;
+    if (state?.match?.revision !== entry.revision) return null;
+    return await readStock(db, scope.accountId, state.match.stockId, false) ? entry : null;
+  }));
+  return {
+    matchedIntake: progress.flatMap(entry => entry?.kind === 'intake' ? [entry.id] : []),
+    resolvedHolds: progress.flatMap(entry => entry?.kind === 'holds' ? [entry.id] : []),
+  };
 }
 
 /** Called after the private packet's owner and account checks. */
@@ -91,17 +161,33 @@ export async function serveTeaConnection(
   request: Request, db: D1Database, bucket: R2Bucket, root: string, scope: Scope, items: IndexItem[],
   reply: (status: number, body?: BodyInit | null) => Response,
 ) {
+  const params = new URL(request.url).searchParams;
+  if (params.get('queue') === '1') {
+    if (request.method === 'PUT') return reply(405);
+    return reply(200, JSON.stringify(await readReviewProgress(db, bucket, root, scope, items)));
+  }
   const target = await resolveTarget(request, db, bucket, root, scope, items);
   if (!target) return reply(404);
   const stateKey = target.stateId ? root + 'connections/' + target.stateId + '.json' : null;
   const object = stateKey ? await bucket.get(stateKey) : null;
   const state = object ? await object.json<PrivateState>() : { version: 0 };
-  const stockId = target.stock?.id ?? null;
-  const vendorId = (target.stock ? target.stock.vendor_id : state.vendorId) || null;
+  const savedMatch = state.match?.revision === target.revision ? state.match : undefined;
+  const stock = target.stock ?? (savedMatch ? await readStock(db, scope.accountId, savedMatch.stockId, false) : null);
+  const stockId = stock?.id ?? null;
+  const vendorId = (stock ? stock.vendor_id : state.vendorId) || null;
   const vendor = await readContact(db, scope.accountId, vendorId);
+  const intakeVendor = stock && target.view === 'intake' ? await readContact(db, scope.accountId, state.vendorId ?? null) : null;
+  if (params.has('stockSearch')) {
+    if (request.method === 'PUT') return reply(405);
+    if (target.view !== 'intake' || stock) return reply(404);
+    return reply(200, JSON.stringify(await stockOptions(db, scope.accountId, (params.get('stockSearch') ?? '').trim().slice(0, 128), target.stockCandidateIds, target.sourceText)));
+  }
   const snapshot: TeaConnection = {
     revision: target.revision, stockId, vendorId, vendor: vendor && { id: vendor.id, name: vendor.name },
     canAssignVendor: target.canAssignVendor, finding: state.finding ?? null, version: state.version,
+    stock: stock ? stockRecord(stock) : undefined,
+    intakeVendor: intakeVendor ? { id: intakeVendor.id, name: intakeVendor.name } : undefined,
+    matchEvidence: stock && !target.stock ? savedMatch?.evidence : undefined,
   };
 
   if (request.method !== 'PUT') return reply(200, JSON.stringify(snapshot));
@@ -123,7 +209,7 @@ export async function serveTeaConnection(
     if (input.vendorId && (!picked || !customerTagList(picked.tags).some(tag => tag.trim().toLowerCase() === 'vendor'))) return reply(400);
     snapshot.vendorId = input.vendorId;
     snapshot.vendor = picked && { id: picked.id, name: picked.name };
-    if (target.stock) {
+    if (stock) {
       // Keep the private Stock display label and its People ID in sync.
       const saved = await db.prepare(
         `UPDATE products SET vendor_id = ?1, vendor = ?2
@@ -133,12 +219,36 @@ export async function serveTeaConnection(
                 AND c.name = ?2 AND c.tags IS ?6
                 AND c.deleted_at IS NULL AND c.archived_at IS NULL AND c.merged_into_id IS NULL
             ))`,
-      ).bind(input.vendorId, picked?.name ?? null, scope.accountId, target.stock.id, vendorId, picked?.tags ?? null).run();
+      ).bind(input.vendorId, picked?.name ?? null, scope.accountId, stock.id, vendorId, picked?.tags ?? null).run();
       return saved.meta.changes === 1 ? reply(200, JSON.stringify(snapshot)) : reply(409);
     }
     state.vendorId = input.vendorId;
+  } else if (input.action === 'clear-match') {
+    if (target.view !== 'intake' || target.stock || !savedMatch || !stock) return reply(409);
+    delete state.match;
+    snapshot.stockId = null;
+    snapshot.stock = undefined;
+    snapshot.vendorId = state.vendorId || null;
+    snapshot.vendor = intakeVendor ? { id: intakeVendor.id, name: intakeVendor.name } : null;
+    snapshot.intakeVendor = undefined;
+    snapshot.matchEvidence = undefined;
+  } else if (input.action === 'match') {
+    if (target.view !== 'intake' || stock) return reply(409);
+    const picked = await db.prepare(`SELECT ${stockFields} FROM products
+      WHERE account_id = ? AND id = ? AND teaware_category IS NULL AND lower(type) <> 'teaware'`)
+      .bind(scope.accountId, input.stockId).first<StockRow>();
+    if (!picked) return reply(400);
+    const evidence = input.evidence.trim();
+    state.match = { stockId: picked.id, evidence, revision: target.revision };
+    snapshot.stockId = picked.id;
+    snapshot.stock = stockRecord(picked);
+    snapshot.matchEvidence = evidence;
+    snapshot.intakeVendor = vendor ? { id: vendor.id, name: vendor.name } : undefined;
+    const supplier = await readContact(db, scope.accountId, picked.vendor_id);
+    snapshot.vendorId = picked.vendor_id || null;
+    snapshot.vendor = supplier ? { id: supplier.id, name: supplier.name } : null;
   } else {
-    if (target.view !== 'holds') return reply(404);
+    if (target.view !== 'holds' && (target.view !== 'intake' || input.resolved)) return reply(404);
     const finding = { text: input.text.trim(), resolved: input.resolved };
     if (state.finding?.text === finding.text && state.finding.resolved === finding.resolved) return reply(200, JSON.stringify(snapshot));
     state.finding = finding;

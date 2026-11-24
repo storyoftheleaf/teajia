@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCustomers } from '../../admin/hooks/useAdminData';
-import { api } from '../../lib/api';
+import { api, type ApiRequestInit } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 
 /**
@@ -106,12 +106,12 @@ export function useFaceVendors(options?: { enabled?: boolean }) {
  * ever shown as a face, and vendor photos are often taken on a slow connection.
  * Returns the stored URL.
  */
-export async function saveVendorFace(vendorId: string, file: File): Promise<string> {
+export async function saveVendorFace(vendorId: string, file: File, expectedAuth?: ApiRequestInit['expectedAuth']): Promise<string> {
   const compressed = await compressImage(file, 800, 0.75, { square: true });
   const upload = new File([compressed], 'vendor-face.jpg', { type: 'image/jpeg' });
-  const url = await api.uploadImage(upload, { filename: 'vendor-face.jpg' });
+  const url = await api.uploadImage(upload, { filename: 'vendor-face.jpg', expectedAuth });
   if (!url) throw new Error('The photo upload returned no address.');
-  await api.customers.update(vendorId, { face_photo: url });
+  await api.customers.update(vendorId, { face_photo: url }, expectedAuth);
   return url;
 }
 

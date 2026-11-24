@@ -9,7 +9,7 @@ import { API_URL, authedFetch } from '../../lib/api';
 import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
 import { TeaDecisionConnection } from './TeaDecisionConnection';
 import type { EditorialPassage, TeaCitation, TeaEditorialBoard, TeaVerdict } from '../../../shared/catalog/teaEditorial';
-import type { TeaReviewRef } from '../../../shared/catalog/teaConnection';
+import type { TeaIntakePage, TeaReviewProgress, TeaReviewRef } from '../../../shared/catalog/teaConnection';
 
 const ROOT = '/admin/catalog-review/teas';
 const API_ROOT = API_URL + '/api' + ROOT;
@@ -22,10 +22,6 @@ const kinds = {
 };
 
 export type TeaIntakeEntry = { id: string; title: string; status: string };
-type TeaIntakePage = TeaIntakeEntry & {
-  introduction: string; evidence: string; nextCheck: string;
-  packageOnly: boolean; photos: string[]; facts: { label: string; value: string }[];
-};
 type History = TeaEditorialBoard['histories'][number];
 type Review = { ref: TeaReviewRef; title: string; next: string; lot?: string } & (
   { kind: 'intake' } |
@@ -34,9 +30,10 @@ type Review = { ref: TeaReviewRef; title: string; next: string; lot?: string } &
   { kind: 'histories'; history: History }
 );
 
-function selectionHref(ref: TeaReviewRef, queue = false) {
+function selectionHref(ref: TeaReviewRef, queue = false, unconfirmed = false) {
   const params = new URLSearchParams({ view: ref.view, item: ref.id });
   if (queue) params.set('queue', '1');
+  if (unconfirmed) params.set('unconfirmed', '1');
   return ROOT + '?' + params;
 }
 
@@ -93,26 +90,31 @@ function IntakeReading({ id }: { id: string }) {
   const [photo, setPhoto] = useState(0);
   const page = scope.ready ? query.data : undefined;
   if (!page) return <p role="status">{query.isError ? 'Intake evidence is unavailable.' : 'Opening intake evidence…'}</p>;
-  return <div className="grid min-w-0 items-start gap-4 xl:grid-cols-2">
+  return <TeaDecisionConnection title={page.title} target={{ view: 'intake', id }} intake={{ page, photo }}
+    source={(openMatch, matched) => <section aria-label="Intake evidence" className="grid min-w-0 items-start gap-4 xl:grid-cols-2">
     {page.photos.length > 0 && <figure className="min-w-0 space-y-1">
       <img className="aspect-square w-full rounded-md bg-tea-bg object-contain" src={page.photos[photo] || page.photos[0]}
         alt={(page.packageOnly ? 'Package for ' : '') + page.title} />
       <figcaption className="flex flex-wrap items-center justify-between gap-2 text-ui-12 text-tea-text-sec">
         <span>{page.packageOnly ? 'Private package reference' : 'Intake photograph'}</span>
-        {page.photos.length > 1 && <Button variant="plain" className="btn-quiet btn-sm" onClick={() => setPhoto(value => (value + 1) % page.photos.length)}>
-          Photo {photo + 1} of {page.photos.length}<ArrowRight size={14} aria-hidden="true" /></Button>}
+        <span className="flex min-w-0 flex-wrap items-center gap-1">
+          {openMatch && <Button type="button" variant="quiet" size="sm" onClick={openMatch}>
+            <Search size={14} aria-hidden="true" />Compare with Stock</Button>}
+          {page.photos.length > 1 && <Button variant="quiet" size="sm" onClick={() => setPhoto(value => (value + 1) % page.photos.length)}>
+            Photo {photo + 1} of {page.photos.length}<ArrowRight size={14} aria-hidden="true" /></Button>}
+        </span>
       </figcaption>
     </figure>}
     <div className="min-w-0 space-y-3">
       <p className={T.bodyLight}>{page.introduction}</p>
       <p className="text-ui-13 text-tea-text-sec">{page.evidence}</p>
-      <p className={T.label}>{page.status}</p>
-      {page.nextCheck && <p className="text-ui-14 text-tea-text">{page.nextCheck}</p>}
+      <p className={T.label}>{matched ? 'Stock match confirmed' : page.status}</p>
+      {!matched && page.nextCheck && <p className="text-ui-14 text-tea-text">{page.nextCheck}</p>}
       {page.facts.length > 0 && <dl className="flex flex-wrap gap-x-3 text-ui-12 text-tea-text-sec">
         {page.facts.map(fact => <div key={fact.label} className="flex gap-1"><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}
       </dl>}
     </div>
-  </div>;
+  </section>} />;
 }
 
 function PassageReading({ passage, verdict, decide }: {
@@ -150,7 +152,7 @@ function PassageReading({ passage, verdict, decide }: {
 }
 
 export function TeaDecisions({ entries, groupId }: { entries: TeaIntakeEntry[]; groupId?: string }) {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const scope = usePrivateQueryScope();
   const [accountId, userId] = scope.key;
@@ -160,7 +162,21 @@ export function TeaDecisions({ entries, groupId }: { entries: TeaIntakeEntry[]; 
     queryFn: ({ signal }) => authedFetch(API_ROOT + '/decisions', { ...auth, signal }),
   });
   const board = scope.ready ? query.data : undefined;
+  const unconfirmed = params.get('unconfirmed') === '1';
+  const progress = useQuery<TeaReviewProgress>({
+    queryKey: ['tea-review-progress', ...scope.key], enabled: scope.ready && unconfirmed, retry: false,
+    queryFn: ({ signal }) => authedFetch(API_ROOT + '/connection?queue=1', { ...auth, signal }),
+  });
   const reviews = reviewsFor(entries, board);
+  const confirmedIntake = new Set([
+    ...entries.filter(entry => /^(?:stock match confirmed|confirmed stock lot)$/i.test(entry.status)).map(entry => entry.id),
+    ...(progress.data?.matchedIntake ?? []),
+  ]);
+  const resolvedHolds = new Set(progress.data?.resolvedHolds);
+  const isUnconfirmed = (review: Review) => (
+    review.kind === 'intake' ? !confirmedIntake.has(review.ref.id) :
+      review.kind === 'holds' && !resolvedHolds.has(review.ref.id)
+  );
   const view = groupId ? 'intake' : params.get('view');
   const id = groupId || params.get('item');
   const queueOnly = params.get('queue') === '1';
@@ -173,7 +189,8 @@ export function TeaDecisions({ entries, groupId }: { entries: TeaIntakeEntry[]; 
     groups.set(key, [...(groups.get(key) ?? []), review]);
   }
   const rows = Array.from(groups.values()).filter(items => items.some(review =>
-    (review.title + ' ' + review.next).toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+    (!unconfirmed || isUnconfirmed(review)) &&
+      (review.title + ' ' + review.next).toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
   ));
   const related = selected?.lot ? groups.get(selected.lot)?.filter(review => review !== selected) ?? [] : [];
   const next = selected && rows[rows.findIndex(group => group.includes(selected)) + 1]?.[0];
@@ -201,16 +218,29 @@ export function TeaDecisions({ entries, groupId }: { entries: TeaIntakeEntry[]; 
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className={T.h2}>Teas</h2><span className="text-ui-12 text-tea-text-dim">{rows.length} in review</span>
         </div>
+        <div className="mb-2">
+          <Button type="button" variant="chip" aria-pressed={unconfirmed} onClick={() => {
+            setParams(current => {
+              const nextParams = new URLSearchParams(current);
+              if (unconfirmed) nextParams.delete('unconfirmed');
+              else nextParams.set('unconfirmed', '1');
+              return nextParams;
+            });
+          }}>Unconfirmed</Button>
+        </div>
+        {unconfirmed && progress.isError && <p role="alert" className="text-ui-12 text-tea-text-sec">
+          The latest check status could not load. <Button type="button" variant="quiet" size="sm" onClick={() => void progress.refetch()}>Retry</Button>
+        </p>}
         <label className="relative block">
           <Search size={16} className="pointer-events-none absolute inset-y-0 my-auto ml-2 text-tea-text-sec" aria-hidden="true" />
           <input className="input-field min-h-tap py-2 pl-8 pr-3" type="search" aria-label="Search teas" placeholder="Search teas" value={search} onChange={event => setSearch(event.target.value)} />
         </label>
         <ul className="mt-2 divide-y divide-tea-border lg:max-h-screen lg:overflow-y-auto">
           {rows.map(group => {
-            const row = group.find(item => item === selected) || group[0];
+            const row = group.find(item => item === selected && (!unconfirmed || isUnconfirmed(item))) || group.find(item => !unconfirmed || isUnconfirmed(item))!;
             const Icon = kinds[row.kind].icon;
             return <li key={row.lot || reviewKey(row)}><Link className="flex min-h-tap min-w-0 items-center gap-2 px-2 py-2 hover:bg-tea-accent-sub aria-[current]:bg-tea-accent-sub"
-              to={selectionHref(row.ref)} aria-current={row === selected && !queueOnly ? 'true' : undefined}>
+              to={selectionHref(row.ref, false, unconfirmed)} aria-current={row === selected && !queueOnly ? 'true' : undefined}>
               <Icon size={16} className="shrink-0 text-tea-text-dim" aria-hidden="true" />
               <span className="min-w-0 flex-1 break-words"><strong className="block text-ui-13 text-tea-text">{row.title}</strong>
                 <span className="line-clamp-2 text-ui-12 text-tea-text-sec">{row.next}</span></span>
@@ -222,8 +252,8 @@ export function TeaDecisions({ entries, groupId }: { entries: TeaIntakeEntry[]; 
       </aside>
       {selected && <div key={reviewKey(selected)} className={queueOnly ? 'hidden min-w-0 space-y-4 lg:block' : 'min-w-0 space-y-4'}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Link className="btn-quiet btn-sm lg:hidden" to={selectionHref(selected.ref, true)}><List size={16} aria-hidden="true" />Tea queue</Link>
-          {next && <Link className="btn-quiet btn-sm ml-auto" to={selectionHref(next.ref)}>Next tea<ArrowRight size={16} aria-hidden="true" /></Link>}
+          <Link className="btn-quiet btn-sm lg:hidden" to={selectionHref(selected.ref, true, unconfirmed)}><List size={16} aria-hidden="true" />Tea queue</Link>
+          {next && <Link className="btn-quiet btn-sm ml-auto" to={selectionHref(next.ref, false, unconfirmed)}>Next tea<ArrowRight size={16} aria-hidden="true" /></Link>}
         </div>
         <TeaCard className="!bg-tea-surface" title={<div className="min-w-0 px-4 pt-4">
           <p className={T.label}>{selected.kind === 'editorial' ? selected.passage.kind : kinds[selected.kind].label}</p>
@@ -232,7 +262,7 @@ export function TeaDecisions({ entries, groupId }: { entries: TeaIntakeEntry[]; 
           <div className="space-y-4 p-4">
             {selected.kind === 'intake' && <IntakeReading id={selected.ref.id} />}
             {selected.kind === 'editorial' && <PassageReading passage={selected.passage} verdict={board?.verdicts[selected.ref.id]?.decision} decide={decide} />}
-            <TeaDecisionConnection title={selected.title} target={selected.ref}
+            {selected.kind !== 'intake' && <TeaDecisionConnection title={selected.title} target={selected.ref}
               shop={selected.kind === 'editorial' && selected.passage.lots.length === 1 ? selected.passage.lots[0].url :
                 selected.kind === 'holds' ? selected.hold.url : selected.kind === 'histories' ? selected.history.url : undefined}
               wisdom={selected.kind === 'histories' ? selected.history.wisdom : undefined}
@@ -242,10 +272,10 @@ export function TeaDecisions({ entries, groupId }: { entries: TeaIntakeEntry[]; 
                   selected.hold.locator?.match(/\b(label|receipt)\b/i) ? 'Record label finding' : 'Record finding',
                 label: selected.hold.locator?.match(/\bask\b/i) ? 'Supplier answer' : 'Finding',
               } : undefined}
-            />
+            />}
             {selected.kind === 'holds' && <SourceList sources={selected.hold.sources ?? []} />}
             {related.length > 0 && <nav className="flex flex-wrap gap-2 border-t border-tea-border pt-2" aria-label="Other decisions for this tea">
-              {related.map(item => <Link className="btn-quiet btn-sm" key={reviewKey(item)} to={selectionHref(item.ref)}>
+              {related.map(item => <Link className="btn-quiet btn-sm" key={reviewKey(item)} to={selectionHref(item.ref, false, unconfirmed)}>
                 {kinds[item.kind].label}<ChevronRight size={14} aria-hidden="true" /></Link>)}
             </nav>}
           </div>

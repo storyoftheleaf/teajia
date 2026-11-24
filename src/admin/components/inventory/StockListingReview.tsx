@@ -1,6 +1,6 @@
 import { useEffect, useState, type ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
-import { Camera } from 'lucide-react';
+import { ArrowLeft, Camera } from 'lucide-react';
 import { CapturePhotoImage } from '../../../components/curate/CapturePhotoImage';
 import { Modal } from '../../../components/shared/Modal';
 import { Button } from '../../../components/shared/Button';
@@ -17,12 +17,13 @@ import { StockPublication, stockPublicationState } from './StockPublication';
 
 type PublicationProps = Omit<ComponentProps<typeof StockPublication>, 'product'>;
 
-export function StockListingReview({ product, entryId, applyWording, openRequested = false, onOpenHandled, ...publication }: PublicationProps & {
+export function StockListingReview({ product, entryId, applyWording, openRequested = false, onOpenHandled, returnTo, ...publication }: PublicationProps & {
   product: Product;
   entryId?: string;
   applyWording: (text: string) => Promise<void>;
   openRequested?: boolean;
   onOpenHandled?: () => void;
+  returnTo?: string;
 }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -39,6 +40,9 @@ export function StockListingReview({ product, entryId, applyWording, openRequest
       actions={<Button type="button" size="sm" onClick={() => setOpen(true)}>Review listing</Button>}
     />
     <Modal isOpen={open} onClose={() => setOpen(false)} title="Review listing" className="!max-w-4xl">
+      {returnTo && <div className="px-3 py-2">
+        <Link className="btn-quiet btn-sm" to={returnTo}><ArrowLeft size={16} aria-hidden="true" />Back to tea decision</Link>
+      </div>}
       {open && <ListingContents product={product} entryId={entryId} applyWording={applyWording} publication={publication} />}
     </Modal>
   </section>;

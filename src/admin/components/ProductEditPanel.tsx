@@ -1012,6 +1012,7 @@ export interface ProductEditPanelProps {
   publicationProblem?: string | null;
   /** Open the focused Shop listing review when arriving from a Stock card. */
   openListingReview?: boolean;
+  listingReturnTo?: string;
   onListingReviewOpened?: () => void;
 }
 
@@ -1041,6 +1042,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   canShowWhileCountPending,
   publicationProblem,
   openListingReview = false,
+  listingReturnTo,
   onListingReviewOpened,
 }) => {
   const navigate = useNavigate();
@@ -1469,7 +1471,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             {effectivePurpose(product) === 'working' && <StockListingReview key={`${activeAccountId}:${product.id}`}
               product={product} entryId={sharedRecordId}
-              openRequested={openListingReview} onOpenHandled={onListingReviewOpened}
+              openRequested={openListingReview} onOpenHandled={onListingReviewOpened} returnTo={listingReturnTo}
               canList={canList} canPublish={canPublish} isOwner={isOwnerTier} problem={publicationProblem}
               canShowWhileCountPending={canShowWhileCountPending}
               applyWording={text => persistField(product.id, 'description', text)}

@@ -16,7 +16,7 @@ import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } f
 import { CapturePhotoImage } from '../../components/curate/CapturePhotoImage';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { BottomSheet } from '../../components/shared/BottomSheet';
-import { useSearchParams, useNavigate, Link, Navigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
   AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal,
@@ -215,12 +215,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
+  const { state: navigationState } = useLocation();
   const vendorFilter = searchParams.get('vendor') || '';
   const teaTypeFilter = inventoryTeaType(searchParams.get('teaType') || '');
   const tastingValue = searchParams.get('tasting') || '';
   const tastingFilter: InventoryFacetFilter | '' = ['Untasted', 'Tasted', 'HasProductTasting', 'NeedsProductTasting'].includes(tastingValue) ? tastingValue as InventoryFacetFilter : '';
   const batchFilter = searchParams.get('batch') || '';
   const panelParam = searchParams.get('panel') || '';
+  const listingFromLink = searchParams.get('listing') === '1' ? panelParam : '';
+  const teaDecisionReturn = typeof navigationState?.teaDecisionReturn === 'string' &&
+    /^\/admin\/catalog-review\/teas(?:\/[a-z0-9-]+)?(?:\?|$)/.test(navigationState.teaDecisionReturn)
+    ? navigationState.teaDecisionReturn as string : undefined;
   const draftMode = canReviewDrafts && searchParams.get('view') === 'drafts';
   const requestedTriage = searchParams.get('triage');
   const draftTriage = draftMode && (requestedTriage === 'ready' || requestedTriage === 'review') ? requestedTriage : '';
@@ -3327,8 +3332,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onSaveField={(id,field,value)=>handleProductUpdate(id,field,value,{throwOnError:true})}
         products={panelGroup ? panelGroup.products : processedProducts}
         onNavigate={(p) => { setPanelProduct(p); setListingReviewProductId(null); }}
-        openListingReview={listingReviewProductId === livePanelProduct?.id}
-        onListingReviewOpened={() => setListingReviewProductId(null)}
+        openListingReview={(listingReviewProductId || listingFromLink) === livePanelProduct?.id}
+        listingReturnTo={teaDecisionReturn}
+        onListingReviewOpened={() => {
+          setListingReviewProductId(null);
+          if (listingFromLink) setSearchParams(previous => withParam(previous, 'listing', null), { replace: true, state: navigationState });
+        }}
         filterLabel={panelGroup ? `from ${panelGroup.label}` : filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
         onRecount={stableStockRecount}
         onTeaAction={phoneList ? handleTeaAction : undefined}

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
+import type { ApiRequestInit } from '../../lib/api';
 import { Button } from '../shared/Button';
 import { saveVendorFace, useRefreshVendorFaces } from './vendorFaces';
 
@@ -15,9 +16,10 @@ export const VendorFacePhotoButton: React.FC<{
   hasFace: boolean;
   onSaved?: (url: string) => void;
   /** `word` is a labelled button; `badge` is the small camera on a face tile. */
-  look?: 'word' | 'badge';
+  look?: 'word' | 'badge' | 'inline';
+  expectedAuth?: ApiRequestInit['expectedAuth'];
   className?: string;
-}> = ({ vendorId, vendorName, hasFace, onSaved, look = 'word', className = '' }) => {
+}> = ({ vendorId, vendorName, hasFace, onSaved, look = 'word', className = '', expectedAuth }) => {
   const input = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -30,7 +32,7 @@ export const VendorFacePhotoButton: React.FC<{
     setSaving(true);
     setError('');
     try {
-      const url = await saveVendorFace(vendorId, file);
+      const url = await saveVendorFace(vendorId, file, expectedAuth);
       refresh(vendorId);
       onSaved?.(url);
     } catch {
@@ -40,7 +42,8 @@ export const VendorFacePhotoButton: React.FC<{
     }
   };
 
-  const label = saving ? 'Saving photo…' : hasFace ? 'Change face photo' : 'Add face photo';
+  const photo = look === 'inline' ? 'photo' : 'face photo';
+  const label = saving ? 'Saving photo…' : (hasFace ? 'Change ' : 'Add ') + photo;
   return (
     <span className={`inline-flex flex-col items-start ${className}`}>
       <input ref={input} type="file" accept="image/*" className="hidden" onChange={pick} aria-hidden="true" tabIndex={-1} />
@@ -58,7 +61,8 @@ export const VendorFacePhotoButton: React.FC<{
       ) : (
         <Button
           type="button"
-          variant="secondary"
+          variant={look === 'inline' ? 'quiet' : 'secondary'}
+          size={look === 'inline' ? 'sm' : undefined}
           onClick={() => input.current?.click()}
           disabled={saving}
           icon={saving ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} strokeWidth={1.5} />}

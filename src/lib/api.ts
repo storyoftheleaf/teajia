@@ -2192,13 +2192,13 @@ export const api = {
         body: JSON.stringify(data),
       });
     },
-    update: async (id: string, data: Record<string, any>) => {
+    update: async (id: string, data: Record<string, any>, expectedAuth?: ApiRequestInit['expectedAuth']) => {
       // PUT by id, idempotent, safe to retry through a GFW timeout (vendor
       // photo/location saves from the Compass ride this).
       return authedFetch(`${API_URL}/api/customers/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
-        retryTimeouts: true,
+        retryTimeouts: true, expectedAuth,
       });
     },
     delete: async (id: string) => {
@@ -2585,7 +2585,7 @@ export const api = {
 
   uploadImage: async (
     file: File | Blob,
-    options?: { productId?: string; slot?: 'main' | '1' | '2' | 'bag'; filename?: string },
+    options?: { productId?: string; slot?: 'main' | '1' | '2' | 'bag'; filename?: string; expectedAuth?: ApiRequestInit['expectedAuth'] },
   ) => {
     const formData = new FormData();
     // Browsers default a Blob filename to "blob"; pass a real .jpg filename so
@@ -2596,7 +2596,7 @@ export const api = {
     if (options?.slot) formData.append('slot', options.slot);
     const data = await authedFetch(`${API_URL}/api/upload-image`, {
       method: 'POST',
-      body: formData,
+      body: formData, expectedAuth: options?.expectedAuth,
     });
     return data.url as string;
   },

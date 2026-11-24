@@ -24,6 +24,8 @@ interface ModalProps {
   initialFocus?: 'first' | 'container' | string;
   /** Disable closing on backdrop click (use for destructive confirms). */
   disableBackdropClose?: boolean;
+  /** Keep a centered dialog or sheet above the mobile bottom navigation. */
+  clearBottomNav?: boolean;
   /** Extra classes for the dialog panel. */
   className?: string;
   /** Optional right-aligned header content (toolbar). */
@@ -60,6 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
   hideClose = false,
   initialFocus = 'first',
   disableBackdropClose = false,
+  clearBottomNav = false,
   className = '',
   headerActions,
   children,
@@ -115,7 +118,7 @@ export const Modal: React.FC<ModalProps> = ({
       aria-labelledby={title ? titleId : undefined}
       aria-label={!title ? ariaLabel : undefined}
       tabIndex={initialFocus === 'container' ? -1 : undefined}
-      className={`${VARIANT_PANEL[variant]} ${className}`}
+      className={`${VARIANT_PANEL[variant]} ${clearBottomNav ? '!max-h-full' : ''} ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
       {header}
@@ -132,7 +135,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-modal bg-tea-overlay animate-[fadeIn_0.2s_ease-out] ${VARIANT_BACKDROP[variant]}`}
+      className={`fixed inset-x-0 top-0 ${clearBottomNav ? 'bottom-nav' : 'bottom-0'} z-modal bg-tea-overlay animate-[fadeIn_0.2s_ease-out] ${VARIANT_BACKDROP[variant]}`}
       onClick={disableBackdropClose ? undefined : onClose}
     >
       {dialog}

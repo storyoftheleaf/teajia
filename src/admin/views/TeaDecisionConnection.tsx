@@ -1,16 +1,18 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useRef, useState, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowUpRight, BookOpen, Check, ChevronDown, Package, Plus, Search, ShoppingBag, UserRound } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Check, ChevronDown, ChevronRight, LockKeyhole, Package, Plus, Search, ShoppingBag, UserRound } from 'lucide-react';
 import { Modal } from '../../components/shared/Modal';
 import { Button } from '../../components/shared/Button';
 import { VendorFace } from '../../components/vendors/VendorFace';
+import { VendorFacePhotoButton } from '../../components/vendors/VendorFacePhotoButton';
 import { VendorFacesButton, VendorFaceSheet } from '../../components/vendors/VendorFaceSheet';
 import { filterFaceVendors, toFaceVendor, type FaceVendor } from '../../components/vendors/vendorFaces';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { API_URL, ApiError, authedFetch } from '../../lib/api';
 import { usePrivateQueryScope } from '../hooks/usePrivateQueryScope';
-import type { TeaConnection, TeaConnectionEdit, TeaReviewRef } from '../../../shared/catalog/teaConnection';
+import { stockDetails, stockHref, TeaStockMatch } from './TeaStockMatch';
+import type { TeaConnection, TeaConnectionEdit, TeaIntakePage, TeaReviewRef } from '../../../shared/catalog/teaConnection';
 
 const BASE = API_URL + '/api/admin/catalog-review/teas/connection';
 type Assignment = NonNullable<TeaConnection['vendor']>;
@@ -21,11 +23,15 @@ function vendorTag(tags: unknown) {
   return values.some(tag => String(tag).trim().toLowerCase() === 'vendor');
 }
 
-export function TeaDecisionConnection({ target, title, shop, wisdom, identity }: {
+export function TeaDecisionConnection({ target, title, shop, wisdom, identity, intake, source }: {
   target: TeaReviewRef; title: string; shop?: string; wisdom?: string;
+  intake?: { page?: TeaIntakePage; photo: number };
+  source?: (match: (() => void) | undefined, matched: boolean) => ReactNode;
   identity?: { evidence: string; action: string; label: string };
 }) {
   const scope = usePrivateQueryScope();
+  const location = useLocation();
+  const stockAction = useRef<HTMLButtonElement>(null);
   const [accountId, userId] = scope.key;
   const auth = { expectedAuth: { accountId, userId }, reportIncident: false, cache: 'no-store' as const };
   const queryClient = useQueryClient();
@@ -35,7 +41,7 @@ export function TeaDecisionConnection({ target, title, shop, wisdom, identity }:
     queryKey, enabled: scope.ready, retry: false,
     queryFn: ({ signal }) => authedFetch(url, { ...auth, signal }),
   });
-  const [edit, setEdit] = useState<{ kind: 'vendor' | 'finding'; expected: TeaConnection }>();
+  const [edit, setEdit] = useState<{ kind: 'vendor' | 'finding' | 'match' | 'stock-link'; expected: TeaConnection }>();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<Message>();
   const connection = scope.ready ? query.data : undefined;
@@ -50,7 +56,14 @@ export function TeaDecisionConnection({ target, title, shop, wisdom, identity }:
     },
   });
 
-  function start(kind: 'vendor' | 'finding') {
+  const vendor = connection?.vendor;
+  const vendorFaceKey = ['tea-review-vendor-face', ...scope.key, vendor?.id];
+  const vendorFace = useQuery<FaceVendor>({
+    queryKey: vendorFaceKey, enabled: scope.ready && !!vendor, retry: false,
+    queryFn: async ({ signal }) => toFaceVendor(await authedFetch(API_URL + '/api/customers/' + encodeURIComponent(vendor!.id), { ...auth, signal })),
+  });
+
+  function start(kind: 'vendor' | 'finding' | 'match' | 'stock-link') {
     if (connection) {
       setMessage(undefined);
       setEdit({ kind, expected: connection });
@@ -67,8 +80,16 @@ export function TeaDecisionConnection({ target, title, shop, wisdom, identity }:
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       queryClient.setQueryData(queryKey, current);
       void queryClient.invalidateQueries({ queryKey: ['tea-review-connection', ...scope.key] });
+      if (update.action !== 'vendor') void queryClient.invalidateQueries({ queryKey: ['tea-review-progress', ...scope.key] });
       setEdit(undefined);
-      setMessage({ text: update.action === 'finding' ? 'Finding saved.' : update.vendorId ? 'Vendor linked.' : 'Vendor link cleared.' });
+      if (update.action === 'match' || update.action === 'clear-match') {
+        setMessage({ text: update.action === 'match' ? 'Exact Stock lot linked.' : 'Private link cleared. Exact lot is unconfirmed.' });
+        requestAnimationFrame(() => stockAction.current?.focus());
+      } else if (update.action === 'finding') {
+        setMessage({ text: intake ? 'Private finding saved. Exact lot is still unconfirmed.' : 'Finding saved.' });
+      } else {
+        setMessage({ text: update.vendorId ? 'Vendor linked.' : 'Vendor link cleared.' });
+      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         await query.refetch();
@@ -92,9 +113,41 @@ export function TeaDecisionConnection({ target, title, shop, wisdom, identity }:
   }
 
   const exactStockId = connection?.stockId;
-  const hasLinks = exactStockId || shop || wisdom;
-  const linkedFace = directory.data?.find(item => item.id === connection?.vendorId);
+  const stock = connection?.stock;
+  const linkedFace = vendorFace.data || directory.data?.find(item => item.id === connection?.vendorId);
+  const openMatch = connection && intake?.page && !exactStockId ? () => start('match') : undefined;
+  const returnTo = location.pathname + location.search;
+  const stockRow = <>
+    <Package size={16} aria-hidden="true" />
+    <span className="min-w-0 flex-1 truncate text-left">{stock?.name || title}</span>
+    <ChevronRight size={16} aria-hidden="true" />
+  </>;
   return <div className="space-y-4">
+    {(intake || exactStockId) && <section aria-label="Stock lot" className="min-w-0 space-y-2 border-y border-tea-border py-2">
+      <h3 className={T.label}>Stock lot</h3>
+      {exactStockId ? <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+        {connection.matchEvidence ? <Button ref={stockAction} type="button" variant="plain" className="btn-quiet min-w-0 flex-1 justify-start"
+          aria-label="Edit exact Stock match" onClick={() => start('stock-link')}>{stockRow}</Button> :
+          <Link className="btn-quiet min-w-0 flex-1 justify-start" aria-label="Open Stock record"
+            to={stockHref(exactStockId)}>{stockRow}</Link>}
+        {stock?.listingReviewable !== false && <Link className="btn-secondary btn-sm" to={stockHref(exactStockId) + '&listing=1'} state={{ teaDecisionReturn: returnTo }}>
+          <ShoppingBag size={16} aria-hidden="true" />{stock?.listingPublic ? 'Review Shop listing' : 'Open private draft'}
+        </Link>}
+      </div> : <Button ref={stockAction} type="button" variant="plain" className="btn-quiet w-full justify-start" disabled={!openMatch} onClick={openMatch}>
+        <Search size={16} aria-hidden="true" /><span className="flex-1 text-left">Find Stock match</span><ChevronRight size={16} aria-hidden="true" />
+      </Button>}
+      {stock && stockDetails(stock) && <p className="break-words text-ui-12 text-tea-text-sec">{stockDetails(stock)}</p>}
+      {connection?.matchEvidence && <p className="whitespace-pre-wrap break-words text-ui-12 text-tea-text-sec">
+        <LockKeyhole size={14} className="mr-1 inline" aria-hidden="true" />{connection.matchEvidence}
+      </p>}
+      {intake && !exactStockId && connection?.finding && <Button variant="plain" className="btn-quiet w-full justify-start" type="button"
+        aria-label="Edit private Stock finding" onClick={openMatch} disabled={!openMatch}>
+        <LockKeyhole size={16} aria-hidden="true" /><span className="min-w-0 flex-1 truncate text-left">Unconfirmed · {connection.finding.text}</span><ChevronRight size={16} aria-hidden="true" />
+      </Button>}
+    </section>}
+
+    {source?.(openMatch, !!exactStockId)}
+
     {identity && <section aria-label="Identity check" className="space-y-3 border-b border-tea-border pb-4">
       <div>
         <p className={T.label}>{connection?.finding?.resolved ? 'Resolution' : 'Next check'}</p>
@@ -108,29 +161,34 @@ export function TeaDecisionConnection({ target, title, shop, wisdom, identity }:
       </Button>
     </section>}
 
-    {(connection?.canAssignVendor || hasLinks) && <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-      {connection?.canAssignVendor && <section aria-label="Vendor and people" className="min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
-          <h3 className={T.h3}>Vendor &amp; people</h3>
-          <Button type="button" variant="secondary" size="sm" icon={<UserRound size={16} aria-hidden="true" />} onClick={() => start('vendor')}>
-            {connection.vendorId ? 'Change vendor' : 'Choose vendor'}
+    {(connection?.canAssignVendor || shop || wisdom) && <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+      {connection?.canAssignVendor && <section aria-label="Vendor and people" className="min-w-0 space-y-2">
+        <h3 className={T.label}>Vendor</h3>
+        <div className="flex min-w-0 items-center border-y border-tea-border py-1">
+          <Button type="button" variant="plain" className="btn-quiet min-w-0 flex-1 justify-start" aria-label={vendor ? 'Change vendor: ' + vendor.name : 'Choose vendor'} onClick={() => start('vendor')}>
+            {vendor
+              ? <span aria-hidden="true"><VendorFace name={vendor.name} photo={linkedFace?.photo} size={24} /></span>
+              : <UserRound size={16} aria-hidden="true" />}
+            <span className="min-w-0 flex-1 truncate text-left">{vendor?.name ?? (connection.vendorId ? 'Vendor record unavailable' : 'No vendor linked')}</span>
+            <ChevronRight size={16} aria-hidden="true" />
           </Button>
+          {vendor && <VendorFacePhotoButton vendorId={vendor.id} vendorName={vendor.name} hasFace={!!linkedFace?.hasFace}
+            look="inline" expectedAuth={auth.expectedAuth} className="max-w-28 min-w-0 shrink-0 break-words"
+            onSaved={photo => {
+              queryClient.setQueryData<FaceVendor>(vendorFaceKey, previous => ({ ...previous, id: vendor.id, name: vendor.name, photo, hasFace: true }));
+              void queryClient.invalidateQueries({ queryKey: directoryKey });
+            }} />}
         </div>
-        <div className="flex min-w-0 items-center gap-2 border-y border-tea-border py-2 text-ui-13">
-          {connection.vendor ? <>
-            <span aria-hidden="true"><VendorFace name={connection.vendor.name} photo={linkedFace?.photo} size={24} /></span>
-            <Link className="min-w-0 truncate text-tea-text hover:text-tea-gold" to={'/admin/vendors/' + encodeURIComponent(connection.vendor.id)}>{connection.vendor.name}</Link>
-          </> : <span className="text-tea-text-sec">{connection.vendorId ? 'Vendor record unavailable' : 'No vendor linked'}</span>}
-          {connection.vendorId && <span className="ml-auto shrink-0 text-tea-text-dim">{connection.stockId ? 'Linked in Stock' : 'Linked to intake'}</span>}
-        </div>
-        {!connection.stockId && <p className="pt-2 text-ui-12 text-tea-text-sec">Vendor links here belong to this intake. The Stock match is still open.</p>}
+        {!connection.stockId && <p className="text-ui-12 text-tea-text-sec">Vendor links here belong to this intake. The Stock match is still open.</p>}
+        {connection.intakeVendor && <p className="break-words text-ui-12 text-tea-text-sec">Intake vendor · {connection.intakeVendor.name}</p>}
       </section>}
-      {hasLinks && <section aria-label="Connections" className="min-w-0">
-        <h3 className={T.h3}>Connections</h3>
-        <ul className="mt-2 divide-y divide-tea-border border-y border-tea-border">
-          {exactStockId && <li><Link className="btn-quiet btn-sm" to={'/admin/stock?panel=' + encodeURIComponent(exactStockId)}><Package size={16} aria-hidden="true" />Open Stock record</Link></li>}
-          {wisdom && <li><Link className="btn-quiet btn-sm" to={wisdom}><BookOpen size={16} aria-hidden="true" />Tea Wisdom</Link></li>}
-          {shop && <li><a className="btn-quiet btn-sm" href={shop}><ShoppingBag size={16} aria-hidden="true" />Shop listing<ArrowUpRight size={14} aria-hidden="true" /></a></li>}
+      {(shop || wisdom) && <section aria-label="Connections" className="min-w-0 space-y-2">
+        <h3 className={T.label}>Connections</h3>
+        <ul className="divide-y divide-tea-border border-y border-tea-border">
+          {wisdom && <li><Link className="btn-quiet w-full justify-start" to={wisdom}><BookOpen size={16} aria-hidden="true" />Tea Wisdom
+            <ChevronRight size={16} className="ml-auto" aria-hidden="true" /></Link></li>}
+          {shop && <li><a className="btn-quiet w-full justify-start" href={shop}><ShoppingBag size={16} aria-hidden="true" />Shop listing
+            <ArrowUpRight size={14} className="ml-auto" aria-hidden="true" /></a></li>}
         </ul>
       </section>}
     </div>}
@@ -140,10 +198,39 @@ export function TeaDecisionConnection({ target, title, shop, wisdom, identity }:
       vendors={directory.data ?? []} loading={directory.isPending} failed={directory.isError} retry={() => void directory.refetch()}
       saving={saving} error={message?.text} onCreate={createVendor}
       onCancel={() => setEdit(undefined)} onSave={vendorId => void save({ action: 'vendor', expected: edit.expected, vendorId })} />}
+    {edit?.kind === 'stock-link' && exactStockId && <StockLinkEditor title={title} stockId={exactStockId}
+      evidence={edit.expected.matchEvidence} saving={saving} error={message?.text} onCancel={() => setEdit(undefined)}
+      onClear={() => void save({ action: 'clear-match', expected: edit.expected })} />}
+    {edit?.kind === 'match' && intake?.page && <TeaStockMatch intake={intake.page} photoIndex={intake.photo}
+      expected={edit.expected} saving={saving} error={message?.text} onCancel={() => setEdit(undefined)}
+      onSaveFinding={text => void save({ action: 'finding', expected: edit.expected, text, resolved: false })}
+      onMatch={(stockId, evidence) => void save({ action: 'match', expected: edit.expected, stockId, evidence })} />}
     {edit?.kind === 'finding' && identity && <FindingEditor title={title} action={identity.action} label={identity.label}
       expected={edit.expected} saving={saving} error={message?.text}
       onCancel={() => setEdit(undefined)} onSave={(text, resolved) => void save({ action: 'finding', expected: edit.expected, text, resolved })} />}
   </div>;
+}
+
+function StockLinkEditor({ title, stockId, evidence, saving, error, onCancel, onClear }: {
+  title: string; stockId: string; evidence?: string; saving: boolean; error?: string;
+  onCancel: () => void; onClear: () => void;
+}) {
+  const [confirm, setConfirm] = useState(false);
+  return <Modal isOpen title="Exact Stock match" clearBottomNav onClose={() => { if (!saving) onCancel(); }} disableBackdropClose={saving}>
+    <div className="space-y-3 p-4">
+      <p className="text-ui-13 text-tea-text-sec">{title}</p>
+      {evidence && <p className="whitespace-pre-wrap break-words text-ui-13">{evidence}</p>}
+      <Link className="btn-quiet btn-sm" to={stockHref(stockId)}><Package size={16} aria-hidden="true" />Open Stock record</Link>
+      {confirm && <p className="text-ui-13 text-tea-text-sec">This returns the intake to Unconfirmed and keeps its private finding.</p>}
+      {error && <p role="alert" className="text-ui-13 text-tea-text-sec">{error}</p>}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tea-border pt-3">
+        <Button type="button" variant="quiet" onClick={onCancel} disabled={saving}>Cancel</Button>
+        <Button type="button" variant="secondary" disabled={saving} onClick={() => { if (confirm) onClear(); else setConfirm(true); }}>
+          {confirm ? 'Confirm clear' : 'Clear private match'}
+        </Button>
+      </div>
+    </div>
+  </Modal>;
 }
 
 function VendorEditor({ title, expected, vendors, loading, failed, retry, saving, error, onCreate, onCancel, onSave }: {
@@ -188,11 +275,16 @@ function VendorEditor({ title, expected, vendors, loading, failed, retry, saving
   }
 
   return <>
-    <Modal isOpen={!faces} title="Vendor for this tea" onClose={() => { if (!busy) onCancel(); }} disableBackdropClose={busy}>
+    <Modal isOpen={!faces} title="Vendor for this tea" clearBottomNav onClose={() => { if (!busy) onCancel(); }} disableBackdropClose={busy}>
       <div className="space-y-3 px-4 py-4">
         <p className="text-ui-13 text-tea-text-sec">{title}</p>
         <div className="space-y-1 border-b border-tea-border pb-2">
-          <p className={T.label}>Current link</p>
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <p className={T.label}>Current link</p>
+            {expected.vendor && <Link className="btn-quiet btn-sm" to={'/admin/vendors/' + encodeURIComponent(expected.vendor.id)}>
+              Vendor profile<ArrowUpRight size={14} aria-hidden="true" />
+            </Link>}
+          </div>
           <div className="flex min-w-0 items-center gap-2">
             {expected.vendor && <span aria-hidden="true"><VendorFace name={expected.vendor.name} photo={vendors.find(v => v.id === expected.vendorId)?.photo} size={24} /></span>}
             <p className="min-w-0 truncate">{expected.vendor?.name || (expected.vendorId ? 'Vendor record unavailable' : 'None')}</p>
@@ -265,7 +357,7 @@ function FindingEditor({ title, action, label, expected, saving, error, onCancel
 }) {
   const [text, setText] = useState(expected.finding?.text || '');
   const [resolved, setResolved] = useState(expected.finding?.resolved || false);
-  return <Modal isOpen title={expected.finding ? 'Update finding' : action}
+  return <Modal isOpen clearBottomNav title={expected.finding ? 'Update finding' : action}
     onClose={() => { if (!saving) onCancel(); }} disableBackdropClose={saving}>
     <form className="space-y-4 p-4" onSubmit={event => { event.preventDefault(); if (!saving && text.trim()) onSave(text, resolved); }}>
       <p className="text-ui-13 text-tea-text-sec">{title}</p>

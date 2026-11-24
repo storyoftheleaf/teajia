@@ -32,10 +32,15 @@ async function fakeReview(page: Page) {
     { id: 'buyer', name: 'Buyer only', tags: ['buyer'] },
   ];
   await page.route('**/api/customers', route => route.fulfill({ json: vendors }));
+  await page.route('**/api/customers/*', route => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-1);
+    const vendor = vendors.find(item => item.id === id);
+    return route.fulfill({ status: vendor ? 200 : 404, json: vendor ?? {} });
+  });
   let verdicts: Record<string, { decision: string; version: number }> = {};
   let writes = 0;
   const states = new Map<string, TeaConnection>();
-  await page.route('**/api/admin/catalog-review/teas**', async route => {
+  await page.route(/\/api\/admin\/catalog-review\/teas(?:[/?]|$)/, async route => {
     const request = route.request();
     expect(request.headers().authorization).toMatch(/^Bearer /);
     const url = new URL(request.url());
@@ -52,6 +57,8 @@ async function fakeReview(page: Page) {
       return route.fulfill({ json: verdict });
     }
     if (suffix === '/connection') {
+      if (url.searchParams.get('queue') === '1') return route.fulfill({ json: { matchedIntake: [], resolvedHolds: [] } });
+      if (url.searchParams.has('stockSearch')) return route.fulfill({ json: [] });
       const id = url.searchParams.get('id')!;
       const view = url.searchParams.get('view');
       if (view === 'editorial') return route.fulfill({ status: 404 });
@@ -66,7 +73,7 @@ async function fakeReview(page: Page) {
         if (body.action === 'vendor') {
           const vendor = vendors.find(item => item.id === body.vendorId);
           state = { ...state, vendorId: body.vendorId, vendor: vendor ? { id: vendor.id, name: vendor.name } : null, version: state.version + 1 };
-        } else {
+        } else if (body.action === 'finding') {
           state = { ...state, finding: { text: body.text, resolved: body.resolved }, version: state.version + 1 };
         }
         states.set(key, state);
@@ -77,7 +84,8 @@ async function fakeReview(page: Page) {
     const entry = items.find(item => '/' + item.id === suffix)!;
     const isPackage = entry.id === 'tea-21';
     return route.fulfill({ json: { ...entry, packageOnly: isPackage, type: isPackage ? '' : 'Dark',
-      introduction: 'Introduction for ' + entry.title + '.', nextCheck: 'Verify the count.', evidence: 'Recorded from the label.',
+      introduction: 'Introduction for ' + entry.title + '.', nextCheck: 'Verify the count.',
+      evidence: isPackage ? 'The package says 100 grams and the order says 60 grams. '.repeat(7) : 'Recorded from the label.',
       photos: [image], facts: [], stockId: isPackage ? undefined : 'confirmed-product' } });
   });
   return () => writes;
@@ -156,7 +164,7 @@ test('owner can stage either picker, cancel, save and clear without changing an 
   await editor.getByRole('searchbox', { name: 'Search vendors' }).fill('long name');
   await editor.getByRole('button', { name: /Second supplier/ }).click();
   await editor.getByRole('button', { name: 'Save vendor' }).click();
-  await expect(page.getByRole('link', { name: 'Second supplier with a long name' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Change vendor: Second supplier with a long name' })).toBeVisible();
   await open();
   await editor.getByRole('button', { name: 'Clear link' }).click();
   expect(writes()).toBe(1);
@@ -165,4 +173,32 @@ test('owner can stage either picker, cancel, save and clear without changing an 
   await page.goto(root + '/tea-21');
   await expect(page.getByText('Vendor links here belong to this intake. The Stock match is still open.')).toBeVisible();
   await expect(page.getByRole('link', { name: /Stock record/ })).toHaveCount(0);
+});
+
+test('the private finding footer stays above mobile navigation and saves without resolving the lot', async ({ page, isMobile }) => {
+  await fakeReview(page);
+  await page.goto(root + '/tea-21');
+  const source = page.getByRole('region', { name: 'Intake evidence' });
+  const open = source.getByRole('button', { name: 'Compare with Stock' });
+  await open.click();
+  const dialog = page.getByRole('dialog', { name: 'Find Stock match' });
+  const save = dialog.getByRole('button', { name: 'Save private finding' });
+  const cancel = dialog.getByRole('button', { name: 'Cancel' });
+  await dialog.getByRole('textbox', { name: 'Private finding' }).fill('Find the order photo.');
+  await expect(save).toBeEnabled();
+  if (isMobile) {
+    for (const button of [save, cancel]) {
+      await expect.poll(() => button.evaluate(node => {
+        const box = node.getBoundingClientRect();
+        const bottomNav = document.querySelector('[data-testid="bottom-tab-bar"]')!.getBoundingClientRect();
+        return box.bottom < bottomNav.top && node.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+      })).toBe(true);
+    }
+    await save.tap();
+  } else {
+    await save.click();
+  }
+  await expect(open).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Edit private Stock finding' })).toContainText('Find the order photo.');
+  await expect(page.getByRole('link', { name: 'Open Stock record' })).toHaveCount(0);
 });
