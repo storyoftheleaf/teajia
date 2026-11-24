@@ -297,11 +297,13 @@ test('validates every canonical Markdown file but generates only the approved, r
     'malaysian-returned-liu-bao',
     'menghai-county',
     'nanqiao-ruigong-brick',
+    'oolong',
     'puer',
     'red',
     'san-he-liu-bao',
     'sheng',
     'shou',
+    'taiwan-oolong',
     'y562',
     'yunnan',
   ]);
@@ -317,7 +319,6 @@ test('validates every canonical Markdown file but generates only the approved, r
     'sheng-and-shou-puer',
     'puer-geographic-hierarchy',
     'puer-village-naming',
-    'oolong',
     'white',
   ]) {
     assert.equal(publicPageIds.has(heldId), false, `${heldId} must remain excluded`);

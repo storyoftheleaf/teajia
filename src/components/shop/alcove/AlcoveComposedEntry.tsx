@@ -16,24 +16,24 @@ const Prose: React.FC<{ paragraph: ComposedParagraph; claims: readonly PublicCla
 );
 
 /**
- * The tea's one written entry: its story first, then brewing, then what people
- * often notice about the style. Replaces the stacked Wisdom passages.
+ * The tea's one written entry: its story first, then what people often notice about
+ * the style, then brewing. Replaces the stacked Wisdom passages.
  */
 export const AlcoveComposedEntry: React.FC<{ entry: ComposedEntry; claims: readonly PublicClaim[] }> = ({ entry, claims }) => (
   <section className="mx-4 mt-6 grid gap-4 border-t border-tea-border py-5" aria-label="About this tea" data-composed-entry={entry.productId}>
     {entry.paragraphs.map((paragraph, index) => (
       <Prose key={index} paragraph={paragraph} claims={claims} className="text-tea-text" />
     ))}
-    {entry.brewing && (
-      <div className="mt-2 min-w-0">
-        <h3 className={`${LABEL} ${LABEL_GAP} m-0 text-tea-text-dim`}>Brewing</h3>
-        <Prose paragraph={entry.brewing} claims={claims} className="text-tea-text" />
-      </div>
-    )}
     {entry.notice && (
       <div className="mt-2 min-w-0">
         <h3 className={`${LABEL} ${LABEL_GAP} m-0 text-tea-text-dim`}>What people often notice in {entry.notice.styleName}</h3>
         <Prose paragraph={entry.notice} claims={claims} className="text-tea-text-sec" />
+      </div>
+    )}
+    {entry.brewing && (
+      <div className="mt-2 min-w-0">
+        <h3 className={`${LABEL} ${LABEL_GAP} m-0 text-tea-text-dim`}>Brewing</h3>
+        <Prose paragraph={entry.brewing} claims={claims} className="text-tea-text" />
       </div>
     )}
   </section>
