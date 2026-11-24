@@ -183,6 +183,7 @@ import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 import { serveCatalogTeaReading } from './catalogTeaReading';
+import { applyReviewedWordingFallback, serveWisdomWordingReview } from './wisdomWordingReview';
 import { serveStockGalleryProposal } from './stockGalleryProposal';
 import { serveYixingOwnerReview } from './yixingOwnerReview';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
@@ -22718,6 +22719,7 @@ async function fetchPublicProductsForAccount(
       if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
     }
     attachPublicTeawareDetails(safe, p);
+    if (accountId === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
     return safe;
   });
 }
@@ -31303,6 +31305,17 @@ const requestHandler = {
       };
       if (corsOrigin) headers['Access-Control-Allow-Origin'] = corsOrigin;
       return new Response(null, { status: 204, headers });
+    }
+
+    if (url.pathname === '/api/admin/wisdom/listing-wording') {
+      return cors(await serveWisdomWordingReview(request, async () => {
+        const scope = await getActiveAccount(request, env);
+        if ('error' in scope) return scope.error.status;
+        if (scope.accountId !== BALI_ACCOUNT_ID || !scope.isPlatform || !scope.bundles.includes('publish')) return 403;
+        const owner = await env.DB.prepare("SELECT 1 FROM users WHERE id = ? AND platform_role = 'platform_owner'")
+          .bind(scope.userId).first();
+        return owner ? 200 : 403;
+      }), corsOrigin);
     }
 
     if (url.pathname === '/api/admin/catalog-review/teas' || url.pathname.startsWith('/api/admin/catalog-review/teas/')) {

@@ -44,6 +44,8 @@ export interface ComposedParagraph {
 
 export interface ComposedEntry {
   productId: string;
+  /** The named history this approved story already leads with. */
+  namedHistoryLead?: string;
   paragraphs: readonly ComposedParagraph[];
   brewing?: ComposedParagraph;
   /** The style sentence. Omitted where the listing carries no sensory copy. */

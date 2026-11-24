@@ -24,11 +24,7 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "This tea comes from the highlands of northern Vietnam, where the mountains run on into Yunnan. For generations, tea houses in Hong Kong and Guangzhou bought leaf from this side of the border and piled it in the pu’er way. This lot follows that line."
-      },
-      {
-        "layer": "type",
-        "text": "It was made into [ripe pu’er](shou:definition). The leaf was wetted and heaped in a [warm pile](shou:wet-piling), which was covered to hold in the heat its own microbes give off and turned now and then to let in air. That way weeks do the change that raw pu’er needs years of ageing to reach. Afterwards it was aged loose rather than pressed."
+        "text": "This loose ripe pu’er comes from the highlands of northern Vietnam, near the Yunnan border. Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called [wet piling](shou:wet-piling)."
       }
     ],
     "brewing": {
@@ -49,23 +45,15 @@
   },
   "claimUses": [
     {
-      "claimId": "shou:definition",
-      "rev": 1
-    },
-    {
       "claimId": "shou:wet-piling",
       "rev": 2
     },
     {
       "claimId": "shou:brewing",
       "rev": 1
-    },
-    {
-      "claimId": "shou:common-impressions",
-      "rev": 1
     }
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-23T13:13:02.966Z"
+  "approvedAt": "2026-11-24T06:28:55.878Z"
 }

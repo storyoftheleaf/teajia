@@ -25,12 +25,8 @@
     "productId": "e5e7c9ec-d66b-48de-9197-272ffdb638e0",
     "paragraphs": [
       {
-        "layer": "place",
-        "text": "This cake comes from Yiwu, in Yunnan. Its leaf was made into [ripe pu’er](shou:definition), then pressed."
-      },
-      {
-        "layer": "type",
-        "text": "Before pressing, the sun-dried leaf was wetted and heaped into a [fermenting pile](shou:wet-piling). The microbes in the pile make their own heat, so the heap is covered to hold that heat in. It is turned about once a week to spread it and let in air, and it is kept below the point where the leaf would char. After one to two months the leaf is dried. The pile was developed to do in weeks what years of ageing did for raw pu’er in Hong Kong and Guangdong, so this cake is ready to drink now rather than after a long wait."
+        "layer": "lot",
+        "text": "Xiniu Tang (犀牛塘) means “Rhinoceros Pond.” This tea is a ripe pu’er pressed into a cake."
       }
     ],
     "brewing": {
@@ -51,27 +47,15 @@
   },
   "claimUses": [
     {
-      "claimId": "shou:definition",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:wet-piling",
-      "rev": 2
-    },
-    {
       "claimId": "shou:brewing-pressed",
       "rev": 1
     },
     {
       "claimId": "shou:brewing",
       "rev": 1
-    },
-    {
-      "claimId": "shou:common-impressions",
-      "rev": 1
     }
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-23T13:13:03.476Z"
+  "approvedAt": "2026-11-24T06:28:55.989Z"
 }

@@ -33,16 +33,26 @@ function renderPage(item: InventoryItem, context?: ReturnType<typeof useWisdomLi
   );
 }
 
+const nakaWithoutApprovedEntry = { ...PILOT_FIXTURES.naka.item, id: 'naka-listing-without-approved-entry' };
+
 describe('Wisdom in the shared product page', () => {
   it('uses only the public registry by default and keeps the empty-gallery action', () => {
-    const markup = renderPage(PILOT_FIXTURES.naka.item);
+    const markup = renderPage(nakaWithoutApprovedEntry);
     expect(markup).toContain('Add your own picture');
-    const expected = resolveListingPassages(listingFactsFromInventoryItem(PILOT_FIXTURES.naka.item),
+    const expected = resolveListingPassages(listingFactsFromInventoryItem(nakaWithoutApprovedEntry),
       GENERATED_CLAIMS, GENERATED_TEA_REFERENCE_REGISTRY.pages);
     const ids = [...markup.matchAll(/data-claim-id="([^"]+)"/g)].map(match => match[1]);
     expect(ids).toEqual([...expected.passages.map(passage => passage.claim.claimId),
       ...expected.styleReferences.map(claim => claim.claimId)]);
     expect(GENERATED_CLAIMS.every(claim => claim.reviewState === 'approved' && !claim.withdrawn)).toBe(true);
+  });
+
+  it('shows the approved Naka wording and keeps the link to Menghai', () => {
+    const markup = renderPage(PILOT_FIXTURES.naka.item);
+    expect(markup).toContain('data-composed-entry="' + PILOT_FIXTURES.naka.item.id + '"');
+    expect(markup).toContain('one of Menghai County’s tea-growing areas. This tea is a ripe pu’er pressed into a cake.');
+    expect(markup).toContain('href="/wisdom/region/menghai-county"');
+    expect(markup).not.toMatch(/Huazhu Liangzi|Liusha River/);
   });
 
   it('keeps the 1993 vintage on the linked Y562 lot and withholds history until public visibility is known', () => {
@@ -59,7 +69,7 @@ describe('Wisdom in the shared product page', () => {
   });
 
   it.each(['Shou Puer', 'Shou'])('matches a process from the Stock type %s and a place from corroborated origin', type => {
-    const markup = renderPage({ ...PILOT_FIXTURES.naka.item, type }, { claims: PILOT_FIXTURE_CLAIMS });
+    const markup = renderPage({ ...nakaWithoutApprovedEntry, type }, { claims: PILOT_FIXTURE_CLAIMS });
     expect(markup).toContain('data-claim-id="menghai-county:mengsong-naka"');
     expect(markup).toContain('data-claim-id="shou:wet-piling"');
     expect(markup).toContain('?store=bali#wisdom-passage-shou-wet-piling');
@@ -68,7 +78,7 @@ describe('Wisdom in the shared product page', () => {
   });
 
   it('orders a sparse page from its recorded introduction to its sourced story without presenting legacy tags as taste', () => {
-    const markup = renderPage({ ...PILOT_FIXTURES.naka.item, tags: ['Unsupported legacy taste'], form: 'Cake',
+    const markup = renderPage({ ...nakaWithoutApprovedEntry, tags: ['Unsupported legacy taste'], form: 'Cake',
       description: 'A tea cake from Mengsong.', tasting: { flavor: ['unverified-descriptor'] } }, { claims: PILOT_FIXTURE_CLAIMS });
     const locators = ['Your tea actions', 'A tea cake from Mengsong.', 'tea-product-provenance-title', 'data-page-order', 'data-wisdom-passages'];
     const positions = locators.map(text => markup.indexOf(text));
