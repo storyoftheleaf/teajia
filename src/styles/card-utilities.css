@@ -7432,6 +7432,95 @@ body.cart-panel-open .commerce-dock {
 .tea-product-profile > span:last-child { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; }
 .tea-product-profile svg { display: block; inline-size: var(--space-4); block-size: var(--space-4); }
 
+/* Product page top, proposal D (Adrian, 2026-11-24).
+   The facts box: on a phone the Vintage / Format / Region bar sits above a
+   bordered sheet (summary, then ledger lines); from 768px the bar moves into
+   the box between the summary and the ledger, and the ledger splits in two. */
+.tea-facts { display: grid; margin: var(--space-4) var(--space-4) 0; }
+.tea-facts__label {
+  margin: 0;
+  font: var(--fw-medium) var(--fs-ui-10)/1.4 var(--font-sans);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--tea-text-dim);
+}
+.tea-facts__band {
+  order: -1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0 0 var(--space-4);
+  background: var(--tea-sunken);
+  border-block: var(--border-w) solid var(--tea-border);
+}
+.tea-facts__band > div { display: grid; gap: var(--space-1); min-inline-size: 0; padding: var(--space-3); }
+.tea-facts__band > div + div { border-inline-start: var(--border-w) solid var(--tea-border); }
+.tea-facts__band dd { margin: 0; font: var(--fs-ui-16)/1.45 var(--font-body); color: var(--tea-text); overflow-wrap: anywhere; }
+.tea-facts__summary {
+  margin: 0;
+  padding: var(--space-4);
+  font: var(--fs-ui-17)/1.6 var(--font-body);
+  color: var(--tea-text);
+  border: var(--border-w) solid var(--tea-keyline);
+  border-block-end-color: var(--tea-border);
+}
+.tea-facts:not([data-has-ledger]) .tea-facts__summary { border-block-end-color: var(--tea-keyline); }
+.tea-facts__ledger { padding: var(--space-2) var(--space-4); border: var(--border-w) solid var(--tea-keyline); }
+.tea-facts[data-has-summary] .tea-facts__ledger { border-block-start: 0; }
+.tea-facts__group { margin: 0; padding-block: var(--space-1); }
+.tea-facts__group + .tea-facts__group { border-block-start: var(--border-w) solid var(--tea-border); }
+.tea-facts__row {
+  display: grid;
+  grid-template-columns: calc(var(--space-12) * 2 + var(--space-2)) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding-block: var(--space-1);
+}
+.tea-facts__value { margin: 0; font: var(--fs-ui-15)/1.45 var(--font-body); color: var(--tea-text-sec); overflow-wrap: anywhere; }
+.tea-facts__link {
+  color: var(--tea-text);
+  text-decoration: underline;
+  text-decoration-color: var(--tea-gold);
+  text-decoration-thickness: var(--border-w);
+  text-underline-offset: var(--space-1);
+  transition: color var(--dur-micro) var(--ease-default);
+}
+.tea-facts__link:hover { color: var(--tea-gold-lt); }
+.tea-facts__link:focus-visible { outline: 2px solid var(--tea-gold); outline-offset: 2px; }
+@media (min-width: 48rem) {
+  .tea-facts { margin-inline: var(--space-4); border: var(--border-w) solid var(--tea-keyline); }
+  .tea-facts__summary, .tea-facts__ledger { border: 0; }
+  .tea-facts__band { order: 0; margin: 0; padding-inline: var(--space-1); }
+  .tea-facts[data-has-summary] .tea-facts__band { border-block-start: var(--border-w) solid var(--tea-border); }
+  .tea-facts:not([data-has-ledger]) .tea-facts__band { border-block-end: 0; }
+  .tea-facts__ledger { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-8); padding-block: var(--space-3); }
+  .tea-facts__group:only-child { grid-column: 1 / -1; }
+  .tea-facts__group:first-child:not(:only-child) {
+    grid-row: span 2;
+    padding-inline-end: var(--space-6);
+    margin-inline-end: calc(-1 * var(--space-2));
+    border-inline-end: var(--border-w) solid var(--tea-border);
+  }
+  .tea-facts__group + .tea-facts__group { border-block-start: 0; }
+  .tea-facts__group:nth-child(3) { border-block-start: var(--border-w) solid var(--tea-border); }
+}
+
+/* The quiet ribbon: Add your tasting and Add to collection as spaced capitals
+   between two hairlines (Adrian's pick, 2026-11-24). */
+.tea-product-ribbon {
+  display: flex;
+  margin: var(--space-4) var(--space-4) 0;
+  border-block: var(--border-w) solid var(--tea-keyline);
+}
+.tea-product-photo-empty { display: flex; justify-content: center; margin: var(--space-3) var(--space-4) 0; }
+.tea-product-nav-end .tea-product-profile > span:last-child { max-inline-size: 10ch; }
+@media (max-width: 23.99rem) {
+  .tea-product-nav-end .tea-product-profile > span:last-child { max-inline-size: 7ch; }
+}
+
+/* Curator's notes: the shop's own words about the tea, under the taste band. */
+.curator-notes { display: grid; gap: var(--space-2); padding-inline-start: var(--space-4); border-inline-start: var(--border-w) solid var(--tea-gold); }
+
 .tea-product-provenance {
   display: grid;
   gap: var(--space-3);

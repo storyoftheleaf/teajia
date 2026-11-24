@@ -140,9 +140,9 @@ function locationData(jpg: Buffer): { exif: boolean; gps: boolean } {
 /** The same-origin address the site uses for a stored file (src/lib/mediaUrl.ts). */
 const localMedia = (url: string) => url.replace(/^https:\/\/media\.teajia\.co\//, '/api/media/');
 
-/** Opens the member's own tasting from the tea page: the Taste button among their tea actions. */
+/** Opens the member's own tasting from the tea page: Add your tasting in the tea's ribbon. */
 async function openMyTasting(p: Page) {
-  await p.getByRole('group', { name: 'Your tea actions' }).getByRole('button', { name: 'Taste', exact: true }).click({ timeout: 30_000 });
+  await p.getByRole('group', { name: 'Your tea actions' }).getByRole('button', { name: 'Add your tasting', exact: true }).click({ timeout: 30_000 });
   await expect(p.locator('.tasting-header-controls')).toBeVisible({ timeout: 20_000 });
 }
 

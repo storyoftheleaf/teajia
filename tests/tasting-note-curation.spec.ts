@@ -208,7 +208,7 @@ test('a guest excerpt requires approval and an independent public placement', as
   await page.goto(productPath);
   const feelingNote = page.getByRole('textbox', { name: 'Your experience with this tea' });
   await expect(feelingNote).toHaveCount(0);
-  await page.getByRole('button', { name: 'Taste', exact: true }).click();
+  await page.getByRole('group', { name: 'Your tea actions' }).getByRole('button', { name: 'Add your tasting', exact: true }).click();
   const overlay = page.locator('[data-tasting-session-overlay]');
   await expect(overlay.getByRole('button', { name: 'All tastings', exact: true })).toHaveCount(0);
   const photos = overlay.getByRole('group', { name: 'Your photographs' });
@@ -265,18 +265,20 @@ test('a guest excerpt requires approval and an independent public placement', as
   const box = await descriptorBox.boundingBox();
   const journal = await journalSection.boundingBox();
   expect(journal!.y).toBeGreaterThan(box!.y + box!.height);
-  const expectJournalBeforeFacts = async () => {
+  // The journal sits after the story, under "What people often notice"
+  // (Adrian, 2026-11-24), so it follows the facts box.
+  const expectJournalAfterFacts = async () => {
     await expect(provenance).toBeVisible();
     const factsElement = await provenance.elementHandle();
     expect(await journalSection.evaluate((journal, section) =>
-      Boolean(journal.compareDocumentPosition(section!) & Node.DOCUMENT_POSITION_FOLLOWING), factsElement)).toBe(true);
+      Boolean(journal.compareDocumentPosition(section!) & Node.DOCUMENT_POSITION_PRECEDING), factsElement)).toBe(true);
   };
-  await expectJournalBeforeFacts();
+  await expectJournalAfterFacts();
 
   state.clearDescriptors();
   await showPublic('listing', true);
   await expect(page.getByText('Honey', { exact: true })).toHaveCount(0);
-  await expectJournalBeforeFacts();
+  await expectJournalAfterFacts();
   await showPublic('homepage', false);
 
   await page.goto(reviewedPath);
@@ -289,7 +291,7 @@ test('a guest excerpt requires approval and an independent public placement', as
   await showPublic('listing', false);
   await showPublic('homepage', true);
   await page.goto(productPath);
-  await page.getByRole('button', { name: 'Taste', exact: true }).click();
+  await page.getByRole('group', { name: 'Your tea actions' }).getByRole('button', { name: 'Add your tasting', exact: true }).click();
   await page.getByRole('button', { name: 'Withdraw offer' }).click();
   await expect(page.getByRole('button', { name: 'Send for approval' })).toBeVisible();
   await showPublic('homepage', false);

@@ -94,7 +94,7 @@ describe('Wisdom in the shared product page', () => {
   it('orders a sparse page from its recorded introduction to its sourced story without presenting legacy tags as taste', () => {
     const markup = renderPage({ ...nakaWithoutApprovedEntry, tags: ['Unsupported legacy taste'], form: 'Cake',
       description: 'A tea cake from Mengsong.', tasting: { flavor: ['unverified-descriptor'] } }, { claims: PILOT_FIXTURE_CLAIMS });
-    const locators = ['Your tea actions', 'A tea cake from Mengsong.', 'tea-product-provenance-title', 'data-page-order', 'data-wisdom-passages'];
+    const locators = ['data-testid="tea-facts"', 'A tea cake from Mengsong.', 'Your tea actions', 'data-page-order', 'data-wisdom-passages'];
     const positions = locators.map(text => markup.indexOf(text));
     expect(positions.every(position => position !== -1)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));

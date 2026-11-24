@@ -50,13 +50,14 @@ for (const width of [320, 390, 1280]) {
       } else {
         await expect(page.locator('.alcove-gallery')).toHaveCount(0);
         await expect(add).toHaveText('+ Add your own picture');
-        const sameRow = await add.evaluate(button => {
-          const before = button.previousElementSibling;
-          const first = before?.getBoundingClientRect();
-          const second = button.getBoundingClientRect();
-          return before?.textContent?.trim() === 'Log in' && first?.y === second.y && first.right < second.left;
+        // With no photos at all, the add button stands where the photos would be,
+        // above the facts box (Adrian, 2026-11-24).
+        const inPhotoPlace = await add.evaluate(button => {
+          const facts = document.querySelector('[data-testid="tea-facts"]');
+          return Boolean(button.closest('.tea-product-photo-empty'))
+            && (!facts || Boolean(button.compareDocumentPosition(facts) & Node.DOCUMENT_POSITION_FOLLOWING));
         });
-        expect(sameRow).toBe(true);
+        expect(inPhotoPlace).toBe(true);
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
       }
       await add.click();

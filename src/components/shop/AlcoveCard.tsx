@@ -29,7 +29,7 @@ import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/Alco
 import { wisdomRelationsApi } from '../../admin/components/wisdom/relationsApi';
 import { useTeaReferenceCatalogue } from '../../wisdom/reference/client';
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
-import { useProductImpressions } from './ProductImpressions';
+import { ProductImpressions, useProductImpressions } from './ProductImpressions';
 import { resolveProductResearch } from '../../wisdom/productResearch';
 import { buildPublicProductHref } from '../../lib/publicProductNavigation';
 import { minimumOrderGrams, quoteGrams, sellUnitOf } from '../../lib/teaPricing';
@@ -528,10 +528,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       legacyNotes={notes}
       onTermClick={onTermClick}
       potentialResearch={wisdomPassages.styleReferences.length ? null : potentialResearch}
-      onTaste={layout === 'page' ? undefined : onTaste}
+      onTaste={layout === 'page' ? (tastingEntry ? onTaste : undefined) : onTaste}
       tastingEntry={tastingEntry}
       impressions={impressions}
       verifiedOnly={layout === 'page' || !isAdmin}
+      journalElsewhere={layout === 'page'}
     />
   );
 
@@ -610,6 +611,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     />
   );
 
+  // The tasting journal sits with "What people often notice" (Adrian, 2026-11-24):
+  // inside the composed entry, above Brewing, when the tea has one.
+  const pageJournal = <ProductImpressions impressions={impressions.filter(note => note.productId === item.id)} />;
+
   // ── Page layout: the "quiet page" at /shop/product/:id on cold loads ─────
   if (layout === 'page') {
     return (
@@ -624,11 +629,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         })}
         factsTitle="Provenance"
         history={composed
-          ? <AlcoveComposedEntry entry={composed} claims={entryClaims} />
+          ? <AlcoveComposedEntry entry={composed} claims={entryClaims} journal={pageJournal} />
           : <AlcoveWisdomPassages listing={wisdomPassages} />}
         order={wisdomPilot?.externalReference || item.ordersPaused ? undefined : commerceFooter('docked')}
         teaOrder
         tasting={characterBand}
+        journal={composed ? undefined : <div className="mx-5">{pageJournal}</div>}
         reading={reading}
         related={<>{tableSection}{threadSection}</>}
         styleReference={<AlcoveWisdomStyleReferences listing={wisdomPassages} />}

@@ -8,14 +8,14 @@ import { authPagePath } from '../../lib/authNavigation';
 import { useAppStore } from '../../lib/store';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
-import { FactGrid, type Fact } from '../wisdom/FactGrid';
+import type { Fact } from '../wisdom/FactGrid';
+import { TeaFactsBox } from './TeaFactsBox';
 import { AlcoveGallery } from './alcove/AlcoveGallery';
 import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
 import { ImageOverlayModal } from './alcove/AlcoveModals';
 import { AlcoveAboutSection } from './alcove/AlcoveAboutSection';
 import type { ProductReading } from './productDetailFields';
 import { ProductOrderAccess } from './ProductOrderAccess';
-import { BODY } from '../shared/typeRoles';
 import { GroupHead, IndexRow, SplitName } from '../people/immersive';
 import type { api } from '../../lib/api';
 import { useTeaFamily } from './useTeaFamily';
@@ -46,6 +46,8 @@ interface ProductDetailLayoutProps {
   styleReference?: ReactNode;
   order?: ReactNode;
   tasting?: ReactNode;
+  /** Customer notes the shop promoted; set after the story, under "What people often notice". */
+  journal?: ReactNode;
   reading?: ProductReading;
   related?: ReactNode;
   teaOrder?: boolean;
@@ -54,7 +56,7 @@ interface ProductDetailLayoutProps {
 }
 
 export function ProductDetailLayout({
-  identity, gallery, actions, facts, factsTitle, history, order, tasting, reading, related, styleReference, teaOrder, modals, soldOut, ownerPreviewNavigation, galleryCaption,
+  identity, gallery, actions, facts, factsTitle, history, order, tasting, journal, reading, related, styleReference, teaOrder, modals, soldOut, ownerPreviewNavigation, galleryCaption,
 }: ProductDetailLayoutProps) {
   const { shopHref, shopName, crumbType, selectedBy, onCartClick, cartItemCount } = useContext(ProductDetailPageContext);
   const { item } = identity;
@@ -91,7 +93,7 @@ export function ProductDetailLayout({
   const visibleFacts = facts.filter(fact => fact.value?.trim() || fact.content);
   return (
     <>
-      {ownerPreviewNavigation ?? <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 lg:px-10">
+      {ownerPreviewNavigation ?? <div className="tea-product-nav mb-1 flex w-full items-center justify-between gap-4 border-b border-tea-border px-5 max-[383px]:gap-2 max-[383px]:px-3 lg:px-10">
         <Link
           to={shopHref}
           aria-label={shopName ? `Back to ${shopName}` : 'Back to shop'}
@@ -101,49 +103,49 @@ export function ProductDetailLayout({
           <span className="min-w-0 truncate">{shopName ?? 'Shop'}</span>
           {crumbType && (
             <>
-              <span aria-hidden="true" className="text-tea-text-dim">/</span>
-              <span>{crumbType}</span>
+              <span aria-hidden="true" className="text-tea-text-dim max-[383px]:hidden">/</span>
+              <span className="max-[383px]:hidden">{crumbType}</span>
             </>
           )}
         </Link>
-        {actions && <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />}
+        {actions && <div className="tea-product-nav-end flex min-w-0 items-center gap-3 max-[383px]:gap-1">
+          {hasProductActions && <ProductAccount onEdit={actions?.onEdit} />}
+          <ProductOrderAccess onCartClick={onCartClick} cartItemCount={cartItemCount} />
+        </div>}
       </div>}
 
       <article className="tea-product-page mx-auto w-full max-w-screen-xl" data-sold-out={soldOut || undefined}>
         <div className="tea-product-layout">
           <div className="tea-product-plaque">
-            <div className={hasMemberPhotos ? 'tea-product-plaque-stack' : 'relative lg:h-full'}>
+            <div className="relative lg:h-full">
               <AlcoveIdentityHeader {...identity} variant="plate" />
-              {hasMemberPhotos && <div className="tea-product-under-plaque">
-                <TeaPhotographRow photographs={photos.row} teaName={item.name} onChooseCover={photos.chooseCover}
-                  onRemove={photos.removeOwn} onShape={photos.reshapeOwn} onShare={photos.shareOwn}
-                  addPhoto={hasShopPhotos ? undefined : addPhoto} />
-              </div>}
             </div>
           </div>
           <div className="tea-product-reading">
             <AlcoveGallery key={`gallery-${item.id}`} {...gallery} layout="page" onExpandImage={setExpandedImage}
               addPhoto={hasShopPhotos ? addPhoto : undefined} />
             {hasShopPhotos && galleryCaption && <p className="mx-5 mt-2 text-tea-text-sec">{galleryCaption}</p>}
+            {/* Photos come first (Adrian, 2026-11-24): the shop's, then the family's
+                as one row of equal thumbnails. Who took one shows only when it is
+                opened. With no photos at all, the add button stands in their place. */}
+            {hasMemberPhotos && <TeaPhotographRow photographs={photos.row} teaName={item.name} onChooseCover={photos.chooseCover}
+              onRemove={photos.removeOwn} onShape={photos.reshapeOwn} onShare={photos.shareOwn}
+              addPhoto={hasShopPhotos ? undefined : addPhoto} />}
+            {emptyGallery && addPhoto && <div className="tea-product-photo-empty">{addPhoto}</div>}
             {hasProductActions && isAuthenticated && <input type="file" ref={input} hidden multiple accept="image/*" aria-label="Add product photos" onChange={event => {
               const files = Array.from(event.target.files ?? []);
               event.target.value = '';
               if (files.length) upload.mutate(files);
             }} />}
             {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
-            {hasProductActions && actions && <ProductDetailActions {...actions} key={`actions-${item.id}`} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
-            {reading?.introduction && <p className={`${BODY} mx-5 my-[var(--space-4)] text-tea-text`}>{reading.introduction}</p>}
+            <TeaFactsBox facts={visibleFacts} summary={reading?.introduction} title={factsTitle} />
+            {hasProductActions && actions && <ProductDetailActions {...actions} key={`actions-${item.id}`} />}
             {item.ordersPaused && <p className="mx-5 my-2 text-ui-13 text-tea-text-sec">{ORDERS_PAUSED_MESSAGE}</p>}
             {reading?.clay && <AlcoveAboutSection reading={{ label: reading.clay.label, sections: [reading.clay] }} variant="page" />}
             {tasting}
-            {visibleFacts.length > 0 && (
-              <section className="tea-product-provenance" aria-labelledby="tea-product-provenance-title">
-                <h2 id="tea-product-provenance-title" className="m-0 font-display text-ui-20 text-tea-text">{factsTitle}</h2>
-                <FactGrid facts={visibleFacts} />
-              </section>
-            )}
             {order && <div data-page-order data-tea-product-order={teaOrder || undefined} className="commerce-dock commerce-price-surface paper-surface dark z-nav">{order}</div>}
             {history}
+            {journal}
             {reading && <AlcoveAboutSection reading={reading} variant="page" />}
             {related}
             {selectedBy.length > 0 && (
@@ -176,43 +178,49 @@ export function ProductDetailLayout({
   );
 }
 
+/** Your name (or Log in) and, for the owner, Edit: in the top bar, out of a customer's way. */
+function ProductAccount({ onEdit }: { onEdit?: () => void }) {
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const { pathname, search } = useLocation();
+  if (!isAuthenticated) {
+    return <Button variant="quiet" size="sm" onClick={() => navigate(authPagePath('signin', pathname + search))}>Log in</Button>;
+  }
+  return <>
+    <Button variant="quiet" size="sm" className="tea-product-profile" icon={<Icons.User aria-hidden="true" />} onClick={() => navigate('/account')}>
+      {user?.name?.trim() || 'My account'}
+    </Button>
+    {onEdit && <Button variant="quiet" size="sm" onClick={onEdit}>Edit</Button>}
+  </>;
+}
+
+/**
+ * The quiet ribbon (Adrian's pick, 2026-11-24): Add your tasting and Add to
+ * collection as spaced capitals between two hairlines, straight after the facts.
+ */
 function ProductDetailActions({
-  productId, label, onTaste, onEdit, emptyGalleryAction,
+  productId, label, onTaste,
 }: {
   productId: string;
   label: string;
   onTaste?: () => void;
   onEdit?: () => void;
-  emptyGalleryAction?: ReactNode;
 }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const collected = useAppStore(state => state.favoriteTeas.includes(productId));
   const toggleFavorite = useAppStore(state => state.toggleFavoriteTea);
 
-  const accountAction = isAuthenticated ? (
-    <Button variant="secondary" size="sm" className="tea-product-profile" icon={<Icons.User aria-hidden="true" />} onClick={() => navigate('/account')}>
-      {user?.name?.trim() || 'My account'}
-    </Button>
-  ) : (
-    <Button variant="secondary" size="sm" onClick={() => navigate(authPagePath('signin', pathname + search))}>Log in</Button>
-  );
-
   return (
-    <div className="tea-product-account" role="group" aria-label={label}>
-      {emptyGalleryAction ? (
-        <div className="tea-product-account-photo">{accountAction}{emptyGalleryAction}</div>
-      ) : accountAction}
-      {isAuthenticated ? (
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {onTaste && <Button variant="secondary" size="sm" onClick={onTaste}>Taste</Button>}
-          <Button variant="secondary" size="sm" aria-pressed={collected} onClick={() => toggleFavorite(productId)}>
-            {collected ? 'Collected' : '+ Collect'}
-          </Button>
-          {onEdit && <Button variant="secondary" size="sm" onClick={onEdit}>Edit</Button>}
-        </div>
-      ) : onTaste && <Button variant="secondary" size="sm" onClick={onTaste}>Add your tasting</Button>}
+    <div className="tea-product-ribbon" role="group" aria-label={label}>
+      {onTaste && <Button variant="quiet" onClick={onTaste}>Add your tasting</Button>}
+      <Button variant="quiet" aria-pressed={isAuthenticated ? collected : undefined} onClick={() => {
+        if (isAuthenticated) toggleFavorite(productId);
+        else navigate(authPagePath('signin', pathname + search));
+      }}>
+        {collected && isAuthenticated ? 'In your collection' : 'Add to collection'}
+      </Button>
     </div>
   );
 }

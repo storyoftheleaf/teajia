@@ -5,6 +5,168 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "xishuangbanna-tea-mountains",
+    "slug": "xishuangbanna-tea-mountains",
+    "kind": "reference_topic",
+    "label": "Xishuangbanna Tea Mountains",
+    "visibility": "draft",
+    "parentId": "yunnan",
+    "sourceIds": [
+      "ctma-xishuangbanna-twelve-mountains-2025"
+    ],
+    "sections": [
+      {
+        "key": "regional-grouping",
+        "label": "A regional grouping",
+        "sourceIds": [
+          "ctma-xishuangbanna-twelve-mountains-2025"
+        ]
+      },
+      {
+        "key": "mountain-names",
+        "label": "Mountain names",
+        "sourceIds": [
+          "ctma-xishuangbanna-twelve-mountains-2025"
+        ]
+      },
+      {
+        "key": "living-culture",
+        "label": "Living tea culture",
+        "sourceIds": [
+          "ctma-xishuangbanna-twelve-mountains-2025"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "y562",
+    "slug": "y562",
+    "kind": "named_tea",
+    "label": "Y562",
+    "visibility": "public",
+    "nativeName": "中茶吉幸Y562",
+    "parentId": "shou",
+    "sourceIds": [
+      "china-tea-catalogue-y562",
+      "puer-magazine-export-cartons",
+      "puer-magazine-jixing-design"
+    ],
+    "sections": [
+      {
+        "key": "little-black-box",
+        "label": "Yunnan’s little black box",
+        "sourceIds": [
+          "china-tea-catalogue-y562",
+          "puer-magazine-jixing-design"
+        ]
+      },
+      {
+        "key": "export-trade",
+        "label": "The box was part of the tea’s story",
+        "sourceIds": [
+          "puer-magazine-export-cartons"
+        ]
+      },
+      {
+        "key": "designers",
+        "label": "A tiger and a hand-painted carton",
+        "sourceIds": [
+          "puer-magazine-export-cartons",
+          "puer-magazine-jixing-design"
+        ]
+      },
+      {
+        "key": "original-blend",
+        "label": "The tea behind the code",
+        "sourceIds": [
+          "puer-magazine-jixing-design"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "yancha",
+    "slug": "yancha",
+    "kind": "tea_type",
+    "label": "Wuyi rock tea (yancha)",
+    "visibility": "public",
+    "nativeName": "武夷岩茶",
+    "parentId": "oolong",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Wuyi rock tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "rock-rhyme",
+        "label": "Rock rhyme",
+        "sourceIds": []
+      },
+      {
+        "key": "growing-areas",
+        "label": "Where in Wuyi it grows",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Wuyi rock tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "roast-levels",
+        "label": "Light, medium and full roast",
+        "sourceIds": []
+      },
+      {
+        "key": "da-hong-pao",
+        "label": "Da Hong Pao",
+        "sourceIds": []
+      },
+      {
+        "key": "rougui",
+        "label": "Rougui",
+        "sourceIds": []
+      },
+      {
+        "key": "shui-xian",
+        "label": "Shui Xian",
+        "sourceIds": []
+      },
+      {
+        "key": "meizhan",
+        "label": "Meizhan",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Wuyi rock tea began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Wuyi rock tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Wuyi rock tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged Wuyi rock tea",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "yunnan",
     "slug": "yunnan",
     "kind": "major_region",
@@ -62,6 +224,58 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": [
           "ctma-yunnan-108-mountains-2026"
         ]
+      }
+    ]
+  },
+  {
+    "id": "yunnan-white",
+    "slug": "yunnan-white",
+    "kind": "tea_type",
+    "label": "Yunnan white",
+    "visibility": "public",
+    "nativeName": "云南白茶",
+    "parentId": "white",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Yunnan white is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Yunnan white is made",
+        "sourceIds": []
+      },
+      {
+        "key": "moonlight-white",
+        "label": "Moonlight White",
+        "sourceIds": []
+      },
+      {
+        "key": "yabao",
+        "label": "Yabao",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Yunnan white began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping Yunnan white",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Yunnan white",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
       }
     ]
   }

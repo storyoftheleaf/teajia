@@ -47,6 +47,8 @@ interface AlcoveCharacterBandProps {
   impressions?: ProductImpression[];
   /** Public listings and their quick views use only authored lot tasting. */
   verifiedOnly?: boolean;
+  /** The product page sets the tasting journal after the story instead of here. */
+  journalElsewhere?: boolean;
 }
 
 const POTENTIAL_LABELS: Record<string, string> = {
@@ -115,7 +117,7 @@ function TermLine({ label, terms, onTermClick }: {
 
 // Only the owner's product tasting carries exact-lot authorization. Guest words
 // come from the placement endpoint so withdrawing an excerpt also removes it here.
-function LotTasting({ item, impressions, onTermClick }: Pick<AlcoveCharacterBandProps, 'item' | 'onTermClick'> & {
+function LotTasting({ item, impressions, onTermClick, journalElsewhere }: Pick<AlcoveCharacterBandProps, 'item' | 'onTermClick' | 'journalElsewhere'> & {
   impressions: ProductImpression[];
 }) {
   const tasting = item.tastingSource === 'owner' ? item.tasting : undefined;
@@ -136,21 +138,27 @@ function LotTasting({ item, impressions, onTermClick }: Pick<AlcoveCharacterBand
     if (!terms.length || published.has(textKey(terms.map(resolveTermLabel).join(' ')))) return [];
     return [{ id, label, terms }];
   });
+  // The centred band holds the taste words only. The shop's own starred notes
+  // are the curator writing about the tea (Adrian signs as Tjia, 2026-11-24),
+  // so they stand under the band in his voice rather than inside it.
   return <>
-    {(lines.length > 0 || quotes.length > 0) && <section aria-label="Taste" className="mx-5 mt-[var(--space-4)]">
-      <div className="alcove-record grid gap-[var(--space-3)] p-[var(--space-4)] text-center">
+    {(lines.length > 0 || quotes.length > 0) && <section aria-label="Taste" className="mx-5 mt-[var(--space-4)] grid gap-[var(--space-4)]">
+      {lines.length > 0 && <div className="alcove-record grid gap-[var(--space-3)] p-[var(--space-4)] text-center">
         {lines.map(({ id, label, terms }) => <div key={id}>
           <p className={`${LABEL} text-tea-text-sec`}>{label}</p>
           <CharacterTerms className={`${HEADING} text-tea-text`} labels={terms.map(resolveTermLabel)}
             onChoose={onTermClick && (index => onTermClick(terms[index], id))} />
         </div>)}
-        {quotes.map(note => <figure key={note.id}>
-          <blockquote className={`${BODY} italic text-tea-text`}>{note.text}</blockquote>
-          <figcaption className={`${LABEL} text-tea-text-sec`}>Teajia</figcaption>
+      </div>}
+      {quotes.length > 0 && <div className="curator-notes" data-testid="curator-notes">
+        <p className={`${LABEL} m-0 text-tea-gold`}>Curator&rsquo;s notes</p>
+        {quotes.map(note => <figure key={note.id} className="m-0">
+          <blockquote className={`${BODY} m-0 italic text-tea-text`}>{note.text}</blockquote>
+          <figcaption className={`${LABEL} mt-[var(--space-1)] normal-case tracking-normal text-tea-text-sec`}>Tjia, curator</figcaption>
         </figure>)}
-      </div>
+      </div>}
     </section>}
-    {journal.length > 0 && <div className="mx-5"><ProductImpressions impressions={journal} /></div>}
+    {!journalElsewhere && journal.length > 0 && <div className="mx-5"><ProductImpressions impressions={journal} /></div>}
   </>;
 }
 
@@ -169,9 +177,10 @@ export const AlcoveCharacterBand: React.FC<AlcoveCharacterBandProps> = ({
   tastingEntry = null,
   impressions = [],
   verifiedOnly = false,
+  journalElsewhere = false,
 }) => {
   if (verifiedOnly) return <>
-    <LotTasting item={item} impressions={impressions} onTermClick={onTermClick} />
+    <LotTasting item={item} impressions={impressions} onTermClick={onTermClick} journalElsewhere={journalElsewhere} />
     {onTaste && <AlcoveTastingPlate entry={tastingEntry} onTaste={intent => onTaste(item, intent)} />}
   </>;
   const tasting = item.tasting;

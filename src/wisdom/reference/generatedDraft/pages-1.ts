@@ -898,82 +898,63 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
-    "id": "xishuangbanna-tea-mountains",
-    "slug": "xishuangbanna-tea-mountains",
-    "kind": "reference_topic",
-    "label": "Xishuangbanna Tea Mountains",
-    "visibility": "draft",
-    "parentId": "yunnan",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
-    "sections": [
-      {
-        "key": "regional-grouping",
-        "label": "A regional grouping",
-        "sourceIds": [
-          "ctma-xishuangbanna-twelve-mountains-2025"
-        ]
-      },
-      {
-        "key": "mountain-names",
-        "label": "Mountain names",
-        "sourceIds": [
-          "ctma-xishuangbanna-twelve-mountains-2025"
-        ]
-      },
-      {
-        "key": "living-culture",
-        "label": "Living tea culture",
-        "sourceIds": [
-          "ctma-xishuangbanna-twelve-mountains-2025"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "y562",
-    "slug": "y562",
-    "kind": "named_tea",
-    "label": "Y562",
+    "id": "white",
+    "slug": "white",
+    "kind": "tea_family",
+    "label": "White tea (bai cha)",
     "visibility": "public",
-    "nativeName": "中茶吉幸Y562",
-    "parentId": "shou",
-    "sourceIds": [
-      "china-tea-catalogue-y562",
-      "puer-magazine-export-cartons",
-      "puer-magazine-jixing-design"
-    ],
+    "nativeName": "白茶",
+    "sourceIds": [],
     "sections": [
       {
-        "key": "little-black-box",
-        "label": "Yunnan’s little black box",
-        "sourceIds": [
-          "china-tea-catalogue-y562",
-          "puer-magazine-jixing-design"
-        ]
+        "key": "definition",
+        "label": "What white tea is",
+        "sourceIds": []
       },
       {
-        "key": "export-trade",
-        "label": "The box was part of the tea’s story",
-        "sourceIds": [
-          "puer-magazine-export-cartons"
-        ]
+        "key": "making",
+        "label": "How white tea is made",
+        "sourceIds": []
       },
       {
-        "key": "designers",
-        "label": "A tiger and a hand-painted carton",
-        "sourceIds": [
-          "puer-magazine-export-cartons",
-          "puer-magazine-jixing-design"
-        ]
+        "key": "grades",
+        "label": "The kinds of white tea",
+        "sourceIds": []
       },
       {
-        "key": "original-blend",
-        "label": "The tea behind the code",
-        "sourceIds": [
-          "puer-magazine-jixing-design"
-        ]
+        "key": "fuding-and-zhenghe",
+        "label": "Fuding and Zhenghe",
+        "sourceIds": []
+      },
+      {
+        "key": "pressing",
+        "label": "Pressed white tea",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How white tea began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing white tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing white tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged white tea",
+        "sourceIds": []
       }
     ]
   }
