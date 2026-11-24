@@ -8,7 +8,7 @@ import type { Product } from '../../../types';
 import { fmtNum } from '../../../../utils/formatNumber';
 
 export function useStockLayout() {
-  const [layout, setLayout] = useState<'cards' | 'table'>(() => localStorage.getItem('teajia-stock-layout') === 'table' ? 'table' : 'cards');
+  const [layout, setLayout] = useState<'cards' | 'table'>(() => localStorage.getItem('teajia-stock-layout') === 'cards' ? 'cards' : 'table');
   const chooseLayout = (next: 'cards' | 'table') => {
     localStorage.setItem('teajia-stock-layout', next);
     setLayout(next);

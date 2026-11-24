@@ -1,18 +1,29 @@
 import { expect, test } from './fixtures';
 import { injectAuth, mockInventoryApi, MOCK_PRODUCTS } from './helpers/inventoryMocks';
 
-test('Stock uses shared cards and directs listing and development work', async ({ page }) => {
+test('Stock opens in Table and remembers a deliberately selected layout', async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ json: [] }));
-  await injectAuth(page, 'cards');
+  await injectAuth(page);
   await mockInventoryApi(page);
   await page.route('**/api/products', route => route.fulfill({ json: MOCK_PRODUCTS.slice(0, 8) }));
   await page.goto('/admin/stock');
 
+  const tableButton = page.getByRole('button', { name: 'Table', exact: true });
+  const cardsButton = page.getByRole('button', { name: 'Cards', exact: true });
+  const desktop = page.viewportSize()!.width >= 768;
+  const table = desktop ? page.getByTestId('inventory-column-row') : page.locator('.stock-record').first();
   const cards = page.getByTestId('stock-card-sections');
+  await expect(tableButton).toHaveAttribute('aria-pressed', 'true');
+  await expect(table).toBeVisible();
+  await expect(cards).toHaveCount(0);
+
+  await cardsButton.click();
+  await expect(cards).toBeVisible();
+  await page.reload();
   await expect(cards).toBeVisible();
   await expect(cards.locator('[data-testid^="stock-card-"]')).toHaveCount(8);
-  await expect(page.getByTestId('inventory-column-row')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Cards', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(table).toHaveCount(0);
+  await expect(cardsButton).toHaveAttribute('aria-pressed', 'true');
 
   const first = page.getByTestId('stock-card-test-product-2');
   await expect(first).toContainText('Buyer');
@@ -23,15 +34,11 @@ test('Stock uses shared cards and directs listing and development work', async (
   await page.getByTestId('stock-card-test-product-4').getByRole('button', { name: 'Develop tea' }).click();
   await expect(page).toHaveURL(/\/admin\/compass\?/);
   await page.goto('/admin/stock');
-  await page.getByRole('button', { name: 'Table', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Table', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  const header = page.getByTestId('inventory-column-row');
-  if (page.viewportSize()!.width >= 768) await expect(header).toBeVisible();
-  else await expect(page.locator('.stock-record').first()).toBeVisible();
+  await tableButton.click();
+  await expect(table).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Table', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  if (page.viewportSize()!.width >= 768) await expect(header).toBeVisible();
-  else await expect(page.locator('.stock-record').first()).toBeVisible();
+  await expect(tableButton).toHaveAttribute('aria-pressed', 'true');
+  await expect(table).toBeVisible();
 });
 
 test('Stock cards use two columns only when two readable cards fit, then become a spreadsheet', async ({ page }) => {
