@@ -258,3 +258,42 @@ describe('built scripts and styles', () => {
     expect(routes.include).toContain('/assets/*');
   });
 });
+
+
+describe('product metadata while ordering is paused', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each([true, false])('keeps the tea share metadata and omits the crawler Offer only while paused (%s)', async ordersPaused => {
+    const upstream = vi.fn(async () => Response.json({
+      product_name: 'Inward',
+      type: 'Dark',
+      description: 'Public introduction',
+      image_url: 'https://example.test/inward.jpg',
+      stock_grams: ordersPaused ? null : 100,
+      fixed_retail_price_usd: ordersPaused ? null : 2,
+      orders_paused: ordersPaused,
+    }));
+    const append = vi.fn();
+    vi.stubGlobal('fetch', upstream);
+    vi.stubGlobal('HTMLRewriter', class {
+      on(selector: string, handler: { element: (element: { append: typeof append }) => void }) {
+        if (selector === 'head') handler.element({ append });
+        return this;
+      }
+      transform(response: Response) { return response; }
+    });
+    await onRequest({
+      request: new Request('https://www.teajia.com/shop/product/inward', { headers: { 'User-Agent': 'Googlebot' } }),
+      env: { WORKER_ORIGIN: 'https://worker.example' },
+      next: async () => new Response('<head></head>', { headers: { 'Content-Type': 'text/html' } }),
+    } as any);
+
+    expect(String((upstream.mock.calls[0] as unknown[])[0])).toBe('https://worker.example/api/products/public/inward');
+    expect(append).toHaveBeenCalledTimes(1);
+    const [markup] = append.mock.calls[0] as [string];
+    const product = JSON.parse(markup.replace(/^.*?>|<\/script>$/g, ''));
+    expect(product).toMatchObject({ '@type': 'Product', name: 'Inward', description: 'Public introduction', image: 'https://example.test/inward.jpg' });
+    if (ordersPaused) expect(product).not.toHaveProperty('offers');
+    else expect(product.offers).toMatchObject({ '@type': 'Offer', price: '2.00', availability: 'https://schema.org/InStock' });
+  });
+});

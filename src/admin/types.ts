@@ -48,6 +48,7 @@ export interface InventoryReceipt { id: string; state: InventoryReceiptState; ve
 import type { TastingData } from '../types';
 
 export interface Product {
+  ordersPaused?: boolean;
   id: string;
   type: ProductType;
   form?: TeaForm; // Physical form: Loose, Cake, Tuo, Brick, etc.

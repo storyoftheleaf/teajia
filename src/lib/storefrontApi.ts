@@ -89,6 +89,7 @@ export function normalizeProduct(p: any): PublicProduct {
     pricePerGramUSD: p.retail_price_per_gram_usd == null ? null : Number(p.retail_price_per_gram_usd),
     fixedRetailPriceUSD: p.fixed_retail_price_usd != null ? Number(p.fixed_retail_price_usd) : null,
     stockGrams: Number(p.stock_grams) || 0,
+    ordersPaused: p.orders_paused === true || undefined,
     description: p.description || '',
     tastingNotes: Array.isArray(p.tasting_notes) ? p.tasting_notes : [],
     imageUrl: p.image_url || '',

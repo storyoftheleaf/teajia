@@ -10,6 +10,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
   const price = retail == null ? undefined : String(retail);
   return {
     id: p.id,
+    ordersPaused: p.ordersPaused,
     slug: p.slug,
     category: isTea ? 'tea' : 'ware',
     type: p.type,

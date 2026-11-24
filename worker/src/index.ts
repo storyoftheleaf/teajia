@@ -51,6 +51,7 @@ import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
 import { addPricingFields, lookupRateToUsd, shopFreightPerKgUsd } from './productPricing';
+import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
@@ -2728,6 +2729,12 @@ const PUBLIC_FIELDS = [
   'cultivar',
 ] as const;
 
+function maskCountPendingCommerce(publicRow: Record<string, unknown>, accountId: unknown, product: Record<string, unknown>) {
+  if (inwardOrdersPaused(accountId, product)) {
+    Object.assign(publicRow, { orders_paused: true, stock_grams: null, retail_price_per_gram_usd: null, fixed_retail_price_usd: null });
+  }
+}
+
 // Legacy alias: resolves to Adrian's Bali store. New callers should use
 // /api/s/teajia-bali/products.
 const handleGetPublicProducts: Handler = async (request, env) => {
@@ -3457,7 +3464,8 @@ async function applyProductUpdate(
   if (!ownedProduct) return json({ error: 'Product not found' }, 404);
 
   const publication = allowedColumns === PRODUCT_PUBLICATION_UPDATE_COLUMNS || allowedColumns === PRODUCT_VISIBILITY_UPDATE_COLUMNS
-    ? await checkProductPublication(env, accountId, params.id, publicationPatchFromColumns(body))
+    ? await checkProductPublication(env, accountId, params.id, publicationPatchFromColumns(body), undefined,
+      allowedColumns === PRODUCT_VISIBILITY_UPDATE_COLUMNS)
     : null;
   if (publication?.refusal) {
     const { error, code, details } = publication.refusal;
@@ -10873,7 +10881,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
               public_account.default_shipping_rate_per_kg AS account_freight_per_kg,
               public_account.default_shipping_rate_currency AS account_freight_currency,
               '/shop/product/' || COALESCE(p.slug, p.id) || '?store=' || public_account.slug AS public_path,
-              p.origin_country, p.origin_region, p.stock_grams,
+              p.origin_country, p.origin_region, p.stock_grams, p.account_id, p.stock_known_at, p.stock_verified_at,
               COALESCE(tp.description, p.description) AS description,
               COALESCE(tp.tasting_notes, p.tasting_notes) AS tasting_notes,
               p.image_url, p.additional_images, p.status,
@@ -10939,6 +10947,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       }
       safe.account_slug = p.account_slug;
       safe.public_path = p.public_path;
+      maskCountPendingCommerce(safe, p.account_id, p);
       return safe;
     });
     return cachedJson(products, 60);
@@ -14763,7 +14772,8 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
 // A visitor can only ask for a tea the public catalogue would show them. A
 // Draft, held or sold-out tea answers exactly as an unknown id does. Only the
 // unauthenticated request path reads this; staff doors price any tea they own.
-const PUBLIC_REQUEST_PRODUCT = "p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active'";
+const PUBLIC_REQUEST_PRODUCT = `p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active'
+  AND NOT ${INWARD_ORDERS_PAUSED_SQL}`;
 
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>) {
   const productIds = catalogProductIds(items);
@@ -19866,7 +19876,8 @@ const handleRequestSample: Handler = async (request, env) => {
 
   // Look up the product name for the sample record
   const product = await env.DB.prepare(
-    'SELECT given_name, product_name, type FROM products WHERE id = ? AND account_id = ?'
+    `SELECT p.given_name, p.product_name, p.type FROM products p
+     WHERE p.id = ? AND p.account_id = ? AND NOT ${INWARD_ORDERS_PAUSED_SQL}`
   ).bind(product_id, accountId).first() as { given_name?: string; product_name?: string; type?: string } | null;
 
   if (!product) return json({ error: 'Product not found' }, 404);
@@ -22654,13 +22665,14 @@ async function fetchPublicProductsForAccount(
   // active products with stock, including pieces rather than grams for ware.
   const visibilityFilter = productId
     ? "p.status IN ('Active', 'Sold Out')"
-    : "p.status = 'Active' AND CASE WHEN p.type = 'Teaware' THEN COALESCE(p.quantity_units, p.stock_grams, 0) ELSE COALESCE(p.stock_grams, 0) END > 0";
+    : `p.status = 'Active' AND (${INWARD_ORDERS_PAUSED_SQL}
+        OR CASE WHEN p.type = 'Teaware' THEN COALESCE(p.quantity_units, p.stock_grams, 0) ELSE COALESCE(p.stock_grams, 0) END > 0)`;
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
     env.DB.prepare(
       `SELECT p.id, p.slug, p.type, COALESCE(tp.form, p.form) AS form,
               p.given_name, p.chinese_name, p.product_name, p.year,
-              p.origin_country, p.origin_region, p.stock_grams,
+              p.origin_country, p.origin_region, p.stock_grams, p.stock_known_at, p.stock_verified_at,
               COALESCE(tp.description, p.description) AS description,
               COALESCE(tp.tasting_notes, p.tasting_notes) AS tasting_notes,
               p.image_url, p.additional_images, p.status,
@@ -22720,6 +22732,7 @@ async function fetchPublicProductsForAccount(
     }
     attachPublicTeawareDetails(safe, p);
     if (accountId === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
+    maskCountPendingCommerce(safe, accountId, p);
     return safe;
   });
 }
@@ -26905,6 +26918,7 @@ const handleGetShopCollections: Handler = async (_request, env) => {
       WHERE ci.collection_id IN (${placeholders})
         AND p.status = 'Active'
         AND p.is_public = 1 AND p.shown_in_shop = 1
+        AND NOT ${INWARD_ORDERS_PAUSED_SQL}
       ORDER BY ci.collection_id, ci.position ASC`
   ).bind(...collectionIds).all();
 
@@ -27276,6 +27290,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
        JOIN products p ON p.id = ci.product_id
       WHERE ci.collection_id = ?
         AND (? = 0 OR (p.is_public = 1 AND p.shown_in_shop = 1))
+        AND NOT ${INWARD_ORDERS_PAUSED_SQL}
       ORDER BY ci.position ASC`
   ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
@@ -27739,6 +27754,10 @@ const handleNetworkCatalog: Handler = async (request, env) => {
              ON cl.profile_id  = p.id
             AND cl.account_id  = p.curated_by_account_id
             AND cl.status      = 'active'
+            AND NOT EXISTS (
+              SELECT 1 FROM products p WHERE p.id = cl.legacy_product_id AND p.account_id = cl.account_id
+                AND ${INWARD_ORDERS_PAUSED_SQL}
+            )
       WHERE p.network_visible = 1
         AND p.status = 'published'
         AND p.curated_by_account_id != ?
@@ -28760,12 +28779,17 @@ const handleCreateWholesaleOrder: Handler = async (request, env) => {
     if (!unitCur) return json({ error: 'item.unit_price_currency required' }, 400);
 
     const listing = await env.DB.prepare(
-      'SELECT id, account_id, profile_id, status FROM product_listings WHERE id = ?'
-    ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string } | null;
+      `SELECT l.id, l.account_id, l.profile_id, l.status,
+              EXISTS(SELECT 1 FROM products p
+                WHERE p.id = l.legacy_product_id AND p.account_id = l.account_id
+                 AND ${INWARD_ORDERS_PAUSED_SQL}) AS orders_paused
+       FROM product_listings l WHERE l.id = ?`
+    ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string; orders_paused?: number } | null;
     if (!listing) return json({ error: `item.supplier_listing_id '${it.supplier_listing_id}' not found` }, 404);
     if (listing.account_id !== supplierAccountId) {
       return json({ error: `item.supplier_listing_id '${it.supplier_listing_id}' does not belong to this supplier` }, 400);
     }
+    if (listing.orders_paused) return json({ error: 'Ordering is paused while this tea is counted.' }, 409);
     if (listing.status !== 'active') {
       return json({ error: `Supplier listing '${it.supplier_listing_id}' is not active` }, 400);
     }
@@ -28891,12 +28915,17 @@ const handleUpdateWholesaleOrder: Handler = async (request, env, params) => {
       if (!unitCur) return json({ error: 'item.unit_price_currency required' }, 400);
 
       const listing = await env.DB.prepare(
-        'SELECT id, account_id, profile_id, status FROM product_listings WHERE id = ?'
-      ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string } | null;
+        `SELECT l.id, l.account_id, l.profile_id, l.status,
+              EXISTS(SELECT 1 FROM products p
+                WHERE p.id = l.legacy_product_id AND p.account_id = l.account_id
+                 AND ${INWARD_ORDERS_PAUSED_SQL}) AS orders_paused
+       FROM product_listings l WHERE l.id = ?`
+      ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string; orders_paused?: number } | null;
       if (!listing) return json({ error: `Listing '${it.supplier_listing_id}' not found` }, 404);
       if (listing.account_id !== order.supplier_account_id) {
         return json({ error: `Listing '${it.supplier_listing_id}' is not from this order's supplier` }, 400);
       }
+      if (listing.orders_paused) return json({ error: 'Ordering is paused while this tea is counted.' }, 409);
       if (listing.status !== 'active') {
         return json({ error: `Listing '${it.supplier_listing_id}' is not active` }, 400);
       }
@@ -28966,6 +28995,19 @@ const handleTransitionWholesaleOrder: Handler = async (request, env, params) => 
   const stmts: D1PreparedStatement[] = [];
   let receiveClaim:string|null=null;
   const releaseReceive=()=>env.DB.prepare('UPDATE wholesale_orders SET receive_claim_token=NULL,receive_claimed_at=NULL WHERE id=? AND receive_claim_token=?').bind(orderId,receiveClaim).run();
+
+  // Old drafts are subject to the same count check when the buyer submits
+  // or the supplier confirms. Neither action can turn display into an order.
+  if (order.supplier_account_id === INWARD_BALI_LOT.accountId
+    && ((to === 'submitted' && isBuyer) || (to === 'confirmed' && isSupplier))) {
+    const pending = await env.DB.prepare(
+      `SELECT 1 FROM wholesale_order_items item
+        JOIN product_listings listing ON listing.id = item.supplier_listing_id AND listing.account_id = ?
+        JOIN products p ON p.id = listing.legacy_product_id AND p.account_id = listing.account_id
+       WHERE item.order_id = ? AND ${INWARD_ORDERS_PAUSED_SQL} LIMIT 1`
+    ).bind(order.supplier_account_id, orderId).first();
+    if (pending) return json({ error: 'Ordering is paused while this tea is counted.' }, 409);
+  }
 
   // Validate the transition is legal AND the caller is the right party.
   // Each branch builds the appropriate UPDATE statement.

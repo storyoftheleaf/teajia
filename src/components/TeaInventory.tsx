@@ -26,7 +26,7 @@ import { TeaShopViewRegion, TeaShopViewTabs } from './shop/TeaShopViewTabs';
 import { BODY, LINK } from './shared/typeRoles';
 import {
   applyFinderIntent,
-  selectAvailableTeas,
+  selectVisibleTeas,
   selectCuratedTeas,
   selectPastTeas,
   type TeaFinderIntent,
@@ -169,7 +169,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeFlavorTags, setActiveFlavorTags] = useState<string[]>([]);
   const [moodFlavorOpen, setMoodFlavorOpen] = useState(false);
 
-  const baseAvailable = useMemo(() => selectAvailableTeas(inventory), [inventory]);
+  const baseAvailable = useMemo(() => selectVisibleTeas(inventory), [inventory]);
   const baseCurated = useMemo(() => selectCuratedTeas(inventory), [inventory]);
   const basePast = useMemo(() => selectPastTeas(inventory), [inventory]);
   const filterSource = showPast

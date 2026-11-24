@@ -624,13 +624,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         history={composed
           ? <AlcoveComposedEntry entry={composed} claims={entryClaims} />
           : <AlcoveWisdomPassages listing={wisdomPassages} />}
-        order={wisdomPilot?.externalReference ? undefined : commerceFooter('docked')}
+        order={wisdomPilot?.externalReference || item.ordersPaused ? undefined : commerceFooter('docked')}
         teaOrder
         tasting={characterBand}
         reading={reading}
         related={<>{tableSection}{threadSection}</>}
         styleReference={<AlcoveWisdomStyleReferences listing={wisdomPassages} />}
-        soldOut={isSoldOut}
+        soldOut={isSoldOut && !item.ordersPaused}
         modals={modals}
       />
     );

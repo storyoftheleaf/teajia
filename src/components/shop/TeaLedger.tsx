@@ -153,7 +153,7 @@ export function TeaLedger({
                       onAddToCart={onAddToCart} onChooseAmount={onChooseAmount} />
                   ) : (
                     <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim">
-                      {soldOut ? 'Sold out' : 'Unavailable'}
+                      {item.ordersPaused ? 'Ordering paused' : soldOut ? 'Sold out' : 'Unavailable'}
                     </span>
                   )}
                 />

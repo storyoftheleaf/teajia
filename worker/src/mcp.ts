@@ -1,4 +1,5 @@
 import { hasPublicStatus } from '../../src/lib/productPublication';
+import { INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, writeProductPublication } from './productPublication';
 import { logisticsTrackingTools } from './mcpTools/logisticsTracking';
 import { logisticsTools } from './mcpTools/logistics';
@@ -8077,9 +8078,15 @@ async function resolvePublicAccount(env: Env, slug: string | null): Promise<Publ
   ).first() as Promise<PublicAccount | null>;
 }
 
+type PublicProductRow = ProductRow & {
+  stock_known_at: string | null;
+  stock_verified_at: string | null;
+};
+
 // Public-safe projection — deliberately omits cost_amount, vendor, margins, and
-// exact stock_grams (only an in_stock boolean leaks).
-function publicProductSummary(p: ProductRow & { description?: string | null; tasting_notes?: string | null }) {
+// exact stock_grams.
+function publicProductSummary(accountId: string, p: PublicProductRow) {
+  const ordersPaused = inwardOrdersPaused(accountId, p);
   return {
     id: p.id,
     name: p.given_name || p.product_name,
@@ -8088,8 +8095,9 @@ function publicProductSummary(p: ProductRow & { description?: string | null; tas
     form: p.form,
     year: p.year,
     origin: [p.origin_region, p.origin_country].filter(Boolean).join(', ') || null,
-    price_per_gram_usd: p.fixed_retail_price_usd ?? null,
-    in_stock: p.status === 'Active'
+    ...(ordersPaused ? { orders_paused: true } : {}),
+    price_per_gram_usd: ordersPaused ? null : p.fixed_retail_price_usd ?? null,
+    in_stock: !ordersPaused && p.status === 'Active'
       && Number(p.type === 'Teaware' ? (p.quantity_units ?? p.stock_grams) : p.stock_grams) > 0,
     shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${p.slug || p.id}`,
   };
@@ -8098,7 +8106,7 @@ function publicProductSummary(p: ProductRow & { description?: string | null; tas
 const PUBLIC_PRODUCT_COLS =
   `id, slug, given_name, product_name, chinese_name, type, form, year,
    origin_country, origin_region, vendor, stock_grams, quantity_units,
-   low_stock_threshold, fixed_retail_price_usd, status`;
+   low_stock_threshold, fixed_retail_price_usd, status, stock_known_at, stock_verified_at`;
 const PUBLIC_SHOP_FLAGS = 'is_public = 1 AND shown_in_shop = 1';
 
 async function publicSearchTea(env: Env, accountId: string, args: any) {
@@ -8113,13 +8121,13 @@ async function publicSearchTea(env: Env, accountId: string, args: any) {
     `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active' AND ${PUBLIC_SHOP_FLAGS} LIMIT 200`
   ).bind(accountId).all();
 
-  const scored = (results as unknown as ProductRow[])
+  const scored = (results as unknown as PublicProductRow[])
     .map(p => ({ p, score: scoreMatch(query, [p.given_name, p.product_name, p.chinese_name, p.origin_region, p.year, p.type]) }))
     .filter(s => s.score > 0.3)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
-  return { matches: scored.map(s => publicProductSummary(s.p)) };
+  return { matches: scored.map(s => publicProductSummary(accountId, s.p)) };
 }
 
 async function publicGetTea(env: Env, accountId: string, args: any) {
@@ -8128,13 +8136,13 @@ async function publicGetTea(env: Env, accountId: string, args: any) {
   const p = await env.DB.prepare(
     `SELECT ${PUBLIC_PRODUCT_COLS}, description, tasting_notes
        FROM products WHERE id = ? AND account_id = ? AND status IN ('Active', 'Sold Out') AND ${PUBLIC_SHOP_FLAGS}`
-  ).bind(id, accountId).first() as (ProductRow & { description?: string; tasting_notes?: string }) | null;
+  ).bind(id, accountId).first() as (PublicProductRow & { description?: string; tasting_notes?: string }) | null;
   if (!p) return { error: 'not_found' };
 
   let tasting: any = p.tasting_notes;
   if (typeof tasting === 'string') { try { tasting = JSON.parse(tasting); } catch { tasting = []; } }
 
-  return { ...publicProductSummary(p), description: p.description ?? null, tasting_notes: tasting };
+  return { ...publicProductSummary(accountId, p), description: p.description ?? null, tasting_notes: tasting };
 }
 
 async function publicBrowseCatalog(env: Env, accountId: string, args: any) {
@@ -8142,17 +8150,18 @@ async function publicBrowseCatalog(env: Env, accountId: string, args: any) {
   const wheres = ['account_id = ?', "status = 'Active'", PUBLIC_SHOP_FLAGS];
   const binds: any[] = [accountId];
   if (args?.type) { wheres.push('type = ?'); binds.push(String(args.type)); }
-  if (args?.in_stock_only) { wheres.push('stock_grams > 0'); }
+  const inStock = `stock_grams > 0 AND NOT ${INWARD_ORDERS_PAUSED_SQL}`;
+  if (args?.in_stock_only) wheres.push(inStock);
 
   const { results } = await env.DB.prepare(
-    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products p
       WHERE ${wheres.join(' AND ')}
-      ORDER BY (stock_grams > 0) DESC, year DESC, product_name ASC
+      ORDER BY (${inStock}) DESC, year DESC, product_name ASC
       LIMIT ?`
   ).bind(...binds, limit).all();
 
   return {
-    items: (results as unknown as ProductRow[]).map(publicProductSummary),
+    items: (results as unknown as PublicProductRow[]).map(product => publicProductSummary(accountId, product)),
     count: results.length,
   };
 }
@@ -8203,14 +8212,14 @@ async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
   const { results: catalog } = await env.DB.prepare(
     `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active' AND ${PUBLIC_SHOP_FLAGS} LIMIT 200`
   ).bind(account.id).all();
-  const products = catalog as unknown as ProductRow[];
+  const products = catalog as unknown as PublicProductRow[];
 
   const lines: Array<{ id: string; name: string; grams: number; price_per_gram_usd: number | null; line_total_usd: number | null; in_stock: boolean; shop_url: string }> = [];
   const unresolved: string[] = [];
 
   for (const raw of rawItems) {
     const grams = Math.max(0, Number(raw?.grams) || 0);
-    let match: ProductRow | undefined;
+    let match: PublicProductRow | undefined;
     const id = raw?.id ? clampStr(raw.id, 100) : '';
     const name = raw?.name ? clampStr(raw.name, 100) : '';
     if (id) {
@@ -8222,6 +8231,9 @@ async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
       if (scored[0]?.score > 0.4) match = scored[0].p;
     }
     if (!match) { unresolved.push(name || id || '(unknown)'); continue; }
+    if (inwardOrdersPaused(account.id, match)) {
+      return { error: 'ordering_paused', message: 'Ordering is paused until this tea is counted.' };
+    }
     const price = match.fixed_retail_price_usd ?? null;
     lines.push({
       id: match.id,

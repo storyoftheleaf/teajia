@@ -1008,6 +1008,7 @@ export interface ProductEditPanelProps {
   incoming?: { quantity: number; eta?: string | null } | null;
   /** False when this holding is not yet eligible for public shop visibility. */
   canPublish?: boolean;
+  canShowWhileCountPending?: boolean;
   publicationProblem?: string | null;
   /** Open the focused Shop listing review when arriving from a Stock card. */
   openListingReview?: boolean;
@@ -1037,6 +1038,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   onTeaAction,
   incoming,
   canPublish = true,
+  canShowWhileCountPending,
   publicationProblem,
   openListingReview = false,
   onListingReviewOpened,
@@ -1469,6 +1471,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               product={product} entryId={sharedRecordId}
               openRequested={openListingReview} onOpenHandled={onListingReviewOpened}
               canList={canList} canPublish={canPublish} isOwner={isOwnerTier} problem={publicationProblem}
+              canShowWhileCountPending={canShowWhileCountPending}
               applyWording={text => persistField(product.id, 'description', text)}
               markReady={() => persistField(product.id, 'status', 'Active')}
               save={async (gate, value) => {

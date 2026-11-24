@@ -1,8 +1,11 @@
 import type { InventoryItem } from '../types';
 import { minimumOrderGrams, quoteGrams, sellUnitOf, snapToUnit, TEA_PRICING, wholePieceOf } from './teaPricing';
 
+export const ORDERS_PAUSED_MESSAGE = 'Ordering is paused while we count this tea.';
+
 /** One complete pack quote, shared by the catalogue and product page. */
 export function teaPurchaseQuote(item: InventoryItem, preferredGrams = 50) {
+  if (item.ordersPaused) return null;
   const pricePerGram = Number.parseFloat(item.price_per_gram ?? '');
   const stock = Math.floor(item.stock_g ?? 0);
   const sellUnit = sellUnitOf(item.form, item.pieceWeightG, item.soldInWholeUnits);

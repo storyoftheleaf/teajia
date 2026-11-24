@@ -301,7 +301,14 @@ export function inventoryPublicationProblem(
   const patch = field === 'status' ? { status: nextValue } : { [field]: nextValue === true };
   if (!needsPublicationReview(product, patch)) return null;
   if (summaryStatus !== 'ready') return 'Arrival status must be ready before publication';
-  return inventoryPublicationRefusal(product, incomingByProductId[product.id])?.error ?? null;
+  const incoming = incomingByProductId[product.id] ?? legacyIncomingSummary(product);
+  const refusal = inventoryPublicationRefusal(product, incoming);
+  const displayWhileAwaitingCount = product.ordersPaused && field === 'shownInShop' && nextValue === true
+    && product.status === 'Active' && product.isPublic && !product.shownInShop
+    && (!incoming.hasOpenIncoming || incoming.remainingQuantity === 0)
+    && refusal?.code === 'product_publication_incomplete'
+    && 'missing' in refusal.details && refusal.details.missing.length === 1 && refusal.details.missing[0] === 'stock';
+  return displayWhileAwaitingCount ? null : refusal?.error ?? null;
 }
 
 export function isInventoryPublicationGateChangeAllowed(

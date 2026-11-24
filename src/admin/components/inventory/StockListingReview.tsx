@@ -52,7 +52,7 @@ function ListingContents({ product, entryId, applyWording, publication }: {
 }) {
   const price = useShopPrice();
   const item = productToInventoryItem(product);
-  const available = product.stockKnownAt && Number.isFinite(product.stockGrams) ? product.stockGrams : null;
+  const available = !product.ordersPaused && product.stockKnownAt && Number.isFinite(product.stockGrams) ? product.stockGrams : null;
   if (available == null || product.status === 'Sold Out') item.stock_g = 0;
   const [amount, setAmount] = useState(50);
   const [comparing, setComparing] = useState(false);

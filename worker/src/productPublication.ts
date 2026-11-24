@@ -1,7 +1,8 @@
 import { needsPublicationReview, publicationRefusal, type PublicationRefusal, type PublicationState } from '../../src/lib/productPublication';
+import { inwardOrdersPaused, type InwardCountColumns } from '../../shared/catalog/inwardOrders';
 import { addPricingFields, shopFreightPerKgUsd } from './productPricing';
 
-type ProductColumns = Record<string, unknown>;
+type ProductColumns = Record<string, unknown> & InwardCountColumns;
 type PublicationEnv = { DB: D1Database };
 type PublicationPricingEdits = Partial<Record<
   'cost_amount' | 'cost_currency' | 'fixed_retail_price_usd' | 'quantity_purchased' | 'shipping_rate_per_kg',
@@ -74,7 +75,7 @@ const OPEN_INCOMING_SQL = `COALESCE((
 
 const PUBLICATION_SNAPSHOT_SQL = `json_array(
   p.status, p.is_public, p.shown_in_shop, p.type, p.given_name, p.product_name,
-  p.stock_grams, p.quantity_units, p.stock_known_at, p.in_transit, p.in_transit_grams,
+  p.stock_grams, p.quantity_units, p.stock_known_at, p.stock_verified_at, p.in_transit, p.in_transit_grams,
   p.fixed_retail_price_usd, p.cost_amount, p.cost_currency, p.shipping_rate_per_kg, p.quantity_purchased,
   ${OPEN_INCOMING_SQL}
 )`;
@@ -82,6 +83,7 @@ const PUBLICATION_SNAPSHOT_SQL = `json_array(
 export async function checkProductPublication(
   env: PublicationEnv, accountId: string, id: string, patch: Partial<PublicationState>,
   pricingEdits?: PublicationPricingEdits,
+  ownerShopVisibility = false,
 ): Promise<{ refusal: PublicationRefusal | null; assertion?: D1PreparedStatement; clearDraftVisibility?: boolean }> {
   if (patch.isPublic !== true && patch.shownInShop !== true && patch.status !== 'Active' && patch.status !== 'Sold Out' && patch.status !== 'Archived') return { refusal: null };
   const product = await env.DB.prepare(
@@ -94,7 +96,12 @@ export async function checkProductPublication(
   }, patch)) {
     // Pricing and status can be edited together; assert the stored snapshot but review the result of the edit.
     const refusal = await checkCandidate(env, accountId, { ...product, ...pricingEdits });
-    if (refusal) return { refusal };
+    const displayWhileAwaitingCount = ownerShopVisibility && patch.shownInShop === true
+      && product.status === 'Active' && Boolean(product.is_public) && !product.shown_in_shop
+      && inwardOrdersPaused(accountId, product) && incomingQuantity(product) === 0
+      && refusal?.code === 'product_publication_incomplete'
+      && 'missing' in refusal.details && refusal.details.missing.length === 1 && refusal.details.missing[0] === 'stock';
+    if (refusal && !displayWhileAwaitingCount) return { refusal };
   }
 
   // The same D1 assertion pattern used by Curate mutations rolls back all

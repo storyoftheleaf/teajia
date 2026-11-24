@@ -1,3 +1,4 @@
+import { inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { inventoryTeaType } from '../wisdom/vocabulary';
 import type { Product } from './types';
 import { storedRatePerKg } from '../lib/shippingRate';
@@ -12,6 +13,7 @@ export function mapAdminProduct(p: any): Product {
   const countedBalance = p.type === 'Teaware' ? p.quantity_units : p.stock_grams;
   return ({
         id: p.id,
+        ordersPaused: inwardOrdersPaused(p.account_id, p) || undefined,
         type: inventoryTeaType(p.type),
         form: p.form || undefined,
         pieceWeightG: p.piece_weight_g == null ? undefined : Number(p.piece_weight_g),

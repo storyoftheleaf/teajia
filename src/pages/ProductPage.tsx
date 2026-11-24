@@ -85,7 +85,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const soldOutStore = useQuery({
     queryKey: ['storefront', 'store', activeStore],
     queryFn: () => fetchStore(activeStore),
-    enabled: !!item && item.stock_g <= 0,
+    enabled: !!item && !item.ordersPaused && item.stock_g <= 0,
     retry: false,
   });
 
@@ -237,7 +237,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
   const isWare = item.category === 'ware';
   const unitPrice = isWare ? teawareUnitPrice(item) : null;
   const priceKnown = isWare ? unitPrice != null : Number.isFinite(pricePerGram) && pricePerGram >= 0;
-  const isSoldOut = (item.stock_g ?? 0) <= 0;
+  const isSoldOut = !item.ordersPaused && (item.stock_g ?? 0) <= 0;
   const introduction = item.description || '';
   const mainStory = reviewedLotProse(item.id, 'lore', item.lore) || '';
   const fallbackDescription = [item.type || item.name, item.origin && `from ${item.origin}`].filter(Boolean).join(' ');

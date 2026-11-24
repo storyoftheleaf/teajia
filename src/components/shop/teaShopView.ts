@@ -16,6 +16,8 @@ export const isSaleReadyTea = (item: InventoryItem) => {
 
 export const selectAvailableTeas = (items: InventoryItem[]) =>
   items.filter(item => item.stock_g > 0 && isSaleReadyTea(item));
+export const selectVisibleTeas = (items: InventoryItem[]) =>
+  items.filter(item => item.ordersPaused || (item.stock_g > 0 && isSaleReadyTea(item)));
 export const selectCuratedTeas = (items: InventoryItem[]) =>
   selectAvailableTeas(items).filter(item => item.isCurated);
 export const selectPastTeas = (items: InventoryItem[]) =>

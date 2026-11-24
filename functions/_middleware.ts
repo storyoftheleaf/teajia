@@ -302,9 +302,10 @@ interface PublicProduct {
   description?: string;
   lore?: string;
   image_url?: string;
-  stock_grams?: number;
-  retail_price_per_gram_usd?: number;
-  fixed_retail_price_usd?: number;
+  stock_grams?: number | null;
+  retail_price_per_gram_usd?: number | null;
+  fixed_retail_price_usd?: number | null;
+  orders_paused?: boolean;
 }
 
 async function productMeta(id: string, workerOrigin: URL, path: string): Promise<Meta | null> {
@@ -339,14 +340,16 @@ async function productMeta(id: string, workerOrigin: URL, path: string): Promise
       brand: { '@type': 'Brand', name: 'Teajia' },
       category: isTeaware ? 'Teaware' : `${p.type || ''} Tea`.trim(),
       ...(p.origin_country && { countryOfOrigin: { '@type': 'Country', name: p.origin_country } }),
-      offers: {
-        '@type': 'Offer',
-        price: price.toFixed(2),
-        priceCurrency: 'USD',
-        availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
-        seller: { '@type': 'Organization', name: 'Teajia' },
-        url: `${SITE}${path}`,
-      },
+      ...(!p.orders_paused && {
+        offers: {
+          '@type': 'Offer',
+          price: price.toFixed(2),
+          priceCurrency: 'USD',
+          availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+          seller: { '@type': 'Organization', name: 'Teajia' },
+          url: `${SITE}${path}`,
+        },
+      }),
     };
 
     return {

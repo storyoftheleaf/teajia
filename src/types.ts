@@ -722,6 +722,7 @@ export interface TeawareDetails {
 }
 
 export interface InventoryItem {
+  ordersPaused?: boolean;
   teawareDetails?: TeawareDetails;
   id: string;
   /** Readable public address, e.g. "mahei-gushu-red". Absent on rows that
@@ -804,6 +805,7 @@ export interface InventoryItem {
 export type PublicProductType = TeaType | typeof NON_TEA_TYPES[number];
 
 export interface PublicProduct {
+  ordersPaused?: boolean;
   teawareDetails?: TeawareDetails;
   id: string;
   /** Readable public address. See InventoryItem.slug. */

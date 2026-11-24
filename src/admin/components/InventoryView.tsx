@@ -3339,6 +3339,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onCorrectSupplierName={(p) => { setSupplierSheetMode('rename'); setSupplierSheetProduct(p); }}
         onOpenStockMovement={stableStockMovement}
         canPublish={livePanelProduct ? canPublishInventoryProduct(livePanelProduct) : false}
+        canShowWhileCountPending={!!livePanelProduct?.ordersPaused && !inventoryPublicationProblem(
+          livePanelProduct, 'shownInShop', true, effectiveIncomingByProductId, effectiveInventorySummaryStatus,
+        )}
         publicationProblem={livePanelProduct ? inventoryPublicationProblem(
           livePanelProduct, 'isPublic', true, effectiveIncomingByProductId, effectiveInventorySummaryStatus,
         ) : null}

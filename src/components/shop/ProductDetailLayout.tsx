@@ -1,3 +1,4 @@
+import { ORDERS_PAUSED_MESSAGE } from '../../lib/shopPurchase';
 import { createContext, useContext, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addProductPhotograph } from '../../lib/familyApi';
@@ -131,6 +132,7 @@ export function ProductDetailLayout({
             {upload.isError && <span role="alert">{upload.error.message || 'The photo could not be added. Try again.'}</span>}
             {hasProductActions && actions && <ProductDetailActions {...actions} key={`actions-${item.id}`} emptyGalleryAction={emptyGallery ? addPhoto : undefined} />}
             {reading?.introduction && <p className={`${BODY} mx-5 my-[var(--space-4)] text-tea-text`}>{reading.introduction}</p>}
+            {item.ordersPaused && <p className="mx-5 my-2 text-ui-13 text-tea-text-sec">{ORDERS_PAUSED_MESSAGE}</p>}
             {reading?.clay && <AlcoveAboutSection reading={{ label: reading.clay.label, sections: [reading.clay] }} variant="page" />}
             {tasting}
             {visibleFacts.length > 0 && (

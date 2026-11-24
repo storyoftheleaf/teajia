@@ -3,6 +3,7 @@ import type { InventoryItem } from '../../../types';
 import { Heart, Pencil, FlaskConical, Share } from 'lucide-react';
 import { fmtShopPrice, fmtShopPricePerGram } from '../../../utils/formatNumber';
 import { quoteGrams, sellUnitOf, wholePieceOf } from '../../../lib/teaPricing';
+import { ORDERS_PAUSED_MESSAGE } from '../../../lib/shopPurchase';
 import { useAppStore } from '../../../lib/store';
 import { AmountCellList, buildTeaAmountCells, TeaAmountList, type TeaAmountCell } from './TeaAmountList';
 
@@ -272,6 +273,12 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   const amountsShown = isRail || amountsOpen;
   const amountsId = `alcove-amounts-${item.id}`;
   const activeCell = cells.find(c => c.active);
+
+  if (item.ordersPaused) {
+    return <p className="px-3 py-2 text-center text-ui-13 text-tea-text-sec">
+      {ORDERS_PAUSED_MESSAGE}
+    </p>;
+  }
 
   const amountToggle = (
     <button

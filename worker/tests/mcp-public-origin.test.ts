@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { mcpFetch, oauthAuthorizationServerMetadata, oauthProtectedResourceMetadata, originOf } from '../src/mcp';
 import worker from '../src/index';
+import { INWARD_BALI_LOT } from '../../shared/catalog/inwardOrders';
+import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
 
 const publicHeaders = { 'X-Teajia-Public-Origin': 'https://www.teajia.com' };
 
@@ -128,4 +130,66 @@ describe('public prepare_order rate limiting (audit SEC-1, class fix)', () => {
     } as never, {} as never);
     expect(response.status).not.toBe(503);
   });
+});
+
+
+it('keeps Inward public but declines direct and name-based preparation until a count is recorded', async () => {
+  const db = new SqliteD1('migrations');
+  try {
+    const { accountId, id } = INWARD_BALI_LOT;
+    seedIdentity(db, { accountId, accountSlug: 'teajia-bali' });
+    db.sqlite.prepare('UPDATE accounts SET whatsapp_number = ? WHERE id = ?').run('15551234567', accountId);
+    const addTea = db.sqlite.prepare(`INSERT INTO products
+      (id, account_id, product_name, type, fixed_retail_price_usd, cost_amount, cost_currency,
+      cost_currency_source, shipping_rate_per_kg, markup_multiplier, stock_grams, is_public, shown_in_shop, status)
+      VALUES (?, ?, ?, 'Dark', 2, NULL, NULL, NULL, NULL, NULL, 600, 1, 1, 'Active')`);
+    addTea.run(id, accountId, 'Inward');
+    addTea.run('inward-reserve', accountId, 'Inward Reserve');
+
+    let callId = 0;
+    const limiter = { limit: async () => ({ success: true }) };
+    async function publicTool(name: string, args: object) {
+      callId += 1;
+      const response = await worker.fetch(new Request('https://api.test/mcp/public?account=teajia-bali', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': `203.0.113.${60 + callId}` },
+        body: JSON.stringify({ jsonrpc: '2.0', id: callId, method: 'tools/call', params: { name, arguments: args } }),
+      }), { DB: db, PUBLIC_MCP_LIMITER: limiter, PUBLIC_PREPARE_ORDER_LIMITER: limiter } as never, {} as never);
+      expect(response.status).toBe(200);
+      const result = await response.json() as { result: { content: { text: string }[] } };
+      return JSON.parse(result.result.content[0].text);
+    }
+
+    const paused = { id, orders_paused: true, in_stock: false, price_per_gram_usd: null };
+    expect(await publicTool('get_tea', { id })).toMatchObject(paused);
+    expect(await publicTool('search_tea', { query: 'Inward' })).toMatchObject({ matches: [paused, expect.objectContaining({ id: 'inward-reserve' })] });
+    expect(await publicTool('browse_catalog', {})).toMatchObject({ items: expect.arrayContaining([expect.objectContaining(paused)]) });
+    expect(await publicTool('browse_catalog', { in_stock_only: true })).toMatchObject({ items: [expect.objectContaining({ id: 'inward-reserve' })] });
+
+    const expectPaused = async (items: object[]) => {
+      const prepared = await publicTool('prepare_order', { items });
+      expect(prepared).toMatchObject({ error: 'ordering_paused' });
+      expect(prepared).not.toHaveProperty('whatsapp_url');
+    };
+    await expectPaused([{ id, grams: 50 }]);
+    await expectPaused([{ name: 'Inward', grams: 50 }]);
+    await expectPaused([{ id: 'inward-reserve', grams: 50 }, { id, grams: 50 }]);
+    db.sqlite.prepare("UPDATE products SET stock_known_at = '2026-11-24' WHERE id = ?").run(id);
+    await expectPaused([{ id, grams: 50 }]);
+    expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM inquiries').get()).toEqual({ count: 0 });
+
+    db.sqlite.prepare("UPDATE products SET stock_verified_at = '2026-11-24' WHERE id = ?").run(id);
+    const counted = { id, in_stock: true, price_per_gram_usd: 2 };
+    const detail = await publicTool('get_tea', { id });
+    expect(detail).toMatchObject(counted);
+    expect(detail).not.toHaveProperty('orders_paused');
+    expect(await publicTool('browse_catalog', { in_stock_only: true })).toMatchObject({ items: expect.arrayContaining([expect.objectContaining(counted)]) });
+    expect(await publicTool('prepare_order', { items: [{ id, grams: 50 }] })).toMatchObject({
+      whatsapp_url: expect.stringContaining('https://wa.me/'),
+      lines: [{ ...counted, grams: 50 }],
+    });
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS count FROM inquiries WHERE source = 'ai_prepared'").get()).toEqual({ count: 1 });
+  } finally {
+    db.close();
+  }
 });
