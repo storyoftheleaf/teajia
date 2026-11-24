@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ShieldAlert } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { useProducts } from '../hooks/useAdminData';
 import { OwnerWisdomLink } from './yixing/OwnerWisdomLink';
@@ -30,6 +30,7 @@ import {
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { TEA_REFERENCE_PREVIEW_ENABLED } from '../../wisdom/reference/previewMode';
 import { TeaReferenceIssuesView } from './TeaReferenceIssuesView';
+import { WisdomWordingReview } from './WisdomWordingReview';
 
 const TeaReferenceReviewView = TEA_REFERENCE_PREVIEW_ENABLED
   ? React.lazy(async () => {
@@ -122,10 +123,11 @@ const wisdomAddress = (state: WisdomAddress): Record<string, string> => {
 export const TeaReferenceWisdomSwitch: React.FC<{
   previewEnabled: boolean;
   isPlatformOwner?: boolean;
+  canReadWording?: boolean;
   browse: React.ReactNode;
   issues?: React.ReactNode;
   review: React.ReactNode;
-}> = ({ previewEnabled, isPlatformOwner = false, browse, issues, review }) => {
+}> = ({ previewEnabled, isPlatformOwner = false, canReadWording = false, browse, issues, review }) => {
   const [surface, setSurface] = useState<'browse' | 'issues' | 'review'>('browse');
   if (!previewEnabled && !isPlatformOwner) return <>{browse}</>;
 
@@ -158,6 +160,7 @@ export const TeaReferenceWisdomSwitch: React.FC<{
             Reference issues
           </button>
         )}
+        {canReadWording && <Link to="/admin/wisdom?wording=review" className="btn-quiet tap-target">Listing wording</Link>}
         {previewEnabled && <button
           type="button"
           aria-pressed={surface === 'review'}
@@ -184,6 +187,15 @@ export function isPlatformOwnerRole(role: unknown): boolean {
 }
 
 export const WisdomView: React.FC = () => {
+  const [search] = useSearchParams();
+  const canReadWording = useAppStore(state =>
+    isPlatformOwnerRole(state.platformRole) && state.activeAccountId === 'acc_teajia_bali');
+  return canReadWording && search.has('wording')
+    ? <WisdomWordingReview />
+    : <WisdomBrowserView canReadWording={canReadWording} />;
+};
+
+function WisdomBrowserView({ canReadWording }: { canReadWording: boolean }) {
   const isPlatformOwner = isPlatformOwnerRole(useAppStore(state => state.platformRole));
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get(WISDOM_PARAM.tab);
@@ -527,6 +539,7 @@ export const WisdomView: React.FC = () => {
     <TeaReferenceWisdomSwitch
       previewEnabled={TEA_REFERENCE_PREVIEW_ENABLED}
       isPlatformOwner={isPlatformOwner}
+      canReadWording={canReadWording}
       browse={wisdomBrowser}
       issues={<TeaReferenceIssuesView />}
       review={TeaReferenceReviewView ? (
@@ -538,6 +551,6 @@ export const WisdomView: React.FC = () => {
       ) : null}
     />
   );
-};
+}
 
 export default WisdomView;

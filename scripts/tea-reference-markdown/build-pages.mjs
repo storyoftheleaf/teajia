@@ -42,12 +42,22 @@ const articleClaims = built.draftClaims
     revisions: claim.previousRevisions.map(({ rev, text }) => ({ rev, text })),
   }));
 
+const entries = await approvedEntries(ENTRIES_DIRECTORY, built.claims);
+const wordingPackets = JSON.parse(await fs.readFile(path.join(REPO_ROOT, 'worker/src/wisdomWordingReview.json'), 'utf8'));
+const reviewedWording = Object.fromEntries(wordingPackets.flatMap(({ id }) => {
+  const entry = entries[id];
+  if (!entry) return [];
+  const text = entry.paragraphs.map(paragraph => paragraph.text.replace(/\[([^\]]+)\]\([a-z0-9-]+:[a-z0-9-]+\)/g, '$1')).join('\n\n');
+  return [[id, text]];
+}));
+
 const outputs = [
   ['generatedPages.ts', renderGeneratedRegistry(built.registry)],
   ...renderGeneratedClaims(built.claims),
   ...renderGeneratedDraftClaims(built),
   [path.join(REPO_ROOT, 'worker/src/articleWisdomClaimIndex.json'), JSON.stringify(articleClaims, null, 2) + '\n'],
-  ['generatedEntries.ts', renderGeneratedEntries(await approvedEntries(ENTRIES_DIRECTORY, built.claims))],
+  ['generatedEntries.ts', renderGeneratedEntries(entries)],
+  [path.join(REPO_ROOT, 'worker/src/wisdomWordingEntries.json'), JSON.stringify(reviewedWording, null, 2) + '\n'],
 ];
 
 for (const [fileName, output] of outputs) {
