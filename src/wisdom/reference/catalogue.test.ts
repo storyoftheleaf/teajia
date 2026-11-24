@@ -177,8 +177,10 @@ describe('sellable Tea Reference catalogue', () => {
     const result = buildGeneratedTeaReferenceCatalogue(qualifyingProducts);
 
     expect(result.pages.map(page => page.id)).toEqual([
+      'dark',
       'greater-yiwu',
       'lincang',
+      'liu-bao',
       'mahei',
       'mahei-gushu-red',
       'malaysian-returned-liu-bao',

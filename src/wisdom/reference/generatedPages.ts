@@ -5,6 +5,70 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
   "schemaVersion": 1,
   "pages": [
     {
+      "id": "dark",
+      "slug": "dark",
+      "kind": "tea_family",
+      "label": "Dark tea (hei cha)",
+      "nativeName": "黑茶",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What dark tea is",
+          "text": "Dark tea is Chinese tea whose leaf, after it is heated and rolled, is left to change in warmth and moisture, where microbes and the leaf’s own chemistry slowly darken and mellow it. Because that change comes after the leaf is made, the trade calls it post-fermented. In Chinese it is hei cha, “black tea”, which is not the English black tea; that tea is red tea, hong cha, in Chinese.",
+          "sourceIds": []
+        },
+        {
+          "key": "why",
+          "label": "Why it was made",
+          "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
+          "sourceIds": []
+        },
+        {
+          "key": "making",
+          "label": "How dark tea is made",
+          "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How the trade grew",
+          "text": "The first records of dark tea by name are from the Ming dynasty, in Hunan around Anhua and in Sichuan, and in the late Ming it became a state-managed tea sent to the north-west in exchange for horses. In the Qing dynasty merchants carried the craft to more regions and more shapes, and some styles were made for new markets: Guangxi’s Liu Bao, for one, went to the tin mines of Southeast Asia. In the twentieth century state factories took over much of the making and settled the brick shapes that are sold today.",
+          "sourceIds": []
+        },
+        {
+          "key": "ageing",
+          "label": "Dark tea and age",
+          "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
+          "sourceIds": []
+        },
+        {
+          "key": "brewing",
+          "label": "Brewing dark tea",
+          "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
+          "sourceIds": []
+        },
+        {
+          "key": "brewing-simmer",
+          "label": "Simmering older dark tea",
+          "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
+          "sourceIds": []
+        },
+        {
+          "key": "brewing-pressed",
+          "label": "Breaking a pressed dark tea",
+          "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "greater-yiwu",
       "slug": "greater-yiwu",
       "kind": "tea_area",
@@ -75,6 +139,89 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "teadb-lincang"
           ]
+        }
+      ]
+    },
+    {
+      "id": "liu-bao",
+      "slug": "liu-bao",
+      "kind": "tea_type",
+      "label": "Liu Bao",
+      "nativeName": "六堡茶",
+      "parentId": "dark",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What Liu Bao is",
+          "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
+          "sourceIds": []
+        },
+        {
+          "key": "nanyang-trade",
+          "label": "Who drank it, and why",
+          "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
+          "sourceIds": []
+        },
+        {
+          "key": "making-traditional",
+          "label": "The farmhouse way",
+          "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
+          "sourceIds": []
+        },
+        {
+          "key": "making-factory",
+          "label": "The factory way",
+          "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
+          "sourceIds": []
+        },
+        {
+          "key": "history",
+          "label": "How the trade fell and returned",
+          "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
+          "sourceIds": []
+        },
+        {
+          "key": "age-young",
+          "label": "Young Liu Bao",
+          "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
+          "sourceIds": []
+        },
+        {
+          "key": "age-settling",
+          "label": "Five to ten years",
+          "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
+          "sourceIds": []
+        },
+        {
+          "key": "age-aged",
+          "label": "Ten years and more",
+          "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
+          "sourceIds": []
+        },
+        {
+          "key": "old-stock",
+          "label": "Old stock",
+          "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
+          "sourceIds": []
+        },
+        {
+          "key": "brewing",
+          "label": "Brewing Liu Bao",
+          "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
+          "sourceIds": []
+        },
+        {
+          "key": "notice-aged",
+          "label": "What people often notice in aged Liu Bao",
+          "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
+          "sourceIds": []
         }
       ]
     },
