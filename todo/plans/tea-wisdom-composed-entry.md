@@ -67,3 +67,11 @@ A thin tea can go up only when its type has a kit in Wisdom: definition, process
 - Zhihu and Baidu Baike: refuse plain fetches from both the Mac and the VPS (403). Firecrawl is blocked too.
 - Xiaohongshu, Taobao, JD: pages load but the content sits behind sign-in and scripts.
 - So the blocked sites are reached through a signed-in browser: Claude in Chrome with Adrian's own sessions, read-only, or Hermes's browser on the VPS. Everything else Claude does directly.
+
+## Where it stands (2026-11-24)
+
+- Live on teajia.com: eight ripe teas with approved composed entries (Ginseng Puer, Ripe Puerh Loose, Nanqiao Ruigong Brick, Aged Northern Vietnam, Aged Ripe Pu-erh, Small Tuo, Wuliangshan Gushu Shou, Xiniu Tang Gushu), and the public ripe pu'er page with its twelve approved sections.
+- Held: Y562 (a confirmed named tea; its sourced history leads, and a composed entry would need to draw on it), Naka (`menghai-county:mengsong-naka` is approved only in main's short sourced form; recompose), Yiwu Gushu (old-tree claim from the record, Adrian to confirm), Ripe Puerh Brick (rewrite "close to where the style began"), Pasha (weak checker flag, Adrian's call).
+- To resume: `node scripts/tea-wisdom-compose/compose.mjs --products <list> --ids <id>` (claude CLI signed in on the Claude plan, not API billing), read the draft at `/preview/wisdom-pilot/drafts/<id>` in `npm run practice`, then `npm run tea-wisdom:entries:approve <id>`.
+- Not built: phase 4 (a corrected claim flags its entries and recomposes) and phase 5 (grade field at intake, compose on promotion). Gap prompt for Hermes: the named piling eras (big, small and off-floor piles) and when light fermentation took off (`Teajia/Research/tea-wisdom/piling-eras.md`).
+- Known red on main, not from this work: `src/admin/guards/driftCeilings.test.ts` raw buttons 1,218 over the 1,216 ceiling.

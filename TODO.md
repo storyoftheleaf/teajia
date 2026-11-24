@@ -4,6 +4,7 @@
 
 ## Soon
 
+- [ ] Tea Wisdom composed entries: settle the five held ripe teas (Y562 next to its sourced history, Naka once Mengsong is approved, Yiwu Gushu's old-tree claim, the Brick's wrong line, Pasha's flag), then build corrections (phase 4) and intake (phase 5); eight teas are live since 2026-11-24 _(band: you-required)_ _(effort: moderate)_ → Plan: [tea-wisdom-composed-entry.md](todo/plans/tea-wisdom-composed-entry.md)
 - [ ] Teajia family: anyone can join, add voice notes and photographs in the tasting, share to a page of their own, and have a photograph chosen for a tea, planned and ready for an overnight build on branch claude/teajia-family _(band: agent-runnable)_ _(effort: deep)_ → Plan: [teajia-family.md](todo/plans/teajia-family.md)
 
 - [ ] Supply the US outbound shipping rate per kilo and currency, packed-weight allowance, minimum charge and covered destinations before enabling automatic shipping fees; keep customer shipping quoted separately and never reuse the shop’s inbound freight rate _(band: you-required)_ _(effort: quick)_
