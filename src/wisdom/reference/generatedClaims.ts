@@ -1001,7 +1001,9 @@ export const GENERATED_CLAIMS: readonly PublicClaim[] = [
     "axis": "process",
     "basis": "sourced",
     "listingEligible": false,
-    "appliesWhen": {},
+    "appliesWhen": {
+      "type": "Sheng"
+    },
     "terms": [],
     "rev": 1,
     "scope": "Sheng Pu’er",
@@ -1019,7 +1021,9 @@ export const GENERATED_CLAIMS: readonly PublicClaim[] = [
     "axis": "type",
     "basis": "sourced",
     "listingEligible": false,
-    "appliesWhen": {},
+    "appliesWhen": {
+      "type": "Sheng"
+    },
     "terms": [],
     "rev": 1,
     "scope": "Sheng Pu’er",
@@ -1037,7 +1041,9 @@ export const GENERATED_CLAIMS: readonly PublicClaim[] = [
     "axis": "process",
     "basis": "sourced",
     "listingEligible": false,
-    "appliesWhen": {},
+    "appliesWhen": {
+      "type": "Sheng"
+    },
     "terms": [],
     "rev": 1,
     "scope": "Sheng Pu’er",

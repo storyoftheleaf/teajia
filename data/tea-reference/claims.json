@@ -498,7 +498,9 @@
       "claim_id": "sheng:aging",
       "axis": "process",
       "listing_eligible": false,
-      "applies_when": {},
+      "applies_when": {
+        "type": "Sheng"
+      },
       "attribution": null,
       "terms": [],
       "status": "approved",
@@ -522,7 +524,9 @@
       "claim_id": "sheng:identity",
       "axis": "type",
       "listing_eligible": false,
-      "applies_when": {},
+      "applies_when": {
+        "type": "Sheng"
+      },
       "attribution": null,
       "terms": [],
       "status": "approved",
@@ -546,7 +550,9 @@
       "claim_id": "sheng:processing",
       "axis": "process",
       "listing_eligible": false,
-      "applies_when": {},
+      "applies_when": {
+        "type": "Sheng"
+      },
       "attribution": null,
       "terms": [],
       "status": "approved",
@@ -2131,6 +2137,222 @@
           "evidence_ids": []
         }
       ],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:making",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "杀青",
+          "pinyin": "shā qīng",
+          "gloss": "kill-green"
+        },
+        {
+          "original": "晒青",
+          "pinyin": "shài qīng",
+          "gloss": "sun-drying"
+        },
+        {
+          "original": "毛茶",
+          "pinyin": "máo chá",
+          "gloss": "rough tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:pressing",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "沱茶",
+          "pinyin": "tuó chá",
+          "gloss": "tuo"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:history",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:history-modern",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "古树",
+          "pinyin": "gǔ shù",
+          "gloss": "old trees"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:storage",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "干仓",
+          "pinyin": "gān cāng",
+          "gloss": "dry storage"
+        },
+        {
+          "original": "湿仓",
+          "pinyin": "shī cāng",
+          "gloss": "humid storage"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:age-young",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:brewing-pressed",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "回甘",
+          "pinyin": "huí gān",
+          "gloss": "returning sweetness"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sheng:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Sheng"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "樟香",
+          "pinyin": "zhāng xiāng",
+          "gloss": "camphor aroma"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
       "withdrawn": null
     }
   ]

@@ -547,6 +547,61 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": [
           "marshaln-young-puer-2013"
         ]
+      },
+      {
+        "key": "making",
+        "label": "How raw pu’er is made",
+        "sourceIds": []
+      },
+      {
+        "key": "pressing",
+        "label": "Pressing",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How the trade grew",
+        "sourceIds": []
+      },
+      {
+        "key": "history-modern",
+        "label": "Collectors and mountains",
+        "sourceIds": []
+      },
+      {
+        "key": "storage",
+        "label": "Storage",
+        "sourceIds": []
+      },
+      {
+        "key": "age-young",
+        "label": "Young raw pu’er",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Raw pu’er with age",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing raw pu’er",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing-pressed",
+        "label": "Breaking a pressed cake",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged raw pu’er",
+        "sourceIds": []
       }
     ]
   },
