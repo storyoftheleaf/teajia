@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-24T06:24:24.220Z",
+  "status": "approved",
+  "composedAt": "2026-11-24T06:51:47.272Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -22,12 +22,12 @@
     "productId": "2ec4bcf5-1773-453c-b710-5b859203cb4e",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "A loose [Liu Bao](liu-bao:definition) from Guangxi, made in 1990. The style takes its name from the town of Liubao in Cangwu County, near Wuzhou. Like every [dark tea](dark:definition), its leaf is piled after it is made, so that warmth, moisture and microbes slowly change it, and then it is left to age. It was first made for [a market far from home](liu-bao:nanyang-trade): Chinese miners and labourers across Southeast Asia, reached by boat down the river to Wuzhou and on by sea."
+        "layer": "age",
+        "text": "A [Liu Bao](liu-bao:definition) from Guangxi, made in 1990 and sold as loose leaf. At thirty-six years it sits far past the decade after which the trade counts this tea as [aged](liu-bao:age-aged), and how it was stored has shaped it as much as the years have."
       },
       {
-        "layer": "age",
-        "text": "At thirty-six years, this tea is well past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged), and time has turned the leaf dark. How a lot was stored counts for as much as how long it was kept."
+        "layer": "type",
+        "text": "Liu Bao is the [dark tea](dark:definition) of Cangwu County, near Wuzhou, named for the town of Liubao where it began. As with every post-fermented tea, the leaf is piled after it is made, so warmth, moisture and microbes slowly turn it darker before it is packed and left to age. It was made for a market far from home: Chinese miners and labourers in the [tin mines of Malaya](liu-bao:nanyang-trade) drank it, and it travelled by boat down the river to Wuzhou, on to Guangzhou, and out by sea."
       }
     ],
     "brewing": {
@@ -48,35 +48,30 @@
   "claimUses": [
     {
       "claimId": "liu-bao:definition",
-      "rev": null
-    },
-    {
-      "claimId": "dark:definition",
-      "rev": null
-    },
-    {
-      "claimId": "liu-bao:nanyang-trade",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "liu-bao:age-aged",
-      "rev": null
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:nanyang-trade",
+      "rev": 2
     },
     {
       "claimId": "liu-bao:brewing",
-      "rev": null
+      "rev": 1
     },
     {
       "claimId": "liu-bao:notice-aged",
-      "rev": null
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "It was first made for [a market far from home](liu-bao:nanyang-trade): Chinese miners and labourers across Southeast Asia, reached by boat down the river to Wuzhou and on by sea.",
-      "words": "It was first made for",
-      "why": "The nanyang-trade claim says Liu Bao 'was made for a market far from home'. It does not say the tea was first made for that market. 'First' makes a claim about why the tea began, and no input supports it."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-24T06:53:06.144Z"
 }

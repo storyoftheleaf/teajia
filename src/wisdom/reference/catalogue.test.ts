@@ -667,3 +667,21 @@ describe('sellable Tea Reference catalogue', () => {
     expect(forward.sources.map(source => source.sourceId)).toEqual(['source-a', 'source-z']);
   });
 });
+
+describe('style and family pages beyond pu’er', () => {
+  const tea = (id: string, type: string, originRegion: string): PublicProduct => ({
+    ...product({ id, productName: id, originRegion }),
+    type: type as PublicProduct['type'],
+  });
+
+  it('gives Liu Bao its Guangxi dark teas and Dark tea every dark tea, from the record and never the name', () => {
+    const result = buildGeneratedTeaReferenceCatalogue([
+      tea('liu-bao-1990', 'Dark', 'Guangxi, southern China'),
+      tea('fu-brick', 'Dark', 'Anhua, Hunan'),
+      tea('liu-bao-by-name-only', 'Shou Puer', 'Yunnan'),
+    ]);
+    expect(result.types.find(type => type.id === 'liu-bao')?.productIds).toEqual(['liu-bao-1990']);
+    expect(result.types.find(type => type.id === 'liu-bao')?.familyId).toBe('dark');
+    expect(result.families.find(family => family.id === 'dark')?.productIds).toEqual(['fu-brick', 'liu-bao-1990']);
+  });
+});

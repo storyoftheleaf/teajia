@@ -1,0 +1,82 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-24T06:52:56.034Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "a3e29766-eaa5-49c1-9ac7-15fc9d0fe3d2",
+    "name": "Large Basket Liu Bao",
+    "chineseName": "大篓六堡茶",
+    "type": "Dark",
+    "form": "Loose Leaf",
+    "year": "1990s",
+    "origin": "Guangxi, China",
+    "stockGrams": 550,
+    "pricePerGramUsd": 0.35,
+    "tags": []
+  },
+  "entry": {
+    "productId": "a3e29766-eaa5-49c1-9ac7-15fc9d0fe3d2",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A loose Liu Bao from the 1990s, kept the old way: packed into a bamboo basket lined with bamboo leaves, where the leaf could breathe through its decades of rest. It was stored in Guangzhou, the city the river trade once passed through on its way [out by sea](liu-bao:nanyang-trade) to the miners of Southeast Asia."
+      },
+      {
+        "layer": "age",
+        "text": "That puts it well past the ten years after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). Where it rested matters as much as how long, which is why the basket and the city belong to its story."
+      },
+      {
+        "layer": "type",
+        "text": "[Liu Bao](liu-bao:definition) is a [dark tea](dark:definition) from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Its leaf is heaped damp after it is made, so that warmth and microbes darken and soften it, and in the [farmhouse way](liu-bao:making-traditional) it is then packed tight into baskets to age."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Liu Bao",
+      "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "liu-bao:nanyang-trade",
+      "rev": 2
+    },
+    {
+      "claimId": "liu-bao:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:making-traditional",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-24T06:53:06.354Z"
+}

@@ -17,6 +17,24 @@ import {
   GENERATED_TEA_REFERENCE_PAGES,
   GENERATED_TEA_REFERENCE_REGISTRY,
 } from './generatedPages';
+import { GENERATED_CLAIMS } from './generatedClaims';
+
+/**
+ * A style page that is not itself a tea type (Liu Bao inside Dark) carries
+ * its teas through its approved claims' conditions: a recorded type and,
+ * where given, recorded origin parts. Never the product's name.
+ */
+function matchesStylePage(product: PublicProduct, pageId: string): boolean {
+  const type = normalizeTeaType(product.type);
+  const parts = [product.originRegion, product.originCountry]
+    .filter(Boolean).join(',').split(',').map(part => normalizedWords(part)).filter(Boolean);
+  return GENERATED_CLAIMS.some(claim => {
+    if (claim.pageId !== pageId) return false;
+    const when = claim.appliesWhen;
+    if (!when.type || when.type !== type) return false;
+    return (when.origin_includes ?? []).every(value => parts.includes(value));
+  });
+}
 
 const PLACE_LEVELS = new Set<PlaceLevel>([
   'major_region',
@@ -482,9 +500,13 @@ export function buildGeneratedTeaReferenceCatalogue(
   const types = GENERATED_TEA_REFERENCE_PAGES
     .filter(page => page.kind === 'tea_type')
     .flatMap(page => {
-      const canonicalType = normalizeTeaType(page.id);
-      if (!canonicalType) return [];
-      const matches = products.filter(product => normalizeTeaType(product.type) === canonicalType);
+      // A page is a whole type only when it is named as the type (shou, sheng); the
+      // vocabulary also reads "liu bao" as Dark, which would give Liu Bao every dark tea.
+      const aliasType = normalizeTeaType(page.id);
+      const canonicalType = aliasType && aliasType.toLowerCase() === page.id ? aliasType : null;
+      const matches = canonicalType
+        ? products.filter(product => normalizeTeaType(product.type) === canonicalType)
+        : products.filter(product => matchesStylePage(product, page.id));
       if (!matches.some(product => product.status === 'Active')) return [];
       return [{
         id: page.id,
@@ -497,12 +519,12 @@ export function buildGeneratedTeaReferenceCatalogue(
   const families = GENERATED_TEA_REFERENCE_PAGES
     .filter(page => page.kind === 'tea_family')
     .flatMap(page => {
-      const controlledMatches = page.id === 'puer'
-        ? PUER_TYPES.flatMap(type => {
-          const matches = products.filter(product => normalizeTeaType(product.type) === type);
-          return matches.some(product => product.status === 'Active') ? matches.map(product => product.id) : [];
-        })
-        : [];
+      // Pu'er gathers its two types; a family named for a type (Dark) gathers that type.
+      const familyTypes = page.id === 'puer' ? PUER_TYPES : [normalizeTeaType(page.id)].filter((type): type is typeof TEA_TYPES[number] => Boolean(type));
+      const controlledMatches = familyTypes.flatMap(type => {
+        const matches = products.filter(product => normalizeTeaType(product.type) === type);
+        return matches.some(product => product.status === 'Active') ? matches.map(product => product.id) : [];
+      });
       const directMatches = products.filter(product => productMatches(product, page.label));
       const directIds = directMatches.some(product => product.status === 'Active')
         ? directMatches.map(product => product.id)
