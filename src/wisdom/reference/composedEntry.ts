@@ -12,6 +12,27 @@
  */
 import type { PublicClaim } from './claims';
 import { wisdomHrefFor } from './listingPassages';
+import { GENERATED_TEA_REFERENCE_PAGES } from './generatedPages';
+
+/** Public page kinds, so a link goes to the page's own route (a family is not a type). */
+const PAGE_KIND = new Map<string, string>(GENERATED_TEA_REFERENCE_PAGES.map(page => [page.id, page.kind]));
+
+/** The page's route, and whether that page scrolls to a section anchor. */
+function pageRoute(claim: Pick<PublicClaim, 'axis' | 'pageId' | 'sectionKey'>): { path: string; anchors: boolean } {
+  const id = encodeURIComponent(claim.pageId);
+  switch (PAGE_KIND.get(claim.pageId)) {
+    case 'tea_family': return { path: `/wisdom/family/${id}`, anchors: false };
+    case 'tea_type': return { path: `/wisdom/type/${id}`, anchors: true };
+    case 'leaf_grade': return { path: `/wisdom/grade/${id}`, anchors: true };
+    case 'major_region':
+    case 'tea_area': return { path: `/wisdom/region/${id}`, anchors: false };
+    case 'named_tea': return { path: `/wisdom/named/${id}`, anchors: false };
+    default: {
+      const path = wisdomHrefFor(claim).split('#')[0];
+      return { path, anchors: claim.axis !== 'place' };
+    }
+  }
+}
 
 export type EntryLayer = 'lot' | 'maker' | 'grade' | 'place' | 'age' | 'type';
 
@@ -63,10 +84,9 @@ export function entryLinkFor(claimId: string, claims: readonly PublicClaim[]): s
   if (!claim || claim.reviewState === 'withdrawn') return null;
   const sections = claims.filter(entry => entry.pageId === claim.pageId && entry.reviewState !== 'withdrawn');
   if (sections.length < 2) return null;
-  const page = wisdomHrefFor(claim).split('#')[0];
-  // Region pages show approved sections only and keep no section anchors, so a
-  // place opens at the top of its page. Type and grade pages anchor each
-  // section by its heading (ReferenceFactSections) and scroll to it.
-  if (claim.axis === 'place') return page;
-  return `${page}#reference-${claim.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  // Type and grade pages anchor each section by its heading (ReferenceFactSections)
+  // and scroll to it; family, region and named pages open at the top.
+  const route = pageRoute(claim);
+  if (!route.anchors) return route.path;
+  return `${route.path}#reference-${claim.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 }

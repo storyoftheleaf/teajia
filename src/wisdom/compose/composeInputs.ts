@@ -8,7 +8,7 @@
  * then brewing and what people often notice. A layer the tea lacks is left out,
  * never guessed, and nothing is read from the name.
  */
-import type { PublicClaim } from '../reference/claims';
+import type { DraftReferencePage, PublicClaim } from '../reference/claims';
 import { appliesTo } from '../reference/listingPassages';
 import { listingFacts } from '../reference/listingFacts';
 import { entrySegments, type ComposedEntry, type ComposedParagraph } from '../reference/composedEntry';
@@ -55,8 +55,23 @@ export interface ComposeInputs {
   missing: string[];
 }
 
-/** Which tea_type page a product type belongs to. */
-const TYPE_PAGE: Record<string, string> = { Shou: 'shou', Sheng: 'sheng' };
+/** A page that can serve as a tea's kit: its family (Dark, Pu'er) or its type within one (Liu Bao, Shou). */
+type KitPage = Pick<DraftReferencePage, 'id' | 'kind' | 'label'>;
+const KIT_KINDS: readonly DraftReferencePage['kind'][] = ['tea_type', 'tea_family'];
+
+/** Kit sections that are not story: they fill the age, brewing and notice slots. */
+const AGE_KEYS = ['age-young', 'age-settling', 'age-aged'] as const;
+const SLOT_KEYS = new Set<string>([...AGE_KEYS, 'ageing', 'brewing', 'brewing-pressed', 'brewing-simmer', 'common-impressions', 'notice-aged']);
+
+/** "Shou (ripe pu’er)" reads as "ripe pu’er"; "Dark tea (hei cha)" as "dark tea"; a proper name like "Liu Bao" stays. */
+export function styleName(label: string): string {
+  const inner = /\(([^)]+)\)/.exec(label)?.[1]?.trim();
+  const outer = label.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  // A parenthesis is the English name only when it reads as one ("ripe pu’er"), not a romanisation ("hei cha").
+  const name = inner && /pu[’']er/i.test(inner) ? inner : outer;
+  const properName = name.split(/\s+/).every(word => /^[A-Z]/.test(word));
+  return properName ? name : name.charAt(0).toLowerCase() + name.slice(1);
+}
 
 /** A year field as written ("1990", 2015, "1990s"); a decade reads as its middle. */
 export function yearOf(value: ComposeProduct['year']): { label: string; year: number } | null {
@@ -79,13 +94,28 @@ const usable = (claim: PublicClaim) => claim.reviewState !== 'withdrawn' && clai
 export function composeInputs(
   product: ComposeProduct,
   claims: readonly PublicClaim[],
-  options: { thisYear: number; noNotice?: readonly string[] },
+  options: { thisYear: number; noNotice?: readonly string[]; pages: readonly KitPage[] },
 ): ComposeInputs {
   const origin = [product.origin_region, product.origin_country].filter(Boolean).join(', ');
   const facts = listingFacts({ type: product.type, form: product.form, originRegion: origin, name: product.product_name });
-  const typePage = facts.type ? TYPE_PAGE[facts.type] : undefined;
   const live = claims.filter(usable);
-  const onType = (key: string) => live.find(claim => claim.pageId === typePage && claim.sectionKey === key);
+  // The tea's kit pages, most specific first: a type within a family (Liu Bao, Shou) before the family (Dark, Pu'er).
+  const kinds = new Map(options.pages.map(page => [page.id, page]));
+  const kitPages = [...new Set(live
+    .filter(claim => KIT_KINDS.includes(kinds.get(claim.pageId)?.kind as DraftReferencePage['kind']) && appliesTo(claim.appliesWhen, facts))
+    .map(claim => claim.pageId))]
+    .map(id => kinds.get(id)!)
+    .sort((left, right) => KIT_KINDS.indexOf(left.kind) - KIT_KINDS.indexOf(right.kind));
+  const kitClaims = live.filter(claim => kitPages.some(page => page.id === claim.pageId) && appliesTo(claim.appliesWhen, facts));
+  /** A slot's section from the most specific kit page that has it. */
+  const onType = (key: string) => {
+    for (const page of kitPages) {
+      const claim = kitClaims.find(candidate => candidate.pageId === page.id && candidate.sectionKey === key);
+      if (claim) return claim;
+    }
+    return undefined;
+  };
+  const mainKit = kitPages[0];
   const year = yearOf(product.year);
   const ageYears = year ? options.thisYear - year.year : undefined;
   const missing: string[] = [];
@@ -96,11 +126,15 @@ export function composeInputs(
   else missing.push('A Wisdom entry for its place, or a more specific origin');
   const grade = facts.grade ? live.filter(claim => claim.axis === 'grade' && appliesTo(claim.appliesWhen, facts)) : [];
   if (grade.length) layers.grade = grade;
-  if (ageYears !== undefined && typePage) {
-    const band = onType(ageBand(ageYears));
+  if (ageYears !== undefined && mainKit) {
+    const band = onType(ageBand(ageYears)) ?? onType('ageing');
     if (band) layers.age = [band];
-  } else if (typePage) missing.push('The year it was made: unlocks the age paragraph');
-  const type = ['definition', 'wet-piling'].map(onType).filter((claim): claim is PublicClaim => Boolean(claim));
+  } else if (mainKit) missing.push('The year it was made: unlocks the age paragraph');
+  // Story sections: every kit section that is not a slot, the specific page first, then the family's definition.
+  const type = kitPages.flatMap((page, index) => kitClaims.filter(claim => (
+    claim.pageId === page.id && !SLOT_KEYS.has(claim.sectionKey) && claim.axis !== 'sensory_observation'
+    && (index === 0 || claim.sectionKey === 'definition')
+  )));
   if (type.length) layers.type = type;
   else missing.push(`A Wisdom kit for ${product.type ?? 'this type'}`);
   const allowNotice = !(options.noNotice ?? []).includes(product.id);
@@ -113,9 +147,11 @@ export function composeInputs(
     fixed.claimIds.push(...[breaking, brewing].filter((claim): claim is PublicClaim => Boolean(claim)).map(claim => claim.claimId));
   }
   const aged = layers.age?.[0]?.sectionKey === 'age-aged';
-  const noticeClaim = aged ? onType('notice-aged') : onType('common-impressions');
+  const agedNotice = aged ? onType('notice-aged') : undefined;
+  const noticeClaim = agedNotice ?? onType('common-impressions');
   if (allowNotice && noticeClaim) {
-    fixed.notice = { layer: 'notice', styleName: aged ? 'aged ripe pu’er' : 'ripe pu’er', text: noticeClaim.text };
+    const name = styleName(kinds.get(noticeClaim.pageId)?.label ?? mainKit?.label ?? '');
+    fixed.notice = { layer: 'notice', styleName: agedNotice ? `aged ${name}` : name, text: noticeClaim.text };
     fixed.claimIds.push(noticeClaim.claimId);
   }
   missing.push('A voice note from you on this lot', 'Photos');

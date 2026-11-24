@@ -78,6 +78,7 @@ HOW AN ENTRY IS BUILT
 - Where a claim gives a reason (why the pile exists, why it is turned, why storage matters), carry the reason into the story; a fact with its why reads better than a fact alone.
 - The reader may already know the tea's type. Put general knowledge in a clause and lead with what is specific to this tea.
 - Story paragraphs carry place, craft, history and how the tea has changed with age. No taste or texture words in them at all (no sweet, smooth, woody, earthy, aroma, notes). Those go only in the notice.
+- The type layer may hold several kit sections (what the style is, how it is made, its history and trade). Use the one or two that say most about this tea; leave the rest to the Wisdom page the reader can open.
 - Write only the story paragraphs. Brewing and the style line are added from the kit after you; do not write them, and do not repeat brewing advice or taste in the story.
 - The origin field is where the leaf comes from. Never say where a tea was pressed, stored or sold unless the record notes say so.
 - Check any span of years you write: count it exactly from the dates given (1993 is twenty years after 1973, so it falls in the style's third decade). If unsure, leave the comparison out.
@@ -90,7 +91,7 @@ HOW AN ENTRY IS BUILT
 - Link only words a reader would want to learn about: the tea type, a process, a place, a grade, a term of art. Never link ordinary words such as "a pick" or "boiling water".
 - Let the story flow: one to two paragraphs usually, joined by sense rather than by layer label. Write ages and counts in words ("thirty-six years").
 
-TWO APPROVED ENTRIES, FOR THE VOICE (do not reuse their facts)
+APPROVED ENTRIES, FOR THE VOICE ONLY (they are ripe pu’er; do not reuse their facts or their process for another kind of tea)
 ${EXAMPLES}
 
 THE TEA
@@ -143,7 +144,7 @@ function normalised(draft, productId, missing) {
 }
 
 async function composeOne(product) {
-  const inputs = composeInputs(product, claims, { thisYear: new Date().getFullYear(), noNotice: RULES.noNotice });
+  const inputs = composeInputs(product, claims, { thisYear: new Date().getFullYear(), noNotice: RULES.noNotice, pages: wisdom.draftPages });
   let entry;
   let problems = [];
   for (let attempt = 1; attempt <= 2; attempt += 1) {

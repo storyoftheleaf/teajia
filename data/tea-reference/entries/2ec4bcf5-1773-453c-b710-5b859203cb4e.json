@@ -1,0 +1,82 @@
+{
+  "status": "needs_review",
+  "composedAt": "2026-11-24T06:24:24.220Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "2ec4bcf5-1773-453c-b710-5b859203cb4e",
+    "name": "Aged Liu Bao Tea",
+    "chineseName": "陈年六堡茶",
+    "type": "Dark",
+    "form": "Loose Leaf",
+    "year": 1990,
+    "origin": "Guangxi, southern China, China",
+    "stockGrams": 500,
+    "pricePerGramUsd": 0.38,
+    "tags": [
+      "earthy",
+      "woody"
+    ]
+  },
+  "entry": {
+    "productId": "2ec4bcf5-1773-453c-b710-5b859203cb4e",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A loose [Liu Bao](liu-bao:definition) from Guangxi, made in 1990. The style takes its name from the town of Liubao in Cangwu County, near Wuzhou. Like every [dark tea](dark:definition), its leaf is piled after it is made, so that warmth, moisture and microbes slowly change it, and then it is left to age. It was first made for [a market far from home](liu-bao:nanyang-trade): Chinese miners and labourers across Southeast Asia, reached by boat down the river to Wuzhou and on by sea."
+      },
+      {
+        "layer": "age",
+        "text": "At thirty-six years, this tea is well past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged), and time has turned the leaf dark. How a lot was stored counts for as much as how long it was kept."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Liu Bao",
+      "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "liu-bao:definition",
+      "rev": null
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": null
+    },
+    {
+      "claimId": "liu-bao:nanyang-trade",
+      "rev": null
+    },
+    {
+      "claimId": "liu-bao:age-aged",
+      "rev": null
+    },
+    {
+      "claimId": "liu-bao:brewing",
+      "rev": null
+    },
+    {
+      "claimId": "liu-bao:notice-aged",
+      "rev": null
+    }
+  ],
+  "problems": [],
+  "unsupported": [
+    {
+      "sentence": "It was first made for [a market far from home](liu-bao:nanyang-trade): Chinese miners and labourers across Southeast Asia, reached by boat down the river to Wuzhou and on by sea.",
+      "words": "It was first made for",
+      "why": "The nanyang-trade claim says Liu Bao 'was made for a market far from home'. It does not say the tea was first made for that market. 'First' makes a claim about why the tea began, and no input supports it."
+    }
+  ]
+}
