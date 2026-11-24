@@ -28,7 +28,7 @@ export default function CellarPage() {
           <Icons.Back className="h-4 w-4" />
           <span>Back</span>
         </button>
-        <h1 className={`${TYPOGRAPHY_CLASSES.h1} mt-6 text-tea-text`}>My Cellar</h1>
+        <h1 className={`${TYPOGRAPHY_CLASSES.h1} mt-6 text-tea-text`}>Tea Chest</h1>
         <CellarView onBack={() => navigate(-1)} embedded />
         <PersonalTeaLinks current="cellar" />
       </div>

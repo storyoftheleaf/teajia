@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 import { getStockTypeFinish } from '../../admin/themeUtils';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 
@@ -53,8 +53,8 @@ export function TeaCard({
   );
 }
 
-export function TeaCardTitle({ children, as: Heading = 'h3' }: { children: ReactNode; as?: 'h2' | 'h3' }) {
-  return <Heading className={`${T.h3} library-card-name tea-card-title text-tea-text`}>{children}</Heading>;
+export function TeaCardTitle({ children, as: Heading = 'h3', className = '', ...props }: ComponentPropsWithoutRef<'h3'> & { as?: 'h2' | 'h3' }) {
+  return <Heading {...props} className={`${T.h3} library-card-name tea-card-title text-tea-text ${className}`}>{children}</Heading>;
 }
 
 export function TeaCardMeta({ primary, type, trailing }: {

@@ -16,6 +16,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     form: p.form,
     pieceWeightG: p.pieceWeightG,
     soldInWholeUnits: p.soldInWholeUnits,
+    exactPackPriceUsd: p.exactPackPriceUsd,
     name: p.givenName || p.productName,
     year: p.year ? String(p.year) : '',
     origin: [p.originRegion, p.originCountry].filter(Boolean).join(', '),

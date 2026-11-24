@@ -40,15 +40,30 @@ describe('real REST shop Curate writes share atomic history and original attribu
     const samples = await checked(await call(db, '/api/admin/samples'));
     expect(samples.samples).toEqual([]);
   });
-  it('keeps sourcing vendor metadata private on a shared sample-set page',async()=>{
-    const db=setup();await checked(await call(db,'/api/compass/entries/tea','PUT',{sample_state:'received'}));
-    const row=db.prepare('SELECT id FROM tea_sample_sets').first<any>();
-    db.prepare('UPDATE tea_sample_sets SET notes=? WHERE id=?').bind('Private procurement terms',row.id).run();
-    const response=await worker.fetch(new Request(`https://worker.test/api/samples/set/${row.id}`),{DB:db as any} as any);
-    const body=await checked(response);expect(body.set.name).toBe('Tea samples');
-    for(const key of ['source_id','source_name','notes','user_id','shared_with','panel_account_ids'])expect(body.set).not.toHaveProperty(key);
-    expect(body.samples[0]).not.toHaveProperty('source_name');
-    const owned=await checked(await call(db,`/api/samples/set/${row.id}`));expect(owned.set.source_name).toBe('Vendor');
+  it('keeps a shared Curate set and its samples scoped to their recorded authors', async () => {
+    const db = setup();
+    await checked(await call(db, '/api/compass/entries/tea', 'PUT', { sample_state: 'received' }));
+    const row = db.prepare('SELECT id FROM tea_sample_sets').first<{ id: string }>()!;
+    db.prepare('UPDATE tea_sample_sets SET notes = ? WHERE id = ?').bind('Private procurement terms', row.id).run();
+    await checked(await call(db, '/api/compass/entries', 'POST', {
+      id: 'managers-tea', name: 'Manager’s tea', vendor_id: 'vendor', vendor_name: 'Vendor', sample_state: 'received',
+    }), 201);
+    const path = `/api/samples/set/${row.id}`;
+    const response = await worker.fetch(new Request('https://worker.test' + path), { DB: db as any } as any);
+    const body = await checked(response);
+    expect(body.set).toEqual({ id: row.id, name: 'Tea samples', purpose: 'sourcing', archived: false });
+    expect(body.samples).toHaveLength(2);
+    for (const sample of body.samples) expect(sample).not.toHaveProperty('source_name');
+
+    const manager = await checked(await call(db, path));
+    expect(manager.set).not.toHaveProperty('source_name');
+    expect(manager.samples.find((sample: any) => sample.name === 'Tea')).not.toHaveProperty('source_name');
+    expect(manager.samples.find((sample: any) => sample.name === 'Manager’s tea')).toHaveProperty('source_name', 'Vendor');
+
+    const owned = await checked(await call(db, path, 'GET', undefined, 'author'));
+    expect(owned.set).toMatchObject({ source_name: 'Vendor', notes: 'Private procurement terms' });
+    expect(owned.samples.find((sample: any) => sample.name === 'Tea')).toHaveProperty('source_name', 'Vendor');
+    expect(owned.samples.find((sample: any) => sample.name === 'Manager’s tea')).not.toHaveProperty('source_name');
   });
   it('edits another author and undo restores both tea state and sample metadata', async () => {
     const db = setup();

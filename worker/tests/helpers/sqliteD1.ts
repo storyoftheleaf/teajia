@@ -55,9 +55,9 @@ export class SqliteD1 {
    *        cannot fail once a later migration has removed that default, and a
    *        test that cannot fail is not looking at the code.
    */
-  constructor(schema: SchemaSource = true, through?: string) {
+  constructor(schema: SchemaSource = true, through?: string, migrationDir?: string) {
     if (schema === 'migrations') {
-      this.sqlite = seedFromMigrations({ through }).db;
+      this.sqlite = seedFromMigrations({ through, dir: migrationDir }).db;
       // Back on, having been off for the seed: the 0000 dump lists its tables
       // alphabetically, so a foreign key can name one that does not exist yet.
       this.sqlite.exec('PRAGMA foreign_keys = ON');
