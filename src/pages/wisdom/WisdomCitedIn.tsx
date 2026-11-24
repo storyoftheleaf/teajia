@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { usePrivateQueryScope } from '../../admin/hooks/usePrivateQueryScope';
 import { selectHasBundle, useAppStore } from '../../lib/store';
 import { wisdomClaimUsesApi } from '../../lib/wisdomClaimUsesApi';
-import { HoldingRow, IndexList, SPACE, SectionHead } from './wisdomShared';
+import { FOOTNOTE, HoldingRow, IndexList, SPACE, SectionHead } from './wisdomShared';
 import { wisdomDestinations } from './articleClaimUses';
 import { WISDOM_PILOT_PREVIEW, useWisdomPilotData } from './wisdomPilotData';
 
@@ -41,6 +41,9 @@ const CitedInSection: React.FC<{ pageId: string }> = ({ pageId }) => {
     return wisdomDestinations(claimIds, data.pages, signedIn);
   }, [articles, data, pageId, signedIn]);
 
+  if (citing.isError) {
+    return <p role="status" className={`${FOOTNOTE} ${SPACE.section}`}>The articles citing this page could not be loaded.</p>;
+  }
   if (articles.length === 0) return null;
   return (
     <>
@@ -66,8 +69,9 @@ const CitedInSection: React.FC<{ pageId: string }> = ({ pageId }) => {
   );
 };
 
-export const WisdomCitedIn: React.FC<{ pageId: string }> = ({ pageId }) => (
-  WISDOM_PILOT_PREVIEW ? <CitedInSection pageId={pageId} /> : null
+/** `always` shows it outside preview too: the grade page has carried "Cited in" in production since the pilot. */
+export const WisdomCitedIn: React.FC<{ pageId: string; always?: boolean }> = ({ pageId, always = false }) => (
+  always || WISDOM_PILOT_PREVIEW ? <CitedInSection pageId={pageId} /> : null
 );
 
 export default WisdomCitedIn;

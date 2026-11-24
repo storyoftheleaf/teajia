@@ -186,7 +186,7 @@ export const ClaimPage: React.FC<{ kind?: ClaimPageKind }> = ({ kind = 'leaf_gra
             )}
           </div>
 
-          <WisdomCitedIn pageId={page.id} />
+          <WisdomCitedIn pageId={page.id} always />
 
           <ReferenceFactSections
             facts={statements}

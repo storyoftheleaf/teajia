@@ -242,7 +242,8 @@ export function articleWisdomClaimUseRoutes<E extends ArticleClaimUseEnv>(
     if (!PAGE_ID.test(pageId)) return refuse(400, 'Name the Wisdom page as page_id.', 'invalid_page_id');
     const articles = (await citing(env, pageId, 'published')).flatMap(({ status: _status, ...article }) => {
       const claim_ids = article.claim_ids.filter(id => publicClaimIds.has(id));
-      return claim_ids.length ? [{ ...article, claim_ids }] : [];
+      // The article must cite a public claim on THIS page; its other public claims only feed "Read alongside".
+      return claim_ids.some(id => id.startsWith(`${pageId}:`)) ? [{ ...article, claim_ids }] : [];
     });
     return json({ articles });
   };
