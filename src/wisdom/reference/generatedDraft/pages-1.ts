@@ -482,6 +482,62 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "oolong",
+    "slug": "oolong",
+    "kind": "tea_family",
+    "label": "Oolong (wulong)",
+    "visibility": "public",
+    "nativeName": "乌龙茶",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What oolong is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How oolong is made",
+        "sourceIds": []
+      },
+      {
+        "key": "oxidation-and-roast",
+        "label": "Oxidation and roast",
+        "sourceIds": []
+      },
+      {
+        "key": "families",
+        "label": "The four families",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How oolong began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged oolong",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "puer",
     "slug": "puer",
     "kind": "tea_family",
@@ -780,6 +836,68 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "taiwan-oolong",
+    "slug": "taiwan-oolong",
+    "kind": "tea_type",
+    "label": "Taiwan oolong",
+    "visibility": "public",
+    "nativeName": "台灣烏龍茶",
+    "parentId": "oolong",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Taiwan oolong is",
+        "sourceIds": []
+      },
+      {
+        "key": "high-mountain",
+        "label": "High mountain tea",
+        "sourceIds": []
+      },
+      {
+        "key": "dong-ding",
+        "label": "Dong Ding",
+        "sourceIds": []
+      },
+      {
+        "key": "baozhong",
+        "label": "Baozhong",
+        "sourceIds": []
+      },
+      {
+        "key": "oriental-beauty",
+        "label": "Oriental Beauty",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Taiwan oolong grew",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Taiwan oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Taiwan oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged Taiwan oolong",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "xishuangbanna-tea-mountains",
     "slug": "xishuangbanna-tea-mountains",
     "kind": "reference_topic",
@@ -855,67 +973,6 @@ export const PART: readonly DraftReferencePage[] = [
         "label": "The tea behind the code",
         "sourceIds": [
           "puer-magazine-jixing-design"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "yunnan",
-    "slug": "yunnan",
-    "kind": "major_region",
-    "label": "Yunnan Pu’er Regions",
-    "visibility": "public",
-    "nativeName": "云南",
-    "sourceIds": [
-      "teadb-yunnan-overview"
-    ],
-    "sections": [
-      {
-        "key": "geographic-frame",
-        "label": "The geographic frame",
-        "sourceIds": [
-          "teadb-yunnan-overview"
-        ]
-      },
-      {
-        "key": "regional-map",
-        "label": "A map of regions",
-        "sourceIds": [
-          "teadb-yunnan-overview"
-        ]
-      },
-      {
-        "key": "reading-labels",
-        "label": "Read labels with care",
-        "sourceIds": [
-          "teadb-yunnan-overview"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "yunnan-mountain-names",
-    "slug": "yunnan-mountain-names",
-    "kind": "reference_topic",
-    "label": "Reading Yunnan Mountain Names",
-    "visibility": "draft",
-    "parentId": "yunnan",
-    "sourceIds": [
-      "ctma-yunnan-108-mountains-2026"
-    ],
-    "sections": [
-      {
-        "key": "market-names",
-        "label": "Names in the tea market",
-        "sourceIds": [
-          "ctma-yunnan-108-mountains-2026"
-        ]
-      },
-      {
-        "key": "reading-the-list",
-        "label": "What a list can tell us",
-        "sourceIds": [
-          "ctma-yunnan-108-mountains-2026"
         ]
       }
     ]

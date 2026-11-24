@@ -6,9 +6,11 @@ import { PART as claims1 } from './generatedDraft/claims-1';
 import { PART as claims2 } from './generatedDraft/claims-2';
 import { PART as claims3 } from './generatedDraft/claims-3';
 import { PART as claims4 } from './generatedDraft/claims-4';
+import { PART as claims5 } from './generatedDraft/claims-5';
 import { PART as pages1 } from './generatedDraft/pages-1';
+import { PART as pages2 } from './generatedDraft/pages-2';
 import { PART as sources1 } from './generatedDraft/sources-1';
 
-export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [...claims1, ...claims2, ...claims3, ...claims4];
-export const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = [...pages1];
+export const GENERATED_DRAFT_CLAIMS: readonly DraftClaim[] = [...claims1, ...claims2, ...claims3, ...claims4, ...claims5];
+export const GENERATED_DRAFT_PAGES: readonly DraftReferencePage[] = [...pages1, ...pages2];
 export const GENERATED_DRAFT_SOURCES: readonly PublicTeaReferenceSource[] = [...sources1];

@@ -65,14 +65,20 @@ const KIT_KINDS: readonly DraftReferencePage['kind'][] = ['tea_type', 'tea_famil
 const AGE_KEYS = ['age-young', 'age-settling', 'age-aged'] as const;
 const SLOT_KEYS = new Set<string>([...AGE_KEYS, 'ageing', 'brewing', 'brewing-pressed', 'brewing-simmer', 'common-impressions', 'notice-aged']);
 
+const PLACE_LEADS = new Set(['Taiwan', 'Yunnan', 'Fujian', 'Wuyi', 'Anxi', 'Phoenix', 'Guangdong', 'Anhua']);
+const TYPE_WORDS = new Set(['Oolong', 'Green', 'White', 'Yellow', 'Red', 'Dark', 'Herbal']);
+
 /** "Shou (ripe pu’er)" reads as "ripe pu’er"; "Dark tea (hei cha)" as "dark tea"; a proper name like "Liu Bao" stays. */
 export function styleName(label: string): string {
   const inner = /\(([^)]+)\)/.exec(label)?.[1]?.trim();
   const outer = label.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
   // A parenthesis is the English name only when it reads as one ("ripe pu’er"), not a romanisation ("hei cha").
   const name = inner && /pu[’']er/i.test(inner) ? inner : outer;
-  const properName = name.split(/\s+/).every(word => /^[A-Z]/.test(word));
-  return properName ? name : name.charAt(0).toLowerCase() + name.slice(1);
+  // A bare type word ("Oolong") reads in lower case; a style's own name ("Liu Bao") keeps its capitals.
+  const properName = !TYPE_WORDS.has(name) && name.split(/\s+/).every(word => /^[A-Z]/.test(word));
+  // A style named for its place ("Taiwan oolong") keeps the place's capital.
+  const placeLed = PLACE_LEADS.has(name.split(/\s+/)[0]);
+  return properName || placeLed ? name : name.charAt(0).toLowerCase() + name.slice(1);
 }
 
 /** A year field as written ("1990", 2015, "1990s"); a decade reads as its middle. */
@@ -138,10 +144,11 @@ export function composeInputs(
     if (band) layers.age = [band];
   } else if (mainKit) missing.push('The year it was made: unlocks the age paragraph');
   // Story sections: every kit section that is not a slot, the specific page first, then the family's definition.
+  // Each page's definition leads its own sections, whatever order the ledger keeps them in.
   const type = kitPages.flatMap((page, index) => kitClaims.filter(claim => (
     claim.pageId === page.id && !SLOT_KEYS.has(claim.sectionKey) && claim.axis !== 'sensory_observation'
     && (index === 0 || claim.sectionKey === 'definition')
-  )));
+  )).sort((left, right) => Number(right.sectionKey === 'definition') - Number(left.sectionKey === 'definition')));
   if (type.length) layers.type = type;
   else missing.push(`A Wisdom kit for ${product.type ?? 'this type'}`);
   const allowNotice = !(options.noNotice ?? []).includes(product.id);

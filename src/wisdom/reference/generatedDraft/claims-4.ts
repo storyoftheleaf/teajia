@@ -5,6 +5,235 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "sheng:making",
+    "pageId": "sheng",
+    "sectionKey": "making",
+    "label": "How raw pu’er is made",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [
+      {
+        "original": "杀青",
+        "pinyin": "shā qīng",
+        "gloss": "kill-green"
+      },
+      {
+        "original": "晒青",
+        "pinyin": "shài qīng",
+        "gloss": "sun-drying"
+      },
+      {
+        "original": "毛茶",
+        "pinyin": "máo chá",
+        "gloss": "rough tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Raw pu’er begins as leaf from Yunnan’s large-leaf tea trees. It is picked and withered, then fried in a wok to kill the green. That heat stops most of the leaf’s own enzymes but not all, and because the leaf is never hot-air dried afterwards, the activity that survives is what lets the tea keep changing for years. It is rolled, then dried in the sun, turned over a couple of days. The result is maocha, the rough tea that is sold loose or pressed.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er in general",
+        "text": "Raw pu’er begins as leaf from Yunnan’s large-leaf tea trees. It is picked and withered, then fried in a wok to kill the green. That heat stops most of the leaf’s own enzymes but not all, and because the leaf is never hot-air dried afterwards, the activity that survives is what lets the tea keep changing for years. It is rolled, then dried in the sun, turned over a couple of days. The result is maocha, the rough tea that is sold loose or pressed.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:notice-aged",
+    "pageId": "sheng",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged raw pu’er",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [
+      {
+        "original": "樟香",
+        "pinyin": "zhāng xiāng",
+        "gloss": "camphor aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Aged raw pu'er",
+    "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Aged raw pu'er",
+        "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:pressing",
+    "pageId": "sheng",
+    "sectionKey": "pressing",
+    "label": "Pressing",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [
+      {
+        "original": "沱茶",
+        "pinyin": "tuó chá",
+        "gloss": "tuo"
+      }
+    ],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er in general",
+        "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:processing",
+    "pageId": "sheng",
+    "sectionKey": "processing",
+    "label": "From maocha to finished tea",
+    "axis": "process",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Sheng Pu’er",
+    "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
+    "sourceIds": [
+      "teaguardian-raw-cooked-puer"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Sheng Pu’er",
+        "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-6761D903E45891EFCB26F71D"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:storage",
+    "pageId": "sheng",
+    "sectionKey": "storage",
+    "label": "Storage",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [
+      {
+        "original": "干仓",
+        "pinyin": "gān cāng",
+        "gloss": "dry storage"
+      },
+      {
+        "original": "湿仓",
+        "pinyin": "shī cāng",
+        "gloss": "humid storage"
+      }
+    ],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er in general",
+        "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:age-aged",
+    "pageId": "shou",
+    "sectionKey": "age-aged",
+    "label": "Ten years and more",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "陈香",
+        "pinyin": "chén xiāng",
+        "gloss": "aged aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Ripe pu'er at ten years and more",
+    "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Ripe pu'er at ten years and more",
+        "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "shou:age-settling",
     "pageId": "shou",
     "sectionKey": "age-settling",
@@ -374,6 +603,307 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
+    "claimId": "taiwan-oolong:ageing",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Taiwan oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老茶",
+        "pinyin": "lǎo chá",
+        "gloss": "old tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:baozhong",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "baozhong",
+    "label": "Baozhong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "baozhong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "包種",
+        "pinyin": "bāozhǒng",
+        "gloss": "wrapped kind"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:brewing",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "brewing",
+    "label": "Brewing Taiwan oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:common-impressions",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:definition",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "definition",
+    "label": "What Taiwan oolong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "青心烏龍",
+        "pinyin": "qīngxīn wūlóng",
+        "gloss": "Qingxin oolong"
+      },
+      {
+        "original": "金萱",
+        "pinyin": "jīnxuān",
+        "gloss": "Jinxuan"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:dong-ding",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "dong-ding",
+    "label": "Dong Ding",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "dong",
+        "ding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "凍頂",
+        "pinyin": "dòngdǐng",
+        "gloss": "Dong Ding"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:high-mountain",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "high-mountain",
+    "label": "High mountain tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "high",
+        "mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "高山茶",
+        "pinyin": "gāoshān chá",
+        "gloss": "high mountain tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:history",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "history",
+    "label": "How Taiwan oolong grew",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:notice-aged",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Taiwan oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "taiwan-oolong:oriental-beauty",
+    "pageId": "taiwan-oolong",
+    "sectionKey": "oriental-beauty",
+    "label": "Oriental Beauty",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "taiwan"
+      ],
+      "name_includes": [
+        "oriental",
+        "beauty"
+      ]
+    },
+    "terms": [
+      {
+        "original": "東方美人",
+        "pinyin": "dōngfāng měirén",
+        "gloss": "Oriental Beauty"
+      },
+      {
+        "original": "膨風茶",
+        "pinyin": "pèngfēng chá",
+        "gloss": "bragging tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "xishuangbanna-tea-mountains:living-culture",
     "pageId": "xishuangbanna-tea-mountains",
     "sectionKey": "living-culture",
@@ -435,286 +965,5 @@ export const PART: readonly DraftClaim[] = [
     "pendingText": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
     "previousRevisions": [],
     "pageVisibility": "draft"
-  },
-  {
-    "claimId": "y562:designers",
-    "pageId": "y562",
-    "sectionKey": "designers",
-    "label": "A tiger and a hand-painted carton",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "y562"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
-    "sourceIds": [
-      "puer-magazine-export-cartons",
-      "puer-magazine-jixing-design"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Jixing Y562 export tea and its documented historical versions.",
-        "text": "Designer Yin Huize recalled taking hand-painted cartons to the spring Canton Fair with his colleague Tang Zheng. Buyers placed orders from the samples. Tang drew on an openwork jade tiger pendant for the Jixing mark. Yin framed the lettering on the black box with patterns inspired by Chinese lacquerware. The design later appeared on a miniature 15 g carton that airlines gave to passengers.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
-        "evidenceIds": [
-          "EVIDENCE-6C6F4F073EDB7261F39C85AB",
-          "EVIDENCE-F630243D3CB7302997F8EC8E",
-          "EVIDENCE-2410F22AE4B69A942FA64699"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "y562:export-trade",
-    "pageId": "y562",
-    "sectionKey": "export-trade",
-    "label": "The box was part of the tea’s story",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "y562"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
-    "sourceIds": [
-      "puer-magazine-export-cartons"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Jixing Y562 export tea and its documented historical versions.",
-        "text": "Much of Yunnan’s loose pu’er once travelled in bulk. In Japan, importers repacked it under their own labels. In 1980, Yunnan brought packaging and tea export designers together so a box could reach a shop counter carrying the province’s own brand. Y562 had Chinese lettering on the front and the English name “Superior Yunnan Pu-erh Tea” on the back. Its companion in the range was Y671, the “little yellow box.”",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
-        "evidenceIds": [
-          "EVIDENCE-F15BA92DF3957EB2BB4959D9",
-          "EVIDENCE-55FC506828F74D8F0C72ADAB"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "y562:little-black-box",
-    "pageId": "y562",
-    "sectionKey": "little-black-box",
-    "label": "Yunnan’s little black box",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "y562"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
-    "sourceIds": [
-      "china-tea-catalogue-y562",
-      "puer-magazine-jixing-design"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Jixing Y562 export tea and its documented historical versions.",
-        "text": "Y562 is the export code for a loose ripe pu’er from Yunnan. Drinkers nicknamed it the “little black box” after its carton. The Jixing brand mark on the front shows a tiger coming downhill. China Tea’s catalogue lists Y562 in the classic 100 g format.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
-        "evidenceIds": [
-          "EVIDENCE-99F92222EEA66297BE2ECBA5",
-          "EVIDENCE-E21387EE2A807C8BD28E7236",
-          "EVIDENCE-6C6F4F073EDB7261F39C85AB"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "y562:original-blend",
-    "pageId": "y562",
-    "sectionKey": "original-blend",
-    "label": "The tea behind the code",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "y562"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
-    "sourceIds": [
-      "puer-magazine-jixing-design"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Jixing Y562 export tea and its documented historical versions.",
-        "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
-        "evidenceIds": [
-          "EVIDENCE-A4817C0FA41A69E66E2BF23B"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yunnan-mountain-names:market-names",
-    "pageId": "yunnan-mountain-names",
-    "sectionKey": "market-names",
-    "label": "Names in the tea market",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
-    "sourceIds": [
-      "ctma-yunnan-108-mountains-2026"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "yunnan-mountain-names:reading-the-list",
-    "pageId": "yunnan-mountain-names",
-    "sectionKey": "reading-the-list",
-    "label": "What a list can tell us",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
-    "sourceIds": [
-      "ctma-yunnan-108-mountains-2026"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "yunnan:geographic-frame",
-    "pageId": "yunnan",
-    "sectionKey": "geographic-frame",
-    "label": "The geographic frame",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
-    "sourceIds": [
-      "teadb-yunnan-overview"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-FD526336F67070D4C3DD64DF"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yunnan:reading-labels",
-    "pageId": "yunnan",
-    "sectionKey": "reading-labels",
-    "label": "Read labels with care",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
-    "sourceIds": [
-      "teadb-yunnan-overview"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Regional schemes are editorial aids rather than a single settled ladder. Boundaries, spellings, and the prominence given to one place over another vary, and famous names also function as commercial language. A place label is useful context, not proof of a tea’s exact origin.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-3EE3ABDD50251B7812F1C99A"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yunnan:regional-map",
-    "pageId": "yunnan",
-    "sectionKey": "regional-map",
-    "label": "A map of regions",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan Pu’er Regions",
-    "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
-    "sourceIds": [
-      "teadb-yunnan-overview"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Yunnan Pu’er Regions",
-        "text": "Reference maps commonly begin with Xishuangbanna, Pu’er Prefecture, and Lincang, then move toward counties, mountain areas, villages, and local names. Xishuangbanna is often divided into eastern and western tea areas, while other production extends through Yunnan beyond those best-known centers.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-F9F875FFED47BD47BC79EC6C"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
   }
 ];

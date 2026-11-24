@@ -17,6 +17,8 @@ describe('composeInputs for any kit', () => {
     expect(styleName('Shou (ripe pu’er)')).toBe('ripe pu’er');
     expect(styleName('Dark tea (hei cha)')).toBe('dark tea');
     expect(styleName('Liu Bao')).toBe('Liu Bao');
+    expect(styleName('Taiwan oolong')).toBe('Taiwan oolong');
+    expect(styleName('Oolong (wulong)')).toBe('oolong');
   });
 
   it('gives a 1990 Liu Bao its own kit first and the dark tea family behind it', () => {
@@ -41,6 +43,20 @@ describe('composeInputs for any kit', () => {
     const young = composeInputs({ ...raw, year: 2023 }, claims, { thisYear: 2026, pages });
     expect(ids(young.layers.age)).toEqual(['sheng:age-young']);
     expect(young.fixed.claimIds).toContain('sheng:common-impressions');
+  });
+
+  it('gives an aged Taiwan oolong its style kit first, the oolong family behind it, and the aged style line', () => {
+    const dongDing = { id: 'dd', product_name: 'Dong Ding Aged', type: 'Oolong', form: 'Rolled', year: 1996, origin_region: 'Lugu, Nantou', origin_country: 'Taiwan' };
+    const inputs = composeInputs(dongDing, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type[0]).toBe('taiwan-oolong:definition');
+    expect(type).toContain('oolong:definition');
+    expect(ids(inputs.layers.age)).toEqual(['taiwan-oolong:ageing']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged Taiwan oolong');
+    const anxi = composeInputs({ ...dongDing, id: 'tgy', product_name: 'Tie Guan Yin', origin_region: 'Anxi, Fujian', origin_country: 'China' }, claims, { thisYear: 2026, pages });
+    expect(ids(anxi.layers.type)[0]).toBe('oolong:definition');
+    expect(ids(anxi.layers.age)).toEqual(['oolong:ageing']);
+    expect(anxi.fixed.notice?.styleName).toBe('aged oolong');
   });
 
   it('gives a dark tea outside Guangxi only the family kit', () => {

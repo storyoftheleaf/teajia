@@ -5,6 +5,225 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "oolong:definition",
+    "pageId": "oolong",
+    "sectionKey": "definition",
+    "label": "What oolong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "乌龙茶",
+        "pinyin": "wūlóng chá",
+        "gloss": "oolong tea"
+      },
+      {
+        "original": "青茶",
+        "pinyin": "qīng chá",
+        "gloss": "blue-green tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:families",
+    "pageId": "oolong",
+    "sectionKey": "families",
+    "label": "The four families",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "岩韵",
+        "pinyin": "yán yùn",
+        "gloss": "rock rhyme"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:history",
+    "pageId": "oolong",
+    "sectionKey": "history",
+    "label": "How oolong began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:making",
+    "pageId": "oolong",
+    "sectionKey": "making",
+    "label": "How oolong is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "做青",
+        "pinyin": "zuò qīng",
+        "gloss": "tossing the leaf in rounds"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:notice-aged",
+    "pageId": "oolong",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:oxidation-and-roast",
+    "pageId": "oolong",
+    "sectionKey": "oxidation-and-roast",
+    "label": "Oxidation and roast",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "焙火",
+        "pinyin": "bèi huǒ",
+        "gloss": "roasting"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "puer:history",
+    "pageId": "puer",
+    "sectionKey": "history",
+    "label": "Trade and continuity",
+    "axis": "type",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Pu’er",
+    "text": "Tea moved from Yunnan toward Tibet and farther markets along trading networks that are often grouped under the Tea Horse Road. That commerce supported mountain production, market towns, and enduring links between tea-growing communities and distant drinkers.",
+    "sourceIds": [
+      "ctma-puer-history-2021"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Pu’er",
+        "text": "Tea moved from Yunnan toward Tibet and farther markets along trading networks that are often grouped under the Tea Horse Road. That commerce supported mountain production, market towns, and enduring links between tea-growing communities and distant drinkers.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-5829FD880D9AD20B72092E01"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "puer:identity",
+    "pageId": "puer",
+    "sectionKey": "identity",
+    "label": "A tea rooted in Yunnan",
+    "axis": "type",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Pu’er",
+    "text": "Pu’er belongs to Yunnan’s long tea history. The name now gathers a family of teas whose identity is tied not only to manufacture, but also to material, place, and the traditions that developed around them.",
+    "sourceIds": [
+      "ctma-puer-history-2021"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Pu’er",
+        "text": "Pu’er belongs to Yunnan’s long tea history. The name now gathers a family of teas whose identity is tied not only to manufacture, but also to material, place, and the traditions that developed around them.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-5B1AC33CAC9C5C015CA7CA80"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "puer:modern-family",
     "pageId": "puer",
     "sectionKey": "modern-family",
@@ -743,235 +962,6 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": [
           "EVIDENCE-3BB473838666F92132E285E0"
         ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:making",
-    "pageId": "sheng",
-    "sectionKey": "making",
-    "label": "How raw pu’er is made",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "杀青",
-        "pinyin": "shā qīng",
-        "gloss": "kill-green"
-      },
-      {
-        "original": "晒青",
-        "pinyin": "shài qīng",
-        "gloss": "sun-drying"
-      },
-      {
-        "original": "毛茶",
-        "pinyin": "máo chá",
-        "gloss": "rough tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Raw pu’er begins as leaf from Yunnan’s large-leaf tea trees. It is picked and withered, then fried in a wok to kill the green. That heat stops most of the leaf’s own enzymes but not all, and because the leaf is never hot-air dried afterwards, the activity that survives is what lets the tea keep changing for years. It is rolled, then dried in the sun, turned over a couple of days. The result is maocha, the rough tea that is sold loose or pressed.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Raw pu’er begins as leaf from Yunnan’s large-leaf tea trees. It is picked and withered, then fried in a wok to kill the green. That heat stops most of the leaf’s own enzymes but not all, and because the leaf is never hot-air dried afterwards, the activity that survives is what lets the tea keep changing for years. It is rolled, then dried in the sun, turned over a couple of days. The result is maocha, the rough tea that is sold loose or pressed.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:notice-aged",
-    "pageId": "sheng",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged raw pu’er",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "樟香",
-        "pinyin": "zhāng xiāng",
-        "gloss": "camphor aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Aged raw pu'er",
-    "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Aged raw pu'er",
-        "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:pressing",
-    "pageId": "sheng",
-    "sectionKey": "pressing",
-    "label": "Pressing",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "沱茶",
-        "pinyin": "tuó chá",
-        "gloss": "tuo"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:processing",
-    "pageId": "sheng",
-    "sectionKey": "processing",
-    "label": "From maocha to finished tea",
-    "axis": "process",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
-    "sourceIds": [
-      "teaguardian-raw-cooked-puer"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-6761D903E45891EFCB26F71D"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:storage",
-    "pageId": "sheng",
-    "sectionKey": "storage",
-    "label": "Storage",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "干仓",
-        "pinyin": "gān cāng",
-        "gloss": "dry storage"
-      },
-      {
-        "original": "湿仓",
-        "pinyin": "shī cāng",
-        "gloss": "humid storage"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-aged",
-    "pageId": "shou",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "陈香",
-        "pinyin": "chén xiāng",
-        "gloss": "aged aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er at ten years and more",
-    "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er at ten years and more",
-        "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
       }
     ],
     "pageVisibility": "public"

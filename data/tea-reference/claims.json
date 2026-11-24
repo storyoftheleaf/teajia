@@ -2925,6 +2925,411 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "乌龙茶",
+          "pinyin": "wūlóng chá",
+          "gloss": "oolong tea"
+        },
+        {
+          "original": "青茶",
+          "pinyin": "qīng chá",
+          "gloss": "blue-green tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "做青",
+          "pinyin": "zuò qīng",
+          "gloss": "tossing the leaf in rounds"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:oxidation-and-roast",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "焙火",
+          "pinyin": "bèi huǒ",
+          "gloss": "roasting"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:families",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "岩韵",
+          "pinyin": "yán yùn",
+          "gloss": "rock rhyme"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "oolong:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "青心烏龍",
+          "pinyin": "qīngxīn wūlóng",
+          "gloss": "Qingxin oolong"
+        },
+        {
+          "original": "金萱",
+          "pinyin": "jīnxuān",
+          "gloss": "Jinxuan"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:high-mountain",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ],
+        "name_includes": [
+          "high",
+          "mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "高山茶",
+          "pinyin": "gāoshān chá",
+          "gloss": "high mountain tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:dong-ding",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ],
+        "name_includes": [
+          "dong",
+          "ding"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "凍頂",
+          "pinyin": "dòngdǐng",
+          "gloss": "Dong Ding"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:baozhong",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ],
+        "name_includes": [
+          "baozhong"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "包種",
+          "pinyin": "bāozhǒng",
+          "gloss": "wrapped kind"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:oriental-beauty",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ],
+        "name_includes": [
+          "oriental",
+          "beauty"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "東方美人",
+          "pinyin": "dōngfāng měirén",
+          "gloss": "Oriental Beauty"
+        },
+        {
+          "original": "膨風茶",
+          "pinyin": "pèngfēng chá",
+          "gloss": "bragging tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "老茶",
+          "pinyin": "lǎo chá",
+          "gloss": "old tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "taiwan-oolong:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "taiwan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }
