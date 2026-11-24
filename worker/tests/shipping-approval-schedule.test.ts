@@ -53,8 +53,9 @@ it.each(['a tight statement allowance', 'an archive cleanup database error'])(
       vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.spyOn(console, 'warn').mockImplementation(() => {});
       const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+      const scheduledTime = Date.now();
       await worker.scheduled(
-        { scheduledTime: Date.now(), cron: '0 * * * *' } as ScheduledEvent,
+        { scheduledTime, cron: '0 * * * *' } as ScheduledEvent,
         {
           DB: database, SHARED_ALLOWANCE_REQUIRED: 'true',
           SHARED_ALLOWANCE: { idFromName: () => 'account', get: () => ({ fetch: reserve }) },
@@ -66,6 +67,10 @@ it.each(['a tight statement allowance', 'an archive cleanup database error'])(
         {} as ExecutionContext,
       );
       expect(provider).toHaveBeenCalledTimes(1);
+      expect(info).toHaveBeenCalledWith('Scheduled shipping approval provider attempt', {
+        scheduledTime, attempt: 1, transport: 'kapso', outcome: 'http_response',
+        httpStatus: 200, elapsedMs: expect.any(Number),
+      });
       expect(info).toHaveBeenCalledWith('Scheduled shipping approval', expect.objectContaining({ state: 'approved' }));
       expect(reserve.mock.calls.map(([url]) => new URL(url).pathname)).toEqual(['/reserve', '/settle']);
       expect(db.sqlite.prepare('SELECT state, checked_at FROM shipping_whatsapp_approval').get()).toEqual({

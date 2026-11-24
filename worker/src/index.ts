@@ -32312,7 +32312,12 @@ const requestHandler = {
     // outbox work can spend it, including when a database failure consumes it.
     if (env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED === 'true') {
       try {
-        const approval = await refreshShippingWhatsAppApproval(env.DB, env);
+        const approval = await refreshShippingWhatsAppApproval(env.DB, env, {
+          onAttempt: attempt => console.info('Scheduled shipping approval provider attempt', {
+            scheduledTime: event.scheduledTime,
+            ...attempt,
+          }),
+        });
         console.info('Scheduled shipping approval', {
           scheduledTime: event.scheduledTime, state: approval.state, code: approval.code, checkedAt: approval.checked_at,
         });

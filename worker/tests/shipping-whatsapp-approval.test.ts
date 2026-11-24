@@ -29,6 +29,21 @@ describe('shipping WhatsApp provider approval',()=>{
   expect(await f.approved()).toBe(true);
   expect(f.fetcher).toHaveBeenCalledTimes(2);
  });
+ it('records only safe attempt fields and stops after a provider 503 and transport failure', async () => {
+  const f = fixture();
+  f.fetcher
+   .mockResolvedValueOnce(new Response('private provider payload', { status: 503 }))
+   .mockRejectedValueOnce(new Error('private credential or request URL'));
+  const onAttempt = vi.fn();
+  const refresh = () => refreshShippingWhatsAppApproval(f.db as any, f.env, { fetcher: f.fetcher, onAttempt });
+  expect(await refresh()).toMatchObject({ state: 'unavailable', code: 'whatsapp_template_verification_unavailable' });
+  expect(await refresh()).toMatchObject({ state: 'unavailable' });
+  expect(f.fetcher).toHaveBeenCalledTimes(2);
+  expect(onAttempt.mock.calls).toEqual([
+   [{ attempt: 1, transport: 'kapso', outcome: 'http_response', httpStatus: 503, elapsedMs: expect.any(Number) }],
+   [{ attempt: 2, transport: 'kapso', outcome: 'transport_error', httpStatus: null, elapsedMs: expect.any(Number) }],
+  ]);
+ });
  it('binds approval to the configured account and does not fetch for a different tenant',async()=>{const f=fixture();expect(await f.approved('foreign')).toBe(false);expect(f.fetcher).not.toHaveBeenCalled();expect(await f.approved()).toBe(true);});
  it.each(['REJECTED','PAUSED','DISABLED','PENDING','IN_APPEAL'])('does not send with provider status %s',async status=>{const f=fixture();f.fetcher.mockResolvedValue(Response.json({data:[f.template({status})]}));expect(await f.approved()).toBe(false);});
  it.each([{name:'unrelated_template'},{language:'id'},{category:'MARKETING'}])('does not accept a different template identity or category %j',async override=>{const f=fixture();f.fetcher.mockResolvedValue(Response.json({data:[f.template(override)]}));expect(await f.approved()).toBe(false);});
