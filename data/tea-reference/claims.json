@@ -4056,6 +4056,368 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "武夷岩茶",
+          "pinyin": "wǔyí yánchá",
+          "gloss": "Wuyi rock tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:rock-rhyme",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "岩韵",
+          "pinyin": "yán yùn",
+          "gloss": "rock rhyme"
+        },
+        {
+          "original": "岩骨花香",
+          "pinyin": "yán gǔ huā xiāng",
+          "gloss": "rock bone and floral fragrance"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:growing-areas",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "正岩",
+          "pinyin": "zhèng yán",
+          "gloss": "true rock"
+        },
+        {
+          "original": "半岩",
+          "pinyin": "bàn yán",
+          "gloss": "half rock"
+        },
+        {
+          "original": "洲茶",
+          "pinyin": "zhōu chá",
+          "gloss": "riverside tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "炭焙",
+          "pinyin": "tàn bèi",
+          "gloss": "charcoal roasting"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:roast-levels",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "轻火",
+          "pinyin": "qīng huǒ",
+          "gloss": "light roast"
+        },
+        {
+          "original": "中火",
+          "pinyin": "zhōng huǒ",
+          "gloss": "medium roast"
+        },
+        {
+          "original": "足火",
+          "pinyin": "zú huǒ",
+          "gloss": "full roast"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:da-hong-pao",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ],
+        "name_includes": [
+          "da",
+          "hong",
+          "pao"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "大红袍",
+          "pinyin": "dà hóng páo",
+          "gloss": "Big Red Robe"
+        },
+        {
+          "original": "奇丹",
+          "pinyin": "qí dān",
+          "gloss": "Qidan"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:rougui",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ],
+        "name_includes": [
+          "rougui"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "肉桂",
+          "pinyin": "ròu guì",
+          "gloss": "cassia"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:shui-xian",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ],
+        "name_includes": [
+          "shui",
+          "xian"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "水仙",
+          "pinyin": "shuǐ xiān",
+          "gloss": "Shui Xian"
+        },
+        {
+          "original": "老丛",
+          "pinyin": "lǎo cóng",
+          "gloss": "old bush"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:meizhan",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ],
+        "name_includes": [
+          "meizhan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "梅占",
+          "pinyin": "méi zhàn",
+          "gloss": "Meizhan"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "返青",
+          "pinyin": "fǎn qīng",
+          "gloss": "going green again"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "yancha:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "wuyi mountains"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

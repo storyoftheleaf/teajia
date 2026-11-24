@@ -85,6 +85,88 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "yancha",
+    "slug": "yancha",
+    "kind": "tea_type",
+    "label": "Wuyi rock tea (yancha)",
+    "visibility": "public",
+    "nativeName": "武夷岩茶",
+    "parentId": "oolong",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Wuyi rock tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "rock-rhyme",
+        "label": "Rock rhyme",
+        "sourceIds": []
+      },
+      {
+        "key": "growing-areas",
+        "label": "Where in Wuyi it grows",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Wuyi rock tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "roast-levels",
+        "label": "Light, medium and full roast",
+        "sourceIds": []
+      },
+      {
+        "key": "da-hong-pao",
+        "label": "Da Hong Pao",
+        "sourceIds": []
+      },
+      {
+        "key": "rougui",
+        "label": "Rougui",
+        "sourceIds": []
+      },
+      {
+        "key": "shui-xian",
+        "label": "Shui Xian",
+        "sourceIds": []
+      },
+      {
+        "key": "meizhan",
+        "label": "Meizhan",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Wuyi rock tea began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Wuyi rock tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Wuyi rock tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged Wuyi rock tea",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "yunnan",
     "slug": "yunnan",
     "kind": "major_region",

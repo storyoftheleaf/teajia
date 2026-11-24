@@ -73,6 +73,18 @@ describe('composeInputs for any kit', () => {
     expect(fuding.fixed.notice?.styleName).toBe('aged white tea');
   });
 
+  it('gives a Wuyi Rougui the rock tea kit with its own named section only', () => {
+    const rougui = { id: 'rg', product_name: 'Lotus Rougui', type: 'Oolong', form: 'Loose Leaf', year: null, origin_region: 'Wuyi Mountains, Fujian', origin_country: 'China' };
+    const type = ids(composeInputs(rougui, claims, { thisYear: 2026, pages }).layers.type);
+    expect(type[0]).toBe('yancha:definition');
+    expect(type).toContain('yancha:rougui');
+    expect(type).not.toContain('yancha:da-hong-pao');
+    expect(type).toContain('oolong:definition');
+    const meizhan = composeInputs({ ...rougui, id: 'mz', product_name: 'Meizhan Yancha', year: 1990 }, claims, { thisYear: 2026, pages });
+    expect(ids(meizhan.layers.age)).toEqual(['yancha:ageing']);
+    expect(meizhan.fixed.notice?.styleName).toBe('aged Wuyi rock tea');
+  });
+
   it('gives a dark tea outside Guangxi only the family kit', () => {
     const inputs = composeInputs({ ...liuBao, id: 'fu', product_name: 'Fu Brick', origin_region: 'Anhua, Hunan', form: 'Brick' }, claims, { thisYear: 2026, pages });
     expect(ids(inputs.layers.type)).not.toContain('liu-bao:definition');

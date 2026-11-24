@@ -285,7 +285,7 @@ test('validates every canonical Markdown file but generates only the approved, r
   });
 
   const markdownFiles = (await fs.readdir(PAGES_DIRECTORY)).filter(fileName => fileName.endsWith('.md'));
-  assert.equal(markdownFiles.length, 25);
+  assert.equal(markdownFiles.length, 26);
   assert.deepEqual(registry.pages.map(page => page.id), [
     'dark',
     'dian-hong',
