@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { formalSessionCardsFor, formalSessionRecap, placeGuestItems } from '../src/publicSessions';
+import { formalSessionCardsFor, formalSessionRecap, placeGuestItems, publicSessionRoutes } from '../src/publicSessions';
 import { isForSale, type PublicProductReader } from '../src/sessionTeas';
 import { seedIdentity, SqliteD1 } from './helpers/sqliteD1';
 
@@ -146,5 +146,40 @@ describe('who sees what on the public recap', () => {
     expect(card.photos).toEqual({ small: [expect.objectContaining({ src: '/api/public/sit-recaps/courtyard/photos/perm-ana' })], more: 0 });
     db.exec("UPDATE events SET recap_status = 'draft' WHERE id = 'sit'");
     expect(await formalSessionCardsFor(D1(), readPublic, 'mei-lin')).toEqual([]);
+  });
+});
+
+describe('"Add yours" is only for someone who sat at the table', () => {
+  const routes = publicSessionRoutes<{ DB: D1Database }>({
+    requireUser: async request => {
+      const userId = request.headers.get('Test-User');
+      return userId ? { userId } : { error: new Response(null, { status: 401 }) };
+    },
+    readPublic: () => readPublic,
+  });
+  const call = (method: string, user: string | null, body?: object) => {
+    const handler = routes.find(([verb, path]) => verb === method && path === '/api/me/sit-recaps/:slug/guest-book')![2];
+    return handler(new Request('https://teajia.test/', {
+      method, headers: user ? { 'Test-User': user } : {}, body: body ? JSON.stringify(body) : undefined,
+    }), { DB: D1() }, { slug: 'courtyard' });
+  };
+
+  it('opens for a seated guest, stays shut for anyone else, and keeps the note pending under its tea', async () => {
+    seedIdentity(db, { userId: 'stranger', accountId: 'shop' });
+    expect((await call('GET', null)).status).toBe(401);
+    expect(await (await call('GET', 'stranger')).json()).toEqual({ seated: false });
+    expect((await call('PUT', 'stranger', { note: 'Let me in', teaId: null, publicRecap: true })).status).toBe(200);
+    expect(db.sqlite.prepare("SELECT count(*) AS n FROM session_guest_book WHERE user_id = 'stranger'").get()).toEqual({ n: 0 });
+
+    const seat = await (await call('GET', 'lee')).json();
+    expect(seat).toMatchObject({ seated: true, teas: expect.arrayContaining([{ id: 't-shop', name: 'San He Liu Bao' }]) });
+    expect((await call('PUT', 'lee', { note: 'Warm and dark.', teaId: 't-shop', publicRecap: true })).status).toBe(200);
+    expect(db.sqlite.prepare("SELECT note, status, tea_id, public_recap FROM session_guest_book WHERE user_id = 'lee'").get())
+      .toEqual({ note: 'Warm and dark.', status: 'pending', tea_id: 't-shop', public_recap: 1 });
+    // A tea that was not served on this sit is not kept.
+    await call('PUT', 'lee', { note: 'Warm and dark.', teaId: 'not-served', publicRecap: true });
+    expect(db.sqlite.prepare("SELECT tea_id FROM session_guest_book WHERE user_id = 'lee'").get()).toEqual({ tea_id: null });
+    // Pending is never public.
+    expect(JSON.stringify(await formalSessionRecap(D1(), readPublic, 'courtyard'))).not.toContain('Warm and dark.');
   });
 });
