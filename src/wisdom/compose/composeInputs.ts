@@ -153,7 +153,9 @@ export function composeInputs(
     fixed.brewing = { layer: 'brewing', text: [breaking?.text, brewing.text].filter(Boolean).join(' ') };
     fixed.claimIds.push(...[breaking, brewing].filter((claim): claim is PublicClaim => Boolean(claim)).map(claim => claim.claimId));
   }
-  const aged = layers.age?.[0]?.sectionKey === 'age-aged';
+  // A kit with one general ageing section instead of bands (raw pu'er) still has an aged style line for an aged tea.
+  const ageKey = layers.age?.[0]?.sectionKey;
+  const aged = ageKey === 'age-aged' || (ageKey === 'ageing' && ageYears !== undefined && ageBand(ageYears) === 'age-aged');
   const agedNotice = aged ? onType('notice-aged') : undefined;
   const noticeClaim = agedNotice ?? onType('common-impressions');
   if (allowNotice && noticeClaim) {

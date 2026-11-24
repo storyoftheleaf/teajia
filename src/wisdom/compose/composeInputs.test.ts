@@ -32,6 +32,17 @@ describe('composeInputs for any kit', () => {
     expect(inputs.fixed.claimIds).toEqual(['liu-bao:brewing', 'liu-bao:notice-aged']);
   });
 
+  it('gives an aged raw pu’er the general ageing section and the aged style line', () => {
+    const raw = { id: 'raw', product_name: 'Yiwu Raw Puerh', type: 'Sheng Puer', form: 'Cake', year: 2004, origin_region: 'Yiwu, Yunnan', origin_country: 'China' };
+    const inputs = composeInputs(raw, claims, { thisYear: 2026, pages });
+    expect(ids(inputs.layers.age)).toEqual(['sheng:ageing']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged Sheng Pu’er');
+    expect(inputs.fixed.claimIds).toContain('sheng:notice-aged');
+    const young = composeInputs({ ...raw, year: 2023 }, claims, { thisYear: 2026, pages });
+    expect(ids(young.layers.age)).toEqual(['sheng:age-young']);
+    expect(young.fixed.claimIds).toContain('sheng:common-impressions');
+  });
+
   it('gives a dark tea outside Guangxi only the family kit', () => {
     const inputs = composeInputs({ ...liuBao, id: 'fu', product_name: 'Fu Brick', origin_region: 'Anhua, Hunan', form: 'Brick' }, claims, { thisYear: 2026, pages });
     expect(ids(inputs.layers.type)).not.toContain('liu-bao:definition');
