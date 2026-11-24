@@ -4,7 +4,7 @@ Status: plan only, not started (Adrian, 2026-11-24). Builds on [tea-wisdom-compo
 
 ## Goal
 
-Every tea in the shop, now and later, gets one composed entry: written in the house voice from its record and approved Wisdom, linked into Wisdom, approved by Adrian before it shows. Not only the teas listed today, but every type the shop knows: Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou, Herbal (`TEA_TYPES` in `src/wisdom/vocabulary.ts`).
+Every public tea, now and later, gets one composed entry: written in the house voice from its record and approved Wisdom, linked into Wisdom, approved by Adrian before it shows. Private teas are never drafted. Behind the entries sits a kit for every category the shop knows, built once, so a new tea already has its kit: Green, White, Yellow, Oolong, Red, Dark, Sheng, Shou, Herbal (`TEA_TYPES` in `src/wisdom/vocabulary.ts`).
 
 ## What already exists
 
@@ -38,13 +38,13 @@ A style kit adds only what differs from its type.
 4. **A kit factory.** For each kit, in order of teas unlocked: a research prompt (Claude reads the open Chinese trade sites; Hermes reads Zhihu, Baidu Baike and Xiaohongshu, which block Claude), notes saved in the vault under `Teajia/Research/tea-wisdom/`, the drafted sections, and an approval page like the ripe kit's. About 1 to 2 hours of research per kit, then Adrian's approval.
 5. **Compose in batches.** After each kit is approved, the composer drafts every tea it unlocks; Claude reads each draft; clean ones are approved, the rest are held with a reason; one push per batch.
 6. **Corrections (phase 4 of the pilot plan).** When a kit section changes, every entry that used it is flagged and a fresh draft waits beside the live one.
-7. **Intake (phase 5).** A grade field on the tea record; when a tea moves from Curate to the shop, its entry is drafted and lands in Adrian's approval list, so new teas never wait for a batch.
+7. **Intake (phase 5).** A grade field on the tea record; the variety matcher picks the style kit (see the catalogue); when a tea moves from Curate to the shop, its entry is drafted and lands in Adrian's approval list, so new teas never wait for a batch.
 
 ## What success looks like
 
 Each can be checked by looking, or by one command:
 
-1. **Every tea has an entry.** On teajia.com, every tea's product page shows one written entry (story, brewing, what people often notice), not stacked Wisdom blocks. Check: the count of approved entries in `src/wisdom/reference/generatedEntries.ts` equals the count of public teas, less the ones held with a written reason.
+1. **Every public tea has an entry.** On teajia.com, every public tea's product page shows one written entry (story, brewing, what people often notice), not stacked Wisdom blocks. Check: the count of approved entries in `src/wisdom/reference/generatedEntries.ts` equals the count of public teas, less the ones held with a written reason.
 2. **No tea waits for a batch.** A tea moved from Curate to the shop has a draft in Adrian's approval list the same day.
 3. **Every link goes somewhere worth going.** Each underlined term opens a Wisdom page with more than the sentence it came from, at the right section. Check: every link on a product page lands on a page with two or more sections.
 4. **Nothing is invented.** Every sentence rests on the tea's record or an approved claim. Check: each draft passes both checks, and Adrian approves without rewriting.
@@ -59,13 +59,33 @@ Each can be checked by looking, or by one command:
 - **Compose a batch (step 5).** Fetch the product list once (`curl https://www.teajia.com/api/products/public`). Run `node scripts/tea-wisdom-compose/compose.mjs --products <file> --type <type>`; the claude CLI must be signed in on the Claude plan, not API billing. Read each draft at `/preview/wisdom-pilot/drafts/<id>` in `npm run practice`, run `npm run tea-wisdom:entries:approve <id>` for the clean ones, then the checks and `test:mobile`, then push once.
 - **Corrections and intake (steps 6 and 7).** Follow phases 4 and 5 of [tea-wisdom-composed-entry.md](tea-wisdom-composed-entry.md).
 
+## The catalogue: every tea finds its kit
+
+Decided by Adrian, 2026-11-24. Kits are the structure and entries are the output. A kit is written once for its whole category, whether or not a tea in stock needs it today, so that a tea entered later (a Da Hong Pao, say) already has its kit the day it arrives. Entries are written only for public teas. Private teas, and tea masters' teas that will not be sold, are never drafted.
+
+**How a new tea finds its kit.** The list of every tea already exists: `TEA_VARIETIES` in `src/data/teaVarieties.ts`, 319 varieties grouped by type and by region or style, each with its Chinese name and other spellings, plus a matcher that turns a typed name into a variety, or returns nothing rather than guessing. The one missing piece is that each variety group should name the kit it belongs to. Then: Da Hong Pao, or 大红袍, matches the variety Da Hong Pao, which belongs to the Yancha kit, inside the Oolong kit. When nothing matches, the tea uses its type kit alone, and its draft asks Adrian to pick the style.
+
+**Build order.** First the kits that public teas need: Liu Bao (5 public teas), then Sheng with its age bands (1), then Red with Dian Hong (1). Then the rest of the catalogue, roughly in order of stock (see Stock count). A kit whose teas will never be public can wait indefinitely.
+
+| Type kit | Style kits, from the variety groups | Today |
+|---|---|---|
+| Shou | none needed; place pages carry the region | built |
+| Sheng | none needed; place pages (Yiwu, Menghai and Bulang, Lincang) carry the region | page exists, age bands to add |
+| Oolong | Yancha, Dan Cong, Tieguanyin and Fujian oolong, Taiwan oolong (high mountain, Dong Ding, Oriental Beauty, Baozhong, GABA) | to build |
+| Dark | Liu Bao, Anhua (Fu brick, Qianliang, Huajuan, Tian Jian), Liu An, Sichuan and Tibetan bricks | to build |
+| Red | Fujian red (Lapsang, Jin Jun Mei, Tanyang), Keemun, Dian Hong, Guangdong red, Taiwan red, Indian and Sri Lankan | to build |
+| White | Fujian white (Silver Needle, Bai Mudan, Shou Mei), Yunnan white | to build |
+| Green | Chinese green, Japanese green, Korean green | to build |
+| Yellow | none | to build |
+| Herbal | flowers, herbs, roots and spices, fruits, rooibos, Chinese herbal blends | to build, last |
+
 ## Stock count
 
 Read on 2026-11-24 straight from the shop database, one read-only query of 351 rows. The shop connection was paused by the shared-allowance guard that day, and Adrian approved the direct read. It covers every tea on the main shop account (`acc_teajia_bali`), private, draft, sold-out and archived ones included. Teaware, Misc, three TEST ONLY rows and eight rows on test accounts are left out. That leaves **223 teas, of which 21 are public** (public means `is_public`, `shown_in_shop`, and Active or Sold Out). Each style comes from the record's origin, Chinese name and processing notes, never from the English name alone. "Sheng Puer" and "Shou Puer" are counted as Sheng and Shou. Nothing in the shop was changed.
 
 Each tea needs its type kit, then its style kit if it has one, so a type kit always comes before its styles. "Aged" means 15 years or older by the record's year.
 
-| Order | Kit | Teas it unlocks | Public now | Notes |
+| By stock | Kit | Teas in stock | Public now | Notes |
 |---|---|---|---|---|
 | done | Shou (type) | 49 | 14 | Built. 8 approved; 41 waiting to be composed (2 have named-tea pages: Y562, Nanqiao Ruigong) |
 | 1 | Sheng (type, with age bands) | 48 | 1 | 36 aged, 2 young, 10 with no year. `sheng.md` already exists and is sourced |
@@ -104,6 +124,6 @@ Y562, Naka, Yiwu Gushu, Ripe Puerh Brick and Pasha (reasons in the pilot plan, "
 
 ## Needs Adrian
 
-- Fix the 26 tea records listed under Stock count (type or processing notes), so they can be composed.
+- Fix the type or notes of any of the 26 records listed under Stock count that will go public; the rest can stay as they are.
 - Approve each kit on its page, and each batch of entries.
 - Settle step 3 with the integration owner.
