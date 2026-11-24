@@ -7,6 +7,7 @@ import { useToast } from './Toast';
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import { EventForm } from './EventForm';
+import { ConnectedSitDemoControl } from './ConnectedSitDemoControl';
 import { Modal } from '../../components/shared/Modal';
 import { TeaEvent, EventStatus } from '../../types/events';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
@@ -206,6 +207,8 @@ function SessionsList({ linkedSearch, onClearLinkedSearch }: { linkedSearch: str
     </div>
 
     <div className="px-4 md:px-6 lg:px-10 py-6 max-w-5xl mx-auto overflow-x-hidden">
+
+      <ConnectedSitDemoControl />
 
       {/* Search */}
       {events.length > 0 && (

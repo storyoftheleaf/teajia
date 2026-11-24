@@ -1,5 +1,6 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { publicSitRoutes } from './publicSitConnections';
+import { connectedSitDemoRoutes } from './connectedSitDemo';
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
@@ -30884,6 +30885,7 @@ const routes: [string, string, Handler][] = [
     requireUser: requireAuthenticatedUser,
     shopAccountId: BALI_ACCOUNT_ID,
   }),
+  ...connectedSitDemoRoutes<Env>({ accountId: BALI_ACCOUNT_ID, requireOwner: requireOwnerTier }),
   ...publicSitRoutes<Env>({
     requireUser: requireAuthenticatedUser,
     requireEditor: (request, env) => requireBundle(request, env, 'publish'),

@@ -75,6 +75,7 @@ const MemberSitPage = lazyWithRetry(() => import('./pages/MemberSitPage').then(m
 const MemberSitInvitePage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitInvitePage })));
 const EventRecapPage = lazyWithRetry(() => import('./pages/EventRecapPage'));
 const TeaFeedPage = lazyWithRetry(() => import('./pages/TeaFeedPage'));
+const ConnectedSitDemoPage = lazyWithRetry(() => import('./pages/demo/ConnectedSitDemoPage'));
 const GuestManagement = lazyWithRetry(() => import('./components/events/GuestManagement'));
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
 const OrderStatusPage = lazyWithRetry(() => import('./pages/OrderStatusPage'));
@@ -1293,6 +1294,7 @@ const AppContent = () => {
                 </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/tea-feed" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaFeedPage /></Suspense></ErrorBoundary>} />
+                <Route path="/demo/connected-sit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ConnectedSitDemoPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/sits/casual/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CasualSitRecapPage /></Suspense></ErrorBoundary>} />
                 <Route path="/after-sit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AfterSitPage /></Suspense></ErrorBoundary>} />
