@@ -1,7 +1,7 @@
 import type { CellarItem, CellarPlacementRequest, PublicShelf, ShelfOfferInput, ShelfSettings } from './teaChestTypes';
 export type { CellarItem, CellarPlacementRequest, PublicShelf, PublicShelfItem, ShelfOfferInput, ShelfSettings, TeaChestAccount } from './teaChestTypes';
 import type { ShippingPaymentNotification } from './shippingNotification';
-import type { TrackedOrder } from './orderTrackingTypes';
+import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { VendorProductSale } from './vendorSalesTypes';
@@ -11,7 +11,7 @@ import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, DbArticle, PlatformRole, TastingData } from '../types';
 import type {
   FavoriteWrite,
   PaymentMethod,

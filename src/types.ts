@@ -5,7 +5,6 @@
 import { NON_TEA_TYPES, type TeaType } from './wisdom';
 import type { NoteEntry } from './lib/noteEntries';
 export type { NoteEntry } from './lib/noteEntries';
-export type { CustomerOrderDetail } from './lib/orderTrackingTypes';
 import type { FamilyPageTier, FamilyPersonTasting } from './lib/familyContract';
 export { TEA_TYPES, type TeaType, NON_TEA_TYPES } from './wisdom';
 

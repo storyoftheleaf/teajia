@@ -808,6 +808,8 @@ describe('Events Release 1 persisted route contracts', () => {
           subtitle: null,
           event_date: '2020-01-10T10:00:00Z',
           flyer_image_url: null,
+          // The recap names its public hosts so the page can link them.
+          hosts: [],
         },
         post_session: {
           id: expect.any(String),
@@ -853,6 +855,8 @@ describe('Events Release 1 persisted route contracts', () => {
           subtitle: null,
           event_date: '2020-01-10T10:00:00Z',
           flyer_image_url: null,
+          // The recap names its public hosts so the page can link them.
+          hosts: [],
         },
         post_session: {
           id: 'post-a',

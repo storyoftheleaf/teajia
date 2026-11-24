@@ -64,7 +64,8 @@ describe('event article draft builder', () => {
       { gallery_images: '{bad', tea_ledger: '[{"name":"Tea without notes"}]', shared_tasting_notes: '[]' },
     );
     expect(draft.cover_image_url).toBeNull();
-    expect(draft.blocks).toEqual([{ type: 'cover', title: 'Silent Table' }]);
+    // A served tea keeps its name as a heading; no paragraph is written for missing notes.
+    expect(draft.blocks).toEqual([{ type: 'cover', title: 'Silent Table' }, { type: 'section_heading', text: 'Tea without notes' }]);
   });
 
   it('preserves supplied media URLs without validating them against a third-party host', () => {

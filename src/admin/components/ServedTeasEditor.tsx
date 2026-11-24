@@ -1,4 +1,7 @@
 import { useEffect, useId, useMemo, useState, type FormEvent } from 'react';
+import { emptyMoneyFields, TeaChestMoneyFields, type MoneyFieldsValue } from '../../components/AccountPanel/TeaChestMoneyFields';
+import { readPersonalTeaMoney } from '../../lib/personalTeaMoney';
+import { enteredNumber } from '../productUpdatePayload';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '../../components/shared/Button';
@@ -106,6 +109,9 @@ function ServedTeaPicker({ eventId, served, add, onClose }: {
   const [search, setSearch] = useState('');
   const [name, setName] = useState('');
   const [keepInChest, setKeepInChest] = useState(false);
+  // A Tea Chest tea always says what it cost (the shop's money rule).
+  const [cost, setCost] = useState<MoneyFieldsValue>(emptyMoneyFields);
+  const keptCost = readPersonalTeaMoney(enteredNumber(cost.amount), cost.currency);
   const nameId = useId();
   const menu = useTeaMenu(eventId);
   const chest = useQuery({
@@ -123,7 +129,7 @@ function ServedTeaPicker({ eventId, served, add, onClose }: {
     enabled: scope.ready,
   });
   const keep = useMutation({
-    mutationFn: (teaName: string) => api.cellar.create({ name: teaName }),
+    mutationFn: (input: { name: string; costAmount: number; costCurrency: string }) => api.cellar.create(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['session-picker-tea-chest', ...scope.key] });
       void queryClient.invalidateQueries({ queryKey: ['cellar'] });
@@ -156,7 +162,8 @@ function ServedTeaPicker({ eventId, served, add, onClose }: {
     if (old) return addSingle({ id: '', name: old.name, source: 'chest', source_id: old.id });
     // Per-call callbacks stop on unmount, so a late response cannot append to
     // a different event or a different signed-in user's session.
-    keep.mutate(teaName, {
+    if (!keptCost) return;
+    keep.mutate({ name: teaName, costAmount: keptCost.amount, costCurrency: keptCost.currency }, {
       onSuccess: ({ item }) => addSingle({ id: '', name: item.name, source: 'chest', source_id: item.id }),
     });
   }
@@ -213,8 +220,10 @@ function ServedTeaPicker({ eventId, served, add, onClose }: {
                 onChange={event => setKeepInChest(event.target.checked)} />
               Keep in Tea Chest
             </label>
-            <Button type="submit" variant="secondary" size="sm" loading={keep.isPending} disabled={!name.trim()}>Add named tea</Button>
+            <Button type="submit" variant="secondary" size="sm" loading={keep.isPending}
+              disabled={!name.trim() || (keepInChest && !keptCost && !chest.data?.items.some(item => item.name.toLowerCase() === name.trim().toLowerCase()))}>Add named tea</Button>
           </div>
+          {keepInChest && <TeaChestMoneyFields label="What you paid" required value={cost} onChange={setCost} fieldClass={field} />}
           {keep.isError && <p role="alert" className={small}>Could not keep this tea. Try again.</p>}
         </form>
       </div>
