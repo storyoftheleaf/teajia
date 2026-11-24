@@ -7416,6 +7416,14 @@ body.cart-panel-open .commerce-dock {
    as the shop's thumbnails and the add tile, so the strip reads as one row. */
 .photo-row--inline, .photo-row--inline > li { display: contents; }
 .alcove-page-gallery-thumbnails .photo-thumb { height: var(--space-12); }
+/* On a wide screen the strip has room: every thumbnail, and the add tile, is
+   twice the phone size, the same size as a family photo on a page (Adrian, 2026-11-24). */
+@media (min-width: 48rem) {
+  .alcove-page-gallery-thumbnails { --strip-thumb: calc(var(--space-12) * 2); }
+  .alcove-page-gallery-thumbnails > .alcove-thumb-btn { inline-size: var(--strip-thumb) !important; max-width: none; }
+  .alcove-page-gallery-thumbnails .photo-thumb { height: var(--strip-thumb); }
+  .alcove-page-gallery-thumbnails .product-photo-add { --photo-add-size: var(--strip-thumb); }
+}
 .tea-product-account {
   display: flex;
   flex-wrap: wrap;
