@@ -1,139 +1,19 @@
-import { TeaCard, TeaCardMeta, TeaCardTitle } from '../components/tea/TeaCard';
-import { SitTeaTasting } from '../components/sessions/SitTeaTasting';
-import { PublicRecapPhoto } from '../components/events/PublicRecapPhoto';
-import { sitCreditLabel } from '../lib/sitCreditContract';
-import { IndexRow, SplitName } from '../components/people/immersive';
-import { TYPOGRAPHY_CLASSES } from '../designTokens';
-import type { PublicPerson } from '../types';
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Music, Image, MessageCircle, BookOpen, ShoppingBag, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MessageCircle, Music } from 'lucide-react';
 import { api } from '../lib/api';
-import { TeaLeafIcon } from '../components/Icons';
-import { Modal } from '../components/shared/Modal';
-import type { TeaMenuItem } from '../types/events';
+import { usePublicSitRecap } from '../lib/publicSitRecap';
+import { SitRecap } from '../components/sessions/SitRecap';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface PublicPostSessionData {
-  id: string;
-  event_id: string;
-  session_notes?: string;
-  playlist_url?: string;
-  gallery_images?: string[];
-  // tea_ledger may hold serialized tea menu items or a free-form object
-  tea_ledger?: unknown;
-  // tasting notes surfaced only if host chose to share them
-  shared_tasting_notes?: string[];
-  created_at: string;
-}
+// /event/:slug/recap. The recap is ordered by tea (components/sessions/SitRecap.tsx).
+// The older public recap payload still carries the playlist and the notes the
+// host chose to share, which keep their sections below.
 
 interface PublicEventRecap {
-  event: {
-    id: string;
-    slug: string;
-    title: string;
-    subtitle?: string;
-    event_date: string;
-    flyer_image_url?: string;
-    hosts?: PublicEventCredit[];
-  };
-  post_session: PublicPostSessionData;
-  tea_menu: TeaMenuItem[];
+  event: { slug: string; title: string };
+  post_session: { playlist_url?: string; shared_tasting_notes?: string[] };
 }
-
-type PublicEventCredit = Pick<PublicPerson, 'slug' | 'display_name' | 'portrait_url'> & { role: string };
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatEventDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-const STORAGE_KEY_PREFIX = 'teajia_recap_note_';
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-interface TeaLedgerSectionProps {
-  eventSlug: string;
-  items: TeaMenuItem[];
-}
-
-const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ eventSlug, items }) => {
-  const sorted = [...items].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
-  return (
-    <section className="mb-12">
-      <div className="flex items-center gap-2 mb-5">
-        <TeaLeafIcon className="w-4 h-4 text-tea-gold" aria-hidden="true" />
-        <h2 className="h2">Teas served</h2>
-      </div>
-      <div className="space-y-3">
-        {sorted.map(item => {
-          const name = item.customName || item.productName || 'Unknown tea';
-          const shopPath = item.shopPath ?? (item.productId ? '/shop/product/' + encodeURIComponent(item.productId) : null);
-          return (
-            <TeaCard key={item.id} title={<TeaCardTitle>{name}</TeaCardTitle>} teaType={item.productType}
-              meta={item.productType && <TeaCardMeta primary={item.productType} />}
-              actions={<>
-                <SitTeaTasting id={`event:${eventSlug}:${item.id}`} name={name} teaType={item.productType} />
-                {shopPath && (
-                  <a href={shopPath} className="btn-secondary btn-sm tap-target"
-                    aria-label={`Buy ${name}`}>
-                    <ShoppingBag className="w-4 h-4" aria-hidden="true" /> Buy this tea
-                  </a>
-                )}
-              </>}>
-              {item.customDescription && <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-2 break-words`}>{item.customDescription}</p>}
-            </TeaCard>
-          );
-        })}
-      </div>
-    </section>
-  );
-};
-
-function EventCredits({ people }: { people: PublicEventCredit[] }) {
-  return (
-    <section className="mb-12" aria-labelledby="event-recap-credits">
-      <h2 id="event-recap-credits" className={TYPOGRAPHY_CLASSES.h2}>Session credits</h2>
-      {people.map(person => {
-        const role = sitCreditLabel(person.role);
-        return (
-          <IndexRow
-            key={`${person.slug}-${person.role}`}
-            to={`/people/${encodeURIComponent(person.slug)}`}
-            title={
-              <span className="flex min-w-0 items-center gap-2">
-                {person.portrait_url && (
-                  <img src={person.portrait_url} alt="" loading="lazy" className="size-8 shrink-0 rounded-full object-cover" />
-                )}
-                <SplitName name={person.display_name} className="truncate" />
-              </span>
-            }
-            dek={role ?? undefined}
-            ariaLabel={`${person.display_name}, ${role}`}
-          />
-        );
-      })}
-    </section>
-  );
-}
-
-interface HostNotesSectionProps {
-  notes: string;
-}
-
-const HostNotesSection: React.FC<HostNotesSectionProps> = ({ notes }) => (
-  <section className="mb-12">
-    <div className="flex items-center gap-2 mb-5">
-      <BookOpen className="w-4 h-4 text-tea-gold" aria-hidden="true" />
-      <h2 className="h2">From the host</h2>
-    </div>
-    <p className="body-prose whitespace-pre-line">{notes}</p>
-  </section>
-);
 
 interface SharedNotesSectionProps {
   notes: string[];
@@ -211,155 +91,43 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
   </section>
 );
 
-interface GallerySectionProps {
-  images: string[];
-}
-
-const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-
-  return (
-    <section className="mb-12">
-      <div className="flex items-center gap-2 mb-5">
-        <Image className="w-4 h-4 text-tea-gold" aria-hidden="true" />
-        <h2 className="h2">Gallery</h2>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        {images.map((url, idx) => (
-          <button
-            key={idx}
-            onClick={() => setLightboxImage(url)}
-            className="aspect-square overflow-hidden rounded-md border border-tea-border hover:border-tea-gold/30 transition-colors group"
-            aria-label={`View photo ${idx + 1}`}
-          >
-            <img
-              src={url}
-              alt={`Session photo ${idx + 1}`}
-              className="w-full h-full object-cover transition-transform duration-500"
-              loading="lazy"
-            />
-          </button>
-        ))}
-      </div>
-
-      <Modal
-        isOpen={!!lightboxImage}
-        onClose={() => setLightboxImage(null)}
-        ariaLabel="Photo viewer"
-        variant="center"
-        hideClose
-        className="!max-w-none !w-auto !bg-transparent !border-0 !shadow-none !overflow-visible"
-      >
-        {lightboxImage && (
-          <img
-            src={lightboxImage}
-            alt="Full size session photo"
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
-          />
-        )}
-      </Modal>
-    </section>
-  );
-};
-
-interface PersonalNoteProps {
-  eventSlug: string;
-}
-
-const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
-  const storageKey = `${STORAGE_KEY_PREFIX}${eventSlug}`;
-  const [note, setNote] = useState<string>(() => {
-    try { return localStorage.getItem(storageKey) ?? ''; } catch { return ''; }
-  });
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = () => {
-    try {
-      localStorage.setItem(storageKey, note);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      // localStorage may be unavailable (private browsing)
-    }
-  };
-
-  return (
-    <section className="mb-12">
-      <div className="flex items-center gap-2 mb-5">
-        <span className="text-ui-10 text-tea-gold" aria-hidden="true">✦</span>
-        <h2 className="h2">What stayed with you?</h2>
-      </div>
-      <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-        <textarea
-          value={note}
-          onChange={(e) => { setNote(e.target.value); setSaved(false); }}
-          placeholder="A quiet thought, a memory, a taste that lingered..."
-          rows={4}
-          className="w-full bg-transparent text-ui-14 text-tea-text placeholder-tea-text-dim resize-none focus:outline-none leading-relaxed"
-          aria-label="Personal note about this session"
-        />
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-tea-border">
-          <p className="text-ui-10 text-tea-text-dim">Saved only on this device</p>
-          <button
-            onClick={handleSave}
-            disabled={!note.trim()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-ui-12 font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            {saved ? 'Saved' : 'Keep this'}
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// ── Main component ────────────────────────────────────────────────────────────
-
 const EventRecapPage: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug = '' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-
-  // Public recap endpoint: GET /api/events/:slug/recap (no auth required)
-  // Returns { event, post_session, tea_menu }, see worker/src/index.ts handleGetPublicEventRecap.
-  const { data, isLoading, isError } = useQuery<PublicEventRecap>({
+  const legacy = useQuery<PublicEventRecap>({
     queryKey: ['event-recap-public', slug],
-    queryFn: () => api.events.getPublicRecap(slug!),
+    queryFn: () => api.events.getPublicRecap(slug),
     enabled: !!slug,
     retry: false,
   });
+  const recap = usePublicSitRecap(slug);
 
-  // OG meta
   useEffect(() => {
-    if (!data?.event) return;
-    document.title = `${data.event.title}: Recap · Teajia`;
+    if (!recap.data) return;
+    document.title = `${recap.data.title}: Recap · Teajia`;
     return () => { document.title = 'Teajia · A Home for Tea'; };
-  }, [data]);
+  }, [recap.data]);
 
-  if (isLoading) {
+  if (recap.isPending) {
     return (
-      <div className="min-h-screen bg-tea-bg flex items-center justify-center">
-        <div className="text-center animate-pulse">
-          <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-xl mx-auto" />
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-tea-bg">
+        <div className="h-3 w-32 animate-pulse rounded-xl bg-tea-surface" role="status" aria-label="Opening the recap" />
       </div>
     );
   }
 
-  if (isError || !data) {
+  if (recap.isError || !recap.data) {
     return (
-      <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
-        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
-          <p className="label-caps text-tea-readgold mb-4">Session Archive</p>
+      <div className="flex min-h-screen items-center justify-center bg-tea-bg px-6">
+        <div className="mx-auto flex max-w-sm flex-col items-center px-6 py-20 text-center">
+          <p className="label-caps mb-4 text-tea-readgold">Session Archive</p>
           <h1 className="h1 mb-3">Recap not available</h1>
           <p className="body-light mb-8">
             The host hasn't published a recap for this session yet, or this session is still upcoming.
           </p>
-          <button
-            onClick={() => navigate(`/event/${slug}`)}
-            className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-14"
-          >
-            <ArrowLeft className="w-4 h-4" />
+          <button onClick={() => navigate(`/event/${slug}`)}
+            className="inline-flex items-center gap-2 text-ui-14 text-tea-text-sec transition-colors hover:text-tea-text">
+            <ArrowLeft className="h-4 w-4" />
             Back to event
           </button>
         </div>
@@ -367,109 +135,16 @@ const EventRecapPage: React.FC = () => {
     );
   }
 
-  const { event, post_session, tea_menu } = data;
-
-  const hasTeaMenu = tea_menu && tea_menu.length > 0;
-  const hasHostNotes = !!post_session.session_notes?.trim();
-  const hasSharedNotes = Array.isArray(post_session.shared_tasting_notes) && post_session.shared_tasting_notes.length > 0;
-  const hasPlaylist = !!post_session.playlist_url;
-  const hasGallery = Array.isArray(post_session.gallery_images) && post_session.gallery_images.length > 0;
-
+  const extra = legacy.data?.post_session;
+  const sharedNotes = Array.isArray(extra?.shared_tasting_notes) ? extra.shared_tasting_notes : [];
   return (
-    <div
-      className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out] pb-nav-gap-lg lg:pb-12"
-    >
-      {/* Hero strip */}
-      {event.flyer_image_url && (
-        <div className="relative w-full overflow-hidden bg-tea-surface" style={{ minHeight: '30vh', maxHeight: '45vh' }}>
-          <img
-            src={event.flyer_image_url}
-            alt={event.title}
-            fetchPriority="high"
-            className="w-full h-auto object-cover"
-            style={{ minHeight: '30vh', maxHeight: '45vh', objectFit: 'cover', filter: 'brightness(0.7)' }}
-          />
-          <div className="absolute inset-x-0 inset-y-0 bg-gradient-to-t from-tea-bg via-tea-bg/30 to-transparent pointer-events-none" />
-        </div>
-      )}
-
-      {/* Back button, fixed over hero if image present, otherwise regular flow */}
-      <div className={event.flyer_image_url ? 'absolute top-3 left-4 z-10' : 'pt-4 px-6'}>
-        <button
-          onClick={() => navigate(`/event/${slug}`)}
-          className={
-            event.flyer_image_url
-              ? 'tap-target flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60 text-tea-text-sec hover:text-tea-text transition-colors backdrop-blur-md'
-              : 'tap-target inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-14'
-          }
-          aria-label="Back to event"
-        >
-          {event.flyer_image_url ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M19 12H5m7-7l-7 7 7 7" />
-            </svg>
-          ) : (
-            <>
-              <ArrowLeft className="w-4 h-4" />
-              Back to event
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Main content, editorial reader chrome */}
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <p className="label-caps text-tea-readgold mb-3">Session Recap</p>
-          <h1 className="h1 mb-3">
-            {event.title}
-          </h1>
-          {event.subtitle && (
-            <p className="subtitle mt-1 mb-4">
-              {event.subtitle}
-            </p>
-          )}
-          <p className="label-caps text-tea-text-dim mt-3">
-            {formatEventDate(event.event_date)}
-          </p>
-        </div>
-
-        <div className="w-8 h-px bg-tea-border mx-auto mb-12" />
-
-        {/* Tea Ledger */}
-        <PublicRecapPhoto eventSlug={event.slug} />
-        {event.hosts?.length ? <EventCredits people={event.hosts.filter(person => sitCreditLabel(person.role) !== null)} /> : null}
-        {hasTeaMenu && <TeaLedgerSection eventSlug={event.slug} items={tea_menu} />}
-
-        {/* Host Notes */}
-        {hasHostNotes && <HostNotesSection notes={post_session.session_notes!} />}
-
-        {/* Shared tasting notes */}
-        {hasSharedNotes && <SharedNotesSection notes={post_session.shared_tasting_notes!} />}
-
-        {/* Playlist */}
-        {hasPlaylist && <PlaylistSection playlistUrl={post_session.playlist_url!} />}
-
-        {/* Gallery */}
-        {hasGallery && <GallerySection images={post_session.gallery_images!} />}
-
-        {/* Personal note prompt, always shown */}
-        {slug && <PersonalNoteSection eventSlug={slug} />}
-
-        {/* Footer */}
-        <div className="text-center pt-6 pb-4 border-t border-tea-border mt-4">
-          <p className="label-caps text-tea-text-dim mb-4">
-            Hosted by Teajia
-          </p>
-          <button
-            onClick={() => navigate(`/event/${slug}`)}
-            className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-12"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to event page
-          </button>
-        </div>
+    <div className="min-h-screen bg-tea-bg pb-nav-gap-lg lg:pb-12">
+      <div className="mx-auto max-w-2xl px-6 pt-6 pb-nav-gap">
+        <SitRecap recap={recap.data} />
+        {(sharedNotes.length > 0 || extra?.playlist_url) && <div className="mt-12">
+          {sharedNotes.length > 0 && <SharedNotesSection notes={sharedNotes} />}
+          {extra?.playlist_url && <PlaylistSection playlistUrl={extra.playlist_url} />}
+        </div>}
       </div>
     </div>
   );

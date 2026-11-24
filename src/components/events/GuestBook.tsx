@@ -11,7 +11,8 @@ import { OwnerSitPhotoPermission } from './OwnerSitPhotoPermission';
 import { GuestBookEntries, GuestBookPhotoPicker, GUEST_BOOK_PHOTOS_QUERY, GUEST_BOOK_PHOTO_STATE } from './GuestBookPhotos';
 
 type Identity = { accountId: string | null; userId: string };
-type Draft = { note: string; photo?: NonNullable<GuestBookEntryDraft['photo']>; confirmed: boolean };
+type Draft = { note: string; photo?: NonNullable<GuestBookEntryDraft['photo']>; confirmed: boolean; teaId?: string; publicRecap?: boolean };
+type ServedTea = { id: string; name: string };
 type Write =
   | { action: 'save'; draft: GuestBookEntryDraft }
   | { action: 'withdraw' }
@@ -20,12 +21,12 @@ type Write =
 
 const EMPTY_DRAFT: Draft = { note: '', confirmed: false };
 
-export function GuestBook({ token, afterSitKey, setupId }: { token: string; afterSitKey: string; setupId: string }) {
+export function GuestBook({ token, afterSitKey, setupId, teas = [] }: { token: string; afterSitKey: string; setupId: string; teas?: ServedTea[] }) {
   const userId = useAppStore(state => state.activeUserId);
   const accountId = useAppStore(state => state.activeAccountId);
   if (!userId) return null;
   return <GuestBookPanel key={JSON.stringify([userId, accountId, afterSitKey])} token={token}
-    afterSitKey={afterSitKey} setupId={setupId} identity={{ accountId, userId }} />;
+    afterSitKey={afterSitKey} setupId={setupId} teas={teas} identity={{ accountId, userId }} />;
 }
 
 function contributionStatus(note: GuestBookStatus | undefined, photos: OwnPhoto[]) {
@@ -39,8 +40,8 @@ function contributionStatus(note: GuestBookStatus | undefined, photos: OwnPhoto[
   return GUEST_BOOK_PHOTO_STATE.passed;
 }
 
-function GuestBookPanel({ token, afterSitKey, setupId, identity }: {
-  token: string; afterSitKey: string; setupId: string; identity: Identity;
+function GuestBookPanel({ token, afterSitKey, setupId, teas, identity }: {
+  token: string; afterSitKey: string; setupId: string; teas: ServedTea[]; identity: Identity;
 }) {
   const headingId = useId();
   const countId = useId();
@@ -102,7 +103,10 @@ function GuestBookPanel({ token, afterSitKey, setupId, identity }: {
     ? contributed.find(photo => photo.grant_id === active.photo?.grantId)
     : choices.find(photo => photo.id === active.photo?.photoId);
   const note = active.note.trim();
-  const noteChanged = Boolean(note && note !== own?.note);
+  const teaId = active.teaId ?? own?.tea_id ?? '';
+  const publicRecap = active.publicRecap ?? Boolean(own?.public_recap);
+  const placementChanged = teaId !== (own?.tea_id ?? '') || publicRecap !== Boolean(own?.public_recap);
+  const noteChanged = Boolean(note && (note !== own?.note || placementChanged));
   const noteCleared = Boolean(own?.note && !note);
   const photoUnavailable = Boolean(active.photo && !chosen);
   const canSend = active.confirmed && !photoUnavailable && !noteCleared && (noteChanged || Boolean(chosen));
@@ -157,7 +161,7 @@ function GuestBookPanel({ token, afterSitKey, setupId, identity }: {
                 if (!canSend || write.isPending) return;
                 write.mutate({
                   action: 'save',
-                  draft: { ...(noteChanged ? { note } : {}), ...(chosen ? { photo: active.photo } : {}) },
+                  draft: { ...(noteChanged ? { note, teaId: teaId || null, publicRecap } : {}), ...(chosen ? { photo: active.photo } : {}) },
                 });
               }}>
                 <label className="block text-ui-13 text-tea-text-sec">
@@ -168,6 +172,21 @@ function GuestBookPanel({ token, afterSitKey, setupId, identity }: {
                     onChange={event => update({ note: event.target.value, confirmed: false })} />
                 </label>
                 <p id={countId} className="text-right text-ui-12 text-tea-text-sec">{active.note.length}/{GUEST_BOOK_NOTE_LIMIT}</p>
+                {teas.length > 0 && (
+                  <label className="block text-ui-13 text-tea-text-sec">
+                    Which tea
+                    <select className="input-field mt-1 p-3 text-ui-16" value={teaId} disabled={write.isPending}
+                      onChange={event => update({ teaId: event.target.value, confirmed: false })}>
+                      <option value="">The whole table</option>
+                      {teas.map(tea => <option key={tea.id} value={tea.id}>{tea.name}</option>)}
+                    </select>
+                  </label>
+                )}
+                <label className="flex min-h-tap cursor-pointer items-center gap-2 text-ui-13 text-tea-text-sec">
+                  <input type="checkbox" className="h-4 w-4 shrink-0 accent-tea-gold" checked={publicRecap} disabled={write.isPending}
+                    onChange={event => update({ publicRecap: event.target.checked, confirmed: false })} />
+                  <span>If the host includes my note, also show it on the public recap under my first name.</span>
+                </label>
                 {own && contributed.length > 0 && (
                   <div>
                     <Button type="button" variant="quiet" size="sm" disabled={write.isPending}

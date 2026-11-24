@@ -32,7 +32,7 @@ export function SessionCards({ profile }: { profile?: string }) {
       byline: sit.role ? sitProfileCreditVerb(sit.role) ?? undefined : sit.host,
       writing: sit.writing,
       teaNames: sit.teas.map(tea => tea.name),
-      teaType: sit.teas[0]?.type,
+      teaType: (sit.teas[0] as { type?: string | null } | undefined)?.type,
       photo: profile
         ? { kind: 'formal' as const, slug: sit.slug, fallback: sit.galleryPhoto }
         : { kind: 'formal' as const, slug: sit.slug, placement: 'brewing' as const },

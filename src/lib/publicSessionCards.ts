@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_URL, fetchWithTimeout } from './api';
 import type { SitCreditRole } from './sitCreditContract';
+import type { PublicSessionTea, SessionPerson, SessionPhotograph, SessionSignature } from '../../shared/sessionTea';
 
 export type FormalSessionCard = {
   slug: string;
@@ -10,7 +11,11 @@ export type FormalSessionCard = {
   host?: string;
   writing: string;
   galleryPhoto: string | null;
-  teas: Array<{ id: string; name: string; type: string | null }>;
+  /** Poured teas in order; a profile card carries full records (shared/sessionTea.ts). */
+  teas: Array<PublicSessionTea | { id: string; name: string; type: string | null }>;
+  people?: SessionPerson[];
+  note?: { text: string; by: SessionSignature | null } | null;
+  photos?: { small: SessionPhotograph[]; more: number };
 };
 
 export function useFormalSessionCards(profile?: string) {

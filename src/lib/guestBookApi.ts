@@ -9,7 +9,7 @@ type SharedGuestBookEntry = { id: string; entry_key?: string; display_name: stri
 
 export type GuestBookData = {
   entries: SharedGuestBookEntry[];
-  own: { id: string; note: string; status: GuestBookStatus } | null;
+  own: { id: string; note: string; status: GuestBookStatus; tea_id?: string | null; public_recap?: number } | null;
 };
 
 export type GuestBookReviewEntry = SharedGuestBookEntry & {
@@ -21,6 +21,10 @@ type Identity = { accountId: string | null; userId: string };
 type StaffIdentity = { accountId: string; userId: string };
 export type GuestBookEntryDraft = {
   note?: string;
+  /** One of the teas the host served, so the public recap places the note under it. */
+  teaId?: string | null;
+  /** The guest's yes to showing the note on the public recap once the host includes it. */
+  publicRecap?: boolean;
   photo?: { photoId: string; grantId: string; description?: string };
 };
 

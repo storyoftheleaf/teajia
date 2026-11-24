@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { InventoryItem } from '../../types';
 import { teaPurchaseQuote } from '../../lib/shopPurchase';
 import { TEA_PRICING } from '../../lib/teaPricing';
@@ -43,6 +44,13 @@ interface TeaWeighControlProps {
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
   /** Weigh itself is a button: it opens the full amount list, custom sizes included. */
   onChooseAmount?: (item: InventoryItem) => void;
+  /**
+   * Outside the shop (a profile, a session, a recap) the price box and the
+   * count open the tea's own page instead of adding to the cart, and the
+   * count always shows, saying "Pack" for a personal offer or "Weigh".
+   */
+  href?: string;
+  count?: 'pack' | 'weigh';
 }
 
 /**
@@ -50,7 +58,7 @@ interface TeaWeighControlProps {
  * the cart; minus and plus step through the amounts and the price follows.
  * Weigh itself opens the full amount list, for a size the steps do not reach.
  */
-export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart, onChooseAmount }: TeaWeighControlProps) {
+export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart, onChooseAmount, href, count }: TeaWeighControlProps) {
   const options = useMemo(() => weighOptions(item), [item]);
   const [index, setIndex] = useState(() => startingIndex(options, preferredGrams));
   const [added, setAdded] = useState(false);
@@ -76,12 +84,23 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
   // step never takes a tap meant for Weigh between them.
   const stepClass = 'relative inline-flex h-6 w-6 before:absolute before:-inset-y-2.5 before:-inset-x-1.5 before:content-[\'\'] items-center justify-center rounded border border-tea-border text-ui-14 leading-none transition-colors disabled:cursor-default disabled:opacity-40 focus-visible:outline focus-visible:outline-tea-gold';
 
+  const priceText = item.exactPackPriceUsd == null ? formatPrice(current.totalUsd) : formatPersonalTeaMoney(current.totalUsd, 'USD');
+  const priceBox = 'flex h-9 items-baseline justify-center gap-2 whitespace-nowrap rounded-md border border-tea-border px-1 pt-[10px] transition-colors focus-visible:outline focus-visible:outline-tea-gold';
+  const countClass = 'rounded px-1.5 py-2 -my-1 focus-visible:outline focus-visible:outline-tea-gold';
+  const countWord = (count ?? (item.exactPackPriceUsd == null ? 'weigh' : 'pack')) === 'pack' ? 'Pack' : 'Weigh';
+
   return (
     // 92px on a phone, what its widest line (the steps either side of Weigh)
     // needs, so the name beside it gets the rest of the row. The two lines sit
     // close so the price and the steps that change it read as one control.
     <div className="flex w-[92px] flex-col items-stretch gap-0.5 sm:w-[116px] sm:gap-1.5">
-      <button
+      {href ? (
+        <Link to={href} onClick={event => event.stopPropagation()} onKeyDown={stopKeys}
+          aria-label={`${item.name}, ${current.grams}g for ${priceText}`} className={`${priceBox} hover:border-tea-gold hover:bg-tea-accent-sub`}>
+          <span className="num text-ui-12 tabular-nums text-tea-text-dim">{current.grams}g</span>
+          <span className="num text-ui-12 font-medium tabular-nums text-tea-text">{priceText}</span>
+        </Link>
+      ) : <button
         type="button"
         disabled={!onAddToCart}
         aria-label={`Add ${current.grams}g of ${item.name} to cart`}
@@ -95,7 +114,7 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
           addedTimer.current = setTimeout(() => setAdded(false), 1500);
         }}
         onKeyDown={stopKeys}
-        className="flex h-9 items-baseline justify-center gap-2 whitespace-nowrap rounded-md border border-tea-border px-1 pt-[10px] transition-colors enabled:hover:border-tea-gold enabled:hover:bg-tea-accent-sub focus-visible:outline focus-visible:outline-tea-gold"
+        className={`${priceBox} enabled:hover:border-tea-gold enabled:hover:bg-tea-accent-sub`}
       >
         {added ? (
           <span className="text-ui-12 text-tea-gold-lt" aria-live="polite">Added</span>
@@ -106,18 +125,22 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
                 Contrast separates them, the weight dim and the price bright. */}
             <span className="num text-ui-12 tabular-nums text-tea-text-dim">{current.grams}g</span>
             <span data-testid="grid-price" className="num text-ui-12 font-medium tabular-nums text-tea-text">
-              {item.exactPackPriceUsd == null ? formatPrice(current.totalUsd) : formatPersonalTeaMoney(current.totalUsd, 'USD')}
+              {priceText}
             </span>
           </>
         )}
-      </button>
+      </button>}
 
-      {item.exactPackPriceUsd == null && (options.length > 1 || onChooseAmount) && (
+      {(href || (item.exactPackPriceUsd == null && (options.length > 1 || onChooseAmount))) && (
         <div className="flex items-center justify-between">
           <button type="button" aria-label="Weigh less" disabled={atMin} onClick={step(-1)} onKeyDown={stopKeys} className={`${stepClass} text-tea-text-dim enabled:hover:border-tea-gold`}>
             &minus;
           </button>
-          <button
+          {href ? (
+            <Link to={href} onClick={event => event.stopPropagation()} onKeyDown={stopKeys} className={countClass}>
+              <span className="text-ui-9 uppercase tracking-[0.12em] text-tea-text-dim">{countWord}</span>
+            </Link>
+          ) : <button
             type="button"
             disabled={!onChooseAmount}
             aria-label={`Choose amount for ${item.name}`}
@@ -128,10 +151,10 @@ export function TeaWeighControl({ item, preferredGrams, formatPrice, onAddToCart
               onChooseAmount?.(item);
             }}
             onKeyDown={stopKeys}
-            className="group rounded px-1.5 py-2 -my-1 focus-visible:outline focus-visible:outline-tea-gold"
+            className={`group ${countClass}`}
           >
             <span className="text-ui-9 uppercase tracking-[0.12em] text-tea-text-dim transition-colors group-enabled:group-hover:text-tea-gold-lt">Weigh</span>
-          </button>
+          </button>}
           <button type="button" aria-label="Weigh more" disabled={atMax} onClick={step(1)} onKeyDown={stopKeys} className={`${stepClass} text-tea-gold-lt enabled:hover:border-tea-gold`}>
             +
           </button>

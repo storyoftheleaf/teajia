@@ -1,4 +1,5 @@
-import { SessionCards } from '../components/sessions/SessionCards';
+import { ProfileSessions } from '../components/sessions/ProfileSessions';
+import { SaleTeaRow } from '../components/sessions/SessionTeaRow';
 import { ProfileSitRecaps } from '../components/people/ProfileSitRecaps';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -231,11 +232,11 @@ export default function ContributorProfilePage() {
       const pack = teaPurchaseQuote(item);
       if (!pack) return [];
       return [{ id: item.id, name: item.name, href: buildPublicProductHref({ id: item.id }, storeSlug),
-        detail: `${pack.grams} g · ${formatPersonalTeaMoney(pack.totalUsd, 'USD')}` }];
+        detail: `${pack.grams} g · ${formatPersonalTeaMoney(pack.totalUsd, 'USD')}`, item }];
     }).slice(0, 2)
     : (legacyShelf?.items ?? []).filter(item => shelfWhatsAppHref(legacyShelf!, item)).slice(0, 2).map(item => ({
       id: item.id, name: item.name, href: publicShelfPath(legacyShelf!.slug, item.id),
-      detail: `${shelfAmount(item.grams)} · ${shelfPrice(item)}`,
+      detail: `${shelfAmount(item.grams)} · ${shelfPrice(item)}`, item: null,
     }));
   const allOffersHref = storeSlug ? `/store/${encodeURIComponent(storeSlug)}`
     : legacyShelf ? publicShelfPath(legacyShelf.slug) : null;
@@ -378,7 +379,10 @@ export default function ContributorProfilePage() {
           {showOffers && allOffersHref && (
             <section aria-label="Teas for sale">
               <GroupHead label="Teas for sale" />
-              {offers.map(offer => (
+              {offers.map(offer => offer.item ? (
+                // The shop's own tea row; a personal offer counts by the pack.
+                <SaleTeaRow key={offer.id} identity={offer.item} sale={offer.item} href={offer.href} count="pack" />
+              ) : (
                 <IndexRow
                   key={offer.id}
                   to={offer.href}
@@ -395,14 +399,9 @@ export default function ContributorProfilePage() {
           {/* Where to find them, as one line under the name and only when there
               is something: the event they host next, and their own table.
               These were two whole sections further down until 2026-09-29. */}
-          {(hosting || house) && (
+          {house && (
             <p className={`${SIDE} mt-3 flex flex-wrap items-center gap-x-2 font-sans text-ui-13 leading-relaxed text-tea-text-sec`} data-testid="profile-where">
-              {hosting && (
-                <Link to={`/event/${encodeURIComponent(hosting.slug)}`} className="tap-target underline decoration-tea-border underline-offset-4 transition-colors hover:text-tea-text">
-                  Hosting {hosting.title}, {formatEventLong(hosting.event_date)}
-                </Link>
-              )}
-              {hosting && house && <span aria-hidden="true">·</span>}
+              {/* The next sit they host leads the Sessions section instead. */}
               {house && (
                 <Link to={`/store/${encodeURIComponent(house.slug)}`} className="tap-target underline decoration-tea-border underline-offset-4 transition-colors hover:text-tea-text">
                   My table: {house.name}
@@ -417,9 +416,7 @@ export default function ContributorProfilePage() {
         </header>
 
         {showOffers && teasSection}
-        <div className={SIDE}>
-          <SessionCards profile={data.id} />
-        </div>
+        <ProfileSessions profile={data.id} name={data.display_name} next={hosting} />
 
         {/* ── In my words ────────────────────────────────────────────────── */}
         {hasWords && (

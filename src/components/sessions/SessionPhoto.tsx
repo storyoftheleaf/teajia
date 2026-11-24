@@ -9,8 +9,8 @@ export type SessionPhotoSource =
   | { kind: 'formal'; slug: string; fallback?: string | null; placement?: 'brewing' }
   | { kind: 'casual'; url: string; alt: string; credit?: string };
 
-export function SessionPhoto({ source }: { source: SessionPhotoSource }) {
-  const [open, setOpen] = useState(false);
+/** The sit's lead photograph: the placed recap photo, else the host's first gallery picture. */
+export function useSessionPhotoImage(source: SessionPhotoSource) {
   const placement = source.kind === 'formal' ? source.placement : undefined;
   const query = useQuery({
     queryKey: ['public-session-photo', source.kind, source.kind === 'formal' ? source.slug : source.url, placement],
@@ -30,6 +30,12 @@ export function SessionPhoto({ source }: { source: SessionPhotoSource }) {
   const loaded = useBlobObjectUrl(placement === 'brewing' ? brewingPhoto?.image : currentPhoto?.image);
   const fallback = source.kind === 'formal' && !placement && query.isSuccess && !query.isFetching && !query.data ? source.fallback : null;
   const image = loaded || (fallback ? mediaUrl(fallback) : '');
+  return { image, query, brewingPhoto };
+}
+
+export function SessionPhoto({ source }: { source: SessionPhotoSource }) {
+  const [open, setOpen] = useState(false);
+  const { image, query, brewingPhoto } = useSessionPhotoImage(source);
   if (!image) return null;
   const landscape = [3, 2];
   const photo: ZoomPhotograph = {
