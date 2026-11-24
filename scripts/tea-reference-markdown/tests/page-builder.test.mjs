@@ -304,6 +304,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'sheng',
     'shou',
     'taiwan-oolong',
+    'tieguanyin',
     'white',
     'y562',
     'yancha',

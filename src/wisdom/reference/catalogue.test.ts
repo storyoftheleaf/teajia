@@ -194,6 +194,7 @@ describe('sellable Tea Reference catalogue', () => {
       'sheng',
       'shou',
       'taiwan-oolong',
+      'tieguanyin',
       'white',
       'y562',
       'yancha',
