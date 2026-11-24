@@ -45,13 +45,16 @@ export async function json<T>(response: Response, status = 200): Promise<T> {
   return JSON.parse(text) as T;
 }
 
-export async function createSeller(db: SqliteD1, seller: Seller, open = true) {
+export async function createSeller(db: SqliteD1, seller: Seller, open = true, approved = true) {
   const home = { ...seller, accountId: `${seller.userId}-home` };
   seedIdentity(db, { userId: seller.userId, accountId: home.accountId, publicEnabled: false });
   const { account } = await json<{ account: { id: string; slug: string; public_enabled: number } }>(
     await request(db, '/api/me/tea-chest/account', { actor: home, method: 'POST' }),
   );
   if (account.public_enabled !== 0) throw new Error('The synthetic seller’s Stock must start private');
+  // Only people Adrian approves may sell (0120); the pilot sellers are approved.
+  if (approved) db.sqlite.prepare('UPDATE accounts SET personal_seller_approved_at = ?, personal_seller_approved_by = ? WHERE id = ?')
+    .run('2026-11-24T00:00:00Z', seller.userId, account.id);
   const actor = { ...seller, accountId: account.id };
   const slug = account.slug;
   db.sqlite.prepare(`INSERT INTO contributors (id,account_id,user_id,display_name,is_published,page_tier)

@@ -34,6 +34,8 @@ export interface TeaChestAccount {
   id: string;
   slug: string;
   public_enabled: number;
+  /** 1 once Teajia approved this person to sell; until then offers stay private. */
+  seller_approved?: number;
 }
 
 export interface ShelfSettings {

@@ -172,6 +172,18 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     } finally { setBusy(null); }
   };
 
+  // Only people Adrian approves may sell from their Tea Chest.
+  const handleToggleMaySell = async (user: PlatformUser) => {
+    setBusy(`sell-${user.id}`);
+    try {
+      const res = await api.platform.setMaySell(user.id, !user.may_sell);
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, may_sell: res.may_sell } : u));
+      showToast(res.may_sell ? `${user.name || user.email} may sell on Teajia` : `${user.name || user.email} no longer sells on Teajia`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to change selling', 'error');
+    } finally { setBusy(null); }
+  };
+
   const handleResendInvite = async (user: PlatformUser) => {
     setBusy(`invite-${user.id}`);
     try {
@@ -215,7 +227,7 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
         const isPO = user.platform_role === 'platform_owner';
         const isPA = user.platform_role === 'platform_admin';
         return (
-          <div key={user.id} className="inset-panel px-3 py-2.5 flex items-center gap-3">
+          <div key={user.id} className="inset-panel px-3 py-2.5 flex flex-wrap items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-tea-gold/10 flex items-center justify-center shrink-0">
               <span className="text-tea-gold text-ui-11 font-semibold uppercase">{(user.name || user.email).slice(0, 2)}</span>
             </div>
@@ -231,7 +243,8 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+            {/* On a phone the actions sit on their own line under the name. */}
+            <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0">
               {isPlatformOwner && !isPO && (
                 isPA ? (
                   <ConfirmButton
@@ -259,6 +272,16 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                   {busy === `shelf-${user.id}` ? <Loader2 size={10} className="animate-spin" /> : <Store size={10} />}
                   Shelf
                 </button>
+              )}
+              {isPlatformOwner && (
+                <label className={`inline-flex min-h-tap items-center gap-2 text-ui-13 ${user.has_tea_chest ? 'cursor-pointer text-tea-text-sec' : 'text-tea-text-dim'}`}
+                  title={user.has_tea_chest ? undefined : 'Opens once they start a Tea Chest'}>
+                  <input type="checkbox" role="switch" className="h-4 w-4 shrink-0 accent-tea-gold"
+                    checked={!!user.may_sell} aria-checked={!!user.may_sell}
+                    disabled={!user.has_tea_chest || busy === `sell-${user.id}`}
+                    onChange={() => void handleToggleMaySell(user)} data-testid="may-sell-switch" />
+                  May sell on Teajia{!user.has_tea_chest && <span className="text-ui-11">· no Tea Chest yet</span>}
+                </label>
               )}
               <button type="button" onClick={() => handleResendInvite(user)} disabled={busy === `invite-${user.id}`}
                 className="pill flex items-center gap-1" title="Resend invite">

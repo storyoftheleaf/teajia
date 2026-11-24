@@ -3901,3 +3901,7 @@ END;
 -- 0119_guest_book_note_tea.sql
 ALTER TABLE session_guest_book ADD COLUMN tea_id TEXT;
 ALTER TABLE session_guest_book ADD COLUMN public_recap INTEGER NOT NULL DEFAULT 0 CHECK (public_recap IN (0, 1));
+
+-- 0120_personal_seller_approval.sql
+ALTER TABLE accounts ADD COLUMN personal_seller_approved_at TEXT;
+ALTER TABLE accounts ADD COLUMN personal_seller_approved_by TEXT REFERENCES users(id);

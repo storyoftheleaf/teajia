@@ -2,6 +2,9 @@ import { casualSitPublicationRoutes } from './casualSitPublications';
 import { publicSitRoutes } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
+import {
+  PERSONAL_SELLER_WAITING, PERSONAL_SELLER_WAITING_CODE, personalSellerApproved, personalSellerApprovedSql, setPersonalSellerApproval,
+} from './personalSellerApproval';
 import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddress, type OrderNoticeAccount } from './orderNoticeRecipient';
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
@@ -689,7 +692,7 @@ async function getPublicStoreIdentity(env: Env, slug: string) {
   try {
     return await env.DB.prepare(`
       SELECT a.id, a.personal_inventory_user_id FROM accounts a
-      WHERE a.slug = ? AND a.status = 'active' AND a.public_enabled = 1
+      WHERE a.slug = ? AND a.status = 'active' AND a.public_enabled = 1 AND ${personalSellerApprovedSql('a')}
         AND (a.personal_inventory_user_id IS NULL OR (a.owner_user_id = a.personal_inventory_user_id
           AND EXISTS (SELECT 1 FROM account_members m WHERE m.account_id = a.id AND m.user_id = a.owner_user_id
                        AND m.role = 'owner' AND m.status = 'active')))
@@ -10998,6 +11001,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
        LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
        JOIN accounts public_account ON public_account.id = p.account_id
          AND public_account.status = 'active' AND public_account.public_enabled = 1
+         AND ${personalSellerApprovedSql('public_account')}
        WHERE xr.${fkColumn} = ?
          AND ${accountPredicate}
          AND p.is_public = 1
@@ -14960,6 +14964,7 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
 // Draft, held or sold-out tea answers exactly as an unknown id does. Only the
 // unauthenticated request path reads this; staff doors price any tea they own.
 const PUBLIC_REQUEST_PRODUCT = `p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active'
+  AND EXISTS (SELECT 1 FROM accounts seller WHERE seller.id = p.account_id AND ${personalSellerApprovedSql('seller')})
   AND NOT ${INWARD_ORDERS_PAUSED_SQL}
   AND (p.personal_offer_source_id IS NULL OR (p.personal_offer_withdrawn_at IS NULL AND p.stock_grams > 0))`;
 
@@ -16246,16 +16251,16 @@ const handleDeclineCellarPlacement: Handler = async (request, env, params) => {
 
 async function personalInventoryAccount(db: D1Database, userId: string) {
   return db.prepare(`
-    SELECT a.id, a.slug, a.public_enabled
+    SELECT a.id, a.slug, a.public_enabled, (a.personal_seller_approved_at IS NOT NULL) AS seller_approved
     FROM accounts a JOIN account_members m ON m.account_id = a.id AND m.user_id = a.personal_inventory_user_id
     WHERE a.personal_inventory_user_id = ? AND a.owner_user_id = a.personal_inventory_user_id AND a.status = 'active'
       AND m.status = 'active' AND m.role = 'owner'
-  `).bind(userId).first<{ id: string; slug: string; public_enabled: number }>();
+  `).bind(userId).first<{ id: string; slug: string; public_enabled: number; seller_approved: number }>();
 }
 
 async function orderablePersonalStore(db: D1Database, userId: string) {
   const account = await personalInventoryAccount(db, userId);
-  if (!account?.public_enabled) return null;
+  if (!account?.public_enabled || !account.seller_approved) return null;
   const active = await db.prepare(`
     SELECT 1 FROM products WHERE account_id = ? AND status = 'Active' AND is_public = 1 AND shown_in_shop = 1
       AND CASE WHEN type = 'Teaware' THEN COALESCE(quantity_units, stock_grams, 0) ELSE stock_grams END > 0
@@ -16332,6 +16337,8 @@ const handlePersonalStockOffer: Handler = async (request, env, params) => {
   const current = await readPersonalStockOffer(env.DB, accountId, params.id);
   if (request.method === 'GET') return json({ offer: current });
   if (request.method === 'DELETE') return withdrawPersonalStockOffer(env, ctx, source.id, current);
+  // Only people Adrian approved may publish an offer; withdrawing stays open to everyone.
+  if (!account.seller_approved) return restError(403, PERSONAL_SELLER_WAITING, PERSONAL_SELLER_WAITING_CODE);
 
   const input = await request.json().catch(() => null) as Record<string, unknown> | null;
   const offer = readOfferInput(input);
@@ -16647,6 +16654,19 @@ const handleGetPublicShelf: Handler = async (_request, env, params) => {
 // PUT /api/platform/users/:id/shelf — platform-owner grant. Turns a user's
 // public shelf on/off and assigns its slug. Private-by-default: the shelf does
 // not exist until granted here.
+// PUT /api/platform/users/:id/seller-approval {approved}. Adrian alone.
+const handleSellerApproval: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { approved?: unknown } | null;
+  if (typeof body?.approved !== 'boolean') return json({ error: 'Say whether this person may sell.' }, 400);
+  const actor = parseToken(isAuthed(request)!);
+  const result = await setPersonalSellerApproval(env.DB, params.id, body.approved, actor?.sub ?? 'unknown');
+  if (!result) return json({ error: 'This person has not opened a Tea Chest yet.' }, 404);
+  await logPlatformAction(env, 'seller.approval_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { approved: body.approved, account_id: result.account_id });
+  return json({ ok: true, may_sell: body.approved });
+};
+
 const handleGrantShelf: Handler = async (request, env, params) => {
   const authErr = await requirePlatformOwner(request, env);
   if (authErr) return authErr;
@@ -21179,6 +21199,10 @@ const STORE_PAYABILITY_REFUSALS: Record<StorePayabilityGap, { message: string; c
 async function storeOpeningError(env: Env, accountId: string, nextPublicEnabled: unknown): Promise<Response | null> {
   if (!truthyFlag(nextPublicEnabled)) return null;
 
+  // A personal shop opens only for someone Adrian approved to sell.
+  if (!await personalSellerApproved(env.DB, accountId)) {
+    return restError(403, PERSONAL_SELLER_WAITING, PERSONAL_SELLER_WAITING_CODE);
+  }
   const current = await env.DB.prepare('SELECT public_enabled FROM accounts WHERE id = ?')
     .bind(accountId).first<Record<string, any>>();
   if (Number(current?.public_enabled) === 1) return null;
@@ -22370,6 +22394,8 @@ const handlePlatformListUsers: Handler = async (request, env) => {
   const { results } = await env.DB.prepare(
     `SELECT u.id, u.email, u.name, u.username, u.platform_role, u.created_at,
             u.shelf_enabled, u.shelf_slug,
+            (SELECT CASE WHEN pa.personal_seller_approved_at IS NOT NULL THEN 2 ELSE 1 END FROM accounts pa
+              WHERE pa.personal_inventory_user_id = u.id LIMIT 1) AS seller_state,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -22391,6 +22417,8 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     created_at: u.created_at,
     shelf_enabled: !!u.shelf_enabled,
     shelf_slug: u.shelf_slug ?? null,
+    has_tea_chest: u.seller_state != null,
+    may_sell: u.seller_state === 2,
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
@@ -23358,6 +23386,7 @@ async function fetchPublicProductsForAccount(
                   AND cp.unpublished_at IS NULL) AS featured_position
        FROM products p
        JOIN accounts account ON account.id = p.account_id AND account.status = 'active' AND account.public_enabled = 1
+         AND ${personalSellerApprovedSql('account')}
        LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
        WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND ${visibilityFilter} AND p.account_id = ?1${productFilter}
          AND p.personal_offer_withdrawn_at IS NULL
@@ -31065,6 +31094,7 @@ const routes: [string, string, Handler][] = [
   ['GET',  '/api/platform/users', handlePlatformListUsers],
   ['PUT',  '/api/platform/users/:id/platform-role', handlePlatformSetUserRole],
   ['PUT',  '/api/platform/users/:id/shelf', handleGrantShelf],
+  ['PUT',  '/api/platform/users/:id/seller-approval', handleSellerApproval],
   ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
   ['GET',  '/api/platform/all-stock', handlePlatformAllStock],

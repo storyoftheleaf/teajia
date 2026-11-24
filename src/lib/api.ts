@@ -471,6 +471,9 @@ export interface PlatformUser {
   created_at: string;
   shelf_enabled?: boolean;   // stock spine step 5, public shelf granted
   shelf_slug?: string | null;
+  /** They have opened a Tea Chest, so Adrian can decide whether they may sell. */
+  has_tea_chest?: boolean;
+  may_sell?: boolean;
   memberships: { account_id: string; role: string }[];
 }
 
@@ -4265,6 +4268,11 @@ export const api = {
       });
     },
     // Stock spine step 5: grant/revoke a user's public shelf and set its slug.
+    setMaySell: async (userId: string, approved: boolean): Promise<{ ok: boolean; may_sell: boolean }> => {
+      return authedFetch(`${API_URL}/api/platform/users/${userId}/seller-approval`, {
+        method: 'PUT', body: JSON.stringify({ approved }),
+      });
+    },
     grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {
       return authedFetch(`${API_URL}/api/platform/users/${userId}/shelf`, {
         method: 'PUT',

@@ -13,6 +13,7 @@ import { refreshCommerceQueries } from '../../../lib/refreshCommerce';
 import { INVENTORY_TEA_TYPES } from '../../../wisdom';
 import { enteredNumber } from '../../productUpdatePayload';
 import type { Product } from '../../types';
+import { PERSONAL_SELLER_WAITING } from '../../../../shared/personalSeller';
 
 const field = 'block w-full min-w-0 rounded-md border border-tea-border bg-tea-bg px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold';
 const label = 'block min-w-0 space-y-1 text-ui-13 text-tea-text-sec';
@@ -58,7 +59,7 @@ export function StockPersonalOffer({ product, account }: { product: Product; acc
         meta={<TeaCardMeta primary={status} trailing={offer && formatPersonalTeaMoney(offer.price_usd, 'USD')} />}
         actions={<>
           {error && <Button type="button" variant="quiet" onClick={() => void refetch()}>Retry</Button>}
-          {!error && !isPending && !offer && <Button type="button" disabled={waiting} onClick={() => {
+          {!error && !isPending && !offer && account.seller_approved === 1 && <Button type="button" disabled={waiting} onClick={() => {
             preview.reset(); publish.reset(); setOpen(true);
           }}>Offer for sale</Button>}
           {offer && <>
@@ -66,6 +67,10 @@ export function StockPersonalOffer({ product, account }: { product: Product; acc
             <Button type="button" variant="quiet" disabled={waiting} onClick={() => withdraw.mutate(offer.product_id)}>{withdraw.isPending ? 'Withdrawing…' : 'Withdraw offer'}</Button>
           </>}
         </>} />
+      {/* Only people Teajia approved may sell; everyone else keeps a private record. */}
+      {!error && !isPending && !offer && account.seller_approved !== 1 && (
+        <p className="mt-2 text-ui-13 text-tea-text-sec" data-testid="seller-waiting">{PERSONAL_SELLER_WAITING}</p>
+      )}
       {withdraw.error && <p role="alert" className="text-ui-13 text-tea-text-sec">{withdraw.error.message}</p>}
       <Modal isOpen={open} onClose={() => { if (!waiting) setOpen(false); }} title={preview.data ? 'Review your offer' : 'Offer for sale'}>
         {open && <div className="px-4 pb-4">
