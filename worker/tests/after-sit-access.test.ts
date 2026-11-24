@@ -49,7 +49,7 @@ const save = (credential: string, userId?: string, action = 'save', selectedShop
   }, { credential, action });
 
 beforeEach(() => {
-  db = new SqliteD1('migrations', '0106');
+  db = new SqliteD1('migrations', '0118');
   seedIdentity(db, { userId: 'guest', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'different', accountId: 'shop-b' });
   seedIdentity(db, { userId: 'duplicate', accountId: 'shop-a' });
@@ -126,25 +126,36 @@ describe('after-sit access', () => {
     expect((await issue()).status).toBe(200);
   });
 
-  it('revokes links after expiry, reissue, explicit revocation and attendance correction', async () => {
+  it('keeps every copied link working until expiry, explicit revocation or attendance correction', async () => {
     const expired = await newCredential();
     db.exec('UPDATE after_sit_access SET expires_at = unixepoch() - 1');
     expect((await recap(expired)).status).toBe(404);
-    const replaced = await newCredential();
+    // Copying the link again adds one; the link the guest already has keeps working.
+    const first = await newCredential();
     const active = await newCredential();
-    expect((await recap(replaced)).status).toBe(404);
+    expect((await recap(first)).status).toBe(200);
     expect((await recap(active)).status).toBe(200);
+    db.exec('UPDATE after_sit_extra_access SET expires_at = unixepoch() - 1');
+    expect((await recap(active)).status).toBe(404);
+    expect((await recap(first)).status).toBe(200);
+    const again = await newCredential();
+    expect((await recap(again)).status).toBe(200);
+    expect(db.sqlite.prepare('SELECT count(*) AS n FROM after_sit_extra_access').get()).toEqual({ n: 1 });
     const params = { attendeeId: 'attendee', eventId: 'event-a' };
     expect((await call('DELETE', issuePath, { 'Test-Host': 'shop-b' }, undefined, params)).status).toBe(404);
     expect((await call('DELETE', issuePath, { 'Test-Host': 'shop-a' }, undefined, params)).status).toBe(200);
-    expect((await recap(active)).status).toBe(404);
-    expect((await save(active, 'guest')).status).toBe(404);
+    for (const link of [first, again]) {
+      expect((await recap(link)).status).toBe(404);
+      expect((await save(link, 'guest')).status).toBe(404);
+    }
 
     const corrected = await newCredential();
+    const correctedCopy = await newCredential();
     db.exec("UPDATE event_attendees SET attended = 0 WHERE id = 'attendee'");
     db.exec("UPDATE event_attendees SET attended = 1 WHERE id = 'attendee'");
     expect((await recap(corrected)).status).toBe(404);
     expect((await save(corrected, 'guest')).status).toBe(404);
+    expect((await recap(correctedCopy)).status).toBe(404);
   });
 
   it('keeps a leaked link, an old management token, wrong identity, and duplicate contact away from private saves', async () => {

@@ -32,7 +32,7 @@ const roster = `FROM session_guest_book b
 
 export async function serveGuestBook(request: Request, db: D1Database, scope: Scope, token: string, afterSitHash?: string) {
   const linkCheck = afterSitHash === undefined ? '' : `AND EXISTS (
-    SELECT 1 FROM after_sit_access l WHERE l.attendee_id = a.id AND l.event_id = a.event_id AND l.account_id = a.account_id
+    SELECT 1 FROM after_sit_live_access l WHERE l.attendee_id = a.id AND l.event_id = a.event_id AND l.account_id = a.account_id
       AND l.credential_hash = ? AND l.expires_at > unixepoch()
   )`;
   const seatCheck = `${privateAttendeeMatch} ${linkCheck}`;

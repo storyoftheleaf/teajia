@@ -3871,3 +3871,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_guest_book_photo_active_source
   ON session_guest_book_photos(account_id, event_id, user_id, photo_id) WHERE revoked_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_guest_book_photo_event_status
   ON session_guest_book_photos(account_id, event_id, status) WHERE revoked_at IS NULL;
+
+-- 0118_after_sit_extra_links.sql
+CREATE TABLE IF NOT EXISTS after_sit_extra_access (
+  credential_hash TEXT PRIMARY KEY NOT NULL,
+  attendee_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  FOREIGN KEY (attendee_id, event_id, account_id)
+    REFERENCES event_attendees(id, event_id, account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_after_sit_extra_access_seat
+  ON after_sit_extra_access(attendee_id, event_id, account_id);
+
+CREATE VIEW IF NOT EXISTS after_sit_live_access AS
+  SELECT attendee_id, event_id, account_id, credential_hash, expires_at FROM after_sit_access
+  UNION ALL
+  SELECT attendee_id, event_id, account_id, credential_hash, expires_at FROM after_sit_extra_access;
+
+CREATE TRIGGER IF NOT EXISTS after_sit_extra_revoke_on_attendance_correction
+AFTER UPDATE OF attended, status ON event_attendees
+WHEN NEW.attended IS NOT 1 OR NEW.status IS NOT 'confirmed'
+BEGIN
+  DELETE FROM after_sit_extra_access
+    WHERE attendee_id = OLD.id AND event_id = OLD.event_id AND account_id = OLD.account_id;
+END;

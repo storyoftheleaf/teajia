@@ -42,7 +42,7 @@ function findEligibleSeat(db: D1Database, credentialHash: string) {
     `SELECT e.id, e.title, e.event_date, a.account_id, s.session_notes AS host_note,
         (SELECT json_group_array(json_object('id', tea.id, 'name', tea.name))
           FROM (${namedSetupTeas}) AS tea) AS teas_json
-     FROM after_sit_access l
+     FROM after_sit_live_access l
      JOIN event_attendees a
        ON a.id = l.attendee_id AND a.event_id = l.event_id AND a.account_id = l.account_id
      ${eventJoins}
@@ -62,24 +62,36 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
 
     const scope = [attendeeId, eventId, host.accountId];
     if (request.method === 'DELETE') {
-      const result = await env.DB.prepare(
-        `DELETE FROM after_sit_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?`,
-      ).bind(...scope).run();
-      return result.meta?.changes ? json({ revoked: true }) : unavailable();
+      const [first, extra] = await env.DB.batch([
+        env.DB.prepare(`DELETE FROM after_sit_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?`).bind(...scope),
+        env.DB.prepare(`DELETE FROM after_sit_extra_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?`).bind(...scope),
+      ]);
+      return first.meta?.changes || extra.meta?.changes ? json({ revoked: true }) : unavailable();
     }
 
     const credential = createAfterSitCredential();
     const hash = await hashAfterSitCredential(credential);
     const expiresAt = Math.floor(Date.now() / 1000) + LINK_LIFETIME_SECONDS;
-    const result = await env.DB.prepare(
-      `INSERT INTO after_sit_access (attendee_id, event_id, account_id, credential_hash, expires_at)
-       SELECT a.id, a.event_id, a.account_id, ?, ? FROM event_attendees a
+    // The first link for a seat takes the main slot (or replaces one that has
+    // expired); a later copy is added beside it, so a link the guest already
+    // has keeps working until it expires.
+    const eligible = `SELECT a.id, a.event_id, a.account_id, ?, ? FROM event_attendees a
        ${eventJoins}
-       WHERE a.id = ? AND a.event_id = ? AND a.account_id = ? AND ${guestSeat}
+       WHERE a.id = ? AND a.event_id = ? AND a.account_id = ? AND ${guestSeat}`;
+    const [, first, extra] = await env.DB.batch([
+      env.DB.prepare(`DELETE FROM after_sit_extra_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?
+        AND expires_at <= unixepoch()`).bind(...scope),
+      env.DB.prepare(`INSERT INTO after_sit_access (attendee_id, event_id, account_id, credential_hash, expires_at)
+       ${eligible}
        ON CONFLICT(attendee_id, event_id, account_id) DO UPDATE SET
-         credential_hash = excluded.credential_hash, expires_at = excluded.expires_at`,
-    ).bind(hash, expiresAt, ...scope).run();
-    return result.meta?.changes ? json({ credential, expires_at: new Date(expiresAt * 1000).toISOString() }) : unavailable();
+         credential_hash = excluded.credential_hash, expires_at = excluded.expires_at
+       WHERE after_sit_access.expires_at <= unixepoch()`).bind(hash, expiresAt, ...scope),
+      env.DB.prepare(`INSERT INTO after_sit_extra_access (attendee_id, event_id, account_id, credential_hash, expires_at)
+       ${eligible} AND NOT EXISTS (SELECT 1 FROM after_sit_access held WHERE held.credential_hash = ?)`)
+        .bind(hash, expiresAt, ...scope, hash),
+    ]);
+    return first.meta?.changes || extra.meta?.changes
+      ? json({ credential, expires_at: new Date(expiresAt * 1000).toISOString() }) : unavailable();
   };
 
   function withLink(run: (request: Request, env: E, credentialHash: string, body: LinkInput) => Promise<Response>): Handler<E> {
@@ -140,7 +152,7 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     const actor = await deps.requireUser(request, env);
     if ('error' in actor) return privateResponse(actor.error);
     const seat = await env.DB.prepare(
-      `SELECT a.account_id, a.magic_token FROM after_sit_access l
+      `SELECT a.account_id, a.magic_token FROM after_sit_live_access l
        JOIN event_attendees a ON a.id = l.attendee_id AND a.event_id = l.event_id AND a.account_id = l.account_id
        ${eventJoins} WHERE l.credential_hash = ? AND l.expires_at > unixepoch() AND ${guestSeat}`,
     ).bind(hash).first<{ account_id: string; magic_token: string }>();

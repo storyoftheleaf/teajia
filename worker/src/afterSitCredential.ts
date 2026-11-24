@@ -14,7 +14,7 @@ export async function hashAfterSitCredential(credential: string) {
 // authorizes the narrow recap projection, independent of any ownership proof.
 export const currentAfterSitLink = `
   EXISTS (
-    SELECT 1 FROM after_sit_access l
+    SELECT 1 FROM after_sit_live_access l
     JOIN accounts shop ON shop.id = l.account_id AND shop.status = 'active'
     WHERE l.credential_hash = ? AND l.expires_at > unixepoch()
       AND l.attendee_id = a.id AND l.event_id = a.event_id AND l.account_id = a.account_id
