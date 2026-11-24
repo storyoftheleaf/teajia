@@ -1,5 +1,6 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { publicSitRoutes } from './publicSitConnections';
+import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddress, type OrderNoticeAccount } from './orderNoticeRecipient';
 import { connectedSitDemoRoutes } from './connectedSitDemo';
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
@@ -16279,8 +16280,8 @@ const handlePersonalInventoryAccount: Handler = async (request, env) => {
   await env.DB.batch([
     env.DB.prepare(`
       INSERT INTO accounts (id, slug, name, kind, status, public_enabled, owner_user_id,
-                            personal_inventory_user_id, invoice_prefix)
-      SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA' FROM users WHERE id = ?
+                            personal_inventory_user_id, invoice_prefix, contact_email)
+      SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA', NULLIF(trim(email), '') FROM users WHERE id = ?
       ON CONFLICT(personal_inventory_user_id) DO NOTHING
     `).bind(id, slug, name, ctx.userId),
     env.DB.prepare(`
@@ -22037,8 +22038,8 @@ async function sendOrderRequestEmails(env: Env, input: {
   const currencyKey = canonicalCurrency(input.currency);
   const currency = currencyKey ? isoCurrencyCode(currencyKey) : 'USD';
   const [account, rateRow] = await Promise.all([
-    env.DB.prepare('SELECT name, contact_email FROM accounts WHERE id = ?')
-      .bind(input.accountId).first() as Promise<{ name?: string | null; contact_email?: string | null } | null>,
+    env.DB.prepare(ORDER_NOTICE_ACCOUNT_SQL)
+      .bind(input.accountId).first() as Promise<({ name?: string | null } & OrderNoticeAccount) | null>,
     env.DB.prepare('SELECT rate_to_usd FROM exchange_rates WHERE currency = ?')
       .bind(currencyKey).first() as Promise<{ rate_to_usd?: number | null } | null>,
   ]);
@@ -22053,7 +22054,8 @@ async function sendOrderRequestEmails(env: Env, input: {
   const origin = appOrigin(env);
   const contactIsEmail = input.contact.includes('@');
 
-  const ownerRecipient = (account?.contact_email || '').trim() || (env.SENDER_EMAIL || '').trim();
+  const ownerRecipient = orderNoticeRecipient(account, env.SENDER_EMAIL);
+  if (!ownerRecipient && account?.personal_inventory_user_id) await recordMissingSellerAddress(env.DB, input.accountId);
   let storeDelivery = Promise.resolve(false);
   let customerDelivery = Promise.resolve(false);
   if (ownerRecipient) {
