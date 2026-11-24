@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   buildWisdom,
   DRAFT_PARTS_DIRECTORY,
+  PUBLIC_PARTS_DIRECTORY,
   renderGeneratedClaims,
   renderGeneratedDraftClaims,
   renderGeneratedRegistry,
@@ -43,7 +44,7 @@ const articleClaims = built.draftClaims
 
 const outputs = [
   ['generatedPages.ts', renderGeneratedRegistry(built.registry)],
-  ['generatedClaims.ts', renderGeneratedClaims(built.claims)],
+  ...renderGeneratedClaims(built.claims),
   ...renderGeneratedDraftClaims(built),
   [path.join(REPO_ROOT, 'worker/src/articleWisdomClaimIndex.json'), JSON.stringify(articleClaims, null, 2) + '\n'],
   ['generatedEntries.ts', renderGeneratedEntries(await approvedEntries(ENTRIES_DIRECTORY, built.claims))],
@@ -67,20 +68,22 @@ for (const [fileName, output] of outputs) {
   }
 }
 
-// The parts directory holds only what this run wrote; a leftover part is stale.
-const partsDirectory = path.join(REFERENCE_DIRECTORY, DRAFT_PARTS_DIRECTORY);
+// Each parts directory holds only what this run wrote; a leftover part is stale.
 const written = new Set(outputs.map(([fileName]) => path.resolve(REFERENCE_DIRECTORY, fileName)));
-let present = [];
-try {
-  present = await fs.readdir(partsDirectory);
-} catch (error) {
-  if (error?.code !== 'ENOENT') throw error;
-}
-for (const name of present) {
-  const partPath = path.join(partsDirectory, name);
-  if (written.has(partPath)) continue;
-  if (args.has('--check')) {
-    throw new Error(`Generated ${DRAFT_PARTS_DIRECTORY}/${name} is stale; run npm run tea-reference:pages`);
+for (const directory of [DRAFT_PARTS_DIRECTORY, PUBLIC_PARTS_DIRECTORY]) {
+  const partsDirectory = path.join(REFERENCE_DIRECTORY, directory);
+  let present = [];
+  try {
+    present = await fs.readdir(partsDirectory);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
   }
-  await fs.rm(partPath);
+  for (const name of present) {
+    const partPath = path.join(partsDirectory, name);
+    if (written.has(partPath)) continue;
+    if (args.has('--check')) {
+      throw new Error(`Generated ${directory}/${name} is stale; run npm run tea-reference:pages`);
+    }
+    await fs.rm(partPath);
+  }
 }
