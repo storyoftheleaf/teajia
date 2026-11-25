@@ -273,7 +273,7 @@ export async function processPendingCustomerOrderNotifications(
       else headers.Authorization = `Bearer ${cleanSecret(env.WHATSAPP_ACCESS_TOKEN)}`;
       response = await fetcher(
         `${endpoint}/${env.WHATSAPP_GRAPH_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-        { method: 'POST', headers, body: JSON.stringify(payload), signal: AbortSignal.timeout(10000), redirect: 'error' },
+        { method: 'POST', headers, body: JSON.stringify(payload), signal: AbortSignal.timeout(10000), redirect: 'manual' },
       );
     } catch {
       // The provider may have accepted a request before the connection failed.

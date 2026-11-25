@@ -156,7 +156,7 @@ export async function processShippingQuoteNotifications(db:D1Database,env:Shippi
    const body=email?{from:env.SENDER_NAME?`${env.SENDER_NAME} <${env.SENDER_EMAIL}>`:env.SENDER_EMAIL,to:target.recipient,subject:`Shipping payment for Teajia order ${ref}`,text}:
     {messaging_product:'whatsapp',recipient_type:'individual',to:digits(target.recipient),type:'template',template:{name:env.SHIPPING_PAYMENT_TEMPLATE_NAME,language:{code:env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE},components:[{type:'body',parameters:[name,ref,money(row.quote_usd),money(balance),url.href].map(text=>({type:'text',text}))}]}};
    let response:Response;
-   try{response=await(options.fetcher||fetch)(endpoint,{method:'POST',headers,body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(10000)});}catch{
+   try{response=await(options.fetcher||fetch)(endpoint,{method:'POST',headers,body:JSON.stringify(body),redirect:'manual',signal:AbortSignal.timeout(10000)});}catch{
     await retryOrReview(db,row,claim,email,'network_outcome_unknown');result.blocked++;continue;
    }
    if(response.ok){let id:unknown;try{const data=await response.json() as any;id=email?data.id:data.messages?.[0]?.id;}catch{}

@@ -86,7 +86,7 @@ async function readTemplateApproval(c: Config, fetcher: typeof fetch, onAttempt?
   let httpStatus: number | null = null;
   let outcome: ApprovalAttempt['outcome'] = 'http_response';
   try {
-   const response = await fetcher(url.href, { headers: buildRequestHeaders(headers), redirect: 'error', signal });
+   const response = await fetcher(url.href, { headers: buildRequestHeaders(headers), redirect: 'manual', signal });
    httpStatus = response.status;
    if (response.ok) return classify(await response.json(), c);
    if (response.status === 401 || response.status === 403) {

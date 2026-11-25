@@ -24,10 +24,10 @@ export function paypalLiveEnabled(request: Request, env: PayPalLiveEnv): boolean
 }
 export async function paypalLiveRequest(env: PayPalLiveEnv, path: string, body?: unknown, requestId?: string): Promise<any> {
  const token=await fetch('https://api-m.paypal.com/v1/oauth2/token',{
-  method:'POST',headers:{Authorization:'Basic '+btoa(env.PAYPAL_LIVE_CLIENT_ID+':'+env.PAYPAL_LIVE_CLIENT_SECRET),'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=client_credentials',redirect:'error',signal:AbortSignal.timeout(10000),
+  method:'POST',headers:{Authorization:'Basic '+btoa(env.PAYPAL_LIVE_CLIENT_ID+':'+env.PAYPAL_LIVE_CLIENT_SECRET),'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=client_credentials',redirect:'manual',signal:AbortSignal.timeout(10000),
  });
  if(!token.ok)throw new Error('paypal_provider_unavailable');const credentials=await token.json() as {access_token?:string};if(!credentials.access_token)throw new Error('paypal_provider_unavailable');
- const response=await fetch('https://api-m.paypal.com'+path,{method:body===undefined?'GET':'POST',headers:{Authorization:'Bearer '+credentials.access_token,'Content-Type':'application/json',...(requestId?{'PayPal-Request-Id':requestId}:{}),'Prefer':'return=representation'},body:body===undefined?undefined:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(10000)});
+ const response=await fetch('https://api-m.paypal.com'+path,{method:body===undefined?'GET':'POST',headers:{Authorization:'Bearer '+credentials.access_token,'Content-Type':'application/json',...(requestId?{'PayPal-Request-Id':requestId}:{}),'Prefer':'return=representation'},body:body===undefined?undefined:JSON.stringify(body),redirect:'manual',signal:AbortSignal.timeout(10000)});
  if(!response.ok)throw new Error('paypal_provider_unavailable');return response.json();
 }
 function validApproval(url: unknown): url is string { try { const u=new URL(String(url));return u.protocol==='https:'&&['www.paypal.com','paypal.com'].includes(u.hostname)&&u.pathname==='/checkoutnow'; }catch{return false;} }
