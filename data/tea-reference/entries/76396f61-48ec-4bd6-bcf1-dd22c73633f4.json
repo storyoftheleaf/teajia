@@ -1,0 +1,79 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T03:35:27.809Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "76396f61-48ec-4bd6-bcf1-dd22c73633f4",
+    "name": "Anhua Yi Ji",
+    "chineseName": "一级",
+    "type": "Dark",
+    "form": "Loose",
+    "year": 2020,
+    "origin": "Anhua, Hunan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": null,
+    "tags": [
+      "woody",
+      "light mushroom",
+      "clean mineral",
+      "mild astringency"
+    ]
+  },
+  "entry": {
+    "productId": "76396f61-48ec-4bd6-bcf1-dd22c73633f4",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A loose [first-grade](anhua-dark:grades) [Anhua dark tea](anhua-dark:definition), made in 2020 from spring leaf grown in cultivated gardens. The county's raw leaf is sorted into numbered grades, and each finished tea draws on the grade that suits it. Anhua sits in the mountains on the Zi river in north-central Hunan, and its name is a protected origin in China, tied to a defined place of making."
+      },
+      {
+        "layer": "age",
+        "text": "Every tea from the area begins as one raw tea, [heimaocha](anhua-dark:making): large leaf fixed, rolled, piled and rolled again before it is dried. At six years this one is still young for a tea that is kept for years and said to improve, though the trade has no agreed count of years that makes one [aged](anhua-dark:ageing). It is best kept clean, dry and aired, away from mould and other smells."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Anhua dark tea",
+      "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "anhua-dark:grades",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:making",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T03:39:26.821Z"
+}

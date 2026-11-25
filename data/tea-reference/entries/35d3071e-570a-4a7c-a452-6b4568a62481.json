@@ -1,0 +1,79 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T03:34:16.333Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "35d3071e-570a-4a7c-a452-6b4568a62481",
+    "name": "Anhua Huangye",
+    "chineseName": "荒野",
+    "type": "Dark",
+    "form": "Loose",
+    "year": 2024,
+    "origin": "Anhua, Hunan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": null,
+    "tags": [
+      "green wood",
+      "wild herbs",
+      "fresh earthiness",
+      "light mineral"
+    ]
+  },
+  "entry": {
+    "productId": "35d3071e-570a-4a7c-a452-6b4568a62481",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "Huangye, 荒野, marks this as leaf picked from uncultivated tea plants growing wild in the mountains of [Anhua](anhua-dark:definition), a county on the Zi river in north-central Hunan whose dark tea is a protected origin product. The wild leaf was then made in the Anhua way, starting as [heimaocha](anhua-dark:making), the one raw tea behind every Anhua tea."
+      },
+      {
+        "layer": "age",
+        "text": "Made in 2024, it is two years old. The slow change in warmth and moisture that makes [dark tea](dark:definition) what it is has only just begun in this leaf. Anhua tea is kept for years and said to improve, though no agreed count of years marks it as [aged](anhua-dark:ageing); kept clean, dry and aired, away from damp and other smells, it has a long way still to go."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Anhua dark tea",
+      "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "anhua-dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:making",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T03:39:26.562Z"
+}

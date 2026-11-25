@@ -1,0 +1,95 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T03:37:05.146Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "696f9f29-b0e4-4920-abcc-5348ca20eec2",
+    "name": "Bai Liang",
+    "chineseName": "花卷茶",
+    "type": "Dark",
+    "form": "Brick",
+    "year": 2006,
+    "origin": "Anhua, Hunan, China",
+    "stockGrams": 1600,
+    "pricePerGramUsd": 0.25,
+    "tags": [
+      "aged wood",
+      "pine mushroom",
+      "dark chocolate",
+      "earthy sweetness"
+    ]
+  },
+  "entry": {
+    "productId": "696f9f29-b0e4-4920-abcc-5348ca20eec2",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "This leaf comes from Anhua, a mountain county on the Zi river in north central Hunan, widely named as the main home of [Anhua dark tea](anhua-dark:definition) and a starting point of the old tea routes to the northwest. Like every tea made there, it began as [heimaocha](anhua-dark:making), a raw tea of large local leaf, traditionally dried over a pine fire, then steamed soft before pressing."
+      },
+      {
+        "layer": "type",
+        "text": "Bailiang, a hundred liang, is one of the county's [flower rolls](anhua-dark:family), tall columns named by their old weight and sitting between the thousand and the ten. A roll is packed into a woven bamboo basket lined with leaf and [pressed tight by treading and twisting](anhua-dark:rolls) with long bars, then left to dry slowly in sun and night air for weeks. The rolls grew out of the border trade under the [Qing](anhua-dark:history)."
+      },
+      {
+        "layer": "age",
+        "text": "Made in 2006, it has now had twenty years. Tea from the area is [kept for years](anhua-dark:ageing) in the belief that it improves, though no agreed count of years marks it as aged; what matters is that it stays clean, dry and aired, away from mould and other smells."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup. In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Anhua dark tea",
+      "text": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "anhua-dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:making",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:family",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:rolls",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:history",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T03:39:27.084Z"
+}
