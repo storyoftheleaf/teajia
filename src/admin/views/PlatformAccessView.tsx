@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { AccountApplication, AccountKind } from '../../types';
+import { useStepParam } from '../../hooks/useStepParam';
 
 const initialsForName = (raw: string): string => {
   const source = (raw || '').trim();
@@ -51,7 +52,10 @@ export const PlatformAccessView: React.FC = () => {
   const platformRole = useAppStore(s => s.platformRole);
   const isPlatformOwner = platformRole === 'platform_owner';
 
-  const [tab, setTab] = useState<'accounts' | 'platform'>('accounts');
+  // A step in history, in the address (CLAUDE.md, "Back and forward").
+  const [tabParam, stepTab] = useStepParam('tab', 'accounts');
+  const tab: 'accounts' | 'platform' = (['accounts', 'platform'] as const).includes(tabParam as 'accounts' | 'platform') ? tabParam as 'accounts' | 'platform' : 'accounts';
+  const setTab = (next: 'accounts' | 'platform') => stepTab(next);
   const [accounts, setAccounts] = useState<PlatformAccount[] | null>(null);
   const [applications, setApplications] = useState<AccountApplication[] | null>(null);
   const [error, setError] = useState<string | null>(null);

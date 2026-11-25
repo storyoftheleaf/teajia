@@ -128,6 +128,13 @@ See `docs/CONSOLIDATED_DIRECTION.md` (single directional list) and `docs/tracks/
 - Desktop rail and mobile bottom bar are the same four sections (Read, Craft, Advise, Shop) — keep them in sync. Manage rooms come from `src/components/manageNav.ts` only.
 - Back top-left; Cancel bottom-left; primary action on the right; close X top-right on centred modals, top-left on panels. Never below `text-tea-text-sec`.
 
+## Back and forward: every admin place is in the address (Adrian, 2026-11-25)
+Browser back and forward must work everywhere, and nobody gets stuck. Detail: [docs/claude/layout.md](docs/claude/layout.md#back-and-forward).
+- A **step** (a tab, a screen, an open record or panel) lives in the address and pushes a history entry: `useStepParam` (`src/hooks/useStepParam.ts`) or a route. Never `useState` alone, never `replace: true`.
+- A **refinement** (typing, filters, sort, folds) lives in the address too but replaces the entry; mark the line `// history: refine`.
+- Back buttons use `useAdminBack(fallback)` (`src/admin/hooks/useAdminBack.ts`), never bare `navigate(-1)`. Section pages get the shared Back/Forward row (`AdminHistoryBar`); a page with its own top-left Back is listed in `src/admin/components/adminHistory.ts`.
+- Guard: `src/admin/guards/historySteps.test.ts`. Browser check: `tests/admin-history.spec.ts`.
+
 ## DO NOT build
 Streak trackers, gamification, engagement notifications, algorithmic recommendations, social feeds/likes/followers, auto-replenish subscriptions.
 

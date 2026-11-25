@@ -1,3 +1,7 @@
+## 2026-11-25: Back and forward work in the admin
+
+The browser's back and forward now step through the admin: tabs in People, Activity, Network, events, platform, collections and the magazine, Curate's Source, Library and Buying screens, a tea record opened in Stock (back closes it, forward opens it again), Wisdom holdings and entries, and Yixing references. Every admin page without its own Back shows a small Back at the top left once there is somewhere to go back to, and Forward after a Back. Back buttons opened from a link no longer do nothing: they go to the section instead. The rule for all new admin work is in CLAUDE.md, "Back and forward", held by `src/admin/guards/historySteps.test.ts`.
+
 ## 2026-11-25: Placing vendor faces by drag and drop
 
 People > Suppliers > Faces takes a whole batch of face photos at once: drop them on the page or press "Add photos to place", and they wait in a tray that stays above the vendors while you scroll. Drag a face onto its vendor, or tap the face and then the vendor (for the phone and iPad), and it is saved as that vendor's face; "Undo" puts the last one back the way it was. A photo whose file name names a vendor ("huang-wei.jpg") rings that vendor while it is picked up. The photos are squared with the face in the middle before they are dropped in; the page saves them as they come.

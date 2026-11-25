@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useStepParam } from '../../hooks/useStepParam';
 import { ClipboardList, BarChart3, Inbox, Truck, MessageSquare, RefreshCw } from 'lucide-react';
 import { OrdersView } from './OrdersView';
 import { RecordsView } from './SoldItemsView';
@@ -77,7 +78,9 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products, canManageI
   const activeTab: ActivityTab = resolveTab(rawTab);
   // Which part of the ledger an old ?tab=log link asked for.
   const ledgerStart: 'ledger' | 'log' = rawTab === 'log' ? 'log' : 'ledger';
-  const setActiveTab = (tab: ActivityTab) => setSearchParams({ tab }, { replace: true });
+  // Each tab is a step in history (CLAUDE.md, "Back and forward").
+  const [, stepTab] = useStepParam('tab', activeTab);
+  const setActiveTab = (tab: ActivityTab) => stepTab(tab, { only: true });
   const pendingCount = usePendingCount();
   const activeAccountId = useAppStore(state => state.activeAccountId);
   const scope = usePrivateQueryScope();

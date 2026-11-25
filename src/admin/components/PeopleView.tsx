@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
+import { useStepParam } from '../../hooks/useStepParam';
 import { useQueryClient } from '@tanstack/react-query';
 import { Users, Store, Tag } from 'lucide-react';
 import { CustomersView } from './CustomersView';
@@ -54,7 +55,9 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
   const rawTab = rawTabParam as PeopleTab | null;
   const fallback = visibleTabs[0]?.id || 'customers';
   const activeTab: PeopleTab = rawTab && visibleTabs.find(t => t.id === rawTab) ? rawTab : fallback;
-  const setActiveTab = (tab: PeopleTab) => setSearchParams({ tab }, { replace: true });
+  // Each tab is a step in history (CLAUDE.md, "Back and forward").
+  const [, stepTab] = useStepParam('tab', activeTab);
+  const setActiveTab = (tab: PeopleTab) => stepTab(tab, { only: true });
 
   const queryClient = useQueryClient();
   useEffect(() => {

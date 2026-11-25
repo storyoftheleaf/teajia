@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import { useToast } from '../components/Toast';
 import { STATUS_PILL_VARIANTS, STATUS_PILL_BASE, type StatusPillVariant } from '../constants';
 import type { CollectionListRow, CollectionStatus, InboundCollectionRow } from '../../types';
+import { useStepParam } from '../../hooks/useStepParam';
 
 type ListMode = 'mine' | 'inbound';
 type TabFilter = 'all' | 'draft' | 'active' | 'archived';
@@ -32,8 +33,14 @@ export const CollectionsView: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<ListMode>('mine');
-  const [tab, setTab] = useState<TabFilter>('all');
+  // A step in history, in the address (CLAUDE.md, "Back and forward").
+  const [modeParam, stepMode] = useStepParam('list', 'mine');
+  const mode: ListMode = (['mine', 'inbound'] as const).includes(modeParam as ListMode) ? modeParam as ListMode : 'mine';
+  const setMode = (next: ListMode) => stepMode(next);
+  // A step in history, in the address (CLAUDE.md, "Back and forward").
+  const [tabParam, stepTab] = useStepParam('tab', 'all');
+  const tab: TabFilter = (['all', 'draft', 'active', 'archived'] as const).includes(tabParam as TabFilter) ? tabParam as TabFilter : 'all';
+  const setTab = (next: TabFilter) => stepTab(next);
   // Auto-open the create form when arriving via "Send a Collection" (?new=1),
   // so the profile-panel entry lands straight in the build flow, not the list.
   const [creating, setCreating] = useState(() => searchParams.get('new') === '1');

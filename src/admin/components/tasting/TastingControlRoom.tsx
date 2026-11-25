@@ -58,7 +58,9 @@ export function TastingControlRoom() {
 
   const setTab = (next: string) => {
     const base = `/admin/tasting-events/${sessionId}`;
-    navigate(next === 'live' ? `${base}/live` : base, { replace: true });
+    const target = next === 'live' ? `${base}/live` : base;
+    // A history entry, so browser back returns to the other view.
+    if (target !== location.pathname) navigate(target);
   };
 
   return (

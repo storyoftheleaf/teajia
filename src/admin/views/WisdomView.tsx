@@ -263,9 +263,14 @@ function WisdomBrowserView({ canReadWording }: { canReadWording: boolean }) {
 
   const write = useCallback(
     (patch: Partial<WisdomAddress>) => {
-      const next = { ...standing.current, ...patch };
+      const before = standing.current;
+      const next = { ...before, ...patch };
       standing.current = next;
-      setSearchParams(wisdomAddress(next), { replace: true });
+      // Moving to another holding, entry or the review is a step the browser's
+      // back should undo; typing, filters and sort preferences only refine the
+      // page in place, so they replace the entry rather than flood history.
+      const isStep = next.holding !== before.holding || next.entry !== before.entry || next.review !== before.review;
+      setSearchParams(wisdomAddress(next), isStep ? undefined : { replace: true });
     },
     [setSearchParams],
   );

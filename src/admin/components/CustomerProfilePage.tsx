@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAdminBack } from '../hooks/useAdminBack';
 import {
   ArrowLeft, MessageCircle, Leaf, Loader2, ShoppingBag,
   Calendar, Edit3, Package, Search, Check, Copy, X,
@@ -319,6 +320,7 @@ function orderAmount(order: { computed_total?: unknown; total?: unknown }): numb
 export const CustomerProfilePage: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
+  const goBack = useAdminBack('/admin/people?tab=customers');
   const { showToast } = useToast();
   const { data: allProducts = [] } = useProducts();
 
@@ -464,7 +466,7 @@ export const CustomerProfilePage: React.FC = () => {
         <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               <ArrowLeft size={14} />

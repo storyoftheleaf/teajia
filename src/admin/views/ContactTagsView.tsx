@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useAdminBack } from '../hooks/useAdminBack';
 import { ArrowLeft, Loader2, Pencil, Search, Tag as TagIcon, Trash2 } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
@@ -20,7 +20,7 @@ interface ContactTagsViewProps {
 }
 
 export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = false }) => {
-  const navigate = useNavigate();
+  const goBack = useAdminBack('/admin/people?tab=tags');
   const { showToast } = useToast();
   const [tags, setTags] = useState<TagRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,7 +140,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
       {!embedded && (
         <div className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border px-4 md:px-8 py-3 flex items-center justify-between">
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
           >
             <ArrowLeft size={15} /> Back

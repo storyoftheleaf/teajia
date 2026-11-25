@@ -521,17 +521,29 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // identity and lifecycle.
   const [selectedPanelProduct, setSelectedPanelProduct] = useState<Product | null>(null);
   // Linked panels always resolve against the current store’s product list.
+  // The open record lives in the address (?panel=), so the browser's back closes
+  // it and forward reopens it (Adrian, 2026-11-25: back did nothing in the
+  // admin). Opening is a new history entry; stepping to the next or previous
+  // record replaces it; closing a record opened here steps back off that entry
+  // rather than stacking a second copy of the list. The snapshot covers a record
+  // the list has not caught up with yet, such as one just created.
   const panelProduct = panelParam
-    ? products.find(product => product.id === panelParam) ?? null
-    : selectedPanelProduct;
+    ? products.find(product => product.id === panelParam)
+      ?? (selectedPanelProduct?.id === panelParam ? selectedPanelProduct : null)
+    : null;
+  const panelOpenedHere = Boolean((navigationState as { panelOpenedHere?: boolean } | null)?.panelOpenedHere);
   const setPanelProduct = useCallback((product: Product | null) => {
-    if (!panelParam) {
-      setSelectedPanelProduct(product);
+    setSelectedPanelProduct(product);
+    if (!product && !panelParam) return;
+    if (!product && panelOpenedHere) { navigate(-1); return; }
+    const baseState = navigationState && typeof navigationState === 'object' ? navigationState as Record<string, unknown> : {};
+    if (product && !panelParam) {
+      setSearchParams(previous => withParam(previous, 'panel', product.id), { state: { ...baseState, panelOpenedHere: true } });
       return;
     }
-    setSelectedPanelProduct(null);
-    setSearchParams(previous => withParam(previous, 'panel', product?.id ?? null), { replace: true });
-  }, [panelParam, setSearchParams]);
+    if (product?.id === panelParam) return;
+    setSearchParams(previous => withParam(previous, 'panel', product?.id ?? null), { replace: true, state: navigationState });
+  }, [panelParam, panelOpenedHere, navigationState, navigate, setSearchParams]);
   const [sourcePanelProduct, setSourcePanelProduct] = useState<Product | null>(null);
   // The supplier sheet: tapping a supplier's name anywhere in Stock opens it, to
   // rename him everywhere, edit his contact, and see how he ships. It carries the

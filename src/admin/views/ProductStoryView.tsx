@@ -13,6 +13,7 @@
 
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAdminBack } from '../hooks/useAdminBack';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -256,6 +257,7 @@ const FlavorCloud: React.FC<{ words: string[] }> = ({ words }) => (
 export const ProductStoryView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useAdminBack('/admin/stock');
   const { openPurchaseOrder } = useAppStore();
   const scope = usePrivateQueryScope();
 
@@ -367,7 +369,7 @@ export const ProductStoryView: React.FC = () => {
           <p className={`${TYPOGRAPHY_CLASSES.h3} mb-2`} role="status">{loading ? 'Loading tea' : failed ? 'Could not load tea' : 'Tea not found'}</p>
           {failed && <button onClick={() => { void refetchProduct(); }} className="tap-target text-ui-12 text-tea-text-sec mr-4">Try again</button>}
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <ArrowLeft size={13} />
@@ -384,7 +386,7 @@ export const ProductStoryView: React.FC = () => {
 
         {/* Back */}
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors mb-10"
         >
           <ArrowLeft size={13} />
