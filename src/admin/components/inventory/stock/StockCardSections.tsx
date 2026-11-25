@@ -1,11 +1,18 @@
-import { useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useNavigate, type SetURLSearchParams } from 'react-router-dom';
 import { readInventoryFold, withInventoryFold } from '../helpers';
 import { StockTeaCard } from './StockTeaCard';
-import { deriveInventoryStage, effectivePurpose, type IncomingInventorySummary, type InventoryStage } from '../domain';
+import { deriveInventoryStage, effectivePurpose, preparationHeadingText, preparationHeadings, type IncomingInventorySummary, type InventoryStage } from '../domain';
 import type { InventoryCategory, InventoryProductGroup } from '../types';
 import type { Product } from '../../../types';
 import { fmtNum } from '../../../../utils/formatNumber';
+
+const headingCache = new WeakMap<InventoryProductGroup, ReturnType<typeof preparationHeadings>>();
+function needHeadingsFor(group: InventoryProductGroup) {
+  let headings = headingCache.get(group);
+  if (!headings) { headings = preparationHeadings(group.items); headingCache.set(group, headings); }
+  return headings;
+}
 
 export function useStockLayout() {
   const [layout, setLayout] = useState<'cards' | 'table'>(() => localStorage.getItem('teajia-stock-layout') === 'cards' ? 'cards' : 'table');
@@ -49,9 +56,12 @@ export function StockCardSections({ groups, category, incomingByProductId, onOpe
             <span>{group.items.length} {category === 'tea' ? group.items.length === 1 ? 'tea' : 'teas' : 'items'} · {fmtNum(group.totalStock, 0)} {category === 'tea' ? 'g' : 'units'}</span>
           </div>
           <div className="stock-card-grid">
-            {group.items.map(product => <StockTeaCard key={product.id} product={product}
+            {group.items.map(product => {
+              const needHeading = group.lifecycle && group.key === 'needs_preparation' && category === 'tea' ? needHeadingsFor(group).get(product.id) : undefined;
+              return <Fragment key={product.id}>{needHeading && <h3 className="col-span-full pt-2 text-ui-12 text-tea-text-sec" data-preparation-need={needHeading.need}>{preparationHeadingText(needHeading)}</h3>}<StockTeaCard product={product}
               stage={group.lifecycle ? group.key as InventoryStage : deriveInventoryStage(product, incomingByProductId[product.id])}
-              incoming={incomingByProductId[product.id]} onOpen={onOpen} onAction={openAction} />)}
+              incoming={incomingByProductId[product.id]} onOpen={onOpen} onAction={openAction} /></Fragment>;
+            })}
           </div>
         </section>
       ))}

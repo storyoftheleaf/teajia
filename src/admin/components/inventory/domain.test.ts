@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { Product } from '../../types';
 import {
+  preparationHeadingText,
+  preparationHeadings,
+  preparationNeed,
   MOVEMENT_REASON_LABELS,
   adaptInventorySummaryRows,
   deriveInventoryFacets,
@@ -403,5 +406,35 @@ describe('one key of the address', () => {
     withParam(before, 'vendor', 'New');
     withParam(before, 'vendor', null);
     expect(before.get('vendor')).toBe('Old');
+  });
+});
+
+describe('needs preparation, sorted by what each tea is missing', () => {
+  const prep = (id: string, overrides: Partial<Product>) => product({ id, stockKnownAt: null, quantityPurchased: 150, costAmount: 900, ...overrides });
+
+  it('puts each tea under its first need: cost, then bag weight, then count', () => {
+    expect(preparationNeed(prep('a', { costAmount: null }))).toBe('cost');
+    expect(preparationNeed(prep('b', { quantityPurchased: 0 }))).toBe('weight');
+    expect(preparationNeed(prep('c', {}))).toBe('count');
+    expect(preparationNeed(prep('d', { costAmount: 0 }))).toBe('count');
+    expect(preparationNeed(prep('e', { stockKnownAt: '2026-11-25', stockGrams: 10, givenName: 'Unnamed', productName: '' }))).toBe('name');
+  });
+
+  it('orders the group by need and keeps the chosen order inside each need', () => {
+    const grouped = groupInventoryByLifecycle([
+      prep('count-1', {}), prep('cost-1', { costAmount: null }), prep('weight-1', { quantityPurchased: 0 }),
+      prep('count-2', {}), prep('cost-2', { costAmount: null }),
+    ]);
+    const items = grouped.find(group => group.stage === 'needs_preparation')!.items;
+    expect(items.map(item => item.id)).toEqual(['cost-1', 'cost-2', 'weight-1', 'count-1', 'count-2']);
+    const headings = preparationHeadings(items);
+    expect([...headings.keys()]).toEqual(['cost-1', 'weight-1', 'count-1']);
+    expect(preparationHeadingText(headings.get('cost-1')!)).toBe('Needs a cost · 2 teas · each needs a count too');
+    expect(preparationHeadingText(headings.get('count-1')!)).toBe('Needs a count · 2 teas');
+  });
+
+  it('only says "count too" when every tea under the heading still needs counting', () => {
+    const headings = preparationHeadings([prep('x', { costAmount: null }), prep('y', { costAmount: null, stockKnownAt: '2026-11-25', stockGrams: 40 })]);
+    expect(preparationHeadingText(headings.get('x')!)).toBe('Needs a cost · 2 teas');
   });
 });
