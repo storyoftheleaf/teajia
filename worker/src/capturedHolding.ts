@@ -12,6 +12,16 @@ export function capturedHoldingFields(entry:Record<string,any>, received?:number
 
  return {form:entry.form??null,season:entry.season??null,storage:entry.storage??null,producer:entry.producer??null,classification:entry.classification??null,cultivar:entry.cultivar??null,chinese_name:entry.chinese_name??null,year:entry.year!=null?String(entry.year):null,origin_country:entry.origin_country??null,origin_region:entry.origin_region??null,description:entry.description??null,vendor:entry.vendor_name??null,vendor_id:entry.vendor_id??null,material:entry.material??null,clay_type:entry.clay_type??null,material_note:entry.material_note??null,capacity_ml:entry.capacity_ml??null,teaware_category:entry.teaware_category??null,tasting:entry.tasting??'{}',tasting_source:entry.tasting&&entry.tasting!=='{}'?'owner':null,tea_key:entry.tea_key??null,cost_amount:stated?(free?0:(basis>0&&received!=null?Number(amount)*(quantity!/basis):amount)):null,cost_currency:stated&&!free?canonicalCurrency(entry.price_currency):free?(canonicalCurrency(entry.price_currency)??null):null,quantity_purchased:stated&&(basis>0||free)?quantity:null};
 }
+
+/** Order confirmation is the acquisition boundary; imported totals alone are quotes. */
+export function confirmedAcquisitionFields(entry:Record<string,any>):Record<string,any>{
+ const ware=entry.category==='teaware'||entry.type==='Teaware';
+ const boughtQuantity=ware?entry.buy_quantity_units:entry.buy_quantity_grams;
+ if(entry.status!=='in_stock'||entry.buy_total==null||boughtQuantity==null)return {cost_amount:null,cost_currency:null,quantity_purchased:null};
+ const captured=capturedHoldingFields(entry);
+ if(captured.cost_amount==null||captured.cost_currency==null||captured.quantity_purchased==null)return {cost_amount:null,cost_currency:null,quantity_purchased:null};
+ return {cost_amount:captured.cost_amount,cost_currency:captured.cost_currency,quantity_purchased:captured.quantity_purchased};
+}
 export function recordedImageKey(product:Record<string,any>,slot:string,accountId:string):string|null{
  let extras:string[]=[];try{extras=Array.isArray(product.additional_images)?product.additional_images:JSON.parse(product.additional_images||'[]');}catch{}
  const raw=slot==='main'?product.image_url:slot==='bag'?product.bag_photo_url:extras[Number(slot)-1];

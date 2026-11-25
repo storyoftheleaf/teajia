@@ -1,8 +1,8 @@
 import { compassHolding, COMPASS_SAMPLE_HOLDING } from './compassHoldings';
-import { capturedHoldingFields, capturedRetailUsd } from './capturedHolding';
+import { capturedHoldingFields, capturedRetailUsd, confirmedAcquisitionFields } from './capturedHolding';
 import { tastingForShop, tastingHasTerms } from './curateImportTasting';
 import { compassVendorId } from './curateReceiptProduct';
-import { canonicalizeCostCurrency } from './costCurrency';
+import { canonicalizeCostCurrency, stampCostCurrencySource } from './costCurrency';
 import { nameProductColumns } from './productDefaults';
 import { prepareCurateRecordedWrite, type CurateGuard } from './curateMutations';
 import type { ToolAuth } from './mcpTools/registry';
@@ -104,11 +104,9 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
     vendor_id: vendorId,
     stock_grams: stockGrams,
     stock_known_at: new Date().toISOString(),
-    // A vendor quote is a unit price, not a paid batch cost. Acceptance of a
-    // reviewed order arrival supplies both its line total and bought quantity.
-    cost_amount: null,
-    cost_currency: null,
-    quantity_purchased: null,
+    // Only OrderSummary's confirmed acquisition tuple becomes paid cost. An
+    // imported total on a quote/buying row remains quote evidence.
+    ...confirmedAcquisitionFields(entry),
     quantity_units: quantityUnits,
     material: entry.material ?? null,
     capacity_ml: entry.capacity_ml ?? null,
@@ -129,6 +127,7 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
   // currency the exchange table has no row for. No-op when the entry's
   // currency was never stated, which is what leaves cost_currency NULL above.
   canonicalizeCostCurrency(cols);
+  stampCostCurrencySource(cols);
 
   /* A compass entry records what Adrian saw, not what it cost to bring here. It
      carries no freight rate and no markup, so both are NULL and the tea follows

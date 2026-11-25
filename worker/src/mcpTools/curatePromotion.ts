@@ -4,6 +4,7 @@ import { requireCurateManager, type CurateGuard } from '../curateMutations';
 import { loadPromotableCompassEntry, promoteCompassEntry, promotionRowGuard, promotionCapture, CompassPromotionError } from '../curatePromotion';
 import { compassVendorId } from '../curateReceiptProduct';
 import { sha256Hex } from '../inquiryDomain';
+import { confirmedAcquisitionFields } from '../capturedHolding';
 
 type Row = Record<string, any>;
 interface PromotionTicket {
@@ -29,13 +30,13 @@ async function preview(env:ToolEnv,auth:ToolAuth,args:any) {
   const ticket:PromotionTicket={kind:'curate:promote',accountId:auth.accountId,userId:auth.userId,entry,guards,agent:typeof args.agent==='string'?args.agent.slice(0,100):'an agent'};
   return previewEnvelope({action:'promote_to_inventory',tea_id:entry.id,name:existing?.product_name??capture.name,vendor_id:existing?.vendor_id??vendorId,
     existing_product_id:existing?.id??null,already_promoted:!!existing,
-    creates:existing?null:{status:'Draft',is_public:0,shown_in_shop:0,stock_grams:0,quantity_units:entry.category==='teaware'?0:null,cost_amount:null,cost_currency:null,quantity_purchased:null,shipping_rate_per_kg:null,markup_multiplier:null},
+    creates:existing?null:{status:'Draft',is_public:0,shown_in_shop:0,stock_grams:0,quantity_units:entry.category==='teaware'?0:null,...confirmedAcquisitionFields(entry),shipping_rate_per_kg:null,markup_multiplier:null},
     physical_holdings_preserved:true,samples_preserved:true,
-    message:existing?'Link this tea to its existing inventory product.':'Create a private Draft inventory product. Quoted prices and sample grams do not become paid cost or shop stock; a reviewed arrival supplies those.'},await issueTicket(env,ticket,auth.tokenId));
+    message:existing?'Link this tea to its existing inventory product.':'Create a private Draft inventory product. A confirmed purchase total becomes paid cost; quotes and sample grams do not. A reviewed receipt supplies shop stock.'},await issueTicket(env,ticket,auth.tokenId));
 }
 export const curatePromotionTools:ToolModule={
   area:'Curate inventory promotion',
-  defs:[{name:'curate_promote_tea',scope:'stock:write',description:'Preview and confirm linking a Curate tea to shop inventory. Creates a private Draft with unknown cost and zero stock, or reuses its existing product identity. Does not publish, receive stock, or move samples. Requires Curate management. Read the preview to Adrian and obtain his approval before confirming.',inputSchema:{type:'object',properties:{tea_id:{type:'string'},agent:{type:'string'},confirm:{type:'string',description:'The five-minute confirmation token from the approved preview.'}},additionalProperties:false}}],
+  defs:[{name:'curate_promote_tea',scope:'stock:write',description:'Preview and confirm linking a Curate tea to shop inventory. Creates a private zero-stock Draft carrying a confirmed purchase cost when recorded, or reuses its existing product identity. Does not publish, receive stock, or move samples. Requires Curate management. Read the preview to Adrian and obtain his approval before confirming.',inputSchema:{type:'object',properties:{tea_id:{type:'string'},agent:{type:'string'},confirm:{type:'string',description:'The five-minute confirmation token from the approved preview.'}},additionalProperties:false}}],
   handlers:{curate_promote_tea:async(env,auth,args)=>{
     await requireCurateManager(env.DB,auth);
     if(!args?.confirm) return preview(env,auth,args);
