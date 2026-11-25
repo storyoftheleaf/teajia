@@ -100,6 +100,8 @@ describe('ordinary inventory discovery includes separate Curate holdings', () =>
     const initialized = await rpc(db, 'initialize');
     expect(initialized.result.serverInfo.version).toBe('0.9.0');
     expect(initialized.result.serverInfo.description).toContain('curate_correct');
+    expect(initialized.result.serverInfo.icons[0]).toEqual({ src: 'https://teajia.com/icon-512.png', mimeType: 'image/png', sizes: ['512x512'] });
+    expect(initialized.result.serverInfo.websiteUrl).toBe('https://teajia.com');
     expect(initialized.result.instructions).toContain('tools/list');
     expect(initialized.result.capabilities.tools.listChanged).toBe(false);
     const listed = await rpc(db, 'tools/list');
