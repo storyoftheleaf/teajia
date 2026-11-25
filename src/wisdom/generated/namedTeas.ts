@@ -290,7 +290,7 @@ export const NAMED_TEAS: NamedTea[] = [
     "form": "Cake",
     "region": "Yunnan",
     "country": "China",
-    "vendor": "Yunan Fam",
+    "vendor": "Lao Zhang",
     "provenance": "partial",
     "tradition": "Chinese proverbial tea-naming (an aging-potential aphorism used across pu-erh and white tea culture)",
     "description": "A phrase used across Chinese tea culture meaning the older, the more fragrant, applied here as the tea's name to signal it was made and stored with long aging in mind. The exact garden and vintage are unrecorded."
@@ -306,7 +306,7 @@ export const NAMED_TEAS: NamedTea[] = [
     "form": "Cake",
     "region": "Yunnan",
     "country": "China",
-    "vendor": "Yunan Fam",
+    "vendor": "Lao Zhang",
     "provenance": "partial",
     "tradition": "Chinese poetic tea-naming (named for the feeling of origin rather than a technical specification)",
     "description": "Named for the high-altitude, mist-shrouded forests it evokes rather than a specific garden. The write-up describes this as the Chinese tradition of naming a tea for the feeling of its origin; the exact garden and vintage are unrecorded."
