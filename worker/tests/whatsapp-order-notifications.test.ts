@@ -78,7 +78,7 @@ describe('customer WhatsApp order outbox', () => {
     const [url, init] = fetcher.mock.calls[0];
     expect(url).toBe('https://api.kapso.ai/meta/whatsapp/v24.0/123456789/messages');
     expect(init.headers).toEqual({ 'Content-Type': 'application/json', 'X-API-Key': 'kapso-test-secret' });
-    expect(init.redirect).toBe('error');
+    expect(init.redirect).toBe('manual');
     const payload = JSON.parse(init.body);
     expect(payload.to).toBe('628111234567');
     expect(payload.template.name).toBe('teajia_order_confirmation');

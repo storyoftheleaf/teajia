@@ -56,7 +56,7 @@ describe('shipping WhatsApp provider approval',()=>{
  ])('refuses incompatible approved template components %j',async components=>{const f=fixture();f.fetcher.mockResolvedValue(Response.json({data:[f.template({components})]}));expect(await f.approved()).toBe(false);});
  it('uses fixed Kapso metadata host, rejects redirects and never puts keys in URLs or persisted state',async()=>{
   const f=fixture();await f.refresh();const [url,options]=f.fetcher.mock.calls[0] as unknown as [string,RequestInit];
-  expect(new URL(url).origin).toBe('https://api.kapso.ai');expect(new URL(url).pathname).toBe('/meta/whatsapp/v24.0/1234567890/message_templates');expect(new URL(url).searchParams.get('name')).toBe('teajia_shipping_payment_v1');expect(options.redirect).toBe('error');expect((options.headers as any)['X-API-Key']).toBe('test-only-key');
+  expect(new URL(url).origin).toBe('https://api.kapso.ai');expect(new URL(url).pathname).toBe('/meta/whatsapp/v24.0/1234567890/message_templates');expect(new URL(url).searchParams.get('name')).toBe('teajia_shipping_payment_v1');expect(options.redirect).toBe('manual');expect((options.headers as any)['X-API-Key']).toBe('test-only-key');
   expect(url).not.toContain('test-only-key');expect(JSON.stringify(f.db.sqlite.prepare('SELECT * FROM shipping_whatsapp_approval').get())).not.toContain('test-only-key');
   f.fetcher.mockResolvedValue(new Response(null,{status:302,headers:{Location:'https://other.example'}}));expect((await f.refresh(true)).state).toBe('unavailable');
  });
