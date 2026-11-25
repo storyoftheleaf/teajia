@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import type { Product, ExchangeRate } from '../../types';
 import { getThemeColor } from '../../themeUtils';
+import { Button } from '../../../components/shared/Button';
 
 export interface QuickEditColumn {
   key: string;
@@ -29,13 +30,19 @@ export interface QuickEditFieldsProps {
   onStockMovement?: (product: Product, trigger: HTMLElement) => void;
   /** False when arrival summaries are unavailable or this tea is incoming-only. */
   canPublish?: boolean;
+  /** Opens the photo sheet for this tea. */
+  onPhoto?: (product: Product) => void;
+  /** Starts a personal tasting of this tea. */
+  onTaste?: (product: Product) => void;
+  /** The tea's one next step (Review listing, Develop tea), when it has one. */
+  nextStep?: { label: string; run: () => void } | null;
 }
 
 // A single editable value, sitting in its own column cell directly under the
 // matching table header. No label needed, the column header above IS the label.
 // Saves on blur only when the value changed, mirroring GhostInput.
 const CellInput = ({
-  value, onSave, ariaLabel, prefix, suffix, type = 'number', validate,
+  value, onSave, ariaLabel, prefix, suffix, type = 'number', validate, placeholder,
 }: {
   value: string | number;
   onSave: (val: string) => void;
@@ -44,6 +51,7 @@ const CellInput = ({
   suffix?: string;
   type?: 'text' | 'number';
   validate?: (value: string) => unknown;
+  placeholder?: string;
 }) => {
   const [local, setLocal] = useState<string>(value === '' || value == null ? '' : String(value));
   useEffect(() => { setLocal(value === '' || value == null ? '' : String(value)); }, [value]);
@@ -55,20 +63,21 @@ const CellInput = ({
         type={type}
         inputMode={type === 'number' ? 'decimal' : 'text'}
         aria-label={ariaLabel}
+        placeholder={placeholder}
         value={local}
         onChange={(e) => { e.currentTarget.setCustomValidity(''); setLocal(e.target.value); }}
         onBlur={(event) => { try { validate?.(local); commit(); } catch (error) { event.currentTarget.setCustomValidity(error instanceof Error ? error.message : 'Enter a valid value.'); event.currentTarget.reportValidity(); } }}
         onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
         autoComplete="off"
         spellCheck={false}
-        className="min-w-0 flex-1 bg-transparent border-0 outline-none text-ui-13 text-right num text-tea-text"
+        className={`min-w-0 flex-1 bg-transparent border-0 outline-none text-ui-13 ${type === 'text' ? 'text-left' : 'text-right num'} text-tea-text placeholder:text-tea-text-dim`}
       />
       {suffix && <span className="text-ui-12 text-tea-text-dim shrink-0">{suffix}</span>}
     </span>
   );
 };
 
-// The inline quick-edit form. Rendered under the long-pressed row as a nested
+// The inline quick-edit form. Rendered under the clicked row as a nested
 // table-fixed grid that mirrors the parent's column widths, so each editor lands
 // directly beneath its real column: Stock under Stock, Year under Year, Retail
 // under Retail. Columns with no quick-edit field stay empty; the in-shop chip and
@@ -76,6 +85,7 @@ const CellInput = ({
 // onUpdate (same path as the table's inline edits), so persistence is unchanged.
 export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
   product, cols, onUpdate, onTasting, onFullEdit, rates, onClose, onStockMovement, canPublish = true,
+  onPhoto, onTaste, nextStep,
 }) => {
   void rates; // accepted for forward-compatible pricing display; basic fields don't need it yet
   const retailValue = product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? '';
@@ -179,24 +189,32 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
                             <X size={16} strokeWidth={1.75} />
                           </button>
                         )}
+                        <span className="min-w-0 flex-1">
+                          <CellInput ariaLabel="Your name for this tea" placeholder="Your name" type="text" value={product.givenName ?? ''}
+                            onSave={(val) => onUpdate(product.id, 'givenName', val.trim())} />
+                        </span>
                         {inShop}
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        {onPhoto && <Button variant="plain" type="button" onClick={() => onPhoto(product)} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors">Photo</Button>}
+                        {onTaste && <Button variant="plain" type="button" onClick={() => onTaste(product)} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors">Taste</Button>}
                         <button
+                          type="button"
                           onClick={() => onTasting(product)}
                           className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
                         >
-                          Edit tasting profile
+                          Tasting profile
                         </button>
+                        {nextStep && <Button variant="plain" type="button" onClick={nextStep.run} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors">{nextStep.label}</Button>}
                         <button
+                          type="button"
                           onClick={() => onFullEdit(product)}
                           className="tap-target text-ui-13 text-tea-gold hover:text-tea-gold-lt transition-colors font-medium"
                         >
-                          Full edit
+                          Full page
                         </button>
                       </div>
                       <p className="flex flex-wrap gap-x-3 gap-y-1 text-ui-10 text-tea-text-dim">
-                        <span>Personal tasting: use Taste in the selection rail</span>
                         <span>Product profile: {hasProductTastingProfile ? 'added' : 'needed'}</span>
                         <span>Writing: {hasWriting ? 'added' : 'needed'}</span>
                         {hasIncoming && <span>Incoming stock</span>}

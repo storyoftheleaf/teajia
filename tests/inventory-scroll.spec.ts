@@ -124,11 +124,15 @@ test.describe('Inventory page — scroll regression guard', () => {
   test('lifecycle sections and personal tasting actions stay distinct', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === 'Mobile Chrome', 'Drives the laptop ledger; the phone Stock cards are covered in stock-reference.spec.ts');
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    // Stock opens by supplier since 2026-11-25; the stage groups are one click away.
+    await expect(page.locator('[data-stock-group="Chen Family"]')).toBeVisible();
+    await expect(page.locator('[data-testid^="inventory-stage-"]')).toHaveCount(0);
+    await page.locator('[data-testid^="stock-group-switch-"]:visible').getByRole('button', { name: 'Stage' }).click();
     await expect(page.getByTestId('inventory-stage-published')).toBeVisible();
 
     const firstTea = page.locator('tr[data-product-id="test-product-1"]');
-    await firstTea.focus();
-    await firstTea.press('Enter');
+    // A plain click opens the row editor since 2026-11-25; Cmd-click selects for the rail.
+    await firstTea.dispatchEvent('click', { metaKey: true });
     const rail = page.getByRole('toolbar', { name: 'Selection actions' });
     // The tasting pair sits under More since 2026-09-29; four actions show first.
     await rail.getByRole('button', { name: 'More actions' }).click();
@@ -143,8 +147,8 @@ test.describe('Inventory page — scroll regression guard', () => {
     await rail.getByRole('button', { name: 'Clear', exact: true }).click();
 
     const secondTea = page.locator('tr[data-product-id="test-product-2"]');
-    await secondTea.focus();
-    await secondTea.press('Enter');
+    // A plain click opens the row editor since 2026-11-25; Cmd-click selects for the rail.
+    await secondTea.dispatchEvent('click', { metaKey: true });
     await rail.getByRole('button', { name: 'More actions' }).click();
     await expect(rail.getByRole('button', { name: 'Continue tasting' })).toBeVisible();
     await expect(rail.getByRole('button', { name: 'View personal tasting' })).toBeVisible();
@@ -160,6 +164,7 @@ test.describe('Inventory page — scroll regression guard', () => {
       has_open_incoming: true,
     });
 
+    await page.locator('[data-testid^="stock-group-switch-"]:visible').getByRole('button', { name: 'Stage' }).click();
     const stages = page.locator('[data-testid^="inventory-stage-"]');
     await expect(stages).toHaveCount(5);
     expect(await stages.evaluateAll(elements => elements.map(element => element.getAttribute('data-testid')))).toEqual([
@@ -313,7 +318,7 @@ test.describe('Inventory page — scroll regression guard', () => {
       const options = page.getByRole('dialog', { name: 'View options' });
       await options.getByRole('button', { name: 'Cost', exact: true }).click();
       await expect(options.getByRole('button', { name: 'Cost', exact: true })).toHaveAttribute('aria-pressed', 'true');
-      await expect(options.getByRole('combobox', { name: 'Group by' }).locator('option:checked')).toHaveText('None');
+      await expect(options.getByRole('combobox', { name: 'Group by' }).locator('option:checked')).toHaveText('Supplier');
       const orderBy = options.getByRole('combobox', { name: 'Order by' });
       for (const choice of ['Type', 'Name', 'Stock', 'Price/g', 'Cost', 'Cost/g', 'Year', 'Origin', 'Source']) {
         await expect(orderBy.locator('option', { hasText: new RegExp(`^${choice.replace('/', '\\/')}$`) })).toHaveCount(1);
@@ -531,9 +536,8 @@ test.describe('Inventory page — scroll regression guard', () => {
     await page.waitForTimeout(1500);
 
     const primary = page.getByTestId('inventory-primary-row');
-    // Edit lives in the More menu since 2026-09-29; Done still lands after More.
-    await primary.getByRole('button', { name: 'Open inventory actions' }).click();
-    await page.getByRole('menu').getByRole('button', { name: 'Edit table' }).click();
+    // Edit is back in the top bar (2026-11-25); Done still lands after More.
+    await primary.getByTestId('inventory-edit').click();
 
     const done = page.getByTestId('inventory-done');
     const more = primary.getByRole('button', { name: 'Open inventory actions' });

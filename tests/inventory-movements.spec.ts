@@ -162,7 +162,8 @@ test('only the rendered product-name words open the editor', async ({ page }) =>
 
   await nameCell.click({ position: { x: cellBox!.width - 4, y: 8 } });
   await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toHaveCount(0);
-  await expect(row).toHaveAttribute('aria-selected', 'true');
+  // A plain click on the row opens its editor under it (2026-11-25); selecting is Cmd/Ctrl-click.
+  await expect(page.locator('[data-quick-edit]')).toBeVisible();
 
   await nameLink.click();
   await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
@@ -190,7 +191,7 @@ test('opening the product editor keeps the stock row typography and density unch
   await expect.poll(readMetrics).toEqual(before);
 });
 
-test('the usable stock button opens adjustment while cell padding selects the row', async ({ page }) => {
+test('the usable stock button opens adjustment while cell padding opens the row editor', async ({ page }) => {
   const row = page.locator('tr[data-product-id="tea-1"]');
   const stockLink = row.getByRole('button', { name: 'Change stock for Cloud Oolong' });
   const stockCell = stockLink.locator('xpath=..');
@@ -219,7 +220,8 @@ test('the usable stock button opens adjustment while cell padding selects the ro
 
   await stockCell.click({ position: { x: 4, y: cellBox!.height / 2 } });
   await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toHaveCount(0);
-  await expect(row).toHaveAttribute('aria-selected', 'true');
+  // A plain click on the row opens its editor under it (2026-11-25); selecting is Cmd/Ctrl-click.
+  await expect(page.locator('[data-quick-edit]')).toBeVisible();
 
   await stockLink.click();
   await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toBeVisible();
@@ -237,7 +239,8 @@ test('only the rendered supplier words open the supplier sheet, and its stock li
 
   await sourceCell.click({ position: { x: cellBox!.width - 4, y: cellBox!.height / 2 } });
   await expect(page.getByRole('dialog', { name: 'Source: Cloud Mountain' })).toHaveCount(0);
-  await expect(row).toHaveAttribute('aria-selected', 'true');
+  // A plain click on the row opens its editor under it (2026-11-25); selecting is Cmd/Ctrl-click.
+  await expect(page.locator('[data-quick-edit]')).toBeVisible();
 
   await sourceLink.click();
   await expect(page.getByTestId('supplier-sheet')).toBeVisible();
@@ -254,7 +257,7 @@ test('the tea name and selection-rail Edit both open the full product editor', a
   await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Close product panel' }).click();
-  await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
 });
@@ -442,7 +445,7 @@ test('quick edit opens Recount and full product edit opens movements without abs
 });
 
 test('invoice-driven sale remains available and Sale is not an ad-hoc movement action', async ({ page }) => {
-  await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Invoice' }).click();
   await expect(page.getByRole('heading', { name: 'New Invoice' })).toBeVisible();
   await expect(page.locator('input[value="Cloud"]')).toBeVisible();

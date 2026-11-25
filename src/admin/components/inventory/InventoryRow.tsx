@@ -48,6 +48,8 @@ export interface InventoryRowProps {
   shopFreightPerKgUsd: number | null;
   rowHeight: number;
   isPanelOpen: boolean;
+  /** What an unfinished tea still needs ("needs a cost"), shown beside its name. */
+  needLabel?: string;
   isDropdownOpen: boolean;
   onRowClick: (productId: string, globalIdx: number, e: React.MouseEvent) => void;
   onLongPressSelect: (productId: string, globalIdx: number) => void;
@@ -77,7 +79,7 @@ function InventoryRowBase(props: InventoryRowProps) {
   const stockPhone = useStockPhone();
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
-    splitView, stickyFirstCol, alignLeft, legacyMobileLayout, costRateToUsd, shopFreightPerKgUsd, rowHeight, isPanelOpen, isDropdownOpen,
+    splitView, stickyFirstCol, alignLeft, legacyMobileLayout, costRateToUsd, shopFreightPerKgUsd, rowHeight, isPanelOpen, isDropdownOpen, needLabel,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, onOpenSource, sampleOpen,
   } = props;
@@ -237,6 +239,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                   {draftNames?.primary ?? displayName}
                 </button>
               )}
+              {needLabel && <span data-testid="row-need" className="self-start mt-0.5 rounded-[3px] border border-tea-border px-1.5 text-ui-10 leading-[16px] text-tea-gold">{needLabel}</span>}
               <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-tight truncate block" style={{ letterSpacing: '0.02em' }}>
                 {subtitle}
               </span>
@@ -512,7 +515,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     >
       {/* Phone cards keep direct actions; spreadsheet rows use the shared rail. */}
       {stockPhone ? <td className="stock-mobile-cell" colSpan={(splitView ? splitViewCols : visibleCols).length}>
-        <StockMobileRecord lowStock={isLow} onDelete={() => onDeleteRequest(product)} onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode} draftIdentity={draftIdentity} canEditDraftName={canEditDraftName}
+        <StockMobileRecord onOpen={event => onRowClick(product.id, globalIdxRef.current, event)} lowStock={isLow} onDelete={() => onDeleteRequest(product)} onStockChange={trigger => onStockMovement(product, trigger)} product={product} name={displayName} index={globalIdx} editing={isEditMode} draftIdentity={draftIdentity} canEditDraftName={canEditDraftName}
           onEdit={() => onOpenPanel(product)}
           onSavePricing={changes => props.onSavePricing(product.id, changes)}
           onSaveChange={async (field, value) => { await (props.onSaveField ? props.onSaveField(product.id, field, value) : onProductUpdate(product.id, field, value)); }}
@@ -548,5 +551,6 @@ export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.shopFreightPerKgUsd === next.shopFreightPerKgUsd &&
   prev.rowHeight === next.rowHeight &&
   prev.isPanelOpen === next.isPanelOpen &&
-  prev.isDropdownOpen === next.isDropdownOpen
+  prev.isDropdownOpen === next.isDropdownOpen &&
+  prev.needLabel === next.needLabel
 );

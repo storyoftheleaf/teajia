@@ -150,7 +150,7 @@ test('purpose and action views remain separate and preserve legacy mappings', as
 
 test('readiness names omissions and publication remains an independent dual gate', async ({ page }) => {
   await selectView(page, 'Needs development');
-  await page.locator('tr[data-product-id="needs"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="needs"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(page.getByText('Details needed: description, retail price, classification, and stock amount')).toBeVisible();
 
@@ -165,7 +165,7 @@ test('readiness names omissions and publication remains an independent dual gate
 
 test('listing review quotes the buyer total including handling and groups it with available stock', async ({ page }) => {
   await selectView(page, 'Working');
-  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await page.getByRole('button', { name: 'Review listing', exact: true }).click();
   const review = page.getByRole('dialog', { name: 'Review listing' });
@@ -179,7 +179,7 @@ test('listing review quotes the buyer total including handling and groups it wit
 
 test('publishes the eligible part of a mixed Stock selection', async ({ page }) => {
   await selectView(page, 'Working');
-  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click', { metaKey: true });
   await page.locator('tr[data-product-id="needs"]').dispatchEvent('click', { ctrlKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Publish selection' }).click();
   await expect(page.getByText('Public listing enabled for 1. Failed 1. Complete before publishing: type, counted stock.')).toBeVisible();
@@ -188,7 +188,7 @@ test('publishes the eligible part of a mixed Stock selection', async ({ page }) 
 });
 
 test('purpose control replaces holding classification while sample-size offering stays separate', async ({ page }) => {
-  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(page.getByRole('group', { name: 'Inventory purpose' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Working purpose' })).toHaveAttribute('aria-pressed', 'true');
@@ -211,7 +211,7 @@ test('action views include tasting, reorder, and missing location', async ({ pag
 
 test('development handoff opens the exact linked Curate entry', async ({ page }) => {
   await selectView(page, 'Needs development');
-  await page.locator('tr[data-product-id="needs"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="needs"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await page.getByTestId('inventory-open-tea-record').click();
   await expect(page).toHaveURL(/\/admin\/compass\?tab=library&entry=entry-needs/);
@@ -220,7 +220,7 @@ test('development handoff opens the exact linked Curate entry', async ({ page })
 
 test('unlinked development waits for consent then creates exactly one linked draft', async ({ page }) => {
   await selectView(page, 'Needs development');
-  await page.locator('tr[data-product-id="unlinked-needs"]').dispatchEvent('click');
+  await page.locator('tr[data-product-id="unlinked-needs"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await page.getByRole('button', { name: 'Develop in Curate' }).click();
   await expect(page).toHaveURL(/developProduct=unlinked-needs/);

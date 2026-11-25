@@ -227,7 +227,8 @@ export function useInventoryProducts({
 
   const groupedProducts = useMemo(() => {
     if (filterType === 'Drafts') return null;
-    if (!inventoryGroupBy) {
+    if (inventoryGroupBy === 'none') return null;
+    if (!inventoryGroupBy || inventoryGroupBy === 'stage') {
       return groupInventoryByLifecycle(processedProducts, incomingByProductId)
         .map<InventoryProductGroup>(group => ({
           key: group.stage,
@@ -239,6 +240,7 @@ export function useInventoryProducts({
         }));
     }
     const groups: Record<string, InventoryProductGroup> = {};
+    const spellingByLower = new Map<string, string>();
     for (const p of processedProducts) {
       // Stock spine step 2: a null owner means the row is owned by the location
       // itself (house stock), not an individual seller, label it as such rather
@@ -246,15 +248,27 @@ export function useInventoryProducts({
       const key = inventoryGroupBy === 'type' ? inventoryTeaType(p.type) || 'Unknown' : inventoryGroupBy === 'ownerUserId'
         ? (p.ownerUserId ? `Seller · ${p.ownerUserId.slice(0, 8)}` : 'House stock')
         : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? '').trim() || 'Unknown';
-      if (!groups[key]) groups[key] = { key, label: key, items: [], totalStock: 0, totalRetail: 0, lifecycle: false };
-      groups[key].items.push(p);
+      // Suppliers typed with different capitals are one supplier (as on the
+      // 2026-10-08 phone list); the group keeps the first spelling it meets.
+      // The key stays that spelling too, so folds saved in the address still match.
+      const lower = key.toLowerCase();
+      const groupKey = inventoryGroupBy === 'vendor' ? (spellingByLower.get(lower) ?? key) : key;
+      if (inventoryGroupBy === 'vendor' && !spellingByLower.has(lower)) spellingByLower.set(lower, key);
+      if (!groups[groupKey]) groups[groupKey] = { key: groupKey, label: key, items: [], totalStock: 0, totalRetail: 0, lifecycle: false };
+      const group = groups[groupKey];
+      group.items.push(p);
       const quantity = p.type === 'Teaware' ? Number(p.quantityUnits) || 0 : Number(p.stockGrams) || 0;
-      groups[key].totalStock += quantity;
+      group.totalStock += quantity;
       const retail = retailValueFor(p);
-      groups[key].totalRetail = groups[key].totalRetail === null || retail === null ? null : groups[key].totalRetail + retail;
+      group.totalRetail = group.totalRetail === null || retail === null ? null : group.totalRetail + retail;
     }
     for (const g of Object.values(groups)) g.totalStock = Math.round(g.totalStock);
-    return Object.values(groups);
+    // Teas with no supplier collect at the bottom under a name that says so,
+    // so they never disappear from the supplier view.
+    if (inventoryGroupBy === 'vendor' && groups.Unknown) groups.Unknown.label = 'Unknown supplier';
+    const list = Object.values(groups);
+    if (inventoryGroupBy === 'vendor') list.sort((a, b) => a.label.localeCompare(b.label));
+    return list.sort((a, b) => Number(a.key === 'Unknown') - Number(b.key === 'Unknown'));
   }, [processedProducts, inventoryGroupBy, incomingByProductId, filterType]);
 
   const pendingCount = useMemo(

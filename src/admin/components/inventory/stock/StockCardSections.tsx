@@ -23,16 +23,18 @@ export function useStockLayout() {
   return [layout, chooseLayout] as const;
 }
 
-/** Keeps the card groups and their next-action routing together, inside the existing scroll container. */
-export function StockCardSections({ groups, category, incomingByProductId, onOpen, onListingReview }: {
-  groups: InventoryProductGroup[];
-  category: InventoryCategory;
-  incomingByProductId: Record<string, IncomingInventorySummary>;
-  onOpen: (product: Product) => void;
-  onListingReview: (id: string) => void;
-}) {
+/** The one next step a working tea has, or null when it has none worth a button. */
+export function stockNextStepLabel(product: Product, stage: InventoryStage): 'Review listing' | 'Develop tea' | null {
+  if (effectivePurpose(product) !== 'working') return null;
+  if (stage === 'published' || stage === 'ready_private') return 'Review listing';
+  if (stage === 'needs_preparation') return 'Develop tea';
+  return null;
+}
+
+/** Runs a tea's next step: the focused shop review, the linked Curate work, or the record. */
+export function useStockNextStep(onOpen: (product: Product) => void, onListingReview: (id: string) => void) {
   const navigate = useNavigate();
-  const openAction = (product: Product, stage: InventoryStage) => {
+  return useCallback((product: Product, stage: InventoryStage) => {
     if (effectivePurpose(product) !== 'working') { onOpen(product); return; }
     if (stage === 'published' || stage === 'ready_private') {
       onListingReview(product.id);
@@ -46,7 +48,18 @@ export function StockCardSections({ groups, category, incomingByProductId, onOpe
       return;
     }
     onOpen(product);
-  };
+  }, [navigate, onOpen, onListingReview]);
+}
+
+/** Keeps the card groups and their next-action routing together, inside the existing scroll container. */
+export function StockCardSections({ groups, category, incomingByProductId, onOpen, onListingReview }: {
+  groups: InventoryProductGroup[];
+  category: InventoryCategory;
+  incomingByProductId: Record<string, IncomingInventorySummary>;
+  onOpen: (product: Product) => void;
+  onListingReview: (id: string) => void;
+}) {
+  const openAction = useStockNextStep(onOpen, onListingReview);
   return (
     <div className="stock-card-sections" data-testid="stock-card-sections">
       {groups.filter(group => group.items.length > 0).map(group => (

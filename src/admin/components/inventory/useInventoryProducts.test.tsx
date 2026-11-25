@@ -57,7 +57,7 @@ describe('independent Stock filters', () => {
     const localProducts = [tea('blank', { vendor: '' }), tea('whitespace', { vendor: '   ' }), tea('missing')];
     const groups = read({ localProducts }).groupedProducts!;
     expect(groups).toHaveLength(1);
-    expect(groups[0].label).toBe('Unknown');
+    expect(groups[0].label).toBe('Unknown supplier');
     expect(groups[0].items).toHaveLength(3);
     expect(localProducts[1].vendor).toBe('   ');
   });
@@ -77,4 +77,24 @@ it('combines short and full Puer group names without losing teas or grams', () =
   for (const teaTypeFilter of ['Shou', 'Shou Puer']) {
     expect(read({ localProducts, teaTypeFilter }).processedProducts).toHaveLength(2);
   }
+});
+
+describe('Stock opens grouped by supplier (2026-11-25)', () => {
+  const localProducts = [
+    tea('none', { vendor: '' }),
+    tea('old-a', { vendor: 'Old Tree Co' }),
+    tea('chen-a', { vendor: 'Chen Family' }),
+    tea('chen-b', { vendor: 'chen family ' }),
+  ];
+
+  it('puts suppliers in name order, one group per supplier whatever the capitals, Unknown last', () => {
+    const groups = read({ localProducts }).groupedProducts!;
+    expect(groups.map(group => group.label)).toEqual(['Chen Family', 'Old Tree Co', 'Unknown supplier']);
+    expect(groups[0].items.map(product => product.id).sort()).toEqual(['chen-a', 'chen-b']);
+  });
+
+  it('keeps Stage and None as real choices', () => {
+    expect(read({ localProducts, inventoryGroupBy: 'stage' }).groupedProducts!.every(group => group.lifecycle)).toBe(true);
+    expect(read({ localProducts, inventoryGroupBy: 'none' }).groupedProducts).toBeNull();
+  });
 });

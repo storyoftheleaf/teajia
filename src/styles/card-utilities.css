@@ -5845,6 +5845,7 @@ body.cart-panel-open .commerce-dock {
 .stock-view .stock-group-name{flex:1}
 .stock-view .stock-group-label{flex:1;min-width:0;width:auto;margin:0;border:0;background:transparent;text-align:left;color:inherit;font:inherit;overflow-wrap:anywhere}
 .stock-view .stock-group-actions{display:flex;align-items:center;flex-shrink:0}
+.stock-group-flags{display:flex;flex-wrap:wrap;gap:4px 12px;font-size: var(--fs-ui-11);line-height:1.3;color:var(--tea-text-sec);font-variant-numeric:lining-nums tabular-nums}
 .stock-view .stock-group-actions button{color:var(--tea-text-dim);justify-content:center}
 .stock-view .stock-group-actions button:hover{color:var(--tea-gold)}
 @media(max-width:767px){
@@ -6153,6 +6154,14 @@ body.cart-panel-open .commerce-dock {
 .stock-browse-bar select optgroup { background-color: Canvas; color: CanvasText; }
 .stock-browse-bar select:focus-visible { outline:2px solid var(--tea-gold); outline-offset:-2px; }
 .stock-browse-teaware { grid-template-columns:repeat(2,minmax(0,1fr)); }
+/* Supplier · Type · Stage: three words, a fine gold underline under the chosen one. */
+.stock-group-switch { display:flex; align-items:center; gap:16px; grid-column:1 / -1; }
+.stock-group-switch>button { min-height:var(--tap-min); padding:0 1px; border-bottom:1px solid transparent; color:var(--tea-text-sec); font-size: var(--fs-ui-13); }
+.stock-group-switch>button:hover { color:var(--tea-text); }
+.stock-group-switch>button[aria-pressed="true"] { color:var(--tea-text); border-bottom-color:var(--tea-gold); }
+.stock-group-switch-bar { display:none; }
+.stock-group-switch-line { padding:0 12px; border-bottom:1px solid var(--tea-border); }
+@media(min-width:768px) { .stock-group-switch-bar { display:flex; margin-left:auto; } .stock-group-switch-line { display:none; } }
 /* Desktop: one slim row of inline "Label value" filters sized to their
    content, instead of four 225px columns with stacked labels (UI audit #5). */
 @media(min-width:768px) {

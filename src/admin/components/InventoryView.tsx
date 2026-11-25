@@ -5,6 +5,8 @@ import { renderedRowIds, shiftRangeIds } from './inventory/selectionRange';
 import { preparationHeadings, preparationHeadingText, summaryStatusOnRefetch } from './inventory/domain';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
 import { StockCardSections, useStockLayout, useStockGroupFolds } from './inventory/stock/StockCardSections';
+import { Button } from '../../components/shared/Button';
+import { AssignSupplierButton, StockGroupFlags, StockGroupSwitch, useStockRowEditing } from './inventory/stock/StockRowEditing';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
 import { UnknownSupplierSheet } from './inventory/stock/UnknownSupplierSheet';
 import { formPricingPreview } from './inventory/stock/formPricingModel';
@@ -534,23 +536,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Inline quick-edit, opened by a long-press on a row. Holds the id of the one
   // row that is currently expanded; the panel slides down directly under it.
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-
-  // Dismiss the quick-edit the moment you click/tap anywhere outside it. We
-  // ignore clicks inside the panel itself (data-quick-edit) and on the row that
-  // owns it (the long-press toggle handles its own row), so a normal click
-  // elsewhere closes it.
-  useEffect(() => {
-    if (!expandedRowId) return;
-    const handlePointerDown = (e: PointerEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target) return;
-      if (target.closest('[data-quick-edit]')) return;
-      if (target.closest(`tr[data-product-id="${expandedRowId}"]`)) return;
-      setExpandedRowId(null);
-    };
-    document.addEventListener('pointerdown', handlePointerDown, true);
-    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
-  }, [expandedRowId]);
   const [panelDirty, setPanelDirty] = useState(false);
   const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
@@ -1817,6 +1802,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   };
 
+  const rowEditing = useStockRowEditing({ groupBy: inventoryGroupBy, category: inventoryCategory, products: processedProducts, allProducts: localProducts,
+    incoming: effectiveIncomingByProductId, isMobile, setExpandedRowId, openRecord: stableOpenPanel, openSupplier: stableOpenSupplier,
+    openListingReview: setListingReviewProductId, startTasting: setPersonalTastingProduct, onUpdate: handleProductUpdate, onMovementRecorded: handleMovementRecorded });
+  const { openTea } = rowEditing;
   // Declared after toggleSelectId so useCallback deps resolve correctly.
   // The row body SELECTS, it never opens the edit panel (that door is the rail's
   // Edit button now). Plain click = single-select, replacing any prior selection;
@@ -1866,15 +1855,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       // rather than leaving the panel showing a tea that is no longer listed.
       setPanelProduct(null);
     }
-    const isOnlySelected = selectedIdsRef.current.size === 1 && selectedIdsRef.current.has(productId);
-    if (isOnlySelected) {
+    // A plain click changes the tea where it sits (Adrian, 2026-11-25): on the
+    // laptop its editor opens under the row, on a phone its panel rises over the
+    // list. Selecting for bulk work stays on Cmd/Ctrl-click, Shift-click and a
+    // long press, so a plain click clears any selection.
+    if (selectedIdsRef.current.size > 0) {
       setSelectedIds(new Set());
       lastSelectedIdxRef.current = null;
-    } else {
-      setSelectedIds(new Set([productId]));
-      lastSelectedIdxRef.current = globalIdx;
     }
-  }, [toggleSelectId, setPanelProduct]);
+    openTea(productId);
+  }, [toggleSelectId, setPanelProduct, openTea]);
 
   const stableLongPressSelect = useCallback((productId: string, globalIdx: number) => {
     toggleSelectId(productId, globalIdx, false);
@@ -2186,9 +2176,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const adjustMenu = <>
     <button type="button" onClick={() => setShowAdjust(true)} aria-haspopup="dialog" aria-expanded={showAdjust} className="tap-target inline-flex shrink-0 items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text" aria-label="View options"><SlidersHorizontal size={15} aria-hidden="true" />View options</button>
     <StockViewOptions open={showAdjust} onOpenChange={setShowAdjust}
-      groupValue={phoneList ? phoneGroupBy : inventoryGroupBy || ''}
+      groupValue={phoneList ? phoneGroupBy : inventoryGroupBy || 'vendor'}
       groupOptions={phoneList ? Object.entries(PHONE_GROUP_LABELS).map(([value, label]) => ({ value, label })) : GROUPBY_OPTIONS}
-      onGroupChange={value => phoneList ? setPhoneGroupBy(value as PhoneGroupBy) : setInventoryGroupBy(value || null)}
+      onGroupChange={value => phoneList ? setPhoneGroupBy(value as PhoneGroupBy) : setInventoryGroupBy(value || 'vendor')}
       sortValue={currentSort.key} sortDirection={currentSort.direction} sortOptions={SORT_OPTIONS}
       onSortChange={key => setInventorySortConfig([{ key: key as keyof Product, direction: currentSort.direction }])}
       onSortDirectionChange={direction => setInventorySortConfig([{ key: currentSort.key, direction }])}
@@ -2351,6 +2341,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     {/* Mobile keeps Add in the action sheet so this row retains
                         six non-overlapping 44px targets at 390px. */}
+                    {!isEditMode && <Button variant="plain" data-testid="inventory-edit" type="button" onClick={() => setIsEditMode(true)} aria-pressed={false} className="tap-target !hidden md:!inline-flex items-center gap-1 text-tea-gold hover:text-tea-gold-lt"><Pencil size={15} aria-hidden="true" /><span className="font-mono text-ui-11 uppercase tracking-[0.08em]">Edit</span></Button>}
                     <button type="button" onClick={onAddClick} aria-label="Add new tea" className="tap-target !hidden md:!inline-flex items-center gap-1 text-tea-gold hover:text-tea-gold-lt"><Plus size={18} /><span className="font-mono text-ui-11 uppercase tracking-[0.08em]">Add</span></button>
 
                     <button type="button" onClick={() => setShowAdjust(true)} aria-label="View options" title="Arrange Stock" aria-haspopup="dialog" aria-expanded={showAdjust} className="tap-target text-tea-text-sec hover:text-tea-text"><SlidersHorizontal size={18} aria-hidden="true" /></button>
@@ -2372,19 +2363,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const selectView = selectStockView;
               const current = allViews.find(view => view.id === selectedStockViewId);
               const viewLabel = stockViewLabel;
-              const groupLabel = phoneList ? PHONE_GROUP_LABELS[phoneGroupBy] : GROUPBY_OPTIONS.find(option => option.value === (inventoryGroupBy || ''))?.label;
+              const groupLabel = phoneList ? PHONE_GROUP_LABELS[phoneGroupBy] : GROUPBY_OPTIONS.find(option => option.value === (inventoryGroupBy || 'vendor'))?.label;
               const sortLabel = SORT_OPTIONS.find(([key]) => key === currentSort.key)?.[1] || 'Name';
               const headingStudy = import.meta.env.DEV ? Number(searchParams.get('headingStudy')) : 0;
               if (headingStudy >= 1 && headingStudy <= 5) return <><StockHeadingStudy
                 variant={headingStudy} views={allViews.map(view => ({ value: view.id, label: viewLabel(view) }))}
                 view={selectedStockViewId || ''} onView={id => { const view = allViews.find(v => v.id === id); if (view) selectView(view); }}
-                groups={GROUPBY_OPTIONS} group={inventoryGroupBy || ''} onGroup={value => setInventoryGroupBy(value || null)}
+                groups={GROUPBY_OPTIONS} group={inventoryGroupBy || 'vendor'} onGroup={value => setInventoryGroupBy(value || 'vendor')}
                 orders={SORT_OPTIONS} order={currentSort.key} direction={currentSort.direction}
                 onOrder={key => setInventorySortConfig([{ key: key as keyof Product, direction: currentSort.direction }])}
                 onDirection={() => setInventorySortConfig([{ key: currentSort.key, direction: currentSort.direction === 'asc' ? 'desc' : 'asc' }])}
                 onOptions={() => setShowAdjust(true)}
               /><div className="heading-study-options-host">{adjustMenu}</div></>;
-              return (
+              return (<>
                 <StockBrowseBar tea={inventoryCategory === 'tea'} type={teaTypeFilter}
                   types={[...new Set([...products.filter(product => product.type !== 'Teaware').map(product => product.type), ...(filterType === 'Samples' ? (curateSampleHoldings.data ?? []).map(holding => String(holding.entry.type ?? '')) : [])].filter(Boolean).map(inventoryTeaType))].sort((a, b) => a.localeCompare(b))}
                   onType={value => setSearchParams(params => withParam(params, 'teaType', value || null), { replace: true })}
@@ -2393,8 +2384,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   view={current?.id || allViews[0]?.id || ''} views={allViews.map(view => ({ value: view.id, label: viewLabel(view), filter: view.filterType }))}
                   onView={id => { const view = allViews.find(view => view.id === id); if (view) selectView(view); }}
                   tasting={tastingFilter} onTasting={value => setSearchParams(params => withParam(params, 'tasting', value || null), { replace: true })}>
+                  {!phoneList && <StockGroupSwitch placement="bar" value={inventoryGroupBy || 'vendor'} onChange={setInventoryGroupBy} />}
                   <div className="heading-study-options-host">{adjustMenu}</div>
                 </StockBrowseBar>
+                {!phoneList && <StockGroupSwitch placement="line" value={inventoryGroupBy || 'vendor'} onChange={setInventoryGroupBy} />}</>
               );
             })()}
           </div>
@@ -2420,11 +2413,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   {deleteStockViewAction}
                   <button type="button" onClick={openIncoming} className="px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg flex items-center gap-2"><Layers size={15} aria-hidden="true" />Incoming</button>
                   <button type="button" onClick={() => { setShowOptions(false); navigate('/account/journal'); }} className="px-3 py-2 text-left text-ui-12 text-tea-text-sec hover:bg-tea-bg flex items-center gap-2"><BookOpen size={15} aria-hidden="true" />Tasting library</button>
-                  {!isEditMode && (
-                    <button onClick={() => { setIsEditMode(true); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
-                      <Pencil size={13} /> Edit table
-                    </button>
-                  )}
                   <button onClick={() => { setGlossaryMode(!glossaryMode); setShowOptions(false); }} aria-pressed={glossaryMode} className={`px-3 py-2 text-left text-ui-11 hover:bg-tea-bg flex items-center gap-2 transition-colors ${glossaryMode ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>
                       <BookOpen size={13} /> Glossary view
                   </button>
@@ -2957,14 +2945,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 if (filterType === 'Samples' && items.length === 0) return null;
                 const isCollapsed = collapsedGroups.has(groupKey);
                 const needHeadings = lifecycle && groupKey === 'needs_preparation' && inventoryCategory === 'tea' ? preparationHeadings(items) : null;
+                const unassigned = inventoryGroupBy === 'vendor' && groupKey === 'Unknown';
                 return (
                   <div key={groupKey} data-stock-group={groupLabel} data-collapsed={isCollapsed} data-testid={lifecycle ? `inventory-stage-${groupKey}` : undefined}>
                     <div className="stock-group-head stock-group-menu-head">
                       <button type="button" className="stock-group-main-toggle" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${groupLabel}`} aria-expanded={!isCollapsed} onClick={() => toggleCollapsedGroup(groupKey)}>
                         <span className="stock-group-name">{groupLabel}</span>
+                        <StockGroupFlags items={items} />
                         <span className="stock-group-summary"><span>{items.length} {inventoryCategory === 'teaware' ? 'items' : items.length === 1 ? 'tea' : 'teas'}</span><span>{totalStock}{inventoryCategory === 'teaware' ? ' units' : 'g'}</span><span>{totalRetail === null ? '—' : `$${fmtNum(totalRetail)}`}</span></span>
                       </button>
                       <div className="stock-group-actions">
+                        {unassigned && <AssignSupplierButton onClick={() => setUnknownSupplierProducts(items)} />}
                         {inventoryGroupBy === 'vendor' ? <AnchoredMenu align="right" width={180} trigger={props => <button {...props} type="button" className="tap-target" aria-label={`Supplier actions for ${groupLabel}`}><ChevronDown size={16} aria-hidden="true"/></button>}>
                           {close => <button type="button" role="menuitem" className="stock-supplier-edit-option" onClick={() => { close(); const supplier = items.find(product => product.vendor?.trim()); if (supplier) { setSupplierSheetMode('rename'); setSupplierSheetProduct(supplier); } else setUnknownSupplierProducts(items); }}><Pencil size={15} aria-hidden="true"/>{items.some(product => product.vendor?.trim()) ? 'Edit supplier name' : 'Assign suppliers'}</button>}
                         </AnchoredMenu> : <button type="button" className="tap-target" aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} group ${groupLabel}`} onClick={() => toggleCollapsedGroup(groupKey)}>{isCollapsed ? <ChevronRight size={16}/> : <ChevronDown size={16}/>}</button>}
@@ -3002,6 +2993,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   legacyMobileLayout={false}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
+                                  needLabel={rowEditing.needLabelById.get(product.id)}
                                   isDropdownOpen={rowDropdownId === product.id}
                                   onRowClick={stableRowClick}
                                   onLongPressSelect={stableLongPressSelect}
@@ -3033,6 +3025,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     onClose={() => setExpandedRowId(null)}
                                     onStockMovement={stableStockRecount}
                                     canPublish={canPublishInventoryProduct(product)}
+                                    {...rowEditing.editorExtras(product)}
                                   />
                                 )}
                               </React.Fragment>
@@ -3101,6 +3094,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               legacyMobileLayout={false}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
+                              needLabel={rowEditing.needLabelById.get(product.id)}
                               isDropdownOpen={rowDropdownId === product.id}
                               onRowClick={stableRowClick}
                               onLongPressSelect={stableLongPressSelect}
@@ -3132,6 +3126,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 onClose={() => setExpandedRowId(null)}
                                 onStockMovement={stableStockRecount}
                                 canPublish={canPublishInventoryProduct(product)}
+                                {...rowEditing.editorExtras(product)}
                               />
                             )}
                           </React.Fragment>
@@ -3316,6 +3311,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         }) : undefined}
       />
 
+      {rowEditing.sheets}
       {unknownSupplierProducts && <UnknownSupplierSheet products={unknownSupplierProducts} onSave={(id, name) => handleProductUpdate(id, 'vendor', name, { throwOnError: true })} onClose={() => setUnknownSupplierProducts(null)} />}
 
       {supplierSheetProduct?.vendor && (
