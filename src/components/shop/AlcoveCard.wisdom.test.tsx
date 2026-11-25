@@ -78,7 +78,8 @@ describe('Wisdom in the shared product page', () => {
     client.setQueryData(['wisdom-public-state', 'named_tea', 'y562'], { is_public: true });
     const publicMarkup = renderPage(item, undefined, false, client);
     expect(publicMarkup).toContain('data-composed-entry="' + item.id + '"');
-    expect(publicMarkup).toContain('after its export carton. A tiger coming down a hillside appears on the Jixing mark. This lot is dated 1993.');
+    expect(publicMarkup).toContain('The Jixing mark on the front shows a tiger coming downhill.');
+    expect(publicMarkup).toContain('This box dates from 1993, twenty years after');
     expect(publicMarkup).toContain('/wisdom/named/y562');
   });
 
