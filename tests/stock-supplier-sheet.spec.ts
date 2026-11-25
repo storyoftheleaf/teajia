@@ -270,7 +270,7 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
     const { useAppStore } = await import('/src/lib/store.ts');
     useAppStore.getState().setInventoryGroupBy('vendor');
   });
-  await expect(page.locator('[data-stock-group="Unknown"]')).toBeVisible();
+  await expect(page.locator('[data-stock-group="Unknown supplier"]')).toBeVisible();
   const views = page.getByRole('combobox', { name: 'Show teas', exact: true });
   await expect(views.getByRole('option', { name: 'Drafts', exact: true })).toHaveCount(1);
   await expect(views.locator('option')).toHaveCount(19);
@@ -288,7 +288,7 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   await expect(page.locator('tr[data-product-id]')).toHaveCount(0);
   await page.reload();
   await expect(views).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-stock-group="Unknown"][data-collapsed="true"]')).toBeVisible();
+  await expect(page.locator('[data-stock-group="Unknown supplier"][data-collapsed="true"]')).toBeVisible();
   await page.getByRole('button', { name: 'Expand all', exact: true }).click();
   await expect(page.locator('tr[data-product-id]')).toHaveCount(3);
   for (const width of [320, 390, 1440]) {
@@ -303,7 +303,7 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   await page.getByRole('button', { name: 'View options', exact: true }).click();
   await expect(page.getByText('More filters', { exact: true })).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Supplier actions for Unknown', exact: true }).click();
+  await page.getByRole('button', { name: 'Supplier actions for Unknown supplier', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Assign suppliers', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'Unknown supplier', exact: true });
   const picker = sheet.getByRole('textbox', { name: 'Supplier for this tea' }).first();
@@ -313,7 +313,7 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   await expect.poll(() => writes.length).toBe(1);
   expect(writes[0]).toEqual({ id: shelf[0].id, vendor: 'Master Bo' });
   await page.keyboard.press('Escape');
-  await expect(page.locator('[data-stock-group="Unknown"] tr[data-product-id]')).toHaveCount(1);
+  await expect(page.locator('[data-stock-group="Unknown supplier"] tr[data-product-id]')).toHaveCount(1);
   await expect(page.locator('[data-stock-group="Master Bo"] tr[data-product-id]')).toHaveCount(2);
   await page.screenshot({ path: test.info().outputPath('stock-simplified-and-unknown.png') });
   await page.getByRole('button', { name: 'Open inventory actions', exact: true }).click();

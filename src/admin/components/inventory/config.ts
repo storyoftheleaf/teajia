@@ -89,10 +89,20 @@ export const TEAWARE_COLUMN_DEFS = [
   { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[8%]' },
 ] as const satisfies readonly ColDef[];
 
-export const GROUPBY_OPTIONS = [
-  { value: '', label: 'None' },
+/** The three groupings offered beside the filters, in this order. */
+export const STOCK_GROUP_SWITCH = [
+  { value: 'vendor', label: 'Supplier' },
   { value: 'type', label: 'Type' },
-  { value: 'vendor', label: 'Vendor' },
+  { value: 'stage', label: 'Stage' },
+] as const;
+
+/** 'stage' is the Published / Ready / Incoming / Needs preparation / Archived
+ *  groups; 'none' is one flat list. Stock opens on 'vendor'. */
+export const GROUPBY_OPTIONS = [
+  { value: 'vendor', label: 'Supplier' },
+  { value: 'type', label: 'Type' },
+  { value: 'stage', label: 'Stage' },
+  { value: 'none', label: 'None' },
   { value: 'status', label: 'Status' },
   { value: 'originCountry', label: 'Origin Country' },
   { value: 'ownerUserId', label: 'Owner' }, // stock spine step 2, group by whose stock it is

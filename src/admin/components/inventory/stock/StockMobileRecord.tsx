@@ -19,8 +19,8 @@ const phone=window.matchMedia('(max-width:767px)');
 const subscribe=(notify:()=>void)=>{phone.addEventListener('change',notify);return()=>phone.removeEventListener('change',notify)};
 export function useStockPhone(){return useSyncExternalStore(subscribe,()=>phone.matches)}
 type Panel='form'|'freight'|'photos'|'more'|MiniField|null;
-export function StockMobileRecord({product,name,lowStock,fields,editing,draftIdentity,canEditDraftName,index,onEdit,onUpdate,onSaveChange,onTaste,onJournal,onHistory,freightUsd,onSavePricing,onStockChange,onDelete}:{
- product:Product;name:string;lowStock:boolean;fields:StockField[];editing:boolean;index:number;onEdit:()=>void;onUpdate:(value:string)=>void;
+export function StockMobileRecord({product,name,onOpen,lowStock,fields,editing,draftIdentity,canEditDraftName,index,onEdit,onUpdate,onSaveChange,onTaste,onJournal,onHistory,freightUsd,onSavePricing,onStockChange,onDelete}:{
+ product:Product;name:string;onOpen?:(event:React.MouseEvent)=>void;lowStock:boolean;fields:StockField[];editing:boolean;index:number;onEdit:()=>void;onUpdate:(value:string)=>void;
  draftIdentity:boolean;canEditDraftName:boolean;
  onDelete:()=>void;onStockChange:(trigger:HTMLElement)=>void;onSavePricing:SaveFormPricing;onSaveChange:SaveField;onTaste:()=>void;onJournal:()=>void;onHistory:()=>void;freightUsd:number|null;
 }){
@@ -52,7 +52,7 @@ export function StockMobileRecord({product,name,lowStock,fields,editing,draftIde
  const metricLabel=(f:StockField)=>f.key==='stockGrams'?'Stock · g':f.key==='quantityUnits'?'Units':f.key==='pricePerGramUSD'?(product.type==='Teaware'?'Retail / unit':'Retail / g'):f.key==='costPerGramUSD'?'Cost / g':f.label;
  const reference=(value:React.ReactNode,label:string)=><><span className="stock-number">{value}</span><span className="stock-caption" aria-hidden="true">{label}</span></>;
 
- return <article onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} className="stock-record stock-mini-workspace" aria-label={cardTitle} data-card-study={studyVariant} data-card-polish={polishVariant} style={finish ? { '--stock-tea-hue': finish.tint, '--stock-tea-label': finish.text, '--stock-strip-l': finish.lightness } as React.CSSProperties : undefined}>
+ return <article onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation(); if(!(e.target as HTMLElement).closest('button,a,input,select,textarea,label')) onOpen?.(e)}} className="stock-record stock-mini-workspace" aria-label={cardTitle} data-card-study={studyVariant} data-card-polish={polishVariant} style={finish ? { '--stock-tea-hue': finish.tint, '--stock-tea-label': finish.text, '--stock-strip-l': finish.lightness } as React.CSSProperties : undefined}>
   <header className="stock-identity">
    <div className="stock-title-line">
     <div className="stock-title" id={`cell-${index}-0`}>

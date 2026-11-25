@@ -321,7 +321,7 @@ const scopedStateReset = () => ({
   inventoryColumns: [...DEFAULT_INVENTORY_COLUMNS],
   savedViews: [],
   activeViewId: null,
-  inventoryGroupBy: null,
+  inventoryGroupBy: 'vendor',
   inventorySortConfig: [...DEFAULT_INVENTORY_SORT_CONFIG],
   inventoryPriceMode: 'retail' as const,
   // NOTE: draftProductByAccountId is intentionally NOT reset here. Drafts are
@@ -641,7 +641,7 @@ const createdAppStore = create<AppState>()(
       inventoryColumns: [...DEFAULT_INVENTORY_COLUMNS],
       savedViews: [],
       activeViewId: null,
-      inventoryGroupBy: null,
+      inventoryGroupBy: 'vendor',
       inventorySortConfig: [...DEFAULT_INVENTORY_SORT_CONFIG],
       inventoryPriceMode: 'retail' as 'cost' | 'retail',
       inventoryMobileColWidths: {},
@@ -758,7 +758,11 @@ const createdAppStore = create<AppState>()(
       name: APP_STORAGE_KEY,
       merge: (persisted, current) => {
         const saved = persisted as Partial<AppState> | undefined;
-        return { ...current, ...saved, hasCurrencyPreference: !!saved?.currency };
+        // Stock opens grouped by supplier (Adrian, 2026-11-25). A saved null was
+        // the old implicit "stage groups" default, never a choice, so it moves to
+        // the new default; Stage and None are now explicit, remembered values.
+        const inventoryGroupBy = saved?.inventoryGroupBy == null ? current.inventoryGroupBy : saved.inventoryGroupBy;
+        return { ...current, ...saved, inventoryGroupBy, hasCurrencyPreference: !!saved?.currency };
       },
       partialize: (state) => ({
         cart: state.cart,
