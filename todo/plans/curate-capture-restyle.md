@@ -1,5 +1,7 @@
 # Curate capture screen restyle — bring the Source capture surface into the Teajia editorial language
 
+> **Marked 2026-11-25: superseded.** This restyled the first Curate capture screen and landed. Current Curate direction: [curate-next.md](curate-next.md) and [curate-one-home.md](curate-one-home.md).
+
 Status: plan approved-pending-Adrian-pushback. Structure of the screen is INTENTIONAL and locked (vendor → photo → identity → pricing → notes → marks → done). This plan changes skin only, never layout order, field set, or flow.
 
 Canonical reference: `docs/DESIGN_SYSTEM.md` (read §1, §2, §3, §6, §7, §12, §13, §22 before any stage). The screen today is fully tokened (the impeccable detector returns zero findings) but composed like a generic dark-mode SaaS form: bordered boxes nested four deep, no editorial typography, banned pill tabs, a neutral Done.

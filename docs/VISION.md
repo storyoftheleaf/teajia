@@ -1,5 +1,7 @@
 # Teajia — Vision & Strategy (April 2026)
 
+> **Marked 2026-11-25.** The philosophy here stands. The "what exists" lists are from April 2026 and are out of date: read [PILLAR.md](PILLAR.md) for the site today, [SECTIONS.md](SECTIONS.md) for the proposed sections, and [the tea houses plan](../todo/plans/tea-houses.md) for building tea houses as an offering.
+
 ## What Teajia Is
 
 Teajia is infrastructure for the global tea community. Not a franchise. Not a SaaS product. A living system that provides the tools, sourcing, education, and scaffolding that tea professionals and enthusiasts build their practice on.

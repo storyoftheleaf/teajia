@@ -1,16 +1,17 @@
-# Teajia Documentation — Index
+# Teajia documentation: index
 
 > Start here. This index routes to current truth; historical audits and session artifacts are not active work sources.
 
-**Last updated:** 2026-07-13
+**Last updated:** 2026-11-25
 
 ## Start here
 
 | Document | Authority |
 |---|---|
 | [PILLAR.md](PILLAR.md) | What the site is and how it works, in one read; the file every session is pointed at first |
-| [STATE_OF_THE_SITE.md](STATE_OF_THE_SITE.md) | Concise verified snapshot of what exists and what remains |
-| [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md) | Current product map and the three active engineering tracks |
+| [STATE_OF_THE_SITE.md](STATE_OF_THE_SITE.md) | Snapshot verified 2026-08-10 (marked stale 2026-11-25; PILLAR is current) |
+| [SECTIONS.md](SECTIONS.md) | **Proposed section overhaul (2026-11-25):** the four words, the Tea Table, Your Table, Tea Houses, the route map, the rule change and the build order. A proposal until Adrian says yes |
+| [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md) | The single directional list: every plan filed under its section, with status and next step, and what is still only on Adrian's Mac |
 | [VERIFIED_RELEASES.md](VERIFIED_RELEASES.md) | Worker-first background publishing and exact-revision live proof |
 | [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md) | **Only canonical checklist for Adrian, operator, editorial, deployed-environment, and other external validation** |
 | [CHANGELOG.md](CHANGELOG.md) | Dated implementation history |
@@ -18,7 +19,17 @@
 
 The launch-to-real-use implementation spec is
 [`superpowers/specs/2026-07-12-launch-to-real-use-program-design.md`](superpowers/specs/2026-07-12-launch-to-real-use-program-design.md).
-It records the locally verified Releases 1–3. It is an implementation record, not a second launch checklist.
+It records the locally verified Releases 1 to 3. It is an implementation record, not a second launch checklist.
+
+## Section plans (proposed 2026-11-25)
+
+| Plan | Section |
+|---|---|
+| [tea-table.md](../todo/plans/tea-table.md) | The Tea Table: what people put on the table, with Sessions and People |
+| [your-table.md](../todo/plans/your-table.md) | Your Table: the person's own table as a real page |
+| [tea-houses.md](../todo/plans/tea-houses.md) | Tea Houses: building them as an offering, the houses built, the houses to visit |
+
+Every other plan in `todo/plans/` and `docs/` is filed by section in [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md). Documents marked stale carry a banner under their title that says what to read instead.
 
 ## Active engineering tracks
 
@@ -34,8 +45,8 @@ Only three engineering queues remain active. Human, operator, editorial, and dep
 
 | Document | Use |
 |---|---|
-| [FLOWS.md](FLOWS.md) | End-to-end user journeys |
-| [SITE_MAP.md](SITE_MAP.md) | Route and action map |
+| [FLOWS.md](FLOWS.md) | End-to-end user journeys (marked stale 2026-11-25) |
+| [SITE_MAP.md](SITE_MAP.md) | Route and action map (marked partly stale 2026-11-25) |
 | [TEA_DISCOVERY.md](TEA_DISCOVERY.md) | Discovery-profile behavior and integration |
 | [COLOR_RULES.md](COLOR_RULES.md) | Mandatory color and styling rules |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | Canonical visual system |

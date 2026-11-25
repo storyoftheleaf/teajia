@@ -1,5 +1,7 @@
 # Tea Atlas — plan
 
+> **Marked 2026-11-25: the status line below is stale.** The Tea Atlas was built and is live as a private library. Read [docs/TEA_ATLAS.md](docs/TEA_ATLAS.md) for what exists and the Tea Atlas lines in [TODO.md](TODO.md) for what is left.
+
 Status: plan only. Nothing built. Waiting on Adrian's "go".
 
 **Mockup:** https://claude.ai/artifact/RuXYohDow1V2T9YVLJGyBj (six screens: library, topic page, reader, interview, post ideas, adding a book).

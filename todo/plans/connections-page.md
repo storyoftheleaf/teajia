@@ -1,5 +1,7 @@
 # Connections page
 
+> **Marked 2026-11-25: superseded if Adrian agrees to [docs/SECTIONS.md](../../docs/SECTIONS.md).** The overhaul does not build a separate Connections page. People go under the Tea Table ([tea-table.md](tea-table.md)) and places go under Tea Houses ([tea-houses.md](tea-houses.md)). The shop's private contacts stay in Manage. Two things below still matter: the rail foot now reads People and Places, not Connections, and the check of `/spaces` on the live site is carried into the tea houses plan.
+
 Captured 2026-09-06 at the end of the desktop sidebar redesign, so the idea does not get lost. Nothing here is built yet.
 
 ## What Adrian said it is

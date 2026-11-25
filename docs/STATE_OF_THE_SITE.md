@@ -1,5 +1,7 @@
 # State of the Site
 
+> **Marked 2026-11-25: stale.** Verified 2026-08-10, before the September to November work. For the site today read [PILLAR.md](PILLAR.md); for where every plan stands read [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md).
+
 > Concise current snapshot. Product direction lives in [Consolidated Direction](CONSOLIDATED_DIRECTION.md); all human and external launch checks live only in [Launch Validation](LAUNCH_VALIDATION.md).
 
 **Verified:** 2026-08-10 against the Tea Master operating-program branch and current repository.

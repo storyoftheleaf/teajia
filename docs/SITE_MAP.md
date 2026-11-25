@@ -1,5 +1,7 @@
 # Site Map: Routes & Actions by Tier
 
+> **Marked 2026-11-25: partly stale.** The Manage column (now seven rooms), the navigation description and several routes no longer match the code. For the site today read [PILLAR.md](PILLAR.md); for the proposed sections and route map read [SECTIONS.md](SECTIONS.md).
+
 > Every route, organized by tier visibility. For end-to-end flows see FLOWS.md; for current priorities see CONSOLIDATED_DIRECTION.md.
 
 **Last updated:** 2026-09-23 (route tables regenerated from `src/App.tsx` and `src/admin/AdminApp.tsx`)

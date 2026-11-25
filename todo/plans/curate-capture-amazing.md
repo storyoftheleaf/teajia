@@ -1,5 +1,7 @@
 # Curate capture: good to amazing — 10 brand-authentic richness moves
 
+> **Marked 2026-11-25: superseded.** Written for the first Curate capture screen. Current Curate direction: [curate-next.md](curate-next.md) and [curate-one-home.md](curate-one-home.md).
+
 The restyle (PR #202) took the screen from generic to correct: right tokens, right tabs, right Done, two surface depths. This plan takes it from correct to amazing. Every move below uses a primitive that ALREADY EXISTS in the Teajia codebase (the alcove texture system, the magazine editorial set, the card-utilities warm primitives). Nothing generic is invented; the richness is borrowed from the brand's own best surfaces.
 
 Branch: feat/curate-capture-restyle (continue on it). Files: src/components/TeaCompass/{index.tsx, CaptureCard.tsx, PricingRow.tsx, VendorStrip.tsx, PhotoCapture.tsx}. Verify each: npm run lint, npm run lint:colors. The standing rule (no decorative-only elements) still holds: every flourish must earn its place, none can be a ghost indicator.

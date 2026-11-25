@@ -1,6 +1,6 @@
 # Multi-Store Architecture — Teajia
 
-*Phase 1A shipped. Read `VISION.md`, `CONSOLIDATED_DIRECTION.md`, and `tracks/02-first-operator-and-users.md` first — this document is an implementation reference, not an active roadmap.*
+*Phase 1A shipped. Read `VISION.md` and `CONSOLIDATED_DIRECTION.md` first (the track file once named here no longer exists; marked 2026-11-25). An account is a tea house: for building tea houses as an offering and how a finished house joins the network, read [the tea houses plan](../todo/plans/tea-houses.md). This document is an implementation reference, not an active roadmap.*
 
 ---
 
