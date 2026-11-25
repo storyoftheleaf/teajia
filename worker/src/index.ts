@@ -198,7 +198,7 @@ import {
   INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
   INQUIRY_MAX_REFERRAL, INQUIRY_MAX_REQUEST_BYTES, INQUIRY_MAX_VISION, inquiryFieldTooLong,
   inquiryRequestFingerprint, isValidTrackingToken, NEWSLETTER_MAX_EMAIL, NEWSLETTER_MAX_REQUEST_BYTES,
-  normalizeCartInquiry, redactPublicInquiry, sha256Hex,
+  normalizeCartInquiry, redactPublicInquiry, sha256Hex, withoutPausedLines,
 } from './inquiryDomain';
 import { hasTeaAtlasTick, serveAtlas, withTeaAtlasTick } from './atlas';
 import { serveAtlasAdmin } from './atlasAdmin';
@@ -14977,6 +14977,15 @@ const PUBLIC_REQUEST_PRODUCT = `p.is_public = 1 AND p.shown_in_shop = 1 AND p.st
   AND NOT ${INWARD_ORDERS_PAUSED_SQL}
   AND (p.personal_offer_source_id IS NULL OR (p.personal_offer_withdrawn_at IS NULL AND p.stock_grams > 0))`;
 
+async function pausedInwardProductIds(env: Env, accountId: string, productIds: string[]): Promise<Set<string>> {
+  if (productIds.length === 0) return new Set();
+  const { results } = await env.DB.prepare(
+    `SELECT p.id FROM products p WHERE p.account_id = ? AND ${INWARD_ORDERS_PAUSED_SQL}
+       AND p.id IN (${productIds.map(() => '?').join(',')})`
+  ).bind(accountId, ...productIds).all<{ id: string }>();
+  return new Set(results.map(row => row.id));
+}
+
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>, sellerUserId: string | null) {
   const productIds = catalogProductIds(items);
   const [productRows, rateRows] = await Promise.all([
@@ -15212,6 +15221,17 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       }, 200);
     }
 
+    // A tea whose ordering is paused is left out of the basket and named in the
+    // answer; the rest of the order goes through. The saved fingerprint stays
+    // that of the request as sent, so a retry is still recognised.
+    const pausedLines = withoutPausedLines(normalized.value,
+      await pausedInwardProductIds(env, accountId, catalogProductIds(normalized.value.items)));
+    normalized.value = pausedLines.value;
+    const skippedPaused = pausedLines.dropped.length ? { skipped_paused_product_ids: pausedLines.dropped } : {};
+    if (pausedLines.dropped.length && normalized.value.items.length === 0) {
+      return json({ error: 'Store or items not found' }, source === 'website' ? 400 : 404);
+    }
+
     if (source === 'website') {
       if (personalSeller) {
         if (normalized.value.items.some(item => (item as Record<string, unknown>).custom === true)) {
@@ -15383,7 +15403,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         }).catch(() => false);
       return json({ ...await savedInvoiceContents(env,accountId,invoiceId),email_sent: emailSent, id: requestId,
         ref_number: normalized.value.refNumber, tracking_token: normalized.value.trackingToken,
-        invoice_id: invoiceId, invoice_number: invoiceNumber, source, success: true }, 201);
+        invoice_id: invoiceId, invoice_number: invoiceNumber, source, success: true, ...skippedPaused }, 201);
     }
 
     // Only catalogue lines are checked against the catalogue. A custom line
@@ -15436,6 +15456,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         tracking_token: normalized.value.trackingToken,
         source,
         success: true,
+        ...skippedPaused,
       }, 201);
     } catch (error) {
       const raced = await env.DB.prepare(

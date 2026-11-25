@@ -283,3 +283,31 @@ export function redactPublicInquiry(row: Record<string, unknown>) {
     created_at: row.created_at,
   };
 }
+
+/**
+ * A basket that holds a tea whose ordering is paused keeps the rest. The
+ * paused lines are dropped and named, never allowed to fail the whole order.
+ * When nothing is left the caller answers as for an unknown tea.
+ */
+export function withoutPausedLines(
+  value: NormalizedCartInquiry,
+  pausedIds: ReadonlySet<string>,
+): { value: NormalizedCartInquiry; dropped: string[] } {
+  if (pausedIds.size === 0) return { value, dropped: [] };
+  const idOf = (item: unknown) => (item as Record<string, unknown>)?.id;
+  const isPaused = (item: unknown) => typeof idOf(item) === 'string' && pausedIds.has(idOf(item) as string);
+  const kept = value.items.filter(item => !isPaused(item));
+  const dropped = [...new Set(value.items.filter(isPaused).map(item => idOf(item) as string))];
+  if (dropped.length === 0) return { value, dropped };
+  const droppedTotal = value.items.filter(isPaused)
+    .reduce((sum, item) => sum + Number((item as Record<string, unknown>).totalPrice || 0), 0);
+  return {
+    value: {
+      ...value,
+      items: kept,
+      itemsJson: stableJson(kept),
+      totalUsd: Math.max(0, Math.round((value.totalUsd - droppedTotal) * 100) / 100),
+    },
+    dropped,
+  };
+}
