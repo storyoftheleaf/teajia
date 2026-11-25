@@ -5,6 +5,349 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "greater-yiwu:history",
+    "pageId": "greater-yiwu",
+    "sectionKey": "history",
+    "label": "Trade history",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-A856667D478345A121C24FD6"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:scope",
+    "pageId": "greater-yiwu",
+    "sectionKey": "scope",
+    "label": "A name at several scales",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-B4A02CADDFD91399DD30150A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:ageing",
+    "pageId": "lapsang",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Lapsang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:brewing",
+    "pageId": "lapsang",
+    "sectionKey": "brewing",
+    "label": "Brewing Lapsang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:common-impressions",
+    "pageId": "lapsang",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:definition",
+    "pageId": "lapsang",
+    "sectionKey": "definition",
+    "label": "What Lapsang Souchong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "正山小种",
+        "pinyin": "zhèngshān xiǎozhǒng",
+        "gloss": "true mountain small kind"
+      },
+      {
+        "original": "桐木",
+        "pinyin": "tóngmù",
+        "gloss": "Tongmu"
+      },
+      {
+        "original": "外山",
+        "pinyin": "wàishān",
+        "gloss": "outer mountain"
+      }
+    ],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:history",
+    "pageId": "lapsang",
+    "sectionKey": "history",
+    "label": "How Lapsang began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "金骏眉",
+        "pinyin": "jīn jùn méi",
+        "gloss": "Jin Jun Mei"
+      }
+    ],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "Zhengshan Xiaozhong is called the oldest red tea, the ancestor of red tea, born in Tongmu; the dates given for it differ. The usual story is of soldiers camped among the picked leaf in the harvest season: the leaf spoiled, the villagers dried it over pine fire, and the smoky tea was sold to Dutch buyers. The story is told, not recorded. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. In 2005 Tongmu makers devised Jin Jun Mei, a red tea of buds alone made the Lapsang way but not smoked, and it changed the village’s trade.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "Zhengshan Xiaozhong is called the oldest red tea, the ancestor of red tea, born in Tongmu; the dates given for it differ. The usual story is of soldiers camped among the picked leaf in the harvest season: the leaf spoiled, the villagers dried it over pine fire, and the smoky tea was sold to Dutch buyers. The story is told, not recorded. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. In 2005 Tongmu makers devised Jin Jun Mei, a red tea of buds alone made the Lapsang way but not smoked, and it changed the village’s trade.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:making",
+    "pageId": "lapsang",
+    "sectionKey": "making",
+    "label": "How Lapsang is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "过红锅",
+        "pinyin": "guò hóngguō",
+        "gloss": "through the hot pan"
+      }
+    ],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "The leaf is withered, rolled and left to oxidise in covered baskets or cloth bags for some hours, until it turns reddish-brown to copper. It then goes into a hot pan, guo hong guo, which stops the oxidation fast, lifts the aroma and gives a sweeter, rounder cup, and is rolled again while hot, which shapes the strip and helps it take up smoke. In the traditional way the leaf is withered with pine heat in the qinglou and dried over the pine fire for most of a day.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "The leaf is withered, rolled and left to oxidise in covered baskets or cloth bags for some hours, until it turns reddish-brown to copper. It then goes into a hot pan, guo hong guo, which stops the oxidation fast, lifts the aroma and gives a sweeter, rounder cup, and is rolled again while hot, which shapes the strip and helps it take up smoke. In the traditional way the leaf is withered with pine heat in the qinglou and dried over the pine fire for most of a day.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:notice-aged",
+    "pageId": "lapsang",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in Lapsang kept for years",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "The smoke softer and further back, with dried fruit coming forward.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "The smoke softer and further back, with dried fruit coming forward.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "lapsang:smoke",
     "pageId": "lapsang",
     "sectionKey": "smoke",
@@ -603,376 +946,5 @@ export const PART: readonly DraftClaim[] = [
       }
     ],
     "pageVisibility": "public"
-  },
-  {
-    "claimId": "mahei-gushu-red:tea-name",
-    "pageId": "mahei-gushu-red",
-    "sectionKey": "tea-name",
-    "label": "Reading the tea’s name",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "mahei-gushu-red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The recorded name and its meaning. It supplies no tree measurement.",
-    "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
-    "sourceIds": [
-      "teajia-mahei-red"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The recorded name and its meaning. It supplies no tree measurement.",
-        "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-D2D75741CFD44DE469A12F65"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "mahei:village-road-and-harvest",
-    "pageId": "mahei",
-    "sectionKey": "village-road-and-harvest",
-    "label": "The road through Mahei",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "mahei",
-        "yiwu"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The documented Mahei road and one grower’s 2024 field account.",
-    "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
-    "sourceIds": [
-      "ma-zhefeng-mahei-road",
-      "mengla-mahei-spring"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The documented Mahei road and one grower’s 2024 field account.",
-        "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-44151BAAF5BCA58F985D91EE",
-          "EVIDENCE-80742578E49E9441F6CC59CF",
-          "EVIDENCE-7D86F61C923CB5E76CC2CCD4"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:returned",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "returned",
-    "label": "Why the tea is called “returned”",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Meaning of the trade name.",
-    "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
-    "sourceIds": [
-      "cns-malaysia-liubao-trade",
-      "teajia-malaysian-returned"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Meaning of the trade name.",
-        "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-25C675AC1B3373D804FFE518",
-          "EVIDENCE-3D052B7C680B4561B8BEB047"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:river-trade",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "river-trade",
-    "label": "The river route to Malaya",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The commercial route in the 1951 trade account.",
-    "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
-    "sourceIds": [
-      "guangxi-archives-liubao"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The commercial route in the 1951 trade account.",
-        "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-94FBED6771030379C4352AC1",
-          "EVIDENCE-374E11CAC771CEE17ACA52B9"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:tea-came-back",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "tea-came-back",
-    "label": "How older tea found its way back",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
-    "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
-    "sourceIds": [
-      "cns-malaysia-liubao-trade"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
-        "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-A3F7299E9399CE865CCF9A5D",
-          "EVIDENCE-3D052B7C680B4561B8BEB047"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:common-character",
-    "pageId": "menghai-county",
-    "sectionKey": "common-character",
-    "label": "A forceful reputation",
-    "axis": "sensory_observation",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "attribution": {
-      "sourceId": "teadb-menghai-county",
-      "sourceRole": "specialist_editorial",
-      "sample": "Regional convention reported in specialist writing about Menghai County"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Menghai County",
-        "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-5F496A300F5E710FC8FA80B0"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:history",
-    "pageId": "menghai-county",
-    "sectionKey": "history",
-    "label": "Factory-era importance",
-    "axis": "maker_history",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Menghai County",
-        "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-FEBD2174326734F21F2CFF3B"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:mengsong-naka",
-    "pageId": "menghai-county",
-    "sectionKey": "mengsong-naka",
-    "label": "Mengsong and Naka",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "mengsong"
-      ],
-      "name_includes": [
-        "naka"
-      ]
-    },
-    "terms": [
-      {
-        "original": "勐宋",
-        "pinyin": "Měngsòng",
-        "gloss": "Mengsong township"
-      },
-      {
-        "original": "那卡",
-        "pinyin": "Nàkǎ",
-        "gloss": "Naka village"
-      }
-    ],
-    "rev": 1,
-    "scope": "Naka village in Mengsong, Menghai County",
-    "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Naka village in Mengsong, Menghai County",
-        "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the listing wording and requested that the verified place lead.",
-        "evidenceIds": [
-          "EVIDENCE-44D0521EB5689FC6FA0D2B95"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:ripe-origins",
-    "pageId": "menghai-county",
-    "sectionKey": "ripe-origins",
-    "label": "Where ripe pu’er began",
-    "axis": "maker_history",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:scope",
-    "pageId": "menghai-county",
-    "sectionKey": "scope",
-    "label": "Western Xishuangbanna",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Menghai County",
-        "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-5F496A300F5E710FC8FA80B0"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-tea-mountain-circuit:editorial-boundary",
-    "pageId": "menghai-tea-mountain-circuit",
-    "sectionKey": "editorial-boundary",
-    "label": "An itinerary, not an origin",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
-    "sourceIds": [
-      "ctma-menghai-seven-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
   }
 ];

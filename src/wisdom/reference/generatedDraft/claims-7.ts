@@ -5,6 +5,347 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "tieguanyin:making",
+    "pageId": "tieguanyin",
+    "sectionKey": "making",
+    "label": "How Tieguanyin is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "绿叶红镶边",
+        "pinyin": "lǜyè hóng xiāngbiān",
+        "gloss": "green leaf, red rim"
+      },
+      {
+        "original": "包揉",
+        "pinyin": "bāo róu",
+        "gloss": "cloth-wrap rolling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "The leaf is picked when the shoot has opened, withered in the late-afternoon sun, cooled, then shaken and rested in rounds. Shaking bruises the leaf edges so they turn red while the middle stays green, the green leaf with a red rim. The leaf is fixed in a hot pan or drum and rolled. To make the balls, it is wrapped in cloth, rolled and pressed, dried a little, and wrapped again, several times over, each round tightening it. It is finished with a slow drying at low heat.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "The leaf is picked when the shoot has opened, withered in the late-afternoon sun, cooled, then shaken and rested in rounds. Shaking bruises the leaf edges so they turn red while the middle stays green, the green leaf with a red rim. The leaf is fixed in a hot pan or drum and rolled. To make the balls, it is wrapped in cloth, rolled and pressed, dried a little, and wrapped again, several times over, each round tightening it. It is finished with a slow drying at low heat.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "tieguanyin:notice-aged",
+    "pageId": "tieguanyin",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Tieguanyin",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "A smoother, rounder, softer cup with the fire gone, a liquor turned orange-red or reddish-brown, and often a soft fruity sourness.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "A smoother, rounder, softer cup with the fire gone, a liquor turned orange-red or reddish-brown, and often a soft fruity sourness.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "tieguanyin:osmanthus",
+    "pageId": "tieguanyin",
+    "sectionKey": "osmanthus",
+    "label": "Osmanthus Tieguanyin",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ],
+      "name_includes": [
+        "osmanthus"
+      ]
+    },
+    "terms": [
+      {
+        "original": "桂花铁观音",
+        "pinyin": "guìhuā tiěguānyīn",
+        "gloss": "osmanthus Tieguanyin"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Osmanthus Tieguanyin is a scented tea. Fresh osmanthus flowers are layered with the finished tea, which takes up their scent, and the tea is then dried again.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "Osmanthus Tieguanyin is a scented tea. Fresh osmanthus flowers are layered with the finished tea, which takes up their scent, and the tea is then dried again.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "tieguanyin:styles",
+    "pageId": "tieguanyin",
+    "sectionKey": "styles",
+    "label": "Light, roasted and aged",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "清香",
+        "pinyin": "qīngxiāng",
+        "gloss": "light fragrance"
+      },
+      {
+        "original": "浓香",
+        "pinyin": "nóngxiāng",
+        "gloss": "strong fragrance"
+      },
+      {
+        "original": "陈香",
+        "pinyin": "chénxiāng",
+        "gloss": "aged fragrance"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Anxi Tieguanyin is sorted by style. The light-fragrance kind, qingxiang, is lightly oxidised and lightly roasted or not roasted at all, with a fresh orchid fragrance and a green-gold liquor. The strong-fragrance kind, nongxiang, is more oxidised and roasted, with a darker leaf, a gold to amber liquor and toasted, caramel and fruit notes. A third kind, chenxiang or old Tie, is Tieguanyin kept for years. The roasted style is the older one; the light green style is newer and took over in Anxi from the 1990s, and the roasted style is said to be slowly coming back.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "Anxi Tieguanyin is sorted by style. The light-fragrance kind, qingxiang, is lightly oxidised and lightly roasted or not roasted at all, with a fresh orchid fragrance and a green-gold liquor. The strong-fragrance kind, nongxiang, is more oxidised and roasted, with a darker leaf, a gold to amber liquor and toasted, caramel and fruit notes. A third kind, chenxiang or old Tie, is Tieguanyin kept for years. The roasted style is the older one; the light green style is newer and took over in Anxi from the 1990s, and the roasted style is said to be slowly coming back.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:ageing",
+    "pageId": "white",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing white tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [
+      {
+        "original": "老白茶",
+        "pinyin": "lǎo bái chá",
+        "gloss": "old white tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:brewing",
+    "pageId": "white",
+    "sectionKey": "brewing",
+    "label": "Brewing white tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "The more delicate the leaf, the cooler the water. Silver Needle and young White Peony take water well below the boil, roughly 75 to 95°C; Shou Mei and aged white tea take water near or at the boil. In a gaiwan or small pot, about 3 to 7 grams to 100 to 150 ml, with short steeps that lengthen each round. White tea is light and bulky, so weigh it rather than measure by the spoon.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "The more delicate the leaf, the cooler the water. Silver Needle and young White Peony take water well below the boil, roughly 75 to 95°C; Shou Mei and aged white tea take water near or at the boil. In a gaiwan or small pot, about 3 to 7 grams to 100 to 150 ml, with short steeps that lengthen each round. White tea is light and bulky, so weigh it rather than measure by the spoon.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:common-impressions",
+    "pageId": "white",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "In young white tea: a sweet, light cup, often floral, with hay and a honeyed finish. Silver Needle is the softest, with hay and gentle flowers; White Peony is fuller; Gong Mei and Shou Mei are stronger and rounder, with dried fruit and herbs.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "In young white tea: a sweet, light cup, often floral, with hay and a honeyed finish. Silver Needle is the softest, with hay and gentle flowers; White Peony is fuller; Gong Mei and Shou Mei are stronger and rounder, with dried fruit and herbs.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:definition",
+    "pageId": "white",
+    "sectionKey": "definition",
+    "label": "What white tea is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [
+      {
+        "original": "白茶",
+        "pinyin": "bái chá",
+        "gloss": "white tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "White tea is the tea made with the fewest steps: the leaf is only withered and dried. It is never heated to stop its change, never rolled and never bruised, so the leaf keeps its natural shape and the white down on its buds stays, which gives the tea its name. It oxidises only lightly and slowly as it withers, by the leaf’s own enzymes; the Chinese trade calls it slightly fermented. White tea is made mainly in Fujian, and other regions, Yunnan among them, now make it too.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "White tea is the tea made with the fewest steps: the leaf is only withered and dried. It is never heated to stop its change, never rolled and never bruised, so the leaf keeps its natural shape and the white down on its buds stays, which gives the tea its name. It oxidises only lightly and slowly as it withers, by the leaf’s own enzymes; the Chinese trade calls it slightly fermented. White tea is made mainly in Fujian, and other regions, Yunnan among them, now make it too.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:fuding-and-zhenghe",
+    "pageId": "white",
+    "sectionKey": "fuding-and-zhenghe",
+    "label": "Fuding and Zhenghe",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [
+      {
+        "original": "福鼎大白",
+        "pinyin": "fúdǐng dàbái",
+        "gloss": "Fuding Da Bai"
+      },
+      {
+        "original": "政和大白",
+        "pinyin": "zhènghé dàbái",
+        "gloss": "Zhenghe Da Bai"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "The two main homes of white tea are Fuding and Zhenghe, both in Fujian, and each grows its own cultivar: Fuding Da Bai, with large, plump, downy buds, and Zhenghe Da Bai, a taller bush with smaller buds. Fuding is the home of Silver Needle and of the best-known white tea; Zhenghe, further inland, is described as making a fuller tea. Jianyang is a white tea county too, known mostly for Gong Mei and Shou Mei.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "The two main homes of white tea are Fuding and Zhenghe, both in Fujian, and each grows its own cultivar: Fuding Da Bai, with large, plump, downy buds, and Zhenghe Da Bai, a taller bush with smaller buds. Fuding is the home of Silver Needle and of the best-known white tea; Zhenghe, further inland, is described as making a fuller tea. Jianyang is a white tea county too, known mostly for Gong Mei and Shou Mei.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "white:grades",
     "pageId": "white",
     "sectionKey": "grades",
@@ -622,356 +963,5 @@ export const PART: readonly DraftClaim[] = [
       }
     ],
     "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:history",
-    "pageId": "yancha",
-    "sectionKey": "history",
-    "label": "How Wuyi rock tea began",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Northern Fujian made tribute tea for the court in the Song dynasty. Early in the Ming dynasty the emperor ended the tribute of pressed tea cakes in favour of loose leaf, and tea making in the region turned to loose leaf. Oolong, partly oxidised tea, took shape in the Wuyi area between the sixteenth and seventeenth centuries, around the end of the Ming and the start of the Qing.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Northern Fujian made tribute tea for the court in the Song dynasty. Early in the Ming dynasty the emperor ended the tribute of pressed tea cakes in favour of loose leaf, and tea making in the region turned to loose leaf. Oolong, partly oxidised tea, took shape in the Wuyi area between the sixteenth and seventeenth centuries, around the end of the Ming and the start of the Qing.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:making",
-    "pageId": "yancha",
-    "sectionKey": "making",
-    "label": "How Wuyi rock tea is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "炭焙",
-        "pinyin": "tàn bèi",
-        "gloss": "charcoal roasting"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Wuyi tea follows the oolong steps: it is withered in the sun and then cooled indoors, shaken and rested, fixed in a hot pan or drum, rolled into strips and given a first drying. Much of it is now made with machines guided by hand judgement, and fully hand-made tea is rare. What sets it apart is the roast: over charcoal, in several rounds with rests of weeks or months between them, not in one pass. The roast dries the tea so it keeps, and it takes away the raw, grassy taste, deepens the tea and adds fruit and a charcoal fragrance. The roast is matched to the leaf: thick, mature leaf takes a stronger roast, thin and aromatic leaf a lighter one.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Wuyi tea follows the oolong steps: it is withered in the sun and then cooled indoors, shaken and rested, fixed in a hot pan or drum, rolled into strips and given a first drying. Much of it is now made with machines guided by hand judgement, and fully hand-made tea is rare. What sets it apart is the roast: over charcoal, in several rounds with rests of weeks or months between them, not in one pass. The roast dries the tea so it keeps, and it takes away the raw, grassy taste, deepens the tea and adds fruit and a charcoal fragrance. The roast is matched to the leaf: thick, mature leaf takes a stronger roast, thin and aromatic leaf a lighter one.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:meizhan",
-    "pageId": "yancha",
-    "sectionKey": "meizhan",
-    "label": "Meizhan",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_includes": [
-        "meizhan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "梅占",
-        "pinyin": "méi zhàn",
-        "gloss": "Meizhan"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Meizhan is a Fujian cultivar that came from Anxi, and it is also made as Wuyi rock tea. It is less famous than Rougui and Shui Xian and is not one of the four famous bushes of Wuyi.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Meizhan is a Fujian cultivar that came from Anxi, and it is also made as Wuyi rock tea. It is less famous than Rougui and Shui Xian and is not one of the four famous bushes of Wuyi.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:notice-aged",
-    "pageId": "yancha",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Wuyi rock tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:roast-levels",
-    "pageId": "yancha",
-    "sectionKey": "roast-levels",
-    "label": "Light, medium and full roast",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "轻火",
-        "pinyin": "qīng huǒ",
-        "gloss": "light roast"
-      },
-      {
-        "original": "中火",
-        "pinyin": "zhōng huǒ",
-        "gloss": "medium roast"
-      },
-      {
-        "original": "足火",
-        "pinyin": "zú huǒ",
-        "gloss": "full roast"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Wuyi tea is labelled by its roast. Light roast keeps bright floral notes and is for drinking early. Medium roast is the balanced middle, floral and fruity together. Full roast shows the clearest charcoal and fire notes and keeps the longest. A freshly roasted tea is rested so the fire note settles, and the heavier the roast, the longer the rest.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Wuyi tea is labelled by its roast. Light roast keeps bright floral notes and is for drinking early. Medium roast is the balanced middle, floral and fruity together. Full roast shows the clearest charcoal and fire notes and keeps the longest. A freshly roasted tea is rested so the fire note settles, and the heavier the roast, the longer the rest.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:rock-rhyme",
-    "pageId": "yancha",
-    "sectionKey": "rock-rhyme",
-    "label": "Rock rhyme",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "岩韵",
-        "pinyin": "yán yùn",
-        "gloss": "rock rhyme"
-      },
-      {
-        "original": "岩骨花香",
-        "pinyin": "yán gǔ huā xiāng",
-        "gloss": "rock bone and floral fragrance"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "The quality the trade prizes in Wuyi tea is called rock rhyme, yan yun. It is described as something felt in the mouth as much as tasted: aroma, taste and body together, with a lasting sweet, mouth-watering aftertaste, and it is tied to the rocky ground the tea grows in. The Chinese phrase paired with it is yan gu hua xiang, rock bone and floral fragrance.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "The quality the trade prizes in Wuyi tea is called rock rhyme, yan yun. It is described as something felt in the mouth as much as tasted: aroma, taste and body together, with a lasting sweet, mouth-watering aftertaste, and it is tied to the rocky ground the tea grows in. The Chinese phrase paired with it is yan gu hua xiang, rock bone and floral fragrance.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:rougui",
-    "pageId": "yancha",
-    "sectionKey": "rougui",
-    "label": "Rougui",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_includes": [
-        "rougui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "肉桂",
-        "pinyin": "ròu guì",
-        "gloss": "cassia"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Rougui, cassia, is a Wuyi cultivar named for the cinnamon-bark smell of its finished tea. It dates from the Qing dynasty and is now one of the most widely planted and best-selling Wuyi teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Rougui, cassia, is a Wuyi cultivar named for the cinnamon-bark smell of its finished tea. It dates from the Qing dynasty and is now one of the most widely planted and best-selling Wuyi teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:shui-xian",
-    "pageId": "yancha",
-    "sectionKey": "shui-xian",
-    "label": "Shui Xian",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_includes": [
-        "shui",
-        "xian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "水仙",
-        "pinyin": "shuǐ xiān",
-        "gloss": "Shui Xian"
-      },
-      {
-        "original": "老丛",
-        "pinyin": "lǎo cóng",
-        "gloss": "old bush"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Shui Xian is the most widely grown and drunk Wuyi cultivar and usually the least expensive of the main teas. It came to Wuyi in the Qing dynasty from elsewhere in northern Fujian, and Wuyi Shui Xian is traditionally roasted a shade darker than most rock tea. Lao cong, old-bush Shui Xian, comes from older bushes, costs more and is said to carry a woody, mossy character of its own, and Shui Xian, old bush above all, is the Wuyi tea most often said to age well.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Shui Xian is the most widely grown and drunk Wuyi cultivar and usually the least expensive of the main teas. It came to Wuyi in the Qing dynasty from elsewhere in northern Fujian, and Wuyi Shui Xian is traditionally roasted a shade darker than most rock tea. Lao cong, old-bush Shui Xian, comes from older bushes, costs more and is said to carry a woody, mossy character of its own, and Shui Xian, old bush above all, is the Wuyi tea most often said to age well.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yunnan-mountain-names:market-names",
-    "pageId": "yunnan-mountain-names",
-    "sectionKey": "market-names",
-    "label": "Names in the tea market",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
-    "sourceIds": [
-      "ctma-yunnan-108-mountains-2026"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
   }
 ];

@@ -242,6 +242,73 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "fujian-white",
+    "slug": "fujian-white",
+    "kind": "tea_type",
+    "label": "Fujian white",
+    "visibility": "public",
+    "nativeName": "福建白茶",
+    "parentId": "white",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Fujian white is",
+        "sourceIds": []
+      },
+      {
+        "key": "cultivars",
+        "label": "The bushes",
+        "sourceIds": []
+      },
+      {
+        "key": "fuding-and-zhenghe",
+        "label": "Fuding and Zhenghe",
+        "sourceIds": []
+      },
+      {
+        "key": "grades",
+        "label": "Grades",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Fujian white is made",
+        "sourceIds": []
+      },
+      {
+        "key": "cakes",
+        "label": "White tea cakes",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Fujian white began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Fujian white",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Fujian white",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged Fujian white",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "gong-ting",
     "slug": "gong-ting",
     "kind": "leaf_grade",
@@ -846,97 +913,6 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": [
           "cns-wuzhou-aging-warehouse"
         ]
-      }
-    ]
-  },
-  {
-    "id": "sheng",
-    "slug": "sheng",
-    "kind": "tea_type",
-    "label": "Sheng Pu’er",
-    "visibility": "public",
-    "nativeName": "生普洱",
-    "parentId": "puer",
-    "sourceIds": [
-      "marshaln-young-puer-2013",
-      "teaguardian-raw-cooked-puer"
-    ],
-    "sections": [
-      {
-        "key": "identity",
-        "label": "What sheng means",
-        "sourceIds": [
-          "teaguardian-raw-cooked-puer"
-        ]
-      },
-      {
-        "key": "processing",
-        "label": "From maocha to finished tea",
-        "sourceIds": [
-          "teaguardian-raw-cooked-puer"
-        ]
-      },
-      {
-        "key": "aging",
-        "label": "Change through storage",
-        "sourceIds": [
-          "marshaln-young-puer-2013"
-        ]
-      },
-      {
-        "key": "making",
-        "label": "How raw pu’er is made",
-        "sourceIds": []
-      },
-      {
-        "key": "pressing",
-        "label": "Pressing",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How the trade grew",
-        "sourceIds": []
-      },
-      {
-        "key": "history-modern",
-        "label": "Collectors and mountains",
-        "sourceIds": []
-      },
-      {
-        "key": "storage",
-        "label": "Storage",
-        "sourceIds": []
-      },
-      {
-        "key": "age-young",
-        "label": "Young raw pu’er",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Raw pu’er with age",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing raw pu’er",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing-pressed",
-        "label": "Breaking a pressed cake",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged raw pu’er",
-        "sourceIds": []
       }
     ]
   }

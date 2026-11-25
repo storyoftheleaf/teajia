@@ -466,6 +466,345 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
+    "claimId": "fujian-white:ageing",
+    "pageId": "fujian-white",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Fujian white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "一年茶，三年药，七年宝",
+        "pinyin": "yī nián chá, sān nián yào, qī nián bǎo",
+        "gloss": "one year tea, three years medicine, seven years treasure"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The trade says white tea is tea in its first year, medicine at three years and a treasure at seven; it is a saying, not a tested claim, and no agreed number of years makes a tea aged. With age it moves from fresh and sweet toward jujube, dried fruit, honey, wood and herbs, with a deeper, redder liquor and a rounder body. Keep it dry, clean and aired, away from strong smells and sunlight.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The trade says white tea is tea in its first year, medicine at three years and a treasure at seven; it is a saying, not a tested claim, and no agreed number of years makes a tea aged. With age it moves from fresh and sweet toward jujube, dried fruit, honey, wood and herbs, with a deeper, redder liquor and a rounder body. Keep it dry, clean and aired, away from strong smells and sunlight.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:brewing",
+    "pageId": "fujian-white",
+    "sectionKey": "brewing",
+    "label": "Brewing Fujian white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:cakes",
+    "pageId": "fujian-white",
+    "sectionKey": "cakes",
+    "label": "White tea cakes",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "白茶饼",
+        "pinyin": "báichá bǐng",
+        "gloss": "white tea cake"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:common-impressions",
+    "pageId": "fujian-white",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:cultivars",
+    "pageId": "fujian-white",
+    "sectionKey": "cultivars",
+    "label": "The bushes",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎大白",
+        "pinyin": "fúdǐng dàbái",
+        "gloss": "Fuding Da Bai"
+      },
+      {
+        "original": "福鼎大毫",
+        "pinyin": "fúdǐng dàháo",
+        "gloss": "Fuding Da Hao"
+      },
+      {
+        "original": "政和大白",
+        "pinyin": "zhènghé dàbái",
+        "gloss": "Zhenghe Da Bai"
+      },
+      {
+        "original": "菜茶",
+        "pinyin": "càichá",
+        "gloss": "Cai Cha"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:definition",
+    "pageId": "fujian-white",
+    "sectionKey": "definition",
+    "label": "What Fujian white is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎白茶",
+        "pinyin": "fúdǐng báichá",
+        "gloss": "Fuding white tea"
+      },
+      {
+        "original": "政和白茶",
+        "pinyin": "zhènghé báichá",
+        "gloss": "Zhenghe white tea"
+      },
+      {
+        "original": "太姥山",
+        "pinyin": "tàimǔ shān",
+        "gloss": "Taimu Mountain"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Fujian is the home of white tea. Fuding and Zhenghe are its two leading counties, and Jianyang and Songxi make white tea too. Fuding is a coastal city in the north-east of the province, by the Zhejiang border, hilly over most of its land; its white tea is tied to Taimu Mountain, where the first mother tree and the first famous bud tea are placed. Fuding white tea is a protected origin name in China. Zhenghe is an inland mountain county further west.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Fujian is the home of white tea. Fuding and Zhenghe are its two leading counties, and Jianyang and Songxi make white tea too. Fuding is a coastal city in the north-east of the province, by the Zhejiang border, hilly over most of its land; its white tea is tied to Taimu Mountain, where the first mother tree and the first famous bud tea are placed. Fuding white tea is a protected origin name in China. Zhenghe is an inland mountain county further west.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:fuding-and-zhenghe",
+    "pageId": "fujian-white",
+    "sectionKey": "fuding-and-zhenghe",
+    "label": "Fuding and Zhenghe",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Fuding buds are plumper and downier than Zhenghe's. In the cup, Fuding is most often called the lighter, fresher, more floral style, and Zhenghe the fuller, thicker, mellower one. That is the trade's comparison of the two places, not a rule for every tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Fuding buds are plumper and downier than Zhenghe's. In the cup, Fuding is most often called the lighter, fresher, more floral style, and Zhenghe the fuller, thicker, mellower one. That is the trade's comparison of the two places, not a rule for every tea.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:grades",
+    "pageId": "fujian-white",
+    "sectionKey": "grades",
+    "label": "Grades",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "白毫银针",
+        "pinyin": "báiháo yínzhēn",
+        "gloss": "Silver Needle"
+      },
+      {
+        "original": "白牡丹",
+        "pinyin": "bái mǔdān",
+        "gloss": "White Peony"
+      },
+      {
+        "original": "贡眉",
+        "pinyin": "gòngméi",
+        "gloss": "Gong Mei"
+      },
+      {
+        "original": "寿眉",
+        "pinyin": "shòuméi",
+        "gloss": "Shou Mei"
+      },
+      {
+        "original": "新工艺白茶",
+        "pinyin": "xīn gōngyì báichá",
+        "gloss": "new-craft white tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The trade sorts Fujian white tea by how the leaf was picked. Silver Needle is buds alone. White Peony is a bud with one or two young leaves. Gong Mei has more leaf than bud, and Shou Mei is the mature-leaf grade, with large leaves and few or no buds, often from later picks. Fuding also makes a separate new-craft white tea, xin gongyi, which is lightly rolled after withering and is darker in the cup.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The trade sorts Fujian white tea by how the leaf was picked. Silver Needle is buds alone. White Peony is a bud with one or two young leaves. Gong Mei has more leaf than bud, and Shou Mei is the mature-leaf grade, with large leaves and few or no buds, often from later picks. Fuding also makes a separate new-craft white tea, xin gongyi, which is lightly rolled after withering and is darker in the cup.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:history",
+    "pageId": "fujian-white",
+    "sectionKey": "history",
+    "label": "How Fujian white began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "White tea in its present form is a Qing dynasty tea of the 1700s and 1800s, first from Fuding or Jianyang and from Zhenghe later in the 1800s. Fuding Silver Needle was first sold abroad around 1890. The stories of Taimu and older uses of the name white tea are legend, kept apart from this record.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "White tea in its present form is a Qing dynasty tea of the 1700s and 1800s, first from Fuding or Jianyang and from Zhenghe later in the 1800s. Fuding Silver Needle was first sold abroad around 1890. The stories of Taimu and older uses of the name white tea are legend, kept apart from this record.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:making",
+    "pageId": "fujian-white",
+    "sectionKey": "making",
+    "label": "How Fujian white is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Two steps make it: withering, then drying at low heat, with no fixing and no rolling for the classic grades. The leaf is withered in the sun, indoors in moving air, indoors with gentle warmth, or by a mix of these, as the weather and the leaf allow, usually for two to three days. It is then dried at low heat, over charcoal or by machine, until it keeps.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Two steps make it: withering, then drying at low heat, with no fixing and no rolling for the classic grades. The leaf is withered in the sun, indoors in moving air, indoors with gentle warmth, or by a mix of these, as the weather and the leaf allow, usually for two to three days. It is then dried at low heat, over charcoal or by machine, until it keeps.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "fujian-white:notice-aged",
+    "pageId": "fujian-white",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Fujian white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "gong-ting:appearance",
     "pageId": "gong-ting",
     "sectionKey": "appearance",
@@ -628,349 +967,6 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": [
           "EVIDENCE-063C59A9C3026FEBF80765F1"
         ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "greater-yiwu:history",
-    "pageId": "greater-yiwu",
-    "sectionKey": "history",
-    "label": "Trade history",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Greater Yiwu",
-    "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
-    "sourceIds": [
-      "teadb-greater-yiwu"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Greater Yiwu",
-        "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-A856667D478345A121C24FD6"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "greater-yiwu:scope",
-    "pageId": "greater-yiwu",
-    "sectionKey": "scope",
-    "label": "A name at several scales",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Greater Yiwu",
-    "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
-    "sourceIds": [
-      "teadb-greater-yiwu"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Greater Yiwu",
-        "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-B4A02CADDFD91399DD30150A"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:ageing",
-    "pageId": "lapsang",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Lapsang",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:brewing",
-    "pageId": "lapsang",
-    "sectionKey": "brewing",
-    "label": "Brewing Lapsang",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:common-impressions",
-    "pageId": "lapsang",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:definition",
-    "pageId": "lapsang",
-    "sectionKey": "definition",
-    "label": "What Lapsang Souchong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "正山小种",
-        "pinyin": "zhèngshān xiǎozhǒng",
-        "gloss": "true mountain small kind"
-      },
-      {
-        "original": "桐木",
-        "pinyin": "tóngmù",
-        "gloss": "Tongmu"
-      },
-      {
-        "original": "外山",
-        "pinyin": "wàishān",
-        "gloss": "outer mountain"
-      }
-    ],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:history",
-    "pageId": "lapsang",
-    "sectionKey": "history",
-    "label": "How Lapsang began",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "金骏眉",
-        "pinyin": "jīn jùn méi",
-        "gloss": "Jin Jun Mei"
-      }
-    ],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "Zhengshan Xiaozhong is called the oldest red tea, the ancestor of red tea, born in Tongmu; the dates given for it differ. The usual story is of soldiers camped among the picked leaf in the harvest season: the leaf spoiled, the villagers dried it over pine fire, and the smoky tea was sold to Dutch buyers. The story is told, not recorded. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. In 2005 Tongmu makers devised Jin Jun Mei, a red tea of buds alone made the Lapsang way but not smoked, and it changed the village’s trade.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "Zhengshan Xiaozhong is called the oldest red tea, the ancestor of red tea, born in Tongmu; the dates given for it differ. The usual story is of soldiers camped among the picked leaf in the harvest season: the leaf spoiled, the villagers dried it over pine fire, and the smoky tea was sold to Dutch buyers. The story is told, not recorded. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. In 2005 Tongmu makers devised Jin Jun Mei, a red tea of buds alone made the Lapsang way but not smoked, and it changed the village’s trade.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:making",
-    "pageId": "lapsang",
-    "sectionKey": "making",
-    "label": "How Lapsang is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "过红锅",
-        "pinyin": "guò hóngguō",
-        "gloss": "through the hot pan"
-      }
-    ],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "The leaf is withered, rolled and left to oxidise in covered baskets or cloth bags for some hours, until it turns reddish-brown to copper. It then goes into a hot pan, guo hong guo, which stops the oxidation fast, lifts the aroma and gives a sweeter, rounder cup, and is rolled again while hot, which shapes the strip and helps it take up smoke. In the traditional way the leaf is withered with pine heat in the qinglou and dried over the pine fire for most of a day.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "The leaf is withered, rolled and left to oxidise in covered baskets or cloth bags for some hours, until it turns reddish-brown to copper. It then goes into a hot pan, guo hong guo, which stops the oxidation fast, lifts the aroma and gives a sweeter, rounder cup, and is rolled again while hot, which shapes the strip and helps it take up smoke. In the traditional way the leaf is withered with pine heat in the qinglou and dried over the pine fire for most of a day.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:notice-aged",
-    "pageId": "lapsang",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in Lapsang kept for years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "The smoke softer and further back, with dried fruit coming forward.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "The smoke softer and further back, with dried fruit coming forward.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
       }
     ],
     "pageVisibility": "public"

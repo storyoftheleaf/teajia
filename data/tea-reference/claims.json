@@ -5991,6 +5991,279 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "福鼎白茶",
+          "pinyin": "fúdǐng báichá",
+          "gloss": "Fuding white tea"
+        },
+        {
+          "original": "政和白茶",
+          "pinyin": "zhènghé báichá",
+          "gloss": "Zhenghe white tea"
+        },
+        {
+          "original": "太姥山",
+          "pinyin": "tàimǔ shān",
+          "gloss": "Taimu Mountain"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:cultivars",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "福鼎大白",
+          "pinyin": "fúdǐng dàbái",
+          "gloss": "Fuding Da Bai"
+        },
+        {
+          "original": "福鼎大毫",
+          "pinyin": "fúdǐng dàháo",
+          "gloss": "Fuding Da Hao"
+        },
+        {
+          "original": "政和大白",
+          "pinyin": "zhènghé dàbái",
+          "gloss": "Zhenghe Da Bai"
+        },
+        {
+          "original": "菜茶",
+          "pinyin": "càichá",
+          "gloss": "Cai Cha"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:fuding-and-zhenghe",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:grades",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "白毫银针",
+          "pinyin": "báiháo yínzhēn",
+          "gloss": "Silver Needle"
+        },
+        {
+          "original": "白牡丹",
+          "pinyin": "bái mǔdān",
+          "gloss": "White Peony"
+        },
+        {
+          "original": "贡眉",
+          "pinyin": "gòngméi",
+          "gloss": "Gong Mei"
+        },
+        {
+          "original": "寿眉",
+          "pinyin": "shòuméi",
+          "gloss": "Shou Mei"
+        },
+        {
+          "original": "新工艺白茶",
+          "pinyin": "xīn gōngyì báichá",
+          "gloss": "new-craft white tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:cakes",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "白茶饼",
+          "pinyin": "báichá bǐng",
+          "gloss": "white tea cake"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "一年茶，三年药，七年宝",
+          "pinyin": "yī nián chá, sān nián yào, qī nián bǎo",
+          "gloss": "one year tea, three years medicine, seven years treasure"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "fujian-white:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "White",
+        "origin_includes": [
+          "fujian"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

@@ -59,7 +59,7 @@ describe('composeInputs for any kit', () => {
     expect(anxi.fixed.notice?.styleName).toBe('aged oolong');
   });
 
-  it('gives a Yunnan white its style kit and an aged Fuding cake only the white family', () => {
+  it('gives a Yunnan white its style kit and a white from outside Yunnan and Fujian only the white family', () => {
     const yecong = { id: 'yc', product_name: 'Yecong Ancient Forest', type: 'White', form: 'Loose Leaf', year: 2018, origin_region: 'Yunnan', origin_country: 'China' };
     const inputs = composeInputs(yecong, claims, { thisYear: 2026, pages });
     const type = ids(inputs.layers.type);
@@ -67,10 +67,10 @@ describe('composeInputs for any kit', () => {
     expect(type).toContain('white:definition');
     expect(type).not.toContain('yunnan-white:yabao');
     expect(ids(inputs.layers.age)).toEqual(['yunnan-white:ageing']);
-    const fuding = composeInputs({ ...yecong, id: 'fd', product_name: 'Fuding Eco', form: 'Cake', year: 2009, origin_region: 'Fuding, Fujian' }, claims, { thisYear: 2026, pages });
-    expect(ids(fuding.layers.type)[0]).toBe('white:definition');
-    expect(ids(fuding.layers.age)).toEqual(['white:ageing']);
-    expect(fuding.fixed.notice?.styleName).toBe('aged white tea');
+    const other = composeInputs({ ...yecong, id: 'zj', product_name: 'Anji Bai Cha', form: 'Cake', year: 2009, origin_region: 'Anji, Zhejiang' }, claims, { thisYear: 2026, pages });
+    expect(ids(other.layers.type)[0]).toBe('white:definition');
+    expect(ids(other.layers.age)).toEqual(['white:ageing']);
+    expect(other.fixed.notice?.styleName).toBe('aged white tea');
   });
 
   it('gives a Wuyi Rougui the rock tea kit with its own named section only', () => {
@@ -141,6 +141,19 @@ describe('composeInputs for any kit', () => {
     expect(ids(mlx.layers.type)).toContain('dancong:mi-lan-xiang');
     expect(ids(mlx.layers.type)).not.toContain('dancong:ya-shi-xiang');
     expect(mlx.fixed.claimIds).toEqual(expect.arrayContaining(['dancong:brewing', 'dancong:common-impressions']));
+  });
+
+  it('gives a Fujian white cake the Fujian kit, and a Yunnan white the Yunnan one', () => {
+    const fuding = { id: 'fd', product_name: 'Fuding Eco', type: 'White', form: 'Cake', year: 2009, origin_region: 'Fuding, Fujian', origin_country: 'China' };
+    const inputs = composeInputs(fuding, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type[0]).toBe('fujian-white:definition');
+    expect(type).toContain('fujian-white:cakes');
+    expect(type).toContain('white:definition');
+    expect(ids(inputs.layers.age)).toEqual(['fujian-white:ageing']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged Fujian white');
+    const yunnan = ids(composeInputs({ ...fuding, id: 'yn', product_name: 'Yunnan Bai Cha', origin_region: 'Yunnan' }, claims, { thisYear: 2026, pages }).layers.type);
+    expect(yunnan).not.toContain('fujian-white:definition');
   });
 
   it('gives an Anhua dark tea the Anhua kit, ahead of the dark family', () => {
