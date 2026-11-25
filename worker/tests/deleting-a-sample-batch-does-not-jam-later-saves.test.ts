@@ -109,9 +109,42 @@ describe('deleting a sample batch cannot jam later tea saves', () => {
       { id: 'refused-stale', name: 'Refused stale', sample_state: 'requested', sample_set_id: setId },
       { id: 'blocked-new', name: 'Must not be written' },
     ] }) });
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
     expect(db.sqlite.prepare("SELECT COUNT(*) AS count FROM tea_compass_entries WHERE id IN ('refused-stale','blocked-new')").get()).toEqual({ count: 0 });
     expect(db.sqlite.prepare("SELECT name FROM tea_compass_entries WHERE id='untouched-a'").get()).toEqual({ name: 'Untouched A' });
     expect(db.sqlite.prepare("SELECT name FROM tea_compass_entries WHERE id='untouched-b' AND account_id='account-b'").get()).toEqual({ name: 'Untouched B' });
+  });
+
+  it('keeps a newer active sample relationship when a legacy row retries the archived one', async () => {
+    const { db, call } = await setup();
+    expect((await call('/api/admin/sample-sets/batch-a', { method: 'DELETE' })).status).toBe(200);
+    const createdSet = await call('/api/admin/sample-sets', {
+      method: 'POST', body: JSON.stringify({ id: 'batch-b', name: 'Replacement batch', purpose: 'sourcing' }),
+    });
+    expect(createdSet.status).toBe(201);
+    const linked = await call('/api/compass/entries/sample-tea', {
+      method: 'PUT', body: JSON.stringify({ sample_set_id: 'batch-b', sample_state: 'tasted' }),
+    });
+    expect(linked.status, JSON.stringify(await linked.clone().json())).toBe(200);
+    expect(await linked.json()).toMatchObject({ sample_set_id: 'batch-b', sample_state: 'tasted' });
+    const before = {
+      sets: db.sqlite.prepare("SELECT COUNT(*) AS count FROM tea_sample_sets WHERE account_id='account-a'").get(),
+      activePortions: db.sqlite.prepare("SELECT COUNT(*) AS count FROM tea_samples WHERE account_id='account-a' AND archived_at IS NULL").get(),
+    };
+
+    const response = await call('/api/compass/sync', { method: 'POST', body: JSON.stringify({ entries: [
+      { id: 'sample-tea', name: 'Legacy whole row', sample_set_id: 'batch-a', sample_state: 'requested' },
+      { id: 'newer-link-different', name: 'Different after newer link' },
+    ] }) });
+
+    expect(response.status, JSON.stringify(await response.clone().json())).toBe(200);
+    expect(await response.json()).toMatchObject({ syncedIds: expect.arrayContaining(['sample-tea', 'newer-link-different']) });
+    expect(db.sqlite.prepare("SELECT sample_set_id,sample_state FROM tea_compass_entries WHERE id='sample-tea'").get()).toEqual({ sample_set_id: 'batch-b', sample_state: 'tasted' });
+    expect(db.sqlite.prepare("SELECT name FROM tea_compass_entries WHERE id='newer-link-different'").get()).toEqual({ name: 'Different after newer link' });
+    expect(db.sqlite.prepare("SELECT archived FROM tea_sample_sets WHERE id='batch-a'").get()).toEqual({ archived: 1 });
+    expect({
+      sets: db.sqlite.prepare("SELECT COUNT(*) AS count FROM tea_sample_sets WHERE account_id='account-a'").get(),
+      activePortions: db.sqlite.prepare("SELECT COUNT(*) AS count FROM tea_samples WHERE account_id='account-a' AND archived_at IS NULL").get(),
+    }).toEqual(before);
   });
 });

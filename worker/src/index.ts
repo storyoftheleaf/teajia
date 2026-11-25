@@ -17131,17 +17131,25 @@ async function validateCompassContext(env: Env, accountId: string, values: Parti
   return sampleSet ? null : json({ error: 'Sample set not found' }, 404);
 }
 
-async function clearArchivedSampleSetFromCompassSync(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>): Promise<Response | null> {
-  if (values.sample_set_id === undefined || values.sample_set_id === null) return null;
-  if (typeof values.sample_set_id !== 'string' || !values.sample_set_id) return json({ error: 'Sample set not found' }, 400);
-  const sampleSet = await env.DB.prepare('SELECT account_id, archived FROM tea_sample_sets WHERE id = ?')
-    .bind(values.sample_set_id).first<Record<string, unknown>>();
-  if (!sampleSet || sampleSet.account_id !== accountId) return json({ error: 'Sample set not found' }, 400);
-  if (Number(sampleSet.archived) === 1) {
+async function clearArchivedSampleSetFromCompassSync(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<void> {
+  if (values.sample_set_id === undefined || values.sample_set_id === null) return;
+  if (typeof values.sample_set_id !== 'string' || !values.sample_set_id) return;
+  const staleSetId = values.sample_set_id;
+  const sampleSet = await env.DB.prepare('SELECT archived FROM tea_sample_sets WHERE id = ? AND account_id = ?')
+    .bind(staleSetId, accountId).first<Record<string, unknown>>();
+  if (Number(sampleSet?.archived) === 1) {
+    if (typeof existing?.sample_set_id === 'string' && existing.sample_set_id !== staleSetId) {
+      const activeSet = await env.DB.prepare('SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ? AND archived = 0')
+        .bind(existing.sample_set_id, accountId).first();
+      if (activeSet) {
+        delete values.sample_set_id;
+        delete values.sample_state;
+        return;
+      }
+    }
     values.sample_set_id = null;
     values.sample_state = null;
   }
-  return null;
 }
 
 async function compassSampleStatements(env: Env, accountId: string, userId: string, entry: Record<string, any>, tastingChanged = false) {
@@ -18084,8 +18092,7 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
     if (decoded.values.audio_clips !== undefined) {
       decoded.values.audio_clips = preservePrivateRecordingClips(decoded.values.audio_clips, owner?.audio_clips);
     }
-    const archivedSampleError = await clearArchivedSampleSetFromCompassSync(env, accountId, decoded.values);
-    if (archivedSampleError) return archivedSampleError;
+    await clearArchivedSampleSetFromCompassSync(env, accountId, decoded.values, owner);
     writtenValues.set(String(entry.id), decoded.values);
     const contextError = await validateCompassContext(env, accountId, decoded.values, owner);
     if (contextError) return contextError;
