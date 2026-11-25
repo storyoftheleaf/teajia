@@ -239,9 +239,8 @@ function InventoryRowBase(props: InventoryRowProps) {
                   {draftNames?.primary ?? displayName}
                 </button>
               )}
-              {needLabel && <span data-testid="row-need" className="self-start mt-0.5 rounded-[3px] border border-tea-border px-1.5 text-ui-10 leading-[16px] text-tea-gold">{needLabel}</span>}
               <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-tight truncate block" style={{ letterSpacing: '0.02em' }}>
-                {subtitle}
+                {needLabel ? <span className="flex min-w-0 items-baseline gap-1.5"><span data-testid="row-need" className="shrink-0 text-tea-gold">{needLabel} ·</span>{subtitle}</span> : subtitle}
               </span>
               {holdingLabel && <span className="text-ui-11 text-tea-text-sec leading-tight">{[holdingLabel, sampleAcquisitionLabel(product)].filter(Boolean).join(' · ')}</span>}
             </div>

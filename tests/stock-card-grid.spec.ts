@@ -11,10 +11,13 @@ test('Stock opens in Table and remembers a deliberately selected layout', async 
   const tableButton = page.getByRole('button', { name: 'Table', exact: true });
   const cardsButton = page.getByRole('button', { name: 'Cards', exact: true });
   const desktop = page.viewportSize()!.width >= 768;
-  const table = desktop ? page.getByTestId('inventory-column-row') : page.locator('.stock-record').first();
+  // On a phone, Table is the 8 October list and the Cards / Table choice lives in View options.
+  const table = desktop ? page.getByTestId('inventory-column-row') : page.getByTestId('stock-phone');
+  const options = page.getByRole('button', { name: 'View options', exact: true });
   const cards = page.getByTestId('stock-card-sections');
-  await expect(tableButton).toHaveAttribute('aria-pressed', 'true');
   await expect(table).toBeVisible();
+  if (!desktop) await options.click();
+  await expect(tableButton).toHaveAttribute('aria-pressed', 'true');
   await expect(cards).toHaveCount(0);
 
   await cardsButton.click();
@@ -37,11 +40,12 @@ test('Stock opens in Table and remembers a deliberately selected layout', async 
   await tableButton.click();
   await expect(table).toBeVisible();
   await page.reload();
-  await expect(tableButton).toHaveAttribute('aria-pressed', 'true');
   await expect(table).toBeVisible();
+  if (!desktop) await options.click();
+  await expect(tableButton).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('Stock cards use two columns only when two readable cards fit, then become a spreadsheet', async ({ page }) => {
+test('Stock below 768px is the 8 October supplier list, then becomes a spreadsheet', async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ json: [] }));
   await injectAuth(page);
   await mockInventoryApi(page);
@@ -52,33 +56,16 @@ test('Stock cards use two columns only when two readable cards fit, then become 
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/admin/stock');
-  await page.locator('tr[data-product-id]').first().waitFor();
-  await page.evaluate(async () => {
-    const { useAppStore } = await import('/src/lib/store.ts');
-    useAppStore.getState().setInventoryGroupBy('vendor');
-  });
-  const rows = page.locator('[data-stock-group="Master Bo"] tr[data-product-id]');
-  for (const width of [390, 599, 600, 640, 680, 740, 767]) {
+  const supplier = page.getByRole('region', { name: 'Master Bo', exact: true });
+  await expect(supplier).toBeVisible();
+  await expect(supplier).toContainText('3 teas');
+  for (const width of [320, 390, 600, 767]) {
     await page.setViewportSize({ width, height: 844 });
-    await expect(rows).toHaveCount(3);
-    const first = await rows.nth(0).boundingBox();
-    const second = await rows.nth(1).boundingBox();
-    const third = await rows.nth(2).boundingBox();
-    if (width < 600) expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
-    else {
-      expect(Math.abs(first!.y - second!.y)).toBeLessThan(1);
-      expect(second!.x).toBeGreaterThan(first!.x + first!.width);
-      expect(third!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
-      expect(first!.width).toBeGreaterThanOrEqual(280);
-    }
+    await expect(supplier).toBeVisible();
+    await expect(page.locator('.stock-record')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
-    if (width === 600) {
-      await page.screenshot({ path: test.info().outputPath('stock-two-column-cards.png') });
-      await rows.first().getByRole('button', { name: /Edit given name/ }).click();
-      await expect(page.getByRole('dialog', { name: 'Given name', exact: true })).toBeVisible();
-      await page.keyboard.press('Escape');
-    }
   }
+  await page.screenshot({ path: test.info().outputPath('stock-phone-list.png') });
   await page.setViewportSize({ width: 768, height: 844 });
   await expect(page.locator('.stock-record')).toHaveCount(0);
   await expect(page.getByTestId('inventory-column-row')).toBeVisible();

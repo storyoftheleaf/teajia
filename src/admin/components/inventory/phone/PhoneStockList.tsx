@@ -79,6 +79,10 @@ export interface PhoneStockListProps {
   onSort?: (key: PhoneSortKey) => void;
   /** The Samples view: headings read Tea, Quote, $/g, and there is no Select. */
   samples?: boolean;
+  /** The tea panel's tool row for the tea it shows. */
+  tools?: (product: Product) => React.ReactNode;
+  /** The supplier menu for a group, in place of the plain details arrow. */
+  groupActions?: (label: string, products: Product[]) => React.ReactNode;
 }
 
 export type PhoneSortKey = 'productName' | 'year' | 'stockGrams' | 'pricePerGramUSD' | 'costPerGramUSD';
@@ -90,7 +94,7 @@ function money(n: number): string {
 export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   products, emptyText = 'Nothing matches this view.', groupBy, priceMode, searchActive, selectedIds, incomingByProductId,
   onToggleSelect, onOpenEditor, onUpdate, onMovementRecorded, onOpenSource,
-  sortKey, sortDir = 'asc', onSort, samples = false,
+  sortKey, sortDir = 'asc', onSort, samples = false, tools, groupActions,
 }) => {
   const [open, setOpen] = useState<Set<string>>(readOpen);
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -204,10 +208,10 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                   </span>
                   <span className="shrink-0 text-right text-ui-12 leading-snug">
                     {group.low > 0 && <span className="block text-tea-error">{group.low} low</span>}
-                    {group.unchecked > 0 && <span className="block text-tea-text-sec">{group.unchecked} to recount</span>}
+                    {group.unchecked > 0 && <span className="block text-tea-text-sec">{group.unchecked} never counted</span>}
                   </span>
                 </button>
-                {groupBy === 'vendor' && group.products[0]?.vendor && (
+                {groupBy === 'vendor' && groupActions ? groupActions(group.label, group.products) : groupBy === 'vendor' && group.products[0]?.vendor && (
                   <button
                     type="button"
                     onClick={() => onOpenSource(group.products[0])}
@@ -296,6 +300,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
           onOpenSource={onOpenSource}
           onUpdate={onUpdate}
           onMovementRecorded={onMovementRecorded}
+          tools={tools?.(focused)}
         />
       )}
     </div>

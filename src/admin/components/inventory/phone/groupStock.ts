@@ -28,7 +28,7 @@ export type PhoneStockGroup = {
   unchecked: number;
 };
 
-const NO_SUPPLIER = 'No supplier recorded';
+const NO_SUPPLIER = 'Unknown supplier';
 const NO_KIND = 'No kind recorded';
 
 export function isTeaware(product: Product): boolean {

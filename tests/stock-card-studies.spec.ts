@@ -48,9 +48,10 @@ test('five finishes preserve Stock structure, tighten reference spacing and fit 
     }
   }
   await page.setViewportSize({width:390,height:844});
+  // Without a study, a phone shows the 8 October list, not the cards.
   await page.goto('/admin/stock');
-  await expect(page.locator('.stock-record').first()).toBeVisible();
-  await expect(page.locator('.stock-record').first()).toHaveAttribute('data-card-polish','4');
+  await expect(page.getByRole('button', { name: 'View options' })).toBeVisible();
+  await expect(page.locator('.stock-record')).toHaveCount(0);
   await page.setViewportSize({width:1440,height:1000});
   await page.goto('/preview/stock-cards/index.html');
   await page.getByRole('button',{name:'05 Soft glaze',exact:true}).click();

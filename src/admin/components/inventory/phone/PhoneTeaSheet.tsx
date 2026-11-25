@@ -36,6 +36,8 @@ export interface PhoneTeaSheetProps {
   onUpdate: (id: string, field: keyof Product, value: unknown) => void;
   /** InventoryView's handleMovementRecorded: puts the ledger's new balance into the list. */
   onMovementRecorded: (productId: string, afterBalance: number, unit: 'g' | 'unit') => void;
+  /** Photo, Taste, Form and More, kept from the 26 October cards. */
+  tools?: React.ReactNode;
 }
 
 /** A value that becomes its own input when tapped. Saves on Enter or leaving it, only if it changed. */
@@ -90,7 +92,7 @@ export const TapField: React.FC<{
 };
 
 export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
-  product, onClose, onOpenEditor, onOpenSource, onUpdate, onMovementRecorded,
+  product, onClose, onOpenEditor, onOpenSource, onUpdate, onMovementRecorded, tools,
 }) => {
   const ware = isTeaware(product);
   const unit: 'g' | 'unit' = ware ? 'unit' : 'g';
@@ -279,6 +281,7 @@ export const PhoneTeaSheet: React.FC<PhoneTeaSheetProps> = ({
         </div>
       </div>
 
+      {tools}
       {way && (
         <form onSubmit={e => { e.preventDefault(); void saveStock(); }} className="border-b border-tea-border">
           <div className="flex items-center h-14 gap-1.5 text-ui-14 text-tea-text-sec">

@@ -60,7 +60,9 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   });
 
   await page.setViewportSize({ width: 767, height: 900 });
-  await page.goto('/admin/stock');
+  // The 26 October card is no longer the phone's Table view (the 8 October list is);
+  // the card study address still draws it, so its naming, photos and tasting stay covered.
+  await page.goto('/admin/stock?cardPolish=4');
   const row = page.locator('tr[data-product-id="tea-reference"]');
   await expect(row.locator('.stock-record')).toBeVisible({ timeout: 15_000 });
   await expect(row.locator('.stock-record')).toHaveAttribute('data-card-polish', '4');

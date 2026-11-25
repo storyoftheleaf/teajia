@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
 
@@ -16,12 +17,15 @@ type Props = {
   onPriceModeChange: (value: 'retail' | 'cost') => void;
   columns?: readonly { key: string; label: string; checked: boolean; disabled?: boolean }[];
   onColumnChange: (key: string) => void;
+  /** The phone keeps type, supplier and tasting here, off its one header line. */
+  filters?: ReactNode;
   previewCurrency: { value: string; options: readonly string[]; onChange: (value: string) => void };
 };
 
 export function StockViewOptions(props: Props) {
   return <BottomSheet open={props.open} onOpenChange={props.onOpenChange} title="View options" description="Arrange the list. Your tea details stay the same.">
     <div className="stock-view-options">
+      {props.filters}
       <div className="grid grid-cols-2 gap-3">
         <label className="min-w-0"><span className={T.label}>Group by</span><select aria-label="Group by" className="stock-view-select" value={props.groupValue} onChange={event => props.onGroupChange(event.target.value)}>{props.groupOptions.map(option => <option key={option.value} value={option.value}>{option.value === 'vendor' ? 'Supplier' : option.label}</option>)}</select></label>
         <label className="min-w-0"><span className={T.label}>Order by</span><select aria-label="Order by" className="stock-view-select" value={props.sortValue} onChange={event => props.onSortChange(event.target.value)}>{props.sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>

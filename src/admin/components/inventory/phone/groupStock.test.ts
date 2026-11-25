@@ -24,7 +24,7 @@ describe('phone stock grouping', () => {
       tea({ productName: 'c', vendor: 'Lidia' }),
       tea({ productName: 'd', vendor: 'Lidia' }),
     ], 'vendor');
-    expect(groups.map(g => g.label)).toEqual(['Lidia', 'Master Bo', 'No supplier recorded']);
+    expect(groups.map(g => g.label)).toEqual(['Lidia', 'Master Bo', 'Unknown supplier']);
   });
 
   it('keeps the incoming order inside a group, so the chosen sort still holds', () => {

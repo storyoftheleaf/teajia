@@ -155,13 +155,15 @@ test.describe('Stock opens the supplier sheet from the supplier name', () => {
 test('supplier arrow offers Edit while closed headings retain tea counts and grams', async ({ page }) => {
   await page.route('**/api/**', route => route.fulfill({ json: [] }));
   const seen = await prepare(page);
+  // The table's supplier headings are the laptop's; the phone list has its own test above.
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/admin/stock');
   await page.locator('tr[data-product-id]').first().waitFor();
   await page.evaluate(async () => {
     const { useAppStore } = await import('/src/lib/store.ts');
     useAppStore.getState().setInventoryGroupBy('vendor');
   });
-  for (const width of [390, 1440]) {
+  for (const width of [1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     const heading = page.locator('[data-stock-group="Master Bo"]');
     await expect(heading.getByRole('button', { name: 'Supplier actions for Master Bo', exact: true })).toBeVisible();
@@ -169,23 +171,25 @@ test('supplier arrow offers Edit while closed headings retain tea counts and gra
     await expect(heading.getByRole('button', { name: 'Collapse Master Bo', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
   }
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 1440, height: 844 });
   await page.getByRole('button', { name: 'Collapse Master Bo', exact: true }).click();
   const collapsed = page.locator('[data-stock-group="Master Bo"]');
   await expect(collapsed.locator('.stock-group-summary')).toContainText('3 teas');
   await expect(collapsed.locator('.stock-group-summary')).toContainText('87g');
   await expect(collapsed.locator('.stock-group-summary')).toContainText('$');
-  for (const width of [320, 390, 1440]) {
+  for (const width of [1024, 1440]) {
     await page.setViewportSize({ width, height: 844 });
+    // One line, as on 8 October: the totals sit to the right of the name.
     const name = await collapsed.locator('.stock-group-name').boundingBox();
     const summary = await collapsed.locator('.stock-group-summary').boundingBox();
-    expect(summary!.y).toBeGreaterThanOrEqual(name!.y + name!.height);
+    expect(summary!.x).toBeGreaterThanOrEqual(name!.x + name!.width);
+    expect(Math.abs((summary!.y + summary!.height / 2) - (name!.y + name!.height / 2))).toBeLessThan(6);
     const values = await collapsed.locator('.stock-group-summary > span').all();
     const boxes = await Promise.all(values.map(value => value.boundingBox()));
     expect(Math.max(...boxes.map(box => box!.y)) - Math.min(...boxes.map(box => box!.y))).toBeLessThan(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
   }
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 1440, height: 844 });
   await expect(collapsed.locator('tr[data-product-id]')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('supplier-collapsed-heading.png') });
   await collapsed.getByRole('button', { name: 'Supplier actions for Master Bo', exact: true }).click();
@@ -263,7 +267,7 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
     Object.assign(shelf.find(product => product.id === id)!, body);
     return route.fulfill({ json: { success: true } });
   });
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 1440, height: 844 });
   await page.goto('/admin/stock');
   await page.locator('tr[data-product-id]').first().waitFor();
   await page.evaluate(async () => {
@@ -294,10 +298,13 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
-    expect((await page.getByTestId('inventory-purpose-row').boundingBox())!.height).toBe(48);
+    // A phone keeps the 8 October single line (44px); its filters sit in View options.
+    expect((await page.getByTestId('inventory-purpose-row').boundingBox())!.height).toBe(width < 768 ? 44 : 48);
+    if (width < 768) await page.getByRole('button', { name: 'View options', exact: true }).click();
     await expect(page.getByRole('combobox', { name: 'Tea type', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Supplier', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Tasting status', exact: true })).toBeVisible();
+    if (width < 768) { await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0); }
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'View options', exact: true }).click();
@@ -313,6 +320,7 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   await expect.poll(() => writes.length).toBe(1);
   expect(writes[0]).toEqual({ id: shelf[0].id, vendor: 'Master Bo' });
   await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 1440, height: 844 });
   await expect(page.locator('[data-stock-group="Unknown supplier"] tr[data-product-id]')).toHaveCount(1);
   await expect(page.locator('[data-stock-group="Master Bo"] tr[data-product-id]')).toHaveCount(2);
   await page.screenshot({ path: test.info().outputPath('stock-simplified-and-unknown.png') });

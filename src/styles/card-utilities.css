@@ -7648,3 +7648,13 @@ body.cart-panel-open .commerce-dock {
   .tea-product-provenance dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .label-plate--tea { --tea-product-frame-inset: var(--space-6); }
 }
+
+/* Stock on a laptop: each group heading is one line again, as on 8 October.
+   Name and warnings on the left, count and totals on the right. */
+@media(min-width:768px) {
+  .stock-view [data-stock-group]>.stock-group-menu-head { padding:0 var(--space-1); }
+  .stock-view .stock-group-main-toggle { flex-direction:row; align-items:center; gap:var(--space-3); padding:0 var(--space-2); }
+  .stock-view .stock-group-main-toggle .stock-group-name { flex:0 1 auto; min-height:0; font-size:var(--fs-ui-17); }
+  .stock-view .stock-group-main-toggle .stock-group-flags { flex-wrap:nowrap; font-size:var(--fs-ui-12); }
+  .stock-view .stock-group-main-toggle .stock-group-summary { display:flex; width:auto; margin-left:auto; gap:var(--space-4); font-family:var(--font-serif); font-size:var(--fs-ui-13); }
+}
