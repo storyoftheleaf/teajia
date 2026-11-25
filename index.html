@@ -11,9 +11,11 @@
         history.replaceState(history.state, '', location.pathname);
       }
     </script>
-    <!-- Favicon: the emblem on the dark tile. Built by scripts/build-icons.py. -->
+    <!-- Favicon: the emblem on the dark tile. Built by scripts/build-icons.py.
+         favicon.svg carries ?v= because Cloudflare's edge kept the old "T" under
+         the bare address; change the token when the icon changes again. -->
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=emblem" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />

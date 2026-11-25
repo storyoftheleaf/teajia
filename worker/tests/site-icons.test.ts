@@ -7,7 +7,9 @@ const PUBLIC = resolve(__dirname, '../../public');
 
 describe('the emblem icon on the API host', () => {
   it('points favicon lookups at the site copy of the emblem', () => {
-    for (const path of ['/favicon.ico', '/favicon.svg', '/favicon-32x32.png', '/apple-touch-icon.png', '/icon-512.png']) {
+    expect(siteIconRedirect(new Request('https://api.teajia.com/favicon.svg'))?.headers.get('Location'))
+      .toBe('https://teajia.com/favicon.svg?v=emblem');
+    for (const path of ['/favicon.ico', '/favicon-32x32.png', '/apple-touch-icon.png', '/icon-512.png']) {
       const response = siteIconRedirect(new Request(`https://api.teajia.com${path}`));
       expect(response?.status).toBe(301);
       expect(response?.headers.get('Location')).toBe(`https://teajia.com${path}`);

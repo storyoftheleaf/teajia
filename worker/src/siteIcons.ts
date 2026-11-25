@@ -28,9 +28,12 @@ export function siteIconRedirect(request: Request): Response | null {
   const path = new URL(request.url).pathname;
   if (!ICON_PATHS.has(path)) return null;
   const file = path === '/apple-touch-icon-precomposed.png' ? '/apple-touch-icon.png' : path;
+  // favicon.svg replaced an older file of the same name, which Cloudflare's
+  // edge kept serving; the same token as index.html reaches the new one.
+  const version = file === '/favicon.svg' ? '?v=emblem' : '';
   return new Response(null, {
     status: 301,
-    headers: { Location: `${SITE}${file}`, 'Cache-Control': 'public, max-age=86400' },
+    headers: { Location: `${SITE}${file}${version}`, 'Cache-Control': 'public, max-age=86400' },
   });
 }
 
