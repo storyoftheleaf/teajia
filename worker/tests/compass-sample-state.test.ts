@@ -48,7 +48,7 @@ describe('Compass sample lifecycle', () => {
     const rejectedSync = await compassRequest(db, '/api/compass/sync', {
       method: 'POST', body: JSON.stringify({ entries: [{ id: 'linked-a', sample_set_id: 'set-b' }] }),
     });
-    expect(rejectedSync.status).toBe(404);
+    expect(rejectedSync.status).toBe(400);
     expect(db.rows.get('linked-a')?.sample_set_id).toBe('set-a');
   });
 
