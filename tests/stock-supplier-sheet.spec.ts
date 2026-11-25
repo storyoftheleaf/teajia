@@ -236,6 +236,8 @@ test('typing a supplier spelling in one tea does not silently create or assign a
   await page.goto('/admin/stock');
   const row = page.locator('tr[data-product-id="test-product-1"]');
   await row.getByRole('button', { name: 'Open Green Test Tea 01 editor', exact: true }).click();
+  // The supplier lives on the room's Details tab (Rooms, 2026-11-25).
+  await page.getByRole('tab', { name: 'Details', exact: true }).click();
   const picker = page.getByRole('textbox', { name: 'Supplier for this tea', exact: true });
   await expect(picker).toHaveValue('Master Bo');
   await picker.fill('Mastre Bo');

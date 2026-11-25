@@ -161,9 +161,11 @@ test('only the rendered product-name words open the editor', async ({ page }) =>
   expect(linkBox!.width).toBeLessThan(cellBox!.width - 12);
 
   await nameCell.click({ position: { x: cellBox!.width - 4, y: 8 } });
+  // A plain click on the row opens the tea's room on the right (Rooms, 2026-11-25),
+  // never the link's own target; selecting is Cmd/Ctrl-click.
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close product panel' }).click();
   await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toHaveCount(0);
-  // A plain click on the row opens its editor under it (2026-11-25); selecting is Cmd/Ctrl-click.
-  await expect(page.locator('[data-quick-edit]')).toBeVisible();
 
   await nameLink.click();
   await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
@@ -220,8 +222,11 @@ test('the usable stock button opens adjustment while cell padding opens the row 
 
   await stockCell.click({ position: { x: 4, y: cellBox!.height / 2 } });
   await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toHaveCount(0);
-  // A plain click on the row opens its editor under it (2026-11-25); selecting is Cmd/Ctrl-click.
-  await expect(page.locator('[data-quick-edit]')).toBeVisible();
+  // A plain click on the row opens the tea's room on the right (Rooms, 2026-11-25),
+  // never the link's own target; selecting is Cmd/Ctrl-click.
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close product panel' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toHaveCount(0);
 
   await stockLink.click();
   await expect(page.getByRole('dialog', { name: 'Change stock: Cloud Oolong' })).toBeVisible();
@@ -239,8 +244,11 @@ test('only the rendered supplier words open the supplier sheet, and its stock li
 
   await sourceCell.click({ position: { x: cellBox!.width - 4, y: cellBox!.height / 2 } });
   await expect(page.getByRole('dialog', { name: 'Source: Cloud Mountain' })).toHaveCount(0);
-  // A plain click on the row opens its editor under it (2026-11-25); selecting is Cmd/Ctrl-click.
-  await expect(page.locator('[data-quick-edit]')).toBeVisible();
+  // A plain click on the row opens the tea's room on the right (Rooms, 2026-11-25),
+  // never the link's own target; selecting is Cmd/Ctrl-click.
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close product panel' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toHaveCount(0);
 
   await sourceLink.click();
   await expect(page.getByTestId('supplier-sheet')).toBeVisible();

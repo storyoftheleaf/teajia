@@ -6,6 +6,7 @@ import { capturePhotoApi } from '../../lib/capturePhotoApi';
 import { enteredYear } from '../enteredYear';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { PhoneTeaHeader, type TeaAction } from './inventory/phone/PhoneTeaHeader';
+import { RoomTabs, type RoomTab } from './inventory/stock/RoomTabs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -1015,6 +1016,8 @@ export interface ProductEditPanelProps {
   openListingReview?: boolean;
   listingReturnTo?: string;
   onListingReviewOpened?: () => void;
+  /** The row's own tools (list in shop, Photo, Taste, next step), shown on the Shelf tab. */
+  shelfTools?: React.ReactNode;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -1045,8 +1048,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   openListingReview = false,
   listingReturnTo,
   onListingReviewOpened,
+  shelfTools,
 }) => {
   const navigate = useNavigate();
+  const [roomTab, setRoomTab] = useState<RoomTab>('shelf');
+  useEffect(() => { if (openListingReview) setRoomTab('shelf'); }, [openListingReview]);
   const { showToast } = useToast();
   const panelQueryClient = useQueryClient();
   /* The shop's own freight rate, for teas that have not entered one. Read from
@@ -1377,7 +1383,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
           {/* Scrollable content. Identity card lives here too, scrolls with
               everything else instead of staying fixed under the nav row. */}
-          {product.personalOfferSourceId ? <StockOfferSource product={product} titleId={titleId} /> : <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
+          {product.personalOfferSourceId ? <StockOfferSource product={product} titleId={titleId} /> : <div data-room-tab={roomTab} className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
             {/* Identity card. Neutral admin surface; the type color signal
                 lives as a 2px left bar so the rest of the card is calm.
                 The bar is a child element rather than an inset box-shadow: an
@@ -1427,7 +1433,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </div>
             </div>
 
-            <div className="px-3 pb-3 space-y-2">
+            <RoomTabs value={roomTab} onChange={setRoomTab} />
+            <div data-tab-of="shelf" className="px-3 pb-3 space-y-2">
               <div role="group" aria-label="Inventory purpose" className="flex flex-wrap items-center gap-1.5">
                 <span className="text-ui-10 uppercase tracking-[0.08em] text-admin-text-sec mr-1">Purpose</span>
                 {(['working', 'sample', 'personal'] as const).map((purpose) => (
@@ -1470,6 +1477,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             <PhoneTeaHeader product={product} incoming={incoming} onChangeStock={onOpenStockMovement} onRecount={onRecount} onAction={onTeaAction} />
 
+            <div data-tab-of="shelf">
             <StockListingReview key={`${activeAccountId}:${product.id}`}
               product={product} entryId={sharedRecordId}
               openRequested={openListingReview} onOpenHandled={onListingReviewOpened} returnTo={listingReturnTo}
@@ -1483,7 +1491,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [product.id] });
               }}
             />
-            <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+            </div>
+            <div data-tab-of="shelf" className="px-3 pb-3 flex flex-wrap gap-1.5">
               <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`} title="Starred, promoted on collection pages">
                 <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
               </button>
@@ -1518,19 +1527,20 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </button>
               <CollectionPill productId={product.id} />
             </div>
+            {shelfTools && <div data-tab-of="shelf" className="hidden px-3 pb-3 md:block">{shelfTools}</div>}
 
             {/* 1. QUICK ENTRY. Required fields grouped on one bordered card.
                   Identity, origin, vendor, pricing, stock all live here so a
                   product can be entered top-to-bottom without expanding sections.
                   Visibility/promotion toggles moved out, they live in the
                   always-visible bar above this card. */}
-            <div id="tea-section-details" className="admin-card mx-3 mb-3 px-4 pt-4 pb-4 scroll-mt-12">
+            <div id="tea-section-details" data-tab-of="shelf details money" className="admin-card mx-3 mb-3 px-4 pt-4 pb-4 scroll-mt-12">
               <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-admin-border">
                 <span className="font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Quick entry</span>
                 <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">Auto-saves</span>
               </div>
               <div>
-
+              <div data-tab-of="details">
               {/* Name (full row, autocomplete + autofill) */}
               <FieldRowFull label="Name">
                 <GhostAutocompleteInput
@@ -1641,8 +1651,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 />
               </div>
 
+              </div><div data-tab-of="money">
               <FieldGroupDivider />
-
               {/* Pricing inputs. Cost gets full-width row so currency + amount have room.
                   Batch and shipping rate paired below. Calculated retail readout follows. */}
               {inventoryCategory === 'teaware' ? (
@@ -1798,6 +1808,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </>
               )}
 
+              </div><div data-tab-of="shelf">
               {/* Stock. The box holds the number and nothing else: it is a value
                   field that happens to be pressable, and the name of the action
                   sat inside it wrapping onto a second line, which read as part
@@ -1849,6 +1860,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 );
               })()}
 
+              </div>
               {/* Visibility / promote / classify pills moved to the consolidated
                   "Placement" section below, colocated with collections and outbound
                   links since they all answer "where does this product appear?" */}
@@ -1856,12 +1868,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             </div>
 
             {/* 2. Images: flat, no section header */}
-            <div id="tea-section-photos" className="px-3 mb-3 scroll-mt-12">
+            <div id="tea-section-photos" data-tab-of="shelf" className="px-3 mb-3 scroll-mt-12">
               <ImageManager product={product} onUpdate={(field, value) => persistField(product.id, field, value)} />
             </div>
 
             {/* 3. Tasting Profile. Tap to open the editor modal. Card matches the
                   collapsible section styling so the panel reads as one rhythm. */}
+            <div data-tab-of="story">
             <button
               id="tea-section-tasting"
               onClick={() => setTastingEditorProduct(product)}
@@ -1961,6 +1974,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 bar under the identity card. What stays here is what's actually
                 occasional: the collections this product belongs to and the
                 outbound links (encounter, orders, full story page). */}
+            </div><div data-tab-of="links">
             <div id="tea-section-placement" className="scroll-mt-12" />
             <CollapsibleSection title="Placement" description="Collections and outbound links." defaultOpen={false}>
               {/* Collections, curated bundles this product is in. */}
@@ -2075,6 +2089,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             {/* Collections moved into the Placement section above. */}
 
+            </div>
             <div className="pb-16" />
           </div>}
         </>)}

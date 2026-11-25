@@ -6162,6 +6162,29 @@ body.cart-panel-open .commerce-dock {
 .stock-group-switch-bar { display:none; }
 .stock-group-switch-line { padding:0 12px; border-bottom:1px solid var(--tea-border); }
 @media(min-width:768px) { .stock-group-switch-bar { display:flex; margin-left:auto; } .stock-group-switch-line { display:none; } }
+/* Stock as rooms: the left room lists the groups. One soft tone marks the open
+   one; nothing here is separated by a rule. */
+.stock-rooms-rail { width:14rem; flex-shrink:0; overflow-x:hidden; overflow-y:auto; padding:var(--space-2) var(--space-2) var(--space-4); }
+/* The open tea's room: five words, one short page each. Laptop only; a phone
+   keeps its one long page with its own jump buttons. */
+.stock-room-tabs { display:none; }
+.stock-room-tools { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-1) var(--space-4); color:var(--tea-text-sec); font-size:var(--fs-ui-13); }
+.stock-room-tools>button { display:inline-flex; align-items:center; gap:var(--space-2); min-height:var(--control-h); }
+.stock-room-tools>button:hover { color:var(--tea-text); }
+.stock-room-tools>button:disabled { opacity:.5; cursor:not-allowed; }
+.stock-room-tick { display:inline-flex; align-items:center; justify-content:center; width:var(--space-4); height:var(--space-4); border-radius:var(--radius-base); background:var(--tea-elevated); }
+@media(min-width:768px) {
+  .stock-room-tabs { display:flex; gap:calc(var(--space-1) / 2); margin:0 var(--space-3) var(--space-3); padding:calc(var(--space-1) * .75); border-radius:var(--radius-3xl); background:var(--tea-surface); }
+  .stock-room-tabs>button { flex:1; padding:var(--space-1) 0; border-radius:var(--radius-2xl); color:var(--tea-text-sec); font-size:var(--fs-ui-13); }
+  .stock-room-tabs>button:hover { color:var(--tea-text); }
+  .stock-room-tabs>button[aria-selected="true"] { background:var(--tea-elevated); color:var(--tea-text); }
+  [data-room-tab="shelf"] [data-tab-of]:not([data-tab-of~="shelf"]),
+  [data-room-tab="details"] [data-tab-of]:not([data-tab-of~="details"]),
+  [data-room-tab="money"] [data-tab-of]:not([data-tab-of~="money"]),
+  [data-room-tab="story"] [data-tab-of]:not([data-tab-of~="story"]),
+  [data-room-tab="links"] [data-tab-of]:not([data-tab-of~="links"]) { display:none; }
+}
+.stock-room-entry { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:baseline; column-gap:var(--space-2); width:100%; padding:calc(var(--space-1) * 1.5) var(--space-3); border-radius:var(--radius-md); text-align:left; }
 /* Desktop: one slim row of inline "Label value" filters sized to their
    content, instead of four 225px columns with stacked labels (UI audit #5). */
 @media(min-width:768px) {
@@ -7658,3 +7681,57 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-group-main-toggle .stock-group-flags { flex-wrap:nowrap; font-size:var(--fs-ui-12); }
   .stock-view .stock-group-main-toggle .stock-group-summary { display:flex; width:auto; margin-left:auto; gap:var(--space-4); font-family:var(--font-serif); font-size:var(--fs-ui-13); }
 }
+
+/* Stock as rooms on a laptop (Adrian, 2026-11-25): nothing on the page is
+   separated by a rule. Tone, space and type do the work. The borders are made
+   transparent, not removed, so no row or cell changes size. */
+@media(min-width:768px) {
+  .stock-view .stock-browse-bar,
+  .stock-view .stock-layout-switch,
+  .stock-view .stock-group-switch-line { border-color:transparent; }
+  .stock-view .stock-group-switch { gap:var(--space-1); }
+  .stock-view .stock-group-switch>button,
+  .stock-view .stock-layout-actions button { min-height:0; height:calc(var(--space-6) + var(--space-1)); padding:0 var(--space-3); border-bottom:0; border-radius:var(--radius-3xl); }
+  .stock-view .stock-layout-actions { gap:var(--space-1); }
+  .stock-view [data-testid="inventory-purpose-row"] { min-height:var(--space-12); }
+  .stock-view .stock-group-switch>button[aria-pressed="true"],
+  .stock-view .stock-layout-actions button[aria-pressed="true"] { background:var(--tea-elevated); }
+  .stock-rooms>[data-testid="inventory-scroll"] :is(table,thead,tbody,tr,th,td),
+  .stock-rooms>[data-testid="inventory-scroll"]>div,
+  .stock-rooms>[data-testid="inventory-scroll"]>div>div,
+  .stock-rooms>[data-testid="inventory-scroll"]>div>div>div,
+  .stock-rooms .stock-group-head { border-color:transparent !important; }
+  .stock-rooms>[data-testid="inventory-scroll"] [class*="shadow-[inset_0_-1px_0"] { box-shadow:none !important; }
+  .stock-rooms>[data-testid="inventory-scroll"] tr[class*="shadow-[inset_3px_0_0_0"] { box-shadow:none !important; background:var(--tea-accent-sub) !important; }
+  .stock-rooms>[data-testid="inventory-scroll"] :is(th,td) { border-right-width:0 !important; box-shadow:none !important; }
+  .stock-rooms>[data-testid="inventory-scroll"] tr { outline:0 !important; }
+  .stock-rooms>[data-testid="inventory-scroll"] :is(th,thead tr) { background:transparent !important; }
+  .stock-rooms .stock-group-head { padding-top:var(--space-4); background:transparent !important; }
+  .stock-rooms .stock-group-name { font-size:var(--fs-ui-22); }
+  .stock-rooms[data-room] .stock-group-name { font-size:var(--fs-ui-28); }
+  .stock-rooms:has(.stock-rooms-rail)>[data-testid="inventory-scroll"] { background:var(--tea-surface); border-top-left-radius:var(--radius-xl); }
+  .stock-rooms:has(.stock-rooms-rail)>[data-testid="inventory-scroll"] :is(.sticky,thead,table) { background:var(--tea-surface) !important; }
+  /* The open tea's room: one raised tone, fields a step darker, no outlines. */
+  [role="dialog"]:has([data-room-tab]) { --admin-bg:var(--tea-elevated); --admin-border:transparent; --admin-input-bg:var(--tea-surface); }
+  [role="dialog"]:has([data-room-tab]) :is(.admin-card,.admin-input) { box-shadow:none; }
+  [role="dialog"]:has([data-room-tab]) .admin-card { background:transparent; }
+  [role="dialog"]:has([data-room-tab]) .admin-input:focus-visible { border-color:var(--tea-gold); }
+  [role="dialog"]:has([data-room-tab]) .admin-pill-on { background:var(--tea-surface); border-color:transparent; }
+}
+/* Stock as rooms on a phone: a slim strip of groups on the left, the chosen
+   group's teas on the right, and no rules between anything. */
+.stock-phone-quiet [role="row"],
+.stock-phone-quiet section>div { border-color:transparent; }
+.stock-phone-quiet section>div.relative::after { content:none; }
+.stock-phone-rooms { display:flex; align-items:flex-start; }
+.stock-phone-room { flex:1; min-width:0; }
+.stock-phone-rooms .stock-phone-room { min-height:var(--stock-strip-h, auto); border-top-left-radius:var(--radius-2xl); background:var(--tea-surface); }
+.stock-phone-rooms .stock-phone-room [role="row"] { border-top-left-radius:var(--radius-2xl); background:var(--tea-surface); }
+.stock-phone-strip { position:sticky; top:0; width:4.875rem; flex-shrink:0; max-height:var(--stock-strip-h, 70dvh); overflow-y:auto; padding:var(--space-1) var(--space-1) calc(var(--space-12) * 2); }
+.stock-phone-strip>button { display:block; width:100%; padding:var(--space-2); border-radius:var(--radius-lg); text-align:left; }
+.stock-phone-strip>button[aria-pressed="true"] { background:var(--tea-surface); }
+.stock-phone-strip>button>span { display:block; }
+.stock-phone-strip>button>span:first-child { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; overflow-wrap:anywhere; color:var(--tea-text-sec); font-size:var(--fs-ui-12); line-height:1.22; }
+.stock-phone-strip>button[aria-pressed="true"]>span:first-child { color:var(--tea-text); }
+.stock-phone-strip>button>span:last-child { margin-top:calc(var(--space-1) / 2); color:var(--tea-text-sec); font-size:var(--fs-ui-10); }
+.stock-phone-strip em { color:var(--tea-error); font-style:normal; }

@@ -8,7 +8,7 @@ import { PhoneTeaTools, phoneCardStudy } from './inventory/stock/PhoneTeaTools';
 import { SupplierActionsMenu } from './inventory/stock/SupplierActionsMenu';
 import { StockCardSections, useStockLayout, useStockGroupFolds } from './inventory/stock/StockCardSections';
 import { Button } from '../../components/shared/Button';
-import { AssignSupplierButton, StockGroupFlags, StockGroupSwitch, useStockRowEditing } from './inventory/stock/StockRowEditing';
+import { AssignSupplierButton, StockGroupFlags, StockGroupSwitch, useStockRowEditing, ROOMS_MIN_WIDTH, useStockRooms, RoomShelfTools } from './inventory/stock/StockRowEditing';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
 import { UnknownSupplierSheet } from './inventory/stock/UnknownSupplierSheet';
 import { formPricingPreview } from './inventory/stock/formPricingModel';
@@ -816,6 +816,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const phoneList = isMobile && !isEditMode && !glossaryMode && filterType !== 'Pending' && !draftMode && (stockLayout !== 'cards' || filterType === 'Samples') && !phoneCardStudy();
   const cardLayout = !phoneList && stockLayout === 'cards' && !isEditMode && !draftMode && filterType !== 'Samples' && filterType !== 'Pending' && !glossaryMode;
   const [phoneGroupBy, setPhoneGroupByState] = useState<PhoneGroupBy>(readPhoneGroupBy);
+  const rooms = useStockRooms(!isMobile && winWidth >= ROOMS_MIN_WIDTH && !cardLayout && !isEditMode && !glossaryMode && filterType !== 'Pending' && filterType !== 'Samples', groupedProducts, processedProducts.length, inventoryCategory === 'teaware' ? 'All wares' : 'All teas');
   // Curate samples shown in the Samples view, so its count includes them.
   const [curateSampleCount, setCurateSampleCount] = useState(0);
   const setPhoneGroupBy = (by: PhoneGroupBy) => { setPhoneGroupByState(by); writePhoneGroupBy(by); };
@@ -2561,10 +2562,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           claim the header and let it scroll away vertically. One scrollport,
           both axes: the header sticks to the top and the Product cell to the
           left. The navigation plane is a sibling, so it never moves sideways. */}
-      <div
+      <div className="stock-rooms flex min-h-0 flex-1" data-room={rooms.active ?? undefined}>{rooms.rail}<div
         ref={scrollContainerRef}
         data-testid="inventory-scroll"
-        className={`flex-1 isolate custom-scrollbar bg-tea-bg pt-0 pb-nav-gap transition-all duration-300 ${mobileHScroll ? 'overflow-auto overscroll-x-none hide-scrollbar-always' : 'overflow-y-auto overflow-x-hidden'}`}
+        className={`min-w-0 flex-1 isolate custom-scrollbar bg-tea-bg pt-0 pb-nav-gap transition-all duration-300 ${mobileHScroll ? 'overflow-auto overscroll-x-none hide-scrollbar-always' : 'overflow-y-auto overflow-x-hidden'}`}
         style={{ marginRight: contentRightMargin }}
         onScroll={(e) => {
           if (filterType === 'Pending') return;
@@ -2953,8 +2954,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
               {/* Grouped sections */}
               {groupedProducts.map(({ key: groupKey, label: groupLabel, items, totalStock, totalRetail, lifecycle }) => {
-                if (filterType === 'Samples' && items.length === 0) return null;
-                const isCollapsed = collapsedGroups.has(groupKey);
+                if ((filterType === 'Samples' && items.length === 0) || (rooms.active && rooms.active !== groupKey)) return null;
+                const isCollapsed = !rooms.active && collapsedGroups.has(groupKey);
                 const needHeadings = lifecycle && groupKey === 'needs_preparation' && inventoryCategory === 'tea' ? preparationHeadings(items) : null;
                 const unassigned = inventoryGroupBy === 'vendor' && groupKey === 'Unknown';
                 return (
@@ -3183,7 +3184,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
         )}
 
-      </div>
+      </div></div>
 
       {/* --- MODALS --- */}
       {showContentLinks && (
@@ -3288,6 +3289,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           livePanelProduct, 'isPublic', true, effectiveIncomingByProductId, effectiveInventorySummaryStatus,
         ) : null}
         rightOffset={panelRightOffset}
+        shelfTools={livePanelProduct && <RoomShelfTools product={livePanelProduct} canPublish={canPublishInventoryProduct(livePanelProduct)} onUpdate={handleProductUpdate} onTasting={setTastingEditorProduct} {...rowEditing.editorExtras(livePanelProduct)} />}
       />
 
       {/* Tea Details Modal (AlcoveCard): the shop preview the panel's "Shop"

@@ -8,6 +8,10 @@ import { PhoneTeaSheet } from '../phone/PhoneTeaSheet';
 import { QuickPhotoSheet } from './QuickPhotoSheet';
 import { stockNextStepLabel, useStockNextStep } from './StockCardSections';
 
+// The rooms' pieces, passed on so InventoryView has one line to import them from.
+export { ROOMS_MIN_WIDTH, useStockRooms } from './StockRooms';
+export { RoomShelfTools } from './RoomTabs';
+
 // Stock as a list you change where you read it (Adrian, 2026-11-25): grouped by
 // supplier, a plain click opens the tea's editor under its row on the laptop and
 // the 2026-10-08 panel on a phone. The pieces live here so InventoryView only
@@ -73,11 +77,16 @@ export function useStockRowEditing(o: RowEditingOptions) {
   const isMobileRef = useRef(o.isMobile);
   useLayoutEffect(() => { isMobileRef.current = o.isMobile; }, [o.isMobile]);
   const { setExpandedRowId } = o;
+  const latest = useRef(o);
+  useLayoutEffect(() => { latest.current = o; });
 
-  /** A plain click: the editor under the row on a laptop, the panel on a phone. */
+  /** A plain click opens the tea without moving the list: its room on the right
+   *  on a laptop, the panel on a phone. The editor under the row stays on a long press. */
   const openTea = useCallback((productId: string) => {
-    if (isMobileRef.current) setPhoneSheetId(prev => (prev === productId ? null : productId));
-    else setExpandedRowId(prev => (prev === productId ? null : productId));
+    if (isMobileRef.current) { setPhoneSheetId(prev => (prev === productId ? null : productId)); return; }
+    const { products, allProducts, openRecord } = latest.current;
+    const product = products.find(candidate => candidate.id === productId) ?? allProducts.find(candidate => candidate.id === productId);
+    if (product) { setExpandedRowId(() => null); openRecord(product); }
   }, [setExpandedRowId]);
 
   // The Stage grouping heads these runs itself, so the marks are for every other grouping.

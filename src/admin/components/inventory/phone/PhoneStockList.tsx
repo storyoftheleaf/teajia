@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '../../../../components/shared/Button';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Product } from '../../../types';
 import type { IncomingInventorySummary } from '../domain';
@@ -105,6 +106,25 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   // A search, or a short list, shows every match without a second tap.
   const expandAll = groupBy === 'none' || searchActive || products.length <= 25;
   const focused = focusedId ? products.find(p => p.id === focusedId) ?? null : null;
+  // Stock as rooms on a phone (Adrian, 2026-11-25): the groups stand in a slim
+  // strip down the left and the chosen one fills the rest. "All" is the folded
+  // list as it was. A search, the Samples view and a single group need no strip.
+  const [room, setRoom] = useState<string | null>(null);
+  const strip = !samples && groupBy !== 'none' && !searchActive && groups.length > 1;
+  const activeRoom = strip && room !== null && groups.some(group => group.key === room) ? room : null;
+  const shownGroups = activeRoom ? groups.filter(group => group.key === activeRoom) : groups;
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    // The strip scrolls on its own, so it is as tall as the list's scroll area.
+    const root = rootRef.current;
+    const scroller = root?.closest<HTMLElement>('[data-testid="inventory-scroll"]');
+    if (!root || !scroller || !strip) return;
+    const fit = () => root.style.setProperty('--stock-strip-h', `${scroller.clientHeight}px`);
+    fit();
+    const watcher = new ResizeObserver(fit);
+    watcher.observe(scroller);
+    return () => watcher.disconnect();
+  }, [strip]);
   const selecting = selectedIds.size > 0;
   // The tick circles stay hidden until asked for, like iPhone's edit marks: tap
   // Select, or hold a tea. That gives the names the room, and ticking is one
@@ -154,7 +174,15 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   ];
 
   return (
-    <div data-testid="stock-phone" className={`stock-phone-tone ${focused && !selecting ? 'pb-[300px]' : selecting ? 'pb-[170px]' : ''}`}>
+    <div ref={rootRef} data-testid="stock-phone" className={`stock-phone-tone ${samples ? '' : 'stock-phone-quiet'} ${strip ? 'stock-phone-rooms' : ''} ${focused && !selecting ? 'pb-[300px]' : selecting ? 'pb-[170px]' : ''}`}>
+      {strip && <nav aria-label="Groups" data-testid="stock-phone-strip" className="stock-phone-strip hide-scrollbar-always">
+        <Button variant="plain" type="button" aria-pressed={activeRoom === null} onClick={() => setRoom(null)}><span>All</span><span>{products.length}</span></Button>
+        {groups.map(group => <Button key={group.key} variant="plain" type="button" aria-pressed={activeRoom === group.key}
+          onClick={() => { setRoom(activeRoom === group.key ? null : group.key); setFocusedId(null); }}>
+          <span>{group.label}</span><span>{group.count}{group.low > 0 && <> · <em>{group.low} low</em></>}</span>
+        </Button>)}
+      </nav>}
+      <div className="stock-phone-room">
       <div role="row" className={`sticky top-0 z-sticky flex items-center bg-tea-bg ${selectMode ? 'pl-9' : 'pl-4'} pr-3 border-b border-tea-border`}>
         <div className={`${COLS} flex-1 relative`}>
           {heads.map(([key, label, align]) => {
@@ -185,8 +213,8 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
         <p className="px-4 py-10 text-center text-ui-14 text-tea-text-sec">{emptyText}</p>
       )}
 
-      {groups.map(group => {
-        const isOpen = expandAll || open.has(group.key);
+      {shownGroups.map(group => {
+        const isOpen = expandAll || activeRoom === group.key || open.has(group.key);
         return (
           <section key={group.key} aria-label={group.label}>
             {groupBy !== 'none' && (
@@ -292,6 +320,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
         );
       })}
 
+      </div>
       {focused && !selecting && (
         <PhoneTeaSheet
           product={focused}
