@@ -2383,7 +2383,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   onSupplier={value => setSearchParams(params => withParam(params, 'vendor', value || null), { replace: true })}
                   view={current?.id || allViews[0]?.id || ''} views={allViews.map(view => ({ value: view.id, label: viewLabel(view), filter: view.filterType }))}
                   onView={id => { const view = allViews.find(view => view.id === id); if (view) selectView(view); }}
-                  tasting={tastingFilter} onTasting={value => setSearchParams(params => withParam(params, 'tasting', value || null), { replace: true })}>
+                  tasting={tastingFilter} onTasting={value => setSearchParams(params => withParam(params, 'tasting', value || null), { replace: true })}
+                  onClearAll={() => {
+                    const everything = allViews.find(view => view.filterType === 'All');
+                    if (everything) selectView(everything);
+                    setSearchParams(params => withParam(withParam(withParam(params, 'teaType', null), 'vendor', null), 'tasting', null), { replace: true }); // history: refine
+                  }}>
                   {!phoneList && <StockGroupSwitch placement="bar" value={inventoryGroupBy || 'vendor'} onChange={setInventoryGroupBy} />}
                   <div className="heading-study-options-host">{adjustMenu}</div>
                 </StockBrowseBar>
