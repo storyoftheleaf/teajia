@@ -12,6 +12,7 @@ import BasicInfoSection from './sections/BasicInfoSection';
 import LocationSection from './sections/LocationSection';
 import VenueGuideSection from './sections/VenueGuideSection';
 import SessionFlowSection from './sections/SessionFlowSection';
+import { usePhotoEditor } from '../../../components/shared/usePhotoEditor';
 
 export interface EditFormProps {
   initialData: TeaEvent;
@@ -142,8 +143,12 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     });
   }, []);
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { title: 'Event photo', freeShape: true });
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
       showToast('Image must be under 10 MB', 'error');
@@ -243,7 +248,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   }, []);
 
   const handleVenueStepImageUpload = useCallback(async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { title: 'Venue photo', freeShape: true });
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
       showToast('Image must be under 10 MB', 'error');
@@ -385,6 +393,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
 
   return (
     <>
+    {photoEditor}
     <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
 

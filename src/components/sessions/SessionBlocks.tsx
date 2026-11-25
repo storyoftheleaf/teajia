@@ -5,7 +5,6 @@ import { countWord } from '../people/profileFormat';
 import { sessionPhotoSrc } from '../../lib/publicSitRecap';
 import { SessionTeaRow } from './SessionTeaRow';
 import { useSessionPhotoImage, type SessionPhotoSource } from './SessionPhoto';
-import { ChevronRight } from 'lucide-react';
 
 // The parts a session is drawn with, on a profile and on its recap
 // (approved drawing "The profile and the recap it opens", 2026-11-24).
@@ -166,7 +165,7 @@ export function OpenRecapRow({ to }: { to: string }) {
   return (
     <Link to={to} className="flex min-h-tap items-center justify-between border-t border-tea-border bg-tea-bg px-6 py-3 font-sans text-ui-11 uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text">
       <span>All photographs and guest book</span>
-      <ChevronRight size={14} aria-hidden="true" className="text-tea-gold" />
+      <span aria-hidden="true" className="h-1.5 w-1.5 rotate-45 border-r border-t border-current" />
     </Link>
   );
 }

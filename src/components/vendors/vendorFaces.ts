@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCustomers } from '../../admin/hooks/useAdminData';
 import { api, type ApiRequestInit } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
+import { cropToSquareBlob } from '../../lib/cropImage';
+import { faceFramePixels, findFace, loadFaceImage } from '../../lib/faceFrame';
 import { prepareFacePhoto } from './facePhotoFile';
 
 /**
@@ -103,14 +105,36 @@ export function useFaceVendors(options?: { enabled?: boolean }) {
 }
 
 /**
- * Upload a face and save it on the vendor. Squared and kept small: it is only
- * ever shown as a face, and vendor photos are often taken on a slow connection.
+ * A photo squared on its face: head and shoulders, the face a little above
+ * centre. Used where a face is saved without the editor opening (placing a
+ * batch from the tray). A photo with no face found is squared from the middle.
+ */
+export async function squareOnFace(file: File, size = 800): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const image = await loadFaceImage(url);
+    const face = await findFace(image);
+    if (!face) return await compressImage(file, size, 0.75, { square: true });
+    const frame = faceFramePixels(face, { width: image.naturalWidth, height: image.naturalHeight }, 1);
+    return await cropToSquareBlob(url, frame, { size, quality: 0.8 });
+  } catch {
+    return compressImage(file, size, 0.75, { square: true });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * Upload a face and save it on the vendor. Squared on the face and kept
+ * small: it is only ever shown as a face, and vendor photos are often taken
+ * on a slow connection. `framed` means the photo editor already framed it.
  * Returns the stored URL.
  */
-export async function saveVendorFace(vendorId: string, file: File, expectedAuth?: ApiRequestInit['expectedAuth']): Promise<string> {
-  const readable = await prepareFacePhoto(file);
-  const compressed = await compressImage(readable, 800, 0.75, { square: true });
-  const upload = new File([compressed], 'vendor-face.jpg', { type: 'image/jpeg' });
+export async function saveVendorFace(
+  vendorId: string, file: File | Blob, expectedAuth?: ApiRequestInit['expectedAuth'], options?: { framed?: boolean },
+): Promise<string> {
+  const squared = options?.framed ? file : await squareOnFace(await prepareFacePhoto(file as File));
+  const upload = new File([squared], 'vendor-face.jpg', { type: 'image/jpeg' });
   const url = await api.uploadImage(upload, { filename: 'vendor-face.jpg', expectedAuth });
   if (!url) throw new Error('The photo upload returned no address.');
   await api.customers.update(vendorId, { face_photo: url }, expectedAuth);

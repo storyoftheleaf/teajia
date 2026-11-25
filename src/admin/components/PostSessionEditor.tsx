@@ -11,6 +11,7 @@ import { Modal } from '../../components/shared/Modal';
 import { Button } from '../../components/shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { createPostSessionLoadCoordinator, createPostSessionUploadGuard, postSessionUploadErrorMessage, runPostSessionUpload, savePostSession } from './PostSessionEditorContract';
+import { usePhotoEditor } from '../../components/shared/usePhotoEditor';
 
 interface PostSessionEditorProps {
   eventId: string;
@@ -130,8 +131,12 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, c
     }
   };
 
+  const { editPhotos, photoEditor } = usePhotoEditor({ freeShape: true });
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const picked = Array.from(e.target.files || []);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (picked.length === 0) return;
+    const files = await editPhotos(picked);
     if (files.length === 0) return;
 
     const upload = uploadGuardRef.current!.begin(eventId);
@@ -203,6 +208,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId, c
             </Button>
             <Button type="button" variant="quiet" size="sm" onClick={() => setShowMore(true)}>Optional details</Button>
           </div>
+          {photoEditor}
           <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
         </section>
 

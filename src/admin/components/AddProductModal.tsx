@@ -23,6 +23,7 @@ import { TeaReviewsPanel } from './TeaReviewsPanel';
 import { StockLedgerPanel } from './StockLedgerPanel';
 import { ConfirmModal } from './ConfirmModal';
 import { enteredNumber } from '../productUpdatePayload';
+import { usePhotoEditor } from '../../components/shared/usePhotoEditor';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -650,8 +651,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData, isOpen]);
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = await editPhoto(e.target.files?.[0]);
     if (!file) return;
 
     setUploading(true);
@@ -917,6 +919,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
               <label className={labelStyle}><ImageIcon size={9} /> Photo</label>
               {!formData.imageUrl ? (
                 <div className="relative mt-1">
+                  {photoEditor}
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
                   <label
                     htmlFor="img-upload"
@@ -963,7 +966,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         accept="image/*"
                         className="hidden"
                         onChange={async (e) => {
-                          const file = e.target.files?.[0];
+                          const file = await editPhoto(e.target.files?.[0]);
                           if (!file) return;
                           try {
                             const url = await api.uploadImage(file);

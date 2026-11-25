@@ -18,6 +18,9 @@ last_reviewed: 2026-11-03
 
 Reuse the shared card, panel summary, and tasting parts documented in [the design system](docs/DESIGN_SYSTEM.md#tea-cards-detail-panels-and-tasting). The interactive reference runs locally at `/preview/tea-ui/`.
 
+## Every photo added goes through the one photo editor
+Anywhere a person adds a photo, it opens in the shared editor first (`usePhotoEditor()` in `src/components/shared/usePhotoEditor.tsx`, which wraps `SquareCropModal`): crop, drag to reposition, zoom, straighten. Faces and avatars open centred on the face (`src/lib/faceFrame.ts`, on the device, served from this site); `freeShape` photos (events, posts, teaware, shop photos) open on their own shape. A photo already shown gets the same editor to reframe it, as the vendor Faces grid does. Never write a new cropper or a bare `<input type="file">` that uploads a picture straight. The exceptions are photos the shop's analysis reads whole (package scans, imports, receipts, evidence) and places that already keep the original with a frame (tastings, family photos, contributor pages). (Adrian, 2026-11-25.)
+
 ## Handoffs (standing rule, global)
 
 **Never give Adrian a zip file for a handoff.** A handoff is plain files saved on GitHub, given to him as links he can open. No archive as the handoff, and none as a "second copy" either. (Adrian, 2026-11-16.)

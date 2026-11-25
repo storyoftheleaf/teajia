@@ -8,6 +8,8 @@ import { mediaUrl } from '../../../../lib/mediaUrl';
 import type { Product } from '../../../types';
 import type { SaveField } from './MiniPageSheets';
 import { firstPhotoSlot, photoFieldUpdate, type PhotoSlot } from './quickPhotoModel';
+import { usePhotoEditor } from '../../../../components/shared/usePhotoEditor';
+import { looksLikePhoto } from '../../../../components/vendors/facePhotoFile';
 
 export interface QuickPhotoSheetProps { product: Product; onSave: SaveField; onClose: () => void }
 type PendingPhoto = { file: File; slot: PhotoSlot; replace: boolean; url?: string };
@@ -53,9 +55,14 @@ export function QuickPhotoSheet({ product, onSave, onClose }: QuickPhotoSheetPro
       setError(reason instanceof Error ? reason.message : 'The photo could not be saved. Try again.');
     } finally { busyRef.current = false; setBusy(false); setStatus(''); }
   }
-  function choose(file?: File) {
-    if (!file || !chosenSlot || busyRef.current) return;
-    if (!file.type.startsWith('image/')) { setError('Choose a photo file.'); return; }
+  const { editPhoto, photoEditor } = usePhotoEditor();
+  async function choose(picked?: File) {
+    if (!picked || !chosenSlot || busyRef.current) return;
+    if (camera.current) camera.current.value = '';
+    if (library.current) library.current.value = '';
+    if (!looksLikePhoto(picked)) { setError('Choose a photo file.'); return; }
+    const file = await editPhoto(picked, { title: 'Product photo' });
+    if (!file) return;
     void persist({ file, slot: chosenSlot, replace: replaceSlot !== null });
   }
   function discardPending() {
@@ -70,8 +77,9 @@ export function QuickPhotoSheet({ product, onSave, onClose }: QuickPhotoSheetPro
         <p className={`${T.link} text-tea-text-sec`}>Replacing {slotLabel(replaceSlot).toLowerCase()}</p>
         <button type="button" disabled={busy || Boolean(pending)} onClick={() => setReplaceSlot(null)} className={`${T.link} min-h-tap px-2 text-tea-gold disabled:opacity-50`}>Cancel replacement</button>
       </div>}
-      <input ref={camera} type="file" accept="image/*" capture="environment" className="hidden" aria-label="Take product photo" onChange={event => choose(event.target.files?.[0])} />
-      <input ref={library} type="file" accept="image/*" className="hidden" aria-label="Choose product photo" onChange={event => choose(event.target.files?.[0])} />
+      {photoEditor}
+      <input ref={camera} type="file" accept="image/*" capture="environment" className="hidden" aria-label="Take product photo" onChange={event => void choose(event.target.files?.[0])} />
+      <input ref={library} type="file" accept="image/*" className="hidden" aria-label="Choose product photo" onChange={event => void choose(event.target.files?.[0])} />
       <div className="grid grid-cols-1 gap-2">
         <button type="button" disabled={pickerDisabled} onClick={() => camera.current?.click()} className={`${T.nav} flex min-h-14 items-center justify-center gap-3 rounded-xl cta-solid px-4 py-3 disabled:opacity-50`}><Camera size={20} />Take photo</button>
         <button type="button" disabled={pickerDisabled} onClick={() => library.current?.click()} className={`${T.nav} flex min-h-14 items-center justify-center gap-3 rounded-xl border border-tea-border bg-tea-surface px-4 py-3 disabled:opacity-50`}><ImagePlus size={20} />Photo library</button>

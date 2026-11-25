@@ -3,7 +3,7 @@ import { Plus, X } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { InlineField } from './InlineField';
 import { VendorFace } from './VendorFace';
-import { VendorFacePhotoButton } from './VendorFacePhotoButton';
+import { VendorFaceAdjustButton, VendorFacePhotoButton } from './VendorFacePhotoButton';
 import { vendorFacePhoto } from './vendorFaces';
 import { useVendorSave } from './useVendorSave';
 import type { ContactChannel, ContactEntry, Customer } from '../../admin/types';
@@ -93,7 +93,10 @@ export const VendorDetailsCard: React.FC<{ vendor: VendorRecord; vendorId: strin
               {[vendor.company, [vendor.city, vendor.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}
             </p>
           )}
-          <VendorFacePhotoButton vendorId={vendorId} vendorName={vendor.name} hasFace={!!vendor.face_photo} />
+          <div className="flex flex-wrap items-start gap-2">
+            <VendorFacePhotoButton vendorId={vendorId} vendorName={vendor.name} hasFace={!!vendor.face_photo} />
+            {vendorFacePhoto(vendor) && <VendorFaceAdjustButton vendorId={vendorId} vendorName={vendor.name} photo={vendorFacePhoto(vendor)!} look="inline" />}
+          </div>
         </div>
       </div>
 

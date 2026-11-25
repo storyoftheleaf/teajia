@@ -17,6 +17,7 @@ import type { VendorDetails } from './types';
 import { VendorFace } from '../vendors/VendorFace';
 import { VendorFaceSheet, VendorFacesButton } from '../vendors/VendorFaceSheet';
 import { toFaceVendor } from '../vendors/vendorFaces';
+import { usePhotoEditor } from '../shared/usePhotoEditor';
 
 /* ── Location parsing ───────────────────────────────────────
  * Pull WGS-84 coordinates out of a pasted map link OR a plain "lat, lng"
@@ -375,11 +376,15 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [searchOpen]);
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleContactFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     key: 'businessCardUrl' | 'storefrontUrl'
   ) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { title: 'Shop photo', freeShape: true });
     if (!file) return;
     e.target.value = '';
     setPhotoError(false);
@@ -422,6 +427,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       {/* Hidden storefront file input, mounted at top level so the inline
           thumbnail can trigger it whether or not the contact menu is open.
           No camera lock: the shop photo can come from gallery or camera. */}
+      {photoEditor}
       <input ref={storefrontRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => handleContactFileChange(e, 'storefrontUrl')} />
 

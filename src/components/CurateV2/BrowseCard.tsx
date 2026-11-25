@@ -27,6 +27,7 @@ import type { TeaCompassEntry } from './types';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { DecisionControl } from './DecisionControl';
 import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
+import { usePhotoEditor } from '../shared/usePhotoEditor';
 
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
@@ -189,8 +190,12 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
     updateEntry(entry.id, { status: 'noted', buyQuantityGrams: undefined, buyQuantityUnits: undefined, buyTotal: undefined });
   }, [entry.id, transactions, removeLineItem, updateEntry]);
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleAddPhoto = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { freeShape: true });
     if (!file) return;
     e.target.value = '';
     setPhotoUploading(true);
@@ -425,6 +430,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   {photoFailed && !photoUploading && (
                     <span className="shrink-0 self-center text-ui-12 text-tea-error">Didn't save, tap to retry</span>
                   )}
+                  {photoEditor}
                   <input
                     ref={photoInputRef}
                     type="file"

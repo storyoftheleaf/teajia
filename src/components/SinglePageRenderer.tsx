@@ -7,6 +7,7 @@ import { Icons } from './Icons';
 import { SkeletonLoader } from './shared/SkeletonLoader';
 import { sanitizeHTML } from '../utils/sanitize';
 import { useTheme } from '../context/ThemeContext';
+import { usePhotoEditor } from './shared/usePhotoEditor';
 
 export interface PageData {
   variant: LayoutVariant;
@@ -363,8 +364,11 @@ const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = f
   const [imageLoading, setImageLoading] = useState(!!src);
   const { theme } = useTheme();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const { editPhoto, photoEditor } = usePhotoEditor({ freeShape: true });
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0];
+    e.target.value = '';
+    const file = picked && onImageUpdate ? await editPhoto(picked) : null;
     if (file && onImageUpdate) {
       const reader = new FileReader();
       reader.onloadend = () => onImageUpdate(index, reader.result as string);
@@ -402,6 +406,7 @@ const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = f
       {onImageUpdate && !readOnly && (
         <div className="absolute inset-0 bg-tea-text/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30">
           <Icons.Camera className="w-10 h-10 text-tea-text" />
+          {photoEditor}
           <input
             type="file"
             ref={fileInputRef}

@@ -12,6 +12,7 @@ import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { Venue, VenueSpace } from '../../types/events';
+import { usePhotoEditor } from '../../components/shared/usePhotoEditor';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
@@ -36,8 +37,12 @@ interface PhotoStripProps {
 
 const PhotoStrip: React.FC<PhotoStripProps> = ({ photos, onAdd, onRemove, uploading }) => {
   const fileRef = useRef<HTMLInputElement>(null);
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { title: 'Venue photo', freeShape: true });
     if (!file) return;
     await onAdd(file);
     e.target.value = '';
@@ -66,6 +71,7 @@ const PhotoStrip: React.FC<PhotoStripProps> = ({ photos, onAdd, onRemove, upload
         {uploading ? <Loader2 size={16} className="animate-spin text-tea-gold" /> : <Upload size={16} />}
         <span className="text-ui-9 tracking-wide">{uploading ? 'Uploading…' : 'Add photo'}</span>
       </button>
+      {photoEditor}
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
     </div>
   );

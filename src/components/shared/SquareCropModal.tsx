@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 import * as Dialog from '@radix-ui/react-dialog';
 import Cropper, { Area } from 'react-easy-crop';
-import { Check, Loader2, RectangleHorizontal, RectangleVertical, RotateCw, Ruler, Square, X, ZoomIn } from 'lucide-react';
+import { Check, Image as ImageIcon, Loader2, RectangleHorizontal, RectangleVertical, RotateCw, Ruler, Square, X, ZoomIn } from 'lucide-react';
 import { cropToSquareBlob, fileOrUrlToObjectUrl, type SquarePhotoFrame } from '../../lib/cropImage';
 import { clampPhotoFrameCrop, photoFrameSize } from '../../lib/photoFrameGeometry';
+import { faceFramePercent, findFace } from '../../lib/faceFrame';
 
 interface SquareCropModalProps {
   isOpen: boolean;
@@ -24,6 +25,12 @@ interface SquareCropModalProps {
   /** 'takeover' when it opens over a full-screen layer such as the tasting. */
   layer?: 'popover' | 'takeover';
   loadError?: string;
+  /** Open a new photo (one with no saved frame) on its face: centred, filling
+   *  the frame, ready to nudge. On by default; a photo with no face opens whole. */
+  centreFace?: boolean;
+  /** With allowAspectSelection: also offer the photo's own shape, and open on
+   *  it, so a photo can be straightened or tidied without being made square. */
+  offerOriginalShape?: boolean;
   onViewOriginal?: () => void;
   onClose: () => void;
   onConfirm: (blob: Blob, frame: SquarePhotoFrame) => Promise<void> | void;
@@ -87,7 +94,7 @@ const SHAPES = [
 
 export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   isOpen, source, title = 'Crop photo', confirmLabel = 'Save',
-  outputSize, outputQuality, initialFrame, allowAspectSelection = false, frameAspect = 1, layer = 'popover', loadError, onViewOriginal, onClose, onConfirm,
+  outputSize, outputQuality, initialFrame, allowAspectSelection = false, frameAspect = 1, layer = 'popover', loadError, centreFace = true, offerOriginalShape = false, onViewOriginal, onClose, onConfirm,
 }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -122,6 +129,8 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  /** Where a new photo opens: on its face, when one was found. */
+  const [faceArea, setFaceArea] = useState<Area | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const latest = useRef({ saving, onClose });
@@ -179,6 +188,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     croppedAreaPixelsRef.current = null;
     areaPercentRef.current = null;
     setImageLoaded(false);
+    setFaceArea(null);
 
     if (!isOpen || !source) return;
 
@@ -195,8 +205,18 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
         // start with the final square size, never a temporary rotated bounding box.
         const image = new Image();
         image.crossOrigin = 'anonymous';
-        image.onload = () => {
+        image.onload = async () => {
           if (cancelled) return;
+          // A new photo opens on its face. The Cropper mounts only once this
+          // is settled, because it reads its opening frame once, on mount.
+          const own = image.naturalWidth / (image.naturalHeight || 1);
+          const opening = allowAspectSelection
+            ? initialFrame?.aspect ?? (offerOriginalShape ? own : frameAspect)
+            : frameAspect;
+          if (allowAspectSelection && offerOriginalShape && !initialFrame) setAspect(own);
+          const face = centreFace && !initialFrame ? await findFace(image) : null;
+          if (cancelled) return;
+          if (face) setFaceArea(faceFramePercent(face, { width: image.naturalWidth, height: image.naturalHeight }, opening));
           setNatural({ width: image.naturalWidth, height: image.naturalHeight });
           setImageLoaded(true);
         };
@@ -213,7 +233,22 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
       cancelled = true;
       if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
     };
-  }, [isOpen, source, initialFrame, allowAspectSelection, frameAspect]);
+  }, [isOpen, source, initialFrame, allowAspectSelection, frameAspect, centreFace, offerOriginalShape]);
+
+  // Open on the face: set zoom and position directly. (Handing the Cropper
+  // percentages instead lets its first crop be clamped at zoom 1, which pulls
+  // the face back toward the middle.)
+  const faceApplied = useRef<Area | null>(null);
+  useEffect(() => {
+    if (!faceArea || faceApplied.current === faceArea || !bounds.mediaWidth || frameSize.width <= 0) return;
+    faceApplied.current = faceArea;
+    const areaWidth = (faceArea.width / 100) * bounds.mediaWidth;
+    const nextZoom = Math.min(4, Math.max(1, frameSize.width / areaWidth));
+    const centreX = ((faceArea.x + faceArea.width / 2) / 100 - 0.5) * bounds.mediaWidth;
+    const centreY = ((faceArea.y + faceArea.height / 2) / 100 - 0.5) * bounds.mediaHeight;
+    setZoom(nextZoom);
+    setCrop(clampPhotoFrameCrop({ x: -centreX * nextZoom, y: -centreY * nextZoom }, bounds, nextZoom, rotation, aspect));
+  });
 
   const onCropComplete = useCallback((areaPercent: Area, croppedPixels: Area) => {
     areaPercentRef.current = areaPercent;
@@ -311,7 +346,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
             <X size={20} aria-hidden="true" />
           </Button>
           {allowAspectSelection && <div role="group" aria-label="Photo frame shape" className="crop-bar__shapes">
-            {SHAPES.map(option => <Button
+            {[...(offerOriginalShape && natural.width ? [{ label: 'Original shape', ratio: natural.width / natural.height, Icon: ImageIcon }] : []), ...SHAPES].map(option => <Button
               key={option.label} type="button" variant="icon" aria-pressed={aspect === option.ratio} aria-label={option.label} title={option.label}
               disabled={saving} className="crop-bar__shape"
               onClick={() => { setAspect(option.ratio); setCrop(point => clampPhotoFrameCrop(point, bounds, zoom, rotation, option.ratio)); }}>
