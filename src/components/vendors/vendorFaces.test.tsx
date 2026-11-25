@@ -76,6 +76,9 @@ describe('vendor faces', () => {
     expect(html).toContain('One vendor has no face photo yet');
     expect(html).toContain('Add face photo: Zhang');
     expect(html).toContain('Change face photo: Wu');
+    // A face already there can be reframed from the grid itself; a tile with nothing to frame cannot.
+    expect(html).toContain('Crop and reposition: Wu');
+    expect(html).not.toContain('Crop and reposition: Zhang');
   });
 
   it('reads a photo file name as words', () => {
