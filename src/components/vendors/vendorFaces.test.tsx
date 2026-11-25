@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
-import { filterFaceVendors, orderFaceVendors, toFaceVendor, vendorFacePhoto, vendorInitials } from './vendorFaces';
+import { fileNameWords, filterFaceVendors, orderFaceVendors, suggestVendorForFile, toFaceVendor, vendorFacePhoto, vendorInitials } from './vendorFaces';
 import { VendorFace } from './VendorFace';
 import { VendorFaceGallery } from './VendorFaceGallery';
 
@@ -76,5 +76,36 @@ describe('vendor faces', () => {
     expect(html).toContain('One vendor has no face photo yet');
     expect(html).toContain('Add face photo: Zhang');
     expect(html).toContain('Change face photo: Wu');
+  });
+
+  it('reads a photo file name as words', () => {
+    expect(fileNameWords('huang-wei-weeee36.jpeg')).toEqual(['huang', 'wei', 'weeee36']);
+    expect(fileNameWords('林 老师.JPG')).toEqual(['林', '老师']);
+  });
+
+  it('points a face at the one vendor its file name names, and at nobody when it is unclear', () => {
+    const vendors = [
+      toFaceVendor({ id: 'hw', name: 'Huang Wei' }),
+      toFaceVendor({ id: 'hl', name: 'Huang Li' }),
+      toFaceVendor({ id: 'lin', name: 'Teacher Lin', chinese_name: '林老师' }),
+    ];
+    expect(suggestVendorForFile('huang-wei-weeee36.jpg', vendors)?.id).toBe('hw');
+    expect(suggestVendorForFile('林老师.jpg', vendors)?.id).toBe('lin');
+    expect(suggestVendorForFile('huang.jpg', vendors)).toBeUndefined();
+    expect(suggestVendorForFile('IMG_2041.jpg', vendors)).toBeUndefined();
+  });
+
+  it('offers a tray for placing a batch of faces above the vendors', () => {
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <VendorFaceGallery vendors={[toFaceVendor({ id: 'v1', name: 'Zhang' })]} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(html).toContain('data-testid="face-tray"');
+    expect(html).toContain('Add photos to place');
+    expect(html).toContain('multiple');
+    expect(html.indexOf('face-tray')).toBeLessThan(html.indexOf('face-tile-v1'));
   });
 });
