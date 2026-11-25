@@ -66,7 +66,7 @@ test('published native edits offer an explicit reviewed replacement after privat
   await expect(page.getByRole('button', { name: 'Unpublish', exact: true })).toBeVisible();
 });
 
-test('editorial candidate review requires selecting the candidate before replacement', async ({ page }) => {
+test('editorial candidate review requires selecting the candidate before replacement', async ({ page }, testInfo) => {
   const candidate = { ...article, title: 'Synthetic candidate B', blocks: [{ type: 'paragraph', text: 'Synthetic candidate text.' }] };
   const published = { ...article, title: 'Synthetic public A', status: 'published', blocks: [{ type: 'paragraph', text: 'Synthetic published text.' }], editorial_pilot: {
     review_digest: 'b'.repeat(64), placement_review_digest: 'c'.repeat(64), candidate_id: 'candidate-b', content_hash: 'd'.repeat(64), source_revision: 2, placed: false,
@@ -86,9 +86,9 @@ test('editorial candidate review requires selecting the candidate before replace
   await page.getByRole('button', { name: /WordForge revision 2/ }).click();
   await expect(replace).toBeEnabled();
   await expect(page.getByTestId('immersive-preview-article').locator('.immersive-reveal').first()).toHaveCSS('filter', 'none');
-  await page.screenshot({ path: '/private/tmp/magazine-editorial-shared-buttons.png' });
+  await page.screenshot({ path: testInfo.outputPath('magazine-editorial-shared-buttons.png') });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(replace).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: '/private/tmp/magazine-editorial-shared-buttons-mobile.png' });
+  await page.screenshot({ path: testInfo.outputPath('magazine-editorial-shared-buttons-mobile.png') });
 });
