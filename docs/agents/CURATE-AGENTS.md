@@ -201,7 +201,8 @@ and so on. The Hermes skill for this is in the i64os repo at
 | `curate_pick_suggestions` | Adrian's picks become Curate teas (samples to request by default); the rest are dropped | preview, confirm |
 | `curate_suggest_teas` | Teas you found, into his suggestions list, with where they came from | one step |
 | `curate_todo` | Add, edit, complete or delete a reminder on a tea or vendor | preview, confirm |
-| `curate_get_vendor` | A vendor's card, what the shop knows about how they work, shipping cost per leg, their teas, orders and to-dos | read |
+| `curate_get_vendor` | A vendor's card and photos, what the shop knows about how they work, shipping cost per leg, their teas, orders and to-dos | read |
+| `set_supplier_photo` | Add or replace a vendor's face, storefront or business card photo, from an https link or base64. Confirm with the same picture. Undo with `curate_undo` | preview, confirm |
 | `curate_record_freight` | A shipping cost Adrian reports, per vendor and leg (or shared) | preview, confirm |
 | `curate_order` | A vendor purchase with its expected receipt, source identities and landed cost | preview, confirm |
 | `intake_add_items` | Build an import draft by hand when analysis could not read it: teas plus the vendor group they belong to | preview, confirm |

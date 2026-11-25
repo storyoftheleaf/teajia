@@ -251,7 +251,7 @@ export type VendorRow = {
 
 const VENDOR_COLUMNS = 'id, name, chinese_name, company, phone, whatsapp, email, city, country, address, notes, contacts, tags, type, preferred_currency';
 
-function isVendorRow(row: Pick<VendorRow, 'tags' | 'type'>): boolean {
+export function isVendorRow(row: Pick<VendorRow, 'tags' | 'type'>): boolean {
   return /vendor/i.test(row.tags ?? '') || row.type === 'vendor' || row.type === 'supplier';
 }
 

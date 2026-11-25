@@ -1,3 +1,7 @@
+## 2026-11-25: Agents can count stock and put a face on a supplier
+
+Two new tools on the Teajia connector. `count_stock` sets a tea to what is on the shelf ("I have 118 g of the Gushu Red"): it is recorded as a stock count, the same as editing the stock number in Manage, so the tea is marked counted, the ledger keeps the difference and a sold-out tea with stock goes back on sale. If the stock moves between the preview and the yes, nothing is written. `set_supplier_photo` adds or replaces a supplier's face, storefront or business card photo from a link or the picture itself; faces are squared on the face like the app does, the change shows in Curate history and Undo puts the old photo back. `curate_get_vendor` now returns the supplier's photos. Both tools need the connector's stock permission, which the consent page already ticks.
+
 ## 2026-11-25: Back and forward work in the admin
 
 The browser's back and forward now step through the admin: tabs in People, Activity, Network, events, platform, collections and the magazine, Curate's Source, Library and Buying screens, a tea record opened in Stock (back closes it, forward opens it again), Wisdom holdings and entries, and Yixing references. Every admin page without its own Back shows a small Back at the top left once there is somewhere to go back to, and Forward after a Back. Back buttons opened from a link no longer do nothing: they go to the section instead. The rule for all new admin work is in CLAUDE.md, "Back and forward", held by `src/admin/guards/historySteps.test.ts`.
