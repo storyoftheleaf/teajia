@@ -7694,6 +7694,8 @@ body.cart-panel-open .commerce-dock {
   .stock-view .stock-layout-actions button { min-height:0; height:calc(var(--space-6) + var(--space-1)); padding:0 var(--space-3); border-bottom:0; border-radius:var(--radius-3xl); }
   .stock-view .stock-layout-actions { gap:var(--space-1); }
   .stock-view [data-testid="inventory-purpose-row"] { min-height:var(--space-12); }
+  .stock-view:has(.stock-rooms-rail) .stock-group-switch-bar { display:none; }
+  .stock-group-switch-rail { padding:0 var(--space-1) var(--space-2); }
   .stock-view .stock-group-switch>button[aria-pressed="true"],
   .stock-view .stock-layout-actions button[aria-pressed="true"] { background:var(--tea-elevated); }
   .stock-rooms>[data-testid="inventory-scroll"] :is(table,thead,tbody,tr,th,td),
@@ -7735,3 +7737,13 @@ body.cart-panel-open .commerce-dock {
 .stock-phone-strip>button[aria-pressed="true"]>span:first-child { color:var(--tea-text); }
 .stock-phone-strip>button>span:last-child { margin-top:calc(var(--space-1) / 2); color:var(--tea-text-sec); font-size:var(--fs-ui-10); }
 .stock-phone-strip em { color:var(--tea-error); font-style:normal; }
+/* The last rules in the Stock top bar go too: the chosen tab and the chosen
+   grouping are told by tone, not by a line under them. */
+.stock-view [class*="after:inset-x-0"]::after { content:none !important; }
+.stock-view button[aria-label="Search inventory"],
+.stock-view [data-testid="inventory-purpose-row"] { border-color:transparent; }
+.stock-view [role="group"][aria-label="Group teas by"]>button[aria-pressed="true"]>span { padding:var(--space-1) var(--space-2); border-radius:var(--radius-3xl); background:var(--tea-elevated); }
+/* The shop price on the Shelf tab, beside the count. */
+.stock-room-price { display:flex; align-items:center; gap:var(--space-2); flex-basis:100%; color:var(--admin-text-dim); font-size:var(--fs-ui-12); }
+.stock-room-price>.admin-input { display:inline-flex; align-items:center; gap:var(--space-1); width:7rem; height:var(--control-h); padding:0 var(--space-3); }
+.stock-room-price input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:var(--admin-text); font-family:var(--font-mono); font-size:var(--fs-ui-14); text-align:right; }

@@ -19,9 +19,9 @@ export { RoomShelfTools } from './RoomTabs';
 
 /** Supplier · Type · Stage, three words beside the filters. Choosing the open
  *  one again goes back to Supplier, the page's starting point. */
-export function StockGroupSwitch({ value, onChange, placement }: { value: string; onChange: (value: string) => void; placement: 'bar' | 'line' }) {
-  // Beside the filters on a laptop; its own line under them on a phone, so the
-  // filter row stays one line at every width.
+export function StockGroupSwitch({ value, onChange, placement }: { value: string; onChange: (value: string) => void; placement: 'bar' | 'line' | 'rail' }) {
+  // Above the groups when the page stands as rooms; beside the filters on a
+  // narrower laptop; its own line under them on a phone.
   return <div role="group" aria-label="Group teas by" className={`stock-group-switch stock-group-switch-${placement}`} data-testid={`stock-group-switch-${placement}`}>
     {STOCK_GROUP_SWITCH.map(option => {
       const on = value === option.value;

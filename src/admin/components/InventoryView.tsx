@@ -816,7 +816,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const phoneList = isMobile && !isEditMode && !glossaryMode && filterType !== 'Pending' && !draftMode && (stockLayout !== 'cards' || filterType === 'Samples') && !phoneCardStudy();
   const cardLayout = !phoneList && stockLayout === 'cards' && !isEditMode && !draftMode && filterType !== 'Samples' && filterType !== 'Pending' && !glossaryMode;
   const [phoneGroupBy, setPhoneGroupByState] = useState<PhoneGroupBy>(readPhoneGroupBy);
-  const rooms = useStockRooms(!isMobile && winWidth >= ROOMS_MIN_WIDTH && !cardLayout && !isEditMode && !glossaryMode && filterType !== 'Pending' && filterType !== 'Samples', groupedProducts, processedProducts.length, inventoryCategory === 'teaware' ? 'All wares' : 'All teas');
+  const rooms = useStockRooms(!isMobile && winWidth >= ROOMS_MIN_WIDTH && !cardLayout && !isEditMode && !glossaryMode && filterType !== 'Pending' && filterType !== 'Samples', groupedProducts, processedProducts.length, inventoryCategory === 'teaware' ? 'All wares' : 'All teas', inventoryGroupBy || 'vendor', setInventoryGroupBy);
   // Curate samples shown in the Samples view, so its count includes them.
   const [curateSampleCount, setCurateSampleCount] = useState(0);
   const setPhoneGroupBy = (by: PhoneGroupBy) => { setPhoneGroupByState(by); writePhoneGroupBy(by); };

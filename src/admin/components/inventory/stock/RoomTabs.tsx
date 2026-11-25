@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
+import { enteredNumber } from '../../../productUpdatePayload';
 import { Button } from '../../../../components/shared/Button';
 import type { Product } from '../../../types';
 
@@ -32,7 +34,23 @@ export function RoomShelfTools({ product, canPublish, onUpdate, onTasting, onPho
   nextStep?: unknown;
 }) {
   const blocked = !product.isPublic && !canPublish;
+  // The shop price sits with the count (Adrian, 2026-11-25). It is the same
+  // field the Money tab and the row's own editor save: an emptied box means no
+  // price of its own, and a typed 0 is kept as 0.
+  const saved = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
+  const shown = saved == null ? '' : String(saved);
+  const [price, setPrice] = useState(shown);
+  useEffect(() => { setPrice(shown); }, [shown, product.id]);
+  const savePrice = () => { if (price !== shown) onUpdate(product.id, 'fixedRetailPriceUSD', enteredNumber(price)); };
   return <div className="stock-room-tools" data-testid="stock-room-tools">
+    <label className="stock-room-price">
+      <span>Retail per g</span>
+      <span className="admin-input"><span aria-hidden="true">$</span>
+        <input type="number" inputMode="decimal" aria-label="Retail price per gram" autoComplete="off" value={price}
+          onChange={event => setPrice(event.target.value)} onBlur={savePrice}
+          onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} />
+      </span>
+    </label>
     <Button variant="plain" type="button" role="switch" aria-checked={!!product.isPublic} aria-label="List in shop" disabled={blocked}
       title={blocked ? 'Arrival status must be ready before publication' : undefined}
       onClick={() => { if (!blocked) onUpdate(product.id, 'isPublic', !product.isPublic); }}>

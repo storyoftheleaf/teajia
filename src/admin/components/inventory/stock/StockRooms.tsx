@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Button } from '../../../../components/shared/Button';
 import type { Product } from '../../../types';
 import { isLow, isUnchecked } from '../phone/groupStock';
+import { StockGroupSwitch } from './StockRowEditing';
 
 // Stock as rooms (Adrian, 2026-11-25): on a laptop the groups stand in a room of
 // their own on the left, the chosen group's teas fill the middle, and the open
@@ -29,10 +30,12 @@ function RailEntry({ label, count, on, low, uncounted, onClick }: {
 }
 
 /** The left room: every group by name, with its count and what needs attention. */
-export function StockRoomsRail({ groups, value, onChange, total, allLabel }: {
+export function StockRoomsRail({ groups, value, onChange, total, allLabel, groupBy, onGroupBy }: {
   groups: readonly RoomGroup[]; value: string | null; onChange: (key: string | null) => void; total: number; allLabel: string;
+  groupBy: string; onGroupBy: (value: string) => void;
 }) {
   return <nav aria-label="Groups" data-testid="stock-rooms-rail" className="stock-rooms-rail custom-scrollbar">
+    <StockGroupSwitch placement="rail" value={groupBy} onChange={onGroupBy} />
     <RailEntry label={allLabel} count={total} on={value === null} onClick={() => onChange(null)} />
     {groups.map(group => <RailEntry key={group.key} label={group.label} count={group.items.length} on={value === group.key}
       low={group.items.filter(isLow).length} uncounted={group.items.filter(isUnchecked).length}
@@ -42,11 +45,11 @@ export function StockRoomsRail({ groups, value, onChange, total, allLabel }: {
 
 /** Which room is open, and the rail to choose it from. `active` is null when the
  *  rooms are off or the chosen group is no longer on the page. */
-export function useStockRooms(on: boolean, groups: readonly RoomGroup[] | null, total: number, allLabel: string): {
+export function useStockRooms(on: boolean, groups: readonly RoomGroup[] | null, total: number, allLabel: string, groupBy: string, onGroupBy: (value: string) => void): {
   active: string | null; rail: ReactNode;
 } {
   const [room, setRoom] = useState<string | null>(null);
   if (!on || !groups) return { active: null, rail: null };
   const active = room !== null && groups.some(group => group.key === room) ? room : null;
-  return { active, rail: <StockRoomsRail groups={groups} value={active} onChange={setRoom} total={total} allLabel={allLabel} /> };
+  return { active, rail: <StockRoomsRail groups={groups} value={active} onChange={setRoom} total={total} allLabel={allLabel} groupBy={groupBy} onGroupBy={onGroupBy} /> };
 }
