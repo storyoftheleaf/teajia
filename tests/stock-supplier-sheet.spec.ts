@@ -137,12 +137,15 @@ test.describe('Stock opens the supplier sheet from the supplier name', () => {
       const { useAppStore } = await import('/src/lib/store.ts');
       useAppStore.getState().setInventoryGroupBy('vendor');
     });
+    // On a phone each supplier has its own room; the strip on the left opens it.
+    await page.getByTestId('stock-phone-strip').getByRole('button', { name: /^Master Bo/ }).click();
     await page.getByRole('button', { name: 'Supplier actions for Master Bo', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Edit supplier name', exact: true }).click();
     await shot(page, 'phone-sheet');
     await renameToBoLin(page, seen, 'phone-preview', true);
     await page.keyboard.press('Escape');
 
+    await page.getByTestId('stock-phone-strip').getByRole('button', { name: /^Bo Lin/ }).click();
     await expect(page.getByRole('button', { name: 'Supplier actions for Bo Lin', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Supplier actions for Master Bo', exact: true })).toHaveCount(0);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
@@ -312,6 +315,8 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
   await page.getByRole('button', { name: 'View options', exact: true }).click();
   await expect(page.getByText('More filters', { exact: true })).toHaveCount(0);
   await page.keyboard.press('Escape');
+  // On a phone each supplier has its own room; the strip on the left opens it.
+  await page.getByTestId('stock-phone-strip').getByRole('button', { name: /^Unknown supplier/ }).click();
   await page.getByRole('button', { name: 'Supplier actions for Unknown supplier', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Assign suppliers', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'Unknown supplier', exact: true });

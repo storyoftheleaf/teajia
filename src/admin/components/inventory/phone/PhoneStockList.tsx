@@ -107,12 +107,16 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   const expandAll = groupBy === 'none' || searchActive || products.length <= 25;
   const focused = focusedId ? products.find(p => p.id === focusedId) ?? null : null;
   // Stock as rooms on a phone (Adrian, 2026-11-25): the groups stand in a slim
-  // strip down the left and the chosen one fills the rest. "All" is the folded
-  // list as it was. A search, the Samples view and a single group need no strip.
-  const [room, setRoom] = useState<string | null>(null);
+  // strip down the left and the chosen one fills the rest, so no name is on the
+  // screen twice. It opens on the first group; "All" is every tea in one run with
+  // no group lines. A search, the Samples view and a single group need no strip.
+  const [room, setRoom] = useState<string | null | undefined>(undefined);
   const strip = !samples && groupBy !== 'none' && !searchActive && groups.length > 1;
-  const activeRoom = strip && room !== null && groups.some(group => group.key === room) ? room : null;
-  const shownGroups = activeRoom ? groups.filter(group => group.key === activeRoom) : groups;
+  const activeRoom = !strip || room === null ? null : room !== undefined && groups.some(group => group.key === room) ? room : groups[0].key;
+  const everyTea = strip && activeRoom === null;
+  const shownGroups = activeRoom ? groups.filter(group => group.key === activeRoom)
+    : everyTea ? [{ ...groups[0], key: 'all', label: 'All', products: groups.flatMap(group => group.products), count: products.length }]
+    : groups;
   const rootRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     // The strip scrolls on its own, so it is as tall as the list's scroll area.
@@ -176,9 +180,9 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
   return (
     <div ref={rootRef} data-testid="stock-phone" className={`stock-phone-tone ${samples ? '' : 'stock-phone-quiet'} ${strip ? 'stock-phone-rooms' : ''} ${focused && !selecting ? 'pb-[300px]' : selecting ? 'pb-[170px]' : ''}`}>
       {strip && <nav aria-label="Groups" data-testid="stock-phone-strip" className="stock-phone-strip hide-scrollbar-always">
-        <Button variant="plain" type="button" aria-pressed={activeRoom === null} onClick={() => setRoom(null)}><span>All</span><span>{products.length}</span></Button>
+        <Button variant="plain" type="button" aria-pressed={everyTea} onClick={() => { setRoom(null); setFocusedId(null); }}><span>All</span><span>{products.length}</span></Button>
         {groups.map(group => <Button key={group.key} variant="plain" type="button" aria-pressed={activeRoom === group.key}
-          onClick={() => { setRoom(activeRoom === group.key ? null : group.key); setFocusedId(null); }}>
+          onClick={() => { setRoom(group.key); setFocusedId(null); }}>
           <span>{group.label}</span><span>{group.count}{group.low > 0 && <> · <em>{group.low} low</em></>}</span>
         </Button>)}
       </nav>}
@@ -214,10 +218,10 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
       )}
 
       {shownGroups.map(group => {
-        const isOpen = expandAll || activeRoom === group.key || open.has(group.key);
+        const isOpen = expandAll || everyTea || activeRoom === group.key || open.has(group.key);
         return (
           <section key={group.key} aria-label={group.label}>
-            {groupBy !== 'none' && (
+            {groupBy !== 'none' && !everyTea && (
               <div className="flex items-stretch bg-tea-surface border-b border-tea-border">
                 <button
                   type="button"
