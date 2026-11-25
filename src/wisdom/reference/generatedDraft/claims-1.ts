@@ -19,13 +19,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "Anhua tea is kept for years and said to improve: the liquor turns redder and the taste sweeter and mellower, with a fuller scent. No agreed count of years marks it as aged. Keep it clean, dry and aired, away from mould and other smells.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anhua tea is kept for years and said to improve: the liquor turns redder and the taste sweeter and mellower, with a fuller scent. No agreed count of years marks it as aged. Keep it clean, dry and aired, away from mould and other smells.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "Anhua tea is kept for years and said to improve: the liquor turns redder and the taste sweeter and mellower, with a fuller scent. No agreed count of years marks it as aged. Keep it clean, dry and aired, away from mould and other smells.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -43,13 +52,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -67,13 +85,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -97,13 +124,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Anhua dark tea"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "Anhua dark tea comes from Anhua County, a mountain county on the Zi river in north-central Hunan, under the city of Yiyang. Its name is a protected origin product in China, so it is tied to a defined place of making. Anhua is widely named as the main home of dark tea in China, and as a starting point of the old tea routes to the north-west.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anhua dark tea comes from Anhua County, a mountain county on the Zi river in north-central Hunan, under the city of Yiyang. Its name is a protected origin product in China, so it is tied to a defined place of making. Anhua is widely named as the main home of dark tea in China, and as a starting point of the old tea routes to the north-west.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "Anhua dark tea comes from Anhua County, a mountain county on the Zi river in north-central Hunan, under the city of Yiyang. Its name is a protected origin product in China, so it is tied to a defined place of making. Anhua is widely named as the main home of dark tea in China, and as a starting point of the old tea routes to the north-west.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -157,13 +193,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "flower roll tea"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "Anhua teas come in three shapes. The three tips are loose teas, lightly pressed into bamboo baskets: Tianjian from the most tender leaf, Gongjian in the middle, and Shengjian, the coarsest, with the most stalk. The pressed bricks are Fu, Hei and Hua brick; Fu brick is the one grown on purpose with golden flower, in a warm, humid room for some weeks before it is dried hard. The flower rolls are tall columns pressed by hand inside a woven bamboo basket lined with leaf, named by their old weight in liang: Qianliang, a thousand, Bailiang, a hundred, and Shiliang, ten. Huajuan, flower roll, names the whole family and is also a nickname of Qianliang.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anhua teas come in three shapes. The three tips are loose teas, lightly pressed into bamboo baskets: Tianjian from the most tender leaf, Gongjian in the middle, and Shengjian, the coarsest, with the most stalk. The pressed bricks are Fu, Hei and Hua brick; Fu brick is the one grown on purpose with golden flower, in a warm, humid room for some weeks before it is dried hard. The flower rolls are tall columns pressed by hand inside a woven bamboo basket lined with leaf, named by their old weight in liang: Qianliang, a thousand, Bailiang, a hundred, and Shiliang, ten. Huajuan, flower roll, names the whole family and is also a nickname of Qianliang.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "Anhua teas come in three shapes. The three tips are loose teas, lightly pressed into bamboo baskets: Tianjian from the most tender leaf, Gongjian in the middle, and Shengjian, the coarsest, with the most stalk. The pressed bricks are Fu, Hei and Hua brick; Fu brick is the one grown on purpose with golden flower, in a warm, humid room for some weeks before it is dried hard. The flower rolls are tall columns pressed by hand inside a woven bamboo basket lined with leaf, named by their old weight in liang: Qianliang, a thousand, Bailiang, a hundred, and Shiliang, ten. Huajuan, flower roll, names the whole family and is also a nickname of Qianliang.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -187,13 +232,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "first grade"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "The raw leaf is sorted into numbered grades, and each finished tea is made from the grade that suits it, the most tender leaf going into the finest loose tips.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "The raw leaf is sorted into numbered grades, and each finished tea is made from the grade that suits it, the most tender leaf going into the finest loose tips.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "The raw leaf is sorted into numbered grades, and each finished tea is made from the grade that suits it, the most tender leaf going into the finest loose tips.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -211,13 +265,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "Anhua became a county in 1072, in the Northern Song, and tea from the area is mentioned from the Tang on, though as tea from the place, not yet as dark tea. In 1595, in the Ming, Anhua tea became an official tea, sold to the north-west. In the Qing, Shanxi merchants and others took over the border trade, and the loose tips and the large rolls grew out of that trade; the rolls are a Qing product, not a Ming one. Fu brick was first made in Anhua itself in 1953, at the Baishaxi factory, after Fu bricks had long been pressed in Shaanxi from Anhua raw tea.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Anhua became a county in 1072, in the Northern Song, and tea from the area is mentioned from the Tang on, though as tea from the place, not yet as dark tea. In 1595, in the Ming, Anhua tea became an official tea, sold to the north-west. In the Qing, Shanxi merchants and others took over the border trade, and the loose tips and the large rolls grew out of that trade; the rolls are a Qing product, not a Ming one. Fu brick was first made in Anhua itself in 1953, at the Baishaxi factory, after Fu bricks had long been pressed in Shaanxi from Anhua raw tea.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "Anhua became a county in 1072, in the Northern Song, and tea from the area is mentioned from the Tang on, though as tea from the place, not yet as dark tea. In 1595, in the Ming, Anhua tea became an official tea, sold to the north-west. In the Qing, Shanxi merchants and others took over the border trade, and the loose tips and the large rolls grew out of that trade; the rolls are a Qing product, not a Ming one. Fu brick was first made in Anhua itself in 1953, at the Baishaxi factory, after Fu bricks had long been pressed in Shaanxi from Anhua raw tea.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -246,13 +309,22 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "pine-smoke aroma"
       }
     ],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "Every Anhua tea starts as one raw tea, heimaocha, made from large Anhua leaf. The leaf is fixed, rolled, piled, rolled again and dried over a wood fire, and in Anhua that fire burns pine. The pine fire gives the tea its smell of pine smoke or pine resin, which sets it apart from dark teas dried another way; some newer lines dry by machine instead. The raw tea is then steamed soft and pressed: lightly for the loose tips, in moulds for the bricks, and by hand for the rolls.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Every Anhua tea starts as one raw tea, heimaocha, made from large Anhua leaf. The leaf is fixed, rolled, piled, rolled again and dried over a wood fire, and in Anhua that fire burns pine. The pine fire gives the tea its smell of pine smoke or pine resin, which sets it apart from dark teas dried another way; some newer lines dry by machine instead. The raw tea is then steamed soft and pressed: lightly for the loose tips, in moulds for the bricks, and by hand for the rolls.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "Every Anhua tea starts as one raw tea, heimaocha, made from large Anhua leaf. The leaf is fixed, rolled, piled, rolled again and dried over a wood fire, and in Anhua that fire burns pine. The pine fire gives the tea its smell of pine smoke or pine resin, which sets it apart from dark teas dried another way; some newer lines dry by machine instead. The raw tea is then steamed soft and pressed: lightly for the loose tips, in moulds for the bricks, and by hand for the rolls.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -270,13 +342,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -294,13 +375,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
     "text": "A roll is packed into its basket and pressed tight by treading and twisting with long bars, then left to dry slowly in sun and night air for weeks rather than in a dryer. Rolls are usually kept whole to age, and reach drinkers later as slices, discs or small cut pieces, since a whole roll is far too big to buy or brew.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "A roll is packed into its basket and pressed tight by treading and twisting with long bars, then left to dry slowly in sun and night air for weeks rather than in a dryer. Rolls are usually kept whole to age, and reach drinkers later as slices, discs or small cut pieces, since a whole roll is far too big to buy or brew.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Anhua dark tea style kit",
+        "text": "A roll is packed into its basket and pressed tight by treading and twisting with long bars, then left to dry slowly in sun and night air for weeks rather than in a dryer. Rolls are usually kept whole to age, and reach drinkers later as slices, discs or small cut pieces, since a whole roll is far too big to buy or brew.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Anhua dark tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -845,91 +935,5 @@ export const PART: readonly DraftClaim[] = [
       }
     ],
     "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:old-tree-and-sun-dried",
-    "pageId": "dian-hong",
-    "sectionKey": "old-tree-and-sun-dried",
-    "label": "Old-tree and sun-dried red",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "古树",
-        "pinyin": "gǔ shù",
-        "gloss": "old trees"
-      },
-      {
-        "original": "晒红",
-        "pinyin": "shài hóng",
-        "gloss": "sun-dried red"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "gong-ting:appearance",
-    "pageId": "gong-ting",
-    "sectionKey": "appearance",
-    "label": "Reading the leaf",
-    "axis": "grade",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-ting"
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-ting:common-impressions",
-    "pageId": "gong-ting",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-ting"
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
   }
 ];
