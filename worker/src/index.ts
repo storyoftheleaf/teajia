@@ -16,6 +16,7 @@ import { serveGuestBookReview } from './sessionGuestBook';
 import { attachPublicTeawareDetails } from './teawareDetails';
 import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
 import { readOrderUpdateEmail } from './orderUpdateEmail';
+import { isPersonalOffer, profileIsPersonalOfferSql } from './personalOfferNetwork';
 import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
 import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
@@ -1353,7 +1354,8 @@ function buildProductMirrorInserts(
   // network_visible: same gating as migration backfill.
   const networkVisible = (body.is_public === undefined || !!body.is_public)
     && !body.is_personal
-    && !body.is_sample ? 1 : 0;
+    && !body.is_sample
+    && !isPersonalOffer(body) ? 1 : 0;
 
   // Status mapping: products legacy values → profile lifecycle.
   const profileStatus = body.status === 'Archived' ? 'archived'
@@ -28397,6 +28399,7 @@ const handleNetworkCatalog: Handler = async (request, env) => {
             )
       WHERE p.network_visible = 1
         AND p.status = 'published'
+        AND NOT ${profileIsPersonalOfferSql('p')}
         AND p.curated_by_account_id != ?
         AND NOT EXISTS (
           SELECT 1 FROM product_listings pl
@@ -28623,7 +28626,8 @@ const handleCarryListing: Handler = async (request, env) => {
 
   if (!profile) return json({ error: 'Tea profile not found' }, 404);
 
-  if (profile.status !== 'published' || profile.network_visible !== 1) {
+  const personalOffer = await env.DB.prepare(`SELECT 1 AS yes FROM tea_profiles p WHERE p.id = ? AND ${profileIsPersonalOfferSql('p')}`).bind(profileId).first();
+  if (profile.status !== 'published' || profile.network_visible !== 1 || personalOffer) {
     return json({ error: 'This tea is not currently available in the network catalog.' }, 400);
   }
 
