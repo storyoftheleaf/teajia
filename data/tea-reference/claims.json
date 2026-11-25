@@ -6863,6 +6863,277 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "南路边茶",
+          "pinyin": "nán lù biān chá",
+          "gloss": "southern-route border tea"
+        },
+        {
+          "original": "藏茶",
+          "pinyin": "zàng chá",
+          "gloss": "Tibetan tea"
+        },
+        {
+          "original": "边销茶",
+          "pinyin": "biān xiāo chá",
+          "gloss": "border-sale tea"
+        },
+        {
+          "original": "红苔",
+          "pinyin": "hóng tái",
+          "gloss": "red moss, reddish stem and shoot pieces"
+        },
+        {
+          "original": "康砖",
+          "pinyin": "kāng zhuān",
+          "gloss": "Kang brick"
+        },
+        {
+          "original": "金尖",
+          "pinyin": "jīn jiān",
+          "gloss": "Jinjian"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "渥堆",
+          "pinyin": "wò duī",
+          "gloss": "wet piling"
+        },
+        {
+          "original": "拼配",
+          "pinyin": "pīn pèi",
+          "gloss": "blending"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:kangzhuan-jinjian",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "康砖",
+          "pinyin": "kāng zhuān",
+          "gloss": "Kang brick"
+        },
+        {
+          "original": "金尖",
+          "pinyin": "jīn jiān",
+          "gloss": "Jinjian"
+        },
+        {
+          "original": "康尖",
+          "pinyin": "kāng jiān",
+          "gloss": "Kangjian"
+        },
+        {
+          "original": "红苔",
+          "pinyin": "hóng tái",
+          "gloss": "red moss"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:tea-horse-road",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "茶马互市",
+          "pinyin": "chá mǎ hù shì",
+          "gloss": "the tea-for-horses trade"
+        },
+        {
+          "original": "康定",
+          "pinyin": "kāng dìng",
+          "gloss": "Kangding"
+        },
+        {
+          "original": "背夫",
+          "pinyin": "bèi fū",
+          "gloss": "porter"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:packing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "条包",
+          "pinyin": "tiáo bāo",
+          "gloss": "strip pack"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:butter-tea",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "酥油茶",
+          "pinyin": "sū yóu chá",
+          "gloss": "butter tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "sichuan-dark:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "sichuan"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

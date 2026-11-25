@@ -181,6 +181,23 @@ describe('composeInputs for any kit', () => {
     expect(anhua).not.toContain('liu-an:definition');
   });
 
+  it('gives a 1980 Ya’an Kang brick the Sichuan border tea kit, and an Anhua or Guangxi tea not', () => {
+    const kang = { ...liuBao, id: 'kz', product_name: 'Ya’an Kang Brick', origin_region: 'Ya’an, Sichuan', form: 'Brick', year: 1980 };
+    const inputs = composeInputs(kang, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type[0]).toBe('sichuan-dark:definition');
+    expect(type).toContain('sichuan-dark:tea-horse-road');
+    expect(type).toContain('sichuan-dark:butter-tea');
+    expect(type).not.toContain('anhua-dark:definition');
+    expect(ids(inputs.layers.age)).toEqual(['sichuan-dark:ageing']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged Sichuan border tea');
+    expect(inputs.fixed.claimIds).toEqual(['dark:brewing-pressed', 'sichuan-dark:brewing', 'sichuan-dark:notice-aged']);
+    const other = composeInputs({ ...kang, id: 'ah', product_name: 'Bai Liang', origin_region: 'Anhua, Hunan' }, claims, { thisYear: 2026, pages });
+    expect(ids(other.layers.type)).not.toContain('sichuan-dark:definition');
+    const bao = composeInputs({ ...kang, id: 'lb', product_name: 'Liu Bao', origin_region: 'Guangxi' }, claims, { thisYear: 2026, pages });
+    expect(ids(bao.layers.type)).not.toContain('sichuan-dark:definition');
+  });
+
   it('gives an Anhua dark tea the Anhua kit, ahead of the dark family', () => {
     const bailiang = { ...liuBao, id: 'bl', product_name: 'Bai Liang', origin_region: 'Anhua, Hunan', form: 'Brick', year: 2006 };
     const inputs = composeInputs(bailiang, claims, { thisYear: 2026, pages });
@@ -193,8 +210,8 @@ describe('composeInputs for any kit', () => {
     expect(inputs.fixed.notice?.styleName).toBe('aged Anhua dark tea');
   });
 
-  it('gives a dark tea from neither Guangxi nor Anhua only the family kit', () => {
-    const inputs = composeInputs({ ...liuBao, id: 'ya', product_name: "Ya'an Kang Brick", origin_region: "Ya'an, Sichuan", form: 'Brick' }, claims, { thisYear: 2026, pages });
+  it('gives a dark tea from none of Guangxi, Anhua, Anhui or Sichuan only the family kit', () => {
+    const inputs = composeInputs({ ...liuBao, id: 'ya', product_name: 'Qing Zhuan', origin_region: 'Zhaoliqiao, Hubei', form: 'Brick' }, claims, { thisYear: 2026, pages });
     expect(ids(inputs.layers.type)).not.toContain('liu-bao:definition');
     expect(ids(inputs.layers.type)).not.toContain('anhua-dark:definition');
     expect(ids(inputs.layers.type)[0]).toBe('dark:definition');

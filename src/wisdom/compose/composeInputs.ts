@@ -65,7 +65,7 @@ const KIT_KINDS: readonly DraftReferencePage['kind'][] = ['tea_type', 'tea_famil
 const AGE_KEYS = ['age-young', 'age-settling', 'age-aged'] as const;
 const SLOT_KEYS = new Set<string>([...AGE_KEYS, 'ageing', 'brewing', 'brewing-pressed', 'brewing-simmer', 'common-impressions', 'notice-aged']);
 
-const PLACE_LEADS = new Set(['Taiwan', 'Yunnan', 'Fujian', 'Wuyi', 'Anxi', 'Phoenix', 'Guangdong', 'Anhua']);
+const PLACE_LEADS = new Set(['Taiwan', 'Yunnan', 'Fujian', 'Wuyi', 'Anxi', 'Phoenix', 'Guangdong', 'Anhua', 'Sichuan']);
 const TYPE_WORDS = new Set(['Oolong', 'Green', 'White', 'Yellow', 'Red', 'Dark', 'Herbal']);
 
 /** "Shou (ripe pu’er)" reads as "ripe pu’er"; "Dark tea (hei cha)" as "dark tea"; a proper name like "Liu Bao" stays. */

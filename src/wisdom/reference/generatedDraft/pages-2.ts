@@ -223,6 +223,68 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "sichuan-dark",
+    "slug": "sichuan-dark",
+    "kind": "tea_type",
+    "label": "Sichuan border tea",
+    "visibility": "public",
+    "nativeName": "南路边茶",
+    "parentId": "dark",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Sichuan border tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Sichuan border tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "kangzhuan-jinjian",
+        "label": "Kangzhuan and Jinjian",
+        "sourceIds": []
+      },
+      {
+        "key": "tea-horse-road",
+        "label": "The Tea Horse Road",
+        "sourceIds": []
+      },
+      {
+        "key": "packing",
+        "label": "Strip packs and yak hide",
+        "sourceIds": []
+      },
+      {
+        "key": "butter-tea",
+        "label": "Butter tea",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Sichuan border tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Sichuan border tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in Sichuan border tea kept for years",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "taiwan-oolong",
     "slug": "taiwan-oolong",
     "kind": "tea_type",
