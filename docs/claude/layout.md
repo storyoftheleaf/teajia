@@ -66,3 +66,28 @@ These must be consistent across the entire app. Violations must be fixed immedia
 **Footer layout:** `flex justify-between` with Cancel on the left, primary action on the right. Never `justify-end` with Cancel buried next to the confirm button.
 
 **Never put Cancel to the right of the confirm action.** Right side is for commitment (Save, Import, Confirm). Left side is for escape (Cancel, Back).
+
+## Back and forward
+
+Adrian, 2026-11-25: "my web browser is not recorded backs and forwards ... once I click on here, I get stuck." The admin's tabs and screens had been switched with component state, or with `replace: true`, so the browser had nothing to go back to, and section pages had no Back of their own. Every new admin screen is held to this.
+
+**Why it happened.** `useState` changes what is drawn without telling the browser anything. `setSearchParams(..., { replace: true })` does tell it, but overwrites the current entry instead of adding one, so back skips the whole page. Both look fine when clicking forward; only back reveals them.
+
+**The rule: steps push, refinements replace.**
+
+| Change | Kind | How |
+| --- | --- | --- |
+| A tab, a screen (Curate's Source / Library / Buying), a sub-page | Step | `useStepParam('tab')`, or its own route |
+| Opening a record or side panel | Step | an address key such as `?panel=<id>`, pushed on open |
+| Next / previous record inside an open panel | Same step | replace, keeping the entry's state |
+| Closing a panel this page opened | Undo the step | step back off it (`navigate(-1)`) so history holds no copy |
+| Typing in search, a filter, a sort, folding a group | Refinement | in the address, `{ replace: true }`, marked `// history: refine` |
+| A redirect or a one-time clean-up of the address | Refinement | `{ replace: true }`, marked `// history: refine` |
+
+**The parts.**
+- `src/hooks/useStepParam.ts` is the one helper for address keys: `setTab('sources')` pushes; `setQ(text, { refine: true })` replaces; `{ only: true }` writes that key alone.
+- `src/admin/hooks/useAdminBack.ts`: `useAdminBack(fallback)` steps back when the visit has an earlier entry and otherwise goes to `fallback`, so a page opened from a link never strands anyone. Never call `navigate(-1)` bare.
+- `src/admin/components/AdminHistoryBar.tsx` draws Back (and Forward after a Back) at the top left of every admin page that has somewhere to go back to. Pages that already carry their own top-left Back are listed in `src/admin/components/adminHistory.ts`; add a page there when it gets its own.
+- `src/hooks/useModeInAddress.ts` keeps a component's internal screen and the address in step both ways, for a large view (Curate) where the screen is set from many places.
+
+**Guards.** `src/admin/guards/historySteps.test.ts` fails when a file in `src/admin` adds a tab/mode/view/screen held in `useState`, adds an unmarked `replace: true`, or calls `navigate(-1)` outside the allowed files. It counts against a snapshot of what was there on 2026-11-25, so lower a number when you convert an old one. If a state truly is not a place (a form mode, a confirm step in one card), end its line with `// history: not a step`. `tests/admin-history.spec.ts` walks People tabs and a Stock record with the browser's back and forward.

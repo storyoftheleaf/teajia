@@ -40,6 +40,7 @@ import { ImportPanel } from './import/ImportPanel';
 import { LibraryImportsSection, nextLibraryImportFocusId, type LibraryImportFocusRequest } from './LibraryImportsSection';
 import { SampleOrderAction } from './SampleOrderAction';
 import { CaptureActionFooter } from './CaptureActionFooter';
+import { useModeInAddress } from '../../hooks/useModeInAddress';
 
 export type CompassMode = 'sourcing' | 'library' | 'buying';
 
@@ -56,6 +57,8 @@ interface TeaCompassProps {
   initialSampleOrder?: 'open' | 'manage';
   initialSampleSetId?: string;
   onSampleOrderRouteClose?: () => void;
+  /** A screen change from inside Curate, for the route to record in history. */
+  onModeChange?: (mode: CompassMode) => void;
 }
 
 // ─── Desktop-only right column placeholder ───────────────────────────────────
@@ -91,7 +94,7 @@ const CompassRightEmptyState: React.FC<{
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
-export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose }) => {
+export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose, onModeChange }) => {
   useReconcileReceivedSampleDrafts();
   const [libraryDisplayPreference, setLibraryDisplayPreference] = useState(readLibraryPricePreference);
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
@@ -196,10 +199,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     },
   });
 
-  // Sync mode when the route's ?tab= param changes (e.g. bottom nav Ledger → Compass)
-  useEffect(() => {
-    setMode(initialMode || 'sourcing');
-  }, [initialMode]);
+  // Screen and address in step, both ways (browser back and forward work).
+  useModeInAddress<CompassMode>(mode, setMode, initialMode || 'sourcing', onModeChange);
 
   // Track whether the user navigated to Capture from the Library (to show back link)
   const [fromLibrary, setFromLibrary] = useState(false);

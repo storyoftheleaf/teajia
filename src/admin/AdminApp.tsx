@@ -24,6 +24,8 @@ import { authPagePath } from '../lib/authNavigation';
 import { adminShellNeedsProducts } from './productQueries';
 import { adminAuthReturnTo } from './authNavigation';
 import { carryQuery } from './carryQuery';
+import { useAdminBack } from './hooks/useAdminBack';
+import { AdminHistoryBar } from './components/AdminHistoryBar';
 
 import { useProducts, useRates } from './hooks/useAdminData';
 import { eventsListQueryOptions } from './hooks/useEventData';
@@ -142,6 +144,7 @@ const CurateV2WithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const tab = params.get('tab');
   const entryId = params.get('entry');
   const capture = params.get('capture');
@@ -178,6 +181,10 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       initialCaptureOption={initialCaptureOption}
       initialSampleOrder={sampleOrder === 'manage' ? 'manage' : sampleOrder === 'open' ? 'open' : undefined}
       initialSampleSetId={sampleSetId || undefined}
+      // A screen change inside Curate is its own history entry, so browser back
+      // and forward step between Source, Library and Buying. Only the screen is
+      // carried: an entry or capture param would re-open that record on arrival.
+      onModeChange={(mode) => navigate({ pathname: location.pathname, search: `?tab=${mode}` })}
       onSampleOrderRouteClose={() => {
         const next = new URLSearchParams(params);
         next.delete('sampleOrder');
@@ -227,6 +234,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  // Curate's header back leaves Curate. Opened straight in, there is no earlier
+  // admin page, so it goes to the shop rather than off the site.
+  const curateBack = useAdminBack('/');
 
   // Zustand Store
   const {
@@ -514,6 +524,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
 
+        <AdminHistoryBar />
+
         <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture || isOnIntake ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
               <Route path="/" element={null} />
@@ -523,14 +535,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="compass" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
-                    <CompassWithMode onBack={() => navigate(-1)} />
+                    <CompassWithMode onBack={curateBack} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
               <Route path="compass/v2" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
-                    <CurateV2WithMode onBack={() => navigate(-1)} />
+                    <CurateV2WithMode onBack={curateBack} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
@@ -538,14 +550,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="compass-playbook" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
-                    <CompassWithMode onBack={() => navigate(-1)} />
+                    <CompassWithMode onBack={curateBack} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
               <Route path="compass-current" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={!isLoggedIn}>
                   <PageTransition>
-                    <CompassWithMode onBack={() => navigate(-1)} />
+                    <CompassWithMode onBack={curateBack} />
                   </PageTransition>
                 </ProtectedRoute>
               } />

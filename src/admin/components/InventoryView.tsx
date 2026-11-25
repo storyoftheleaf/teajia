@@ -78,6 +78,7 @@ import {
 } from './inventory/config';
 import type { InventoryCategory, ColDef } from './inventory/types';
 import { isFeaturedButHidden, readInventoryFold, withInventoryFold, withParam } from './inventory/helpers';
+import { usePanelInAddress } from './inventory/usePanelInAddress';
 import { InventoryRow } from './inventory/InventoryRow';
 import { inventoryExportRows } from './inventory/exportRows';
 import { MOBILE_COL_PX } from './inventory/mobileColumnWidths';
@@ -521,19 +522,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // when you click them, and what keeps the derived Readiness and Publication
   // lines honest. Use `livePanelProduct` for rendering, `panelProduct` for
   // identity and lifecycle.
-  const [selectedPanelProduct, setSelectedPanelProduct] = useState<Product | null>(null);
-  // Linked panels always resolve against the current store’s product list.
-  const panelProduct = panelParam
-    ? products.find(product => product.id === panelParam) ?? null
-    : selectedPanelProduct;
-  const setPanelProduct = useCallback((product: Product | null) => {
-    if (!panelParam) {
-      setSelectedPanelProduct(product);
-      return;
-    }
-    setSelectedPanelProduct(null);
-    setSearchParams(previous => withParam(previous, 'panel', product?.id ?? null), { replace: true });
-  }, [panelParam, setSearchParams]);
+  // The open record lives in the address: back closes it, forward reopens it.
+  const { panelProduct, setPanelProduct, setSelectedPanelProduct } = usePanelInAddress(products);
   const [sourcePanelProduct, setSourcePanelProduct] = useState<Product | null>(null);
   // The supplier sheet: tapping a supplier's name anywhere in Stock opens it, to
   // rename him everywhere, edit his contact, and see how he ships. It carries the

@@ -374,7 +374,7 @@ export const EventDetail: React.FC = () => {
   const VALID_TABS: TabKey[] = ['requests', 'attendees', 'tasting-notes', 'briefing', 'tea-menu', 'reminders', 'notifications', 'post-session', 'venue', 'interest'];
   const rawTab = searchParams.get('tab') as TabKey;
   const activeTab: TabKey = VALID_TABS.includes(rawTab) ? rawTab : 'requests';
-  const setActiveTab = (key: TabKey) => { setSearchParams(params => { params.set('tab', key); return params; }, { replace: true }); setOverflowOpen(false); };
+  const setActiveTab = (key: TabKey) => { if (searchParams.get('tab') !== key) setSearchParams(params => { params.set('tab', key); return params; }); setOverflowOpen(false); };
   const [overflowOpen, setOverflowOpen] = useState(false);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [isEditOpen, setIsEditOpen] = useState(false);

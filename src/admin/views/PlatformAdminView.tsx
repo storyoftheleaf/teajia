@@ -11,6 +11,7 @@ import { useAppStore } from '../store';
 import { useToast } from '../components/Toast';
 import { Button } from '../../components/shared/Button';
 import type { PlatformRole } from '../../types';
+import { useStepParam } from '../../hooks/useStepParam';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -791,7 +792,10 @@ interface PlatformAdminViewProps {
 export const PlatformAdminView: React.FC<PlatformAdminViewProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { platformRole } = useAppStore();
-  const [tab, setTab] = useState<'accounts' | 'users' | 'audit' | 'new'>('accounts');
+  // A step in history, in the address (CLAUDE.md, "Back and forward").
+  const [tabParam, stepTab] = useStepParam('tab', 'accounts');
+  const tab: 'accounts' | 'users' | 'audit' | 'new' = (['accounts', 'users', 'audit', 'new'] as const).includes(tabParam as 'accounts' | 'users' | 'audit' | 'new') ? tabParam as 'accounts' | 'users' | 'audit' | 'new' : 'accounts';
+  const setTab = (next: 'accounts' | 'users' | 'audit' | 'new') => stepTab(next);
   const [accountsKey, setAccountsKey] = useState(0);
   const isPlatformOwner = platformRole === 'platform_owner';
 

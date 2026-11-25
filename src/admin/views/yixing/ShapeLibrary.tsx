@@ -241,7 +241,7 @@ export function ShapeLibrary({ board, auth, revision, onShape, onReload }: {
         onSaved={({ formId, asset }) => { void query.refetch(); navigate(link(formId, asset), { replace: true }); }} />
       : chosen ? <ShapeDetails auth={auth} pot={pot} originals={originals} form={chosen}
         decision={pot ? board.decisions[pot.id] ?? EMPTY : EMPTY} onShape={onShape} onReload={onReload}
-        reference={selectedAsset} onSelect={asset => navigate(link(chosen.id, asset), { replace: true })} onZoom={setZoom} />
+        reference={selectedAsset} onSelect={asset => navigate(link(chosen.id, asset))} onZoom={setZoom} />
       : child ? <><h1 className={TYPE.h1}>Form unavailable</h1><Link className={QUIET_LINK} to={link()}>Browse the shape library</Link></>
       : <>
         <h1 className={TYPE.h1 + ' font-display'}>Shape Library</h1>

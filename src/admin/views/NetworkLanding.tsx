@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
+import { useStepParam } from '../../hooks/useStepParam';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useAppStore, selectHasBundle } from '../../lib/store';
@@ -53,10 +54,11 @@ export const NetworkLanding: React.FC = () => {
   const activeTab: NetworkTab =
     rawTab && visibleTabs.find(t => t.id === rawTab) ? rawTab : fallback;
 
-  if (rawTab === ('wholesale' as NetworkTab)) return <Navigate to="/admin/activity?tab=wholesale" replace />;
+  const [, stepTab] = useStepParam('tab', activeTab);
 
+  if (rawTab === ('wholesale' as NetworkTab)) return <Navigate to="/admin/activity?tab=wholesale" replace />;
   const setActiveTab = (tab: NetworkTab) => {
-    setSearchParams({ tab }, { replace: true });
+    stepTab(tab, { only: true }); // a step in history (CLAUDE.md, "Back and forward")
   };
 
   return (

@@ -18,6 +18,7 @@ import { VendorSalesCard, type VendorOwnOrder } from '../../components/vendors/V
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAdminBack } from '../hooks/useAdminBack';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { api, type PurchaseOrder, type VendorProductSale } from '../../lib/api';
@@ -71,6 +72,7 @@ const StatusPill: React.FC<{ variant?: StatusPillVariant; children: React.ReactN
 export const VendorProfileView: React.FC = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
+  const goBack = useAdminBack('/admin/people?tab=sources');
   const scope = usePrivateQueryScope();
   const { data: rates } = useRates();
 
@@ -142,7 +144,7 @@ export const VendorProfileView: React.FC = () => {
       <div className="h-full overflow-y-auto bg-tea-bg pb-nav-gap">
         <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3">
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <ArrowLeft size={14} />
@@ -167,7 +169,7 @@ export const VendorProfileView: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <ArrowLeft size={14} />

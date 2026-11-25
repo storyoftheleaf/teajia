@@ -142,7 +142,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const navigate = useNavigate();
   const sampleSets = useSampleStore((s) => s.sampleSets);
   const sampleSetNames = useMemo(() => new Map(sampleSets.map((set) => [set.id, set.name || 'Untitled batch'])), [sampleSets]);
-  const openSampleBatch = (setId: string) => navigate(`/admin/compass?sampleOrder=manage&set=${encodeURIComponent(setId)}`);
+  const openSampleBatch = (setId: string) => navigate(`/admin/compass?tab=library&sampleOrder=manage&set=${encodeURIComponent(setId)}`);
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, hydrationStatus } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);

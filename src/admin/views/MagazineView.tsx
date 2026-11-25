@@ -8,6 +8,7 @@ import { useToast } from '../components/Toast';
 import { ArticleEditorModal } from '../components/ArticleEditorModal';
 import { STATUS_PILL_STYLES } from '../constants';
 import type { DbArticle, ReviewedDbArticle } from '../../types';
+import { useStepParam } from '../../hooks/useStepParam';
 
 type TabFilter = 'all' | 'draft' | 'published';
 
@@ -40,7 +41,10 @@ export const MagazineView: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const isPlatformOwner = canSeeStoryWorkshop(useAppStore(s => s.platformRole));
-  const [tab, setTab] = useState<TabFilter>('all');
+  // A step in history, in the address (CLAUDE.md, "Back and forward").
+  const [tabParam, stepTab] = useStepParam('tab', 'all');
+  const tab: TabFilter = (['all', 'draft', 'published'] as const).includes(tabParam as TabFilter) ? tabParam as TabFilter : 'all';
+  const setTab = (next: TabFilter) => stepTab(next);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<ReviewedDbArticle | null>(null);
   const [loadingArticleId, setLoadingArticleId] = useState<string | null>(null);
