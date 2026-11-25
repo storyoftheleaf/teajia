@@ -49,7 +49,7 @@ const save = (credential: string, userId?: string, action = 'save', selectedShop
   }, { credential, action });
 
 beforeEach(() => {
-  db = new SqliteD1('migrations', '0119');
+  db = new SqliteD1('migrations', '0123');
   seedIdentity(db, { userId: 'guest', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'different', accountId: 'shop-b' });
   seedIdentity(db, { userId: 'duplicate', accountId: 'shop-a' });
