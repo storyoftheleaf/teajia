@@ -42,4 +42,14 @@ describe('operator dashboard', () => {
     expect(html).toContain('Review payment');
     expect(html).toContain('/admin/activity?tab=orders&amp;search=TJ-10');
   });
+  it('lists teas waiting on a cost or bag weight beside the orders, linked to the tea', () => {
+    const tea = (id: string, extra: object) => ({ id, givenName: id, productName: id, type: 'Sheng', status: 'Draft', stockGrams: 0, lowStockThreshold: 0, stockKnownAt: '2026-11-25', ...extra });
+    const products = [tea('Elephant Village', { costAmount: null, quantityPurchased: 150 }), tea('Zhuangyuan Hong', { costAmount: 3800, quantityPurchased: 0 }), tea('Priced', { costAmount: 900, quantityPurchased: 250 })];
+    const html = renderToStaticMarkup(<MemoryRouter><DashboardView products={products as never} isLoading={false} /></MemoryRouter>);
+    expect(html).toContain('Teas waiting on an answer');
+    expect(html).toContain('Add the cost');
+    expect(html).toContain('Add the bag weight');
+    expect(html).toContain('/admin/stock?panel=Elephant%20Village');
+    expect(html).not.toContain('>Priced<');
+  });
 });
