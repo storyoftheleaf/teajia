@@ -296,6 +296,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'greater-yiwu',
     'lapsang',
     'lincang',
+    'liu-an',
     'liu-bao',
     'mahei',
     'mahei-gushu-red',

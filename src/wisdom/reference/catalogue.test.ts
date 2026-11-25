@@ -186,6 +186,7 @@ describe('sellable Tea Reference catalogue', () => {
       'greater-yiwu',
       'lapsang',
       'lincang',
+      'liu-an',
       'liu-bao',
       'mahei',
       'mahei-gushu-red',
