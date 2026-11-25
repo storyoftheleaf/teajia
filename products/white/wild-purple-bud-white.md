@@ -8,7 +8,7 @@ origin: "Yunnan, China"
 grams: 200
 stock: Unknown
 cost: "320 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "wild berries"

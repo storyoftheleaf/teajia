@@ -8,7 +8,7 @@ origin: "Yiwu, Yunnan, China"
 grams: 2500
 stock: Unknown
 cost: "1050 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "dark honey"

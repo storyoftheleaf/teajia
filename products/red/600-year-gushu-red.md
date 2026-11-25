@@ -6,9 +6,9 @@ form: Loose Leaf
 year: Unknown
 origin: "Lincang, Yunnan, China"
 grams: 500
-stock: Unknown
+stock: 118
 cost: "1350 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "dark honey"
@@ -28,7 +28,9 @@ Yunnan's old-growth tea forests. Trees of this age are found in protected forest
 
 ## Processing
 
-Full oxidation of ancient arbor leaf from 600-year-old trees. The processing must be gentle to respect the quality of this exceptional raw material. Likely sun-dried or low-temperature dried to preserve the leaf's inherent complexity.
+Fully oxidized leaf from a single ancient tree over 600 years old, finished by traditional charcoal roasting (炭焙). The maker's label, 尚茗私房茶 (Shangming Private Reserve Tea), names it 单株古树野生红, single-tree ancient wild red, and notes a rich magnolia aroma.
+
+The label's brewing: 3 to 5 g of leaf at a tea-to-water ratio of 1:20 to 1:30, water boiled then cooled to 85 to 90°C, first pours of 3 to 5 seconds, longer in later rounds.
 
 ## Mood
 

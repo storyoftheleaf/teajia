@@ -8,7 +8,7 @@ origin: "Lincang, Yunnan, China"
 grams: Unknown
 stock: Unknown
 cost: "350 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "thick honey"

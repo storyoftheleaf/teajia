@@ -8,7 +8,7 @@ origin: "Yunnan, China"
 grams: 100
 stock: Unknown
 cost: "100 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "malt"
