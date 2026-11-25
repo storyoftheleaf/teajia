@@ -1,5 +1,7 @@
 # Handoff to fresh chat: the navigation foundation, one word per route
 
+> **Marked 2026-11-25: done.** The navigation foundation slice this hands off has shipped and its plan is in `todo/plans/archive/`. The next navigation question is the section overhaul in [docs/SECTIONS.md](docs/SECTIONS.md).
+
 Open a new chat in the Teajia project and paste the block below. The copy button on the code fence grabs it cleanly.
 
 ```

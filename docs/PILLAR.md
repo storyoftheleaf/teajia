@@ -2,6 +2,8 @@
 
 > What this site is and how it works, in one read. Written 2026-09-20 from a full survey of the code (four agents, every public and signed-in route, the worker API, the git history of the home page). Linked from the top of `CLAUDE.md` so every session sees it. When the site changes shape, change this file in the same commit; a pillar that lags the code is worse than none.
 
+> **A section overhaul is proposed (2026-11-25).** [SECTIONS.md](SECTIONS.md) proposes four words (read, table, houses, shop), a public Tea Table, Your Table as a real page, and tea houses as a section of their own. Nothing in it is built. Everything below still describes the site as it runs today.
+
 ## What it is, in three sentences
 
 Teajia is a home for fine tea: a place to source it, study it, and share it with the people who gather around the cup. It is one person's twenty years of sourcing relationships, turned into a shop, a magazine, a reference library, a calendar of sessions, and a set of professional tools that other tea people can run their own practice on. It is not a wellness app, not a social network, not a SaaS dashboard, and it never sits at the tea table.

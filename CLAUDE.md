@@ -143,6 +143,8 @@ Streak trackers, gamification, engagement notifications, algorithmic recommendat
 
 **One exception, order only (Adrian, 2026-11-21).** The people list may place the people who use the site most nearer the top of "The family". Position is the whole of it: no badges, counts, streaks, nudges or notifications, and no wording that says why anyone sits where they do. The method lives in `worker/src/peopleList.ts`; the plan is `todo/plans/teajia-family.md`, "The people list".
 
+**Second exception, the Tea Table (proposed by Adrian, 2026-11-25; not in force until he confirms the wording).** One public page may show, newest first, what people have chosen to put on the tea table: shared tastings with their words and photographs, and published session recaps. Time order is the whole of it: no likes, comments, follows, follower or view counts, scores, streaks, ranking, recommendations or notifications, and it is never called a feed on the site. A person can take their own item off and the owner can hide any item. The plan is `todo/plans/tea-table.md`; the section map is `docs/SECTIONS.md`. Build nothing under it until he says yes.
+
 ## NEVER change without explicit confirmation
 - Navigation links, tab labels, or routing in `src/components/BottomTabBar.tsx` or any nav component — ask first, do not assume.
 

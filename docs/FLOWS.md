@@ -1,5 +1,7 @@
 # User Flows & Connective Journeys
 
+> **Marked 2026-11-25: stale.** The "Tea Practice OS" framing and its personal timeline were set aside by the vision. For the site today read [PILLAR.md](PILLAR.md); for the proposed sections read [SECTIONS.md](SECTIONS.md).
+
 > End-to-end journeys through the major Teajia surfaces, organized by user tier. For an exhaustive route list see SITE_MAP.md. For architectural decisions see ARCHITECTURE.md.
 
 ---

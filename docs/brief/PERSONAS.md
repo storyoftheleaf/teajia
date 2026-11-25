@@ -1,5 +1,7 @@
 # Teajia — Audience Personas & Use Cases
 
+> **Marked 2026-11-25.** Written April 2026 and still useful for who Teajia serves. Persona 3, the tea house founder, now has a plan: [tea-houses.md](../../todo/plans/tea-houses.md). Proposed sections: [SECTIONS.md](../SECTIONS.md).
+
 *Business briefing document. For technical feature plans see `plan/`. For brand strategy see `VISION.md`.*
 
 Last updated: April 2026
