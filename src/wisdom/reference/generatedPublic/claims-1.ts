@@ -3,6 +3,275 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "anhua-dark:ageing",
+    "pageId": "anhua-dark",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Anhua tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "Anhua tea is kept for years and said to improve: the liquor turns redder and the taste sweeter and mellower, with a fuller scent. No agreed count of years marks it as aged. Keep it clean, dry and aired, away from mould and other smells.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:brewing",
+    "pageId": "anhua-dark",
+    "sectionKey": "brewing",
+    "label": "Brewing Anhua tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:common-impressions",
+    "pageId": "anhua-dark",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:definition",
+    "pageId": "anhua-dark",
+    "sectionKey": "definition",
+    "label": "What Anhua dark tea is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "安化黑茶",
+        "pinyin": "ānhuà hēichá",
+        "gloss": "Anhua dark tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "Anhua dark tea comes from Anhua County, a mountain county on the Zi river in north-central Hunan, under the city of Yiyang. Its name is a protected origin product in China, so it is tied to a defined place of making. Anhua is widely named as the main home of dark tea in China, and as a starting point of the old tea routes to the north-west.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:family",
+    "pageId": "anhua-dark",
+    "sectionKey": "family",
+    "label": "The family of Anhua teas",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "天尖",
+        "pinyin": "tiānjiān",
+        "gloss": "heavenly tip"
+      },
+      {
+        "original": "贡尖",
+        "pinyin": "gòngjiān",
+        "gloss": "tribute tip"
+      },
+      {
+        "original": "生尖",
+        "pinyin": "shēngjiān",
+        "gloss": "raw tip"
+      },
+      {
+        "original": "茯砖",
+        "pinyin": "fúzhuān",
+        "gloss": "Fu brick"
+      },
+      {
+        "original": "千两茶",
+        "pinyin": "qiānliǎng chá",
+        "gloss": "thousand-liang tea"
+      },
+      {
+        "original": "百两茶",
+        "pinyin": "bǎiliǎng chá",
+        "gloss": "hundred-liang tea"
+      },
+      {
+        "original": "花卷茶",
+        "pinyin": "huājuǎn chá",
+        "gloss": "flower roll tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "Anhua teas come in three shapes. The three tips are loose teas, lightly pressed into bamboo baskets: Tianjian from the most tender leaf, Gongjian in the middle, and Shengjian, the coarsest, with the most stalk. The pressed bricks are Fu, Hei and Hua brick; Fu brick is the one grown on purpose with golden flower, in a warm, humid room for some weeks before it is dried hard. The flower rolls are tall columns pressed by hand inside a woven bamboo basket lined with leaf, named by their old weight in liang: Qianliang, a thousand, Bailiang, a hundred, and Shiliang, ten. Huajuan, flower roll, names the whole family and is also a nickname of Qianliang.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:grades",
+    "pageId": "anhua-dark",
+    "sectionKey": "grades",
+    "label": "Grades",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "一级",
+        "pinyin": "yījí",
+        "gloss": "first grade"
+      }
+    ],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "The raw leaf is sorted into numbered grades, and each finished tea is made from the grade that suits it, the most tender leaf going into the finest loose tips.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:history",
+    "pageId": "anhua-dark",
+    "sectionKey": "history",
+    "label": "How the Anhua trade grew",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "Anhua became a county in 1072, in the Northern Song, and tea from the area is mentioned from the Tang on, though as tea from the place, not yet as dark tea. In 1595, in the Ming, Anhua tea became an official tea, sold to the north-west. In the Qing, Shanxi merchants and others took over the border trade, and the loose tips and the large rolls grew out of that trade; the rolls are a Qing product, not a Ming one. Fu brick was first made in Anhua itself in 1953, at the Baishaxi factory, after Fu bricks had long been pressed in Shaanxi from Anhua raw tea.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:making",
+    "pageId": "anhua-dark",
+    "sectionKey": "making",
+    "label": "How Anhua tea is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "黑毛茶",
+        "pinyin": "hēi máochá",
+        "gloss": "dark raw tea"
+      },
+      {
+        "original": "松烟香",
+        "pinyin": "sōngyān xiāng",
+        "gloss": "pine-smoke aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "Every Anhua tea starts as one raw tea, heimaocha, made from large Anhua leaf. The leaf is fixed, rolled, piled, rolled again and dried over a wood fire, and in Anhua that fire burns pine. The pine fire gives the tea its smell of pine smoke or pine resin, which sets it apart from dark teas dried another way; some newer lines dry by machine instead. The raw tea is then steamed soft and pressed: lightly for the loose tips, in moulds for the bricks, and by hand for the rolls.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:notice-aged",
+    "pageId": "anhua-dark",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in Anhua tea kept for years",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "anhua-dark:rolls",
+    "pageId": "anhua-dark",
+    "sectionKey": "rolls",
+    "label": "The rolls",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Anhua dark tea style kit",
+    "text": "A roll is packed into its basket and pressed tight by treading and twisting with long bars, then left to dry slowly in sun and night air for weeks rather than in a dryer. Rolls are usually kept whole to age, and reach drinkers later as slices, discs or small cut pieces, since a whole roll is far too big to buy or brew.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "dark:ageing",
     "pageId": "dark",
     "sectionKey": "ageing",
@@ -677,283 +946,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "Lapsang and Wuyi red style kit",
     "text": "The traditional tea is dried over a fire of local pine, and the pine smoke gives it its main aroma, with longan fruit said to sit in the same note. The work is done in a qinglou, a wooden house of several floors with the fire at the bottom and the leaf on bamboo mats above, so the heat and smoke rise through the leaf. The strongly smoked style was made for export and never took hold in China. An unsmoked Tongmu red tea now sits beside it, built up from about 2005 and made widely for the Chinese market. Cheap Lapsang from outside Tongmu is often flavoured or smoked by a shortcut rather than made in a qinglou.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:common-character",
-    "pageId": "lincang",
-    "sectionKey": "common-character",
-    "label": "A broad regional tendency",
-    "axis": "sensory_observation",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "attribution": {
-      "sourceId": "teadb-lincang",
-      "sourceRole": "specialist_editorial",
-      "sample": "Regional convention reported in specialist writing about Lincang"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Young single-origin Lincang sheng is often described as green, firm, and bitter. This reputation is useful as a starting point only: Lincang is a large prefecture, and material from its counties, mountains, and villages should not be collapsed into one tasting profile.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:history",
-    "pageId": "lincang",
-    "sectionKey": "history",
-    "label": "History beyond single origins",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Lincang has a smaller public archive of famous aged single-origin teas than Yiwu or Menghai. Older blended productions, especially those associated with Xiaguan, nevertheless provide a historical thread, even when the exact origin of their base material cannot be reconstructed.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:scope",
-    "pageId": "lincang",
-    "sectionKey": "scope",
-    "label": "Northern Pu’er country",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Lincang lies north of Pu’er Prefecture and against Myanmar to the west. Its tea geography includes Mengku, Yongde, Fengqing, Bangdong, Bingdao, and Xigui, with repeated place names such as Daxueshan making precise labels especially important.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:age-aged",
-    "pageId": "liu-bao",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao of ten years and more",
-    "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:age-settling",
-    "pageId": "liu-bao",
-    "sectionKey": "age-settling",
-    "label": "Five to ten years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao of about five to ten years",
-    "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:age-young",
-    "pageId": "liu-bao",
-    "sectionKey": "age-young",
-    "label": "Young Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao under about five years",
-    "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:brewing",
-    "pageId": "liu-bao",
-    "sectionKey": "brewing",
-    "label": "Brewing Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:common-impressions",
-    "pageId": "liu-bao",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "红浓陈醇",
-        "pinyin": "hóng nóng chén chún",
-        "gloss": "red, thick, aged, mellow"
-      },
-      {
-        "original": "槟榔香",
-        "pinyin": "bīng láng xiāng",
-        "gloss": "betel nut aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:definition",
-    "pageId": "liu-bao",
-    "sectionKey": "definition",
-    "label": "What Liu Bao is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六堡茶",
-        "pinyin": "liù bǎo chá",
-        "gloss": "Liu Bao tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:history",
-    "pageId": "liu-bao",
-    "sectionKey": "history",
-    "label": "How the trade fell and returned",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:making-factory",
-    "pageId": "liu-bao",
-    "sectionKey": "making-factory",
-    "label": "The factory way",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "冷水渥堆",
-        "pinyin": "lěng shuǐ wò duī",
-        "gloss": "cold-water piling"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:making-traditional",
-    "pageId": "liu-bao",
-    "sectionKey": "making-traditional",
-    "label": "The farmhouse way",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "篓装",
-        "pinyin": "lǒu zhuāng",
-        "gloss": "basket packing"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
     "sourceIds": [],
     "reviewState": "approved"
   }
