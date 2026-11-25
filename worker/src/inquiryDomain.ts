@@ -300,7 +300,7 @@ export function withoutPausedLines(
   const dropped = [...new Set(value.items.filter(isPaused).map(item => idOf(item) as string))];
   if (dropped.length === 0) return { value, dropped };
   const droppedTotal = value.items.filter(isPaused)
-    .reduce((sum, item) => sum + Number((item as Record<string, unknown>).totalPrice || 0), 0);
+    .reduce<number>((sum, item) => sum + Number((item as Record<string, unknown>).totalPrice || 0), 0);
   return {
     value: {
       ...value,
