@@ -26,6 +26,7 @@ import { adminAuthReturnTo } from './authNavigation';
 import { carryQuery } from './carryQuery';
 import { useAdminBack } from './hooks/useAdminBack';
 import { AdminHistoryBar } from './components/AdminHistoryBar';
+import { ManageRoomTabs } from '../components/ManageRoomTabs';
 
 import { useProducts, useRates } from './hooks/useAdminData';
 import { eventsListQueryOptions } from './hooks/useEventData';
@@ -525,6 +526,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
 
         <AdminHistoryBar />
+        <ManageRoomTabs />
 
         <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture || isOnIntake ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>

@@ -204,3 +204,21 @@ export function isManagePathActive(path: string, pathname: string, search = ''):
   }
   return pathname === base || pathname.startsWith(base + '/');
 }
+
+export interface RoomTab { id: string; path: string; label: string }
+
+/**
+ * The tabs across the top of a Manage room's page (ManageRoomTabs): the room
+ * itself first, under its own word, then its screens. A child that is only
+ * a `?tab=` of the room's own page is left out, because that page already
+ * draws its own tabs (Sales' Wholesale is a tab of the Sales screen), and a
+ * second row naming the same choice would be two controls for one thing.
+ */
+export function roomTabs(room: ManageItem): RoomTab[] {
+  const base = room.path.split('?')[0];
+  const children = (room.children ?? []).filter(c => {
+    const [childBase, query] = c.path.split('?');
+    return !(childBase === base && query && new URLSearchParams(query).has('tab'));
+  });
+  return [{ id: room.id, path: room.path, label: room.label }, ...children];
+}

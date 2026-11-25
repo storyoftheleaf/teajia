@@ -3468,11 +3468,62 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid var(--tea-keyline);
 }
 
-/* The Manage column beside the rail sits one step DARKER than the page, so it
-   reads as its own band instead of melting into the rail, which is one step
-   lighter. Slight on purpose: tone, never effects. */
-.nav-manage-col {
-  background: color-mix(in srgb, rgb(var(--tea-bg-rgb)) 86%, black);
+/* The staff drawer beside the rail (LeftSidebar). One step LIGHTER than the
+   rail, and the open word "manage" wears the same tone and runs over the
+   rail's keyline into it, so word and drawer read as one shape, not a second
+   rail. The rooms are one wide, stacked up from that word. */
+.nav-drawer {
+  background: var(--tea-surface);
+  padding: 0 var(--space-1) var(--space-6);
+  gap: 3px;
+}
+.nav-drawer-label {
+  display: block;
+  padding: 0 var(--space-1) var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-10);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tea-text-dim);
+}
+.nav-room {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-h);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--tea-elevated);
+  font-family: var(--font-sans);
+  font-size: var(--fs-ui-12);
+  line-height: 1.2;
+  color: var(--tea-text-sec);
+  white-space: nowrap;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.nav-room:hover { color: var(--tea-text); }
+.nav-room:focus-visible { outline: 2px solid rgb(var(--tea-gold-rgb) / 0.5); outline-offset: 1px; }
+.nav-room[aria-current="page"] {
+  background: rgb(var(--tea-bg-rgb));
+  color: var(--tea-gold);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--tea-gold);
+}
+.nav-manage-word {
+  position: relative;
+  flex-shrink: 0;
+}
+.nav-manage-word::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--space-3)) calc(-1 * var(--space-2));
+}
+.nav-manage-word[data-open="true"] {
+  align-self: stretch;
+  margin: 0 -1px 0 var(--space-1);
+  padding: var(--space-3) 0 var(--space-3) var(--space-2);
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
+  background: var(--tea-surface);
+  text-align: left;
 }
 
 /* The rail's words sit close, 14px type on a 20px gap, which is the design

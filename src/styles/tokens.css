@@ -416,7 +416,7 @@
 
 :root {
   --tea-vignette-color: rgba(24, 19, 14, 0.12);
-  --teajia-sidebar-w: 4.5rem; /* the rail alone; LeftSidebar sets 17rem while the Manage column is open */
+  --teajia-sidebar-w: 3.75rem; /* the rail alone; LeftSidebar sets 9rem while the staff drawer is open */
 
   /* The two state hues the pill block needed and the palette did not have.
 
