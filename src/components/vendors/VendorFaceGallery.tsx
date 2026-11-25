@@ -223,6 +223,20 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
           </Button>
         </div>
 
+        {!placing && (
+          <Button
+            variant="plain"
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            className="mx-1.5 flex w-[calc(100%-0.75rem)] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-tea-border px-4 py-8 text-center text-tea-text-sec transition-colors hover:border-tea-gold hover:text-tea-text"
+            data-testid="face-drop-zone"
+          >
+            <ImagePlus size={28} strokeWidth={1.25} aria-hidden="true" />
+            <span className="text-ui-14 text-tea-text">Drop face photos here, or tap to choose them</span>
+            <span className="text-ui-12">They wait here, then you drag each one onto its vendor below.</span>
+          </Button>
+        )}
+
         {placing && (
           <ul className="flex flex-wrap gap-3 px-1.5 pt-2 pr-3 max-h-64 overflow-y-auto">
             {loose.map(face => (
