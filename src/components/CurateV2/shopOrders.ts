@@ -85,6 +85,7 @@ function lineOf(raw: unknown, index: number, orderCurrency: Currency, at: string
     ...(price === undefined ? { unpriced: true } : {}),
     compassEntryId: text(r.compass_entry_id),
     productId: text(r.product_id),
+    purchaseReceiptLineId: text(r.receipt_line_id),
     addedAt: at,
   };
 }

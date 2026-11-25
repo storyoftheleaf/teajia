@@ -62,6 +62,14 @@ describe('reading an order the shop holds', () => {
     expect(shopOrderTotals(order).own).toBeNull();
   });
 
+  it('preserves the receipt line id written into a prepared purchase order', () => {
+    const items = JSON.stringify([{ product_id: 'p1', product_name: 'Alishan Oolong', quantity: 500, receipt_line_id: 'po_po-4_0' }]);
+    const order = shopOrderOf(row({ id: 'po-4-lines', receipt_id: 'po_po-4', items_json: items, status: 'ordered' }));
+    expect(JSON.parse((row({ id: 'shape', receipt_id: 'po_po-4', items_json: items }) as PurchaseOrder).items_json)[0].receipt_line_id).toBe('po_po-4_0');
+    expect(order.receiptId).toBe('po_po-4');
+    expect(order.items[0].purchaseReceiptLineId).toBe('po_po-4_0');
+  });
+
   it('survives a record whose lines cannot be read', () => {
     const order = shopOrderOf(row({ id: 'po-5', items_json: '{not json' }));
     expect(order.items).toEqual([]);

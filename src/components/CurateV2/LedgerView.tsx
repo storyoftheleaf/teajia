@@ -751,15 +751,13 @@ const ShopOrderCard: React.FC<{
   const usdText = totals.usd !== null ? `$${totals.usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : null;
   const headline = ownText ?? usdText ?? '—';
   const date = orderDate(order.createdAt);
-  const receiptFacts = order.items.map(item => matchOrderReceiptLine(item, receipt));
-  const matchedFacts = receiptFacts.filter((line): line is NonNullable<typeof line> => Boolean(line));
-  const receiptUnavailable = Boolean(order.receiptId && (!receipt || matchedFacts.length !== order.items.length));
-  const receivedText = matchedFacts.length
-    ? matchedFacts.map(line => `${line.received_quantity.toLocaleString()} ${line.unit === 'g' ? 'g' : 'pcs'} received`).join(' · ')
-    : null;
-  const dueText = matchedFacts.length
-    ? matchedFacts.map(line => `${Math.max(0, line.expected_quantity - line.received_quantity - line.cancelled_quantity).toLocaleString()} ${line.unit === 'g' ? 'g' : 'pcs'} due`).join(' · ')
-    : null;
+  const receiptText = order.receiptId ? order.items.map(item => {
+    const line = matchOrderReceiptLine(item, receipt);
+    if (!line) return `${listName(item.name) || 'Unnamed'}: Receipt unavailable`;
+    const unit = line.unit === 'g' ? 'g' : 'pcs';
+    const due = Math.max(0, line.expected_quantity - line.received_quantity - line.cancelled_quantity);
+    return `${listName(item.name) || 'Unnamed'}: ${line.received_quantity.toLocaleString()} ${unit} received · ${due.toLocaleString()} ${unit} due`;
+  }).join(' · ') : '';
   // A tea this device has never seen cannot be opened here; the shop's other
   // device's link into a product is not followed either.
   const lines = useMemo(() => order.items.map((item) => ({
@@ -786,7 +784,7 @@ const ShopOrderCard: React.FC<{
           purchase · {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
           {' · '}<span>{shopStatusWords(order.status)}</span>
           {date ? ` · ${date}` : ''}
-          {receiptUnavailable ? ' · Receipt unavailable' : receivedText && dueText ? ` · ${receivedText} · ${dueText}` : ''}
+          {receiptText ? ` · ${receiptText}` : ''}
         </span>
         {!isExpanded && <span className="text-ui-14 font-medium text-tea-text tabular-nums" data-testid="shop-order-total">{headline}</span>}
       </div>
