@@ -1,40 +1,40 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-24T15:11:11.631Z",
+  "composedAt": "2026-11-25T02:36:27.691Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
     "id": "e77d2550-f9d0-4965-850a-d2b2096fb71f",
     "name": "Zhuangyuan Hong",
     "chineseName": "状元红",
-    "type": "Red",
+    "type": "Oolong",
     "form": "Loose",
     "year": null,
     "origin": "Wuyi Mountains, Fujian, China",
     "stockGrams": 0,
     "pricePerGramUsd": null,
-    "tags": []
+    "tags": "[\"dark honey\",\"dried apricot\",\"cocoa\",\"warm mineral\",\"lingering sweetness\"]"
   },
   "entry": {
     "productId": "e77d2550-f9d0-4965-850a-d2b2096fb71f",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "Zhuangyuan Hong is a loose [red tea](red:definition) from the Wuyi Mountains in Fujian. It is the tea English calls black tea, and it is fully oxidised: once the leaf's cells are broken, the leaf's own enzymes turn it from green to reddish brown. The Chinese trade calls that step [fermentation](red:definition)."
+        "layer": "place",
+        "text": "Zhuangyuan Hong is a loose leaf tea from the Wuyi Mountains in northern Fujian, the home of [Wuyi rock tea](yancha:definition). The bushes there grow among rock, in crevices and on ledges and terraces in cliff country, rooted in soil weathered from that same stone and kept wet by fog and rain. Only tea grown in this protected area may be sold as Wuyi rock tea."
       },
       {
         "layer": "type",
-        "text": "These mountains hold the oldest name in red tea. [Zhengshan Xiaozhong](lapsang:history), the red tea of [Tongmu](lapsang:definition), is called the ancestor of all red tea, though the dates given for its birth differ. It reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong."
+        "text": "[Oolong](oolong:definition) took shape in these mountains between the sixteenth and seventeenth centuries, at the turn from the Ming to the Qing. Wuyi leaf is twisted into long thin strips rather than rolled into balls, then [roasted over charcoal](yancha:making) in several rounds, with rests of weeks or months between them. The roast dries the leaf so it keeps, and the maker sets its strength by the leaf in hand."
       }
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf."
+      "text": "Wuyi tea is usually brewed gongfu style with water at or near the boil, about 95 to 100°C, and about 5 to 8 grams of leaf in a 100 to 120 ml gaiwan, a third to a half full. A quick rinse, poured off at once, is common. Steeps start short, about 5 to 20 seconds, and grow a few seconds longer each round, and good rock tea gives seven steeps or more. In a larger pot, use about 2 to 5 grams for 250 to 350 ml and steep two to three minutes."
     },
     "notice": {
       "layer": "notice",
-      "styleName": "red tea",
-      "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
+      "styleName": "Wuyi rock tea",
+      "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
     },
     "missing": [
       "A Wisdom entry for its place, or a more specific origin",
@@ -45,27 +45,27 @@
   },
   "claimUses": [
     {
-      "claimId": "red:definition",
+      "claimId": "yancha:definition",
       "rev": 1
     },
     {
-      "claimId": "lapsang:history",
+      "claimId": "oolong:definition",
       "rev": 1
     },
     {
-      "claimId": "lapsang:definition",
+      "claimId": "yancha:making",
       "rev": 1
     },
     {
-      "claimId": "red:brewing",
+      "claimId": "yancha:brewing",
       "rev": 1
     },
     {
-      "claimId": "red:common-impressions",
+      "claimId": "yancha:common-impressions",
       "rev": 1
     }
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-25T02:41:13.368Z"
+  "approvedAt": "2026-11-25T02:57:18.639Z"
 }
