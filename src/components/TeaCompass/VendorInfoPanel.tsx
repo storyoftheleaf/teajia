@@ -11,6 +11,7 @@ import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { VendorDetails } from './types';
+import { usePhotoEditor } from '../shared/usePhotoEditor';
 
 interface VendorInfoPanelProps {
   vendorName: string;
@@ -123,12 +124,16 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
     );
   };
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handlePhotoUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     key: 'businessCardUrl' | 'storefrontUrl',
     setState: (s: UploadState) => void
   ) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { title: key === 'storefrontUrl' ? 'Shop photo' : 'Business card', freeShape: true });
     if (!file) return;
     e.target.value = '';
     setState('loading');
@@ -259,6 +264,7 @@ const VendorInfoPanelContent: React.FC<VendorInfoPanelProps> = ({
   return (
     <div className="rounded-xl bg-tea-surface/60 p-3 space-y-3">
       {/* Hidden file inputs */}
+      {photoEditor}
       <input ref={storefrontRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => handlePhotoUpload(e, 'storefrontUrl', setStorefrontState)} />
       <input ref={cardRef} type="file" accept="image/*" capture="environment" className="hidden"

@@ -32,6 +32,7 @@ import { THREADS, profileThreads } from '../TeaDiscovery/threads';
 import { AccountSwitcherChip } from './AccountSwitcherChip';
 import { buildTeaMasterReadiness, type ShopReadinessInput, type TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import { usePersonReadiness } from '../readiness/usePersonReadiness';
+import { usePhotoEditor } from '../shared/usePhotoEditor';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -282,8 +283,12 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     if (auth.isAuthenticated) avatarInputRef.current?.click();
   };
 
-  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const { editPhoto, photoEditor } = usePhotoEditor({ title: 'Your photo', outputSize: 600 });
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0];
+    e.target.value = '';
+    if (!picked) return;
+    const file = await editPhoto(picked);
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -621,6 +626,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
         }}
       >
         {/* Hidden avatar file input */}
+        {photoEditor}
         <input
           ref={avatarInputRef}
           type="file"

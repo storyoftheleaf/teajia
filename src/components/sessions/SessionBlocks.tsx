@@ -165,7 +165,7 @@ export function OpenRecapRow({ to }: { to: string }) {
   return (
     <Link to={to} className="flex min-h-tap items-center justify-between border-t border-tea-border bg-tea-bg px-6 py-3 font-sans text-ui-11 uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text">
       <span>All photographs and guest book</span>
-      <span aria-hidden="true" className="h-1.5 w-1.5 rotate-45 border-r border-t border-tea-gold" />
+      <span aria-hidden="true" className="h-1.5 w-1.5 rotate-45 border-r border-t border-current" />
     </Link>
   );
 }

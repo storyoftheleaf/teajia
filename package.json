@@ -61,6 +61,7 @@
     "tea-wisdom:entries:unapprove": "node scripts/tea-wisdom-compose/entries-cli.mjs unapprove"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.21",
     "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-dialog": "1.1.15",
     "@react-pdf/renderer": "^4.9.0",

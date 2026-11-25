@@ -20,6 +20,7 @@ import type {
   CollectionDetail, CollectionItem, CollectionPublication,
   CollectionRecipient, CollectionStatus,
 } from '../../types';
+import { usePhotoEditor } from '../../components/shared/usePhotoEditor';
 
 function formatWhen(iso?: string | null): string {
   if (!iso) return '—';
@@ -323,6 +324,7 @@ export const CollectionEditView: React.FC = () => {
     }
   };
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleHeroUpload = async (file: File) => {
     if (!id) return;
     setUploadingHero(true);
@@ -530,11 +532,17 @@ export const CollectionEditView: React.FC = () => {
               <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-3 border border-dashed border-tea-border rounded-xl text-xs text-tea-text-sec hover:text-tea-text hover:border-tea-gold transition-colors w-fit">
                 {uploadingHero ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
                 {uploadingHero ? 'Uploading…' : 'Upload hero image'}
+                {photoEditor}
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleHeroUpload(f); }}
+                  onChange={async e => {
+                    const picked = e.target.files?.[0];
+                    e.target.value = '';
+                    const f = picked ? await editPhoto(picked, { title: 'Hero image', freeShape: true }) : null;
+                    if (f) handleHeroUpload(f);
+                  }}
                 />
               </label>
             )}

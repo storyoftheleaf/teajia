@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ImagePlus, Loader2, X } from 'lucide-react';
 import { Button } from '../shared/Button';
 import { VendorFace } from './VendorFace';
-import { VendorFacePhotoButton } from './VendorFacePhotoButton';
+import { VendorFaceAdjustButton, VendorFacePhotoButton } from './VendorFacePhotoButton';
 import {
   orderFaceVendors,
   restoreVendorFace,
@@ -18,7 +18,10 @@ import { looksLikePhoto, prepareFacePhoto } from './facePhotoFile';
 /**
  * Every vendor as a face, in People > Suppliers. Tap a face for the vendor's
  * page (contacts, teas, purchases); the camera on each tile adds or changes
- * the face photo there and then, so the gallery fills in as Adrian goes.
+ * the face photo there and then, and the crop beside it reframes the photo
+ * already there (crop in, drag, zoom) in the shared photo editor, so the
+ * gallery fills in and tidies up as Adrian goes. Placed and picked photos
+ * open centred on the face.
  *
  * Placing faces: drop a batch of photos on the page (or "Add photos to
  * place"), and they wait in a tray above the vendors. Drag one onto a vendor,
@@ -184,13 +187,10 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
         <div className="p-1.5">{tileBody(v)}</div>
       )}
       {v.id && !heldFace && (
-        <VendorFacePhotoButton
-          vendorId={v.id}
-          vendorName={v.name}
-          hasFace={v.hasFace}
-          look="badge"
-          className="absolute top-3 right-3"
-        />
+        <span className="absolute top-3 right-3 flex gap-1.5">
+          {v.photo && <VendorFaceAdjustButton vendorId={v.id} vendorName={v.name} photo={v.photo} look="badge" />}
+          <VendorFacePhotoButton vendorId={v.id} vendorName={v.name} hasFace={v.hasFace} look="badge" />
+        </span>
       )}
     </li>
   );
