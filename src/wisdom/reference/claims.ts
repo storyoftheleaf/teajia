@@ -53,6 +53,8 @@ export interface ClaimAppliesWhen {
   name_includes?: readonly string[];
   /** Only valid together with origin_includes: at least one value is in the name. For a tea known by two names. */
   name_any?: readonly string[];
+  /** A way of making the tea named in its name (GABA): at least one value is in the name. Needs `type`; never names a place. */
+  process_in_name?: readonly string[];
   /** normalizeTeaForm output. */
   form?: string;
 }

@@ -8,7 +8,7 @@ const NEVER_LISTING = new Set(['maker_history', 'terminology', 'sensory_observat
 const SOURCE_ROLES = new Set(['standard', 'producer', 'seller_own_batch', 'study', 'specialist_editorial', 'taster']);
 const STATUSES = new Set(['draft', 'approved', 'withdrawn']);
 const ORIGINS = new Set(['approved', 'legacy_import']);
-const APPLIES_KEYS = new Set(['named_tea', 'type', 'grade', 'origin_includes', 'name_includes', 'name_any', 'form']);
+const APPLIES_KEYS = new Set(['named_tea', 'type', 'grade', 'origin_includes', 'name_includes', 'name_any', 'process_in_name', 'form']);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const BASES = new Set(['sourced', 'trade_knowledge']);
 
@@ -29,7 +29,7 @@ function validateAppliesWhen(claimId, appliesWhen) {
   if (!appliesWhen || typeof appliesWhen !== 'object' || Array.isArray(appliesWhen)) fail(claimId, 'applies_when must be an object');
   for (const [key, value] of Object.entries(appliesWhen)) {
     if (!APPLIES_KEYS.has(key)) fail(claimId, `applies_when has unsupported key ${key}`);
-    if (key === 'origin_includes' || key === 'name_includes' || key === 'name_any') {
+    if (key === 'origin_includes' || key === 'name_includes' || key === 'name_any' || key === 'process_in_name') {
       if (!Array.isArray(value) || value.length === 0 || value.some(item => typeof item !== 'string' || !item.trim())) {
         fail(claimId, `applies_when.${key} must be a non-empty list of strings`);
       }
@@ -40,6 +40,8 @@ function validateAppliesWhen(claimId, appliesWhen) {
   for (const key of ['name_includes', 'name_any']) {
     if (appliesWhen[key] && !appliesWhen.origin_includes) fail(claimId, `applies_when.${key} is only valid together with origin_includes`);
   }
+  if (appliesWhen.process_in_name && !appliesWhen.type) fail(claimId, 'applies_when.process_in_name is only valid together with type');
+  if (appliesWhen.process_in_name && appliesWhen.origin_includes) fail(claimId, 'applies_when.process_in_name names a way of making, so it is never combined with a place');
 }
 
 /**

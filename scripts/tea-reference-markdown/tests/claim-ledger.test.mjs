@@ -175,6 +175,8 @@ test('claim metadata rules are enforced', async () => {
     [{ axis: 'maker_history', listing_eligible: true }, /never listing-eligible/],
     [{ applies_when: { name_includes: ['naka'] } }, /only valid together with origin_includes/],
     [{ applies_when: { name_any: ['naka'] } }, /name_any is only valid together with origin_includes/],
+    [{ applies_when: { process_in_name: ['gaba'] } }, /process_in_name is only valid together with type/],
+    [{ applies_when: { type: 'Oolong', origin_includes: ['nantou'], process_in_name: ['gaba'] } }, /never combined with a place/],
     [{ terms: [{ original: 'gongting', pinyin: 'gōngtíng', gloss: 'palace' }] }, /must contain Han script/],
     [{ revisions: [revision(1, '宫廷 grade.')] }, /must not contain Han script/],
     [{ revisions: [revision(1, 'Text.', { evidence_ids: [] })] }, /needs evidence_ids/],

@@ -103,6 +103,14 @@ describe('resolveListingPassages: contract rules', () => {
     expect(appliesTo({ origin_includes: [] }, facts)).toBe(false);
   });
 
+  it('matches process_in_name on the name alone, and only beside type', () => {
+    const gaba = listingFacts({ type: 'Oolong', originRegion: '', name: 'Gaba High Mountain' });
+    expect(appliesTo({ type: 'Oolong', process_in_name: ['gaba'] }, gaba)).toBe(true);
+    expect(appliesTo({ type: 'Red', process_in_name: ['gaba'] }, gaba)).toBe(false);
+    expect(appliesTo({ process_in_name: ['gaba'] }, gaba)).toBe(false);
+    expect(appliesTo({ type: 'Oolong', process_in_name: ['gaba'] }, listingFacts({ type: 'Oolong', name: 'Alishan High Mountain' }))).toBe(false);
+  });
+
   it('matches name_any on any one name, and only beside origin_includes', () => {
     expect(appliesTo({ origin_includes: ['mengsong'], name_any: ['naka', 'lapsang'] }, facts)).toBe(true);
     expect(appliesTo({ origin_includes: ['mengsong'], name_any: ['lapsang', 'zhengshan'] }, facts)).toBe(false);
