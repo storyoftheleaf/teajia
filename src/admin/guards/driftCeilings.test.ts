@@ -100,7 +100,7 @@ describe('very long files', () => {
   const SNAPSHOT: Record<string, number> = {
     'src/admin/components/AddProductModal.tsx': 1642,
     'src/admin/components/CustomersView.tsx': 2130,
-    'src/admin/components/InventoryView.tsx': 3501,
+    'src/admin/components/InventoryView.tsx': 3488,
     'src/admin/components/ProductEditPanel.tsx': 2106,
     'src/admin/components/SourcesView.tsx': 2334,
     'src/admin/components/wisdom/WisdomBrowser.tsx': 1747,
