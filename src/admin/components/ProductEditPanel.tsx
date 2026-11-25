@@ -1053,6 +1053,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const navigate = useNavigate();
   const [roomTab, setRoomTab] = useState<RoomTab>('shelf');
   useEffect(() => { if (openListingReview) setRoomTab('shelf'); }, [openListingReview]);
+  useEffect(() => { const show = (event: Event) => setRoomTab((event as CustomEvent<RoomTab>).detail); window.addEventListener('stock-room-tab', show); return () => window.removeEventListener('stock-room-tab', show); }, []);
   const { showToast } = useToast();
   const panelQueryClient = useQueryClient();
   /* The shop's own freight rate, for teas that have not entered one. Read from

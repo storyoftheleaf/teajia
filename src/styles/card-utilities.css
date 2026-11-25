@@ -7810,7 +7810,9 @@ body.cart-panel-open .commerce-dock {
   .stock-rooms thead th:not([aria-sort="none"]) :is(button,span,div) { color:var(--tea-gold-lt); }
   .stock-rooms td>div:has(>button[aria-label^="Open "]) { flex-direction:row; align-items:baseline; gap:var(--space-2); min-width:0; }
   .stock-rooms td>div:has(>button[aria-label^="Open "])>button { flex-shrink:0; max-width:75%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-ui-17); }
-  .stock-rooms td>div:has(>button[aria-label^="Open "])>span { flex:1; min-width:0; font-size:var(--fs-ui-12); letter-spacing:0 !important; }
+  .stock-rooms td>div:has(>button[aria-label^="Open "]) { justify-content:flex-start; width:100%; }
+  .stock-rooms td>div:has(>button[aria-label^="Open "])>span:last-child { flex:1 1 0; }
+  .stock-rooms td>div:has(>button[aria-label^="Open "])>span { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-ui-12); letter-spacing:0 !important; }
   /* What a tea still needs is one small gold dot on its line, as drawn; the
      words stay for a screen reader and are spelled out in the tea's own room. */
   .stock-rooms td>div:has(>button[aria-label^="Open "]) [data-testid="row-need"] { display:inline-flex; align-items:center; font-size:0; }
@@ -7824,7 +7826,12 @@ body.cart-panel-open .commerce-dock {
   .stock-rooms .stock-group-summary { grid-column:2 !important; grid-row:1; white-space:nowrap; justify-self:start !important; margin:0 !important; display:flex; gap:0; color:var(--tea-text-dim); font-family:var(--font-sans); font-size:var(--fs-ui-12); }
   .stock-rooms .stock-group-summary>span+span::before { content:"·"; margin:0 var(--space-1); }
   .stock-rooms .stock-group-flags { grid-column:3 !important; grid-row:1; white-space:nowrap; justify-self:end !important; margin:0 !important; font-size:var(--fs-ui-12); }
-  /* Right-click a group's name: its own short menu, where the pointer is. */
+  .stock-rooms .stock-group-flags .text-tea-gold { color:var(--tea-error) !important; }
+  /* A group's warnings are small buttons: the chosen one is raised a tone. */
+  .stock-room-flag { border-radius:var(--radius-md); cursor:pointer; }
+  .stock-room-flag:hover { color:var(--tea-text); }
+  .stock-room-flag[aria-pressed="true"] { padding:0 var(--space-1); background:var(--tea-elevated); color:var(--tea-text); }
+  /* Right-click a group's name or a tea's line: a short menu, where the pointer is. */
   .stock-room-menu { position:fixed; left:var(--menu-x); top:var(--menu-y); display:grid; min-width:11rem; padding:var(--space-1); border-radius:var(--radius-lg); background:var(--tea-elevated); box-shadow:var(--shadow-lg); }
   .stock-room-menu>button { padding:var(--space-2) var(--space-3); border-radius:var(--radius-md); color:var(--tea-text-sec); font-size:var(--fs-ui-13); text-align:left; }
   .stock-room-menu>button:hover { background:var(--tea-surface); color:var(--tea-text); }

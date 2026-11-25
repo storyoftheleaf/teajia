@@ -816,7 +816,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const phoneList = isMobile && !isEditMode && !glossaryMode && filterType !== 'Pending' && !draftMode && (stockLayout !== 'cards' || filterType === 'Samples') && !phoneCardStudy();
   const cardLayout = !phoneList && stockLayout === 'cards' && !isEditMode && !draftMode && filterType !== 'Samples' && filterType !== 'Pending' && !glossaryMode;
   const [phoneGroupBy, setPhoneGroupByState] = useState<PhoneGroupBy>(readPhoneGroupBy);
-  const rooms = useStockRooms(!isMobile && winWidth >= ROOMS_MIN_WIDTH && !cardLayout && !isEditMode && !glossaryMode && filterType !== 'Pending' && filterType !== 'Samples', groupedProducts, processedProducts.length, inventoryCategory === 'teaware' ? 'All wares' : 'All teas', inventoryGroupBy || 'vendor', setInventoryGroupBy, { rename: p => renameSupplier(p), details: p => stableOpenSupplier(p), assign: items => setUnknownSupplierProducts(items) });
+  const rooms = useStockRooms(!isMobile && winWidth >= ROOMS_MIN_WIDTH && !cardLayout && !isEditMode && !glossaryMode && filterType !== 'Pending' && filterType !== 'Samples', groupedProducts, processedProducts.length, inventoryCategory === 'teaware' ? 'All wares' : 'All teas', inventoryGroupBy || 'vendor', setInventoryGroupBy, { rename: p => renameSupplier(p), details: p => stableOpenSupplier(p), assign: items => setUnknownSupplierProducts(items), open: p => stableOpenPanel(p), recount: (p, from) => stableStockRecount(p, from), photo: p => rowEditing.editorExtras(p).onPhoto(p), taste: p => rowEditing.editorExtras(p).onTaste(p) });
   // Curate samples shown in the Samples view, so its count includes them.
   const [curateSampleCount, setCurateSampleCount] = useState(0);
   const setPhoneGroupBy = (by: PhoneGroupBy) => { setPhoneGroupByState(by); writePhoneGroupBy(by); };
@@ -2562,7 +2562,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           claim the header and let it scroll away vertically. One scrollport,
           both axes: the header sticks to the top and the Product cell to the
           left. The navigation plane is a sibling, so it never moves sideways. */}
-      <div className="stock-rooms flex min-h-0 flex-1" data-room={rooms.active ?? undefined}>{rooms.rail}<div
+      <div className="stock-rooms flex min-h-0 flex-1" data-room={rooms.active ?? undefined} onContextMenu={rooms.onMenu}>{rooms.rail}{rooms.menu}<div
         ref={scrollContainerRef}
         data-testid="inventory-scroll"
         className={`min-w-0 flex-1 isolate custom-scrollbar bg-tea-bg pt-0 pb-nav-gap transition-all duration-300 ${mobileHScroll ? 'overflow-auto overscroll-x-none hide-scrollbar-always' : 'overflow-y-auto overflow-x-hidden'}`}
@@ -2981,7 +2981,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           )}
                         </colgroup>
                         <tbody>
-                          {items.map((product) => {
+                          {(rooms.only ? items.filter(rooms.only) : items).map((product) => {
                             const globalIdx = productIndexMap.get(product.id) ?? 0;
                             const needHeading = needHeadings?.get(product.id);
                             return (
