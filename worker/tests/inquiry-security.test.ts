@@ -58,6 +58,8 @@ class InquiryDb {
         return null;
       },
       all: async () => {
+        // The paused-tea lookup reads the same table; no fixture tea is paused.
+        if (normalized.includes('from products') && normalized.includes('stock_known_at') && !normalized.includes('p.is_public = 1')) return { results: [] };
         if (normalized.includes('from products') && normalized.includes('account_id = ?')) {
           const [accountId, ...ids] = values.map(String);
           return {

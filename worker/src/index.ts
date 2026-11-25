@@ -15,6 +15,9 @@ import { eraseKeptSetup, queueKeptPhotoCleanupForUser, retryKeptPhotoCleanup, se
 import { serveGuestBookReview } from './sessionGuestBook';
 import { attachPublicTeawareDetails } from './teawareDetails';
 import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
+import { readOrderUpdateEmail } from './orderUpdateEmail';
+import { isPersonalOffer, profileIsPersonalOfferSql } from './personalOfferNetwork';
+import { PERSONAL_OFFER_TAKEN, personalOfferTaken } from './personalOfferTaken';
 import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
 import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
@@ -199,7 +202,7 @@ import {
   INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
   INQUIRY_MAX_REFERRAL, INQUIRY_MAX_REQUEST_BYTES, INQUIRY_MAX_VISION, inquiryFieldTooLong,
   inquiryRequestFingerprint, isValidTrackingToken, NEWSLETTER_MAX_EMAIL, NEWSLETTER_MAX_REQUEST_BYTES,
-  normalizeCartInquiry, redactPublicInquiry, sha256Hex,
+  normalizeCartInquiry, redactPublicInquiry, sha256Hex, withoutPausedLines,
 } from './inquiryDomain';
 import { hasTeaAtlasTick, serveAtlas, withTeaAtlasTick } from './atlas';
 import { serveAtlasAdmin } from './atlasAdmin';
@@ -209,7 +212,7 @@ import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 import { serveCatalogTeaReading } from './catalogTeaReading';
-import { applyReviewedWordingFallback, serveWisdomWordingReview } from './wisdomWordingReview';
+import { applyReviewedWordingFallback, reviewedDescription, serveWisdomWordingReview } from './wisdomWordingReview';
 import { serveStockGalleryProposal } from './stockGalleryProposal';
 import { serveYixingOwnerReview } from './yixingOwnerReview';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
@@ -1360,7 +1363,8 @@ function buildProductMirrorInserts(
   // network_visible: same gating as migration backfill.
   const networkVisible = (body.is_public === undefined || !!body.is_public)
     && !body.is_personal
-    && !body.is_sample ? 1 : 0;
+    && !body.is_sample
+    && !isPersonalOffer(body) ? 1 : 0;
 
   // Status mapping: products legacy values → profile lifecycle.
   const profileStatus = body.status === 'Archived' ? 'archived'
@@ -3846,7 +3850,7 @@ const handleGetCatalog: Handler = async (request, env) => {
     const out: Record<string, any> = {
       id: p.id, type: p.type, form: p.form, given_name: p.given_name, chinese_name: p.chinese_name,
       product_name: p.product_name, year: p.year, origin_country: p.origin_country,
-      origin_region: p.origin_region, description: p.description, tasting_notes: p.tasting_notes,
+      origin_region: p.origin_region, description: reviewedDescription(p.id, p.description), tasting_notes: p.tasting_notes,
       image_url: p.image_url, additional_images: p.additional_images, lore: p.lore,
       show_wisdom: p.show_wisdom, processing_notes: p.processing_notes, terroir: p.terroir,
       mood: p.mood, experience: p.experience, tea_key: p.tea_key, tasting: p.tasting,
@@ -9477,7 +9481,7 @@ const handleListMyProfileFavorites: Handler = async (request, env) => {
          JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
         WHERE pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      )
      SELECT tp.id, tp.name, tp.chinese_name, tp.type, tp.harvest_year,
@@ -11053,6 +11057,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       }
       safe.account_slug = p.account_slug;
       safe.public_path = p.public_path;
+      if (p.account_id === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
       maskCountPendingCommerce(safe, p.account_id, p);
       return safe;
     });
@@ -12953,7 +12958,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       briefing_cards: briefingCards,
       mood_hints: moodHints,
     },
-    tea_menu: menu.results,
+    tea_menu: (menu.results as any[]).map(item => ({ ...item, product_description: reviewedDescription(item.product_id, item.product_description) })),
     guest_invites: guestInvites.results,
   });
 };
@@ -14963,6 +14968,15 @@ const PUBLIC_REQUEST_PRODUCT = `p.is_public = 1 AND p.shown_in_shop = 1 AND p.st
   AND NOT ${INWARD_ORDERS_PAUSED_SQL}
   AND (p.personal_offer_source_id IS NULL OR (p.personal_offer_withdrawn_at IS NULL AND p.stock_grams > 0))`;
 
+async function pausedInwardProductIds(env: Env, accountId: string, productIds: string[]): Promise<Set<string>> {
+  if (productIds.length === 0) return new Set();
+  const { results } = await env.DB.prepare(
+    `SELECT p.id FROM products p WHERE p.account_id = ? AND ${INWARD_ORDERS_PAUSED_SQL}
+       AND p.id IN (${productIds.map(() => '?').join(',')})`
+  ).bind(accountId, ...productIds).all<{ id: string }>();
+  return new Set(results.map(row => row.id));
+}
+
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>, sellerUserId: string | null) {
   const productIds = catalogProductIds(items);
   const [productRows, rateRows] = await Promise.all([
@@ -15053,6 +15067,8 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
   if (whatsappConsent && !whatsappRecipient) {
     return json({ error: 'Enter your WhatsApp number with + and country code to request a confirmation.' }, 400);
   }
+  const updateEmail = readOrderUpdateEmail(body.update_email);
+  if (updateEmail.error) return json({ error: updateEmail.error }, 400);
 
   let itemsStr: string;
   let totalUsd: number;
@@ -15196,6 +15212,17 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       }, 200);
     }
 
+    // A tea whose ordering is paused is left out of the basket and named in the
+    // answer; the rest of the order goes through. The saved fingerprint stays
+    // that of the request as sent, so a retry is still recognised.
+    const pausedLines = withoutPausedLines(normalized.value,
+      await pausedInwardProductIds(env, accountId, catalogProductIds(normalized.value.items)));
+    normalized.value = pausedLines.value;
+    const skippedPaused = pausedLines.dropped.length ? { skipped_paused_product_ids: pausedLines.dropped } : {};
+    if (pausedLines.dropped.length && normalized.value.items.length === 0) {
+      return json({ error: 'Store or items not found' }, source === 'website' ? 400 : 404);
+    }
+
     if (source === 'website') {
       if (personalSeller) {
         if (normalized.value.items.some(item => (item as Record<string, unknown>).custom === true)) {
@@ -15214,6 +15241,9 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         if (business?.whatsapp_number?.replace(/\D/g, '') === whatsappRecipient.slice(1)) {
           return json({ error: 'Enter your own WhatsApp number, rather than the store’s number.' }, 400);
         }
+      }
+      if (personalSeller && await personalOfferTaken(env.DB, accountId, catalogProductIds(normalized.value.items as Array<Record<string, any>>))) {
+        return restError(409, PERSONAL_OFFER_TAKEN, 'personal_offer_taken');
       }
       let lines: Awaited<ReturnType<typeof pricedRequestLines>>;
       try {
@@ -15266,7 +15296,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       const customerPhone = inquiryPhone(phoneCandidate) || inquiryPhone(contact);
       const shippingTarget = env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED === 'true' && env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID === accountId
         ? await prepareShippingNotificationTarget(env.DB, env, { accountId, inquiryId: requestId,
-          trackingToken: normalized.value.trackingToken, email: inquiryEmail(contact) ? contact : null,
+          trackingToken: normalized.value.trackingToken, email: inquiryEmail(contact) ? contact : updateEmail.email,
           whatsappNumber: whatsappRecipient, whatsappConsentAt: whatsappRecipient ? new Date().toISOString() : null })
         : null;
       let invoiceNumber = '';
@@ -15364,7 +15394,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         }).catch(() => false);
       return json({ ...await savedInvoiceContents(env,accountId,invoiceId),email_sent: emailSent, id: requestId,
         ref_number: normalized.value.refNumber, tracking_token: normalized.value.trackingToken,
-        invoice_id: invoiceId, invoice_number: invoiceNumber, source, success: true }, 201);
+        invoice_id: invoiceId, invoice_number: invoiceNumber, source, success: true, ...skippedPaused }, 201);
     }
 
     // Only catalogue lines are checked against the catalogue. A custom line
@@ -15417,6 +15447,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         tracking_token: normalized.value.trackingToken,
         source,
         success: true,
+        ...skippedPaused,
       }, 201);
     } catch (error) {
       const raced = await env.DB.prepare(
@@ -25987,7 +26018,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
           AND tp.status = 'published'
           AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      )
      SELECT tea_profile_id, note AS why, tea_slug, tea_name, tea_image_url,
@@ -26174,7 +26205,7 @@ const handleGetProductSelectedBy: Handler = async (_request, env, params) => {
        JOIN contributors c ON c.id = pf.contributor_id AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
        JOIN accounts a ON a.id = p.account_id
       WHERE (p.id = ? OR p.slug = ?)
-        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
         AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
         AND a.public_enabled = 1 AND a.status = 'active'
       ORDER BY pf.position ASC
@@ -26219,7 +26250,7 @@ const handleGetPublicProfileFavorites: Handler = async (_request, env, params) =
           AND tp.status = 'published'
           AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      ), chosen AS (
        SELECT * FROM eligible_favorites WHERE listing_rank = 1
@@ -27617,7 +27648,7 @@ const handleGetShopCollections: Handler = async (_request, env) => {
         origin_country: item.origin_country,
         origin_region: item.origin_region,
         image_url: item.image_url,
-        description: item.description,
+        description: reviewedDescription(item.product_id, item.description),
         tasting_notes: (() => {
           if (!item.tasting_notes) return null;
           if (typeof item.tasting_notes === 'string') {
@@ -27978,7 +28009,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       const outOfStock = i.product_type === 'Teaware'
         ? (i.quantity_units ?? 0) <= 0
         : (i.stock_grams ?? 0) <= 0;
-      return { ...i, out_of_stock: outOfStock };
+      return { ...i, description: reviewedDescription(i.product_id, i.description), out_of_stock: outOfStock };
     });
 
   return json({
@@ -28435,6 +28466,7 @@ const handleNetworkCatalog: Handler = async (request, env) => {
             )
       WHERE p.network_visible = 1
         AND p.status = 'published'
+        AND NOT ${profileIsPersonalOfferSql('p')}
         AND p.curated_by_account_id != ?
         AND NOT EXISTS (
           SELECT 1 FROM product_listings pl
@@ -28661,7 +28693,8 @@ const handleCarryListing: Handler = async (request, env) => {
 
   if (!profile) return json({ error: 'Tea profile not found' }, 404);
 
-  if (profile.status !== 'published' || profile.network_visible !== 1) {
+  const personalOffer = await env.DB.prepare(`SELECT 1 AS yes FROM tea_profiles p WHERE p.id = ? AND ${profileIsPersonalOfferSql('p')}`).bind(profileId).first();
+  if (profile.status !== 'published' || profile.network_visible !== 1 || personalOffer) {
     return json({ error: 'This tea is not currently available in the network catalog.' }, 400);
   }
 

@@ -79,6 +79,8 @@ import {
 import type { InventoryCategory, ColDef } from './inventory/types';
 import { isFeaturedButHidden, readInventoryFold, withInventoryFold, withParam } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
+import { inventoryExportRows } from './inventory/exportRows';
+import { MOBILE_COL_PX } from './inventory/mobileColumnWidths';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
 import { PhoneStockList, readPhoneGroupBy, writePhoneGroupBy, type PhoneSortKey } from './inventory/phone/PhoneStockList';
@@ -877,23 +879,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // columns (origin, vendor) are allowed to truncate a little rather than
   // reserve width for the longest possible value. The user can drag any column
   // wider; these are just the snug starting widths.
-  const MOBILE_COL_PX: Record<string, number> = {
-    productName: 158,
-    type: 62,
-    year: 48,
-    originRegion: 96,
-    stockGrams: 48,
-    verified: 52,
-    costAmount: 48,
-    costPerGramUSD: 48,
-    pricePerGramUSD: 48,
-    teawareCategory: 96,
-    material: 96,
-    capacityMl: 60,
-    quantityUnits: 48,
-    vendor: 96,
-    form: 62,
-  };
   // A drag-resized width (persisted in the store) wins over the default; absent
   // keys fall back to MOBILE_COL_PX. Never below MIN so a column can't vanish.
   const MIN_MOBILE_COL_PX = 44;
@@ -1421,33 +1406,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
    * might match two teas.
    */
   const handleExport = () => {
-    const csv = Papa.unparse(processedProducts.map(p => ({
-        ID: p.id,
-        Type: p.type,
-        Year: p.year ?? '',
-        'Given Name': p.givenName,
-        'Chinese Name': p.chineseName ?? '',
-        'Product Name': p.productName,
-        Origin: p.originRegion,
-        Vendor: p.vendor ?? '',
-        Stock: p.stockGrams,
-        Cost: p.costAmount,
-        'Cost Currency': p.costCurrency,
-        /* Whether that currency is an ANSWER or just the column default. Blank
-           means nobody ever stated it, which is the column to sort by when
-           auditing the shelf: a cost read as dollars that was really yuan is
-           seven times too big and looks like an expensive tea, not a fault. */
-        'Cost currency stated?': p.costCurrencySource ? 'yes' : 'no, may be the default',
-        'Batch g': p.quantityPurchased,
-        // Blank means the tea has no rate of its own and follows the shop's.
-        // A number is a rate pinned to this tea, in the tea's own cost currency.
-        'Ship rate (own currency)': p.shippingRatePerKg ?? '',
-        'Ship rate source': p.shippingRatePerKg == null ? 'shop' : 'pinned to tea',
-        'Retail /g USD': p.pricePerGramUSD,
-        'Cost /g USD': p.costPerGramUSD,
-        Public: p.isPublic ? 'yes' : 'no',
-        'In shop': p.shownInShop ? 'yes' : 'no',
-    })));
+    const csv = Papa.unparse(inventoryExportRows(processedProducts));
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);

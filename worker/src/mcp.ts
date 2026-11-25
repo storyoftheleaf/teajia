@@ -107,6 +107,7 @@ import {
 // A leaf module shared with index.ts, so no cycle. convert_order_request needs
 // the same tea-versus-teaware rule the REST convert applies to its lines.
 import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { reviewedDescription } from './wisdomWordingReview';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 
 type Env = {
@@ -8147,7 +8148,7 @@ async function publicGetTea(env: Env, accountId: string, args: any) {
   let tasting: any = p.tasting_notes;
   if (typeof tasting === 'string') { try { tasting = JSON.parse(tasting); } catch { tasting = []; } }
 
-  return { ...publicProductSummary(accountId, p), description: p.description ?? null, tasting_notes: tasting };
+  return { ...publicProductSummary(accountId, p), description: reviewedDescription(p.id, p.description ?? null), tasting_notes: tasting };
 }
 
 async function publicBrowseCatalog(env: Env, accountId: string, args: any) {

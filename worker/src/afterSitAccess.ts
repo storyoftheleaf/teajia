@@ -6,6 +6,7 @@ import {
 import { afterSitCredentialFormat, createAfterSitCredential, hashAfterSitCredential } from './afterSitCredential';
 import { getKeptSetup, namedSetupTeas, saveKeptSetup } from './privateKeptSetups';
 import { eraseKeptSetup } from './privateKeptSetupPhotos';
+import { findPartyLink, findPartyRecap, issuePartyLink, revokePartyLinks, servePartyGuestBook } from './afterSitPartyLinks';
 
 type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
 type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown; photo?: unknown; teaId?: unknown; publicRecap?: unknown };
@@ -62,11 +63,12 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
 
     const scope = [attendeeId, eventId, host.accountId];
     if (request.method === 'DELETE') {
-      const [first, extra] = await env.DB.batch([
+      const [first, extra, party] = await env.DB.batch([
         env.DB.prepare(`DELETE FROM after_sit_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?`).bind(...scope),
         env.DB.prepare(`DELETE FROM after_sit_extra_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?`).bind(...scope),
+        revokePartyLinks(env.DB, attendeeId, eventId, host.accountId),
       ]);
-      return first.meta?.changes || extra.meta?.changes ? json({ revoked: true }) : unavailable();
+      return first.meta?.changes || extra.meta?.changes || party.meta?.changes ? json({ revoked: true }) : unavailable();
     }
 
     const credential = createAfterSitCredential();
@@ -108,8 +110,17 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     };
   }
 
+  const partyLink: Handler<E> = async (request, env, { eventId, attendeeId }) => {
+    const host = await deps.requireHost(request, env);
+    if ('error' in host) return privateResponse(host.error);
+    const limited = await deps.limit(request, env, `host:${host.accountId}`);
+    if (limited) return privateResponse(limited);
+    const body = await request.json().catch(() => null);
+    return privateResponse(await issuePartyLink(env.DB, host.accountId, eventId, attendeeId, body));
+  };
+
   const recap = withLink(async (_request, env, hash) => {
-    const seat = await findEligibleSeat(env.DB, hash);
+    const seat = await findEligibleSeat(env.DB, hash) ?? await findPartyRecap(env.DB, hash);
     if (!seat) return unavailable();
     const { id, title, event_date, host_note, teas_json } = seat;
     return json({ event: { id, title, event_date }, host_note, teas: JSON.parse(teas_json) });
@@ -151,6 +162,12 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     if (!method && !photos && !withPhoto && !wholeEntry) return json({ error: 'Choose a Guest Book action.' }, 400);
     const actor = await deps.requireUser(request, env);
     if ('error' in actor) return privateResponse(actor.error);
+    const party = await findPartyLink(env.DB, hash);
+    if (party) {
+      // A personal link covers the guest book note only; photos stay with the booking's own link.
+      if (photos || withPhoto) return unavailable();
+      return privateResponse(await servePartyGuestBook(env.DB, party, hash, actor.userId, body));
+    }
     const seat = await env.DB.prepare(
       `SELECT a.account_id, a.magic_token FROM after_sit_live_access l
        JOIN event_attendees a ON a.id = l.attendee_id AND a.event_id = l.event_id AND a.account_id = l.account_id
@@ -182,6 +199,7 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
   return [
     ['POST', '/api/admin/events/:eventId/after-sit/:attendeeId', manage],
     ['DELETE', '/api/admin/events/:eventId/after-sit/:attendeeId', manage],
+    ['POST', '/api/admin/events/:eventId/after-sit/:attendeeId/party', partyLink],
     ['POST', '/api/after-sit/recap', recap],
     ['POST', '/api/after-sit/setup', setup],
     ['POST', '/api/after-sit/guest-book', guestBook],
