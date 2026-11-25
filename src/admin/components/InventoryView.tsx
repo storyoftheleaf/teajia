@@ -2,7 +2,7 @@ import { inventoryTeaType } from '../../wisdom/vocabulary';
 import { StockHeadingStudy } from './inventory/stock/StockHeadingStudy';
 import type { InventoryFacetFilter } from './inventory/domain';
 import { renderedRowIds, shiftRangeIds } from './inventory/selectionRange';
-import { summaryStatusOnRefetch } from './inventory/domain';
+import { preparationHeadings, preparationHeadingText, summaryStatusOnRefetch } from './inventory/domain';
 import { StockBrowseBar } from './inventory/stock/StockBrowseBar';
 import { StockCardSections, useStockLayout, useStockGroupFolds } from './inventory/stock/StockCardSections';
 import { StockViewOptions } from './inventory/stock/StockViewOptions';
@@ -2956,6 +2956,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {groupedProducts.map(({ key: groupKey, label: groupLabel, items, totalStock, totalRetail, lifecycle }) => {
                 if (filterType === 'Samples' && items.length === 0) return null;
                 const isCollapsed = collapsedGroups.has(groupKey);
+                const needHeadings = lifecycle && groupKey === 'needs_preparation' && inventoryCategory === 'tea' ? preparationHeadings(items) : null;
                 return (
                   <div key={groupKey} data-stock-group={groupLabel} data-collapsed={isCollapsed} data-testid={lifecycle ? `inventory-stage-${groupKey}` : undefined}>
                     <div className="stock-group-head stock-group-menu-head">
@@ -2981,8 +2982,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <tbody>
                           {items.map((product) => {
                             const globalIdx = productIndexMap.get(product.id) ?? 0;
+                            const needHeading = needHeadings?.get(product.id);
                             return (
                               <React.Fragment key={product.id}>
+                                {needHeading && <tr data-preparation-need={needHeading.need}><td colSpan={(splitView ? renderSplitCols : renderCols).length} className="border-b border-tea-border px-5 pb-2 pt-4 text-ui-12 text-tea-text-sec">{preparationHeadingText(needHeading)}</td></tr>}
                                 <InventoryRow priceMode={priceMode} onSavePricing={handleFormPricingUpdate} onQuickTaste={() => setPersonalTastingProduct(product)} onQuickJournal={() => navigate(`/account/journal?tea=${encodeURIComponent(product.id)}`)}
                                   product={product}
                                   globalIdx={globalIdx}

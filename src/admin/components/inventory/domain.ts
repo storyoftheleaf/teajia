@@ -1,4 +1,4 @@
-import { isIncomingOnly, needsPublicationReview, publicationRefusal } from '../../../lib/productPublication';
+import { hasProductName, isIncomingOnly, needsPublicationReview, publicationRefusal } from '../../../lib/productPublication';
 import { retailValueFor } from '../../lib/inventoryMetrics';
 import type { InventoryPurpose, Product } from '../../types';
 
@@ -391,6 +391,68 @@ export type InventoryLifecycleGroup = {
   totalRetail: number | null;
 };
 
+/**
+ * What a tea in Needs preparation is waiting for, so Adrian can do one kind
+ * of job at a time: every cost, then every bag weight, then every count.
+ * One tea sits under one need, the first in this order; the price comes from
+ * cost and bag weight, so those lead. A blank cost is a need, a typed 0 is not.
+ */
+export type PreparationNeed = 'cost' | 'weight' | 'count' | 'name' | 'type' | 'other';
+
+export const PREPARATION_NEED_ORDER: readonly PreparationNeed[] = ['cost', 'weight', 'count', 'name', 'type', 'other'];
+
+export const PREPARATION_NEED_LABELS: Record<PreparationNeed, string> = {
+  cost: 'Needs a cost',
+  weight: 'Needs a bag weight',
+  count: 'Needs a count',
+  name: 'Needs a name',
+  type: 'Needs a type',
+  other: 'Needs another detail',
+};
+
+function lacksCount(product: Product): boolean {
+  const onHand = product.type === 'Teaware' ? product.quantityUnits : product.stockGrams;
+  return !product.stockKnownAt || typeof onHand !== 'number' || !Number.isFinite(onHand) || onHand < 0;
+}
+
+export function preparationNeed(product: Product): PreparationNeed {
+  if (product.type !== 'Teaware') {
+    if (product.costAmount == null) return 'cost';
+    if (!(Number(product.quantityPurchased) > 0)) return 'weight';
+  }
+  if (lacksCount(product)) return 'count';
+  if (!hasProductName(product.givenName) && !hasProductName(product.productName)) return 'name';
+  if (!product.type || product.type === 'Misc' || product.type === 'MISSING_TYPE') return 'type';
+  return 'other';
+}
+
+/**
+ * The heading each run of a Needs preparation list opens with, keyed by the
+ * id of the run's first tea. `alsoCount` says every tea in a cost, weight,
+ * name or type run still needs counting too, so the count batch is not a surprise.
+ */
+export function preparationHeadings(items: readonly Product[]): Map<string, { need: PreparationNeed; label: string; count: number; alsoCount: boolean }> {
+  const headings = new Map<string, { need: PreparationNeed; label: string; count: number; alsoCount: boolean }>();
+  let current: { need: PreparationNeed; label: string; count: number; alsoCount: boolean } | null = null;
+  for (const product of items) {
+    const need = preparationNeed(product);
+    if (!current || current.need !== need) {
+      current = { need, label: PREPARATION_NEED_LABELS[need], count: 0, alsoCount: need !== 'count' };
+      headings.set(product.id, current);
+    }
+    current.count += 1;
+    if (!lacksCount(product)) current.alsoCount = false;
+  }
+  return headings;
+}
+
+/** "Needs a cost · 4 teas · each needs a count too". */
+export function preparationHeadingText(heading: { label: string; count: number; alsoCount: boolean }): string {
+  const teas = `${heading.count} ${heading.count === 1 ? 'tea' : 'teas'}`;
+  const extra = heading.alsoCount ? (heading.count === 1 ? ' · needs a count too' : ' · each needs a count too') : '';
+  return `${heading.label} · ${teas}${extra}`;
+}
+
 export function groupInventoryByLifecycle(
   products: Product[],
   incomingByProductId: Readonly<Record<string, IncomingInventorySummary>> = {},
@@ -401,7 +463,12 @@ export function groupInventoryByLifecycle(
   }
 
   return INVENTORY_STAGE_ORDER.map(stage => {
-    const items = groups.get(stage) ?? [];
+    const staged = groups.get(stage) ?? [];
+    // Stable: inside each need the chosen sort order still holds.
+    const items = stage === 'needs_preparation'
+      ? staged.map((product, index) => ({ product, index, rank: PREPARATION_NEED_ORDER.indexOf(preparationNeed(product)) }))
+        .sort((a, b) => a.rank - b.rank || a.index - b.index).map(entry => entry.product)
+      : staged;
     return {
       stage,
       label: INVENTORY_STAGE_LABELS[stage],
