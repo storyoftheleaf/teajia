@@ -16,17 +16,41 @@ export type ReviewOutcome = { status: number; body: any };
 export type ReviewScope = { accountId: string; userId: string };
 export type ExcerptStatus = 'starred' | 'promoted' | 'dismissed';
 
+export const MAX_EXCERPT_LENGTH = 2000;
+export const MAX_BYLINE_LENGTH = 80;
+
+export type ExcerptWords = { text: string; byline: string };
+
 /**
- * The shop approves the words as the customer offered them. Only the author
- * can change the excerpt or the byline; an approval carrying anything else is
- * refused.
+ * The words the shop publishes for an excerpt (Adrian, 2026-11-25: the shop
+ * may correct a spelling or a slip in a customer's words). Each of the excerpt
+ * and the byline is the one given, trimmed, or the one already there when none
+ * is given. The customer's original stays on the offer (source_text and its
+ * byline), so a correction never loses what they wrote. A blank or overlong
+ * value, or a byline detail, is refused.
  */
-export function matchesTastingOffer(body: Record<string, unknown>, offer: Record<string, any>) {
-  return (body.edited_text === undefined || body.edited_text === offer.source_text)
-    && (body.attribution_name === undefined || body.attribution_name === offer.attribution_name)
-    && (body.attribution_detail === undefined || body.attribution_detail === null
-      || body.attribution_detail === '');
+export function readExcerptWords(
+  body: Record<string, unknown>, current: ExcerptWords,
+): ExcerptWords | { error: string } {
+  const pick = (value: unknown, fallback: string, max: number, label: string) => {
+    if (value === undefined) return fallback;
+    if (typeof value !== 'string' || !value.trim()) return { error: `The ${label} cannot be blank` };
+    if (value.trim().length > max) return { error: `The ${label} is longer than ${max} characters` };
+    return value.trim();
+  };
+  if (body.attribution_detail !== undefined && body.attribution_detail !== null && body.attribution_detail !== '') {
+    return { error: 'A byline detail is not published' };
+  }
+  const text = pick(body.edited_text, current.text, MAX_EXCERPT_LENGTH, 'excerpt');
+  if (typeof text !== 'string') return text;
+  const byline = pick(body.attribution_name, current.byline, MAX_BYLINE_LENGTH, 'byline');
+  if (typeof byline !== 'string') return byline;
+  return { text, byline };
 }
+
+/** The offer's words as the customer wrote them. */
+export const offeredWords = (offer: Record<string, any>): ExcerptWords =>
+  ({ text: String(offer.source_text ?? ''), byline: String(offer.attribution_name ?? '') });
 
 /** One offer in this shop, whatever its status. */
 export async function loadTastingExcerptOffer(db: D1Database, accountId: string, id: string) {
@@ -38,6 +62,7 @@ export async function loadTastingExcerptOffer(db: D1Database, accountId: string,
 export async function listTastingExcerptCandidates(db: D1Database, accountId: string, status: ExcerptStatus) {
   const { results } = await db.prepare(`
     SELECT c.*, i.id AS impression_id, i.show_on_listing, i.show_on_main_page,
+           i.text AS published_text, i.attribution_name AS published_name,
            COALESCE(p.given_name, p.product_name) AS product_name
     FROM tasting_note_candidates c
     JOIN products p ON p.id = c.product_id AND p.account_id = c.account_id
@@ -48,6 +73,8 @@ export async function listTastingExcerptCandidates(db: D1Database, accountId: st
   return results.map(row => ({
     ...candidateToApi(row), productName: row.product_name, impressionId: row.impression_id,
     showOnListing: row.show_on_listing === 1, showOnMainPage: row.show_on_main_page === 1,
+    // What the page shows, which may be the shop's correction of sourceText.
+    publishedText: row.published_text ?? null, publishedName: row.published_name ?? null,
   }));
 }
 
@@ -56,8 +83,10 @@ export async function approveTastingExcerptOffer(
 ): Promise<ReviewOutcome> {
   const offer = await loadTastingExcerptOffer(db, scope.accountId, id);
   if (!offer) return { status: 404, body: { error: 'Offer not found' } };
-  if (!matchesTastingOffer(body, offer)) return { status: 422, body: { error: 'Approval must use the offered excerpt and byline' } };
+  const words = readExcerptWords(body, offeredWords(offer));
+  if ('error' in words) return { status: 422, body: { error: words.error } };
   if (offer.status !== 'starred') return { status: 409, body: { error: 'Offer already resolved' } };
+  const corrected = words.text === offer.source_text ? null : words.text;
 
   const now = new Date().toISOString();
   const impressionId = crypto.randomUUID();
@@ -66,18 +95,18 @@ export async function approveTastingExcerptOffer(
       db.prepare(`
         INSERT INTO product_impressions
           (id, account_id, product_id, candidate_id, text, attribution_name, published_at, published_by, created_at)
-        SELECT ?, account_id, product_id, id, source_text, attribution_name, ?, ?, ?
+        SELECT ?, account_id, product_id, id, ?, ?, ?, ?, ?
         FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND offered_at = ? AND status = 'starred'
         ON CONFLICT(candidate_id) DO UPDATE SET id = excluded.id, product_id = excluded.product_id,
           account_id = excluded.account_id, text = excluded.text, attribution_name = excluded.attribution_name,
           attribution_detail = NULL, published_at = excluded.published_at, published_by = excluded.published_by,
           show_on_listing = 0, show_on_main_page = 0
-      `).bind(impressionId, now, scope.userId, now, id, scope.accountId, offer.offered_at),
+      `).bind(impressionId, words.text, words.byline, now, scope.userId, now, id, scope.accountId, offer.offered_at),
       db.prepare(`
-        UPDATE tasting_note_candidates SET status = 'promoted', promoted_at = ?, promoted_by = ?, updated_at = ?
+        UPDATE tasting_note_candidates SET status = 'promoted', edited_text = ?, promoted_at = ?, promoted_by = ?, updated_at = ?
         WHERE id = ? AND account_id = ? AND status = 'starred'
           AND EXISTS (SELECT 1 FROM product_impressions WHERE id = ? AND candidate_id = tasting_note_candidates.id)
-      `).bind(now, scope.userId, now, id, scope.accountId, impressionId),
+      `).bind(corrected, now, scope.userId, now, id, scope.accountId, impressionId),
     ]);
     if (!impression.meta.changes) return { status: 409, body: { error: 'Offer already resolved or withdrawn' } };
   } catch {
@@ -86,8 +115,9 @@ export async function approveTastingExcerptOffer(
   return {
     status: 201,
     body: {
-      id: impressionId, status: 'promoted', productId: offer.product_id, text: offer.source_text,
-      attributionName: offer.attribution_name, attributionDetail: null, publishedAt: now,
+      id: impressionId, status: 'promoted', productId: offer.product_id, text: words.text,
+      attributionName: words.byline, attributionDetail: null, publishedAt: now,
+      corrected: corrected !== null || words.byline !== offer.attribution_name,
       showOnListing: false, showOnMainPage: false,
     },
   };
@@ -146,4 +176,36 @@ export async function setTastingExcerptPlacements(
   return row
     ? { status: 200, body: { showOnListing: row.show_on_listing === 1, showOnMainPage: row.show_on_main_page === 1 } }
     : { status: 404, body: { error: 'Approved excerpt not found' } };
+}
+
+/**
+ * Correct the words of an approved excerpt in place: a spelling, a slip, the
+ * byline. Where it shows does not change. The customer's original stays on
+ * the offer; the offer's edited_text records the shop's version (NULL when it
+ * is the customer's own again).
+ */
+export async function correctApprovedExcerpt(
+  db: D1Database, accountId: string, impressionId: string, words: ExcerptWords,
+): Promise<ReviewOutcome> {
+  const [row] = await db.batch([
+    db.prepare(`
+      UPDATE product_impressions SET text = ?, attribution_name = ?
+      WHERE id = ? AND account_id = ? AND ${APPROVED_EXCERPT}
+      RETURNING id, product_id, candidate_id, text, attribution_name, show_on_listing, show_on_main_page
+    `).bind(words.text, words.byline, impressionId, accountId),
+    db.prepare(`
+      UPDATE tasting_note_candidates SET edited_text = CASE WHEN source_text = ? THEN NULL ELSE ? END, updated_at = ?
+      WHERE account_id = ? AND status = 'promoted'
+        AND id = (SELECT candidate_id FROM product_impressions WHERE id = ? AND account_id = ?)
+    `).bind(words.text, words.text, new Date().toISOString(), accountId, impressionId, accountId),
+  ]);
+  const updated = (row.results as Record<string, any>[] | undefined)?.[0];
+  if (!updated) return { status: 404, body: { error: 'Approved excerpt not found' } };
+  return {
+    status: 200,
+    body: {
+      id: updated.id, productId: updated.product_id, text: updated.text, attributionName: updated.attribution_name,
+      showOnListing: updated.show_on_listing === 1, showOnMainPage: updated.show_on_main_page === 1,
+    },
+  };
 }

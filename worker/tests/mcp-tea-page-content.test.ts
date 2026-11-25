@@ -58,6 +58,7 @@ describe('registration and authority', () => {
       set_curator_notes: 'catalog:write',
       list_tasting_excerpts: 'inventory:read',
       approve_tasting_excerpt: 'catalog:write',
+      correct_tasting_excerpt: 'catalog:write',
       dismiss_tasting_excerpt: 'catalog:write',
       set_tasting_excerpt_placement: 'catalog:write',
       list_offered_photographs: 'inventory:read',
@@ -216,10 +217,32 @@ describe('tasting excerpts', () => {
     expect(listed.products[0].approved[0]).toMatchObject({ impression_id: impressionId, show_on_listing: true, show_on_homepage: true });
   });
 
-  it('refuses changed words, as the admin route does', async () => {
+  it('approves with corrected words, showing the customer original in the preview', async () => {
     const db = setup();
-    const result = await call(db, 'approve_tasting_excerpt', { excerpt_id: 'offer-1', text: 'Something else' });
-    expect(result.error).toBe('only_the_customer_can_change_the_words');
+    const blank = await call(db, 'approve_tasting_excerpt', { excerpt_id: 'offer-1', text: '  ' });
+    expect(blank.error).toBe('invalid_words');
+    const { preview, committed } = await twoStep(db, 'approve_tasting_excerpt', { excerpt_id: 'offer-1', text: 'Orchid over warm stones' });
+    expect(preview.preview).toMatchObject({ text: 'Orchid over warm stones', customer_original: { text: 'Orchid over warm stone' } });
+    expect(committed).toMatchObject({ committed: true, text: 'Orchid over warm stones', attributionName: 'M.' });
+    const row = db.sqlite.prepare(`SELECT source_text, edited_text FROM tasting_note_candidates WHERE id = 'offer-1'`).get();
+    expect(row).toEqual({ source_text: 'Orchid over warm stone', edited_text: 'Orchid over warm stones' });
+  });
+
+  it('corrects an approved excerpt in place, and only the one previewed', async () => {
+    const db = setup();
+    const approved = await twoStep(db, 'approve_tasting_excerpt', { excerpt_id: 'offer-1' });
+    const impression_id = approved.committed.id;
+    expect((await call(db, 'correct_tasting_excerpt', { impression_id })).error).toBe('text_or_byline_required');
+    const preview = await call(db, 'correct_tasting_excerpt', { impression_id, byline: 'Mei' });
+    expect(preview.preview.byline).toEqual({ before: 'M.', after: 'Mei' });
+    const swapped = await call(db, 'correct_tasting_excerpt', { impression_id, byline: 'Someone', confirm: preview.confirmation_token });
+    expect(swapped.error).toBe('invalid_or_expired_confirmation_token');
+    const { committed } = await twoStep(db, 'correct_tasting_excerpt', { impression_id, text: 'Orchid, warm stone.', byline: 'Mei' });
+    expect(committed).toMatchObject({ committed: true, text: 'Orchid, warm stone.', attributionName: 'Mei' });
+    const listed = await call(db, 'list_tasting_excerpts', { status: 'approved' });
+    expect(listed.products[0].approved[0]).toMatchObject({ text: 'Orchid, warm stone.', byline: 'Mei', customer_original: 'Orchid over warm stone' });
+    const theirs = await call(db, 'correct_tasting_excerpt', { impression_id, text: 'x' }, owner({ accountId: OTHER, userId: 'other-owner' }));
+    expect(theirs.error).toBe('approved_excerpt_not_found');
   });
 
   it('passes on an offer', async () => {

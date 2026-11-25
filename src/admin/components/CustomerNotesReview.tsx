@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
+import { Button } from '../../components/shared/Button';
 import { useAppStore } from '../../lib/store';
 
 import { DaySheetButton } from './guestNotes/DaySheetButton';
@@ -18,6 +19,9 @@ interface GuestExcerpt {
   impressionId: string | null;
   showOnListing: boolean;
   showOnMainPage: boolean;
+  /** What the page shows once approved; may be the shop's correction. */
+  publishedText?: string | null;
+  publishedName?: string | null;
 }
 
 const views = [
@@ -27,8 +31,10 @@ const views = [
 ] as const;
 
 type View = typeof views[number];
+type Words = { text: string; byline: string };
 type Action =
-  | { kind: 'approve' }
+  | { kind: 'approve'; words?: Words }
+  | { kind: 'correct'; impressionId: string; words: Words }
   | { kind: 'pass' }
   | { kind: 'place'; impressionId: string; surface: 'show_on_listing' | 'show_on_main_page'; visible: boolean };
 
@@ -40,25 +46,68 @@ function ExcerptRow({ excerpt, view, onUpdate, onError }: {
 }) {
   const mutation = useMutation({
     mutationFn: (action: Action) => {
-      if (action.kind === 'approve') return api.tastingNoteCandidates.approve(excerpt.id);
+      if (action.kind === 'approve') {
+        return action.words
+          ? api.tastingNoteCandidates.promote(excerpt.id, { edited_text: action.words.text, attribution_name: action.words.byline })
+          : api.tastingNoteCandidates.approve(excerpt.id);
+      }
+      if (action.kind === 'correct') return api.tastingNoteCandidates.correct(action.impressionId, { edited_text: action.words.text, attribution_name: action.words.byline });
       if (action.kind === 'pass') return api.tastingNoteCandidates.dismiss(excerpt.id);
       return api.tastingNoteCandidates.setPlacements(action.impressionId, { [action.surface]: action.visible });
     },
-    onSuccess: (_result, action) => onUpdate(action, excerpt.productId),
+    onSuccess: (_result, action) => { setDraft(null); return onUpdate(action, excerpt.productId); },
     onError,
   });
 
   const impressionId = excerpt.impressionId;
+  const shown: Words = view === 'promoted'
+    ? { text: excerpt.publishedText ?? excerpt.sourceText, byline: excerpt.publishedName ?? excerpt.attributionName }
+    : { text: excerpt.sourceText, byline: excerpt.attributionName };
+  const corrected = view === 'promoted' && (shown.text !== excerpt.sourceText || shown.byline !== excerpt.attributionName);
+  // The shop may correct a spelling or a slip; the customer's original stays on file.
+  const [draft, setDraft] = useState<Words | null>(null);
+  const draftReady = Boolean(draft?.text.trim() && draft.byline.trim());
+  const draftChanged = Boolean(draft && (draft.text.trim() !== shown.text || draft.byline.trim() !== shown.byline));
+  const saveDraft = () => {
+    if (!draft || !draftReady) return;
+    const words = { text: draft.text.trim(), byline: draft.byline.trim() };
+    if (view === 'starred') mutation.mutate({ kind: 'approve', words });
+    else if (impressionId) mutation.mutate({ kind: 'correct', impressionId, words });
+  };
+
+  if (draft) {
+    return (
+      <li className="grid min-w-0 gap-2 border-b border-tea-border py-4 last:border-b-0" data-testid="excerpt-correction">
+        <p className={TYPOGRAPHY_CLASSES.label}>{excerpt.productName}</p>
+        <label className="grid gap-1">
+          <span className="text-ui-13 text-tea-text-sec">Words</span>
+          <textarea className="input-field w-full text-ui-16" rows={4} value={draft.text} maxLength={2000}
+            onChange={event => setDraft({ ...draft, text: event.target.value })} />
+        </label>
+        <label className="grid gap-1">
+          <span className="text-ui-13 text-tea-text-sec">Signed</span>
+          <input className="input-field w-full text-ui-16" value={draft.byline} maxLength={80}
+            onChange={event => setDraft({ ...draft, byline: event.target.value })} />
+        </label>
+        <p className="text-ui-13 text-tea-text-sec">The customer wrote: <span className="italic">{excerpt.sourceText}</span>, signed {excerpt.attributionName}. Their words stay on file.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button variant="quiet" type="button" disabled={mutation.isPending} onClick={() => setDraft(null)}>Cancel</Button>
+          <Button variant="primary" type="button" disabled={mutation.isPending || !draftReady || (view === 'promoted' && !draftChanged)}
+            onClick={saveDraft}>{view === 'starred' ? 'Approve with these words' : 'Save the words'}</Button>
+        </div>
+      </li>
+    );
+  }
   return (
     <li className="grid min-w-0 gap-2 border-b border-tea-border py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
       <div className="min-w-0">
         <p className={TYPOGRAPHY_CLASSES.label}>{excerpt.productName}</p>
         <figure className="mt-1 min-w-0">
           <blockquote className={`${TYPOGRAPHY_CLASSES.body} whitespace-pre-wrap break-words italic text-tea-text`}>
-            {excerpt.sourceText}
+            {shown.text}
           </blockquote>
           <figcaption className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 break-words text-tea-text-sec`}>
-            {excerpt.attributionName}
+            {shown.byline}{corrected && ' · corrected by the shop'}
           </figcaption>
         </figure>
       </div>
@@ -66,6 +115,8 @@ function ExcerptRow({ excerpt, view, onUpdate, onError }: {
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" className="btn-quiet" disabled={mutation.isPending}
             onClick={() => mutation.mutate({ kind: 'pass' })}>Pass</button>
+          <Button variant="secondary" type="button" disabled={mutation.isPending}
+            onClick={() => setDraft(shown)}>Correct the words</Button>
           <button type="button" className="btn-primary" disabled={mutation.isPending}
             onClick={() => mutation.mutate({ kind: 'approve' })}>Approve excerpt</button>
         </div>
@@ -82,6 +133,8 @@ function ExcerptRow({ excerpt, view, onUpdate, onError }: {
             onClick={() => mutation.mutate({ kind: 'place', impressionId, surface: 'show_on_main_page', visible: !excerpt.showOnMainPage })}>
             Show on homepage
           </button>
+          <Button variant="quiet" type="button" disabled={mutation.isPending}
+            onClick={() => setDraft(shown)}>Correct the words</Button>
         </div>
       )}
     </li>
@@ -104,6 +157,15 @@ function OfferedTastingExcerpts() {
 
   const handleUpdate = async (action: Action, productId: string) => {
     setError('');
+    if (action.kind === 'correct') {
+      await Promise.all([
+        refresh(),
+        client.invalidateQueries({ queryKey: ['product-impressions', productId] }),
+        client.invalidateQueries({ queryKey: ['main-tasting-excerpts'] }),
+      ]);
+      setMessage('Words saved.');
+      return;
+    }
     if (action.kind === 'place') {
       await Promise.all([
         refresh(),

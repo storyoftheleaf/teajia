@@ -89,8 +89,9 @@ it('keeps the journal and legacy stars out of review and proves exact-lot consen
 
   const approve = `${queue}/${id}/promote`;
   expect((await call(approve, 'POST', {}, 'catalog')).status).toBe(403);
-  expect((await call(approve, 'POST', { attribution_name: 'Changed' }, 'publisher')).status).toBe(422);
-  expect((await call(approve, 'POST', { edited_text: 'Rewritten' }, 'publisher')).status).toBe(422);
+  expect((await call(approve, 'POST', { attribution_name: ' ' }, 'publisher')).status).toBe(422);
+  expect((await call(approve, 'POST', { edited_text: '' }, 'publisher')).status).toBe(422);
+  expect((await call(approve, 'POST', { attribution_detail: 'Ubud' }, 'publisher')).status).toBe(422);
   expect((await call(listing)).body).toEqual([]);
   const approved = await call(approve, 'POST', {}, 'publisher');
   expect(approved).toMatchObject({ status: 201, body: { showOnListing: false, showOnMainPage: false } });
@@ -211,4 +212,31 @@ it('routes an offer for a publicly accessible lot to its owning shop even from a
   await call(offerPath, 'DELETE', undefined, 'guest');
   expect((await call(queue, 'GET', undefined, 'publisher')).body).toEqual([]);
   expect((await call(offerPath, 'PUT', offerData, 'guest')).status).toBe(404);
+});
+
+it('lets the shop correct a customer\'s words, on approval and afterwards, keeping the original', async () => {
+  const { db, call } = await setup();
+  const offered = await call(offerPath, 'PUT', offerData, 'guest');
+  const { id } = offered.body;
+  const approved = await call(`${queue}/${id}/promote`, 'POST',
+    { edited_text: 'Orchid over warm stones', attribution_name: 'Mei' }, 'publisher');
+  expect(approved).toMatchObject({ status: 201, body: { text: 'Orchid over warm stones', attributionName: 'Mei', corrected: true } });
+  const impressionId = approved.body.id;
+  const kept = () => db.sqlite.prepare('SELECT source_text, edited_text, attribution_name FROM tasting_note_candidates WHERE id = ?').get(id);
+  expect(kept()).toEqual({ source_text: offerData.excerpt, edited_text: 'Orchid over warm stones', attribution_name: 'M.' });
+
+  const words = `/api/admin/tasting-impressions/${impressionId}/words`;
+  expect((await call(words, 'PUT', { edited_text: 'x' }, 'catalog')).status).toBe(403);
+  expect((await call(words, 'PUT', { edited_text: 'x' }, 'other')).status).toBe(404);
+  expect((await call(words, 'PUT', { edited_text: '   ' }, 'publisher')).status).toBe(422);
+  await call(`/api/admin/tasting-impressions/${impressionId}/placements`, 'PUT', { show_on_listing: true }, 'publisher');
+  const fixed = await call(words, 'PUT', { edited_text: '  Orchid over warm stone, then honey.  ' }, 'publisher');
+  expect(fixed).toMatchObject({ status: 200, body: { text: 'Orchid over warm stone, then honey.', attributionName: 'Mei', showOnListing: true } });
+  expect((await call(listing)).body).toEqual([expect.objectContaining({ text: 'Orchid over warm stone, then honey.', attributionName: 'Mei' })]);
+  expect((await call(`${queue}?status=promoted`, 'GET', undefined, 'publisher')).body)
+    .toEqual([expect.objectContaining({ sourceText: offerData.excerpt, publishedText: 'Orchid over warm stone, then honey.', publishedName: 'Mei' })]);
+
+  // Back to the customer's own words: the record says nothing was changed.
+  await call(words, 'PUT', { edited_text: offerData.excerpt }, 'publisher');
+  expect(kept()).toMatchObject({ edited_text: null });
 });

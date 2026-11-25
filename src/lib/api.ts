@@ -3570,6 +3570,11 @@ export const api = {
         method: 'PUT', body: JSON.stringify(data),
       }),
     list: (status = 'starred') => authedFetch(`${API_URL}/api/admin/tasting-note-candidates?status=${encodeURIComponent(status)}`),
+    /** The shop corrects an approved excerpt's words or byline; the customer's original stays on file. */
+    correct: (impressionId: string, data: { edited_text?: string; attribution_name?: string }) =>
+      authedFetch(`${API_URL}/api/admin/tasting-impressions/${encodeURIComponent(impressionId)}/words`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
     update: (id: string, data: { edited_text?: string; attribution_name?: string; attribution_detail?: string }) =>
       authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     promote: (id: string, data: { edited_text: string; attribution_name: string; attribution_detail?: string }) =>

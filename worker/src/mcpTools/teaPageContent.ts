@@ -31,8 +31,8 @@ import type { ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registr
 import { INVALID_TICKET, consumeTicket, issueTicket, previewEnvelope } from './tickets';
 import { tastingHasTerms } from '../curateImportTasting';
 import {
-  approveTastingExcerptOffer, dismissTastingExcerptOffer, listTastingExcerptCandidates, loadApprovedExcerpt,
-  loadTastingExcerptOffer, matchesTastingOffer, readExcerptPlacements, setTastingExcerptPlacements,
+  approveTastingExcerptOffer, correctApprovedExcerpt, dismissTastingExcerptOffer, listTastingExcerptCandidates,
+  loadApprovedExcerpt, loadTastingExcerptOffer, offeredWords, readExcerptPlacements, readExcerptWords, setTastingExcerptPlacements,
   type ExcerptStatus, type ReviewOutcome,
 } from '../tastingExcerptReview';
 import {
@@ -53,6 +53,7 @@ type Ticket =
   | { kind: 'teaPage:set_curator_notes'; accountId: string; userEmail: string; productId: string; texts: string[]; expectedRaw: string | null; expectedSource: string | null }
   | { kind: 'teaPage:approve_excerpt'; accountId: string; excerptId: string; offeredAt: string; sourceText: string; byline: string | null; body: Record<string, unknown> }
   | { kind: 'teaPage:dismiss_excerpt'; accountId: string; excerptId: string; offeredAt: string }
+  | { kind: 'teaPage:correct_excerpt'; accountId: string; impressionId: string; beforeText: string; beforeByline: string; text: string; byline: string }
   | { kind: 'teaPage:excerpt_placement'; accountId: string; impressionId: string; listing: boolean | undefined; mainPage: boolean | undefined }
   | { kind: 'teaPage:photograph_use'; accountId: string; photographId: string; action: FamilyOwnerAction; expectedUse: string };
 
@@ -261,8 +262,10 @@ const listTastingExcerpts: ToolHandler = async (env, auth, args) => {
       }
       (group as any)[name].push({
         excerpt_id: row.id,
-        text: row.finalText,
-        byline: row.attributionName,
+        text: name === 'approved' ? (row.publishedText ?? row.finalText) : row.finalText,
+        byline: name === 'approved' ? (row.publishedName ?? row.attributionName) : row.attributionName,
+        ...(name === 'approved' && row.publishedText != null && row.publishedText !== row.sourceText
+          ? { customer_original: row.sourceText } : {}),
         offered_at: row.offeredAt,
         ...(name === 'approved' ? {
           impression_id: row.impressionId, show_on_listing: row.showOnListing, show_on_homepage: row.showOnMainPage,
@@ -283,8 +286,8 @@ const approveTastingExcerpt: ToolHandler = async (env, auth, args) => {
   const excerptId = optionalText(args?.excerpt_id);
   if (!excerptId) return { error: 'excerpt_id_required' };
   const confirm = optionalText(args?.confirm);
-  // The route's own rule: the shop approves the words as offered. Text or a
-  // byline that differ are refused, exactly as the admin route refuses them.
+  // The shop may correct a spelling or a slip on the way in, as the admin
+  // screen can; the customer's original stays on the offer.
   const body: Record<string, unknown> = {};
   if (args?.text !== undefined) body.edited_text = typeof args.text === 'string' ? args.text.trim() : args.text;
   if (args?.byline !== undefined) body.attribution_name = typeof args.byline === 'string' ? args.byline.trim() : args.byline;
@@ -292,9 +295,8 @@ const approveTastingExcerpt: ToolHandler = async (env, auth, args) => {
   const offer = await loadTastingExcerptOffer(env.DB, auth.accountId, excerptId);
   if (!offer) return { error: 'excerpt_not_found' };
   if (offer.status !== 'starred') return { error: 'excerpt_already_resolved', status: offer.status };
-  if (!matchesTastingOffer(body, offer)) {
-    return { error: 'only_the_customer_can_change_the_words', message: 'The excerpt and byline are published as the customer offered them. Approve without text or byline, or pass on it.' };
-  }
+  const words = readExcerptWords(body, offeredWords(offer));
+  if ('error' in words) return { error: 'invalid_words', message: words.error };
 
   if (!confirm) {
     const token = await issueTicket<Ticket>(env, {
@@ -304,8 +306,10 @@ const approveTastingExcerpt: ToolHandler = async (env, auth, args) => {
     return previewEnvelope({
       action: 'approve_tasting_excerpt',
       product: { id: offer.product_id, name: await productName(env, auth.accountId, offer.product_id) },
-      text: offer.source_text,
-      byline: offer.attribution_name ?? null,
+      text: words.text,
+      byline: words.byline,
+      ...(words.text !== offer.source_text || words.byline !== (offer.attribution_name ?? '')
+        ? { customer_original: { text: offer.source_text, byline: offer.attribution_name ?? null } } : {}),
       note: 'An approved excerpt starts hidden. Show it with set_tasting_excerpt_placement.',
     }, token);
   }
@@ -383,6 +387,37 @@ const setTastingExcerptPlacement: ToolHandler = async (env, auth, args) => {
     committed: true, action: 'set_tasting_excerpt_placement', impression_id: excerpt.id,
     show_on_listing: outcome.body.showOnListing, show_on_homepage: outcome.body.showOnMainPage,
   };
+};
+
+const correctTastingExcerpt: ToolHandler = async (env, auth, args) => {
+  const impressionId = optionalText(args?.impression_id);
+  if (!impressionId) return { error: 'impression_id_required' };
+  if (args?.text === undefined && args?.byline === undefined) return { error: 'text_or_byline_required' };
+  const confirm = optionalText(args?.confirm);
+  const excerpt = await loadApprovedExcerpt(env.DB, auth.accountId, impressionId);
+  if (!excerpt) return { error: 'approved_excerpt_not_found' };
+  const before = { text: String(excerpt.text), byline: String(excerpt.attribution_name ?? '') };
+  const words = readExcerptWords({ edited_text: args?.text, attribution_name: args?.byline }, before);
+  if ('error' in words) return { error: 'invalid_words', message: words.error };
+
+  if (!confirm) {
+    const token = await issueTicket<Ticket>(env, {
+      kind: 'teaPage:correct_excerpt', accountId: auth.accountId, impressionId: excerpt.id,
+      beforeText: before.text, beforeByline: before.byline, text: words.text, byline: words.byline,
+    }, auth.tokenId);
+    return previewEnvelope({
+      action: 'correct_tasting_excerpt',
+      product: { id: excerpt.product_id, name: await productName(env, auth.accountId, excerpt.product_id) },
+      text: { before: before.text, after: words.text },
+      byline: { before: before.byline, after: words.byline },
+      note: 'Where the excerpt shows does not change. The customer\'s original words stay on file.',
+    }, token);
+  }
+
+  const ticket = await consumeTicket<Ticket, 'teaPage:correct_excerpt'>(env, confirm, 'teaPage:correct_excerpt', auth);
+  if (!ticket || ticket.impressionId !== excerpt.id || ticket.text !== words.text || ticket.byline !== words.byline) return INVALID_TICKET;
+  if (ticket.beforeText !== before.text || ticket.beforeByline !== before.byline) return { error: 'excerpt_changed_since_preview' };
+  return outcomeResult('correct_tasting_excerpt', await correctApprovedExcerpt(env.DB, auth.accountId, excerpt.id, words));
 };
 
 /* ── customer photographs ────────────────────────────────────────────────── */
@@ -482,13 +517,13 @@ const defs: ToolDefinition[] = [
   {
     name: 'approve_tasting_excerpt',
     scope: 'catalog:write',
-    description: 'Approve a customer\'s offered tasting excerpt, as the admin\'s "Approve excerpt" does. The words and byline are published exactly as the customer offered them: only the customer can change them, so text or byline that differ are refused. An approved excerpt starts hidden; show it with set_tasting_excerpt_placement. Two-step preview/confirm.',
+    description: 'Approve a customer\'s offered tasting excerpt, as the admin\'s "Approve excerpt" does. Give text or byline only to correct a spelling or a slip; the customer\'s original stays on file and the preview shows both. An approved excerpt starts hidden; show it with set_tasting_excerpt_placement. Two-step preview/confirm.',
     inputSchema: {
       type: 'object',
       properties: {
         excerpt_id: { type: 'string', description: 'excerpt_id from list_tasting_excerpts (a waiting one).' },
-        text: { type: 'string', description: 'Optional. Must equal the offered excerpt.' },
-        byline: { type: 'string', description: 'Optional. Must equal the offered byline.' },
+        text: { type: 'string', description: 'Optional. The corrected excerpt; leave out to publish it as offered.' },
+        byline: { type: 'string', description: 'Optional. The corrected byline; leave out to keep the customer\'s.' },
         confirm: CONFIRM_ARG,
       },
       required: ['excerpt_id'],
@@ -508,6 +543,22 @@ const defs: ToolDefinition[] = [
       required: ['excerpt_id'],
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+  },
+  {
+    name: 'correct_tasting_excerpt',
+    scope: 'catalog:write',
+    description: 'Correct the words or byline of an approved customer excerpt, as the admin\'s "Correct the words" does: a spelling, a slip, a name. Where it shows does not change, and the customer\'s original stays on file. Two-step preview/confirm.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        impression_id: { type: 'string', description: 'impression_id of an approved excerpt from list_tasting_excerpts.' },
+        text: { type: 'string', description: 'The corrected excerpt, whole.' },
+        byline: { type: 'string', description: 'The corrected byline.' },
+        confirm: CONFIRM_ARG,
+      },
+      required: ['impression_id'],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   },
   {
     name: 'set_tasting_excerpt_placement',
@@ -556,6 +607,7 @@ const handlers: Record<string, ToolHandler> = {
   list_tasting_excerpts: listTastingExcerpts,
   approve_tasting_excerpt: approveTastingExcerpt,
   dismiss_tasting_excerpt: dismissTastingExcerpt,
+  correct_tasting_excerpt: correctTastingExcerpt,
   set_tasting_excerpt_placement: setTastingExcerptPlacement,
   list_offered_photographs: listOfferedPhotographsTool,
   set_photograph_use: setPhotographUse,

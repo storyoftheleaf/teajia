@@ -151,8 +151,8 @@ import {
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalContainsExcerpt, parseCandidateInput, parseExcerptOffer } from './tastingNoteCuration';
 import {
-  approveTastingExcerptOffer, dismissTastingExcerptOffer, listTastingExcerptCandidates, matchesTastingOffer,
-  readExcerptPlacements, setTastingExcerptPlacements, type ExcerptStatus,
+  approveTastingExcerptOffer, correctApprovedExcerpt, dismissTastingExcerptOffer, listTastingExcerptCandidates,
+  loadApprovedExcerpt, offeredWords, readExcerptPlacements, readExcerptWords, setTastingExcerptPlacements, type ExcerptStatus,
 } from './tastingExcerptReview';
 import { deliverVerificationCode, deliveryFailureBody } from './verificationDelivery';
 import { handoffToRepair } from './problemAlerts';
@@ -20179,9 +20179,8 @@ const handleUpdateTastingNoteCandidate: Handler = async (request, env, params) =
   `).bind(params.id, ctx.accountId).first<Record<string, any>>();
   if (!offer) return json({ error: 'Offer not found' }, 404);
   if (offer.status !== 'starred') return json({ error: 'Offer already resolved' }, 409);
-  if (!matchesTastingOffer(body as Record<string, unknown>, offer)) {
-    return json({ error: 'Only the author can replace the offered excerpt or byline' }, 422);
-  }
+  const words = readExcerptWords(body as Record<string, unknown>, offeredWords(offer));
+  if ('error' in words) return json({ error: words.error }, 422);
   return json(candidateToApi(offer));
 };
 
@@ -20208,6 +20207,20 @@ const handleUpdateTastingExcerptPlacements: Handler = async (request, env, param
   const placements = readExcerptPlacements(body);
   if (!placements) return json({ error: 'Provide one or both placement booleans' }, 400);
   const outcome = await setTastingExcerptPlacements(env.DB, ctx.accountId, params.id, placements);
+  return json(outcome.body, outcome.status);
+};
+
+/** The shop corrects an approved excerpt's words or byline in place. */
+const handleCorrectTastingExcerpt: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'Invalid JSON body' }, 400);
+  const excerpt = await loadApprovedExcerpt(env.DB, ctx.accountId, params.id);
+  if (!excerpt) return json({ error: 'Approved excerpt not found' }, 404);
+  const words = readExcerptWords(body, { text: excerpt.text, byline: excerpt.attribution_name ?? '' });
+  if ('error' in words) return json({ error: words.error }, 422);
+  const outcome = await correctApprovedExcerpt(env.DB, ctx.accountId, params.id, words);
   return json(outcome.body, outcome.status);
 };
 
@@ -31747,6 +31760,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/admin/tasting-note-candidates/:id/dismiss', handleDismissTastingNoteCandidate],
   ['POST', '/api/admin/tasting-note-candidates/:id/promote', handlePromoteTastingNoteCandidate],
   ['PUT', '/api/admin/tasting-impressions/:id/placements', handleUpdateTastingExcerptPlacements],
+  ['PUT', '/api/admin/tasting-impressions/:id/words', handleCorrectTastingExcerpt],
   ['GET', '/api/products/:id/impressions', handleGetProductImpressions],
   ['GET', '/api/s/:slug/tasting-excerpts', handleGetMainPageTastingExcerpts],
   ['GET', '/api/tea-discovery', handleGetTeaDiscovery],
