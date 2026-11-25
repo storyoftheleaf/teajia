@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react';
 import { publicEventsQuery } from '../lib/publicEventsQuery';
 import type { TeaEvent } from '../types/events';
 import { PageHeader } from '../components/shared/PageHeader';
+import { Button } from '../components/shared/Button';
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 function formatDate(dateStr: string) {
@@ -154,9 +155,13 @@ const FilterTabs: React.FC<FilterTabsProps> = ({ active, onChange, counts }) => 
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 const EventsPage: React.FC = () => {
-  const { data: rawEvents = [], isLoading } = useQuery({
+  const { data: rawEvents = [], isPending, isError, isFetching, refetch } = useQuery({
     ...publicEventsQuery,
-    placeholderData: (prev) => prev,
+    networkMode: 'always',
+    select: (events) => {
+      if (!Array.isArray(events)) throw new Error('Invalid sessions response');
+      return events;
+    },
   });
 
   const events: TeaEvent[] = useMemo(() => {
@@ -215,12 +220,22 @@ const EventsPage: React.FC = () => {
 
         {/* List */}
         <div className="divide-y divide-tea-border">
-          {isLoading ? (
-            <>
+          {isPending ? (
+            <div role="status">
+              <span className="sr-only">Loading sessions</span>
               <EventRowSkeleton />
               <EventRowSkeleton />
               <EventRowSkeleton />
-            </>
+            </div>
+          ) : isError ? (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-tea-border px-3 py-2 mt-3">
+              <p role="alert" className="flex-1 basis-40 text-ui-14 text-tea-text-sec">
+                Could not load sessions.
+              </p>
+              <Button type="button" variant="secondary" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+                Try again
+              </Button>
+            </div>
           ) : visible.length === 0 ? (
             <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
               <p

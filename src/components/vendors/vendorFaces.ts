@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCustomers } from '../../admin/hooks/useAdminData';
 import { api, type ApiRequestInit } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
+import { prepareFacePhoto } from './facePhotoFile';
 
 /**
  * Vendor faces: one photo per vendor that Adrian can recognise them by.
@@ -107,7 +108,8 @@ export function useFaceVendors(options?: { enabled?: boolean }) {
  * Returns the stored URL.
  */
 export async function saveVendorFace(vendorId: string, file: File, expectedAuth?: ApiRequestInit['expectedAuth']): Promise<string> {
-  const compressed = await compressImage(file, 800, 0.75, { square: true });
+  const readable = await prepareFacePhoto(file);
+  const compressed = await compressImage(readable, 800, 0.75, { square: true });
   const upload = new File([compressed], 'vendor-face.jpg', { type: 'image/jpeg' });
   const url = await api.uploadImage(upload, { filename: 'vendor-face.jpg', expectedAuth });
   if (!url) throw new Error('The photo upload returned no address.');

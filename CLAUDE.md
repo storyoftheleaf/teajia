@@ -105,7 +105,7 @@ npm run lint:colors  # before every commit
 - Secrets live in Infisical (Teajia, dev). Never paste values into chat or files.
 
 ### "Ship" command — mandatory
-When Adrian says **"ship"**, push the task's changes to `origin/main` and verify the commit is on the remote. Not a PR. If the checkout has unrelated work, isolate the task in a clean worktree. Not shipped until the push succeeds.
+When Adrian says **"ship"**, follow [the Teajia release handoff](docs/claude/deploy-and-secrets.md#ship-command--mandatory). A push to `origin/main` starts publication. Report **publishing in background** once the exact revision and running deployment are verified. Report **shipped** after independent live verification.
 
 ## Local sandbox and testing — [docs/claude/testing.md](docs/claude/testing.md)
 - Verify admin changes with `npm run sandbox` (API 8787 + site 7777, sign in `sandbox`/`sandbox`), never `npm run dev`, which edits the real shop. Don't hand admin checks back to Adrian.

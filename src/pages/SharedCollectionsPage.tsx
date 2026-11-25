@@ -1,10 +1,20 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icons } from '../components/Icons';
 import { BookOpen, X as XIcon } from 'lucide-react';
-import { api } from '../lib/api';
+import { api, ApiError, AUTH_TOKEN_CHANGED_EVENT, getTokenClaims } from '../lib/api';
+import { Button } from '../components/shared/Button';
 import type { SavedCollectionRow } from '../types';
+
+function subscribeToSession(onChange: () => void) {
+  window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, onChange);
+  return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, onChange);
+}
+
+function getCollectionOwner() {
+  return getTokenClaims()?.sub ?? null;
+}
 
 // The logged-in user's shelf of collections, ones sent to them via a shared
 // link ('received') or that they explicitly saved ('saved'). Cross-account:
@@ -20,13 +30,21 @@ export function SharedCollectionsSection({ embedded = false }: { embedded?: bool
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['my-collections'],
-    queryFn: () => api.collections.listMine(),
-    select: d => d.collections,
+  const owner = React.useSyncExternalStore(subscribeToSession, getCollectionOwner, () => null);
+  // The shelf belongs to the person, across the curators and stores they visit.
+  const queryKey = ['my-collections', owner];
+  const { data, error, isPending, isError, isFetching, refetch } = useQuery({
+    queryKey,
+    enabled: owner !== null,
+    networkMode: 'always',
+    queryFn: async () => {
+      const result = await api.collections.listMine();
+      if (!Array.isArray(result?.collections)) throw new Error('Invalid collections response');
+      return result.collections;
+    },
   });
 
-  const rows: SavedCollectionRow[] = data ?? [];
+  const rows = data ?? [];
 
   const open = (row: SavedCollectionRow) => {
     if (row.slug) navigate(`/c/${row.slug}`);
@@ -35,11 +53,15 @@ export function SharedCollectionsSection({ embedded = false }: { embedded?: bool
   const remove = async (e: React.MouseEvent, collectionId: string) => {
     e.stopPropagation();
     await api.collections.unsaveMine(collectionId);
-    queryClient.invalidateQueries({ queryKey: ['my-collections'] });
+    await queryClient.invalidateQueries({ queryKey });
   };
 
-  const showEmpty = !isLoading && rows.length === 0;
-  if (embedded && (isLoading || showEmpty)) return null;
+  const needsSignIn = owner === null || (error instanceof ApiError && error.status === 401);
+  const accessDenied = error instanceof ApiError && error.status === 403;
+  const showEmpty = !needsSignIn && !isError && data?.length === 0;
+  const showCount = !needsSignIn && !isError && !isPending;
+
+  if (embedded && (needsSignIn || isPending || showEmpty)) return null;
 
   return (
     <section aria-label="Shared with you" data-testid="shared-collections">
@@ -48,13 +70,32 @@ export function SharedCollectionsSection({ embedded = false }: { embedded?: bool
       ) : (
         <>
           <h1 className="font-display text-3xl text-tea-text mb-1">Collections</h1>
-          <p className="font-body italic text-ui-14 text-tea-text-dim mb-8">
-            {isLoading ? 'Loading…' : `${rows.length} ${rows.length === 1 ? 'collection' : 'collections'} shared with you`}
-          </p>
+          {!needsSignIn && !isError && (
+            <p className="font-body italic text-ui-14 text-tea-text-dim mb-8">
+              {showCount ? `${rows.length} ${rows.length === 1 ? 'collection' : 'collections'} shared with you` : 'Loading…'}
+            </p>
+          )}
         </>
       )}
 
-      {isLoading ? (
+      {needsSignIn ? (
+        <p className="text-ui-14 text-tea-text-sec">
+          <Link to="/signin?returnTo=%2Faccount%2Fcollections" className="tap-target inline-flex items-center text-tea-gold underline">
+            Sign in
+          </Link>{' '}to see collections shared with you.
+        </p>
+      ) : isError ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-tea-border px-3 py-2 mt-3">
+          <p role="alert" className="flex-1 basis-40 text-ui-14 text-tea-text-sec">
+            {accessDenied ? 'You don’t have access to these collections.' : 'Could not load your collections.'}
+          </p>
+          {!accessDenied && (
+            <Button type="button" variant="secondary" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+              Try again
+            </Button>
+          )}
+        </div>
+      ) : isPending ? (
         <div className="border border-tea-border overflow-hidden rounded-md">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={`flex items-center gap-3 px-3 py-3 ${i < 2 ? 'border-b border-tea-border' : ''}`}>

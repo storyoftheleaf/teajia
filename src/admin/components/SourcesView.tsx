@@ -29,11 +29,7 @@ import { Button } from '../../components/shared/Button';
 import { VendorFaceGallery } from '../../components/vendors/VendorFaceGallery';
 import { toFaceVendor, vendorFacePhoto } from '../../components/vendors/vendorFaces';
 
-type SourcesLayout = 'list' | 'faces';
-const LAYOUT_KEY = 'teajia.sources.layout';
-const readLayout = (): SourcesLayout => {
-  try { return localStorage.getItem(LAYOUT_KEY) === 'faces' ? 'faces' : 'list'; } catch { return 'list'; }
-};
+import { LAYOUT_KEY, readLayout, type SourcesLayout } from './sourcesLayout';
 
 /** List or faces: the same vendors, read as rows or picked out by sight. */
 const LayoutToggle: React.FC<{ layout: SourcesLayout; onChange: (next: SourcesLayout) => void }> = ({ layout, onChange }) => (
