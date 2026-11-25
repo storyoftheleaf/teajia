@@ -5,6 +5,7 @@ import { invoiceMoney, loadInvoiceLedgerTotals, loadLedgerInvoice, claimInvoiceL
 import { suppressVerificationNotifications } from './liveVerificationPolicy';
 import type { WhatsAppOrderEnv } from './whatsappOrderNotifications';
 import { fallbackEmailFor, whatsappUnavailable } from './shippingEmailFallback';
+import { sendableFirst } from './shippingRetryOrder';
 
 export interface ShippingNotificationEnv extends SealEnv, WhatsAppOrderEnv, ShippingWhatsAppApprovalEnv {
  APP_URL?: string; RESEND_API_KEY?: string; SENDER_EMAIL?: string; SENDER_NAME?: string;
@@ -103,7 +104,8 @@ export async function processShippingQuoteNotifications(db:D1Database,env:Shippi
  WHERE state='sending' AND lease_expires_at<=CURRENT_TIMESTAMP`).run();
  const rows=await db.prepare(`SELECT n.* FROM shipping_payment_notifications n JOIN invoices i ON i.id=n.invoice_id AND i.account_id=n.account_id
  WHERE n.state IN (${pendingStates}) AND i.status!='Draft' AND (n.next_attempt_at IS NULL OR n.next_attempt_at<=CURRENT_TIMESTAMP)
- AND (? IS NULL OR n.account_id=?) AND (? IS NULL OR n.invoice_id=?) ORDER BY n.created_at,n.id LIMIT ?`)
+ AND (? IS NULL OR n.account_id=?) AND (? IS NULL OR n.invoice_id=?)
+ ORDER BY ${sendableFirst('n.state')},n.created_at,n.id LIMIT ?`)
  .bind(options.accountId||null,options.accountId||null,options.invoiceId||null,options.invoiceId||null,Math.max(1,Math.min(25,options.limit||10))).all<Notice>();
  for(const row of rows.results||[]) {
   result.examined++;

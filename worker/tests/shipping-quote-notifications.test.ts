@@ -74,6 +74,12 @@ describe('shipping payment notifications',()=>{
   const [url,init]=f.fetcher.mock.calls.at(-1) as any;expect(url).toBe('https://api.resend.com/emails');expect(JSON.parse(init.body).to).toBe('buyer@example.test');
   expect(await getShippingQuoteNotificationStatus(f.db as any,'shop','invoice')).toMatchObject({state:'accepted',channel:'email'});
  });
+ it('sends a real retry before ten older notices stuck waiting on setup or contact',async()=>{
+  const f=await fixture();
+  for(let i=0;i<10;i++)f.db.sqlite.prepare("INSERT INTO shipping_payment_notifications(id,account_id,invoice_id,quote_revision,quote_usd,state,code,created_at) VALUES(?,'shop','invoice',?,8,?,'whatsapp_setup_required','2020-01-01 00:00:00')").run('stuck-'+i,100+i,i%2?'config_required':'needs_contact');
+  await f.process();expect(f.fetcher).toHaveBeenCalledTimes(1);
+  expect(f.db.sqlite.prepare("SELECT state FROM shipping_payment_notifications WHERE quote_revision=1").get()).toEqual({state:'accepted'});
+ });
  it('waits for WhatsApp when it is unavailable and no email is on file',async()=>{
   const f=await fixture(true);f.db.exec('DELETE FROM order_shipping_notification_targets');await(await f.prepare({email:null})).run();delete f.env.SHIPPING_PAYMENT_TEMPLATE_NAME;await f.process();
   expect(f.fetcher).not.toHaveBeenCalled();expect(await getShippingQuoteNotificationStatus(f.db as any,'shop','invoice')).toMatchObject({state:'config_required',channel:'whatsapp',code:'whatsapp_setup_required'});
