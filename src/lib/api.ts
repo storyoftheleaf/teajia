@@ -2,6 +2,7 @@ import type { CellarItem, CellarPlacementRequest, PublicShelf, ShelfOfferInput, 
 export type { CellarItem, CellarPlacementRequest, PublicShelf, PublicShelfItem, ShelfOfferInput, ShelfSettings, TeaChestAccount } from './teaChestTypes';
 import type { ShippingPaymentNotification } from './shippingNotification';
 import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
+import { createArticleApi } from './articlesApi';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { VendorProductSale } from './vendorSalesTypes';
@@ -11,7 +12,7 @@ import type { InventoryReceipt } from '../admin/types';
 import { createServiceAvailabilityGuard, shouldReportServiceIncident } from './serviceAvailability';
 import type { ShippingRoute } from '../components/shared/routeFreight';
 import type { SupplierFreightBill, SupplierRenamePreview } from '../components/shared/supplierSheetTypes';
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, DbArticle, PlatformRole, TastingData } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, DbArticle, PlatformRole, ReviewedDbArticle, TastingData } from '../types';
 import type {
   FavoriteWrite,
   PaymentMethod,
@@ -2669,7 +2670,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ session_notes: sessionNotes }),
       }),
-    createArticleDraft: (id: string): Promise<{ existing: boolean; article: DbArticle }> =>
+    createArticleDraft: (id: string): Promise<{ existing: boolean; article: ReviewedDbArticle }> =>
       authedFetch(`${API_URL}/api/admin/events/${id}/article-draft`, { method: 'POST' }),
     duplicate: async (id: string, input: { slug: string; eventDate: string }) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/duplicate`, {
@@ -4789,53 +4790,7 @@ export const api = {
     },
   },
 
-  articles: {
-    // Admin
-    list: async (status?: string): Promise<DbArticle[]> => {
-      return authedFetch(`${API_URL}/api/admin/articles${status ? `?status=${status}` : ''}`);
-    },
-    get: async (id: string): Promise<DbArticle> => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}`)
-    },
-    create: async (data: Partial<DbArticle>): Promise<DbArticle> => {
-      return authedFetch(`${API_URL}/api/admin/articles`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
-    update: async (id: string, data: Partial<DbArticle>): Promise<DbArticle> => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
-    },
-    publish: async (id: string) => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}/publish`, {
-        method: 'POST',
-      });
-    },
-    unpublish: async (id: string) => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}/unpublish`, {
-        method: 'POST',
-      });
-    },
-    delete: async (id: string) => {
-      return authedFetch(`${API_URL}/api/admin/articles/${id}`, {
-        method: 'DELETE',
-      });
-    },
-    // Public
-    listPublished: async (limit = 20, offset = 0) => {
-      const res = await fetchWithTimeout(
-        `${API_URL}/api/articles?limit=${limit}&offset=${offset}`
-      );
-      return handleResponse(res);
-    },
-    getBySlug: async (slug: string) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/articles/${slug}`);
-      return handleResponse(res);
-    },
-  },
+  articles: createArticleApi({ apiUrl: API_URL, authedFetch, fetchWithTimeout, handleResponse }),
 
   // Photos for hand-built Read story pages: a real image + pan/zoom crop per
   // named frame. Public read; admin-gated write (uses the same upload pipeline).
@@ -4872,21 +4827,25 @@ export const api = {
       }
       return optionallyAuthedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}`);
     },
-    saveDraft: async (slug: string, content: any): Promise<{ ok: true }> => {
+    getDraftForReview: async <T,>(slug: string): Promise<{ content: T; review_digest: string | null }> => {
+      return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}?state=draft&review=1`);
+    },
+    saveDraft: async (slug: string, content: any): Promise<{ ok: true; review_digest: string }> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/draft`, {
         method: 'PUT',
         body: JSON.stringify({ content }),
       });
     },
-    publish: async (slug: string): Promise<{ ok: true }> => {
+    publish: async (slug: string, reviewDigest: string): Promise<{ ok: true; review_digest: string }> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/publish`, {
         method: 'POST',
+        body: JSON.stringify({ review_digest: reviewDigest }),
       });
     },
     versions: async (slug: string): Promise<{ id: string; label: string | null; created_at: string }[]> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/versions`);
     },
-    restore: async (slug: string, versionId: string): Promise<{ ok: true; content: any }> => {
+    restore: async <T,>(slug: string, versionId: string): Promise<{ ok: true; content: T; review_digest: string }> => {
       return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/restore/${encodeURIComponent(versionId)}`, {
         method: 'POST',
       });

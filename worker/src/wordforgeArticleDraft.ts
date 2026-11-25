@@ -170,57 +170,197 @@ export function decodeWordforgeDraft(input: unknown): TeajiaWordforgeDraftV1 {
   return input as TeajiaWordforgeDraftV1;
 }
 
+type WordforgeReceipt = {
+  article_id: string;
+  candidate_id: string | null;
+  created: boolean;
+  unchanged: boolean;
+  source_revision: number;
+};
+
+type CurrentSource = {
+  id: string;
+  article_id: string;
+  source_revision: number;
+  content_hash: string;
+  candidate_id: string | null;
+  source_article_json: string | null;
+};
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const record = value as JsonObject;
+    return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+async function verifySourceHash(payload: TeajiaWordforgeDraftV1) {
+  const { system, id, content_hash } = payload.source;
+  const body = canonicalJson({ schema_version: payload.schema_version, source: { system, id }, article: payload.article });
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body)));
+  const digest = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  if (digest !== content_hash) {
+    throw new WordforgeDraftError('WordForge content hash does not match the article', 400, 'wordforge_content_hash_mismatch');
+  }
+}
+
+function readSource(db: D1Database, accountId: string, sourceId: string) {
+  return db.prepare(
+    `SELECT s.id, s.article_id, s.source_revision, s.content_hash,
+            r.id AS candidate_id, r.source_article_json
+       FROM article_external_sources s
+       LEFT JOIN wordforge_article_revisions r ON r.external_source_id = s.id AND r.source_revision = s.source_revision
+      WHERE s.account_id = ? AND s.source_system = 'wordforge' AND s.source_id = ?`,
+  ).bind(accountId, sourceId).first<CurrentSource>();
+}
+
+function revisionConflict() {
+  return new WordforgeDraftError('WordForge source revision conflicts with the stored draft', 409, 'wordforge_revision_conflict');
+}
+
+function priorReceipt(current: CurrentSource, source: TeajiaWordforgeDraftV1['source']): WordforgeReceipt | null {
+  if (source.revision > current.source_revision) return null;
+  if (source.revision !== current.source_revision || source.content_hash !== current.content_hash) throw revisionConflict();
+  return {
+    article_id: current.article_id,
+    candidate_id: current.candidate_id,
+    created: false,
+    unchanged: true,
+    source_revision: current.source_revision,
+  };
+}
+
+// Contributor visibility follows the same account ownership/association rule
+// as the existing contributor picker. Reuse this check at the transactional write.
+const CONTRIBUTOR_SCOPE = `NOT EXISTS (
+  SELECT 1 FROM json_each(?) reference
+   WHERE NOT EXISTS (
+     SELECT 1 FROM contributors contributor
+      WHERE contributor.id = reference.value AND (
+        contributor.account_id = ? OR EXISTS (
+          SELECT 1 FROM contributor_accounts association
+           WHERE association.contributor_id = contributor.id AND association.account_id = ?
+        )
+      )
+   )
+)`;
+
 export async function upsertWordforgeDraft(
   db: D1Database,
   accountId: string,
   payload: TeajiaWordforgeDraftV1,
-): Promise<{ article_id: string; created: boolean; unchanged: boolean; source_revision: number }> {
-  const current = await db.prepare(
-    `SELECT article_id, source_revision, content_hash FROM article_external_sources
-      WHERE account_id = ? AND source_system = 'wordforge' AND source_id = ?`,
-  ).bind(accountId, payload.source.id).first<{ article_id: string; source_revision: number; content_hash: string }>();
+): Promise<WordforgeReceipt> {
+  await verifySourceHash(payload);
+  const { source, article } = payload;
+  const current = await readSource(db, accountId, source.id);
+  if (current) {
+    const prior = priorReceipt(current, source);
+    if (prior) return prior;
+  }
+  const contributorIds = JSON.stringify([...new Set([
+    ...(article.author_id ? [article.author_id] : []), ...article.subject_ids,
+  ])]);
+  const scope = await db.prepare(`SELECT ${CONTRIBUTOR_SCOPE} AS allowed`)
+    .bind(contributorIds, accountId, accountId).first<{ allowed: number }>();
+  if (!scope?.allowed) {
+    throw new WordforgeDraftError('Article contributors must be associated with the destination account', 400, 'wordforge_contributor_scope');
+  }
+  const candidateId = crypto.randomUUID();
+  const sourceArticleJson = JSON.stringify(article);
+  const tags = JSON.stringify(article.tags);
+  const blocks = JSON.stringify(article.blocks);
+  const subjectIds = JSON.stringify(article.subject_ids);
 
   if (current) {
-    if (payload.source.revision < current.source_revision || (payload.source.revision === current.source_revision && payload.source.content_hash !== current.content_hash)) {
-      throw new WordforgeDraftError('WordForge source revision conflicts with the stored draft', 409, 'wordforge_revision_conflict');
-    }
-    if (payload.source.revision === current.source_revision) {
-      return { article_id: current.article_id, created: false, unchanged: true, source_revision: current.source_revision };
-    }
+    const previousArticle = current.source_article_json
+      ? JSON.parse(current.source_article_json) as TeajiaWordforgeDraftV1['article']
+      : null;
     // A re-sync replaces every block: read the old ones so Wisdom claim uses can follow theirs.
     const previous = await db.prepare('SELECT blocks FROM articles WHERE id = ? AND account_id = ?')
       .bind(current.article_id, accountId).first<{ blocks: string | null }>();
-    await db.batch([
+    const [staged, , draftEdit] = await db.batch([
       db.prepare(
-        `UPDATE articles SET title = ?, subtitle = ?, author_id = ?, slug = ?, status = 'draft', category = ?, tags = ?,
-          cover_image_url = ?, blocks = ?, layout_template = ?, subject_ids = ?, published_at = NULL, updated_at = datetime('now')
-          WHERE id = ? AND account_id = ?`,
-      ).bind(payload.article.title, payload.article.subtitle, payload.article.author_id, payload.article.slug, payload.article.category,
-        JSON.stringify(payload.article.tags), payload.article.cover_image_url, JSON.stringify(payload.article.blocks), payload.article.layout_template,
-        JSON.stringify(payload.article.subject_ids), current.article_id, accountId),
+        `INSERT INTO wordforge_article_revisions (id, external_source_id, source_revision, content_hash, assigned_slug, source_article_json)
+         SELECT ?, s.id, ?, ?, a.slug, ?
+           FROM article_external_sources s
+           JOIN articles a ON a.id = s.article_id AND a.account_id = s.account_id
+          WHERE s.id = ? AND s.account_id = ? AND s.source_revision = ? AND s.content_hash = ?
+            AND ${CONTRIBUTOR_SCOPE}`,
+      ).bind(candidateId, source.revision, source.content_hash, sourceArticleJson,
+        current.id, accountId, current.source_revision, current.content_hash, contributorIds, accountId, accountId),
       db.prepare(
         `UPDATE article_external_sources SET source_revision = ?, content_hash = ?, last_synced_at = datetime('now'), updated_at = datetime('now')
-          WHERE account_id = ? AND source_system = 'wordforge' AND source_id = ?`,
-      ).bind(payload.source.revision, payload.source.content_hash, accountId, payload.source.id),
+          WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM wordforge_article_revisions WHERE id = ?)`,
+      ).bind(source.revision, source.content_hash, current.id, accountId, candidateId),
+      // The legacy editor still reads the first draft from articles. Once an
+      // article has gone live, incoming revisions belong only to the private
+      // history until there is a revision-bound approval path.
+      db.prepare(
+        `UPDATE articles SET title = ?, subtitle = ?, category = ?, tags = ?, blocks = ?,
+           cover_image_url = CASE WHEN ? IS NOT NULL AND cover_image_url IS ? THEN ? ELSE cover_image_url END,
+           author_id = CASE WHEN ? IS NOT NULL AND author_id IS ? THEN ? ELSE author_id END,
+           subject_ids = CASE WHEN subject_ids = ? THEN ? ELSE subject_ids END,
+           updated_at = datetime('now')
+          WHERE id = ? AND account_id = ? AND status = 'draft' AND published_at IS NULL
+            AND EXISTS (SELECT 1 FROM wordforge_article_revisions WHERE id = ?)`,
+      ).bind(article.title, article.subtitle, article.category, tags, blocks,
+        current.candidate_id, previousArticle?.cover_image_url ?? null, article.cover_image_url,
+        current.candidate_id, previousArticle?.author_id ?? null, article.author_id,
+        previousArticle ? JSON.stringify(previousArticle.subject_ids) : null, subjectIds,
+        current.article_id, accountId, candidateId),
     ]);
-    await moveClaimUsesWithBlocks(db, accountId, current.article_id, previous?.blocks ?? '[]', payload.article.blocks);
-    return { article_id: current.article_id, created: false, unchanged: false, source_revision: payload.source.revision };
+    // Only a still-private draft has its blocks replaced; a live article keeps its blocks, so its claim uses stay put.
+    if (draftEdit.meta.changes === 1) await moveClaimUsesWithBlocks(db, accountId, current.article_id, previous?.blocks ?? '[]', payload.article.blocks);
+    if (staged.meta.changes === 1) {
+      return { article_id: current.article_id, candidate_id: candidateId, created: false, unchanged: false, source_revision: source.revision };
+    }
+
+    const winner = await readSource(db, accountId, source.id);
+    const replay = winner && priorReceipt(winner, source);
+    if (replay) return replay;
+    throw revisionConflict();
   }
 
   const articleId = crypto.randomUUID();
-  await db.batch([
-    db.prepare(
-      `INSERT INTO articles (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, subject_ids)
-       VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)`,
-    ).bind(articleId, accountId, payload.article.title, payload.article.subtitle, payload.article.author_id, payload.article.slug,
-      payload.article.category, JSON.stringify(payload.article.tags), payload.article.cover_image_url, JSON.stringify(payload.article.blocks),
-      payload.article.layout_template, JSON.stringify(payload.article.subject_ids)),
-    db.prepare(
-      `INSERT INTO article_external_sources (id, account_id, source_system, source_id, source_revision, content_hash, article_id)
-       VALUES (?, ?, 'wordforge', ?, ?, ?, ?)`,
-    ).bind(crypto.randomUUID(), accountId, payload.source.id, payload.source.revision, payload.source.content_hash, articleId),
-  ]);
-  return { article_id: articleId, created: true, unchanged: false, source_revision: payload.source.revision };
+  const externalSourceId = crypto.randomUUID();
+  try {
+    const [created] = await db.batch([
+      db.prepare(
+        `INSERT INTO articles (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, subject_ids)
+         SELECT ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ? WHERE ${CONTRIBUTOR_SCOPE}`,
+      ).bind(articleId, accountId, article.title, article.subtitle, article.author_id, article.slug,
+        article.category, tags, article.cover_image_url, blocks, article.layout_template, subjectIds,
+        contributorIds, accountId, accountId),
+      db.prepare(
+        `INSERT INTO article_external_sources (id, account_id, source_system, source_id, source_revision, content_hash, article_id)
+         SELECT ?, ?, 'wordforge', ?, ?, ?, ? FROM articles WHERE id = ? AND account_id = ?`,
+      ).bind(externalSourceId, accountId, source.id, source.revision, source.content_hash, articleId, articleId, accountId),
+      db.prepare(
+        `INSERT INTO wordforge_article_revisions (id, external_source_id, source_revision, content_hash, assigned_slug, source_article_json)
+         SELECT ?, ?, ?, ?, ?, ? FROM article_external_sources WHERE id = ? AND account_id = ?`,
+      ).bind(candidateId, externalSourceId, source.revision, source.content_hash, article.slug, sourceArticleJson,
+        externalSourceId, accountId),
+    ]);
+    if (created.meta.changes !== 1) throw revisionConflict();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const slugClaimed = message.includes('UNIQUE constraint failed: articles.slug');
+    const sourceClaimed = message.includes('UNIQUE constraint failed: article_external_sources.account_id');
+    if (!slugClaimed && !sourceClaimed) throw error;
+    // An identical first delivery normally collides on the slug before it
+    // reaches the source uniqueness constraint. Classify the source first.
+    const winner = await readSource(db, accountId, source.id);
+    if (winner) {
+      const replay = priorReceipt(winner, source);
+      if (replay) return replay;
+      throw revisionConflict();
+    }
+    if (!slugClaimed) throw error;
+    throw new WordforgeDraftError('Article slug is already in use', 409, 'wordforge_slug_conflict');
+  }
+  return { article_id: articleId, candidate_id: candidateId, created: true, unchanged: false, source_revision: source.revision };
 }
 
 export async function isWordforgeManagedArticle(db: D1Database, accountId: string, articleId: string): Promise<boolean> {

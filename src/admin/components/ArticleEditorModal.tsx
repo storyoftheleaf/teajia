@@ -16,10 +16,11 @@ import {
   IMAGE_LAYOUT_OPTIONS,
 } from '../../lib/articleBlockRegistry';
 import { useToast } from './Toast';
+import { EditorialPilotReview } from './EditorialPilotReview';
 import { ImmersivePreview } from './ImmersivePreview';
 import { ArticleWisdomClaims } from './ArticleWisdomClaims';
 import { withBlockIds } from '../../pages/wisdom/blockIds';
-import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant, ContributorOption } from '../../types';
+import type { DbArticle, ReviewedDbArticle, ArticleBlock, ArticleTextEffect, ImageVariant, ContributorOption } from '../../types';
 
 const IMMERSIVE_TEMPLATE = 'immersive_scroll';
 
@@ -27,7 +28,7 @@ interface ArticleEditorModalProps {
   sessionPhotoSlug?: string;
   isOpen: boolean;
   onClose: () => void;
-  initialData?: DbArticle;
+  initialData?: ReviewedDbArticle;
   onSaved?: () => void;
 }
 
@@ -458,7 +459,15 @@ const PreviewPane: React.FC<{
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
-export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
+export function ArticleEditorModal(props: ArticleEditorModalProps) {
+  if (props.isOpen && props.initialData?.editorial_pilot) {
+    return <EditorialPilotReview key={props.initialData.id} article={props.initialData}
+      onClose={props.onClose} onSaved={props.onSaved} />;
+  }
+  return <NativeArticleEditor {...props} />;
+}
+
+const NativeArticleEditor: React.FC<ArticleEditorModalProps> = ({
   sessionPhotoSlug,
   isOpen,
   onClose,
@@ -508,13 +517,14 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // Save state
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [publishing, setPublishing] = useState(false);
+  const [pendingPublication, setPendingPublication] = useState(Boolean(initialData?.has_pending_revision));
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const persistenceRef = useRef(createArticlePersistence(initialData?.id ?? null, api.articles));
+  const persistenceRef = useRef(createArticlePersistence(initialData ?? null, api.articles));
   const editorVersionRef = useRef(0);
 
   useEffect(() => {
     editorVersionRef.current += 1;
-    persistenceRef.current = createArticlePersistence(initialData?.id ?? null, api.articles);
+    persistenceRef.current = createArticlePersistence(initialData ?? null, api.articles);
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
       autoSaveTimer.current = null;
@@ -534,6 +544,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     setLayoutTemplate(initialData?.layout_template ?? 'default');
     setSaveState('idle');
     setPublishing(false);
+    setPendingPublication(Boolean(initialData?.has_pending_revision));
     setPasteOpen(false);
     setPasteText('');
     setPasteWarnings([]);
@@ -555,26 +566,25 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // Build save payload
   const buildPayload = useCallback(() => ({
     title: title.trim(),
-    subtitle: subtitle.trim() || undefined,
+    subtitle: subtitle.trim() || null,
     // null, not undefined: JSON drops undefined, so choosing "No contributor
     // selected" used to leave the old author on the article. The server
     // reads null as "clear it".
     author_id: author.trim() || null,
     subject_ids: subjectIds,
-    pull_quote: pullQuote.trim() || undefined,
-    pull_quote_subject: pullQuoteSubject || undefined,
+    pull_quote: pullQuote.trim() || null,
+    pull_quote_subject: pullQuoteSubject || null,
     slug: title.trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') || `article-${Date.now()}`,
-    status,
-    category: category || undefined,
+    category: category || null,
     tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
-    cover_image_url: coverImageUrl.trim() || undefined,
+    cover_image_url: coverImageUrl.trim() || null,
     blocks,
     layout_template: layoutTemplate,
     reading_time_mins: Math.max(1, Math.round(blocks.reduce((acc, b) => {
       if ('text' in b) return acc + b.text.split(/\s+/).length;
       return acc;
     }, 0) / 200)),
-  }), [title, subtitle, author, subjectIds, pullQuote, pullQuoteSubject, status, category, tagsInput, coverImageUrl, blocks, layoutTemplate]);
+  }), [title, subtitle, author, subjectIds, pullQuote, pullQuoteSubject, category, tagsInput, coverImageUrl, blocks, layoutTemplate]);
 
   // Save (create or update)
   const save = useCallback(async () => {
@@ -589,6 +599,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       const id = await persistenceRef.current.save(buildPayload());
       if (editorVersionRef.current !== version) return false;
       setArticleId(id);
+      setPendingPublication(persistenceRef.current.hasPendingPublication());
       setSaveState('saved');
       onSaved?.();
       setTimeout(() => {
@@ -615,9 +626,10 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // reflects the latest state at the moment the timer fires.
   const scheduleAutoSave = useCallback(() => {
     if (!title.trim()) return;
+    if (status === 'published') setPendingPublication(true);
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => { void saveRef.current(); }, 1500);
-  }, [title]);
+  }, [title, status]);
 
   // Cleanup timer on unmount
   useEffect(() => () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); }, []);
@@ -628,18 +640,19 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       showToast('Save the article first', 'error');
       return;
     }
-    if (autoSaveTimer.current) {
+    const nextPublished = status !== 'published' || pendingPublication;
+    if (nextPublished && autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
       autoSaveTimer.current = null;
     }
     const version = editorVersionRef.current;
-    const nextPublished = status !== 'published';
     setPublishing(true);
     setSaveState('saving');
     try {
-      await persistenceRef.current.setPublished(buildPayload(), nextPublished);
+      const article = await persistenceRef.current.setPublished(buildPayload(), nextPublished);
       if (editorVersionRef.current !== version) return;
-      setStatus(nextPublished ? 'published' : 'draft');
+      setStatus(article.status);
+      setPendingPublication(false);
       showToast(nextPublished ? 'Article published' : 'Article unpublished', nextPublished ? 'success' : 'info');
       onSaved?.();
     } catch (err: any) {
@@ -781,7 +794,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
 
         {/* Status badge */}
         <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
-          {status}
+          {pendingPublication ? 'Private changes' : status}
         </span>
 
         {/* Save state */}
@@ -794,14 +807,14 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           onClick={handlePublishToggle}
           disabled={publishing || !articleId}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 shrink-0 ${
-            status === 'published'
+            status === 'published' && !pendingPublication
               ? 'text-tea-text-sec hover:text-tea-text bg-tea-elevated'
               : 'cta-solid'
           }`}
-          title={status === 'published' ? 'Unpublish' : 'Publish'}
+          title={pendingPublication ? 'Publish changes' : status === 'published' ? 'Unpublish' : 'Publish'}
         >
-          {publishing ? <Loader2 size={12} className="animate-spin" /> : status === 'published' ? <EyeOff size={12} /> : <Eye size={12} />}
-          <span className="hidden sm:inline">{status === 'published' ? 'Unpublish' : 'Publish'}</span>
+          {publishing ? <Loader2 size={12} className="animate-spin" /> : status === 'published' && !pendingPublication ? <EyeOff size={12} /> : <Eye size={12} />}
+          <span className="hidden sm:inline">{pendingPublication ? 'Publish changes' : status === 'published' ? 'Unpublish' : 'Publish'}</span>
         </button>
 
         {/* Manual save */}

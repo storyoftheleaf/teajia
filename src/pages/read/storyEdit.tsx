@@ -39,6 +39,8 @@ export interface StoryContent {
   plates?: string[]; // order + membership of the photo-row frames
 }
 
+const EMPTY_DRAFT: StoryContent = {};
+
 interface Ctx {
   slug: string;
   isOwner: boolean;
@@ -49,6 +51,7 @@ interface Ctx {
   loaded: boolean;
   dirty: boolean;
   saving: boolean;
+  canPublish: boolean;
   // effective content (draft when owner+editing, else published)
   text: (field: string, dflt: string) => string;
   setText: (field: string, value: string) => void;
@@ -88,10 +91,14 @@ export const StoryEditProvider: React.FC<{ slug: string; children: React.ReactNo
   const [editing, setEditing] = useState(false);
   const [previewVisitor, setPreviewVisitor] = useState(false);
   const [published, setPublished] = useState<StoryContent>({});
-  const [draft, setDraft] = useState<StoryContent>({});
+  const [draft, setDraft] = useState<StoryContent>(EMPTY_DRAFT);
+  const [reviewedDraft, setReviewedDraft] = useState<{ content: StoryContent; digest: string | null } | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [pendingWrites, setPendingWrites] = useState(0);
+  const saving = pendingWrites > 0;
+  const dirty = draft !== EMPTY_DRAFT && reviewedDraft?.content !== draft;
+  const canPublish = editing && !previewVisitor && !dirty && !saving && Boolean(reviewedDraft?.digest);
+  const writeTail = useRef<Promise<unknown>>(Promise.resolve());
   const [versions, setVersions] = useState<{ id: string; label: string | null; created_at: string }[]>([]);
   const [frames, setFrames] = useState<{ slot: string; label: string }[]>([]);
   const [sheet, setSheet] = useState<{ field: string; value: string; multiline: boolean; label?: string } | null>(null);
@@ -121,8 +128,11 @@ export const StoryEditProvider: React.FC<{ slug: string; children: React.ReactNo
       if (alive) setPublished(c || {});
     }).catch(() => {}).finally(() => { if (alive) setLoaded(true); });
     if (isOwner) {
-      api.storyContent.get(slug, 'draft').then((c) => {
-        if (alive && c && Object.keys(c).length) setDraft(c);
+      api.storyContent.getDraftForReview<StoryContent>(slug).then(({ content, review_digest }) => {
+        if (!alive) return;
+        const saved = content || EMPTY_DRAFT;
+        setDraft(current => current === EMPTY_DRAFT ? saved : current);
+        setReviewedDraft({ content: saved, digest: review_digest });
       }).catch(() => {});
     }
     return () => { alive = false; };
@@ -137,16 +147,30 @@ export const StoryEditProvider: React.FC<{ slug: string; children: React.ReactNo
     }
   }, [editing, isOwner]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const scheduleSave = useCallback((next: StoryContent) => {
-    setDirty(true);
+  const enqueueWrite = useCallback(<T,>(operation: () => Promise<T>) => {
+    setPendingWrites(count => count + 1);
+    const result = writeTail.current.then(operation).finally(() => setPendingWrites(count => count - 1));
+    writeTail.current = result.catch(() => undefined);
+    return result;
+  }, []);
+
+  const persistDraft = useCallback((content: StoryContent) => enqueueWrite(async () => {
+    const { review_digest } = await api.storyContent.saveDraft(slug, content);
+    setReviewedDraft({ content, digest: review_digest });
+  }), [enqueueWrite, slug]);
+
+  const cancelScheduledSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      setSaving(true);
-      try { await api.storyContent.saveDraft(slug, next); setDirty(false); }
-      catch { /* keep dirty; retry on next edit */ }
-      finally { setSaving(false); }
+    saveTimer.current = null;
+  }, []);
+
+  const scheduleSave = useCallback((next: StoryContent) => {
+    cancelScheduledSave();
+    saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
+      void persistDraft(next).catch(() => { /* keep dirty; retry on next edit */ });
     }, 900);
-  }, [slug]);
+  }, [cancelScheduledSave, persistDraft]);
 
   const text = useCallback((field: string, dflt: string): string => {
     const v = active.text?.[field];
@@ -180,34 +204,34 @@ export const StoryEditProvider: React.FC<{ slug: string; children: React.ReactNo
   }, [scheduleSave]);
 
   const save = useCallback(async () => {
-    setSaving(true);
-    try { await api.storyContent.saveDraft(slug, draft); setDirty(false); }
-    finally { setSaving(false); }
-  }, [slug, draft]);
+    cancelScheduledSave();
+    await persistDraft(draft);
+  }, [cancelScheduledSave, draft, persistDraft]);
 
   const publish = useCallback(async () => {
-    setSaving(true);
-    try {
-      await api.storyContent.saveDraft(slug, draft);
-      await api.storyContent.publish(slug);
-      setPublished(JSON.parse(JSON.stringify(draft)));
-      setDirty(false);
-    } finally { setSaving(false); }
-  }, [slug, draft]);
+    if (!canPublish || !reviewedDraft?.digest) throw new Error('Wait for the reviewed draft to save before publishing.');
+    const { review_digest } = await api.storyContent.publish(slug, reviewedDraft.digest);
+    setPublished(reviewedDraft.content);
+    setReviewedDraft(current => current === reviewedDraft ? { ...reviewedDraft, digest: review_digest } : current);
+  }, [canPublish, reviewedDraft, slug]);
 
   const refreshVersions = useCallback(async () => {
     try { setVersions(await api.storyContent.versions(slug)); } catch { /* none */ }
   }, [slug]);
 
   const restore = useCallback(async (versionId: string) => {
-    const { content } = await api.storyContent.restore(slug, versionId);
-    setDraft(content || {});
-    setDirty(true);
-  }, [slug]);
+    cancelScheduledSave();
+    await enqueueWrite(async () => {
+      const { content, review_digest } = await api.storyContent.restore<StoryContent>(slug, versionId);
+      const restored = content || EMPTY_DRAFT;
+      setDraft(restored);
+      setReviewedDraft({ content: restored, digest: review_digest });
+    });
+  }, [cancelScheduledSave, enqueueWrite, slug]);
 
   const value: Ctx = {
     slug, isOwner, editing, setEditing, previewVisitor, setPreviewVisitor,
-    loaded, dirty, saving,
+    loaded, dirty, saving, canPublish,
     text, setText,
     photos: active.photos || {},
     setPhoto,

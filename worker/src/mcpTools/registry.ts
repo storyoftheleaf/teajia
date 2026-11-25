@@ -45,6 +45,7 @@ export interface InventoryReceiptService {
 }
 
 export interface ToolEnv {
+  EDITORIAL_PILOT_ACCOUNT_ID?: string;
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ATLAS_BUCKET?: R2Bucket;
