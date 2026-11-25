@@ -2,6 +2,8 @@
 
 Status: proposal, 2026-11-25. Nothing built. It waits on Adrian's yes in [docs/SECTIONS.md](../../docs/SECTIONS.md), decision 6.
 
+> **Revised 2026-11-25, second pass.** Your Table also gains two doors from [guests-and-tea-masters.md](guests-and-tea-masters.md): "Host a table" and "add your tea house", and favourites in three kinds (articles, shop teas, Tea Chest teas).
+
 ## What it is
 
 Your Table is everything that is yours on Teajia: what you tasted, what you photographed, what you own, what you want, what you ordered, where you have been, the page other people see, and the tea houses you belong to. It is the private half of the Tea Table. You keep things here. The ones you choose to share are seen there.

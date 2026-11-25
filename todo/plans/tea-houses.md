@@ -2,6 +2,8 @@
 
 Status: proposal, 2026-11-25. Nothing built. This is the first plan anywhere in the repo for building tea houses as an offering. Until now it was one service row on Advise, one line in the vision ("Designs tea spaces") and one persona. The section shape is in [docs/SECTIONS.md](../../docs/SECTIONS.md).
 
+> **Revised 2026-11-25, second pass.** Adrian: a tea house is "a physical space, somewhere that people can sit down and drink tea. The tea master can create it themselves and host people there." So a house is a place first and a shop is optional, and building one with Adrian is one of three ways a house comes to exist. See [guests-and-tea-masters.md](guests-and-tea-masters.md), "Tea houses, lighter than before". Where this file says a house is an account, read: a house that also wants a shop gets an account.
+
 Adrian, 2026-11-25: "building tea house is an important part for me so it's important to have that as an offering."
 
 ## What this plan covers

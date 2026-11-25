@@ -2,7 +2,9 @@
 
 > **Status: proposal, 2026-11-25. Nothing here is built and no navigation word has changed.** Adrian asked for a section overhaul that brings in the Tea Table, Your Table, tea houses as an offering, and every other section. This is the one map of that. The site as it runs today is described in [PILLAR.md](PILLAR.md). Nothing in this file is to be built until Adrian says yes to the words in "Open decisions".
 
-Plans that hang off this file: [tea-table.md](../todo/plans/tea-table.md), [your-table.md](../todo/plans/your-table.md), [tea-houses.md](../todo/plans/tea-houses.md). Where every other plan sits: [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md).
+> **Second pass, 2026-11-25.** Adrian answered five questions the same day, and the answers put two roles at the centre: guests and tea masters. The section called "The centre" below is new, and Home, Tea Table, Tea Houses, the decisions and the build order were revised to fit it. The full reasoning, the gaps found in the code, and the stages are in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md).
+
+Plans that hang off this file: [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), [tea-table.md](../todo/plans/tea-table.md), [your-table.md](../todo/plans/your-table.md), [tea-houses.md](../todo/plans/tea-houses.md). Where every other plan sits: [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md).
 
 ## The whole thing on one screen
 
@@ -24,6 +26,27 @@ Three words to hold apart from now on:
 - **Table** is people. The Tea Table is everyone's, Your Table is yours.
 - **House** is a place. A tea house is a room with an owner, and on Teajia it is an account.
 - **Session** is a time. People sit at a table, in a house, at a session.
+
+## The centre: guests, tea masters, and the loop
+
+**Everyone is a guest. At a session, one person is its tea master.** Adrian, 2026-11-25: "Master is like master of ceremonies. Many people in the audience may be that, but there is only one that is that in the moment." And: "At one event I may be a master, at another event I may be a guest."
+
+So the roles belong to a session, not to an account. Anyone can join. A tea master invites people into a session, "not into the site as much". A tea house is "a physical space, somewhere that people can sit down and drink tea", which a tea master can create themselves, and where other tea masters, travelling ones included, can pour.
+
+The sections are the parts of one circle:
+
+| Step | What happens | Where on the site |
+|---|---|---|
+| 1. Invite | A tea master opens a session and sends its invitation | Tea Table, Sessions |
+| 2. Sit | People meet at a tea house or a private table. The phone stays away | Tea Houses |
+| 3. Put on the table | Afterward a guest adds a note, a photograph or a tasting | Tea Table |
+| 4. Keep | Favourite articles, teas the shop has, teas in your own Tea Chest | Your Table, and your page |
+| 5. Find the tea | A favourite or a tasting leads to the tea | Shop |
+| 6. Host | A guest opens their own session and is its tea master | Home, Your Table |
+
+Read runs through all of it: it is how people sharpen their skill, and where articles show who people are and why they love tea. Someone who is only ever online has steps 3 to 5 in full.
+
+One rule governs every screen a person might open at a tea table. **Thirty seconds, then away:** one screen, one action, saved by itself, nothing asked afterward. Anything that scrolls belongs to before or after. Adrian: "This would never become a place that people are scrolling while they are on a tea table," and "if someone does use their phone at a tea table they can put it away right away."
 
 ## Why this shape
 
@@ -79,14 +102,14 @@ Full plan: [tea-table.md](../todo/plans/tea-table.md).
 
 ### Tea Houses
 
-**What it is.** The section for places. It answers four questions, in this order:
+**What it is.** The section for places. A tea house is a physical place where people sit down and drink tea: a name, where it is, a photograph, its keeper, and the sessions held there. A shop is optional. A house comes to exist in one of three ways: it is already there, a tea master adds their own, or it is built with Adrian. The section answers four questions, in this order:
 
 | View | Address | The question it answers |
 |---|---|---|
 | Overview | `/tea-houses` | What is a Teajia tea house, and what can I do here |
 | Build | `/tea-houses/build` | I want one. What happens, in what order, and how do I start |
 | Work | `/tea-houses/work`, `/tea-houses/work/:slug` | Show me ones Adrian has built |
-| Visit | `/tea-houses/visit`, then `/store/:slug` | Where can I sit down at one |
+| Visit | `/tea-houses/visit`, then the house's own page | Where can I sit down at one, and who pours there |
 
 `/advise` stays as "work with Adrian": his biography, sourcing for a collection, sessions and guidance, sourcing journeys, the testimonial, the inquiry. It is reached from Tea Houses, from Sessions, from Shop and from About. Its design row points into `/tea-houses/build`.
 
@@ -143,7 +166,7 @@ Not proposed: a "Houses" room to track builds. A build is tracked as an inquiry,
 
 ### Home, About and the small pages
 
-- **Home** keeps its plates. Its four grounding lines become the new four. It gains one strip, "On the tea table", showing the latest three items, and the consult plate leads to Tea Houses.
+- **Home** is the same page for everyone and gains the job it lacks today: saying what this is and what a person can do here. Read from the code, it shows no people, no sessions and no shared tastings, and its four links still name the old sections. Proposed order: one sentence and the four grounding lines (learn tea, sit at a table, find a tea house, find good tea); two doors, "Come to a table" and "Host a table"; up to four fresh strips, each shown only when it has something real (the next session with its tea master and house, the latest three things on the tea table, one person from an article, the selected tea); the three plates it has now, with the consult plate leading to Tea Houses; and the closing house section with 佳 家 嘉, kept in full. Detail in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Home".
 - **About** stays thin and gains links to the four sections and to "work with Adrian". Reached from the phone menu and the footer.
 - **Discover** (`/discover`) stays, linked from home and Your Table.
 - **Start** (`/start`): nothing links to it today. Recommendation: forward it to `/discover`.
@@ -214,7 +237,9 @@ The rules against feeds are written in several places. This is exactly what chan
 
 ## Open decisions for Adrian
 
-Seven, each with a recommendation. The first two unlock everything else.
+**From the second pass, five.** They are written out with recommendations in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Decisions for Adrian": the words (everyone a guest, one tea master per session), who may host, a tea house as a place first, Tea Chest teas as public favourites, and the quick rule.
+
+**From the first pass, seven**, each with a recommendation. The first two unlock everything else. Decision 7 is narrower now: Adrian has said what a tea house is, and what remains is his facts for the build offering.
 
 1. **The four words.** Recommended: **read, table, houses, shop**, with Craft as the second shelf of Read. The other honest choice: keep **read, craft, houses, shop**, and give the Tea Table the home page and the phone menu instead of a word. The first puts the living part of the site on the bar. The second keeps Craft where you named it. A fifth word does not fit the phone bar or the Narrow B rail without redrawing both.
 2. **The two new labels.** Recommended: "table" and "houses" on the bar, "The Tea Table" and "Tea Houses" as page titles. The existing words are verbs (read, craft, advise, shop), so "gather" and "build" are the alternative if you want to keep that pattern.
@@ -226,17 +251,21 @@ Seven, each with a recommendation. The first two unlock everything else.
 
 ## Build order
 
-Each stage is useful by itself and leaves the site whole. The bar words change late, on purpose: the working plan and the closeout plan both say to keep the four-section navigation through the current releases and to decide on the Tea Table from the evidence of a real sit.
+Revised in the second pass. The order follows the loop, so that the first stages are exactly what one real sit needs, and the bar words still change late. Each stage is useful by itself and leaves the site whole. What each stage closes, and what it needs from Adrian, is in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Build stages".
 
-| Stage | What | Needs from Adrian | Touches the bar |
-|---|---|---|---|
-| 0 | Adrian answers decisions 1 to 3. The rule exception is confirmed or reworded | Yes | No |
-| 1 | **Tea Houses pages.** `/tea-houses` with Build, Work and Visit, built from what exists (the Advise design copy, the inquiry, the project data, the network directory). Old addresses forward. Reached from Advise and home | The offering facts and photographs (decision 7) | No |
-| 2 | **Tea Table, first form.** `/tea-table` with the three views, showing published recaps as `/tea-feed` does now. Reached from home and the menus | One real sit, as the closeout plan asks | No |
-| 3 | **Tastings on the Tea Table.** Shared tastings join the stream, with the new share wording, the hide control, and the consent and withdrawal gates in the plan | Decisions 4 and 5 | No |
-| 4 | **The bar changes.** One change: bar, rail, phone menu, home lines, keyboard keys, page titles. `npm run test:mobile` before and after | The explicit yes on the words | Yes |
-| 5 | **Your Table as a page.** Same tiles, grouped, with share lines. The panel retires | Decision 6 | Glyph only |
-| 6 | **Read's three shelves.** The shelf row on Read, Craft and Wisdom, and the one rename in Craft | The new word for "Shared Wisdom" | No |
-| 7 | **Truth-up.** PILLAR, SITE_MAP, the layout notes and the rule wording brought into line, each in the commit that changes the site | No | No |
+| Stage | What | Touches the bar |
+|---|---|---|
+| 0 | **Repairs.** The tea master invite address, which appears to land on the wrong page, and the profile screen wording | No |
+| 1 | **The words.** Guest, tea master, session, tea house, used one way everywhere | No |
+| 2 | **Invite to a session.** One link and code a tea master sends; a guest has a seat without signing up | No |
+| 3 | **A session names its tea master and its house.** A "Host a table" door. Home's first two parts can ship here | No |
+| 4 | **After the sit, one screen** to put a note, a photograph or a tasting on the table | No |
+| 5 | **The Tea Table, first form**, with its consent and withdrawal gates | No |
+| 6 | **Tea houses as places**, then Build and Work | No |
+| 7 | **Favourites in three kinds**: articles, shop teas, Tea Chest teas | No |
+| 8 | **Home in full, and the bar words** in one change. `npm run test:mobile` before and after | Yes |
+| 9 | **The people list shows who pours, and the first people articles** | No |
+| 10 | **Your Table as a page, Read's three shelves, truth-up** of PILLAR, SITE_MAP and the rule wording | Glyph only |
+| Later | The tea tasting box, six to twelve months out. An app | |
 
-Stages 1 and 2 can run side by side. Nothing in this order waits on the Manage rebuild, and nothing in it changes a Manage room.
+Nothing in this order waits on the Manage rebuild, and nothing in it changes a Manage room.

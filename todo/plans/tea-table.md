@@ -2,6 +2,8 @@
 
 Status: proposal, 2026-11-25. Nothing built under this name. It waits on Adrian's yes to the words in [docs/SECTIONS.md](../../docs/SECTIONS.md) and to the rule exception proposed in `CLAUDE.md`.
 
+> **Revised 2026-11-25, second pass.** The Tea Table is step 3 of the loop in [guests-and-tea-masters.md](guests-and-tea-masters.md): what guests put on the table after a session or a tasting at home. Its stages now come after the session invitation and the one-screen "after the sit", and the quick rule there applies: it is never linked from a screen meant for the table.
+
 ## What it is
 
 One public page where a visitor sees what the people of Teajia have put on the tea table lately: a tea someone tasted, with their words and photographs, and a session someone poured. Newest first. Around it, under the same word, sit the sessions calendar and the people.
