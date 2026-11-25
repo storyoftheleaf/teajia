@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { SquareCropModal } from './SquareCropModal';
+import { looksLikePhoto, prepareFacePhoto } from '../vendors/facePhotoFile';
 
 /**
  * The site's one photo editing step. Every place a photo is added goes
@@ -44,14 +45,17 @@ export function usePhotoEditor(defaults: PhotoEditOptions = {}) {
   const defaultsRef = useRef(defaults);
   defaultsRef.current = defaults;
 
-  const editPhoto = useCallback((source: File | Blob | string, options: PhotoEditOptions = {}) =>
-    new Promise<File | null>(resolve => {
-      const name = source instanceof File ? source.name : 'photo.jpg';
+  const editPhoto = useCallback(async (picked: File | Blob | string, options: PhotoEditOptions = {}) => {
+    // iPhone HEIC photos are turned into JPEG first: Chrome cannot draw HEIC.
+    const source = picked instanceof File ? await prepareFacePhoto(picked).catch(() => picked) : picked;
+    const name = picked instanceof File ? picked.name : 'photo.jpg';
+    return new Promise<File | null>(resolve => {
       setPending({ ...defaultsRef.current, ...options, source, name, resolve });
-    }), []);
+    });
+  }, []);
 
   const editPhotos = useCallback(async (sources: ArrayLike<File> | File[], options: PhotoEditOptions = {}) => {
-    const list = Array.from(sources).filter(file => !file.type || file.type.startsWith('image/'));
+    const list = Array.from(sources).filter(looksLikePhoto);
     const edited: File[] = [];
     for (let i = 0; i < list.length; i++) {
       const title = list.length > 1 ? `${options.title ?? defaultsRef.current.title ?? 'Edit photo'} (${i + 1} of ${list.length})` : options.title;

@@ -5,6 +5,7 @@ import { api, type ApiRequestInit } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { cropToSquareBlob } from '../../lib/cropImage';
 import { faceFramePixels, findFace, loadFaceImage } from '../../lib/faceFrame';
+import { prepareFacePhoto } from './facePhotoFile';
 
 /**
  * Vendor faces: one photo per vendor that Adrian can recognise them by.
@@ -132,7 +133,7 @@ export async function squareOnFace(file: File, size = 800): Promise<Blob> {
 export async function saveVendorFace(
   vendorId: string, file: File | Blob, expectedAuth?: ApiRequestInit['expectedAuth'], options?: { framed?: boolean },
 ): Promise<string> {
-  const squared = options?.framed ? file : await squareOnFace(file as File);
+  const squared = options?.framed ? file : await squareOnFace(await prepareFacePhoto(file as File));
   const upload = new File([squared], 'vendor-face.jpg', { type: 'image/jpeg' });
   const url = await api.uploadImage(upload, { filename: 'vendor-face.jpg', expectedAuth });
   if (!url) throw new Error('The photo upload returned no address.');

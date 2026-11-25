@@ -73,6 +73,7 @@
     "fflate": "^0.8.3",
     "framer-motion": "^12.34.3",
     "fuse.js": "^7.0.0",
+    "heic-to": "1.6.7",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.554.0",
     "papaparse": "^5.4.1",
