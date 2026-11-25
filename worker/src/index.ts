@@ -17,6 +17,7 @@ import { attachPublicTeawareDetails } from './teawareDetails';
 import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
 import { readOrderUpdateEmail } from './orderUpdateEmail';
 import { isPersonalOffer, profileIsPersonalOfferSql } from './personalOfferNetwork';
+import { PERSONAL_OFFER_TAKEN, personalOfferTaken } from './personalOfferTaken';
 import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
 import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
@@ -15228,6 +15229,9 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         if (business?.whatsapp_number?.replace(/\D/g, '') === whatsappRecipient.slice(1)) {
           return json({ error: 'Enter your own WhatsApp number, rather than the store’s number.' }, 400);
         }
+      }
+      if (personalSeller && await personalOfferTaken(env.DB, accountId, catalogProductIds(normalized.value.items as Array<Record<string, any>>))) {
+        return restError(409, PERSONAL_OFFER_TAKEN, 'personal_offer_taken');
       }
       let lines: Awaited<ReturnType<typeof pricedRequestLines>>;
       try {
