@@ -208,7 +208,7 @@ import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 import { serveCatalogTeaReading } from './catalogTeaReading';
-import { applyReviewedWordingFallback, serveWisdomWordingReview } from './wisdomWordingReview';
+import { applyReviewedWordingFallback, reviewedDescription, serveWisdomWordingReview } from './wisdomWordingReview';
 import { serveStockGalleryProposal } from './stockGalleryProposal';
 import { serveYixingOwnerReview } from './yixingOwnerReview';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
@@ -3842,7 +3842,7 @@ const handleGetCatalog: Handler = async (request, env) => {
     const out: Record<string, any> = {
       id: p.id, type: p.type, form: p.form, given_name: p.given_name, chinese_name: p.chinese_name,
       product_name: p.product_name, year: p.year, origin_country: p.origin_country,
-      origin_region: p.origin_region, description: p.description, tasting_notes: p.tasting_notes,
+      origin_region: p.origin_region, description: reviewedDescription(p.id, p.description), tasting_notes: p.tasting_notes,
       image_url: p.image_url, additional_images: p.additional_images, lore: p.lore,
       show_wisdom: p.show_wisdom, processing_notes: p.processing_notes, terroir: p.terroir,
       mood: p.mood, experience: p.experience, tea_key: p.tea_key, tasting: p.tasting,
@@ -11049,6 +11049,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       }
       safe.account_slug = p.account_slug;
       safe.public_path = p.public_path;
+      if (p.account_id === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
       maskCountPendingCommerce(safe, p.account_id, p);
       return safe;
     });
@@ -12966,7 +12967,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       briefing_cards: briefingCards,
       mood_hints: moodHints,
     },
-    tea_menu: menu.results,
+    tea_menu: (menu.results as any[]).map(item => ({ ...item, product_description: reviewedDescription(item.product_id, item.product_description) })),
     guest_invites: guestInvites.results,
   });
 };
@@ -27585,7 +27586,7 @@ const handleGetShopCollections: Handler = async (_request, env) => {
         origin_country: item.origin_country,
         origin_region: item.origin_region,
         image_url: item.image_url,
-        description: item.description,
+        description: reviewedDescription(item.product_id, item.description),
         tasting_notes: (() => {
           if (!item.tasting_notes) return null;
           if (typeof item.tasting_notes === 'string') {
@@ -27946,7 +27947,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       const outOfStock = i.product_type === 'Teaware'
         ? (i.quantity_units ?? 0) <= 0
         : (i.stock_grams ?? 0) <= 0;
-      return { ...i, out_of_stock: outOfStock };
+      return { ...i, description: reviewedDescription(i.product_id, i.description), out_of_stock: outOfStock };
     });
 
   return json({
