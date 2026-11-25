@@ -10,50 +10,14 @@
  * double-booked session nobody notices until twelve people arrive for ten
  * seats.
  *
- * ── What the domain would not let me build ──
+ * ── Lifecycle boundaries ──
  *
  * "Unpublish" is not here because it does not exist. `EVENT_TRANSITIONS` lets
  * `published` go to `registration_closed` or `cancelled` and nowhere else, so
  * a tool called unpublish would either fail every time or quietly invent a
  * seventh transition. Closing registration is the move that was actually
- * designed; that is what `set_event_lifecycle` offers.
- *
- * Denying, waitlisting and cancelling an RSVP are also absent, and their
- * absence is deliberate. The admin routes for those call `cascadeWaitlist`,
- * which promotes the first waitlisted party into the freed seat. That helper
- * lives unexported in index.ts, so a tool here could only reimplement it — a
- * second copy of a promotion rule is exactly the shape that once gave this
- * shop four freight rates, and here the cost would be a guest who was promised
- * a seat and never told. See REQUIREMENTS below.
- *
- * ── REQUIREMENTS ON FILES THIS MODULE MAY NOT EDIT ──
- *
- * These are the changes this module needs and could not make, listed so the
- * next person does not have to rediscover them:
- *
- *  1. `worker/src/index.ts` — `EVENT_STATUS_BY_LIFECYCLE` (and its inverse
- *     `EVENT_LIFECYCLE_BY_STATUS`) should move to `eventDomain.ts` and be
- *     imported back. The map is duplicated below because it is not exported and
- *     `events.status` must move in lockstep with `events.lifecycle_status` —
- *     the public routes still read `status = 'active'`, so writing one without
- *     the other publishes an event no visitor can see, with nothing failing.
- *     `worker/tests/mcp-events.test.ts` reads index.ts's source and fails if the
- *     two copies drift, which is a splint, not a fix.
- *
- *  2. `worker/src/index.ts` — `cascadeWaitlist` should move to `eventDomain.ts`
- *     too. It is the reason there is no tool here for denying, waitlisting or
- *     cancelling an RSVP: those routes call it to promote the first waitlisted
- *     party into the freed seat, and a tool that freed a seat without it would
- *     leave a guest who was promised one and never told.
- *
- *  3. `worker/src/mcp.ts` — SERVER_INFO's description still lists inventory,
- *     invoicing and the order process, and says nothing about running a
- *     session. A client reads that string to decide what this server is for.
- *
- * Three earlier requirements are already met and are recorded here only so
- * nobody re-does them: the seam registers this module in `TOOL_MODULES`,
- * derives `readOnlyHint` from a `:read` scope rather than a hand-kept list, and
- * audits every non-read-only module tool by construction.
+ * designed; that is what `set_event_lifecycle` offers. The admin RSVP
+ * routes also handle cancellations and waitlist promotions.
  *
  * ── Scopes, and why these ones ──
  *
@@ -90,7 +54,10 @@
 
 import { customerTagList } from '../customerContactHandles';
 import {
+  EVENT_LIFECYCLE_VALUES,
+  EVENT_STATUS_BY_LIFECYCLE,
   EVENT_TRANSITIONS,
+  isEventLifecycle,
   reservePartySeats,
   seatAvailability,
   type EventLifecycle,
@@ -100,30 +67,6 @@ import {
 } from '../eventDomain';
 import type { ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET as expiredTicket, consumeTicket as consumeShared, issueTicket, previewEnvelope } from './tickets';
-
-// ── the two maps index.ts owns and does not export ──
-//
-// `events` carries both the old four-value `status` and the six-value
-// `lifecycle_status`, and the public surface has not moved: /api/events,
-// /api/events/:slug/availability and the public RSVP door all still select on
-// `status = 'active'`. Writing one without the other publishes an event that
-// no visitor can see, or leaves a cancelled one taking bookings. Requirement 4
-// above is the real fix; until then these must equal index.ts's copies, which
-// the test asserts by reading its source.
-export const EVENT_STATUS_BY_LIFECYCLE: Readonly<Record<EventLifecycle, string>> = {
-  draft: 'draft',
-  published: 'active',
-  registration_closed: 'closed',
-  completed: 'closed',
-  cancelled: 'closed',
-  archived: 'archived',
-};
-
-const EVENT_LIFECYCLE_VALUES = Object.keys(EVENT_STATUS_BY_LIFECYCLE) as EventLifecycle[];
-
-const isEventLifecycle = (value: unknown): value is EventLifecycle =>
-  typeof value === 'string' && (EVENT_LIFECYCLE_VALUES as string[]).includes(value);
-
 
 // ── confirmation tickets ──
 //

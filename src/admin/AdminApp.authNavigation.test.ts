@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { adminAuthReturnTo } from './authNavigation';
+import { adminAuthReturnTo, adminLandingPath, adminLandingRedirect } from './authNavigation';
+import type { AdminNavAccess } from '../components/navigationConnections';
 
 describe('admin authentication destination', () => {
   it('preserves a deep admin route, filters, and anchor', () => {
@@ -21,5 +22,33 @@ describe('admin authentication destination', () => {
     expect(source).not.toContain('path="/" element={<Navigate');
     expect(source).not.toContain('setIsLoginOpen');
     expect(source).toContain("authPagePath('signin', adminAuthReturnTo(location))");
+  });
+});
+
+const noAccess: AdminNavAccess = {
+  isAdmin: false, isOwnerTier: false,
+  hasCatalog: false, hasStock: false, hasSell: false,
+  hasGather: false, hasPublish: false, hasMembers: false,
+};
+
+describe('the default Admin landing', () => {
+  it.each<[Partial<AdminNavAccess>, string]>([
+    [{ hasCatalog: true }, '/admin/compass'],
+    [{ hasStock: true, hasGather: true }, '/admin/stock'],
+    [{ hasSell: true, hasPublish: true }, '/admin/activity'],
+    [{ hasGather: true }, '/admin/people'],
+    [{ hasMembers: true }, '/admin/people'],
+    [{ hasPublish: true }, '/admin/people'],
+    [{ isOwnerTier: true }, '/admin/account-settings'],
+    [{ isAdmin: true }, '/admin/compass'],
+    [{}, '/'],
+  ])('sends access %o to %s', (access, path) => {
+    expect(adminLandingPath({ ...noAccess, ...access }, null)).toBe(path);
+  });
+
+  it('keeps Stock search filters while removing a drafts subview the user cannot open', () => {
+    expect(adminLandingRedirect('/admin/stock', '?view=drafts&search=oolong', false)).toBe('/admin/stock?search=oolong');
+    expect(adminLandingRedirect('/admin/stock', '?view=drafts&search=oolong', true)).toBe('/admin/stock?view=drafts&search=oolong');
+    expect(adminLandingRedirect('/admin/compass', '?tab=library', true)).toBe('/admin/compass?tab=library');
   });
 });

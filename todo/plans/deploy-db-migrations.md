@@ -30,12 +30,8 @@ every deploy and fails loudly if one errors. This whole effort is complete.
 
 [.github/workflows/deploy-worker.yml](../../.github/workflows/deploy-worker.yml)
 
-## Related one-off
+## Article schema
 
-The magazine editor needs its articles table created once before it works. Until that runs, `/admin/magazine` fails silently. Run once after logging in:
-
-```
-cd worker && npx wrangler login && npx wrangler d1 execute teajia-db --remote --file=migrations/031_articles.sql
-```
-
-Migration file: [worker/migrations/031_articles.sql](../../worker/migrations/031_articles.sql)
+The article table is part of the tracked migration chain. Use the [database deploy
+runbook](../../docs/claude/deploy-and-secrets.md#keep-schema-changes-in-the-migration-ledger)
+for article schema changes and migration drift.

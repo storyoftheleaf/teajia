@@ -37,31 +37,21 @@ const CATEGORIES_META = [
   { id: 'storage', label: 'Storage' },
 ];
 
-/**
- * What to print under a teaware name.
- *
- * `variant` is filled with the product name for most teaware, so printing it
- * raw repeated the title on every one of the rows. Prefer the category, which
- * says something the name does not, and fall back to the variant only when it
- * actually differs from the name.
- */
+/** The category is already visible in the shelf heading or selected filter. */
 function teawareMeta(item: InventoryItem): string | null {
   const name = (item.name || '').trim().toLowerCase();
+  const category = item.subcategory?.trim().toLowerCase();
   const variant = (item.variant || '').trim();
+  const material = item.material?.trim();
 
-  // What the piece is made of and how much it holds are the two things a
-  // buyer weighs between two kettles, and neither is in the title.
   const facts = [
-    item.material?.trim(),
-    item.capacityMl ? `${item.capacityMl}ml` : null,
+    material?.toLowerCase() === 'unknown' ? null : material,
+    item.capacityMl && item.capacityMl > 0 ? `${item.capacityMl}ml` : null,
   ].filter(Boolean);
   if (facts.length) return facts.join(' \u00b7 ');
 
-  // The category is a weak third: rows are already grouped under it, so it
-  // tends to restate the heading. Better than nothing, better than the name.
-  if (item.subcategory?.trim()) return item.subcategory.trim();
-  if (variant && variant.toLowerCase() !== name) return variant;
-  return null;
+  const variantKey = variant.toLowerCase();
+  return variant && variantKey !== name && variantKey !== category ? variant : null;
 }
 
 /** Origin is stored as the literal "Unknown" for teaware with no recorded source. */

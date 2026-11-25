@@ -6,6 +6,34 @@ export type EventLifecycle =
   | 'cancelled'
   | 'archived';
 
+export const EVENT_LIFECYCLE_BY_STATUS = {
+  draft: 'draft',
+  active: 'published',
+  closed: 'registration_closed',
+  archived: 'archived',
+} as const;
+
+// Public event routes still read the legacy status. Both write surfaces
+// must update it alongside the canonical lifecycle.
+export const EVENT_STATUS_BY_LIFECYCLE: Readonly<Record<EventLifecycle, keyof typeof EVENT_LIFECYCLE_BY_STATUS>> = {
+  draft: 'draft',
+  published: 'active',
+  registration_closed: 'closed',
+  completed: 'closed',
+  cancelled: 'closed',
+  archived: 'archived',
+};
+
+export const EVENT_LIFECYCLE_VALUES = Object.keys(EVENT_STATUS_BY_LIFECYCLE) as readonly EventLifecycle[];
+
+export function isLegacyEventStatus(value: unknown): value is keyof typeof EVENT_LIFECYCLE_BY_STATUS {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(EVENT_LIFECYCLE_BY_STATUS, value);
+}
+
+export function isEventLifecycle(value: unknown): value is EventLifecycle {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(EVENT_STATUS_BY_LIFECYCLE, value);
+}
+
 export const EVENT_TRANSITIONS: Readonly<Record<EventLifecycle, readonly EventLifecycle[]>> =
   Object.freeze({
     draft: Object.freeze(['published', 'cancelled'] as const),
@@ -15,6 +43,31 @@ export const EVENT_TRANSITIONS: Readonly<Record<EventLifecycle, readonly EventLi
     cancelled: Object.freeze(['archived'] as const),
     archived: Object.freeze([] as const),
   });
+
+export async function cascadeWaitlist(
+  db: Pick<D1Database, 'prepare'>,
+  eventId: string,
+  claimWindowMinutes: number,
+): Promise<void> {
+  const next = await db.prepare(
+    `SELECT id FROM event_attendees
+     WHERE event_id = ? AND status = 'waitlist'
+     ORDER BY waitlist_position ASC, created_at ASC LIMIT 1`
+  ).bind(eventId).first();
+
+  if (next) {
+    const expiresAt = new Date(Date.now() + claimWindowMinutes * 60 * 1000).toISOString();
+    await db.prepare(
+      `UPDATE event_attendees SET claim_expires_at = ? WHERE id = ?`
+    ).bind(expiresAt, next.id).run();
+
+    // Create a waitlist_promotion notification
+    await db.prepare(
+      `INSERT INTO event_notifications (id, event_id, attendee_id, type, message_template, status)
+       VALUES (?, ?, ?, 'waitlist_promotion', 'A spot has opened up! Claim it before it expires.', 'pending')`
+    ).bind(crypto.randomUUID(), eventId, next.id).run();
+  }
+}
 
 export function normalizeEventUpdate(input: Record<string, unknown>): Record<string, unknown> {
   const result = { ...input };

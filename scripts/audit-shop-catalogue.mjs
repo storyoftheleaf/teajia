@@ -112,7 +112,37 @@ export function normalizeCatalogueEnvelope(value) {
   if (Array.isArray(value?.data)) return value.data;
   if (Array.isArray(value?.data?.products)) return value.data.products;
   if (Array.isArray(value?.data?.items)) return value.data.items;
-  return [];
+  throw new Error('No product list in the catalogue response.');
+}
+
+function knownText(value) {
+  return typeof value === 'string'
+    && !['', 'unknown', 'n/a', '-'].includes(value.trim().toLowerCase());
+}
+
+function coverage(products) {
+  const teaware = products.filter(product => product?.type === 'Teaware'
+    || product?.category === 'ware' || knownText(product?.teaware_category));
+  const ware = new Set(teaware);
+  const teas = products.filter(product => product && !ware.has(product) && product.category !== 'set');
+  return {
+    products: products.length,
+    tea: {
+      total: teas.length,
+      vintage: teas.filter(tea => /^\d{4}$/.test(String(tea.year ?? tea.vintage ?? '').trim())).length,
+      country: teas.filter(tea => knownText(tea.origin_country)).length,
+      region: teas.filter(tea => knownText(tea.origin_region)).length,
+      multipleOriginLevels: teas.filter(tea => typeof tea.origin_region === 'string'
+        && tea.origin_region.split(',').filter(knownText).length > 1).length,
+      form: teas.filter(tea => knownText(tea.form)).length,
+    },
+    teaware: {
+      total: teaware.length,
+      material: teaware.filter(item => knownText(item.material)).length,
+      capacity: teaware.filter(item => Number.isFinite(Number(item.capacity_ml))
+        && Number(item.capacity_ml) > 0).length,
+    },
+  };
 }
 
 function reportRows(products) {
@@ -135,9 +165,15 @@ async function readStdin() {
 }
 
 async function main() {
-  const inputPath = process.argv[2];
+  const args = process.argv.slice(2);
+  const measureCoverage = args.includes('--coverage');
+  const inputPath = args.find(arg => arg !== '--coverage');
   const source = inputPath ? await readFile(inputPath, 'utf8') : await readStdin();
   const products = normalizeCatalogueEnvelope(JSON.parse(source));
+  if (measureCoverage) {
+    console.log(JSON.stringify(coverage(products), null, 2));
+    return;
+  }
   const rows = reportRows(products);
 
   if (rows.length === 0) {

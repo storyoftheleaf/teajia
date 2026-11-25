@@ -126,8 +126,8 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     await expect.poll(()=>textOf(page.getByRole('alert'))).toContain('whole number of pieces');
     expect(await page.evaluate(()=>(window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
     await quantity.fill('2');
-    mkdirSync('outputs/flow-repair-2026-10-28',{recursive:true});
-    await page.screenshot({path:'outputs/flow-repair-2026-10-28/invoice-teaware-pieces.png',animations:'disabled'});
+    mkdirSync('test-results/flow-repair-2026-10-28',{recursive:true});
+    await page.screenshot({path:'test-results/flow-repair-2026-10-28/invoice-teaware-pieces.png',animations:'disabled'});
     await saveDraft().click();
     await expect.poll(()=>page.evaluate(()=>(window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
     const items=await page.evaluate(()=>(window as any).quickInvoiceTest.invoiceCalls()[0].items);
@@ -171,8 +171,8 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     await itemName().fill('Account A Tea');
     const suggestion = page.getByRole('button').filter({ has: page.getByText('Account A Tea', { exact: true }) });
     await expect.poll(() => suggestion.textContent()).toContain('\u2014/g');
-    mkdirSync('outputs/quick-invoice-eligibility', { recursive: true });
-    await page.screenshot({ path: 'outputs/quick-invoice-eligibility/unpriced-picker.png', animations: 'disabled' });
+    mkdirSync('test-results/quick-invoice-eligibility', { recursive: true });
+    await page.screenshot({ path: 'test-results/quick-invoice-eligibility/unpriced-picker.png', animations: 'disabled' });
     await suggestion.click();
     const price = page.getByRole('spinbutton', { name: 'Price per gram (USD)', exact: true });
     expect(await price.inputValue()).toBe('');
@@ -184,7 +184,7 @@ describe('QuickInvoiceModal linked sales behavior', () => {
     await expect.poll(() => textOf(page.getByRole('alert'))).toContain('$0.30/g or above');
     expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(0);
     await price.fill('0.4');
-    await page.screenshot({ path: 'outputs/quick-invoice-eligibility/manual-linked-price.png', animations: 'disabled' });
+    await page.screenshot({ path: 'test-results/quick-invoice-eligibility/manual-linked-price.png', animations: 'disabled' });
     await saveDraft().click();
     await expect.poll(() => page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls().length)).toBe(1);
     expect(await page.evaluate(() => (window as any).quickInvoiceTest.invoiceCalls()[0].items)).toEqual([

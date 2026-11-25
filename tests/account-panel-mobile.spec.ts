@@ -152,8 +152,9 @@ async function overflow(page: Page) {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 test.use({ viewport: { width: 390, height: 844 } });
-// Run sequentially — panel tests share dev server and would conflict
-test.describe.configure({ mode: 'serial' });
+// Keep one worker per project for this file's shared preview and screenshots.
+// Each test has its own page, so a failure must not skip the remaining checks.
+test.describe.configure({ mode: 'default' });
 
 // ─── Panel tests ──────────────────────────────────────────────────────────────
 

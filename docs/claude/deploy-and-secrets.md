@@ -68,6 +68,19 @@ the SQL would have shown it.
 
 `deploy-worker.yml` runs, in order: worker tests, **`wrangler deploy --dry-run`**, D1 migrations, deploy. The dry run is there because vitest only transpiles the files a test imports, so it has no opinion about a module no test loads. On 2026-09-06 a renamed export left `curateImports.ts` importing a name that no longer existed: 1198 tests passed, migration `0009` applied to the live database, and the deploy then died in esbuild, leaving the schema ahead of the code. The dry run builds the same bundle, writes nothing, needs no credentials, and must stay **above** the migration step.
 
+### Keep schema changes in the migration ledger
+
+Write and rehearse a tracked migration before changing production schema. Let the
+deploy workflow apply it through Wrangler's migration ledger. Applying a migration
+as raw SQL bypasses that ledger and can block the next deploy even when the schema
+change itself succeeded.
+
+If deploy reports a duplicate column or a similar mismatch, record the failing
+migration filename and inspect both the actual schema and its ledger entry with
+read-only queries. Preserve the deploy failure until the release owner has verified
+what already ran and approved the exact reconciliation. Record that evidence with
+the release before retrying.
+
 ### "Ship" command — mandatory
 
 When Adrian says **"ship"**, push the reviewed task revision directly to `origin/main` to trigger the existing deployment. Isolate the task in a clean worktree if the shared checkout contains unrelated work. Confirm that the runner started for the exact revision and record its status and resumption link. Report **publishing in background** while it runs. Report **shipped** with the build identifier only after the deployed revision and affected live surface have been independently verified.

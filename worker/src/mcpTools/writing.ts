@@ -6,6 +6,7 @@ import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from 
 import { INVALID_TICKET, PENDING_TTL_MS, consumeTicket as consumeShared, issueTicket } from './tickets';
 import { isWordforgeManagedArticle } from '../wordforgeArticleDraft';
 import { moveClaimUsesWithBlocks } from '../articleWisdomClaimUses';
+import { articleToApi, parseArticleArray, slugifyArticle } from '../articlePresentation';
 import { buildEventArticleDraft } from '../eventArticleDraft';
 import { readEditorialPilot } from '../articleEditorialPilot';
 
@@ -45,7 +46,7 @@ import { readEditorialPilot } from '../articleEditorialPilot';
  *
  * ── What this module needs from mcp.ts and could not do from here ───────────
  *
- * A tool module cannot edit mcp.ts, and three things live there that these
+ * A tool module cannot edit mcp.ts, and two things live there that these
  * tools would otherwise carry themselves. Each is a real gap, not a nicety:
  *
  *   1. `annotationsFor()` builds every tool's annotations from the
@@ -61,10 +62,6 @@ import { readEditorialPilot } from '../articleEditorialPilot';
  *      writes its own `activity_logs` row instead, the way
  *      `commitSetArchiveStatus` does, so the history exists either way — but
  *      the MCP_TOOL_CALL envelope does not.
- *   3. `slugify()` and the article JSON parsing live in index.ts, which is the
- *      worker entrypoint and imports mcp.ts, so importing it from here is a
- *      cycle. They are reproduced below, marked, and should be hoisted into a
- *      shared module so the copies cannot drift.
  */
 
 /* ────────────────────────────── confirmation tickets ─────────────────────── */
@@ -174,21 +171,6 @@ function clampLimit(value: unknown, fallback: number, max: number): number {
 /* ────────────────────────────── article helpers ──────────────────────────── */
 
 /**
- * Verbatim copy of `slugify` in index.ts. Copied rather than shared because
- * index.ts is the worker entrypoint and importing it from a module mcp.ts
- * imports would be a cycle. It should be hoisted so these two cannot drift:
- * a slug is the article's public address, and two functions producing
- * different ones for the same title is a link that works from one door only.
- */
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-/**
  * `idx_articles_slug` is UNIQUE over the whole table, not per account — it
  * predates multi-tenancy like the `account_id` default does. So a slug can
  * collide with another shop's article, and the INSERT then dies on a
@@ -203,21 +185,6 @@ async function availableSlug(env: ToolEnv, desired: string): Promise<string> {
     if (!taken) return candidate;
   }
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
-}
-
-function parseJsonArray(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value;
-  try { return value ? JSON.parse(String(value)) : []; } catch { return []; }
-}
-
-/** Mirrors `articleToApi` in index.ts so both doors describe an article the same way. */
-function articleToApi(row: Record<string, any>) {
-  return {
-    ...row,
-    tags: parseJsonArray(row.tags),
-    blocks: parseJsonArray(row.blocks),
-    subject_ids: parseJsonArray(row.subject_ids),
-  };
 }
 
 /** First readable sentence of a piece, for a list that has to be skimmed aloud. */
@@ -355,8 +322,8 @@ const toolListArticles: ToolHandler = async (env, auth, args) => {
       slug: row.slug,
       status: row.status,
       category: row.category,
-      tags: parseJsonArray(row.tags),
-      preview: articlePreview(parseJsonArray(row.blocks)),
+      tags: parseArticleArray(row.tags),
+      preview: articlePreview(parseArticleArray(row.blocks)),
       cover_image_url: row.cover_image_url,
       reading_time_mins: row.reading_time_mins,
       published_at: row.published_at,
@@ -403,7 +370,7 @@ const toolCreateArticleDraft: ToolHandler = async (env, auth, args) => {
     const tags = optionalTags(args) ?? [];
     const body = decodeBody(args?.body);
 
-    const desired = slugArg.present && slugArg.value ? slugify(slugArg.value) : slugify(title);
+    const desired = slugArg.present && slugArg.value ? slugifyArticle(slugArg.value) : slugifyArticle(title);
     const slug = await availableSlug(env, desired);
 
     const token = await issueTicket(env, {
@@ -501,7 +468,7 @@ const toolUpdateArticleDraft: ToolHandler = async (env, auth, args) => {
     const slugArg = enteredText(args, 'slug', 120);
     if (slugArg.present) {
       if (slugArg.value === null) throw new Error('slug cannot be cleared — it is the article\'s public address');
-      const desired = slugify(slugArg.value);
+      const desired = slugifyArticle(slugArg.value);
       fields.slug = desired === existing.slug ? desired : await availableSlug(env, desired);
     }
     const tags = optionalTags(args);
@@ -698,7 +665,7 @@ const toolDraftArticleFromEvent: ToolHandler = async (env, auth, args) => {
   if (!m || m.eventId !== eventId) return INVALID_TICKET;
 
   const id = crypto.randomUUID();
-  const slug = await availableSlug(env, `${slugify(draft.title) || 'event'}-${eventId}`);
+  const slug = await availableSlug(env, `${slugifyArticle(draft.title) || 'event'}-${eventId}`);
   try {
     // account_id named explicitly — see the note in create_article_draft.
     await env.DB.prepare(

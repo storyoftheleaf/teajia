@@ -98,3 +98,36 @@ describe('shop catalogue audit', () => {
     assert.equal(result.stderr, '');
   });
 });
+
+describe('catalogue coverage mode', () => {
+  it('reports vintage and origin coverage without treating unknowns as facts', () => {
+    const script = fileURLToPath(new URL('./audit-shop-catalogue.mjs', import.meta.url));
+    const products = [
+      { type: 'White', year: '2017', origin_country: 'China', origin_region: 'Fuding, Fujian' },
+      { type: 'Oolong', year: 'Unknown', origin_country: 'Taiwan', origin_region: 'Unknown' },
+      { type: 'Teaware', teaware_category: 'pot', year: '1980', origin_country: 'China', material: 'Clay', capacity_ml: 180 },
+      { type: 'Teaware', teaware_category: 'cup', material: 'Unknown', capacity_ml: 0 },
+    ];
+    const result = spawnSync(process.execPath, [script, '--coverage'], {
+      encoding: 'utf8', input: JSON.stringify({ products }),
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), {
+      products: 4,
+      tea: { total: 2, vintage: 1, country: 2, region: 1, multipleOriginLevels: 1, form: 0 },
+      teaware: { total: 2, material: 1, capacity: 1 },
+    });
+  });
+});
+
+it('refuses an API error envelope instead of reporting an empty catalogue as healthy', () => {
+  const script = fileURLToPath(new URL('./audit-shop-catalogue.mjs', import.meta.url));
+  for (const args of [[], ['--coverage']]) {
+    const result = spawnSync(process.execPath, [script, ...args], {
+      encoding: 'utf8', input: JSON.stringify({ error: 'Upstream unavailable' }),
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /no product list/i);
+    assert.equal(result.stdout, '');
+  }
+});

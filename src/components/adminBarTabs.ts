@@ -1,3 +1,5 @@
+import { getVisibleAdminItemIds, type AdminNavAccess } from './navigationConnections';
+
 // The phone's admin bar: four words per role, two either side of the logo.
 // These words must be the Manage column's words for the same rooms (see
 // manageNav.ts); manageNav.oneWord.test.ts fails if a route here carries a
@@ -27,3 +29,15 @@ export const ADMIN_BAR_TABS: Record<AdminBarRole, [AdminTab[], AdminTab[]]> = {
      { id: 'events',  label: 'sessions', path: '/admin/events' }],
   ],
 };
+
+const tabRoomIds: Record<string, string> = {
+  compass: 'curate', samples: 'curate', capture: 'curate',
+};
+
+export function getAdminBarTabs(role: AdminBarRole, access: AdminNavAccess): [AdminTab[], AdminTab[]] {
+  const [left, right] = ADMIN_BAR_TABS[role];
+  const roomId = (tab: AdminTab) => tabRoomIds[tab.id] ?? tab.id;
+  const visible = new Set(getVisibleAdminItemIds(access, [...left, ...right].map(roomId)));
+  const admitted = (tab: AdminTab) => visible.has(roomId(tab));
+  return [left.filter(admitted), right.filter(admitted)];
+}

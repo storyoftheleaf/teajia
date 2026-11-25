@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  EVENT_LIFECYCLE_BY_STATUS,
+  EVENT_STATUS_BY_LIFECYCLE,
   EVENT_TRANSITIONS,
   normalizeEventUpdate,
   normalizeRsvpUpdate,
@@ -24,6 +26,20 @@ describe('event domain', () => {
     expect(Object.isFrozen(EVENT_TRANSITIONS)).toBe(true);
     for (const transitions of Object.values(EVENT_TRANSITIONS)) {
       expect(Object.isFrozen(transitions)).toBe(true);
+    }
+  });
+
+  it('maps lifecycle states to the legacy statuses used for event discovery', () => {
+    expect(EVENT_STATUS_BY_LIFECYCLE).toEqual({
+      draft: 'draft',
+      published: 'active',
+      registration_closed: 'closed',
+      completed: 'closed',
+      cancelled: 'closed',
+      archived: 'archived',
+    });
+    for (const [status, lifecycle] of Object.entries(EVENT_LIFECYCLE_BY_STATUS)) {
+      expect(EVENT_STATUS_BY_LIFECYCLE[lifecycle]).toBe(status);
     }
   });
 
