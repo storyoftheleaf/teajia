@@ -123,3 +123,48 @@ export function useRefreshVendorFaces() {
     if (vendorId) void queryClient.invalidateQueries({ queryKey: ['vendor', vendorId] });
   };
 }
+
+/**
+ * Placing faces (Adrian, 2026-11-25): "I'm going to upload a bunch of pictures
+ * ... let's play a drag and drop game where I see them all on one page and I
+ * drag one into another." The photos arrive already squared with the face in
+ * the middle; Adrian drops the whole batch onto the Faces view, then drags (or
+ * taps) each one onto its vendor.
+ */
+export interface LooseFace {
+  key: string;
+  file: File;
+  /** Object URL for the preview; revoked when the face is placed or removed. */
+  preview: string;
+}
+
+/** The words in a photo's file name, so "huang-wei-weeee36.jpg" reads "huang wei weeee36". */
+export function fileNameWords(fileName: string): string[] {
+  return fileName
+    .replace(/\.[a-z0-9]+$/i, '')
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+}
+
+/**
+ * The vendor a photo's file name points to, when it names exactly one: every
+ * word of the vendor's name (or their Chinese name) appears in the file name.
+ * Only a hint, shown as a ring on that vendor; Adrian still makes the match.
+ */
+export function suggestVendorForFile(fileName: string, vendors: FaceVendor[]): FaceVendor | undefined {
+  const words = fileNameWords(fileName);
+  if (words.length === 0) return undefined;
+  const joined = words.join(' ');
+  const named = vendors.filter(v => {
+    if (v.chineseName && joined.includes(v.chineseName.toLowerCase())) return true;
+    const nameWords = fileNameWords(v.name);
+    return nameWords.length > 0 && nameWords.every(w => words.includes(w));
+  });
+  return named.length === 1 ? named[0] : undefined;
+}
+
+/** Put a face back the way it was (an undo), or clear it when there was none. */
+export async function restoreVendorFace(vendorId: string, previous: string | null, expectedAuth?: ApiRequestInit['expectedAuth']): Promise<void> {
+  await api.customers.update(vendorId, { face_photo: previous }, expectedAuth);
+}
