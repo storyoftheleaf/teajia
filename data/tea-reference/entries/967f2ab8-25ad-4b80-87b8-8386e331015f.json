@@ -1,0 +1,79 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T04:11:29.575Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "967f2ab8-25ad-4b80-87b8-8386e331015f",
+    "name": "Fujian Bai Cha",
+    "chineseName": "福建白茶",
+    "type": "White",
+    "form": "Cake",
+    "year": 2016,
+    "origin": "Fujian, China",
+    "stockGrams": 292,
+    "pricePerGramUsd": 0.14,
+    "tags": [
+      "Osmanthus",
+      "Honeysuckle",
+      "Pine",
+      "Rose"
+    ]
+  },
+  "entry": {
+    "productId": "967f2ab8-25ad-4b80-87b8-8386e331015f",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A cake of [Fujian white tea](fujian-white:definition) dated 2016. Inside is leaf that was only [withered and then dried at low heat](fujian-white:making), never fixed and never rolled. [Pressed white tea](fujian-white:cakes) is a young form: cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can mark the pressing rather than the pick."
+      },
+      {
+        "layer": "age",
+        "text": "At ten years it has passed the seven of the trade's saying, [one year tea, three years medicine, seven years treasure](fujian-white:ageing). That is a saying, not a measure, and no agreed number of years makes a white tea aged. It is best kept dry, clean and aired, away from strong smells and sunlight."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Fujian white",
+      "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "fujian-white:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian-white:making",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian-white:cakes",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian-white:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian-white:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian-white:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T04:13:11.011Z"
+}
