@@ -1,0 +1,79 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:41:36.606Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "e03fe436-ba3d-4af6-b78b-656fd228239a",
+    "name": "Loose Cake",
+    "chineseName": "散饼熟茶",
+    "type": "Shou Puer",
+    "form": "Cake",
+    "year": "1990s",
+    "origin": "Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 2.03,
+    "tags": [
+      "soft earth",
+      "dried longan",
+      "gentle sweetness",
+      "smooth body"
+    ]
+  },
+  "entry": {
+    "productId": "e03fe436-ba3d-4af6-b78b-656fd228239a",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [ripe pu’er](shou:definition) cake from Yunnan, made in the 1990s and sold as a loose cake. Its leaf went through the [wet pile](shou:wet-piling), a method that reached production in 1973, which places this cake within the style’s first three decades."
+      },
+      {
+        "layer": "age",
+        "text": "At thirty-one years it sits well past the ten that the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing with the air and moisture around it, so how a cake is kept matters as much as its age."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:49.956Z"
+}

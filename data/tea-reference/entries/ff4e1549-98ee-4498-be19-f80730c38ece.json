@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:42:10.038Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "ff4e1549-98ee-4498-be19-f80730c38ece",
+    "name": "Yunnan Bai Cha",
+    "chineseName": "白茶",
+    "type": "White",
+    "form": "Loose",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 0.49,
+    "tags": [
+      "light honey",
+      "hay",
+      "sweet floral",
+      "clean and gentle"
+    ]
+  },
+  "entry": {
+    "productId": "ff4e1549-98ee-4498-be19-f80730c38ece",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A loose [Yunnan white](yunnan-white:definition), made from the province's large leaf tea plants rather than the small and medium leaf bush cultivars of Fujian, where most [white tea](white:definition) is still made."
+      },
+      {
+        "layer": "type",
+        "text": "It follows the white tea way: the leaf is [withered and then dried](yunnan-white:making), never heated to stop its change and never rolled. In Yunnan the wither is done indoors or in shade, out of the midday sun, and the leaf dries by air, without the final low bake that Fujian white tea usually gets. As a style it is [recent in the market](yunnan-white:history). Its trade has grown only in recent years, though local practice may be older."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Yunnan white",
+      "text": "A honeyed, sweet cup, often richer and fuller than Fujian white, with little bitterness, sometimes fruit like apricot or melon and a hay or herbal note. Yabao is sweet and silky, often with pine or herbal notes."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "yunnan-white:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "white:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:making",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:history",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:51.732Z"
+}

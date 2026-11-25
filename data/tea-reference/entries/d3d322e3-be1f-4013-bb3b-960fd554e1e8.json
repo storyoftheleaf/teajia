@@ -1,0 +1,77 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:44:33.334Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "d3d322e3-be1f-4013-bb3b-960fd554e1e8",
+    "name": "Oriental Beauty",
+    "chineseName": "传统东方美人茶",
+    "type": "Oolong",
+    "form": "Loose",
+    "year": null,
+    "origin": "Hsinchu, Taiwan",
+    "stockGrams": 200,
+    "pricePerGramUsd": 1.75,
+    "tags": [
+      "muscatel",
+      "ripe peach",
+      "honey",
+      "dried rose",
+      "warm spice"
+    ]
+  },
+  "entry": {
+    "productId": "d3d322e3-be1f-4013-bb3b-960fd554e1e8",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "This loose leaf is an [Oriental Beauty](taiwan-oolong:oriental-beauty) from Hsinchu, in northern Taiwan. Hsinchu County and neighbouring Miaoli are where the style is mainly made. The tea starts on the bush: a small green leafhopper bites the buds and leaves, and that bite begins the leaf's change before it is ever picked. That is why growers keep insecticide off these fields. The pick comes in early summer."
+      },
+      {
+        "layer": "type",
+        "text": "Most [Taiwan oolong](taiwan-oolong:definition) is lightly to moderately oxidised. This style is taken much further, close to red tea, at the far end of the [oolong](oolong:definition) range. Its older name is Pengfeng tea, which means bragging tea."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Taiwan oolong",
+      "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "taiwan-oolong:oriental-beauty",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:43.637Z"
+}

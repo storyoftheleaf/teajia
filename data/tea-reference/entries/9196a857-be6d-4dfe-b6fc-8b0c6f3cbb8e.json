@@ -1,0 +1,72 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:41:29.756Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "9196a857-be6d-4dfe-b6fc-8b0c6f3cbb8e",
+    "name": "Miracle Fate",
+    "chineseName": "奇缘",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 180,
+    "pricePerGramUsd": 3.27,
+    "tags": [
+      "smooth earth",
+      "dark sweetness",
+      "dried fruit",
+      "lasting warmth"
+    ]
+  },
+  "entry": {
+    "productId": "9196a857-be6d-4dfe-b6fc-8b0c6f3cbb8e",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Miracle Fate is a loose [ripe pu’er](shou:definition) from Yunnan. The leaf was fermented in a warm, damp pile and then left unpressed. The pile was developed to give, within weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. That is why a tea like this is ready to drink soon after it is made."
+      },
+      {
+        "layer": "type",
+        "text": "In [wet piling](shou:wet-piling), sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The microbes make the heat, so the heap is covered to hold it in. It is turned about once a week to spread that heat and let air in, and kept below about 65°C so the leaf does not char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:49.250Z"
+}

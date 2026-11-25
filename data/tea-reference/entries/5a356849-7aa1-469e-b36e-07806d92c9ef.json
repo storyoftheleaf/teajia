@@ -1,0 +1,84 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:40:57.381Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "5a356849-7aa1-469e-b36e-07806d92c9ef",
+    "name": "7572 Menghai",
+    "chineseName": "7572勐海熟茶",
+    "type": "Shou Puer",
+    "form": "Cake",
+    "year": 1999,
+    "origin": "Menghai, Yunnan, China",
+    "stockGrams": 520,
+    "pricePerGramUsd": 0.68,
+    "tags": [
+      "dried dates",
+      "dark chocolate",
+      "aged wood",
+      "sweet earth",
+      "clean finish"
+    ]
+  },
+  "entry": {
+    "productId": "5a356849-7aa1-469e-b36e-07806d92c9ef",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "7572 is a [ripe pu’er](shou:definition) recipe of the Menghai Tea Factory, and its number says what it is: a 1975 formula, grade 7 leaf, factory number 2. This cake was [wet piled](shou:wet-piling) and pressed in 1999, twenty-four years after [Menghai’s own piling method](shou:piling-1973) settled into the ripe pu’er made today. It arrived without its original paper wrapper."
+      },
+      {
+        "layer": "age",
+        "text": "At twenty-seven years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf is still changing slowly with the air and moisture around it, so where it has been kept matters as much as how long."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:piling-1973",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:49.065Z"
+}

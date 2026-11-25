@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:40:56.427Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "b6654adc-2754-4388-8e6b-f9c9660f2f96",
+    "name": "Yun Shen Chu",
+    "chineseName": "云深处",
+    "type": "White",
+    "form": "Cake",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": null,
+    "tags": [
+      "delicate floral",
+      "mist-like sweetness",
+      "light stone fruit",
+      "clean finish"
+    ]
+  },
+  "entry": {
+    "productId": "b6654adc-2754-4388-8e6b-f9c9660f2f96",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Yun Shen Chu is a cake of [Yunnan white](yunnan-white:definition), white tea made from Yunnan’s large-leaf tea plants rather than from the smaller bush cultivars of Fujian. The style is [new to the market](yunnan-white:history): its trade has grown only in recent years, though local practice may be older."
+      },
+      {
+        "layer": "type",
+        "text": "It is made the [white tea](white:definition) way, in the fewest steps. The leaf is only withered and dried, never heated to stop its change and never rolled, so it keeps its natural shape. In Yunnan the [withering](yunnan-white:making) is done indoors or in shade rather than under the midday sun, and the leaf then dries in the air, without the final low bake Fujian white usually gets. Once dried, the leaf can be sold loose or, as here, pressed into the cake shape of pu’er."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Yunnan white",
+      "text": "A honeyed, sweet cup, often richer and fuller than Fujian white, with little bitterness, sometimes fruit like apricot or melon and a hay or herbal note. Yabao is sweet and silky, often with pine or herbal notes."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "yunnan-white:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:history",
+      "rev": 1
+    },
+    {
+      "claimId": "white:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:making",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "yunnan-white:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:52.172Z"
+}

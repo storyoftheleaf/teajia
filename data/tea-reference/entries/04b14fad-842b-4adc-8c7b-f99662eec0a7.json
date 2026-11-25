@@ -1,0 +1,83 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:40:49.302Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "04b14fad-842b-4adc-8c7b-f99662eec0a7",
+    "name": "3 Cranes Liu Bao",
+    "chineseName": "三鹤六堡茶",
+    "type": "Dark",
+    "form": "Cake",
+    "year": 1999,
+    "origin": "Wuzhou, Guangxi, China",
+    "stockGrams": 200,
+    "pricePerGramUsd": 2.59,
+    "tags": [
+      "clean earth",
+      "aged betel nut",
+      "subtle sweetness",
+      "smooth mineral"
+    ]
+  },
+  "entry": {
+    "productId": "04b14fad-842b-4adc-8c7b-f99662eec0a7",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A cake of [Liu Bao](liu-bao:definition), the [dark tea](dark:definition) of the country around Wuzhou in Guangxi, made in 1999 by the Wuzhou tea factory under its Three Cranes name. It was made in the factory: the leaf was wetted and heaped at a modest warmth by [cold-water piling](liu-bao:making-factory), the steadier route the factory worked out around 1958, and turned until it had darkened. Then it was pressed into a cake."
+      },
+      {
+        "layer": "age",
+        "text": "At twenty-seven years it is well past the ten that the trade sets for [aged Liu Bao](liu-bao:age-aged)."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup. Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Liu Bao",
+      "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "liu-bao:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:making-factory",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:46.806Z"
+}

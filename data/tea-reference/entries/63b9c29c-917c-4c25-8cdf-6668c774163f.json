@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:50:50.185Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "63b9c29c-917c-4c25-8cdf-6668c774163f",
+    "name": "New Rainbow",
+    "chineseName": "彩虹生茶",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 150,
+    "pricePerGramUsd": 4.53,
+    "tags": [
+      "bright bitterness",
+      "diverse flavor spectrum",
+      "mineral",
+      "developing sweetness"
+    ]
+  },
+  "entry": {
+    "productId": "63b9c29c-917c-4c25-8cdf-6668c774163f",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "New Rainbow is a [raw pu’er](sheng:identity) from Yunnan, kept as loose leaf rather than pressed. It begins as leaf from the province’s large-leaf trees, picked and withered, then fried in a wok to [kill the green](sheng:making) and dried in the sun. The leaf is never hot-air dried, and that is the point: some of its own activity survives the wok, which is what lets the tea go on changing. What comes out is [maocha](sheng:processing), the rough tea that is either sold loose, as this one is, or pressed."
+      },
+      {
+        "layer": "type",
+        "text": "Sheng is given none of the rapid fermentation that makes shou, so it changes slowly, over years, as it is [stored](sheng:aging). How and where a tea is kept becomes part of its history, though good storage does not promise a good tea."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Sheng Pu’er",
+      "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:processing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:55.249Z"
+}

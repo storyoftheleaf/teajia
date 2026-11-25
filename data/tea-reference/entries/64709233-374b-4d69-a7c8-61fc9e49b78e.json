@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:43:08.276Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "64709233-374b-4d69-a7c8-61fc9e49b78e",
+    "name": "Shou Disk",
+    "chineseName": "熟茶饼",
+    "type": "Shou Puer",
+    "form": "Cake",
+    "year": 1990,
+    "origin": "Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 0.71,
+    "tags": [
+      "smooth earth",
+      "walnut",
+      "aged sweetness",
+      "dark dates",
+      "clean finish"
+    ]
+  },
+  "entry": {
+    "productId": "64709233-374b-4d69-a7c8-61fc9e49b78e",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A cake of [ripe pu’er](shou:definition) from Yunnan, made in 1990."
+      },
+      {
+        "layer": "age",
+        "text": "It was made seventeen years after Yunnan’s state factories brought [wet piling](shou:wet-piling) into production, which places it in the style’s second decade. In wet piling, leaf is heaped damp so its own heat and microbes can change it. At thirty-six years the cake counts as [aged ripe pu’er](shou:age-aged). The leaf still changes slowly with the air and moisture around it, so the way it was stored has shaped it as much as its age."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:50.247Z"
+}

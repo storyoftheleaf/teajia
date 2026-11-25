@@ -1,0 +1,93 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:42:03.843Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "c30e521a-e8dd-4eee-9d8d-ce4cdca40e1e",
+    "name": "Ya Shi Xiang Dancong",
+    "chineseName": "鸭屎香单枞",
+    "type": "Oolong",
+    "form": "Loose",
+    "year": null,
+    "origin": "Phoenix Mountain, Guangdong, China",
+    "stockGrams": 500,
+    "pricePerGramUsd": 0.58,
+    "tags": [
+      "gardenia",
+      "almond milk",
+      "butter",
+      "stone fruit",
+      "bright acidity"
+    ]
+  },
+  "entry": {
+    "productId": "c30e521a-e8dd-4eee-9d8d-ce4cdca40e1e",
+    "paragraphs": [
+      {
+        "layer": "named",
+        "text": "[Ya Shi Xiang](dancong:ya-shi-xiang) is the market name for a Dancong line traced to Pingkengtou village. It sells widely, though most lists of the [ten classic types](dancong:aromas) leave it out. The name means duck dung, and three stories explain it: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. In 2014 a second name, Yinhua Xiang, silver flower, was put forward. Many sellers keep the old one."
+      },
+      {
+        "layer": "place",
+        "text": "The leaf comes from [Phoenix Mountain](dancong:definition), Fenghuang Shan, in Chaozhou in eastern Guangdong. There [Dancong](dancong:name) means single bush, the leaf of one chosen bush picked and made on its own. Today a named line like this one is mostly grown from cuttings or grafts of that bush, so the name no longer means a single tree."
+      },
+      {
+        "layer": "type",
+        "text": "As an [oolong](oolong:definition), it is only partly oxidised. The leaf is withered in the sun, then [shaken and rested in rounds](dancong:making), a step that bruises the leaf edge. It is then fixed at high heat, rolled into long twisted strips, dried and roasted again as it is refined."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Phoenix Dancong",
+      "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "dancong:ya-shi-xiang",
+      "rev": 1
+    },
+    {
+      "claimId": "dancong:aromas",
+      "rev": 1
+    },
+    {
+      "claimId": "dancong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dancong:name",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dancong:making",
+      "rev": 1
+    },
+    {
+      "claimId": "dancong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "dancong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:43.037Z"
+}

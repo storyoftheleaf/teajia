@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:40:36.241Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "db223b1a-50c2-4eb0-bc82-f6903770be7b",
+    "name": "Ya'an Kang Brick",
+    "chineseName": "雅安康磚",
+    "type": "Dark",
+    "form": "Brick",
+    "year": 1980,
+    "origin": "Ya'an, Sichuan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 1.86,
+    "tags": [
+      "aged earth",
+      "dried wood",
+      "dark sweetness",
+      "tobacco leaf",
+      "warming body"
+    ]
+  },
+  "entry": {
+    "productId": "db223b1a-50c2-4eb0-bc82-f6903770be7b",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A [Kang brick](sichuan-dark:kangzhuan-jinjian) of [Sichuan border tea](sichuan-dark:definition) from Ya'an, made in 1980. The name describes the blend, not the place or the year. A Kangzhuan holds more leaf than red moss, the reddish stem and shoot pieces that come with the leaf, while a Jinjian holds more stem. Makers chose coarse, mature leaf because the brick had to last months on the road to the Tibetan highlands and then be boiled for hours."
+      },
+      {
+        "layer": "age",
+        "text": "At forty-six years old, this is the kind of older brick the trade values more than a young one. Its liquor turns redder as the years pass, and how fast a [brick's ageing](sichuan-dark:ageing) goes depends on how it is stored."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup. Break a few pieces from the edge of the brick, rinse them with boiling water and pour that off at once. Then use boiling water and plenty of leaf. The leaf is coarse and gives up its flavour slowly, so people brew it two ways. Some steep it in short gongfu pours, a little longer each time. Others use long steeps while the pot is still hot, or simmer the leaf for several minutes in a pot, which is the traditional way on the plateau."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sichuan border tea",
+      "text": "A redder, browner liquor, a rounder body and a medicinal edge, often with wood and a dark sweetness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sichuan-dark:kangzhuan-jinjian",
+      "rev": 1
+    },
+    {
+      "claimId": "sichuan-dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "sichuan-dark:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "sichuan-dark:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sichuan-dark:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:45.945Z"
+}
