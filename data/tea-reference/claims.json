@@ -7134,6 +7134,168 @@
       "current_rev": null,
       "revisions": [],
       "withdrawn": null
+    },
+    {
+      "claim_id": "green:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Green"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "绿茶",
+          "pinyin": "lǜ chá",
+          "gloss": "green tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "green:making",
+      "basis": "trade_knowledge",
+      "axis": "process",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Green"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "杀青",
+          "pinyin": "shā qīng",
+          "gloss": "fixing, killing the green"
+        },
+        {
+          "original": "揉捻",
+          "pinyin": "róu niǎn",
+          "gloss": "rolling"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "green:styles",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Green"
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "炒青",
+          "pinyin": "chǎo qīng",
+          "gloss": "pan-fired green tea"
+        },
+        {
+          "original": "蒸青",
+          "pinyin": "zhēng qīng",
+          "gloss": "steamed green tea"
+        },
+        {
+          "original": "烘青",
+          "pinyin": "hōng qīng",
+          "gloss": "oven-dried green tea"
+        },
+        {
+          "original": "晒青",
+          "pinyin": "shài qīng",
+          "gloss": "sun-dried green tea"
+        },
+        {
+          "original": "西湖龙井",
+          "pinyin": "xī hú lóngjǐng",
+          "gloss": "West Lake Longjing"
+        },
+        {
+          "original": "碧螺春",
+          "pinyin": "bìluóchūn",
+          "gloss": "Biluochun"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "green:anhui",
+      "basis": "trade_knowledge",
+      "axis": "place",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Green",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "黄山毛峰",
+          "pinyin": "huángshān máofēng",
+          "gloss": "Huangshan Maofeng"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "green:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Green"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "green:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Green"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "green:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "sensory_observation",
+      "listing_eligible": false,
+      "applies_when": {
+        "type": "Green"
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

@@ -5,6 +5,52 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "red",
+    "slug": "red",
+    "kind": "tea_family",
+    "label": "Red tea (hong cha)",
+    "visibility": "public",
+    "nativeName": "红茶",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What red tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How red tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "whole-and-broken",
+        "label": "Whole leaf and broken leaf",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How red tea spread",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping red tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing red tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "san-he-liu-bao",
     "slug": "san-he-liu-bao",
     "kind": "named_tea",

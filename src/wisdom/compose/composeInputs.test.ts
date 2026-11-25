@@ -198,6 +198,21 @@ describe('composeInputs for any kit', () => {
     expect(ids(bao.layers.type)).not.toContain('sichuan-dark:definition');
   });
 
+  it('gives a green tea the green kit, and the Anhui section only to one from Anhui', () => {
+    const green = { id: 'gr', product_name: 'Ruicaokui', type: 'Green', form: 'Loose', year: null, origin_region: 'Anhui', origin_country: 'China' };
+    const anhui = composeInputs(green, claims, { thisYear: 2026, pages });
+    expect(ids(anhui.layers.type)).toContain('green:definition');
+    expect(ids(anhui.layers.type)).toContain('green:making');
+    expect(ids(anhui.layers.place)).toContain('green:anhui');
+    expect(anhui.fixed.claimIds).toContain('green:brewing');
+    expect(anhui.fixed.notice?.styleName).toBe('green tea');
+    const taiwan = composeInputs({ ...green, id: 'tg', product_name: 'Taiwan Aged Green', year: 1950, origin_region: null, origin_country: 'Taiwan' }, claims, { thisYear: 2026, pages });
+    expect(ids(taiwan.layers.place ?? [])).not.toContain('green:anhui');
+    expect(ids(taiwan.layers.age)).toEqual(['green:ageing']);
+    const red = composeInputs({ ...green, id: 'rd', type: 'Red', product_name: 'Dian Hong' }, claims, { thisYear: 2026, pages });
+    expect(ids(red.layers.type)).not.toContain('green:definition');
+  });
+
   it('gives an Anhua dark tea the Anhua kit, ahead of the dark family', () => {
     const bailiang = { ...liuBao, id: 'bl', product_name: 'Bai Liang', origin_region: 'Anhua, Hunan', form: 'Brick', year: 2006 };
     const inputs = composeInputs(bailiang, claims, { thisYear: 2026, pages });

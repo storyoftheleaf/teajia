@@ -423,6 +423,52 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "green",
+    "slug": "green",
+    "kind": "tea_family",
+    "label": "Green tea (lü cha)",
+    "visibility": "draft",
+    "nativeName": "绿茶",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What green tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How green tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "styles",
+        "label": "The main styles",
+        "sourceIds": []
+      },
+      {
+        "key": "anhui",
+        "label": "Anhui green tea",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping green tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing green tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "lapsang",
     "slug": "lapsang",
     "kind": "tea_type",
@@ -915,52 +961,6 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": [
           "ctma-puer-history-2021"
         ]
-      }
-    ]
-  },
-  {
-    "id": "red",
-    "slug": "red",
-    "kind": "tea_family",
-    "label": "Red tea (hong cha)",
-    "visibility": "public",
-    "nativeName": "红茶",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What red tea is",
-        "sourceIds": []
-      },
-      {
-        "key": "making",
-        "label": "How red tea is made",
-        "sourceIds": []
-      },
-      {
-        "key": "whole-and-broken",
-        "label": "Whole leaf and broken leaf",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How red tea spread",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Keeping red tea",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing red tea",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
       }
     ]
   }
