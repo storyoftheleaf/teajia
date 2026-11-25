@@ -5,6 +5,27 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "yunnan-mountain-names:reading-the-list",
+    "pageId": "yunnan-mountain-names",
+    "sectionKey": "reading-the-list",
+    "label": "What a list can tell us",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
+    "sourceIds": [
+      "ctma-yunnan-108-mountains-2026"
+    ],
+    "reviewState": "draft",
+    "pendingText": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
     "claimId": "yunnan-white:ageing",
     "pageId": "yunnan-white",
     "sectionKey": "ageing",

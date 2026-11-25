@@ -178,6 +178,7 @@ describe('sellable Tea Reference catalogue', () => {
 
     expect(result.pages.map(page => page.id)).toEqual([
       'anhua-dark',
+      'dancong',
       'dark',
       'dian-hong',
       'greater-yiwu',

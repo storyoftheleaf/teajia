@@ -288,6 +288,7 @@ test('validates every canonical Markdown file but generates only the approved, r
   assert.equal(markdownFiles.length, 30);
   assert.deepEqual(registry.pages.map(page => page.id), [
     'anhua-dark',
+    'dancong',
     'dark',
     'dian-hong',
     'greater-yiwu',
