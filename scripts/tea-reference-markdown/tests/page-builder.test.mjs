@@ -291,6 +291,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'dancong',
     'dark',
     'dian-hong',
+    'fujian-white',
     'greater-yiwu',
     'lapsang',
     'lincang',

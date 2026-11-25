@@ -5,5 +5,6 @@ import { PART as claims2 } from './generatedPublic/claims-2';
 import { PART as claims3 } from './generatedPublic/claims-3';
 import { PART as claims4 } from './generatedPublic/claims-4';
 import { PART as claims5 } from './generatedPublic/claims-5';
+import { PART as claims6 } from './generatedPublic/claims-6';
 
-export const GENERATED_CLAIMS: readonly PublicClaim[] = [...claims1, ...claims2, ...claims3, ...claims4, ...claims5];
+export const GENERATED_CLAIMS: readonly PublicClaim[] = [...claims1, ...claims2, ...claims3, ...claims4, ...claims5, ...claims6];

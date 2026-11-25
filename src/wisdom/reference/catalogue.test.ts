@@ -181,6 +181,7 @@ describe('sellable Tea Reference catalogue', () => {
       'dancong',
       'dark',
       'dian-hong',
+      'fujian-white',
       'greater-yiwu',
       'lapsang',
       'lincang',
