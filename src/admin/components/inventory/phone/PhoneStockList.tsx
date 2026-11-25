@@ -183,7 +183,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
         <Button variant="plain" type="button" aria-pressed={everyTea} onClick={() => { setRoom(null); setFocusedId(null); }}><span>All</span><span>{products.length}</span></Button>
         {groups.map(group => <Button key={group.key} variant="plain" type="button" aria-pressed={activeRoom === group.key}
           onClick={() => { setRoom(group.key); setFocusedId(null); }}>
-          <span>{group.label}</span><span>{group.count}{group.low > 0 && <> · <em>{group.low} low</em></>}</span>
+          <span>{group.label}</span><span>{group.count}{group.low > 0 && <> · <em title={`${group.low} low`}>{group.low}</em></>}</span>
         </Button>)}
       </nav>}
       <div className="stock-phone-room">
@@ -239,7 +239,7 @@ export const PhoneStockList: React.FC<PhoneStockListProps> = ({
                     </span>
                   </span>
                   <span className="shrink-0 text-right text-ui-12 leading-snug">
-                    {group.low > 0 && <span className="block text-tea-error">{group.low} low</span>}
+                    {group.low > 0 && <span className="block text-tea-error" title={`${group.low} low`}>{group.low}</span>}
                     {group.unchecked > 0 && <span className="block text-tea-text-sec">{group.unchecked} never counted</span>}
                   </span>
                 </button>

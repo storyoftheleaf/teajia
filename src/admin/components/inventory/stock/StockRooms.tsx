@@ -37,7 +37,7 @@ function RailEntry({ label, count, on, low, uncounted, flag, onClick, onFlag, on
 }) {
   // A warning is its own small button inside the line: it opens the group
   // showing only those teas, and a second click shows the whole group again.
-  const warn = (kind: Flag, text: string, tone: string) => <span role="button" tabIndex={0} aria-pressed={flag === kind}
+  const warn = (kind: Flag, text: string, tone: string, name = text) => <span role="button" tabIndex={0} aria-pressed={flag === kind} aria-label={name} title={name}
     data-room-flag={kind} className={`stock-room-flag ${tone}`}
     onClick={event => { event.stopPropagation(); onFlag?.(kind); }}
     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onFlag?.(kind); } }}>{text}</span>;
@@ -46,7 +46,7 @@ function RailEntry({ label, count, on, low, uncounted, flag, onClick, onFlag, on
     <span className="truncate font-display text-ui-17 leading-tight text-tea-text">{label}</span>
     <span className="font-mono text-ui-12 tabular-nums text-tea-text-sec">{count}</span>
     {(low || uncounted) ? <span className="col-span-2 truncate text-ui-11 leading-snug text-tea-text-sec">
-      {low ? warn('low', `${low} low`, 'text-tea-error') : null}
+      {low ? warn('low', String(low), 'text-tea-error', `${low} low`) : null}
       {low && uncounted ? ' · ' : null}
       {uncounted ? warn('uncounted', `${uncounted} never counted`, '') : null}
     </span> : null}

@@ -37,7 +37,7 @@ export function StockGroupFlags({ items }: { items: readonly Product[] }) {
   const uncounted = items.filter(isUnchecked).length;
   if (!low && !uncounted) return null;
   return <span className="stock-group-flags" data-testid="stock-group-flags">
-    {low > 0 && <span className="text-tea-gold">{low} low</span>}
+    {low > 0 && <span className="text-tea-gold" title={`${low} low`}>{low}</span>}
     {uncounted > 0 && <span>{uncounted} never counted</span>}
   </span>;
 }
