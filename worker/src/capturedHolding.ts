@@ -17,9 +17,12 @@ export function capturedHoldingFields(entry:Record<string,any>, received?:number
 export function confirmedAcquisitionFields(entry:Record<string,any>):Record<string,any>{
  const ware=entry.category==='teaware'||entry.type==='Teaware';
  const boughtQuantity=ware?entry.buy_quantity_units:entry.buy_quantity_grams;
- if(entry.status!=='in_stock'||entry.buy_total==null||boughtQuantity==null)return {cost_amount:null,cost_currency:null,quantity_purchased:null};
+ const quantity=Number(boughtQuantity);
+ const total=Number(entry.buy_total);
+ const recordedZero=total===0&&entry.price_amount!=null&&Number(entry.price_amount)===0;
+ if(entry.status!=='in_stock'||entry.buy_total==null||!Number.isFinite(quantity)||quantity<=0||(total===0&&!recordedZero))return {cost_amount:null,cost_currency:null,quantity_purchased:null};
  const captured=capturedHoldingFields(entry);
- if(captured.cost_amount==null||captured.cost_currency==null||captured.quantity_purchased==null)return {cost_amount:null,cost_currency:null,quantity_purchased:null};
+ if(captured.cost_amount==null||captured.cost_currency==null||captured.cost_currency==='UNK'||captured.quantity_purchased==null)return {cost_amount:null,cost_currency:null,quantity_purchased:null};
  return {cost_amount:captured.cost_amount,cost_currency:captured.cost_currency,quantity_purchased:captured.quantity_purchased};
 }
 export function recordedImageKey(product:Record<string,any>,slot:string,accountId:string):string|null{

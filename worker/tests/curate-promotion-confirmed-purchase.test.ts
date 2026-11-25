@@ -10,14 +10,22 @@ const moneyFields = (row: Record<string, any>) => ({
   quantity_purchased: row.quantity_purchased,
 });
 
-function database(values: { status: string; buyTotal: number | null; buyQuantityGrams: number | null }) {
+function database(values: {
+  status: string;
+  buyTotal: number | null;
+  buyQuantityGrams: number | string | null;
+  priceAmount?: number | null;
+  priceCurrency?: string | null;
+}) {
   const db = new SqliteD1();
   seedIdentity(db, { accountId: 'shop', userId: 'owner', role: 'owner' });
   db.sqlite.prepare(`INSERT INTO tea_compass_entries
     (id, account_id, user_id, name, category, type, status, price_amount, price_currency,
      price_per_unit_grams, buy_total, buy_quantity_grams)
-    VALUES ('tea', 'shop', 'owner', 'Confirmed tea', 'tea', 'Sheng', ?, 300, 'Yuan', 100, ?, ?)`)
-    .run(values.status, values.buyTotal, values.buyQuantityGrams);
+    VALUES ('tea', 'shop', 'owner', 'Confirmed tea', 'tea', 'Sheng', ?, ?, ?, 100, ?, ?)`)
+    .run(values.status, values.priceAmount === undefined ? 300 : values.priceAmount,
+      values.priceCurrency === undefined ? 'Yuan' : values.priceCurrency,
+      values.buyTotal, values.buyQuantityGrams);
   return db;
 }
 
@@ -41,6 +49,26 @@ describe('Curate promotion carries only a confirmed acquisition into Inventory',
       input: { status: 'noted', buyTotal: null, buyQuantityGrams: null },
       expected: { cost_amount: null, cost_currency: null, quantity_purchased: null },
     },
+    {
+      label: 'OrderSummary zero without price evidence',
+      input: { status: 'in_stock', buyTotal: 0, buyQuantityGrams: 250, priceAmount: null },
+      expected: { cost_amount: null, cost_currency: null, quantity_purchased: null },
+    },
+    {
+      label: 'explicitly recorded zero price',
+      input: { status: 'in_stock', buyTotal: 0, buyQuantityGrams: 250, priceAmount: 0 },
+      expected: { cost_amount: 0, cost_currency: 'Yuan', quantity_purchased: 250 },
+    },
+    ...[0, -5, 'NaN', ''].map(buyQuantityGrams => ({
+      label: `confirmed row with invalid quantity ${JSON.stringify(buyQuantityGrams)}`,
+      input: { status: 'in_stock', buyTotal: 0, buyQuantityGrams, priceAmount: 0 },
+      expected: { cost_amount: null, cost_currency: null, quantity_purchased: null },
+    })),
+    ...['', 'UNK'].map(priceCurrency => ({
+      label: `confirmed row with ${priceCurrency || 'blank'} currency`,
+      input: { status: 'in_stock', buyTotal: 0, buyQuantityGrams: 250, priceAmount: 0, priceCurrency },
+      expected: { cost_amount: null, cost_currency: null, quantity_purchased: null },
+    })),
   ])('$label: preview exactly matches the persisted private zero-stock draft', async ({ input, expected }) => {
     const db = database(input);
     const preview = await call(db, { tea_id: 'tea' });
@@ -59,14 +87,4 @@ describe('Curate promotion carries only a confirmed acquisition into Inventory',
     expect(moneyFields(db.sqlite.prepare('SELECT * FROM products WHERE id = ?').get(committed.id) as any)).toEqual(expected);
   });
 
-  it('keeps an explicitly recorded zero total and its currency provenance', async () => {
-    const db = database({ status: 'in_stock', buyTotal: 0, buyQuantityGrams: 250 });
-    const expected = { cost_amount: 0, cost_currency: 'Yuan', quantity_purchased: 250 };
-    const preview = await call(db, { tea_id: 'tea' });
-    expect(moneyFields(preview.preview.creates)).toEqual(expected);
-    const committed = await call(db, { confirm: preview.confirmation_token });
-    expect(moneyFields(committed.product)).toEqual(expected);
-    expect(moneyFields(preview.preview.creates)).toEqual(moneyFields(committed.product));
-    expect(committed.product.cost_currency_source).toBe('stated');
-  });
 });
