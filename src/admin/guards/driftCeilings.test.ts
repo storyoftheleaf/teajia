@@ -110,7 +110,7 @@ describe('very long files', () => {
     'src/components/SinglePageRenderer.tsx': 2300,
     'src/components/TeaCompass/CaptureCard.tsx': 2196,
     'src/components/TeaCompass/index.tsx': 1803,
-    'src/lib/api.ts': 5275,
+    'src/lib/api.ts': 5273,
     'src/pages/ArticlePage.tsx': 2969,
     'src/pages/DesignSystemShowcase.tsx': 2123,
     'src/samples/SampleSetCreator.tsx': 2009,

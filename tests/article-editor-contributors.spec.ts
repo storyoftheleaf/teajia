@@ -2,7 +2,7 @@ import { expect, test } from './fixtures';
 
 const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: 'owner', role: 'owner', active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }], exp: Math.floor(Date.now() / 1000) + 3600 })}.sig`;
-const article = { id: 'legacy', account_id: 'acct', title: 'Legacy Article', slug: 'legacy', status: 'draft', author_id: 'legacy-writer', subject_ids: [], pull_quote: '', pull_quote_subject: '', tags: [], blocks: [], created_at: '2026-01-01', updated_at: '2026-01-01' };
+const article = { id: 'legacy', review_digest: 'a'.repeat(64), account_id: 'acct', title: 'Legacy Article', slug: 'legacy', status: 'draft', author_id: 'legacy-writer', subject_ids: [], pull_quote: '', pull_quote_subject: '', tags: [], blocks: [], created_at: '2026-01-01', updated_at: '2026-01-01' };
 
 test('article editor selects account contributors while preserving the current legacy author', async ({ page }) => {
   let update: any = null;
@@ -21,7 +21,6 @@ test('article editor selects account contributors while preserving the current l
   await page.goto('/admin/magazine');
   await page.getByRole('button', { name: /Legacy Article/ }).click();
   const mobileMetadata = page.getByText('Article Metadata', { exact: true });
-  await mobileMetadata.waitFor({ state: 'attached' });
   if (await mobileMetadata.isVisible()) await mobileMetadata.click();
   const author = page.locator('select[aria-label="Author"]:visible');
   await expect(author).toHaveValue('legacy-writer');
@@ -32,4 +31,64 @@ test('article editor selects account contributors while preserving the current l
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(() => update).toMatchObject({ author_id: 'writer-one', pull_quote_subject: 'subject-one', pull_quote: 'A synthetic pull quote.' });
   expect(JSON.stringify(update)).not.toContain('Barry');
+});
+
+
+test('published native edits offer an explicit reviewed replacement after private save', async ({ page }) => {
+  const live = { ...article, title: 'Native public A', status: 'published', author_id: null };
+  let current: any = live;
+  const publications: any[] = [];
+  await page.addInitScript(jwt => localStorage.setItem('teajia_token', jwt), token);
+  await page.route('**/api/**', async route => {
+    const request = route.request(); const path = new URL(request.url()).pathname;
+    if (path === '/api/admin/articles') return route.fulfill({ json: [live] });
+    if (path === '/api/admin/articles/legacy' && request.method() === 'GET') return route.fulfill({ json: current });
+    if (path === '/api/admin/articles/legacy' && request.method() === 'PUT') {
+      current = { ...current, ...request.postDataJSON(), review_digest: 'b'.repeat(64), has_pending_revision: true };
+      return route.fulfill({ json: current });
+    }
+    if (path === '/api/admin/articles/legacy/publish') {
+      publications.push(request.postDataJSON());
+      current = { ...current, review_digest: 'c'.repeat(64), has_pending_revision: false };
+      return route.fulfill({ json: current });
+    }
+    if (path === '/api/admin/contributor-options') return route.fulfill({ json: { contributors: [] } });
+    return route.fulfill({ json: {} });
+  });
+  await page.goto('/admin/magazine');
+  await page.getByRole('button', { name: /Native public A/ }).click();
+  await page.locator('input:visible').first().fill('Native private B');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Publish changes', exact: true })).toBeVisible();
+  expect(publications).toEqual([]);
+  await page.getByRole('button', { name: 'Publish changes', exact: true }).click();
+  await expect.poll(() => publications).toEqual([{ review_digest: 'b'.repeat(64) }]);
+  await expect(page.getByRole('button', { name: 'Unpublish', exact: true })).toBeVisible();
+});
+
+test('editorial candidate review requires selecting the candidate before replacement', async ({ page }, testInfo) => {
+  const candidate = { ...article, title: 'Synthetic candidate B', blocks: [{ type: 'paragraph', text: 'Synthetic candidate text.' }] };
+  const published = { ...article, title: 'Synthetic public A', status: 'published', blocks: [{ type: 'paragraph', text: 'Synthetic published text.' }], editorial_pilot: {
+    review_digest: 'b'.repeat(64), placement_review_digest: 'c'.repeat(64), candidate_id: 'candidate-b', content_hash: 'd'.repeat(64), source_revision: 2, placed: false,
+    approved_id: 'candidate-a', approved_source_revision: 1, ready: true, candidate,
+  } };
+  await page.addInitScript(jwt => localStorage.setItem('teajia_token', jwt), token);
+  await page.route('**/api/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/admin/articles') return route.fulfill({ json: [published] });
+    if (path === '/api/admin/articles/legacy') return route.fulfill({ json: published });
+    return route.fulfill({ json: {} });
+  });
+  await page.goto('/admin/magazine');
+  await page.getByRole('button', { name: /Synthetic public A/ }).click();
+  const replace = page.getByRole('button', { name: 'Replace public edition', exact: true });
+  await expect(replace).toBeDisabled();
+  await page.getByRole('button', { name: /WordForge revision 2/ }).click();
+  await expect(replace).toBeEnabled();
+  await expect(page.getByTestId('immersive-preview-article').locator('.immersive-reveal').first()).toHaveCSS('filter', 'none');
+  await page.screenshot({ path: testInfo.outputPath('magazine-editorial-shared-buttons.png') });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(replace).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('magazine-editorial-shared-buttons-mobile.png') });
 });

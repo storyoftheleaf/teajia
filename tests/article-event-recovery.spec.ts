@@ -6,7 +6,7 @@ function deferred() {
   return { promise, release };
 }
 
-const article = { id: 'harness-article', title: 'The Rock Remembers', status: 'draft' };
+const article = { id: 'harness-article', title: 'The Rock Remembers', status: 'draft', review_digest: 'a'.repeat(64) };
 
 test('a delayed article autosave cannot undo publish or lose the latest edit', async ({ page }) => {
   const firstUpdate = deferred();
@@ -20,11 +20,12 @@ test('a delayed article autosave cannot undo publish or lose the latest edit', a
       payloads.push(payload);
       order.push(`update:${payload.title}`);
       if (payloads.length === 1) await firstUpdate.promise;
-      persisted = { ...persisted, ...payload };
+      persisted = { ...persisted, ...payload, review_digest: `${payloads.length}`.repeat(64) };
       return route.fulfill({ json: persisted });
     }
     if (path.endsWith('/publish')) {
       order.push('publish');
+      expect(route.request().postDataJSON()).toEqual({ review_digest: '2'.repeat(64) });
       persisted.status = 'published';
       return route.fulfill({ json: persisted });
     }
@@ -58,13 +59,13 @@ test('a pending create and a later autosave create one article', async ({ page }
     calls.push(`create:${payload.title}`);
     await createResponse.promise;
     latestTitle = payload.title;
-    return route.fulfill({ status: 201, json: { ...payload, id: 'one-article' } });
+    return route.fulfill({ status: 201, json: { ...payload, id: 'one-article', review_digest: 'a'.repeat(64) } });
   });
   await page.route('**/api/admin/articles/one-article', route => {
     const payload = route.request().postDataJSON();
     calls.push(`update:${payload.title}`);
     latestTitle = payload.title;
-    return route.fulfill({ json: { ...payload, id: 'one-article' } });
+    return route.fulfill({ json: { ...payload, id: 'one-article', review_digest: 'a'.repeat(64) } });
   });
   await page.route('**/api/admin/contributor-options', route => route.fulfill({ json: { contributors: [] } }));
 
