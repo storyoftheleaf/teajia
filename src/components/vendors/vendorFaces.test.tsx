@@ -109,3 +109,14 @@ describe('vendor faces', () => {
     expect(html.indexOf('face-tray')).toBeLessThan(html.indexOf('face-tile-v1'));
   });
 });
+
+describe('face photo files', () => {
+  it('takes HEIC photos even when the computer gives them no type', async () => {
+    const { looksLikePhoto, looksLikeHeic } = await import('./facePhotoFile');
+    expect(looksLikePhoto({ name: 'IMG_4321.HEIC', type: '' })).toBe(true);
+    expect(looksLikeHeic({ name: 'IMG_4321.HEIC', type: '' })).toBe(true);
+    expect(looksLikeHeic({ name: 'face.jpg', type: 'image/heic' })).toBe(true);
+    expect(looksLikeHeic({ name: 'face.jpg', type: 'image/jpeg' })).toBe(false);
+    expect(looksLikePhoto({ name: 'notes.pdf', type: 'application/pdf' })).toBe(false);
+  });
+});

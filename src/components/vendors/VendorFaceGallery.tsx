@@ -13,6 +13,7 @@ import {
   type FaceVendor,
   type LooseFace,
 } from './vendorFaces';
+import { looksLikePhoto, prepareFacePhoto } from './facePhotoFile';
 
 /**
  * Every vendor as a face, in People > Suppliers. Tap a face for the vendor's
@@ -52,11 +53,24 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
 
   useEffect(() => () => { looseRef.current.forEach(f => URL.revokeObjectURL(f.preview)); }, []);
 
-  const addFiles = useCallback((files: FileList | File[] | null | undefined) => {
-    const images = Array.from(files ?? []).filter(f => f.type.startsWith('image/'));
-    if (images.length === 0) return;
+  const [reading, setReading] = useState(0);
+  const addFiles = useCallback(async (files: FileList | File[] | null | undefined) => {
+    const photos = Array.from(files ?? []).filter(looksLikePhoto);
+    if (photos.length === 0) return;
     setError('');
-    setLoose(prev => [...prev, ...images.map(file => ({ key: `face-${++faceKeySeq}`, file, preview: URL.createObjectURL(file) }))]);
+    setReading(n => n + photos.length);
+    const unreadable: string[] = [];
+    for (const photo of photos) {
+      try {
+        const file = await prepareFacePhoto(photo);
+        setLoose(prev => [...prev, { key: `face-${++faceKeySeq}`, file, preview: URL.createObjectURL(file) }]);
+      } catch {
+        unreadable.push(photo.name);
+      } finally {
+        setReading(n => n - 1);
+      }
+    }
+    if (unreadable.length) setError(`Couldn't open ${unreadable.join(', ')}. Try saving it as a JPEG and dropping it again.`);
   }, []);
 
   const removeLoose = (key: string) => {
@@ -188,17 +202,17 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
       data-testid="vendor-face-gallery"
       onDragOver={e => { if (isFileDrag(e)) { e.preventDefault(); setPageDrop(true); } }}
       onDragLeave={e => { if (e.currentTarget === e.target) setPageDrop(false); }}
-      onDrop={e => { if (isFileDrag(e)) { e.preventDefault(); setPageDrop(false); addFiles(e.dataTransfer.files); } }}
+      onDrop={e => { if (isFileDrag(e)) { e.preventDefault(); setPageDrop(false); void addFiles(e.dataTransfer.files); } }}
     >
       <input
         ref={fileInput}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         multiple
         className="hidden"
         aria-hidden="true"
         tabIndex={-1}
-        onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
+        onChange={e => { const picked = Array.from(e.target.files ?? []); e.target.value = ''; void addFiles(picked); }}
       />
 
       <section
@@ -268,6 +282,12 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
           </ul>
         )}
 
+        {reading > 0 && (
+          <p className="text-ui-13 text-tea-text-sec px-1.5 flex items-center gap-2" role="status">
+            <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+            Opening {reading === 1 ? 'one photo' : `${reading} photos`}…
+          </p>
+        )}
         {heldFace && (
           <p className="text-ui-13 text-tea-text px-1.5">
             {hint ? `The file name says ${hint.name}; it is ringed below. ` : ''}Tap the vendor this face belongs to.
