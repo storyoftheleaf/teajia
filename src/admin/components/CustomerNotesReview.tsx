@@ -89,7 +89,11 @@ function ExcerptRow({ excerpt, view, onUpdate, onError }: {
           <input className="input-field w-full text-ui-16" value={draft.byline} maxLength={80}
             onChange={event => setDraft({ ...draft, byline: event.target.value })} />
         </label>
-        <p className="text-ui-13 text-tea-text-sec">The customer wrote: <span className="italic">{excerpt.sourceText}</span>, signed {excerpt.attributionName}. Their words stay on file.</p>
+        <figure className="m-0 grid gap-1 text-ui-13 text-tea-text-sec" data-testid="customer-original">
+          <figcaption>What the customer wrote, kept on file</figcaption>
+          <blockquote className="m-0 whitespace-pre-wrap break-words italic">{excerpt.sourceText}</blockquote>
+          <p className="m-0">{excerpt.attributionName}</p>
+        </figure>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button variant="quiet" type="button" disabled={mutation.isPending} onClick={() => setDraft(null)}>Cancel</Button>
           <Button variant="primary" type="button" disabled={mutation.isPending || !draftReady || (view === 'promoted' && !draftChanged)}

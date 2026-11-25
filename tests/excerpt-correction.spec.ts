@@ -52,7 +52,7 @@ test('the owner corrects a spelling on approval, then again after', async ({ pag
   await expect(page.getByText(ORIGINAL)).toBeVisible();
   await page.getByRole('button', { name: 'Correct the words' }).click();
   const edit = page.getByTestId('excerpt-correction');
-  await expect(edit).toContainText(`The customer wrote: ${ORIGINAL}`);
+  await expect(edit.getByTestId('customer-original')).toContainText(ORIGINAL);
   await edit.getByLabel('Words').fill(FIXED);
   await edit.getByLabel('Signed').fill('Mei');
   await page.screenshot({ path: test.info().outputPath('excerpt-correction.png') });
