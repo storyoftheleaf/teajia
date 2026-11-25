@@ -3,6 +3,7 @@ import { encryptSecret, decryptSecret, type SealEnv } from './secretSeal';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 import { invoiceMoney, loadInvoiceLedgerTotals, loadLedgerInvoice, claimInvoiceLinkLease, releaseInvoiceLinkLease } from './invoiceDomain';
 import { suppressVerificationNotifications } from './liveVerificationPolicy';
+import { cleanSecret } from './kapsoRequest';
 import type { WhatsAppOrderEnv } from './whatsappOrderNotifications';
 import { fallbackEmailFor, whatsappUnavailable } from './shippingEmailFallback';
 import { sendableFirst } from './shippingRetryOrder';
@@ -150,8 +151,8 @@ export async function processShippingQuoteNotifications(db:D1Database,env:Shippi
    const endpoint=email?'https://api.resend.com/emails':`${env.WHATSAPP_TRANSPORT==='kapso'?'https://api.kapso.ai/meta/whatsapp':'https://graph.facebook.com'}/${env.WHATSAPP_GRAPH_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
    const headers:Record<string,string>={'Content-Type':'application/json'};
    if(email){headers.Authorization='Bearer '+env.RESEND_API_KEY;headers['Idempotency-Key']='shipping-payment/'+row.id;}
-   else if(env.WHATSAPP_TRANSPORT==='kapso')headers['X-API-Key']=env.KAPSO_API_KEY!;
-   else headers.Authorization='Bearer '+env.WHATSAPP_ACCESS_TOKEN;
+   else if(env.WHATSAPP_TRANSPORT==='kapso')headers['X-API-Key']=cleanSecret(env.KAPSO_API_KEY)!;
+   else headers.Authorization='Bearer '+cleanSecret(env.WHATSAPP_ACCESS_TOKEN);
    const body=email?{from:env.SENDER_NAME?`${env.SENDER_NAME} <${env.SENDER_EMAIL}>`:env.SENDER_EMAIL,to:target.recipient,subject:`Shipping payment for Teajia order ${ref}`,text}:
     {messaging_product:'whatsapp',recipient_type:'individual',to:digits(target.recipient),type:'template',template:{name:env.SHIPPING_PAYMENT_TEMPLATE_NAME,language:{code:env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE},components:[{type:'body',parameters:[name,ref,money(row.quote_usd),money(balance),url.href].map(text=>({type:'text',text}))}]}};
    let response:Response;

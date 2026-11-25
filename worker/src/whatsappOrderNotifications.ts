@@ -1,4 +1,5 @@
 import { suppressVerificationNotifications } from './liveVerificationPolicy';
+import { cleanSecret } from './kapsoRequest';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 
 /** Opted-in customer confirmations from the store’s existing business number. */
@@ -268,8 +269,8 @@ export async function processPendingCustomerOrderNotifications(
       const kapso = env.WHATSAPP_TRANSPORT === 'kapso';
       const endpoint = kapso ? 'https://api.kapso.ai/meta/whatsapp' : 'https://graph.facebook.com';
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (kapso) headers['X-API-Key'] = env.KAPSO_API_KEY!;
-      else headers.Authorization = `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`;
+      if (kapso) headers['X-API-Key'] = cleanSecret(env.KAPSO_API_KEY)!;
+      else headers.Authorization = `Bearer ${cleanSecret(env.WHATSAPP_ACCESS_TOKEN)}`;
       response = await fetcher(
         `${endpoint}/${env.WHATSAPP_GRAPH_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
         { method: 'POST', headers, body: JSON.stringify(payload), signal: AbortSignal.timeout(10000), redirect: 'error' },
