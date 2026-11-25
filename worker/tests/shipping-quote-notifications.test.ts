@@ -65,8 +65,22 @@ describe('shipping payment notifications',()=>{
   const f=await fixture();await(await f.prepare({email:'attacker@example.test',whatsappNumber:'+14155550100',whatsappConsentAt:new Date().toISOString()})).run();
   await f.process();expect(JSON.parse(String((f.fetcher.mock.calls[0] as any)[1].body)).to).toBe('buyer@example.test');
  });
- it('does not silently fall back to email when selected WhatsApp is not configured',async()=>{
-  const f=await fixture(true);delete f.env.SHIPPING_PAYMENT_TEMPLATE_NAME;await f.process();expect(f.fetcher).not.toHaveBeenCalled();expect(await getShippingQuoteNotificationStatus(f.db as any,'shop','invoice')).toMatchObject({state:'config_required',channel:'whatsapp',code:'whatsapp_setup_required'});
+ it.each([
+  ['not set up',(f:any)=>{delete f.env.SHIPPING_PAYMENT_TEMPLATE_NAME;}],
+  ['not approved',(f:any)=>{f.db.exec("UPDATE shipping_whatsapp_approval SET state='rejected'");}],
+  ['unavailable',(f:any)=>{f.db.exec('DELETE FROM shipping_whatsapp_approval');f.fetcher.mockImplementationOnce(async()=>{throw new TypeError('fetch failed');});}],
+ ] as const)('emails them instead when chosen WhatsApp is %s and an email is on file',async(_label,breakWhatsApp)=>{
+  const f=await fixture(true);f.fetcher.mockImplementation(async()=>Response.json({id:'email-receipt'}));breakWhatsApp(f);await f.process();
+  const [url,init]=f.fetcher.mock.calls.at(-1) as any;expect(url).toBe('https://api.resend.com/emails');expect(JSON.parse(init.body).to).toBe('buyer@example.test');
+  expect(await getShippingQuoteNotificationStatus(f.db as any,'shop','invoice')).toMatchObject({state:'accepted',channel:'email'});
+ });
+ it('waits for WhatsApp when it is unavailable and no email is on file',async()=>{
+  const f=await fixture(true);f.db.exec('DELETE FROM order_shipping_notification_targets');await(await f.prepare({email:null})).run();delete f.env.SHIPPING_PAYMENT_TEMPLATE_NAME;await f.process();
+  expect(f.fetcher).not.toHaveBeenCalled();expect(await getShippingQuoteNotificationStatus(f.db as any,'shop','invoice')).toMatchObject({state:'config_required',channel:'whatsapp',code:'whatsapp_setup_required'});
+ });
+ it('never emails after a WhatsApp request may have gone out',async()=>{
+  const f=await fixture(true);f.fetcher.mockImplementation(async()=>{throw new TypeError('fetch failed');});await f.process();
+  expect(f.fetcher.mock.calls.every((c:any)=>!String(c[0]).includes('resend'))).toBe(true);expect(f.row().state).toBe('review_required');
  });
  it('fails closed nonfatally when sealing key or contact is unavailable',async()=>{
   const f=await fixture();f.db.exec('DELETE FROM order_shipping_notification_targets');delete f.env.KEY_ENCRYPTION_SECRET;await(await f.prepare()).run();await f.process();expect(f.row().code).toBe('secure_link_unavailable');expect(f.fetcher).not.toHaveBeenCalled();

@@ -3909,3 +3909,7 @@ ALTER TABLE accounts ADD COLUMN personal_seller_approved_by TEXT REFERENCES user
 -- 0121_seller_approval_ahead.sql
 ALTER TABLE users ADD COLUMN seller_approved_at TEXT;
 ALTER TABLE users ADD COLUMN seller_approved_by TEXT;
+
+-- 0122_shipping_email_fallback.sql
+ALTER TABLE order_shipping_notification_targets ADD COLUMN fallback_email TEXT;
+ALTER TABLE shipping_payment_notifications ADD COLUMN sent_channel TEXT;
