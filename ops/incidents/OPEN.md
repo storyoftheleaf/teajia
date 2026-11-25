@@ -19,11 +19,6 @@
   Normalized error: `http_502`
   Evidence: [acc-teajia-bali-server-post-api-extract-from-image-502-http-502-6bfc984d.json](evidence/acc-teajia-bali-server-post-api-extract-from-image-502-http-502-6bfc984d.json)
 
-- [ ] `acc_teajia_bali:server_post_api_notes_sync_503_http_503` — **high**
-  10 occurrences · first 2026-11-17T07:16:57Z · last 2026-11-17T07:48:10Z
-  Normalized error: `http_503`
-  Evidence: [acc-teajia-bali-server-post-api-notes-sync-503-http-503-dae67b94.json](evidence/acc-teajia-bali-server-post-api-notes-sync-503-http-503-dae67b94.json)
-
 - [ ] `acc_teajia_bali:network_get_api_products_public_none_transport_failure` — **medium**
   3 occurrences · first 2026-10-27T08:09:12Z · last 2026-11-21T04:17:24Z
   Normalized error: `transport_failure`
