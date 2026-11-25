@@ -1,4 +1,5 @@
 import type { CurateFinalizeMovement } from '../curateImports';
+import type { StockMovementInput } from '../inventoryDomain';
 /**
  * Where MCP tools added from here on live.
  *
@@ -44,6 +45,17 @@ export interface InventoryReceiptService {
   receiveImport: (scope: { accountId:string; userId:string; email?:string|null }, line:Parameters<CurateFinalizeMovement>[0], key:string) => ReturnType<CurateFinalizeMovement>;
 }
 
+/**
+ * The one stock-movement path, `applyStockMovement` in index.ts, handed in the
+ * same way the receipt services are, because a module importing index.ts back
+ * would be a cycle. It is the path the Manage stock edit takes, so a count made
+ * by an agent lands with the same ledger line, listing mirror and sold-out and
+ * counted stamps as one Adrian makes by hand, rather than a second copy of them.
+ */
+export interface StockMovementService {
+  apply: (scope: { accountId:string; userId:string; email?:string|null }, productId:string, input:StockMovementInput) => Promise<{ status:number; value:unknown }>;
+}
+
 export interface ToolEnv {
   EDITORIAL_PILOT_ACCOUNT_ID?: string;
   DB: D1Database;
@@ -51,6 +63,7 @@ export interface ToolEnv {
   ATLAS_BUCKET?: R2Bucket;
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
+  stockMovements?: StockMovementService;
 }
 
 /** The scopes a module may ask for. Mirrors MCP_SCOPES in mcp.ts. */

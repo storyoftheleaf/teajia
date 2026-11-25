@@ -422,7 +422,7 @@ const toolGetVendor: ToolHandler = async (env, auth, args) => {
   const card = await vendorById(env, auth, id);
   if (!card) return { error: 'not_found' };
   const manager = await curateManagerAccess(env, auth);
-  const [profile, teas, orders, todos, rates] = await Promise.all([
+  const [profile, teas, orders, todos, rates, photos] = await Promise.all([
     env.DB.prepare('SELECT * FROM curate_vendor_profiles WHERE vendor_id = ? AND account_id = ?').bind(id, auth.accountId).first<Record<string, any>>(),
     env.DB.prepare(`SELECT * FROM tea_compass_entries WHERE account_id = ? AND vendor_id = ? AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL ${manager ? '' : 'AND user_id = ?'} ORDER BY updated_at DESC LIMIT 50`)
       .bind(auth.accountId, id, ...(manager ? [] : [auth.userId])).all<Record<string, any>>(),
@@ -430,11 +430,16 @@ const toolGetVendor: ToolHandler = async (env, auth, args) => {
       .bind(auth.accountId, id).all<Record<string, any>>(),
     env.DB.prepare('SELECT id, text, created_at FROM curate_todos WHERE account_id = ? AND vendor_id = ? AND done_at IS NULL').bind(auth.accountId, id).all(),
     loadRates(env),
+    env.DB.prepare('SELECT face_photo, storefront_photo, business_card_photo FROM customers WHERE id = ? AND account_id = ?')
+      .bind(id, auth.accountId).first<Record<string, string | null>>(),
   ]);
   const own = await currentLegs(env, auth, id);
   const shared = await currentLegs(env, auth, null);
   return {
     card: vendorSummary(card),
+    // The pictures on the card, so an agent can see whether there is a face
+    // before it offers to add one with set_supplier_photo.
+    photos: { face: photos?.face_photo ?? null, storefront: photos?.storefront_photo ?? null, business_card: photos?.business_card_photo ?? null },
     structured: await readVendorStructuredProfile(env.DB, auth, id),
     quotes: await listCurateQuotes(env.DB, auth, id),
     tags: parseJson<unknown>(card.tags, []),

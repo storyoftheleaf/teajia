@@ -32200,6 +32200,7 @@ const requestHandler = {
           cancel: (scope, lineId) => cancelInventoryLine(env, scope, lineId),
           receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
         },
+        stockMovements: { apply: (scope, productId, input) => applyStockMovement(env, scope, productId, input) },
       });
       return cors(response, corsOrigin);
     }

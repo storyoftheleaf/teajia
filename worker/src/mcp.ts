@@ -56,9 +56,11 @@ import { curateQuoteTools } from './mcpTools/curateQuotes';
 import { curatePromotionTools } from './mcpTools/curatePromotion';
 import { curateDrivePhotosModule } from './mcpTools/curateDrivePhotos';
 import { supplierRenameTools } from './mcpTools/supplierRename';
+import { stockCountTools } from './mcpTools/stockCount';
+import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
-import type { CurateReceiptService, InventoryReceiptService } from './mcpTools/registry';
+import type { CurateReceiptService, InventoryReceiptService, StockMovementService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
@@ -114,6 +116,7 @@ type Env = {
   DB: D1Database;
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
+  stockMovements?: StockMovementService;
   JWT_SECRET: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
@@ -6424,7 +6427,7 @@ const TOOL_DEFS = [
   {
     name: 'update_tea_pricing',
     scope: 'stock:write',
-    description: 'Update cost, currency, retail price, and/or inventory data (quantity purchased, description, stock verification) for a tea product. Two-step preview/confirm. Shows margin before/after and warns below 30%.',
+    description: 'Update cost, currency, retail price, inventory data (quantity purchased, stock verification) and the written parts of a tea page: description ("About this tea"), processing_notes, terroir and lore. Two-step preview/confirm. Shows margin before/after and warns below 30%. For taste, aroma and feel use set_tasting; for the shop\'s own starred notes use set_curator_notes; for names, origin and year use update_tea_catalog.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -7139,6 +7142,8 @@ const TOOL_MODULES: ToolModule[] = [
   curatePromotionTools,
   curateDrivePhotosModule,
   supplierRenameTools,
+  stockCountTools,
+  supplierPhotoTools,
   curateDisplayNameTools,
   teaPageContentTools,
 ];
