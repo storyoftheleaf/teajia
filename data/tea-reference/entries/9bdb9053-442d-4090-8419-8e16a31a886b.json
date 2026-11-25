@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:44:02.018Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "9bdb9053-442d-4090-8419-8e16a31a886b",
+    "name": "Tie Guan Yin",
+    "chineseName": "铁观音",
+    "type": "Oolong",
+    "form": "Rolled",
+    "year": 1970,
+    "origin": "Anxi, Fujian, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 10.52,
+    "tags": [
+      "roasted chestnut",
+      "dried apricot",
+      "aged honey",
+      "mineral warmth"
+    ]
+  },
+  "entry": {
+    "productId": "9bdb9053-442d-4090-8419-8e16a31a886b",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [Tieguanyin](tieguanyin:definition) from Anxi County in southern Fujian, made in 1970 the older way: oxidised further than most of today's tea and roasted over charcoal. Roasted tea was the norm then. The [light green style](tieguanyin:styles) only took over in Anxi from the 1990s, two decades after this leaf was made."
+      },
+      {
+        "layer": "age",
+        "text": "The heavier roast is the steadier kind, and it is the kind people keep for years, while the light style goes stale quickly. After fifty-six years the roast has long since settled, and the tea is what the trade calls [old Tie](tieguanyin:ageing), lǎo tiě: Tieguanyin that has changed with age, not just with how it was made."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Tieguanyin is usually brewed gongfu style with water at or near the boil, about 95 to 100°C; the light green style is often taken a little cooler, about 85 to 95°C. Use about 4 to 8 grams of leaf in a 100 to 150 ml gaiwan or pot, about a third full. A quick rinse, poured off at once, is common. Steeps start short, about 10 to 30 seconds, and grow a few seconds longer each round, and a good Tieguanyin gives about six to eight. In a larger pot, use about 2.5 to 5 grams for 240 to 350 ml and steep two to three minutes."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Tieguanyin",
+      "text": "A smoother, rounder, softer cup with the fire gone, a liquor turned orange-red or reddish-brown, and often a soft fruity sourness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "tieguanyin:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "tieguanyin:styles",
+      "rev": 1
+    },
+    {
+      "claimId": "tieguanyin:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "tieguanyin:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "tieguanyin:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:43.487Z"
+}

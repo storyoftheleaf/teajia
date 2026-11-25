@@ -1,0 +1,84 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:40:26.249Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "b2057039-6c27-4ebf-8385-930bb15cdb4f",
+    "name": "Millennial Tree Red",
+    "chineseName": "千年古树红茶饼",
+    "type": "Red",
+    "form": "Cake",
+    "year": 2006,
+    "origin": "Yunnan, China",
+    "stockGrams": 357,
+    "pricePerGramUsd": 0.48,
+    "tags": [
+      "dark honey",
+      "dried rose",
+      "malt",
+      "woody depth",
+      "smooth body"
+    ]
+  },
+  "entry": {
+    "productId": "b2057039-6c27-4ebf-8385-930bb15cdb4f",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [red tea](red:definition) from Yunnan, made in 2006 and pressed into a cake. Red tea is the fully oxidised kind: once the leaf's cells are broken, its own enzymes turn it from green to reddish brown before it is dried."
+      },
+      {
+        "layer": "type",
+        "text": "Red tea from Yunnan goes by the name [Dian Hong](dian-hong:definition) and is made from the province's large-leaf trees. Feng Shaoqiu made a [trial batch](dian-hong:history) in Shunning, now Fengqing, in late 1938, when the war had cut China off from its eastern tea regions."
+      },
+      {
+        "layer": "age",
+        "text": "Dian Hong is usually [kept for freshness](dian-hong:ageing) rather than for age, and the trade treats it as best in its first one to three years. This cake was made in 2006, twenty years ago, so it is long past that window."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Dian Hong",
+      "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:history",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:50.526Z"
+}

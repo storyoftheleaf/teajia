@@ -1,0 +1,92 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:47:13.307Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "a488b5ae-b5e1-45e3-bec0-9ec55839aedd",
+    "name": "Gushu Sheng",
+    "chineseName": "古树生普洱",
+    "type": "Sheng Puer",
+    "form": "Cake",
+    "year": 2023,
+    "origin": "Yunnan, China",
+    "stockGrams": 722,
+    "pricePerGramUsd": 0.38,
+    "tags": [
+      "bright floral",
+      "fresh vegetal",
+      "raw sweetness",
+      "tingling astringency",
+      "mineral"
+    ]
+  },
+  "entry": {
+    "productId": "a488b5ae-b5e1-45e3-bec0-9ec55839aedd",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A cake of [raw pu’er](sheng:identity) from Yunnan, picked in the spring of 2023 and pressed under a stone. It began as [maocha](sheng:making): leaf fried in a wok to kill the green, rolled, then dried in the sun rather than by hot air, so enough of its own activity survives to keep it changing for years. Pressing under a stone leaves [a looser cake](sheng:pressing) than a hydraulic press would, and a looser cake changes faster."
+      },
+      {
+        "layer": "age",
+        "text": "At three years it is still a [young raw pu’er](sheng:age-young), early in the slow change that sheng goes through [in storage](sheng:aging) instead of shou’s rapid fermentation. Heat and humidity decide how fast that change runs, which is why [where a cake is kept](sheng:storage) becomes part of its history."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly. Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Sheng Pu’er",
+      "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:pressing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:age-young",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:storage",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:54.245Z"
+}

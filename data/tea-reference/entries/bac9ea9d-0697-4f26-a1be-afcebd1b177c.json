@@ -1,0 +1,83 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:43:23.424Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "bac9ea9d-0697-4f26-a1be-afcebd1b177c",
+    "name": "River Town Sheng",
+    "chineseName": null,
+    "type": "Sheng Puer",
+    "form": "Cake",
+    "year": 2010,
+    "origin": "Yunnan, China",
+    "stockGrams": 150,
+    "pricePerGramUsd": 2.77,
+    "tags": [
+      "developing honey",
+      "light wood",
+      "green mineral",
+      "gentle astringency"
+    ]
+  },
+  "entry": {
+    "productId": "bac9ea9d-0697-4f26-a1be-afcebd1b177c",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A cake of [raw pu’er](sheng:identity) from Yunnan, made in 2010. Unlike shou, it was never given a fast fermentation. The leaf was fried in a wok to kill the green, then [dried in the sun](sheng:making) rather than by hot air, so some of its own activity survived. That is what has let it keep changing in the cake ever since."
+      },
+      {
+        "layer": "age",
+        "text": "At sixteen years it sits between the trade’s two answers to when [raw pu’er counts as aged](sheng:ageing): past the ten years some accept, short of the twenty many wait for. How far it has come depends on how it was pressed and where it was kept, because [heat and humidity](sheng:storage) set the pace of that change."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly. Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:storage",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:53.223Z"
+}

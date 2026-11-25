@@ -1,0 +1,84 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:54:04.968Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "25f429f2-6601-46bd-844c-b2dab6dbf28d",
+    "name": "French Brick",
+    "chineseName": "法国砖",
+    "type": "Sheng Puer",
+    "form": "Brick",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 1.57,
+    "tags": [
+      "aged complexity",
+      "mineral depth",
+      "smooth sweetness",
+      "old wood"
+    ]
+  },
+  "entry": {
+    "productId": "25f429f2-6601-46bd-844c-b2dab6dbf28d",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A brick of [raw pu’er](sheng:identity) from Yunnan, the branch of pu’er that is never darkened by fast fermentation. Like all raw pu’er it begins as large-leaf tea that is [fried in a wok to kill the green](sheng:making), rolled and dried in the sun rather than by hot air, so some of the leaf’s own activity survives and lets the tea keep changing for years."
+      },
+      {
+        "layer": "type",
+        "text": "Tea was first [pressed](sheng:pressing) so it could travel, packed compact onto pack animals along the old trade routes, and the pressing still decides how it ages: a tight, large piece changes slowly, a loose or small one faster. With no rapid fermentation behind it, this brick [changes through storage](sheng:aging), so where it has been kept is part of its history, not a promise of quality."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly. Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Sheng Pu’er",
+      "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:pressing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:56.089Z"
+}

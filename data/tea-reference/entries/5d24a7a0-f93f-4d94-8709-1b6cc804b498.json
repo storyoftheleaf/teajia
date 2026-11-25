@@ -1,0 +1,72 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:41:12.877Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "5d24a7a0-f93f-4d94-8709-1b6cc804b498",
+    "name": "Xiao Qing Gan",
+    "chineseName": "小青柑",
+    "type": "Shou Puer",
+    "form": "Other",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 0.21,
+    "tags": [
+      "citrus peel",
+      "smooth earth",
+      "tangerine sweetness",
+      "clean finish"
+    ]
+  },
+  "entry": {
+    "productId": "5d24a7a0-f93f-4d94-8709-1b6cc804b498",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "Xiao Qing Gan is [ripe pu’er](shou:definition) from Yunnan, packed into small green mandarins from Xinhui district in Jiangmen, Guangdong. Each mandarin is picked young, before it ripens. It is then hollowed out, filled with the tea and dried together with it."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf inside was made the ripe way. It was wetted and heaped in a [damp pile](shou:wet-piling), where microbes give off heat. The pile was covered to hold that heat in and turned about once a week to spread it and let air in, then dried after one to two months. The pile was developed to bring about, in weeks, the change that drinkers in Hong Kong and Guangdong knew from raw pu’er aged for years. That is why ripe pu’er is ready to drink soon after it is made."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:48.365Z"
+}

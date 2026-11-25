@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:43:23.386Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "9df5db45-98f8-4d89-a852-65fd42e62e23",
+    "name": "Ruicaokui",
+    "chineseName": "瑞草魁",
+    "type": "Green",
+    "form": "Loose",
+    "year": null,
+    "origin": "Anhui, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 2.06,
+    "tags": [
+      "chestnut",
+      "clean vegetal",
+      "sweet hay",
+      "light mineral"
+    ]
+  },
+  "entry": {
+    "productId": "9df5db45-98f8-4d89-a852-65fd42e62e23",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "Ruicaokui is a loose green tea from Anhui, one of the main [green tea provinces](green:anhui) of China."
+      },
+      {
+        "layer": "type",
+        "text": "Like any [green tea](green:definition), the leaf was heated soon after picking. The heat stops the leaf's own enzymes before they can turn it brown, which keeps it green and sets it apart from red tea and oolong. That first step, [killing the green](green:making), is followed by rolling, which gives the leaf its shape, and then drying until only a few percent of water is left, so the tea keeps and does not go mouldy."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Green tea takes water well below the boil, about 80°C, a little cooler for the youngest leaf and a little warmer for older, larger leaf. Boiling water draws out bitterness and dries the cup. A common start is about 2 grams of leaf to 100 ml, in a glass or a small gaiwan, with short steeps of half a minute to two minutes, and the same leaf can be brewed a few times."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "green tea",
+      "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying."
+    },
+    "missing": [
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "green:anhui",
+      "rev": 1
+    },
+    {
+      "claimId": "green:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "green:making",
+      "rev": 1
+    },
+    {
+      "claimId": "green:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:52.605Z"
+}

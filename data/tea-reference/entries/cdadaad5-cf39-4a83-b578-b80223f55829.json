@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:40:59.054Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "cdadaad5-cf39-4a83-b578-b80223f55829",
+    "name": "Taiwan Tie Guan Yin",
+    "chineseName": "台湾铁观音",
+    "type": "Oolong",
+    "form": "Rolled",
+    "year": 1972,
+    "origin": "Muzha, Taipei, Taiwan",
+    "stockGrams": 130,
+    "pricePerGramUsd": 1.44,
+    "tags": [
+      "dark roast",
+      "dried cherry",
+      "toasted walnut",
+      "caramelized sugar"
+    ]
+  },
+  "entry": {
+    "productId": "cdadaad5-cf39-4a83-b578-b80223f55829",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "A [Tie Guan Yin](taiwan-oolong:muzha) made in 1972 in Muzha, in southern Taipei. The tea master Zhang Naimiao is credited with bringing the cultivar there from Anxi with a clansman during the years of Japanese rule, and the district became the home of Taiwan's traditional Tie Guan Yin. Most of the island's [oolong](oolong:definition) is lightly to moderately oxidised. The Muzha style goes further: the leaf is oxidised more, wrapped in cloth and rolled again and again, then roasted over charcoal. This lot was given a heavy charcoal roast in that tradition."
+      },
+      {
+        "layer": "age",
+        "text": "At fifty-four years it is far past the figures people give for [lao cha](taiwan-oolong:ageing), old tea. Those who name a figure put it somewhere between ten and thirty years. Tea chosen for keeping in Taiwan starts well roasted and dry. It is roasted again at low heat from time to time to drive out the moisture it takes in, and is stored cool, dry, dark and sealed. Over the years its liquor deepens from amber towards red-brown."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Taiwan oolong",
+      "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "taiwan-oolong:muzha",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:44.508Z"
+}

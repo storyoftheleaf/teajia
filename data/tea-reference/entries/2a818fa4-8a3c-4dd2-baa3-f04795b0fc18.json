@@ -1,0 +1,83 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:43:32.731Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "2a818fa4-8a3c-4dd2-baa3-f04795b0fc18",
+    "name": "Xiao Yuan Shou",
+    "chineseName": "小圆熟饼",
+    "type": "Shou Puer",
+    "form": "Cake",
+    "year": 1980,
+    "origin": "Yunnan, China",
+    "stockGrams": 800,
+    "pricePerGramUsd": 0.95,
+    "tags": [
+      "dark honey",
+      "smooth earth",
+      "dried longan",
+      "warm sweetness"
+    ]
+  },
+  "entry": {
+    "productId": "2a818fa4-8a3c-4dd2-baa3-f04795b0fc18",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [ripe pu’er](shou:definition) from 1980, made from Yunnan leaf and pressed into small, round cakes, the xiao yuan bing of its Chinese name. That year falls in the style’s first decade. In 1973 a team from the Kunming, Menghai and Xiaguan factories went to Guangzhou to [learn its wet piling](shou:piling-1973), and that same year Yunnan’s state factories brought the [fermenting pile](shou:wet-piling) into production."
+      },
+      {
+        "layer": "age",
+        "text": "At forty-six years these cakes sit far past the ten years after which the trade counts a ripe pu’er as [aged](shou:age-aged). The leaf goes on changing slowly with the air and moisture around it, so the way these cakes were kept has shaped them as much as the years have."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:piling-1973",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:48.790Z"
+}

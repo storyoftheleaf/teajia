@@ -1,0 +1,71 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:43:05.688Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "12a441ca-0045-4657-8efc-03b873ab62fc",
+    "name": "Nantou Roasted",
+    "chineseName": "南投焙火乌龙",
+    "type": "Oolong",
+    "form": "Rolled",
+    "year": 1979,
+    "origin": "Nantou, Taiwan",
+    "stockGrams": 0,
+    "pricePerGramUsd": 0.95,
+    "tags": [
+      "deep caramel",
+      "roasted grain",
+      "dried longan",
+      "aged sweetness"
+    ]
+  },
+  "entry": {
+    "productId": "12a441ca-0045-4657-8efc-03b873ab62fc",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from Nantou County in central Taiwan, made in 1979 and given a heavy charcoal roast in the traditional Taiwanese style. That roast sets it apart from most of the island's oolong, which is lightly to moderately oxidised and rolled into balls from plants and craft that first came from Fujian."
+      },
+      {
+        "layer": "age",
+        "text": "Taiwan has long kept oolong for years as [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts well roasted and dry. Keepers roast it again at low heat from time to time to drive out the moisture it takes in, and store it cool, dark and sealed. No standard says when an oolong becomes old, and those who give a figure put it between ten and thirty years. At forty-seven years, this tea is well past both."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Taiwan oolong",
+      "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "taiwan-oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:44.235Z"
+}

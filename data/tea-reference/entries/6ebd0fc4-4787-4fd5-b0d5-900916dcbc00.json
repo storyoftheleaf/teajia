@@ -1,0 +1,84 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:42:46.771Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "6ebd0fc4-4787-4fd5-b0d5-900916dcbc00",
+    "name": "Guangxi Liupao",
+    "chineseName": "广西六堡茶",
+    "type": "Dark",
+    "form": "Loose",
+    "year": 1970,
+    "origin": "Guangxi, China",
+    "stockGrams": 200,
+    "pricePerGramUsd": 2.38,
+    "tags": [
+      "deep betel nut",
+      "aged camphor",
+      "sweet earth",
+      "cooling menthol",
+      "dried herbs"
+    ]
+  },
+  "entry": {
+    "productId": "6ebd0fc4-4787-4fd5-b0d5-900916dcbc00",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A loose [Liu Bao](liu-bao:definition) from Guangxi, dated 1970. Like every [dark tea](dark:definition), its leaf was heaped after it was made so that warmth, moisture and microbes could slowly darken it, and then it was packed away to age. It comes from the [lean decades](liu-bao:history) after war and blockade cut the river trade, when the planned economy changed who could buy and sell tea."
+      },
+      {
+        "layer": "age",
+        "text": "At fifty-six years it is long past the ten after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). Liu Bao this old is mostly [old stock](liu-bao:old-stock), left in warehouses after the Malaysian tin mines declined. Such tea is hard to date, so the trade reads its age from the basket, the labels and the papers packed with it."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Liu Bao",
+      "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "liu-bao:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:history",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:old-stock",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:46.378Z"
+}

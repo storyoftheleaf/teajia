@@ -1,0 +1,87 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:41:06.076Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "dff84849-ba07-4ccb-94b9-b94df9a4b2f1",
+    "name": "Menghai Bullet Tuo",
+    "chineseName": "勐海子弹沱生茶",
+    "type": "Sheng Puer",
+    "form": "Tuo",
+    "year": 1996,
+    "origin": "Menghai, Yunnan, China",
+    "stockGrams": 620,
+    "pricePerGramUsd": 0.31,
+    "tags": [
+      "concentrated camphor",
+      "dark fruit",
+      "mineral sweetness",
+      "long finish"
+    ]
+  },
+  "entry": {
+    "productId": "dff84849-ba07-4ccb-94b9-b94df9a4b2f1",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [raw pu’er](sheng:identity) from Menghai, made in 1996 from [sun-dried maocha](sheng:making) and pressed under high pressure into a bullet tuo. The name comes from its shape: a smaller, denser version of the [tuo](sheng:pressing), the small bowl form. Pressing began so tea could travel well, and it also sets the pace of ageing, so a format this compact and tight ages differently from a standard cake."
+      },
+      {
+        "layer": "age",
+        "text": "At thirty years it is past both the ten years some in the trade count as [aged raw pu’er](sheng:ageing) and the twenty or more that many wait for. It was made while collectors, led at first by Taiwan, were [seeking out aged raw pu’er](sheng:history-modern) through the 1990s. Like any sheng, it has changed slowly in storage rather than through a fast ferment."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly. Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:pressing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:history-modern",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:52.772Z"
+}

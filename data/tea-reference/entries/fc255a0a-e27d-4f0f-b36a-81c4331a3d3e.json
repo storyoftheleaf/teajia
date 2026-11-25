@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:46:14.985Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "fc255a0a-e27d-4f0f-b36a-81c4331a3d3e",
+    "name": "Wisdom",
+    "chineseName": "智慧",
+    "type": "Sheng",
+    "form": "Loose",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 5.43,
+    "tags": [
+      "measured bitterness",
+      "deep mineral",
+      "slow sweetness",
+      "contemplative body"
+    ]
+  },
+  "entry": {
+    "productId": "fc255a0a-e27d-4f0f-b36a-81c4331a3d3e",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Wisdom is a [raw pu’er](sheng:identity) from Yunnan, sold loose rather than pressed. It began as leaf from the province’s large-leaf tea trees: picked, withered, then fried in a wok to [kill the green](sheng:making), rolled and dried in the sun. The leaf is never hot-air dried afterwards, so some of its own enzyme activity survives the heat, and that is what lets the tea keep changing for years."
+      },
+      {
+        "layer": "type",
+        "text": "Raw pu’er may be pressed into cakes or [left loose](sheng:processing), and this tea was kept as leaf. It was never given the quick fermentation of shou, so it [changes slowly in storage](sheng:aging), and the conditions it is kept in become part of its history."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Sheng Pu’er",
+      "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:processing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:53.941Z"
+}

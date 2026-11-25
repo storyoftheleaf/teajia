@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:51:21.072Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "d2e3fae9-47b7-4866-b683-c0c088c423a6",
+    "name": "Old Rainbow",
+    "chineseName": "彩虹生茶",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": null,
+    "origin": "Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 6.03,
+    "tags": [
+      "deep complexity",
+      "layered sweetness",
+      "aged mineral",
+      "broad flavor spectrum"
+    ]
+  },
+  "entry": {
+    "productId": "d2e3fae9-47b7-4866-b683-c0c088c423a6",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "Old Rainbow is a loose [raw pu’er](sheng:identity) from Yunnan, the counterpart to the shop's New Rainbow. The village or mountain behind the leaf is not known."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was made in the raw way. Large-leaf tea is picked, withered and fried in a wok, then rolled and dried in the sun, giving [maocha](sheng:making). It is never hot-air dried, so some of the leaf's own activity survives, and that is why the tea keeps [changing through storage](sheng:aging), year after year. This lot was [left loose](sheng:processing) rather than pressed."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Sheng Pu’er",
+      "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:processing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:55.386Z"
+}

@@ -1,0 +1,88 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-25T15:53:01.331Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "72c291c4-9840-42da-8331-ec8a08c65b65",
+    "name": "Purple King",
+    "chineseName": "紫芽王生茶",
+    "type": "Sheng Puer",
+    "form": "Cake",
+    "year": 2007,
+    "origin": "Yunnan, China",
+    "stockGrams": 200,
+    "pricePerGramUsd": 2.59,
+    "tags": [
+      "intense bitterness converting to sweetness",
+      "wild berry",
+      "deep mineral",
+      "herbal complexity",
+      "thick body"
+    ]
+  },
+  "entry": {
+    "productId": "72c291c4-9840-42da-8331-ec8a08c65b65",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A cake of [raw pu’er](sheng:identity) from Yunnan, made in 2007 from purple-bud leaf. The leaf was fried in a wok, rolled and [dried in the sun](sheng:making) as maocha. Because it was never hot-air dried, some of its own activity survived, and that is what lets the tea keep changing after it was pressed into a cake."
+      },
+      {
+        "layer": "age",
+        "text": "At nineteen years it sits right at the threshold the trade argues over: some call a raw pu’er [aged](sheng:ageing) at ten years, and many wait for twenty. How far it has travelled depends on its [storage](sheng:storage), since heat and humidity set the pace, and on its [pressing](sheng:pressing), because a tight cake changes more slowly than a loose one."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly. Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:storage",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:pressing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:55.819Z"
+}
