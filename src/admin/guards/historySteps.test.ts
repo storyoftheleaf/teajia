@@ -44,7 +44,7 @@ const REFINE = /history: refine/;
 const REPLACE_SNAPSHOT: Record<string, number> = {
   "src/admin/AdminApp.tsx": 4,
   "src/admin/components/EventsManager.tsx": 1,
-  "src/admin/components/InventoryView.tsx": 10,
+  "src/admin/components/InventoryView.tsx": 9,
   "src/admin/components/OrdersView.tsx": 1,
   "src/admin/components/inventory/PurchaseTrackingView.tsx": 2,
   "src/admin/components/inventory/stock/StockCardSections.tsx": 1,
@@ -59,7 +59,7 @@ const REPLACE_SNAPSHOT: Record<string, number> = {
 const RAW_BACK_ALLOWED = new Set([
   "src/admin/hooks/useAdminBack.ts",
   "src/admin/components/AdminHistoryBar.tsx",
-  "src/admin/components/InventoryView.tsx", // closing a record it opened steps back off that entry
+  "src/admin/components/inventory/usePanelInAddress.ts", // closing a record it opened steps back off that entry
 ]);
 
 describe("back and forward in the admin", () => {
