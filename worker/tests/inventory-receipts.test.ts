@@ -20,6 +20,26 @@ describe('inventory receipts', () => {
 });
 
 describe('inventory receipt endpoints', () => {
+  it('returns recorded zero and partial quantities from the authoritative receipt line', async () => {
+    const db = ReceiptDb.seededWithReceipt();
+    const before = await (await receiptRequest(db, '/api/inventory/receipts?include_closed=1')).json() as any[];
+    expect(before[0].lines[0]).toMatchObject({
+      id: 'line-a', expected_quantity: 100, received_quantity: 0, cancelled_quantity: 0,
+    });
+
+    const received = await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', {
+      method: 'POST',
+      body: JSON.stringify({ quantity: 40, idempotency_key: 'receive:known-partial' }),
+    });
+    expect(received.status).toBe(200);
+    expect(await received.json()).toMatchObject({ received_quantity: 40, remaining_quantity: 60 });
+
+    const after = await (await receiptRequest(db, '/api/inventory/receipts?include_closed=1')).json() as any[];
+    expect(after[0].lines[0]).toMatchObject({
+      id: 'line-a', expected_quantity: 100, received_quantity: 40, cancelled_quantity: 0,
+    });
+  });
+
   it('allows viewers to list receipts but denies inventory mutations', async () => {
     const db = ReceiptDb.seededWithReceipt(); db.role = 'viewer';
     expect((await receiptRequest(db, '/api/inventory/receipts')).status).toBe(200);

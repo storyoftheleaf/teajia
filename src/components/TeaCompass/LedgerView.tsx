@@ -41,6 +41,7 @@ import { purchaseArrivalAction, purchaseArrivalTiming } from '../../lib/purchase
 import { orderMoney } from './curatePricing';
 import { TeaCard, TeaCardMeta, TeaCardMetric, TeaCardTitle } from '../tea/TeaCard';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { matchOrderReceiptLine } from './receiptLineMatcher';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -91,8 +92,9 @@ const LineItemRow: React.FC<{
   const linkedReceipt = readOnly && tx?.purchaseOrderReceiptId
     ? purchases.receipts.find(receipt => receipt.id === tx.purchaseOrderReceiptId && receipt.state !== 'cancelled')
     : undefined;
-  const incomingLine = item.productId ? linkedReceipt?.lines.find(line => item.purchaseReceiptLineId
-    ? line.id === item.purchaseReceiptLineId : line.product_id === item.productId) : undefined;
+  const incomingLine = matchOrderReceiptLine(item, linkedReceipt);
+  const receiptLineUnavailable = readOnly && Boolean(tx?.purchaseOrderReceiptId
+    && (item.purchaseReceiptLineId || item.productId) && !incomingLine);
   const incomingQuantity = incomingLine ? Math.max(0, incomingLine.expected_quantity - incomingLine.received_quantity - incomingLine.cancelled_quantity) : 0;
   const quantityToReceive = pendingReceipt?.quantity ?? incomingQuantity;
   const unitToReceive = pendingReceipt?.unit ?? incomingLine?.unit;
@@ -158,7 +160,7 @@ const LineItemRow: React.FC<{
       {openTea && <Button variant="plain" type="button" className="tap-target" aria-label={`Open ${name} in Library`} onClick={openTea}><BookOpen size={16} aria-hidden="true" /></Button>}
       {stockHref && <Link className="tap-target" aria-label={`Open ${name} in Stock`} to={stockHref}><Package size={16} aria-hidden="true" /></Link>}
     </div>;
-    const purchaseQty = incomingLine?.expected_quantity ?? (isUnitBased ? item.quantityUnits : item.quantityGrams);
+    const purchaseQty = receiptLineUnavailable ? null : incomingLine?.expected_quantity ?? (isUnitBased ? item.quantityUnits : item.quantityGrams);
     const unitLabel = incomingLine?.unit === 'g' || (!incomingLine && !isUnitBased) ? 'g' : 'pcs';
     const arrivalTiming = readOnly && quantityToReceive > 0 ? purchaseArrivalTiming(logistics?.shipments ?? [], {
       orderId: tx?.purchaseOrderId,
@@ -167,6 +169,7 @@ const LineItemRow: React.FC<{
       receiptEta: linkedReceipt?.eta,
     }) : undefined;
     const progress = !readOnly ? 'Draft'
+      : receiptLineUnavailable ? 'Receipt unavailable'
       : quantityToReceive > 0 ? (incomingLine?.received_quantity ? 'Part received' : 'Awaiting arrival')
       : incomingLine?.received_quantity ? 'Received' : 'Ordered';
     return (

@@ -24,6 +24,9 @@ import { SHOP_ORDERS_KEY, mergeOrders, shopOrderTotals, shopStatusWords, useShop
 import { confirmPurchase, purchaseNeedsVendor, recordPurchase } from './placeOrder';
 import { useRates, useShopFreightDefault } from '../../admin/hooks/useAdminData';
 import { listName } from './curateV2Model';
+import { useLibraryPurchases } from '../../lib/libraryPurchaseState';
+import { matchOrderReceiptLine } from '../TeaCompass/receiptLineMatcher';
+import type { InventoryReceipt } from '../../admin/types';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -737,16 +740,26 @@ const ShopLine: React.FC<{ item: LedgerLineItem; onOpenEntry?: (entryId: string)
  */
 const ShopOrderCard: React.FC<{
   order: ShopOrder;
+  receipt?: InventoryReceipt;
   isExpanded: boolean;
   onToggle: () => void;
   onOpenEntry?: (entryId: string) => void;
-}> = ({ order, isExpanded, onToggle, onOpenEntry }) => {
+}> = ({ order, receipt, isExpanded, onToggle, onOpenEntry }) => {
   const getEntry = useTeaCompassStore((s) => s.getEntry);
   const totals = useMemo(() => shopOrderTotals(order), [order]);
   const ownText = totals.own ? totals.own.map((part) => fmtPrice(part.amount, part.currency)).join(' + ') : null;
   const usdText = totals.usd !== null ? `$${totals.usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : null;
   const headline = ownText ?? usdText ?? '—';
   const date = orderDate(order.createdAt);
+  const receiptFacts = order.items.map(item => matchOrderReceiptLine(item, receipt));
+  const matchedFacts = receiptFacts.filter((line): line is NonNullable<typeof line> => Boolean(line));
+  const receiptUnavailable = Boolean(order.receiptId && (!receipt || matchedFacts.length !== order.items.length));
+  const receivedText = matchedFacts.length
+    ? matchedFacts.map(line => `${line.received_quantity.toLocaleString()} ${line.unit === 'g' ? 'g' : 'pcs'} received`).join(' · ')
+    : null;
+  const dueText = matchedFacts.length
+    ? matchedFacts.map(line => `${Math.max(0, line.expected_quantity - line.received_quantity - line.cancelled_quantity).toLocaleString()} ${line.unit === 'g' ? 'g' : 'pcs'} due`).join(' · ')
+    : null;
   // A tea this device has never seen cannot be opened here; the shop's other
   // device's link into a product is not followed either.
   const lines = useMemo(() => order.items.map((item) => ({
@@ -773,6 +786,7 @@ const ShopOrderCard: React.FC<{
           purchase · {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
           {' · '}<span>{shopStatusWords(order.status)}</span>
           {date ? ` · ${date}` : ''}
+          {receiptUnavailable ? ' · Receipt unavailable' : receivedText && dueText ? ` · ${receivedText} · ${dueText}` : ''}
         </span>
         {!isExpanded && <span className="text-ui-14 font-medium text-tea-text tabular-nums" data-testid="shop-order-total">{headline}</span>}
       </div>
@@ -829,6 +843,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
   const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
   // The shop's purchase orders, beside this device's own.
   const shop = useShopOrders();
+  const purchases = useLibraryPurchases();
   // All transactions expanded by default; the shop's own orders folded.
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [openShopIds, setOpenShopIds] = useState<Set<string>>(new Set());
@@ -952,6 +967,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         <ShopOrderCard
           key={`shop-${row.order.id}`}
           order={row.order}
+          receipt={row.order.receiptId ? purchases.receipts.find(receipt => receipt.id === row.order.receiptId) : undefined}
           isExpanded={openShopIds.has(row.order.id)}
           onToggle={() => setOpenShopIds(prev => {
             const next = new Set(prev);

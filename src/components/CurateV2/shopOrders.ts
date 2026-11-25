@@ -50,6 +50,8 @@ export interface ShopOrder {
   shipMode: 'air' | 'sea' | null;
   /** The carrier tracking number, or null when there is none yet. */
   trackingNumber: string | null;
+  /** Canonical inventory receipt linked by the recorded purchase order. */
+  receiptId: string | null;
 }
 
 const text = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
@@ -120,6 +122,7 @@ export function shopOrderOf(po: PurchaseOrder): ShopOrder {
     notes: text(po.notes) ?? null,
     shipMode: po.ship_mode === 'air' || po.ship_mode === 'sea' ? po.ship_mode : null,
     trackingNumber: text(po.tracking_number) ?? null,
+    receiptId: text(po.receipt_id) ?? null,
   };
 }
 
