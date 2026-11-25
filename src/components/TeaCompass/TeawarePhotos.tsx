@@ -2,6 +2,7 @@ import { CapturePhotoImage, useCapturePhotoUpload } from '../curate/CapturePhoto
 import React, { useRef, useState } from 'react';
 import { Camera, Plus, X } from 'lucide-react';
 import { compressImage } from '../../lib/imageCompressor';
+import { usePhotoEditor } from '../shared/usePhotoEditor';
 
 interface TeawarePhotosProps {
   entryId: string;
@@ -20,8 +21,12 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ entryId, photos, o
     inputRef.current?.click();
   };
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { freeShape: true });
     if (!file) return;
     e.target.value = '';
 
@@ -46,6 +51,7 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ entryId, photos, o
 
   return (
     <div className="space-y-2">
+      {photoEditor}
       <input
         key={photos.length === 0 ? 'camera' : 'gallery'}
         ref={inputRef}

@@ -13,8 +13,9 @@
  */
 import type { PixelCrop } from './cropImage';
 import modelUrl from './faceModel/blaze_face_short_range.tflite?url';
-import wasmLoaderPath from '@mediapipe/tasks-vision/wasm/vision_wasm_internal.js?url';
-import wasmBinaryPath from '@mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm?url';
+// The package does not export its engine files, so they are named by path.
+import wasmLoaderPath from '../../node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js?url';
+import wasmBinaryPath from '../../node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm?url';
 
 /** A face's box in the photo's own pixels. */
 export interface FaceBox { x: number; y: number; width: number; height: number; score?: number }

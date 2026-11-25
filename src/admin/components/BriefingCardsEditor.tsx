@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
 import { BriefingCard } from '../../types/events';
+import { usePhotoEditor } from '../../components/shared/usePhotoEditor';
 
 interface BriefingCardsEditorProps {
   cards: BriefingCard[];
@@ -46,8 +47,12 @@ export const BriefingCardsEditor: React.FC<BriefingCardsEditorProps> = ({
     onChange(next.map((c, i) => ({ ...c, order: i })));
   };
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleImageUpload = async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { freeShape: true });
     if (!file) return;
     setUploadingIdx(idx);
     try {
@@ -66,6 +71,7 @@ export const BriefingCardsEditor: React.FC<BriefingCardsEditorProps> = ({
 
   return (
     <div className="space-y-4">
+      {photoEditor}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-sec font-medium">

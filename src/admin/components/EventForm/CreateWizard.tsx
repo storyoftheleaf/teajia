@@ -8,6 +8,7 @@ import { EventStatus, EventFormat, GatheringType } from '../../../types/events';
 import { VenueManager } from '../VenueManager';
 import { useVenues } from '../../hooks/useEventData';
 import { Field, inputClass, textareaClass, selectClass, STATUS_OPTIONS, computeEndDate, slugify } from './shared';
+import { usePhotoEditor } from '../../../components/shared/usePhotoEditor';
 
 export interface CreateWizardProps {
   onClose: () => void;
@@ -66,8 +67,12 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
     setTotalCapacity(prev => (wasSelected ? Math.max(1, prev - capacity) : prev + capacity));
   };
 
+  const { editPhoto, photoEditor } = usePhotoEditor();
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const pickedFile = e.target.files?.[0];
+    if (!pickedFile) return;
+    e.target.value = '';
+    const file = await editPhoto(pickedFile, { title: 'Event photo', freeShape: true });
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
       showToast('Image must be under 10 MB', 'error');
@@ -552,6 +557,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                 <span className="text-ui-10 text-tea-text-dim">JPG, PNG, WebP</span>
               </button>
             )}
+            {photoEditor}
             <input
               ref={fileInputRef}
               type="file"

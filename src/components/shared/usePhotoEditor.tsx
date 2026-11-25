@@ -25,9 +25,10 @@ export interface PhotoEditOptions {
   outputSize?: number;
   /** Width over height. Default square. */
   aspect?: number;
-  /** Offer square, portrait and landscape. */
-  allowAspectSelection?: boolean;
-  /** Open on the face. Default true. */
+  /** Offer the photo's own shape (opening on it), square, portrait and
+   *  landscape. For photos shown at their own shape: tastings, posts, events. */
+  freeShape?: boolean;
+  /** Open on the face. Default on for fixed-shape photos (faces, avatars), off with freeShape. */
   centreFace?: boolean;
   layer?: 'popover' | 'takeover';
 }
@@ -38,6 +39,7 @@ interface Pending extends PhotoEditOptions {
   resolve: (file: File | null) => void;
 }
 
+const stop = (event: React.SyntheticEvent) => event.stopPropagation();
 const jpegName = (name: string) => `${name.replace(/\.[^./]+$/, '') || 'photo'}.jpg`;
 
 export function usePhotoEditor(defaults: PhotoEditOptions = {}) {
@@ -45,7 +47,8 @@ export function usePhotoEditor(defaults: PhotoEditOptions = {}) {
   const defaultsRef = useRef(defaults);
   defaultsRef.current = defaults;
 
-  const editPhoto = useCallback(async (picked: File | Blob | string, options: PhotoEditOptions = {}) => {
+  const editPhoto = useCallback(async (picked: File | Blob | string | null | undefined, options: PhotoEditOptions = {}): Promise<File | null> => {
+    if (!picked) return null;
     // iPhone HEIC photos are turned into JPEG first: Chrome cannot draw HEIC.
     const source = picked instanceof File ? await prepareFacePhoto(picked).catch(() => picked) : picked;
     const name = picked instanceof File ? picked.name : 'photo.jpg';
@@ -70,7 +73,11 @@ export function usePhotoEditor(defaults: PhotoEditOptions = {}) {
     setPending(null);
   };
 
+  // The editor is portalled, but React still bubbles its clicks to wherever
+  // {photoEditor} sits, often inside a tile or label that opens the file
+  // picker. Stop them here so editing never reopens the picker.
   const photoEditor = pending ? (
+    <span style={{ display: 'contents' }} onClick={stop} onPointerDown={stop} onMouseDown={stop} onKeyDown={stop}>
     <SquareCropModal
       isOpen
       source={pending.source}
@@ -78,12 +85,14 @@ export function usePhotoEditor(defaults: PhotoEditOptions = {}) {
       confirmLabel={pending.confirmLabel ?? 'Use photo'}
       outputSize={pending.outputSize}
       frameAspect={pending.aspect}
-      allowAspectSelection={pending.allowAspectSelection}
-      centreFace={pending.centreFace}
+      allowAspectSelection={pending.freeShape}
+      offerOriginalShape={pending.freeShape}
+      centreFace={pending.centreFace ?? !pending.freeShape}
       layer={pending.layer}
       onClose={() => finish(null)}
       onConfirm={blob => finish(new File([blob], jpegName(pending.name), { type: 'image/jpeg' }))}
     />
+    </span>
   ) : null;
 
   return { editPhoto, editPhotos, photoEditor, editing: !!pending };

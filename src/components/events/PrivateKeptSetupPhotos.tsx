@@ -9,6 +9,7 @@ import { Modal } from '../shared/Modal';
 import { OwnerSitPhotoPermission } from './OwnerSitPhotoPermission';
 import { OwnerGuestBookPhoto } from './OwnerGuestBookPhoto';
 import { GUEST_BOOK_PHOTOS_QUERY } from './GuestBookPhotos';
+import { usePhotoEditor } from '../shared/usePhotoEditor';
 
 type ScopedMember = { accountId: string | null; userId: string };
 type SetupPhoto = { id: string; tea_id: string | null; created_at: string; own?: boolean | number; shared?: boolean | number };
@@ -55,6 +56,7 @@ function SubjectPhotos({ scope, endpoint, setupId, teaId, memberSit }: {
   scope: ScopedMember; endpoint: string; setupId?: string; teaId: string | null; memberSit: boolean;
 }) {
   const picker = useRef<HTMLInputElement>(null);
+  const { editPhotos, photoEditor } = usePhotoEditor({ freeShape: true });
   const queryClient = useQueryClient();
   const queryKey = ['private-subject-photos', scope.accountId, scope.userId, endpoint];
   const options = { cache: 'no-store', expectedAuth: scope } as const;
@@ -117,11 +119,13 @@ function SubjectPhotos({ scope, endpoint, setupId, teaId, memberSit }: {
             onClick={() => picker.current?.click()}>Add private photos</Button>
         )}
         <input ref={picker} type="file" accept="image/*" multiple hidden data-testid="private-setup-photo-picker"
-          onChange={event => {
-            const files = Array.from(event.currentTarget.files ?? []);
+          onChange={async event => {
+            const picked = Array.from(event.currentTarget.files ?? []);
             event.currentTarget.value = '';
+            const files = canPick && picked.length ? await editPhotos(picked) : [];
             if (canPick && files.length) upload.mutate(files.map(file => ({ file, id: crypto.randomUUID() })));
           }} />
+        {photoEditor}
       </div>
       {photos.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
