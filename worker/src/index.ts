@@ -37,6 +37,7 @@ import { readPurchaseTracking } from './purchaseTracking';
 import type { CurateFinalizeMovement } from './curateImports';
 import { suppressVerificationNotifications, LIVE_VERIFICATION_POLICY } from './liveVerificationPolicy';
 import { guardDatabase, databaseUnavailableResponse } from './databaseGuard';
+import { siteIconRedirect } from './siteIcons';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError } from './curateVoiceTranscription';
 import { workingMaterialForTeaRecord, WorkingMaterialError } from './curateWorkingMaterial';
 import { handleArBridge, expireArBridgeRequests } from './curateArBridge';
@@ -32517,6 +32518,9 @@ const budgetedHandler = {
 
 const protectedHandler = {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+    // The emblem icon points at the site and never touches the database.
+    const icon = siteIconRedirect(request);
+    if (icon) return icon;
     // Preflight and object delivery remain independent of the database.
     const path = new URL(request.url).pathname;
     if (!env.DB || request.method === 'OPTIONS' || path === '/api/release' || path.startsWith('/api/media/')) {

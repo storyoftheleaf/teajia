@@ -111,6 +111,7 @@ import {
 import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { reviewedDescription } from './wisdomWordingReview';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
+import { MCP_SERVER_ICONS, MCP_SERVER_WEBSITE } from './siteIcons';
 
 type Env = {
   DB: D1Database;
@@ -7318,6 +7319,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 const SERVER_INFO = {
   name: 'teajia-inventory',
   version: '0.9.0',
+  icons: MCP_SERVER_ICONS,
+  websiteUrl: MCP_SERVER_WEBSITE,
   description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution; select mutation_id to undo a chosen safe change. curate_drive_photo previews trash or restore of a synced Drive backup. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; curate_promote_tea creates a private zero-stock inventory Draft from a Curate tea; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
 };
 
@@ -8373,6 +8376,8 @@ const PUBLIC_TOOL_DEFS = [
 const PUBLIC_SERVER_INFO = {
   name: 'teajia-shop',
   version: '0.1.0',
+  icons: MCP_SERVER_ICONS,
+  websiteUrl: MCP_SERVER_WEBSITE,
   description: 'Public read-only access to a Teajia tea shop catalog, with a WhatsApp checkout-link builder. Read-only; no account data, costs, or margins are exposed.',
 };
 
