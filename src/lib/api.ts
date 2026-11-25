@@ -3345,6 +3345,7 @@ export const api = {
       customer_name: string;
       customer_contact: string;
       whatsapp_confirmation_consent?: boolean;
+      update_email?: string;
       whatsapp_handoff?: boolean;
       customer_location?: string;
       delivery_address?: string;

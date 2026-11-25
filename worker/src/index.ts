@@ -15,6 +15,7 @@ import { eraseKeptSetup, queueKeptPhotoCleanupForUser, retryKeptPhotoCleanup, se
 import { serveGuestBookReview } from './sessionGuestBook';
 import { attachPublicTeawareDetails } from './teawareDetails';
 import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
+import { readOrderUpdateEmail } from './orderUpdateEmail';
 import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
 import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
@@ -15062,6 +15063,8 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
   if (whatsappConsent && !whatsappRecipient) {
     return json({ error: 'Enter your WhatsApp number with + and country code to request a confirmation.' }, 400);
   }
+  const updateEmail = readOrderUpdateEmail(body.update_email);
+  if (updateEmail.error) return json({ error: updateEmail.error }, 400);
 
   let itemsStr: string;
   let totalUsd: number;
@@ -15275,7 +15278,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       const customerPhone = inquiryPhone(phoneCandidate) || inquiryPhone(contact);
       const shippingTarget = env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED === 'true' && env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID === accountId
         ? await prepareShippingNotificationTarget(env.DB, env, { accountId, inquiryId: requestId,
-          trackingToken: normalized.value.trackingToken, email: inquiryEmail(contact) ? contact : null,
+          trackingToken: normalized.value.trackingToken, email: inquiryEmail(contact) ? contact : updateEmail.email,
           whatsappNumber: whatsappRecipient, whatsappConsentAt: whatsappRecipient ? new Date().toISOString() : null })
         : null;
       let invoiceNumber = '';

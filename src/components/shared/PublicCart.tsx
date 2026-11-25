@@ -9,6 +9,7 @@ import { resolveContactChannels } from '../../lib/contact';
 import { useRates } from '../../admin/hooks/useAdminData';
 import { useShopPrice } from '../shop/shopPrice';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
+import { WHATSAPP_UPDATES_DEFAULT, WhatsAppUpdatesConsent, updateEmailError, updateEmailForRequest } from './WhatsAppUpdatesConsent';
 import { isoCurrencyCode } from '../../lib/currency';
 import { formatPersonalTeaMoney } from '../../lib/personalTeaMoney';
 import { Button } from './Button';
@@ -85,7 +86,8 @@ function requestIdentity(payloadKey: string) {
 export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, cart, onRemoveItem, onUpdateQuantity, onUpdatePacks, onAddItem, isOpen, whatsappNumber, contactEmail, canBePaid, checkoutState = 'ready', onRetryStore, onClose }) => {
   const isBaliStore = storeSlug === 'teajia-bali';
   const [details, setDetails] = useState(() => readCheckoutDetails(isBaliStore));
-  const [whatsappConsent, setWhatsappConsent] = useState(false);
+  const [whatsappConsent, setWhatsappConsent] = useState(WHATSAPP_UPDATES_DEFAULT);
+  const [updateEmail, setUpdateEmail] = useState('');
   const [replyChoice, setReplyChoice] = useState<'whatsapp' | 'website' | null>(() => (readCheckoutDetails(isBaliStore).contact.includes('@') ? 'website' : null));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -145,7 +147,6 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
   }, [placedOrder]);
 
   const updateDetail = (field: keyof CheckoutDetails, value: string) => {
-    if (field === 'contact') setWhatsappConsent(false);
     setDetails(previous => ({ ...previous, [field]: value }));
     setErrors(previous => ({ ...previous, [field]: '' }));
     setCheckoutError(null);
@@ -164,6 +165,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
     const requestWhatsApp = channel === 'whatsapp' && whatsappConsent;
     if (requestWhatsApp && !internationalWhatsAppNumber(details.contact)) nextErrors.contact = 'Include + and your country code, for example +62…';
     if (requestWhatsApp && internationalWhatsAppNumber(details.contact)?.slice(1) === whatsappNumber?.replace(/\D/g, '')) nextErrors.contact = 'Enter your own WhatsApp number, rather than the store’s number.';
+    const emailError = channel === 'whatsapp' ? updateEmailError(whatsappConsent, updateEmail) : null;
+    if (emailError) nextErrors.updateEmail = emailError;
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
@@ -191,7 +194,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
       pendingIdentity.current = identity;
       try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, customer_location: location, delivery_address: deliveryAddress || undefined, delivery_city: isBaliStore && isUsDelivery(details) ? details.location.trim() : undefined, delivery_state: isBaliStore && isUsDelivery(details) ? details.state.trim().toUpperCase() : undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, update_email: channel === 'whatsapp' ? updateEmailForRequest(whatsappConsent, updateEmail) : undefined, customer_location: location, delivery_address: deliveryAddress || undefined, delivery_city: isBaliStore && isUsDelivery(details) ? details.location.trim() : undefined, delivery_state: isBaliStore && isUsDelivery(details) ? details.state.trim().toUpperCase() : undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
         const original = cart.find(item => item.id === line.product_id && item.quantityGrams === line.quantity);
@@ -209,7 +212,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       });
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
-      setWhatsappConsent(false);
+      setWhatsappConsent(WHATSAPP_UPDATES_DEFAULT);
       setPlacedOrder({ request, items: savedItems, total: formatTotal(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? formatTotal(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
@@ -331,7 +334,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               <legend className={`${T.h3} text-tea-text mb-3`}>How we reply</legend>
               <div className={`grid gap-1 ${channels.whatsapp ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {REPLY_TILES.filter(([value]) => channels.whatsapp || value === 'website').map(([value, main, sub]) => <label key={value} className={checkoutTile(replyMode === value)}>
-                  <input type="radio" name="reply-channel" value={value} aria-label={main} checked={replyMode === value} onChange={() => { if (value !== replyMode) updateDetail('contact', ''); setReplyChoice(value); setWhatsappConsent(false); setErrors({}); }} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
+                  <input type="radio" name="reply-channel" value={value} aria-label={main} checked={replyMode === value} onChange={() => { if (value !== replyMode) updateDetail('contact', ''); setReplyChoice(value); setWhatsappConsent(WHATSAPP_UPDATES_DEFAULT); setErrors({}); }} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
                   <span className="font-body text-ui-15 leading-tight">{main}</span>{' '}<span className="font-body text-ui-12 leading-tight text-tea-text-sec">{sub}</span>
                 </label>)}
               </div>
@@ -339,10 +342,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             </fieldset>
             {field('name', 'Your name', { autoComplete: 'name' })}
             {field('contact', replyMode === 'website' ? 'Your email address' : 'Your WhatsApp number', { type: replyMode === 'website' ? 'email' : 'tel', inputMode: replyMode === 'website' ? 'email' : 'tel', autoComplete: replyMode === 'website' ? 'email' : 'tel', placeholder: replyMode === 'website' ? 'you@example.com' : '+62… (optional)' })}
-            {channel === 'whatsapp' && <div className="space-y-1">
-              <label className="checkout-channel font-body text-ui-13 text-tea-text"><input type="checkbox" checked={whatsappConsent} onChange={event => setWhatsappConsent(event.target.checked)} style={{ accentColor: 'rgb(var(--tea-gold-rgb))' }} />Send me order and shipping payment updates from {storeName} on WhatsApp (optional)</label>
-              <p className={`${T.bodyLight} text-tea-text-sec`}>I agree to receive confirmation, shipping payment links and replies about this order at this number. Automatic messages depend on availability; your order is saved even if a message does not arrive.</p>
-            </div>}
+            {channel === 'whatsapp' && <WhatsAppUpdatesConsent storeName={storeName} consent={whatsappConsent} onConsent={setWhatsappConsent} email={updateEmail} onEmail={value => { setUpdateEmail(value); setErrors(previous => ({ ...previous, updateEmail: '' })); }} error={errors.updateEmail} />}
             <details><summary className="checkout-text-action text-ui-13 cursor-pointer">Add a note (optional)</summary><label htmlFor="checkout-notes" className="sr-only">Order note</label><textarea id="checkout-notes" value={details.notes} onChange={event => updateDetail('notes', event.target.value)} className="checkout-input mt-2" rows={3} /></details>
           </fieldset>
         </form>}
