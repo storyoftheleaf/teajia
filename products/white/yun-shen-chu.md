@@ -8,7 +8,7 @@ origin: "Yunnan, China"
 grams: Unknown
 stock: Unknown
 cost: "420 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "delicate floral"

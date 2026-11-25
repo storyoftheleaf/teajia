@@ -8,7 +8,7 @@ origin: "Menghai, Yunnan, China"
 grams: 500
 stock: Unknown
 cost: "340 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "dark honey"

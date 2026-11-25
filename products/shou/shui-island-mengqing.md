@@ -8,7 +8,7 @@ origin: "Lincang, Yunnan, China"
 grams: 200
 stock: Unknown
 cost: "72 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "sweet earth"

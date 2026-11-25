@@ -8,7 +8,7 @@ origin: "Yunnan, China"
 grams: 50
 stock: Unknown
 cost: "200 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "honey"

@@ -8,7 +8,7 @@ origin: "Yunnan, China"
 grams: 1300
 stock: Unknown
 cost: "1176 RMB"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "smooth earth"

@@ -8,7 +8,7 @@ origin: "Menghai, Yunnan, China"
 grams: 1750
 stock: 1750
 cost: "945 Yuan"
-vendor: "Yunan Fam"
+vendor: "Lao Zhang"
 restockable: true
 tastingNotes:
   - "aged sweetness"
