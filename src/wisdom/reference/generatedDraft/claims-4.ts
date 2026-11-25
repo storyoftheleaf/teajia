@@ -5,6 +5,75 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "san-he-liu-bao:aging-warehouse",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "aging-warehouse",
+    "label": "A warehouse built for aging",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
+    "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
+    "sourceIds": [
+      "cns-wuzhou-aging-warehouse"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
+        "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-AC2A67D3B1B5B15ED4E41970"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "san-he-liu-bao:basket-weavers",
+    "pageId": "san-he-liu-bao",
+    "sectionKey": "basket-weavers",
+    "label": "The basket makers",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "san-he-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Baskets used by Wuzhou Tea Factory.",
+    "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
+    "sourceIds": [
+      "china-coop-san-he-baskets"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Baskets used by Wuzhou Tea Factory.",
+        "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-01935FA9B3ED16A899C96AE0",
+          "EVIDENCE-3C9F563CB37502F0AAAE5274"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "san-he-liu-bao:cold-water-piling",
     "pageId": "san-he-liu-bao",
     "sectionKey": "cold-water-piling",
@@ -883,66 +952,6 @@ export const PART: readonly DraftClaim[] = [
         "origin": "approved",
         "scope": "Yunnan state factories, 1973 to 1975",
         "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-history",
-    "pageId": "shou",
-    "sectionKey": "piling-history",
-    "label": "How piling came to be",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Trade history before 1973",
-    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Trade history before 1973",
-        "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-today",
-    "pageId": "shou",
-    "sectionKey": "piling-today",
-    "label": "Piling today",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Current factory practice in general",
-    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Current factory practice in general",
-        "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
         "approvedAt": "2026-11-23",
         "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
         "evidenceIds": []

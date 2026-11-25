@@ -51,6 +51,8 @@ export interface ClaimAppliesWhen {
   origin_includes?: readonly string[];
   /** Only valid together with origin_includes: a name may corroborate a recorded place, never supply one. */
   name_includes?: readonly string[];
+  /** Only valid together with origin_includes: at least one value is in the name. For a tea known by two names. */
+  name_any?: readonly string[];
   /** normalizeTeaForm output. */
   form?: string;
 }

@@ -103,6 +103,12 @@ describe('resolveListingPassages: contract rules', () => {
     expect(appliesTo({ origin_includes: [] }, facts)).toBe(false);
   });
 
+  it('matches name_any on any one name, and only beside origin_includes', () => {
+    expect(appliesTo({ origin_includes: ['mengsong'], name_any: ['naka', 'lapsang'] }, facts)).toBe(true);
+    expect(appliesTo({ origin_includes: ['mengsong'], name_any: ['lapsang', 'zhengshan'] }, facts)).toBe(false);
+    expect(appliesTo({ name_any: ['naka'] }, facts)).toBe(false);
+  });
+
   it('refuses name_includes without origin_includes', () => {
     expect(appliesTo({ name_includes: ['naka'] }, facts)).toBe(false);
     expect(appliesTo({ origin_includes: ['mengsong'], name_includes: ['naka'] }, facts)).toBe(true);

@@ -29,12 +29,12 @@
     ],
     "brewing": {
       "layer": "brewing",
-      "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea."
+      "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf."
     },
     "notice": {
       "layer": "notice",
-      "styleName": "Lapsang Souchong",
-      "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers."
+      "styleName": "red tea",
+      "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
     },
     "missing": [
       "A Wisdom entry for its place, or a more specific origin",
@@ -57,15 +57,15 @@
       "rev": 1
     },
     {
-      "claimId": "lapsang:brewing",
+      "claimId": "red:brewing",
       "rev": 1
     },
     {
-      "claimId": "lapsang:common-impressions",
+      "claimId": "red:common-impressions",
       "rev": 1
     }
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-24T15:14:34.092Z"
+  "approvedAt": "2026-11-25T02:41:13.368Z"
 }

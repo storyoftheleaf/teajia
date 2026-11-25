@@ -5,6 +5,91 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "tieguanyin:styles",
+    "pageId": "tieguanyin",
+    "sectionKey": "styles",
+    "label": "Light, roasted and aged",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "anxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "清香",
+        "pinyin": "qīngxiāng",
+        "gloss": "light fragrance"
+      },
+      {
+        "original": "浓香",
+        "pinyin": "nóngxiāng",
+        "gloss": "strong fragrance"
+      },
+      {
+        "original": "陈香",
+        "pinyin": "chénxiāng",
+        "gloss": "aged fragrance"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+    "text": "Anxi Tieguanyin is sorted by style. The light-fragrance kind, qingxiang, is lightly oxidised and lightly roasted or not roasted at all, with a fresh orchid fragrance and a green-gold liquor. The strong-fragrance kind, nongxiang, is more oxidised and roasted, with a darker leaf, a gold to amber liquor and toasted, caramel and fruit notes. A third kind, chenxiang or old Tie, is Tieguanyin kept for years. The roasted style is the older one; the light green style is newer and took over in Anxi from the 1990s, and the roasted style is said to be slowly coming back.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
+        "text": "Anxi Tieguanyin is sorted by style. The light-fragrance kind, qingxiang, is lightly oxidised and lightly roasted or not roasted at all, with a fresh orchid fragrance and a green-gold liquor. The strong-fragrance kind, nongxiang, is more oxidised and roasted, with a darker leaf, a gold to amber liquor and toasted, caramel and fruit notes. A third kind, chenxiang or old Tie, is Tieguanyin kept for years. The roasted style is the older one; the light green style is newer and took over in Anxi from the 1990s, and the roasted style is said to be slowly coming back.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "white:ageing",
+    "pageId": "white",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing white tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White"
+    },
+    "terms": [
+      {
+        "original": "老白茶",
+        "pinyin": "lǎo bái chá",
+        "gloss": "old white tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+        "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "white:brewing",
     "pageId": "white",
     "sectionKey": "brewing",
@@ -867,88 +952,6 @@ export const PART: readonly DraftClaim[] = [
         "origin": "approved",
         "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
         "text": "Meizhan is a Fujian cultivar that came from Anxi, and it is also made as Wuyi rock tea. It is less famous than Rougui and Shui Xian and is not one of the four famous bushes of Wuyi.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:notice-aged",
-    "pageId": "yancha",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Wuyi rock tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:roast-levels",
-    "pageId": "yancha",
-    "sectionKey": "roast-levels",
-    "label": "Light, medium and full roast",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "轻火",
-        "pinyin": "qīng huǒ",
-        "gloss": "light roast"
-      },
-      {
-        "original": "中火",
-        "pinyin": "zhōng huǒ",
-        "gloss": "medium roast"
-      },
-      {
-        "original": "足火",
-        "pinyin": "zú huǒ",
-        "gloss": "full roast"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Wuyi tea is labelled by its roast. Light roast keeps bright floral notes and is for drinking early. Medium roast is the balanced middle, floral and fruity together. Full roast shows the clearest charcoal and fire notes and keeps the longest. A freshly roasted tea is rested so the fire note settles, and the heavier the roast, the longer the rest.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Wuyi tea is labelled by its roast. Light roast keeps bright floral notes and is for drinking early. Medium roast is the balanced middle, floral and fruity together. Full roast shows the clearest charcoal and fire notes and keeps the longest. A freshly roasted tea is rested so the fire note settles, and the heavier the roast, the longer the rest.",
         "approvedAt": "2026-11-24",
         "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
         "evidenceIds": []

@@ -834,6 +834,10 @@ export const PART: readonly DraftClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [],
@@ -867,6 +871,10 @@ export const PART: readonly DraftClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [],
@@ -900,6 +908,10 @@ export const PART: readonly DraftClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [],
@@ -914,55 +926,6 @@ export const PART: readonly DraftClaim[] = [
         "origin": "approved",
         "scope": "Lapsang and Wuyi red style kit",
         "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:definition",
-    "pageId": "lapsang",
-    "sectionKey": "definition",
-    "label": "What Lapsang Souchong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "正山小种",
-        "pinyin": "zhèngshān xiǎozhǒng",
-        "gloss": "true mountain small kind"
-      },
-      {
-        "original": "桐木",
-        "pinyin": "tóngmù",
-        "gloss": "Tongmu"
-      },
-      {
-        "original": "外山",
-        "pinyin": "wàishān",
-        "gloss": "outer mountain"
-      }
-    ],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
         "approvedAt": "2026-11-24",
         "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
         "evidenceIds": []

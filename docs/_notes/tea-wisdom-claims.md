@@ -132,6 +132,7 @@ On a listing they appear only in the last block, labelled "Style reference", wit
 - `type`, `grade` and `form` use exact equality.
 - `origin_includes` uses whole-part equality: every listed value must equal one `originParts` entry.
 - `name_includes` means every value is in `nameTokens`. It is valid only together with `origin_includes`.
+- `name_any` means at least one value is in `nameTokens`, for a tea sold under two names (Lapsang Souchong, Zhengshan Xiaozhong). It is also valid only together with `origin_includes`.
 
 The three pilot cases:
 

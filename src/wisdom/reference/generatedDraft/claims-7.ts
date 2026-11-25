@@ -5,6 +5,88 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "yancha:notice-aged",
+    "pageId": "yancha",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Wuyi rock tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
+    "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
+        "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "yancha:roast-levels",
+    "pageId": "yancha",
+    "sectionKey": "roast-levels",
+    "label": "Light, medium and full roast",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "轻火",
+        "pinyin": "qīng huǒ",
+        "gloss": "light roast"
+      },
+      {
+        "original": "中火",
+        "pinyin": "zhōng huǒ",
+        "gloss": "medium roast"
+      },
+      {
+        "original": "足火",
+        "pinyin": "zú huǒ",
+        "gloss": "full roast"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
+    "text": "Wuyi tea is labelled by its roast. Light roast keeps bright floral notes and is for drinking early. Medium roast is the balanced middle, floral and fruity together. Full roast shows the clearest charcoal and fire notes and keeps the longest. A freshly roasted tea is rested so the fire note settles, and the heavier the roast, the longer the rest.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
+        "text": "Wuyi tea is labelled by its roast. Light roast keeps bright floral notes and is for drinking early. Medium roast is the balanced middle, floral and fruity together. Full roast shows the clearest charcoal and fire notes and keeps the longest. A freshly roasted tea is rested so the fire note settles, and the heavier the roast, the longer the rest.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "yancha:rock-rhyme",
     "pageId": "yancha",
     "sectionKey": "rock-rhyme",

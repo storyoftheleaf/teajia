@@ -5,6 +5,55 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "lapsang:definition",
+    "pageId": "lapsang",
+    "sectionKey": "definition",
+    "label": "What Lapsang Souchong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [
+      {
+        "original": "正山小种",
+        "pinyin": "zhèngshān xiǎozhǒng",
+        "gloss": "true mountain small kind"
+      },
+      {
+        "original": "桐木",
+        "pinyin": "tóngmù",
+        "gloss": "Tongmu"
+      },
+      {
+        "original": "外山",
+        "pinyin": "wàishān",
+        "gloss": "outer mountain"
+      }
+    ],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "lapsang:history",
     "pageId": "lapsang",
     "sectionKey": "history",
@@ -55,6 +104,10 @@ export const PART: readonly DraftClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [
@@ -94,6 +147,10 @@ export const PART: readonly DraftClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [],
@@ -127,6 +184,10 @@ export const PART: readonly DraftClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [
@@ -886,75 +947,6 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": [
           "EVIDENCE-A3F7299E9399CE865CCF9A5D",
           "EVIDENCE-3D052B7C680B4561B8BEB047"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:common-character",
-    "pageId": "menghai-county",
-    "sectionKey": "common-character",
-    "label": "A forceful reputation",
-    "axis": "sensory_observation",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "attribution": {
-      "sourceId": "teadb-menghai-county",
-      "sourceRole": "specialist_editorial",
-      "sample": "Regional convention reported in specialist writing about Menghai County"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Menghai County",
-        "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-5F496A300F5E710FC8FA80B0"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:history",
-    "pageId": "menghai-county",
-    "sectionKey": "history",
-    "label": "Factory-era importance",
-    "axis": "maker_history",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Menghai County",
-        "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-FEBD2174326734F21F2CFF3B"
         ]
       }
     ],

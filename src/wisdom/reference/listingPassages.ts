@@ -37,12 +37,13 @@ function hasValues(values: readonly string[] | undefined): values is readonly st
 /**
  * Keys are ANDed. An empty object never matches. `name_includes` is only valid
  * beside `origin_includes`: a name may corroborate a recorded place, never
- * supply one. An empty list counts as a malformed condition and never matches.
+ * supply one; `name_any` likewise, matching when any one value is in the name. An empty list counts as a malformed condition and never matches.
  */
 export function appliesTo(when: ClaimAppliesWhen, facts: ListingFacts): boolean {
   const keys = (Object.keys(when) as (keyof ClaimAppliesWhen)[]).filter(key => when[key] !== undefined);
   if (keys.length === 0) return false;
   if (when.name_includes !== undefined && when.origin_includes === undefined) return false;
+  if (when.name_any !== undefined && when.origin_includes === undefined) return false;
 
   if (when.named_tea !== undefined && when.named_tea !== facts.namedTeaId) return false;
   if (when.type !== undefined && when.type !== facts.type) return false;
@@ -56,6 +57,10 @@ export function appliesTo(when: ClaimAppliesWhen, facts: ListingFacts): boolean 
     if (!hasValues(when.name_includes)) return false;
     if (!when.name_includes.every(value => facts.nameTokens.includes(value))) return false;
   }
+  if (when.name_any !== undefined) {
+    if (!hasValues(when.name_any)) return false;
+    if (!when.name_any.some(value => facts.nameTokens.includes(value))) return false;
+  }
   return true;
 }
 
@@ -66,7 +71,8 @@ export function conditionCount(when: ClaimAppliesWhen): number {
     + (when.grade !== undefined ? 1 : 0)
     + (when.form !== undefined ? 1 : 0)
     + (when.origin_includes?.length ?? 0)
-    + (when.name_includes?.length ?? 0);
+    + (when.name_includes?.length ?? 0)
+    + (when.name_any !== undefined ? 1 : 0);
 }
 
 function isPublic(claim: PublicClaim): boolean {

@@ -5,6 +5,75 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "menghai-county:common-character",
+    "pageId": "menghai-county",
+    "sectionKey": "common-character",
+    "label": "A forceful reputation",
+    "axis": "sensory_observation",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "attribution": {
+      "sourceId": "teadb-menghai-county",
+      "sourceRole": "specialist_editorial",
+      "sample": "Regional convention reported in specialist writing about Menghai County"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:history",
+    "pageId": "menghai-county",
+    "sectionKey": "history",
+    "label": "Factory-era importance",
+    "axis": "maker_history",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-FEBD2174326734F21F2CFF3B"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "menghai-county:mengsong-naka",
     "pageId": "menghai-county",
     "sectionKey": "mengsong-naka",
@@ -874,75 +943,6 @@ export const PART: readonly DraftClaim[] = [
         "approvedAt": "2026-11-24",
         "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
         "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:aging-warehouse",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "aging-warehouse",
-    "label": "A warehouse built for aging",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
-    "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
-    "sourceIds": [
-      "cns-wuzhou-aging-warehouse"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Wuzhou Tea Factory’s aging warehouse as reported in 2019.",
-        "text": "In 2019 reporters stepped into Wuzhou Tea Factory’s brick-and-timber aging warehouse. Work on it began in 1953, the year the factory opened. Factory staff explained that the porous wooden boards help moderate moisture and temperature while the tea rests after fermentation.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-AC2A67D3B1B5B15ED4E41970"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "san-he-liu-bao:basket-weavers",
-    "pageId": "san-he-liu-bao",
-    "sectionKey": "basket-weavers",
-    "label": "The basket makers",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "san-he-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Baskets used by Wuzhou Tea Factory.",
-    "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
-    "sourceIds": [
-      "china-coop-san-he-baskets"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Baskets used by Wuzhou Tea Factory.",
-        "text": "Wuzhou Tea Factory uses handwoven bamboo baskets for its Three Cranes teas. The weave holds its shape and lets air pass through while the tea rests. The supply cooperative describes a network of village weavers, including older residents who earn an income making the baskets.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-01935FA9B3ED16A899C96AE0",
-          "EVIDENCE-3C9F563CB37502F0AAAE5274"
-        ]
       }
     ],
     "pageVisibility": "public"

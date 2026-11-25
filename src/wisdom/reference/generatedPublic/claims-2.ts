@@ -3,6 +3,27 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "liu-bao:nanyang-trade",
+    "pageId": "liu-bao",
+    "sectionKey": "nanyang-trade",
+    "label": "Who drank it, and why",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 2,
+    "scope": "Liu Bao tea",
+    "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "liu-bao:notice-aged",
     "pageId": "liu-bao",
     "sectionKey": "notice-aged",

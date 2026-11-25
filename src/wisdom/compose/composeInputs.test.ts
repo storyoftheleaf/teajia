@@ -112,6 +112,20 @@ describe('composeInputs for any kit', () => {
     expect(type).toContain('red:definition');
     expect(ids(inputs.layers.age)).toEqual(['lapsang:ageing']);
     expect(inputs.fixed.notice?.styleName).toBe('aged Lapsang Souchong');
+    const zhengshan = composeInputs({ ...lapsang, id: 'zs', product_name: 'Zhengshan Xiaozhong', year: null }, claims, { thisYear: 2026, pages });
+    expect(zhengshan.fixed.claimIds).toContain('lapsang:brewing');
+  });
+
+  it('keeps the smoke out of a Wuyi red tea that is not Lapsang', () => {
+    const zhuangyuan = { id: 'zy', product_name: 'Zhuangyuan Hong', type: 'Red', form: 'Loose', year: null, origin_region: 'Wuyi Mountains, Fujian', origin_country: 'China' };
+    const inputs = composeInputs(zhuangyuan, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type).toContain('lapsang:history');
+    expect(type).not.toContain('lapsang:smoke');
+    expect(type).not.toContain('lapsang:making');
+    expect(inputs.fixed.claimIds).toEqual(expect.arrayContaining(['red:brewing', 'red:common-impressions']));
+    expect(inputs.fixed.claimIds).not.toContain('lapsang:brewing');
+    expect(inputs.fixed.notice?.text).not.toMatch(/smoke/i);
   });
 
   it('gives a dark tea outside Guangxi only the family kit', () => {

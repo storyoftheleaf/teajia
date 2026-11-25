@@ -456,6 +456,10 @@ export const PART: readonly PublicClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [],
@@ -477,6 +481,10 @@ export const PART: readonly PublicClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [],
@@ -498,6 +506,10 @@ export const PART: readonly PublicClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [],
@@ -583,6 +595,10 @@ export const PART: readonly PublicClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [
@@ -610,6 +626,10 @@ export const PART: readonly PublicClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [],
@@ -631,6 +651,10 @@ export const PART: readonly PublicClaim[] = [
       "type": "Red",
       "origin_includes": [
         "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [
@@ -930,27 +954,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "Liu Bao tea",
     "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:nanyang-trade",
-    "pageId": "liu-bao",
-    "sectionKey": "nanyang-trade",
-    "label": "Who drank it, and why",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 2,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
     "sourceIds": [],
     "reviewState": "approved"
   }

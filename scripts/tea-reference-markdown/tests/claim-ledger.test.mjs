@@ -174,6 +174,7 @@ test('claim metadata rules are enforced', async () => {
     [{ attribution: { source_id: 'source-a', source_role: 'study', sample: 'Sample' } }, /only for sensory_observation/],
     [{ axis: 'maker_history', listing_eligible: true }, /never listing-eligible/],
     [{ applies_when: { name_includes: ['naka'] } }, /only valid together with origin_includes/],
+    [{ applies_when: { name_any: ['naka'] } }, /name_any is only valid together with origin_includes/],
     [{ terms: [{ original: 'gongting', pinyin: 'gōngtíng', gloss: 'palace' }] }, /must contain Han script/],
     [{ revisions: [revision(1, '宫廷 grade.')] }, /must not contain Han script/],
     [{ revisions: [revision(1, 'Text.', { evidence_ids: [] })] }, /needs evidence_ids/],

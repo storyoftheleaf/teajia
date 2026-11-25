@@ -5,6 +5,66 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "shou:piling-history",
+    "pageId": "shou",
+    "sectionKey": "piling-history",
+    "label": "How piling came to be",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Trade history before 1973",
+    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Trade history before 1973",
+        "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:piling-today",
+    "pageId": "shou",
+    "sectionKey": "piling-today",
+    "label": "Piling today",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Current factory practice in general",
+    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Current factory practice in general",
+        "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "shou:wet-piling",
     "pageId": "shou",
     "sectionKey": "wet-piling",
@@ -870,91 +930,6 @@ export const PART: readonly DraftClaim[] = [
         "text": "Osmanthus Tieguanyin is a scented tea. Fresh osmanthus flowers are layered with the finished tea, which takes up their scent, and the tea is then dried again.",
         "approvedAt": "2026-11-24",
         "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tieguanyin:styles",
-    "pageId": "tieguanyin",
-    "sectionKey": "styles",
-    "label": "Light, roasted and aged",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "清香",
-        "pinyin": "qīngxiāng",
-        "gloss": "light fragrance"
-      },
-      {
-        "original": "浓香",
-        "pinyin": "nóngxiāng",
-        "gloss": "strong fragrance"
-      },
-      {
-        "original": "陈香",
-        "pinyin": "chénxiāng",
-        "gloss": "aged fragrance"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "Anxi Tieguanyin is sorted by style. The light-fragrance kind, qingxiang, is lightly oxidised and lightly roasted or not roasted at all, with a fresh orchid fragrance and a green-gold liquor. The strong-fragrance kind, nongxiang, is more oxidised and roasted, with a darker leaf, a gold to amber liquor and toasted, caramel and fruit notes. A third kind, chenxiang or old Tie, is Tieguanyin kept for years. The roasted style is the older one; the light green style is newer and took over in Anxi from the 1990s, and the roasted style is said to be slowly coming back.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-        "text": "Anxi Tieguanyin is sorted by style. The light-fragrance kind, qingxiang, is lightly oxidised and lightly roasted or not roasted at all, with a fresh orchid fragrance and a green-gold liquor. The strong-fragrance kind, nongxiang, is more oxidised and roasted, with a darker leaf, a gold to amber liquor and toasted, caramel and fruit notes. A third kind, chenxiang or old Tie, is Tieguanyin kept for years. The roasted style is the older one; the light green style is newer and took over in Anxi from the 1990s, and the roasted style is said to be slowly coming back.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "white:ageing",
-    "pageId": "white",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing white tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White"
-    },
-    "terms": [
-      {
-        "original": "老白茶",
-        "pinyin": "lǎo bái chá",
-        "gloss": "old white tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Well-made, dry white tea is kept to age, and the trade speaks of new white tea and old white tea, lao bai cha. Over the years it changes rather than going stale: the fresh hay and floral notes give way to honey, dried fruit, jujube, herbs and wood, the liquor turns deeper and redder, and the body rounder and thicker. There is no agreed number of years at which white tea counts as aged. Keep it dry, sealed and away from light, damp and strong smells.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
         "evidenceIds": []
       }
     ],
