@@ -437,6 +437,58 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ]
     },
     {
+      "id": "green",
+      "slug": "green",
+      "kind": "tea_family",
+      "label": "Green tea (lü cha)",
+      "nativeName": "绿茶",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What green tea is",
+          "text": "Green tea is the tea whose leaf is never allowed to oxidise. Soon after picking, the leaf is heated, and the heat stops the leaf’s own enzymes before they can turn it brown, so it keeps its green colour and its fresh, leafy taste. That sets it apart from red tea, where the change is let run to the end, and from oolong, where it is stopped halfway. Green tea is made in many provinces of China, Zhejiang, Jiangsu and Anhui among them, and in Japan, Taiwan and elsewhere.",
+          "sourceIds": []
+        },
+        {
+          "key": "making",
+          "label": "How green tea is made",
+          "text": "Green tea is made in three steps, and each has a reason. First the leaf is fixed, heated fast in a hot pan or drum, or with steam, to stop the enzymes; the Chinese trade calls this killing the green, and it is the step that makes the tea green. Then the leaf is rolled, twisted and pressed, so it takes its shape and lets out a little juice. Last it is dried, by pan, oven heat or sun, until only a few percent of water is left, so it keeps and does not go mouldy.",
+          "sourceIds": []
+        },
+        {
+          "key": "styles",
+          "label": "The main styles",
+          "text": "Green tea is sorted by how it is fixed and how it is dried. Pan-fired tea is dried in the pan and is the usual Chinese way; West Lake Longjing from Zhejiang, flat and straight, is the best-known example, and Biluochun from Jiangsu is curled into small snails. Steamed tea is fixed with steam, which is the usual Japanese way, and it gives a deeper green leaf and a grassier, sometimes seaweed-like taste. Oven-dried tea is dried over gentle heat after fixing, which leaves the leaf looser and keeps more of its white down. Sun-dried tea is dried in sunlight.",
+          "sourceIds": []
+        },
+        {
+          "key": "anhui",
+          "label": "Anhui green tea",
+          "text": "Anhui is one of the main green tea provinces of China. Its best-known green tea is Huangshan Maofeng, from the Huangshan mountains: a slightly curled leaf covered in fine white down, fixed and then dried over gentle heat rather than in a pan, which is why it counts as oven-dried and not pan-fired.",
+          "sourceIds": []
+        },
+        {
+          "key": "ageing",
+          "label": "Keeping green tea",
+          "text": "Green tea is a tea to drink fresh. The sources read give its best time as within about a year of picking, and a shelf life of a year or two when it is sealed. After that it goes flat: the fresh smell fades and the cup turns dull. Nothing read describes a tradition of ageing green tea, and it does not mature the way pu’er or white tea can. Keep it sealed, dark, dry and away from strong smells. If a green tea is sold as old, what counts is how it was kept, because the type itself does not promise anything.",
+          "sourceIds": []
+        },
+        {
+          "key": "brewing",
+          "label": "Brewing green tea",
+          "text": "Green tea takes water well below the boil, about 80°C, a little cooler for the youngest leaf and a little warmer for older, larger leaf. Boiling water draws out bitterness and dries the cup. A common start is about 2 grams of leaf to 100 ml, in a glass or a small gaiwan, with short steeps of half a minute to two minutes, and the same leaf can be brewed a few times.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
       "id": "lapsang",
       "slug": "lapsang",
       "kind": "tea_type",
@@ -1231,6 +1283,77 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "key": "notice-aged",
           "label": "What people often notice in aged ripe pu’er",
           "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "sichuan-dark",
+      "slug": "sichuan-dark",
+      "kind": "tea_type",
+      "label": "Sichuan border tea",
+      "nativeName": "南路边茶",
+      "parentId": "dark",
+      "sourceIds": [],
+      "sections": [
+        {
+          "key": "definition",
+          "label": "What Sichuan border tea is",
+          "text": "Sichuan border tea is a dark tea made around Ya'an in western Sichuan and pressed into dense bricks for the Tibetan highlands. The trade has called it southern-route border tea, border-sale tea and, today, Ya'an Tibetan tea. It is made from mature leaf and red moss, the reddish stem and shoot pieces that come with the leaf, not from young buds. Coarse leaf was the choice for a tea that had to survive months on the road and then be boiled for hours. Two brick styles are sold today, Kangzhuan and Jinjian.",
+          "sourceIds": []
+        },
+        {
+          "key": "making",
+          "label": "How Sichuan border tea is made",
+          "text": "The making has two stages. First comes rough tea. The mature leaf is heated to stop its own enzymes, then steamed, rolled and piled in repeated rounds, so that warmth, moisture and microbes darken and mellow it. Accounts count the steps differently, from about 18 to more than 30. Then comes the brick. The rough tea is sorted and blended for the style, steamed, pressed and dried, and rested in a pile so that it keeps changing around the pressing. Accounts differ on whether the rest comes before or after the press. The steam softens the coarse leaf so that it holds together as a brick, and the blend is how the maker sets how much leaf and how much red moss go in.",
+          "sourceIds": []
+        },
+        {
+          "key": "kangzhuan-jinjian",
+          "label": "Kangzhuan and Jinjian",
+          "text": "Kangzhuan and Jinjian are the two bricks sold today, and some Chinese pages list a third, Kangjian. Both use mature leaf and red moss, and the usual way to tell them apart is the blend. Kangzhuan carries more leaf, and Jinjian carries more red moss and stem. The two names are for the blend, so they say nothing by themselves about where a brick was made or how old it is.",
+          "sourceIds": []
+        },
+        {
+          "key": "tea-horse-road",
+          "label": "The Tea Horse Road",
+          "text": "Tea from Ya'an went west for about a thousand years. Under the Tang and Song dynasties it was traded for Tibetan horses, and in the Song the state set up offices to run that trade. The Sichuan road ran from Ya'an to Kangding and on to Lhasa. Porters carried the bricks on their backs from Ya'an to Kangding, a walk of more than ten days, because the mountain track was too steep for loaded horses. At Kangding the tea was repacked and went on by mule and yak. Tibetans needed it every day, in a cold land where the diet is meat, butter and barley. Porters gave way to trucks in the middle of the twentieth century, when the highway to Tibet opened.",
+          "sourceIds": []
+        },
+        {
+          "key": "packing",
+          "label": "Strip packs and yak hide",
+          "text": "The bricks did not travel loose. They were bound into long packs of woven bamboo strips, called strip packs, and several were tied together for the road. At Kangding, tea going far into Tibet was sewn into yak hide. The hide was soaked, sewn around the load and hardened as it dried, which kept the tea dry and tight on a long journey.",
+          "sourceIds": []
+        },
+        {
+          "key": "butter-tea",
+          "label": "Butter tea",
+          "text": "In Tibet the brick is broken up and boiled for a long time, often for hours, until the liquor is very dark. The tea is strained and kept as a concentrate. A little is poured into a tall wooden churn with yak butter and salt and churned until the three are blended. It is served hot, in many bowls a day, and offered to every guest. Sichuan border tea has long been sent to Tibet for this.",
+          "sourceIds": []
+        },
+        {
+          "key": "ageing",
+          "label": "Keeping and ageing Sichuan border tea",
+          "text": "Sichuan border tea is kept for years, and the trade values older bricks more. With age the liquor turns redder and the cup grows milder and rounder, and a medicinal edge often appears, which sellers read as a sign of good storage. Keep the brick dry, clean and away from strong smells and direct sun. Do not drink a brick that smells musty or shows mould. How fast it changes depends on storage, and the trade does not agree on one best way to keep it.",
+          "sourceIds": []
+        },
+        {
+          "key": "brewing",
+          "label": "Brewing Sichuan border tea",
+          "text": "Break a few pieces from the edge of the brick, rinse them with boiling water and pour that off at once. Then use boiling water and plenty of leaf. The leaf is coarse and gives up its flavour slowly, so people brew it two ways. Some steep it in short gongfu pours, a little longer each time. Others use long steeps while the pot is still hot, or simmer the leaf for several minutes in a pot, which is the traditional way on the plateau.",
+          "sourceIds": []
+        },
+        {
+          "key": "common-impressions",
+          "label": "What people often notice",
+          "text": "A smooth, mellow cup with a red to dark brown liquor and a gentle sweetness, often with wood or earth.",
+          "sourceIds": []
+        },
+        {
+          "key": "notice-aged",
+          "label": "What people often notice in Sichuan border tea kept for years",
+          "text": "A redder, browner liquor, a rounder body and a medicinal edge, often with wood and a dark sweetness.",
           "sourceIds": []
         }
       ]

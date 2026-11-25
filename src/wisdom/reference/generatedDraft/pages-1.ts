@@ -427,7 +427,7 @@ export const PART: readonly DraftReferencePage[] = [
     "slug": "green",
     "kind": "tea_family",
     "label": "Green tea (lü cha)",
-    "visibility": "draft",
+    "visibility": "public",
     "nativeName": "绿茶",
     "sourceIds": [],
     "sections": [

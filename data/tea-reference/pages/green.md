@@ -5,7 +5,7 @@ kind: tea_family
 label: Green tea (lü cha)
 native_name: 绿茶
 parent: none
-visibility: draft
+visibility: public
 source_ids:
 ---
 
