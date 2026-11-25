@@ -165,7 +165,9 @@ describe('claim uses follow their blocks', () => {
       { type: 'paragraph', text: 'Gong Ting names fine, tender leaf.', blockId: 'grades' },
       { type: 'paragraph', text: 'Brew them side by side.', blockId: 'exercise' },
     ];
-    expect((await call(env, 'PUT', '/api/admin/articles/grade-draft', EDITOR, { blocks })).status).toBe(200);
+    // A save names the version it was made against, so each one reads the article first.
+    const review = async () => (await (await call(env, 'GET', '/api/admin/articles/grade-draft', EDITOR)).json() as { review_digest: string }).review_digest;
+    expect((await call(env, 'PUT', '/api/admin/articles/grade-draft', EDITOR, { blocks, review_digest: await review() })).status).toBe(200);
     await call(env, 'PUT', '/api/admin/articles/grade-draft/wisdom-claim-uses', EDITOR, { uses: [
       { block_index: 0, claim_id: 'gong-ting:common-impressions', rev_used: 1, use_kind: 'prose' },
       { block_index: 1, claim_id: 'gong-ting:definition', rev_used: 1, use_kind: 'prose' },
@@ -177,7 +179,7 @@ describe('claim uses follow their blocks', () => {
       blocks[2],
       blocks[1],
     ];
-    expect((await call(env, 'PUT', '/api/admin/articles/grade-draft', EDITOR, { blocks: next })).status).toBe(200);
+    expect((await call(env, 'PUT', '/api/admin/articles/grade-draft', EDITOR, { blocks: next, review_digest: await review() })).status).toBe(200);
     const rows = db.sqlite.prepare('SELECT block_index, claim_id FROM article_wisdom_claim_uses ORDER BY block_index').all();
     expect(rows).toEqual([
       { block_index: 1, claim_id: 'gong-ting:blending' },

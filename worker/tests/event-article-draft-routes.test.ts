@@ -51,7 +51,7 @@ class Statement {
     this.db.writes.push({ sql, values: this.values });
     if (sql.startsWith('insert into articles')) {
       const [id, account_id, title, subtitle, author_id, slug, category, tags, cover_image_url, blocks, layout_template, source_event_id] = this.values;
-      this.db.articles.push({ id, account_id, title, subtitle, author_id, slug, status: 'draft', category, tags, cover_image_url, blocks, layout_template, source_event_id, created_at: 'now', updated_at: 'now' });
+      this.db.articles.push({ id, account_id, title, subtitle, author_id, slug, status: 'draft', category, tags, cover_image_url, blocks, layout_template, source_event_id, review_snapshot: JSON.stringify([id, account_id, blocks]), created_at: 'now', updated_at: 'now' });
     }
     return { success: true, meta: { changes: 1 } };
   }
@@ -74,7 +74,7 @@ describe('event article draft endpoint', () => {
     const db = new Db();
     const created = await request(db);
     expect(created.status).toBe(201);
-    expect(await created.json()).toMatchObject({ existing: false, article: { status: 'draft', source_event_id: 'event-1', blocks: expect.any(Array) } });
+    expect(await created.json()).toMatchObject({ existing: false, article: { status: 'draft', source_event_id: 'event-1', blocks: expect.any(Array), review_digest: expect.stringMatching(/^[a-f0-9]{64}$/) } });
     const existing = await request(db);
     expect(existing.status).toBe(200);
     expect(await existing.json()).toMatchObject({ existing: true, article: { source_event_id: 'event-1' } });
