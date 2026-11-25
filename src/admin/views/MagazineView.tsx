@@ -7,7 +7,7 @@ import { useAppStore } from '../store';
 import { useToast } from '../components/Toast';
 import { ArticleEditorModal } from '../components/ArticleEditorModal';
 import { STATUS_PILL_STYLES } from '../constants';
-import type { DbArticle } from '../../types';
+import type { DbArticle, ReviewedDbArticle } from '../../types';
 import { useStepParam } from '../../hooks/useStepParam';
 
 type TabFilter = 'all' | 'draft' | 'published';
@@ -46,7 +46,7 @@ export const MagazineView: React.FC = () => {
   const tab: TabFilter = (['all', 'draft', 'published'] as const).includes(tabParam as TabFilter) ? tabParam as TabFilter : 'all';
   const setTab = (next: TabFilter) => stepTab(next);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingArticle, setEditingArticle] = useState<DbArticle | null>(null);
+  const [editingArticle, setEditingArticle] = useState<ReviewedDbArticle | null>(null);
   const [loadingArticleId, setLoadingArticleId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
@@ -69,7 +69,7 @@ export const MagazineView: React.FC = () => {
   const handleRowClick = async (article: DbArticle) => {
     setLoadingArticleId(article.id);
     try {
-      const fullArticle = await api.articles.get(article.id) as DbArticle;
+      const fullArticle = await api.articles.get(article.id);
       setEditingArticle(fullArticle);
       setEditorOpen(true);
     } catch (err) {

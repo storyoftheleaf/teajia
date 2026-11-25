@@ -7,10 +7,11 @@
 // Not linked anywhere; reachable only at /design/article-editor in dev.
 import { useState } from 'react';
 import { ArticleEditorModal } from '../admin/components/ArticleEditorModal';
-import type { DbArticle } from '../types';
+import type { ReviewedDbArticle } from '../types';
 
-const SAMPLE: DbArticle = {
+const SAMPLE: ReviewedDbArticle = {
   id: 'harness-article',
+  review_digest: 'a'.repeat(64),
   title: 'The Rock Remembers',
   subtitle: 'Wuyi, and the long lesson of fire',
   slug: 'the-rock-remembers',

@@ -1,17 +1,16 @@
-import type { DbArticle } from '../types';
+import type { ArticleDraftInput as ArticleDraft, ReviewedDbArticle } from '../types';
 
-type ArticleDraft = Partial<DbArticle>;
 type ArticleWrites = {
-  create: (draft: ArticleDraft) => Promise<DbArticle>;
-  update: (id: string, draft: ArticleDraft) => Promise<DbArticle>;
-  publish: (id: string) => Promise<unknown>;
-  unpublish: (id: string) => Promise<unknown>;
+  create: (draft: ArticleDraft) => Promise<ReviewedDbArticle>;
+  update: (id: string, draft: ArticleDraft, reviewDigest: string) => Promise<ReviewedDbArticle>;
+  publish: (id: string, reviewDigest: string) => Promise<ReviewedDbArticle>;
+  unpublish: (id: string, reviewDigest: string) => Promise<ReviewedDbArticle>;
 };
 
-// Serializes every write for one editor. Ordinary content writes never carry
-// status; only the dedicated publish/unpublish endpoint changes that field.
-export function createArticlePersistence(initialId: string | null, writes: ArticleWrites) {
-  let articleId = initialId;
+// Each write consumes the snapshot returned with the last accepted article.
+// The server compares it at the write, including across separate editors.
+export function createArticlePersistence(initial: ReviewedDbArticle | null, writes: ArticleWrites) {
+  let current = initial;
   let tail: Promise<unknown> = Promise.resolve();
 
   const enqueue = <T>(operation: () => Promise<T>): Promise<T> => {
@@ -20,25 +19,28 @@ export function createArticlePersistence(initialId: string | null, writes: Artic
     return result;
   };
 
-  const persist = async (draft: ArticleDraft): Promise<string> => {
-    const { status: _status, ...content } = draft;
-    if (articleId) {
-      await writes.update(articleId, content);
-    } else {
-      const created = await writes.create({ ...content, status: 'draft' });
-      if (!created.id) throw new Error('Article create did not return an ID');
-      articleId = created.id;
-    }
-    return articleId;
+  const reviewDigest = (article: ReviewedDbArticle) => {
+    if (!article.review_digest) throw new Error('Reopen this article to review the latest version.');
+    return article.review_digest;
+  };
+
+  const persist = async (draft: ArticleDraft): Promise<ReviewedDbArticle> => {
+    const { status: _status, published_at: _publishedAt, ...content } = draft;
+    current = current ? await writes.update(current.id, content, reviewDigest(current)) : await writes.create(content);
+    if (!current.id) throw new Error('Article save did not return an ID');
+    return current;
   };
 
   return {
-    save: (draft: ArticleDraft) => enqueue(() => persist(draft)),
+    hasPendingPublication: () => Boolean(current?.has_pending_revision),
+    save: (draft: ArticleDraft) => enqueue(async () => (await persist(draft)).id),
     setPublished: (draft: ArticleDraft, publish: boolean) => enqueue(async () => {
-      const id = await persist(draft);
-      if (publish) await writes.publish(id);
-      else await writes.unpublish(id);
-      return id;
+      const reviewed = publish ? await persist(draft) : current;
+      if (!reviewed) throw new Error('Save the article first.');
+      current = publish
+        ? await writes.publish(reviewed.id, reviewDigest(reviewed))
+        : await writes.unpublish(reviewed.id, reviewDigest(reviewed));
+      return current;
     }),
   };
 }

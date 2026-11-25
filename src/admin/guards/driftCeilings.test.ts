@@ -110,7 +110,7 @@ describe('very long files', () => {
     'src/components/SinglePageRenderer.tsx': 2300,
     'src/components/TeaCompass/CaptureCard.tsx': 2196,
     'src/components/TeaCompass/index.tsx': 1803,
-    'src/lib/api.ts': 5275,
+    'src/lib/api.ts': 5273,
     'src/pages/ArticlePage.tsx': 2969,
     'src/pages/DesignSystemShowcase.tsx': 2123,
     'src/samples/SampleSetCreator.tsx': 2009,
@@ -119,7 +119,11 @@ describe('very long files', () => {
   };
 
   const lineCount = (f: SourceFile) => f.text.split('\n').length - (f.text.endsWith('\n') ? 1 : 0);
-  const over = files.map(f => ({ rel: f.rel, lines: lineCount(f) })).filter(f => f.lines > LIMIT);
+  // A file a script writes (it says so on its first line) is data, not code
+  // anyone splits by hand: src/wisdom/reference/generatedPages.ts grows with
+  // every approved wisdom kit.
+  const isGenerated = (f: SourceFile) => /^\/\*\s*This file is generated\b/.test(f.text);
+  const over = files.filter(f => !isGenerated(f)).map(f => ({ rel: f.rel, lines: lineCount(f) })).filter(f => f.lines > LIMIT);
 
   it('no file that is not in the snapshot crosses 1,500 lines', () => {
     const fresh = over.filter(f => !(f.rel in SNAPSHOT)).map(f => `${f.rel} (${f.lines} lines)`);
