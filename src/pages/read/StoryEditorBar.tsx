@@ -11,6 +11,7 @@
  * to roll back to. Text-only labels, no icons, matches the brand.
  */
 import React, { useEffect, useState } from 'react';
+import { ApiError } from '../../lib/api';
 import { useStoryEdit } from './storyEdit';
 
 const IS_TOUCH = typeof window !== 'undefined' && (('ontouchstart' in window) || (navigator.maxTouchPoints ?? 0) > 0);
@@ -114,7 +115,7 @@ export const EditWord: React.FC = () => {
 const StoryEditorBar: React.FC<StoryEditorBarProps> = ({ corner = false, inBar = false }) => {
   const {
     isOwner, editing, setEditing, previewVisitor, setPreviewVisitor,
-    dirty, saving, publish, versions, refreshVersions, restore,
+    dirty, saving, canPublish, publish, versions, refreshVersions, restore,
     frames, photos,
   } = useStoryEdit();
   const [showHistory, setShowHistory] = useState(false);
@@ -221,8 +222,20 @@ const StoryEditorBar: React.FC<StoryEditorBarProps> = ({ corner = false, inBar =
           <button
             type="button"
             style={{ ...pill(false), borderColor: 'rgb(var(--tj-read-gold-rgb) / 0.7)', color: 'var(--tj-read-cream)' }}
-            disabled={publishing}
-            onClick={async () => { setPublishing(true); try { await publish(); setToast('Published. Live now.'); } catch { setToast('Publish failed. Try again.'); } finally { setPublishing(false); } }}
+            disabled={publishing || !canPublish}
+            onClick={async () => {
+              setPublishing(true);
+              try {
+                await publish();
+                setToast('Published. Live now.');
+              } catch (error) {
+                setToast(error instanceof ApiError && error.data?.code === 'stale_story_review'
+                  ? 'The draft changed. Reload to review it before publishing.'
+                  : 'Publish failed. Try again.');
+              } finally {
+                setPublishing(false);
+              }
+            }}
           >
             {publishing ? 'publishing…' : 'publish'}
           </button>

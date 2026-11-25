@@ -1,4 +1,5 @@
 /** Fixed-origin provider metadata gate; approval never depends on a browser or a send failure. */
+import {cleanSecret,buildRequestHeaders,InvalidRequestError} from './kapsoRequest';
 export interface ShippingWhatsAppApprovalEnv {
  SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED?: string;
  SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID?: string;
@@ -27,7 +28,7 @@ function configuration(env:ShippingWhatsAppApprovalEnv):Config|null {
  const template=env.SHIPPING_PAYMENT_TEMPLATE_NAME;
  const language=env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE;
  const version=env.WHATSAPP_GRAPH_API_VERSION;
- const credential=transport==='kapso'?env.KAPSO_API_KEY:transport==='meta'?env.WHATSAPP_ACCESS_TOKEN:null;
+ const credential=cleanSecret(transport==='kapso'?env.KAPSO_API_KEY:transport==='meta'?env.WHATSAPP_ACCESS_TOKEN:null);
  if(env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED!=='true'||!accountId||env.WHATSAPP_ORDER_ACCOUNT_ID!==accountId||
   !/^\d{5,32}$/.test(businessId||'')||!/^\w{1,128}$/.test(template||'')||language!=='en_US'||
   !/^v\d+\.\d+$/.test(version||'')||!credential||(transport!=='kapso'&&transport!=='meta'))return null;
@@ -63,7 +64,7 @@ function classify(data:any,c:Config):Pick<ShippingWhatsAppApproval,'state'|'code
 interface ApprovalAttempt {
  attempt: number;
  transport: 'kapso' | 'meta';
- outcome: 'http_response' | 'timeout' | 'transport_error' | 'response_read_error';
+ outcome: 'http_response' | 'timeout' | 'transport_error' | 'invalid_request' | 'response_read_error';
  httpStatus: number | null;
  elapsedMs: number;
 }
@@ -85,7 +86,7 @@ async function readTemplateApproval(c: Config, fetcher: typeof fetch, onAttempt?
   let httpStatus: number | null = null;
   let outcome: ApprovalAttempt['outcome'] = 'http_response';
   try {
-   const response = await fetcher(url.href, { headers, redirect: 'error', signal });
+   const response = await fetcher(url.href, { headers: buildRequestHeaders(headers), redirect: 'error', signal });
    httpStatus = response.status;
    if (response.ok) return classify(await response.json(), c);
    if (response.status === 401 || response.status === 403) {
@@ -93,9 +94,9 @@ async function readTemplateApproval(c: Config, fetcher: typeof fetch, onAttempt?
    }
    if (response.status < 500) return unavailable;
    await response.body?.cancel();
-  } catch {
+  } catch (e) {
    // Use a fixed class. Errors and responses can contain provider identifiers.
-   outcome = signal.aborted ? 'timeout' : httpStatus === null ? 'transport_error' : 'response_read_error';
+   outcome = e instanceof InvalidRequestError ? 'invalid_request' : signal.aborted ? 'timeout' : httpStatus === null ? 'transport_error' : 'response_read_error';
   } finally {
    onAttempt?.({ attempt, transport: c.transport, outcome, httpStatus, elapsedMs: Math.max(0, Date.now() - startedAt) });
   }

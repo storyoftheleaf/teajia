@@ -14,6 +14,13 @@ export function applyReviewedWordingFallback(product: Record<string, unknown>) {
   product.processing_notes = null;
 }
 
+/** The description a public door may show for this product id: the reviewed wording for a repair lot, else what was stored. */
+export function reviewedDescription<T>(productId: unknown, stored: T): T | string | null {
+  const probe: Record<string, unknown> = { id: productId, description: stored };
+  applyReviewedWordingFallback(probe);
+  return probe.description as T | string | null;
+}
+
 async function contentRevision(text: string) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');

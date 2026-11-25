@@ -208,13 +208,64 @@ describe('Read delivery, verified at the API', () => {
     }
   });
 
+  it('leaves the live overlay and history intact when C saves just before the reviewed B can publish', async () => {
+    const db = database();
+    const slug = 'rock-remembers';
+    const path = '/api/story-content/' + slug;
+    const headers = { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' };
+    db.sqlite.prepare("INSERT INTO read_publish_state (path, account_id, state, changed_by) VALUES (?, 'acc_teajia_bali', 'live', 'editor')").run('/read/' + slug);
+    const before = await (await request(db, path)).text();
+    const save = (title: string) => request(db, path + '/draft', {
+      method: 'PUT', headers, body: JSON.stringify({ content: { text: { title } } }),
+    });
+    const review = () => request(db, path + '?state=draft&review=1', { headers }).then(r => r.json()) as Promise<{ review_digest: string }>;
+    const publish = (digest: string, databaseOverride?: unknown) => request(db, path + '/publish', {
+      method: 'POST', headers, body: JSON.stringify({ review_digest: digest }),
+    }, databaseOverride);
+    expect((await save('B')).status).toBe(200);
+    const reviewedB = await review();
+    let intervened = false;
+    const delayed = {
+      prepare: db.prepare.bind(db),
+      async batch(statements: Parameters<SqliteD1['batch']>[0]) {
+        expect((await save('C')).status).toBe(200);
+        intervened = true;
+        return db.batch(statements);
+      },
+    };
+    const refused = await publish(reviewedB.review_digest ?? 'a'.repeat(64), delayed);
+    expect(refused.status).toBe(409);
+    expect(intervened).toBe(true);
+    expect(await refused.json()).toMatchObject({ code: 'stale_story_review' });
+    expect(await (await request(db, path)).text()).toBe(before);
+    expect(await (await request(db, path + '/versions', { headers })).json()).toEqual([]);
+    expect((await publish(reviewedB.review_digest)).status).toBe(409);
+    const reviewedC = await review();
+    expect(reviewedC.review_digest).not.toBe(reviewedB.review_digest);
+    const approvedC = await publish(reviewedC.review_digest);
+    expect(approvedC.status).toBe(200);
+    const { review_digest: currentC } = await approvedC.json() as { review_digest: string };
+    expect((await publish(reviewedC.review_digest)).status).toBe(409);
+    expect(await (await request(db, path)).json()).toEqual({ text: { title: 'C' } });
+    expect((await request(db, '/api/read/access?path=/read/' + slug)).status).toBe(204);
+    const [outgoing] = await (await request(db, path + '/versions', { headers })).json() as { id: string }[];
+    expect((await request(db, path + '/restore/' + outgoing.id, { method: 'POST', headers })).status).toBe(200);
+    expect(await (await request(db, path)).json()).toEqual({ text: { title: 'C' } });
+    expect((await publish(currentC)).status).toBe(409);
+  });
+
   it('preserves the real magazine editor save, publish, history and restore workflow', async () => {
     const db = database();
     const headers = { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' };
     expect((await request(db, '/api/story-content/rock-remembers/draft', {
       method: 'PUT', headers, body: JSON.stringify({ content: { text: 'synthetic replacement' } }),
     })).status).toBe(200);
-    expect((await request(db, '/api/story-content/rock-remembers/publish', { method: 'POST', headers })).status).toBe(200);
+    const savedDraft = await request(db, '/api/story-content/rock-remembers?state=draft&review=1', { headers });
+    const { review_digest } = await savedDraft.json() as { review_digest: string };
+    expect((await request(db, '/api/story-content/rock-remembers/publish', { method: 'POST', headers })).status).toBe(400);
+    expect((await request(db, '/api/story-content/rock-remembers/publish', {
+      method: 'POST', headers, body: JSON.stringify({ review_digest }),
+    })).status).toBe(200);
     const versions = await request(db, '/api/story-content/rock-remembers/versions', { headers });
     expect(versions.status).toBe(200);
     privateResponse(versions);

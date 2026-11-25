@@ -21,20 +21,22 @@ const sitServedTea = `(SELECT tea.id FROM (${sessionServedTeas('a.account_id', '
 
 export function prepareGuestBookNote(
   db: D1Database, userId: string, note: string, now: string, seatCheck: string, binds: string[],
-  placement: GuestBookPlacement = {},
+  placement: GuestBookPlacement = {}, signedName: string | null = null,
 ) {
   const { teaId, publicRecap } = guestBookPlacement(placement);
   return db.prepare(
-    `INSERT INTO session_guest_book (id, account_id, event_id, attendee_id, user_id, note, status, updated_at, tea_id, public_recap)
-     SELECT ?, a.account_id, a.event_id, a.id, ?, ?, 'pending', ?, ${sitServedTea}, ?
+    `INSERT INTO session_guest_book (id, account_id, event_id, attendee_id, user_id, note, status, updated_at, tea_id, public_recap, signed_name)
+     SELECT ?, a.account_id, a.event_id, a.id, ?, ?, 'pending', ?, ${sitServedTea}, ?, ?
      FROM event_attendees a WHERE ${seatCheck}
      ON CONFLICT(account_id, event_id, user_id) DO UPDATE
      SET note = excluded.note, tea_id = excluded.tea_id, public_recap = excluded.public_recap,
+       signed_name = excluded.signed_name,
        status = 'pending', revision = revision + 1, updated_at = excluded.updated_at
      WHERE session_guest_book.note <> excluded.note
        OR session_guest_book.tea_id IS NOT excluded.tea_id
-       OR session_guest_book.public_recap <> excluded.public_recap`
-  ).bind(crypto.randomUUID(), userId, note, now, teaId, publicRecap, ...binds);
+       OR session_guest_book.public_recap <> excluded.public_recap
+       OR session_guest_book.signed_name IS NOT excluded.signed_name`
+  ).bind(crypto.randomUUID(), userId, note, now, teaId, publicRecap, signedName, ...binds);
 }
 
 export function guestBookEntryKeys<T extends { user_id: string }>(rows: T[], accountId: string, eventId: string) {
@@ -65,7 +67,7 @@ export async function serveGuestBook(request: Request, db: D1Database, scope: Sc
   if (request.method === 'GET') {
     const [included, own] = await Promise.all([
       db.prepare(
-        `SELECT b.id, a.full_name AS display_name, b.note, b.user_id ${roster}
+        `SELECT b.id, COALESCE(b.signed_name, a.full_name) AS display_name, b.note, b.user_id ${roster}
          AND b.status = 'included' ORDER BY b.updated_at ASC, b.id ASC`
       ).bind(...where).all<{ user_id: string }>(),
       db.prepare(
@@ -110,7 +112,7 @@ export async function serveGuestBookReview(request: Request, db: D1Database, acc
   if (!event) return reply({ error: 'Completed session not found.' }, 404);
   if (!id) {
     const { results } = await db.prepare(
-      `SELECT b.id, a.full_name AS display_name, b.note, b.status, b.revision, b.user_id ${roster}
+      `SELECT b.id, COALESCE(b.signed_name, a.full_name) AS display_name, b.note, b.status, b.revision, b.user_id ${roster}
        ORDER BY CASE b.status WHEN 'pending' THEN 0 WHEN 'included' THEN 1 ELSE 2 END, b.updated_at DESC`
     ).bind(accountId, eventId).all<{ user_id: string }>();
     return reply({ entries: await guestBookEntryKeys(results, accountId, eventId) });

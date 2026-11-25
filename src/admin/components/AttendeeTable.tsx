@@ -5,6 +5,7 @@ import { ArrowUpDown, Check, UserPlus, Phone, Leaf, Star, Loader2, Users, Link2,
 import { api } from '../../lib/api';
 import { Button } from '../../components/shared/Button';
 import { useToast } from './Toast';
+import { PartyLinkAction } from './PartyLinkAction';
 import { EventAttendee, AttendeeStatus } from '../../types/events';
 import type { Customer } from '../types';
 
@@ -92,6 +93,9 @@ const AttendeeActions: React.FC<{
         >
           Copy guest link
         </Button>
+      )}
+      {showGuestLink && attendee.status === 'confirmed' && attendee.attended && (
+        <PartyLinkAction eventId={attendee.eventId} attendeeId={attendee.id} />
       )}
       {(attendee.status === 'confirmed' || attendee.status === 'waitlist') && (
         <button onClick={() => onUpdate(attendee, 'cancelled')} disabled={!!loadingId}

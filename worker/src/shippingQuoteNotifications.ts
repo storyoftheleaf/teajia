@@ -3,7 +3,10 @@ import { encryptSecret, decryptSecret, type SealEnv } from './secretSeal';
 import { internationalWhatsAppNumber } from '../../src/lib/whatsappContact';
 import { invoiceMoney, loadInvoiceLedgerTotals, loadLedgerInvoice, claimInvoiceLinkLease, releaseInvoiceLinkLease } from './invoiceDomain';
 import { suppressVerificationNotifications } from './liveVerificationPolicy';
+import { cleanSecret } from './kapsoRequest';
 import type { WhatsAppOrderEnv } from './whatsappOrderNotifications';
+import { fallbackEmailFor, whatsappUnavailable } from './shippingEmailFallback';
+import { sendableFirst } from './shippingRetryOrder';
 
 export interface ShippingNotificationEnv extends SealEnv, WhatsAppOrderEnv, ShippingWhatsAppApprovalEnv {
  APP_URL?: string; RESEND_API_KEY?: string; SENDER_EMAIL?: string; SENDER_NAME?: string;
@@ -13,7 +16,7 @@ export interface ShippingNotificationEnv extends SealEnv, WhatsAppOrderEnv, Ship
 }
 export type ShippingNotificationState = 'not_requested'|'pending'|'sending'|'accepted'|'retry_scheduled'|'config_required'|'review_required'|'suppressed'|'needs_contact';
 export interface ShippingNotificationStatus { state: ShippingNotificationState; channel: 'email'|'whatsapp'|null; code?: string; accepted_at?: string|null }
-interface Target { channel: 'email'|'whatsapp'|null; recipient: string|null; consent_at: string|null; tracking_token_sealed: string|null; unavailable_code: string|null }
+interface Target { channel: 'email'|'whatsapp'|null; recipient: string|null; consent_at: string|null; tracking_token_sealed: string|null; unavailable_code: string|null; fallback_email?: string|null }
 interface Notice { id: string; account_id: string; invoice_id: string; quote_revision: number; quote_usd: number; balance_usd: number|null; state: string; attempts: number; first_attempt_at: string|null; created_at: string }
 const pendingStates = "'pending','retry_scheduled','config_required','needs_contact'";
 const emailAddress = (value?: string|null) => typeof value === 'string' && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value.trim()) ? value.trim() : null;
@@ -34,11 +37,11 @@ export async function prepareShippingNotificationTarget(db: D1Database, env: Sea
   sealed = await encryptSecret(input.trackingToken,env);
  }
  const code = !channel ? 'customer_contact_missing' : !sealed ? 'secure_link_unavailable' : null;
- return db.prepare(`INSERT INTO order_shipping_notification_targets(account_id,inquiry_id,channel,recipient,consent_at,tracking_token_sealed,unavailable_code)
- VALUES(?,?,?,?,?,?,?) ON CONFLICT(account_id,inquiry_id) DO UPDATE SET
+ return db.prepare(`INSERT INTO order_shipping_notification_targets(account_id,inquiry_id,channel,recipient,consent_at,tracking_token_sealed,unavailable_code,fallback_email)
+ VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(account_id,inquiry_id) DO UPDATE SET
  tracking_token_sealed=COALESCE(order_shipping_notification_targets.tracking_token_sealed,excluded.tracking_token_sealed),
  unavailable_code=CASE WHEN COALESCE(order_shipping_notification_targets.tracking_token_sealed,excluded.tracking_token_sealed) IS NOT NULL THEN NULL ELSE order_shipping_notification_targets.unavailable_code END`)
- .bind(input.accountId,input.inquiryId,channel,recipient,channel==='whatsapp'?consent:null,sealed,code);
+ .bind(input.accountId,input.inquiryId,channel,recipient,channel==='whatsapp'?consent:null,sealed,code,fallbackEmailFor(channel,email));
 }
 
 /** Append after the guarded quote UPDATE, which increments revision only for a changed/first confirmed quote. */
@@ -57,16 +60,16 @@ export async function getShippingQuoteNotificationStatus(db:D1Database,accountId
  const target=await db.prepare('SELECT channel,unavailable_code FROM order_shipping_notification_targets WHERE account_id=? AND inquiry_id=?').bind(accountId,invoice.source_inquiry_id).first<Target>();
  if(invoice.shipping_quote_status!=='confirmed')return{state:'not_requested',channel:target?.channel||null};
  if(!(invoice.shipping_cost_usd>0)||invoice.fulfillment_method==='bali_pickup'||['Void','Filled'].includes(invoice.status))return{state:'suppressed',channel:target?.channel||null};
- const row=await db.prepare('SELECT state,code,accepted_at FROM shipping_payment_notifications WHERE account_id=? AND invoice_id=? AND quote_revision=?').bind(accountId,invoiceId,invoice.shipping_quote_revision).first<any>();
- if(row)return{state:row.state,channel:target?.channel||null,...(row.code?{code:row.code}:{}),accepted_at:row.accepted_at};
+ const row=await db.prepare('SELECT state,code,accepted_at,sent_channel FROM shipping_payment_notifications WHERE account_id=? AND invoice_id=? AND quote_revision=?').bind(accountId,invoiceId,invoice.shipping_quote_revision).first<any>();
+ if(row)return{state:row.state,channel:row.sent_channel||target?.channel||null,...(row.code?{code:row.code}:{}),accepted_at:row.accepted_at};
  return{state:target?.channel?'config_required':'needs_contact',channel:target?.channel||null,code:target?.unavailable_code||'notification_not_queued'};
 }
 
-async function settle(db:D1Database,id:string,claim:string,state:ShippingNotificationState,code:string|null,providerId?:string) {
- await db.prepare(`UPDATE shipping_payment_notifications SET state=?,code=?,provider_message_id=COALESCE(?,provider_message_id),
+async function settle(db:D1Database,id:string,claim:string,state:ShippingNotificationState,code:string|null,providerId?:string,channel?:'email'|'whatsapp') {
+ await db.prepare(`UPDATE shipping_payment_notifications SET state=?,code=?,provider_message_id=COALESCE(?,provider_message_id),sent_channel=COALESCE(?,sent_channel),
  accepted_at=CASE WHEN ?='accepted' THEN CURRENT_TIMESTAMP ELSE accepted_at END,
  lease_token=NULL,lease_expires_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND lease_token=?`)
- .bind(state,code,providerId||null,state,id,claim).run();
+ .bind(state,code,providerId||null,channel||null,state,id,claim).run();
 }
 function appOrigin(env:ShippingNotificationEnv):string|null {
  try {const url=new URL(env.APP_URL||'https://www.teajia.com');
@@ -102,7 +105,8 @@ export async function processShippingQuoteNotifications(db:D1Database,env:Shippi
  WHERE state='sending' AND lease_expires_at<=CURRENT_TIMESTAMP`).run();
  const rows=await db.prepare(`SELECT n.* FROM shipping_payment_notifications n JOIN invoices i ON i.id=n.invoice_id AND i.account_id=n.account_id
  WHERE n.state IN (${pendingStates}) AND i.status!='Draft' AND (n.next_attempt_at IS NULL OR n.next_attempt_at<=CURRENT_TIMESTAMP)
- AND (? IS NULL OR n.account_id=?) AND (? IS NULL OR n.invoice_id=?) ORDER BY n.created_at,n.id LIMIT ?`)
+ AND (? IS NULL OR n.account_id=?) AND (? IS NULL OR n.invoice_id=?)
+ ORDER BY ${sendableFirst('n.state')},n.created_at,n.id LIMIT ?`)
  .bind(options.accountId||null,options.accountId||null,options.invoiceId||null,options.invoiceId||null,Math.max(1,Math.min(25,options.limit||10))).all<Notice>();
  for(const row of rows.results||[]) {
   result.examined++;
@@ -119,12 +123,20 @@ export async function processShippingQuoteNotifications(db:D1Database,env:Shippi
    const balance=ledgerInvoice?invoiceMoney(ledgerInvoice.total_usd,ledgerInvoice.payment_status,totals.get(row.invoice_id)).outstanding_usd:0;
    if(!(balance>0)){await settle(db,row.id,claim,'suppressed','nothing_outstanding');result.suppressed++;continue;}
    if(row.balance_usd!==null&&row.balance_usd!==balance){await settle(db,row.id,claim,'review_required','balance_changed_while_retrying');result.blocked++;continue;}
-   const target=await db.prepare('SELECT channel,recipient,consent_at,tracking_token_sealed,unavailable_code FROM order_shipping_notification_targets WHERE account_id=? AND inquiry_id=?').bind(row.account_id,invoice.source_inquiry_id).first<Target>();
+   let target=await db.prepare('SELECT channel,recipient,consent_at,tracking_token_sealed,unavailable_code,fallback_email FROM order_shipping_notification_targets WHERE account_id=? AND inquiry_id=?').bind(row.account_id,invoice.source_inquiry_id).first<Target>();
    if(!target?.channel||!target.recipient){await settle(db,row.id,claim,'needs_contact','customer_contact_missing');result.blocked++;continue;}
    if(!target.tracking_token_sealed||!env.KEY_ENCRYPTION_SECRET){await settle(db,row.id,claim,'config_required','secure_link_unavailable');result.blocked++;continue;}
-   const setup=await setupCode(db,env,row,target,options.fetcher);if(setup){await settle(db,row.id,claim,'config_required',setup);result.blocked++;continue;}
+   let setup=await setupCode(db,env,row,target,options.fetcher);
+   // WhatsApp cannot carry it and nothing has been sent: email them instead.
+   if(target.channel==='whatsapp'&&target.fallback_email&&whatsappUnavailable(setup)){
+    const emailTarget:Target={...target,channel:'email',recipient:target.fallback_email,consent_at:null};
+    const emailSetup=await setupCode(db,env,row,emailTarget,options.fetcher);
+    if(!emailSetup){target=emailTarget;setup=null;}
+   }
+   if(setup){await settle(db,row.id,claim,'config_required',setup);result.blocked++;continue;}
    const origin=appOrigin(env);if(!origin){await settle(db,row.id,claim,'config_required','customer_origin_unavailable');result.blocked++;continue;}
-   let token:string;try{token=await decryptSecret(target.tracking_token_sealed,env);}catch{await settle(db,row.id,claim,'config_required','secure_link_unavailable');result.blocked++;continue;}
+   const sealedLink=target.tracking_token_sealed;if(!sealedLink){await settle(db,row.id,claim,'config_required','secure_link_unavailable');result.blocked++;continue;}
+   let token:string;try{token=await decryptSecret(sealedLink,env);}catch{await settle(db,row.id,claim,'config_required','secure_link_unavailable');result.blocked++;continue;}
    const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token))),b=>b.toString(16).padStart(2,'0')).join('');
    const inquiry=await db.prepare('SELECT tracking_token_hash FROM inquiries WHERE id=? AND account_id=?').bind(invoice.source_inquiry_id,row.account_id).first<{tracking_token_hash:string}>();
    if(!/^[A-Za-z0-9_-]{32,128}$/.test(token)||digest!==inquiry?.tracking_token_hash){await settle(db,row.id,claim,'review_required','private_link_mismatch');result.blocked++;continue;}
@@ -139,8 +151,8 @@ export async function processShippingQuoteNotifications(db:D1Database,env:Shippi
    const endpoint=email?'https://api.resend.com/emails':`${env.WHATSAPP_TRANSPORT==='kapso'?'https://api.kapso.ai/meta/whatsapp':'https://graph.facebook.com'}/${env.WHATSAPP_GRAPH_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
    const headers:Record<string,string>={'Content-Type':'application/json'};
    if(email){headers.Authorization='Bearer '+env.RESEND_API_KEY;headers['Idempotency-Key']='shipping-payment/'+row.id;}
-   else if(env.WHATSAPP_TRANSPORT==='kapso')headers['X-API-Key']=env.KAPSO_API_KEY!;
-   else headers.Authorization='Bearer '+env.WHATSAPP_ACCESS_TOKEN;
+   else if(env.WHATSAPP_TRANSPORT==='kapso')headers['X-API-Key']=cleanSecret(env.KAPSO_API_KEY)!;
+   else headers.Authorization='Bearer '+cleanSecret(env.WHATSAPP_ACCESS_TOKEN);
    const body=email?{from:env.SENDER_NAME?`${env.SENDER_NAME} <${env.SENDER_EMAIL}>`:env.SENDER_EMAIL,to:target.recipient,subject:`Shipping payment for Teajia order ${ref}`,text}:
     {messaging_product:'whatsapp',recipient_type:'individual',to:digits(target.recipient),type:'template',template:{name:env.SHIPPING_PAYMENT_TEMPLATE_NAME,language:{code:env.WHATSAPP_ORDER_TEMPLATE_LANGUAGE},components:[{type:'body',parameters:[name,ref,money(row.quote_usd),money(balance),url.href].map(text=>({type:'text',text}))}]}};
    let response:Response;
@@ -148,7 +160,7 @@ export async function processShippingQuoteNotifications(db:D1Database,env:Shippi
     await retryOrReview(db,row,claim,email,'network_outcome_unknown');result.blocked++;continue;
    }
    if(response.ok){let id:unknown;try{const data=await response.json() as any;id=email?data.id:data.messages?.[0]?.id;}catch{}
-    if(typeof id==='string'&&id){await settle(db,row.id,claim,'accepted',null,id);result.accepted++;}
+    if(typeof id==='string'&&id){await settle(db,row.id,claim,'accepted',null,id,email?'email':'whatsapp');result.accepted++;}
     else{await retryOrReview(db,row,claim,email,'accepted_without_message_id');result.blocked++;}
    }else if(response.status===429||email&&response.status>=500){await retryOrReview(db,row,claim,true,'provider_retryable');result.blocked++;}
    else{await settle(db,row.id,claim,response.status===401||response.status===403?'config_required':'review_required',response.status===401||response.status===403?'provider_authentication_required':'provider_rejected');result.blocked++;}

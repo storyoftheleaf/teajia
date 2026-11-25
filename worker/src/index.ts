@@ -15,6 +15,9 @@ import { eraseKeptSetup, queueKeptPhotoCleanupForUser, retryKeptPhotoCleanup, se
 import { serveGuestBookReview } from './sessionGuestBook';
 import { attachPublicTeawareDetails } from './teawareDetails';
 import { refreshShippingWhatsAppApproval } from './shippingWhatsAppApproval';
+import { readOrderUpdateEmail } from './orderUpdateEmail';
+import { isPersonalOffer, profileIsPersonalOfferSql } from './personalOfferNetwork';
+import { PERSONAL_OFFER_TAKEN, personalOfferTaken } from './personalOfferTaken';
 import { shippingNotificationReadiness, prepareShippingNotificationTarget, buildShippingQuoteNotificationInsert, getShippingQuoteNotificationStatus, processPendingShippingQuoteNotifications, type ShippingNotificationEnv } from './shippingQuoteNotifications';
 import { paypalLiveRoutes, paypalLiveEnabled, verifyPayPalLiveWebhook, paypalUSShipping, type PayPalLiveEnv } from './paypalLive';
 import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/lib/usShippingAddress';
@@ -130,6 +133,10 @@ import { isoCurrencyCode } from '../../src/lib/currency';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { minimumOrderGrams, sellUnitOf } from '../../src/lib/teaPricing';
 import { readSessionServedTeas } from './sessionServedTeas';
+import {
+  ARTICLE_PUBLICATION_REVIEW, ARTICLE_REVIEW_PROJECTION, commitArticlePublication, readArticleReview,
+  unpackArticleReview, stageNativeArticle,
+} from './articlePublicationReview';
 import { decodeWordforgeDraft, isWordforgeManagedArticle, upsertWordforgeDraft, WordforgeDraftError, WORDFORGE_DRAFT_MAX_BYTES } from './wordforgeArticleDraft';
 import {
   EVENT_TRANSITIONS,
@@ -195,7 +202,7 @@ import {
   INQUIRY_MAX_LOCATION, INQUIRY_MAX_NAME, INQUIRY_MAX_NOTE, INQUIRY_MAX_PHONE, INQUIRY_MAX_REF_NUMBER,
   INQUIRY_MAX_REFERRAL, INQUIRY_MAX_REQUEST_BYTES, INQUIRY_MAX_VISION, inquiryFieldTooLong,
   inquiryRequestFingerprint, isValidTrackingToken, NEWSLETTER_MAX_EMAIL, NEWSLETTER_MAX_REQUEST_BYTES,
-  normalizeCartInquiry, redactPublicInquiry, sha256Hex,
+  normalizeCartInquiry, redactPublicInquiry, sha256Hex, withoutPausedLines,
 } from './inquiryDomain';
 import { hasTeaAtlasTick, serveAtlas, withTeaAtlasTick } from './atlas';
 import { serveAtlasAdmin } from './atlasAdmin';
@@ -205,7 +212,7 @@ import { validateCompassQuoteLink } from './curateQuotes';
 import { requireCurateManager, prepareCurateRecordedWrite } from './curateMutations';
 import { RouteRefusal, listRoutes, removeRoute, saveRoute } from './shippingRoutes';
 import { serveCatalogTeaReading } from './catalogTeaReading';
-import { applyReviewedWordingFallback, serveWisdomWordingReview } from './wisdomWordingReview';
+import { applyReviewedWordingFallback, reviewedDescription, serveWisdomWordingReview } from './wisdomWordingReview';
 import { serveStockGalleryProposal } from './stockGalleryProposal';
 import { serveYixingOwnerReview } from './yixingOwnerReview';
 import { handleLibraryPreview, LIBRARY_PREVIEW_ORIGIN } from './libraryPreview';
@@ -220,6 +227,9 @@ import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
 import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, personalInventoryAccessSql, readOfferInput, recordedChestCostSql, shelfContactSql } from './personalShelf';
 import { decideSampleTastingRepeat, sampleTastingEditKey, type StoredSampleTasting } from './sampleTastingRepeat';
 import { pinCaptureApprovalPhoto, readCapturePhotoFrame, storeCapturePhotoFrame, validCapturePhotoFrame, approvedCapturePhoto, captureApproval, captureEntry, captureEntryAllowed, capturePhotoPath, capturePhotoResponse, loadCapturePhotoReview, prepareCaptureApproval, privateCapturePhoto, shopPhotoApprovalId, shopPhotoUrl, storeCapturePhoto, validCaptureEntryId, validCapturePhotoId } from './capturePhotos';
+import { commitEditorialPilot, editorialPilotDigest, isApprovedPilotProjection, PILOT_ISSUE_SLOT, readEditorialPilot } from './articleEditorialPilot';
+import { readStoryDraft, saveStoryDraft, publishStoryDraft, storyReviewDigest } from './storyContentPublication';
+
 interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, ShippingNotificationEnv {
   DB: D1Database;
   SHOP_PICKUP_ACCOUNT_ID?: string;
@@ -311,6 +321,7 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   I64OS_REPAIR_SECRET?: string;
   WORDFORGE_INTEGRATION_TOKEN?: string;
   WORDFORGE_ACCOUNT_ID?: string;
+  EDITORIAL_PILOT_ACCOUNT_ID?: string;
 }
 interface RateLimiterBinding {
   limit: (opts: { key: string }) => Promise<{ success: boolean }>;
@@ -1352,7 +1363,8 @@ function buildProductMirrorInserts(
   // network_visible: same gating as migration backfill.
   const networkVisible = (body.is_public === undefined || !!body.is_public)
     && !body.is_personal
-    && !body.is_sample ? 1 : 0;
+    && !body.is_sample
+    && !isPersonalOffer(body) ? 1 : 0;
 
   // Status mapping: products legacy values → profile lifecycle.
   const profileStatus = body.status === 'Archived' ? 'archived'
@@ -3838,7 +3850,7 @@ const handleGetCatalog: Handler = async (request, env) => {
     const out: Record<string, any> = {
       id: p.id, type: p.type, form: p.form, given_name: p.given_name, chinese_name: p.chinese_name,
       product_name: p.product_name, year: p.year, origin_country: p.origin_country,
-      origin_region: p.origin_region, description: p.description, tasting_notes: p.tasting_notes,
+      origin_region: p.origin_region, description: reviewedDescription(p.id, p.description), tasting_notes: p.tasting_notes,
       image_url: p.image_url, additional_images: p.additional_images, lore: p.lore,
       show_wisdom: p.show_wisdom, processing_notes: p.processing_notes, terroir: p.terroir,
       mood: p.mood, experience: p.experience, tea_key: p.tea_key, tasting: p.tasting,
@@ -9469,7 +9481,7 @@ const handleListMyProfileFavorites: Handler = async (request, env) => {
          JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
         WHERE pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      )
      SELECT tp.id, tp.name, tp.chinese_name, tp.type, tp.harvest_year,
@@ -11045,6 +11057,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       }
       safe.account_slug = p.account_slug;
       safe.public_path = p.public_path;
+      if (p.account_id === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
       maskCountPendingCommerce(safe, p.account_id, p);
       return safe;
     });
@@ -12015,6 +12028,13 @@ const handleGetStoryContent: Handler = async (request, env, params) => {
       : await readDeliveryRefusal(request, env, readPath);
     if (refusal) return readDeliveryResponse(refusal);
   }
+  if (wantDraft && url.searchParams.get('review') === '1') {
+    const draft = await readStoryDraft(env.DB, BALI_ACCOUNT_ID, params.slug);
+    return readDeliveryResponse(json({
+      content: draft ? JSON.parse(draft.content) : {},
+      review_digest: draft ? await storyReviewDigest(BALI_ACCOUNT_ID, params.slug, draft) : null,
+    }));
+  }
   const state = wantDraft ? 'draft' : 'published';
   const row = await env.DB.prepare(
     `SELECT content FROM story_content WHERE account_id = ? AND story_slug = ? AND state = ?`
@@ -12030,46 +12050,27 @@ const handleSaveStoryDraft: Handler = async (request, env, params) => {
   if (authErr) return readDeliveryResponse(authErr);
   const body = await request.json().catch(() => null) as { content?: any } | null;
   if (!body || typeof body.content !== 'object') return json({ error: 'content required' }, 400);
-  await env.DB.prepare(
-    `INSERT INTO story_content (id, account_id, story_slug, state, content, updated_at)
-     VALUES (?, ?, ?, 'draft', ?, datetime('now'))
-     ON CONFLICT(account_id, story_slug, state) DO UPDATE SET
-       content = excluded.content, updated_at = datetime('now')`
-  ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, JSON.stringify(body.content)).run();
-  return json({ ok: true });
+  const review_digest = await saveStoryDraft(env.DB, BALI_ACCOUNT_ID, params.slug, JSON.stringify(body.content));
+  return json({ ok: true, review_digest });
 };
 
-// POST /api/story-content/:slug/publish — promote draft -> published + snapshot.
+const staleStoryReview = () => restError(409, 'The story changed. Reload it and review the latest draft before publishing.', 'stale_story_review');
+
+// POST /api/story-content/:slug/publish — approve the reviewed draft.
 const handlePublishStory: Handler = async (request, env, params) => {
   const authErr = await requireReadEditor(request, env);
   if (authErr) return readDeliveryResponse(authErr);
-  const draft = await env.DB.prepare(
-    `SELECT content FROM story_content WHERE account_id = ? AND story_slug = ? AND state = 'draft'`
-  ).bind(BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
-  const content = draft?.content || '{}';
-  // Snapshot the OUTGOING published state for undo, then publish the draft.
-  const prev = await env.DB.prepare(
-    `SELECT content FROM story_content WHERE account_id = ? AND story_slug = ? AND state = 'published'`
-  ).bind(BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
-  if (prev?.content) {
-    await env.DB.prepare(
-      `INSERT INTO story_content_versions (id, account_id, story_slug, content, label)
-       VALUES (?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, prev.content, 'before publish').run();
-    // Keep only the newest 20 snapshots per story.
-    await env.DB.prepare(
-      `DELETE FROM story_content_versions WHERE account_id = ? AND story_slug = ? AND id NOT IN (
-         SELECT id FROM story_content_versions WHERE account_id = ? AND story_slug = ?
-         ORDER BY created_at DESC LIMIT 20)`
-    ).bind(BALI_ACCOUNT_ID, params.slug, BALI_ACCOUNT_ID, params.slug).run();
+  const body = await request.json().catch(() => null) as { review_digest?: unknown } | null;
+  if (!isArticleReviewDigest(body?.review_digest)) {
+    return restError(400, 'Open the saved draft to review it before publishing.', 'story_review_required');
   }
-  await env.DB.prepare(
-    `INSERT INTO story_content (id, account_id, story_slug, state, content, updated_at)
-     VALUES (?, ?, ?, 'published', ?, datetime('now'))
-     ON CONFLICT(account_id, story_slug, state) DO UPDATE SET
-       content = excluded.content, updated_at = datetime('now')`
-  ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, content).run();
-  return json({ ok: true });
+  const draft = await readStoryDraft(env.DB, BALI_ACCOUNT_ID, params.slug);
+  if (!draft || body.review_digest !== await storyReviewDigest(BALI_ACCOUNT_ID, params.slug, draft)) {
+    return staleStoryReview();
+  }
+  const review_digest = await publishStoryDraft(env.DB, BALI_ACCOUNT_ID, params.slug, draft);
+  if (!review_digest) return staleStoryReview();
+  return json({ ok: true, review_digest });
 };
 
 // GET /api/story-content/:slug/versions — list snapshots (owner only).
@@ -12091,13 +12092,8 @@ const handleRestoreStoryVersion: Handler = async (request, env, params) => {
     `SELECT content FROM story_content_versions WHERE id = ? AND account_id = ? AND story_slug = ?`
   ).bind(params.versionId, BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
   if (!v?.content) return json({ error: 'Version not found' }, 404);
-  await env.DB.prepare(
-    `INSERT INTO story_content (id, account_id, story_slug, state, content, updated_at)
-     VALUES (?, ?, ?, 'draft', ?, datetime('now'))
-     ON CONFLICT(account_id, story_slug, state) DO UPDATE SET
-       content = excluded.content, updated_at = datetime('now')`
-  ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, v.content).run();
-  return readDeliveryResponse(json({ ok: true, content: JSON.parse(v.content) }));
+  const review_digest = await saveStoryDraft(env.DB, BALI_ACCOUNT_ID, params.slug, v.content);
+  return readDeliveryResponse(json({ ok: true, content: JSON.parse(v.content), review_digest }));
 };
 
 // ── POST /api/products/:id/enhance-image ──
@@ -12962,7 +12958,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       briefing_cards: briefingCards,
       mood_hints: moodHints,
     },
-    tea_menu: menu.results,
+    tea_menu: (menu.results as any[]).map(item => ({ ...item, product_description: reviewedDescription(item.product_id, item.product_description) })),
     guest_invites: guestInvites.results,
   });
 };
@@ -14214,9 +14210,9 @@ const handleCreateEventArticleDraft: Handler = async (request, env, params) => {
   if (!event) return json({ error: 'Event not found' }, 404);
 
   const existing = await env.DB.prepare(
-    `SELECT * FROM articles WHERE account_id = ? AND source_event_id = ?`
-  ).bind(accountId, params.id).first<Record<string, any>>();
-  if (existing) return json({ existing: true, article: eventDraftArticleToApi(existing) });
+    `SELECT articles.*, ${ARTICLE_REVIEW_PROJECTION} FROM articles WHERE account_id = ? AND source_event_id = ?`
+  ).bind(accountId, params.id).first<ArticleReviewRow>();
+  if (existing) return json({ existing: true, article: await adminArticleToApi(existing) });
 
   const postSession = await env.DB.prepare(
     `SELECT * FROM event_post_session WHERE event_id = ? AND account_id = ?`
@@ -14234,15 +14230,15 @@ const handleCreateEventArticleDraft: Handler = async (request, env, params) => {
       draft.cover_image_url, JSON.stringify(draft.blocks), draft.layout_template, params.id,
     ).run();
   } catch {
-    const raced = await env.DB.prepare(`SELECT * FROM articles WHERE account_id = ? AND source_event_id = ?`)
-      .bind(accountId, params.id).first<Record<string, any>>();
-    if (raced) return json({ existing: true, article: eventDraftArticleToApi(raced) });
+    const raced = await env.DB.prepare(`SELECT articles.*, ${ARTICLE_REVIEW_PROJECTION} FROM articles WHERE account_id = ? AND source_event_id = ?`)
+      .bind(accountId, params.id).first<ArticleReviewRow>();
+    if (raced) return json({ existing: true, article: await adminArticleToApi(raced) });
     return json({ error: 'Unable to create article draft' }, 500);
   }
 
-  const article = await env.DB.prepare(`SELECT * FROM articles WHERE id = ? AND account_id = ?`)
-    .bind(id, accountId).first<Record<string, any>>();
-  return json({ existing: false, article: eventDraftArticleToApi(article!) }, 201);
+  const article = await readArticleReview(env.DB, accountId, id);
+  if (!article) return json({ error: 'Unable to load article draft' }, 500);
+  return json({ existing: false, article: await adminArticleToApi(article) }, 201);
 };
 
 type EventDateRepresentation = {
@@ -14972,6 +14968,15 @@ const PUBLIC_REQUEST_PRODUCT = `p.is_public = 1 AND p.shown_in_shop = 1 AND p.st
   AND NOT ${INWARD_ORDERS_PAUSED_SQL}
   AND (p.personal_offer_source_id IS NULL OR (p.personal_offer_withdrawn_at IS NULL AND p.stock_grams > 0))`;
 
+async function pausedInwardProductIds(env: Env, accountId: string, productIds: string[]): Promise<Set<string>> {
+  if (productIds.length === 0) return new Set();
+  const { results } = await env.DB.prepare(
+    `SELECT p.id FROM products p WHERE p.account_id = ? AND ${INWARD_ORDERS_PAUSED_SQL}
+       AND p.id IN (${productIds.map(() => '?').join(',')})`
+  ).bind(accountId, ...productIds).all<{ id: string }>();
+  return new Set(results.map(row => row.id));
+}
+
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>, sellerUserId: string | null) {
   const productIds = catalogProductIds(items);
   const [productRows, rateRows] = await Promise.all([
@@ -15062,6 +15067,8 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
   if (whatsappConsent && !whatsappRecipient) {
     return json({ error: 'Enter your WhatsApp number with + and country code to request a confirmation.' }, 400);
   }
+  const updateEmail = readOrderUpdateEmail(body.update_email);
+  if (updateEmail.error) return json({ error: updateEmail.error }, 400);
 
   let itemsStr: string;
   let totalUsd: number;
@@ -15205,6 +15212,17 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       }, 200);
     }
 
+    // A tea whose ordering is paused is left out of the basket and named in the
+    // answer; the rest of the order goes through. The saved fingerprint stays
+    // that of the request as sent, so a retry is still recognised.
+    const pausedLines = withoutPausedLines(normalized.value,
+      await pausedInwardProductIds(env, accountId, catalogProductIds(normalized.value.items)));
+    normalized.value = pausedLines.value;
+    const skippedPaused = pausedLines.dropped.length ? { skipped_paused_product_ids: pausedLines.dropped } : {};
+    if (pausedLines.dropped.length && normalized.value.items.length === 0) {
+      return json({ error: 'Store or items not found' }, source === 'website' ? 400 : 404);
+    }
+
     if (source === 'website') {
       if (personalSeller) {
         if (normalized.value.items.some(item => (item as Record<string, unknown>).custom === true)) {
@@ -15223,6 +15241,9 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         if (business?.whatsapp_number?.replace(/\D/g, '') === whatsappRecipient.slice(1)) {
           return json({ error: 'Enter your own WhatsApp number, rather than the store’s number.' }, 400);
         }
+      }
+      if (personalSeller && await personalOfferTaken(env.DB, accountId, catalogProductIds(normalized.value.items as Array<Record<string, any>>))) {
+        return restError(409, PERSONAL_OFFER_TAKEN, 'personal_offer_taken');
       }
       let lines: Awaited<ReturnType<typeof pricedRequestLines>>;
       try {
@@ -15275,7 +15296,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
       const customerPhone = inquiryPhone(phoneCandidate) || inquiryPhone(contact);
       const shippingTarget = env.SHIPPING_PAYMENT_NOTIFICATIONS_ENABLED === 'true' && env.SHIPPING_PAYMENT_NOTIFICATIONS_ACCOUNT_ID === accountId
         ? await prepareShippingNotificationTarget(env.DB, env, { accountId, inquiryId: requestId,
-          trackingToken: normalized.value.trackingToken, email: inquiryEmail(contact) ? contact : null,
+          trackingToken: normalized.value.trackingToken, email: inquiryEmail(contact) ? contact : updateEmail.email,
           whatsappNumber: whatsappRecipient, whatsappConsentAt: whatsappRecipient ? new Date().toISOString() : null })
         : null;
       let invoiceNumber = '';
@@ -15373,7 +15394,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         }).catch(() => false);
       return json({ ...await savedInvoiceContents(env,accountId,invoiceId),email_sent: emailSent, id: requestId,
         ref_number: normalized.value.refNumber, tracking_token: normalized.value.trackingToken,
-        invoice_id: invoiceId, invoice_number: invoiceNumber, source, success: true }, 201);
+        invoice_id: invoiceId, invoice_number: invoiceNumber, source, success: true, ...skippedPaused }, 201);
     }
 
     // Only catalogue lines are checked against the catalogue. A custom line
@@ -15426,6 +15447,7 @@ const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
         tracking_token: normalized.value.trackingToken,
         source,
         success: true,
+        ...skippedPaused,
       }, 201);
     } catch (error) {
       const raced = await env.DB.prepare(
@@ -25390,7 +25412,9 @@ function parseArticleSubjectIds(value: unknown): string[] | null {
   return [...new Set(value.map(item => item.trim()))];
 }
 
-async function validateArticleContributors(env: Env, accountId: string, input: { author_id?: unknown; subject_ids?: unknown; pull_quote_subject?: unknown }, legacyAuthor?: string | null) {
+async function validateArticleContributors(env: Env, accountId: string, input: { author_id?: unknown; subject_ids?: unknown; pull_quote_subject?: unknown }, legacyAuthor?: string | null): Promise<
+  { error: Response } | { authorId: string | null; subjectIds: string[]; pullQuoteSubject: string | null }
+> {
   const authorId = typeof input.author_id === 'string' && input.author_id.trim() ? input.author_id.trim() : null;
   const subjectIds = parseArticleSubjectIds(input.subject_ids);
   if (subjectIds === null) return { error: json({ error: 'subject_ids must be an array of contributor IDs' }, 400) };
@@ -25441,17 +25465,45 @@ const handleListArticles: Handler = async (request, env) => {
   return json(results);
 };
 
+type ArticleReviewRow = NonNullable<Awaited<ReturnType<typeof readArticleReview>>>;
+
+async function adminArticleToApi(row: ArticleReviewRow) {
+  const { article, reviewDigest } = await unpackArticleReview(row);
+  return { ...articleToApi(article), review_digest: reviewDigest, has_pending_revision: Boolean(row.native_draft_json) };
+}
+
 const handleGetArticle: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
-
-  const row = await env.DB.prepare(
-    'SELECT * FROM articles WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  const row = await readArticleReview(env.DB, ctx.accountId, params.id);
   if (!row) return json({ error: 'Article not found' }, 404);
-
-  return json(articleToApi(row));
+  const article = await adminArticleToApi(row);
+  if (ctx.accountId !== env.EDITORIAL_PILOT_ACCOUNT_ID || !ctx.isPlatform) return json(article);
+  const pilot = await readEditorialPilot(env.DB, ctx.accountId, params.id);
+  if (!pilot) return json(article);
+  const currentByline = row.author_id
+    ? await env.DB.prepare('SELECT display_name FROM contributors WHERE id = ? AND is_published = 1')
+      .bind(row.author_id).first<string>('display_name')
+    : null;
+  return Response.json({
+    ...article,
+    author_name: currentByline,
+    editorial_pilot: {
+      review_digest: await editorialPilotDigest(row.review_snapshot, pilot, false),
+      placement_review_digest: await editorialPilotDigest(row.review_snapshot, pilot, true),
+      candidate_id: pilot.candidateId,
+      content_hash: pilot.contentHash,
+      source_revision: pilot.sourceRevision,
+      placed: pilot.placed,
+      approved_id: pilot.approvedId,
+      approved_source_revision: pilot.approvedSourceRevision,
+      ready: isApprovedPilotProjection(pilot),
+      candidate: {
+        ...article, title: pilot.article.title, subtitle: pilot.article.subtitle, author_name: pilot.byline,
+        blocks: pilot.blocks, cover_image_url: pilot.article.cover_image_url, layout_template: 'immersive_scroll',
+      },
+    },
+  }, { headers: { 'Cache-Control': 'no-store' } });
 };
 
 const handleCreateArticle: Handler = async (request, env) => {
@@ -25470,9 +25522,10 @@ const handleCreateArticle: Handler = async (request, env) => {
   if ('error' in linkage) return linkage.error;
   const subjectIds = JSON.stringify(linkage.subjectIds ?? []);
 
-  await env.DB.prepare(
+  const created = await env.DB.prepare(
     `INSERT INTO articles (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, reading_time_mins, subject_ids, pull_quote, pull_quote_subject)
-     VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     RETURNING *, ${ARTICLE_REVIEW_PROJECTION}`
   ).bind(
     id,
     accountId,
@@ -25489,13 +25542,9 @@ const handleCreateArticle: Handler = async (request, env) => {
     subjectIds,
     typeof body.pull_quote === 'string' && body.pull_quote.trim() ? body.pull_quote.trim() : null,
     linkage.pullQuoteSubject,
-  ).run();
-
-  const created = await env.DB.prepare(
-    'SELECT * FROM articles WHERE id = ?'
-  ).bind(id).first() as Record<string, any>;
-
-  return json(articleToApi(created), 201);
+  ).first<ArticleReviewRow>();
+  if (!created) return json({ error: 'Unable to create article' }, 500);
+  return json(await adminArticleToApi(created), 201);
 };
 
 const handleUpdateArticle: Handler = async (request, env, params) => {
@@ -25504,6 +25553,9 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  if (Object.hasOwn(body, 'status') || Object.hasOwn(body, 'published_at')) {
+    return restError(400, 'Use an article publication action to change status or publication date.', 'article_publication_action_required');
+  }
   delete body.id;
   delete body.account_id;
   delete body.created_at;
@@ -25518,8 +25570,11 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
 
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
   if (Array.isArray(body.blocks)) body.blocks = JSON.stringify(body.blocks);
-  const existing = await env.DB.prepare('SELECT * FROM articles WHERE id = ? AND account_id = ?').bind(params.id, accountId).first<Record<string, any>>();
+  const existing = await readArticleReview(env.DB, accountId, params.id);
   if (!existing) return json({ error: 'Article not found' }, 404);
+  if (existing.approved_source_revision_id) {
+    return restError(409, 'Open the WordForge edition review to replace this article.', 'externally_managed_article');
+  }
   const linkage = await validateArticleContributors(env, accountId, body, existing.author_id ?? null);
   if ('error' in linkage) return linkage.error;
   if ('author_id' in body) body.author_id = linkage.authorId;
@@ -25528,98 +25583,115 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   if ('pull_quote' in body) body.pull_quote = typeof body.pull_quote === 'string' && body.pull_quote.trim() ? body.pull_quote.trim() : null;
 
   const ARTICLE_ALLOWED_COLS = new Set([
-    'title', 'subtitle', 'author_id', 'slug', 'status', 'category', 'tags',
-    'cover_image_url', 'blocks', 'layout_template', 'reading_time_mins', 'published_at',
+    'title', 'subtitle', 'author_id', 'slug', 'category', 'tags',
+    'cover_image_url', 'blocks', 'layout_template', 'reading_time_mins',
     'subject_ids', 'pull_quote', 'pull_quote_subject',
   ]);
   const cols = Object.keys(body).filter(k => ARTICLE_ALLOWED_COLS.has(k));
-  if (cols.length === 0) return json({ success: true });
+  if (cols.length === 0) return json(await adminArticleToApi(existing));
 
+  const { snapshot, reviewDigest } = await unpackArticleReview(existing);
+  if (!isArticleReviewDigest(body.review_digest)) return missingArticleReview();
+  if (body.review_digest !== reviewDigest) return staleArticleReview();
+  if (existing.status === 'published' || existing.published_at) {
+    const staged = await stageNativeArticle(env.DB, accountId, params.id, body, existing);
+    return staged ? json(await adminArticleToApi(staged)) : staleArticleReview();
+  }
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
-    `UPDATE articles SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  const updated = await env.DB.prepare(
+    `UPDATE articles SET ${sets}, updated_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND ${ARTICLE_PUBLICATION_REVIEW} = ?
+     RETURNING *, ${ARTICLE_REVIEW_PROJECTION}`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId, snapshot).first<ArticleReviewRow>();
+  if (!updated) return staleArticleReview();
   // Wisdom claim uses follow their blocks when blocks move, arrive or go.
   if (cols.includes('blocks')) await moveClaimUsesWithBlocks(env.DB, accountId, params.id, existing.blocks, body.blocks);
-
-  const updated = await env.DB.prepare(
-    'SELECT * FROM articles WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first() as Record<string, any> | null;
-  if (!updated) return json({ error: 'Article not found' }, 404);
-
-  return json(articleToApi(updated));
+  return json(await adminArticleToApi(updated));
 };
 
-const handlePublishArticle: Handler = async (request, env, params) => {
+function isArticleReviewDigest(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+}
+
+const missingArticleReview = () => restError(400, 'Open the article to review its current content first.', 'article_review_required');
+const staleArticleReview = () => restError(409, 'This article changed. Reopen it and review the latest version.', 'stale_article_review');
+
+function handleArticlePublication(status: 'published' | 'draft' | 'archived'): Handler {
+  return async (request, env, params) => {
+    const ctx = await requireBundle(request, env, 'publish');
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
+    const body = await request.json().catch(() => null) as { review_digest?: unknown } | null;
+    if (!isArticleReviewDigest(body?.review_digest)) return missingArticleReview();
+    const existing = await readArticleReview(env.DB, accountId, params.id);
+    if (!existing) return json({ error: 'Article not found' }, 404);
+    const { article, snapshot, reviewDigest } = await unpackArticleReview(existing);
+    if (body.review_digest !== reviewDigest) return staleArticleReview();
+    if (status === 'published' && (existing.approved_source_revision_id
+      || (accountId === env.EDITORIAL_PILOT_ACCOUNT_ID && await readEditorialPilot(env.DB, accountId, params.id)))) {
+      return restError(409, 'Open the WordForge edition review to publish this article.', 'article_edition_required');
+    }
+    const updated = await commitArticlePublication(env.DB, {
+      accountId, articleId: params.id, status, snapshot,
+      publishedAt: status === 'published' ? article.published_at || new Date().toISOString() : null,
+    });
+    if (!updated) return staleArticleReview();
+    return json(status === 'archived' ? { success: true } : await adminArticleToApi(updated));
+  };
+}
+
+const handleApproveEditorialPilot: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
-
-  const existing = await env.DB.prepare(
-    'SELECT id, published_at FROM articles WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first() as Record<string, any> | null;
-  if (!existing) return json({ error: 'Article not found' }, 404);
-
-  const publishedAt = existing.published_at || new Date().toISOString();
-  await env.DB.prepare(
-    `UPDATE articles SET status = 'published', published_at = ?, updated_at = datetime('now')
-     WHERE id = ? AND account_id = ?`
-  ).bind(publishedAt, params.id, accountId).run();
-
-  const updated = await env.DB.prepare(
-    'SELECT * FROM articles WHERE id = ?'
-  ).bind(params.id).first() as Record<string, any>;
-
-  return json({
-    ...updated,
-    tags: updated.tags ? JSON.parse(updated.tags as string) : [],
-    blocks: updated.blocks ? JSON.parse(updated.blocks as string) : [],
+  if (!ctx.isPlatform || ctx.accountId !== env.EDITORIAL_PILOT_ACCOUNT_ID) {
+    return restError(404, 'Editorial pilot unavailable', 'editorial_pilot_unavailable');
+  }
+  const body = await request.json().catch(() => null) as { review_digest?: unknown; candidate_id?: unknown; place?: unknown } | null;
+  if (!isArticleReviewDigest(body?.review_digest) || typeof body?.place !== 'boolean') return missingArticleReview();
+  const row = await readArticleReview(env.DB, ctx.accountId, params.id);
+  if (!row) return json({ error: 'Article not found' }, 404);
+  const candidate = await readEditorialPilot(env.DB, ctx.accountId, params.id);
+  if (!candidate) return json({ error: 'Candidate not found' }, 404);
+  if (body.candidate_id !== candidate.candidateId
+    || body.review_digest !== await editorialPilotDigest(row.review_snapshot, candidate, body.place)) return staleArticleReview();
+  if (!isApprovedPilotProjection(candidate)) {
+    return restError(409, 'The candidate needs verified pilot media, blocks and byline.', 'editorial_pilot_projection');
+  }
+  if (body.place && candidate.occupant && !candidate.placed) {
+    return restError(409, 'The issue slot is already occupied.', 'editorial_issue_occupied');
+  }
+  if (body.place && !candidate.placed && (row.status !== 'published' || candidate.approvedId !== candidate.candidateId)) {
+    return restError(409, 'Publish this edition before placing it in Read.', 'editorial_edition_required');
+  }
+  if (candidate.placed && !body.place) {
+    return restError(409, 'A placed article must retain its slot when replaced.', 'editorial_issue_required');
+  }
+  const prior = row.status === 'published'
+    ? { ...articleToApi((await unpackArticleReview(row)).article), approved_source_revision_id: row.approved_source_revision_id }
+    : null;
+  const receiptId = await commitEditorialPilot(env.DB, {
+    accountId: ctx.accountId, actorId: ctx.userId, articleId: params.id, snapshot: row.review_snapshot,
+    candidate, place: body.place, digest: body.review_digest, priorEdition: prior,
   });
+  if (!receiptId) return staleArticleReview();
+  return json({ candidate_id: candidate.candidateId, placed: body.place, receipt_id: receiptId });
 };
 
-const handleUnpublishArticle: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'publish');
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
-
-  const existing = await env.DB.prepare(
-    'SELECT id FROM articles WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first();
-  if (!existing) return json({ error: 'Article not found' }, 404);
-
-  await env.DB.prepare(
-    `UPDATE articles SET status = 'draft', updated_at = datetime('now')
-     WHERE id = ? AND account_id = ?`
-  ).bind(params.id, accountId).run();
-
-  const updated = await env.DB.prepare(
-    'SELECT * FROM articles WHERE id = ?'
-  ).bind(params.id).first() as Record<string, any>;
-
-  return json({
-    ...updated,
-    tags: updated.tags ? JSON.parse(updated.tags as string) : [],
-    blocks: updated.blocks ? JSON.parse(updated.blocks as string) : [],
-  });
+const handleGetReadIssue: Handler = async (_request, env) => {
+  const accountId = env.EDITORIAL_PILOT_ACCOUNT_ID;
+  const story = accountId ? await env.DB.prepare(
+    `SELECT a.slug, a.title, a.subtitle, a.cover_image_url, c.display_name AS author_name
+       FROM articles a
+       LEFT JOIN contributors c ON c.id = a.author_id AND c.is_published = 1
+      WHERE a.account_id = ? AND a.status = 'published'
+        AND a.read_issue_slot = ? AND a.approved_source_revision_id IS NOT NULL`
+  ).bind(accountId, PILOT_ISSUE_SLOT).first() : null;
+  return Response.json({ story }, { headers: { 'Cache-Control': 'no-store' } });
 };
 
-const handleDeleteArticle: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'publish');
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
-
-  const existing = await env.DB.prepare(
-    'SELECT id FROM articles WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first();
-  if (!existing) return json({ error: 'Article not found' }, 404);
-
-  await env.DB.prepare(
-    `UPDATE articles SET status = 'archived', updated_at = datetime('now')
-     WHERE id = ? AND account_id = ?`
-  ).bind(params.id, accountId).run();
-
-  return json({ success: true });
-};
+const handlePublishArticle = handleArticlePublication('published');
+const handleUnpublishArticle = handleArticlePublication('draft');
+const handleDeleteArticle = handleArticlePublication('archived');
 
 const handleGetPublicArticles: Handler = async (request, env) => {
   const url = new URL(request.url);
@@ -25946,7 +26018,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
           AND tp.status = 'published'
           AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      )
      SELECT tea_profile_id, note AS why, tea_slug, tea_name, tea_image_url,
@@ -26133,7 +26205,7 @@ const handleGetProductSelectedBy: Handler = async (_request, env, params) => {
        JOIN contributors c ON c.id = pf.contributor_id AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
        JOIN accounts a ON a.id = p.account_id
       WHERE (p.id = ? OR p.slug = ?)
-        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
         AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
         AND a.public_enabled = 1 AND a.status = 'active'
       ORDER BY pf.position ASC
@@ -26178,7 +26250,7 @@ const handleGetPublicProfileFavorites: Handler = async (_request, env, params) =
           AND tp.status = 'published'
           AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      ), chosen AS (
        SELECT * FROM eligible_favorites WHERE listing_rank = 1
@@ -27576,7 +27648,7 @@ const handleGetShopCollections: Handler = async (_request, env) => {
         origin_country: item.origin_country,
         origin_region: item.origin_region,
         image_url: item.image_url,
-        description: item.description,
+        description: reviewedDescription(item.product_id, item.description),
         tasting_notes: (() => {
           if (!item.tasting_notes) return null;
           if (typeof item.tasting_notes === 'string') {
@@ -27937,7 +28009,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       const outOfStock = i.product_type === 'Teaware'
         ? (i.quantity_units ?? 0) <= 0
         : (i.stock_grams ?? 0) <= 0;
-      return { ...i, out_of_stock: outOfStock };
+      return { ...i, description: reviewedDescription(i.product_id, i.description), out_of_stock: outOfStock };
     });
 
   return json({
@@ -28394,6 +28466,7 @@ const handleNetworkCatalog: Handler = async (request, env) => {
             )
       WHERE p.network_visible = 1
         AND p.status = 'published'
+        AND NOT ${profileIsPersonalOfferSql('p')}
         AND p.curated_by_account_id != ?
         AND NOT EXISTS (
           SELECT 1 FROM product_listings pl
@@ -28620,7 +28693,8 @@ const handleCarryListing: Handler = async (request, env) => {
 
   if (!profile) return json({ error: 'Tea profile not found' }, 404);
 
-  if (profile.status !== 'published' || profile.network_visible !== 1) {
+  const personalOffer = await env.DB.prepare(`SELECT 1 AS yes FROM tea_profiles p WHERE p.id = ? AND ${profileIsPersonalOfferSql('p')}`).bind(profileId).first();
+  if (profile.status !== 'published' || profile.network_visible !== 1 || personalOffer) {
     return json({ error: 'This tea is not currently available in the network catalog.' }, 400);
   }
 
@@ -31774,6 +31848,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/gift-sample', handleGiftSample],
 
   // Articles — Public
+  ['GET', '/api/read/editorial-issue', handleGetReadIssue],
   ['GET', '/api/articles',       handleGetPublicArticles],
   ['GET', '/api/articles/:slug', handleGetPublicArticle],
 
@@ -31805,6 +31880,7 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/admin/articles',                    handleCreateArticle],
   ['GET',    '/api/admin/articles/:id',                handleGetArticle],
   ['PUT',    '/api/admin/articles/:id',                handleUpdateArticle],
+  ['POST',   '/api/admin/articles/:id/approve-edition', handleApproveEditorialPilot],
   ['POST',   '/api/admin/articles/:id/publish',        handlePublishArticle],
   ['POST',   '/api/admin/articles/:id/unpublish',      handleUnpublishArticle],
   ['DELETE', '/api/admin/articles/:id',                handleDeleteArticle],

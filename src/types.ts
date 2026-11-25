@@ -1434,6 +1434,8 @@ export interface DbArticle {
   wisdom_claim_uses?: Array<{ article_id: string; block_index: number; claim_id: string; rev_used: number; use_kind: 'prose' | 'live_block' }>;
 }
 
+export type { ArticleDraftInput, ReadIssueStory, ReviewedDbArticle } from './articleReviewTypes';
+
 // ── Collections (Phase 1) ───────────────────────────────────────────────────
 
 export type CollectionStatus = 'draft' | 'active' | 'archived';
