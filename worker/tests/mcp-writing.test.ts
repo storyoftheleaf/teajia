@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SqliteD1 } from './helpers/sqliteD1';
 import { writingToolModule } from '../src/mcpTools/writing';
 
@@ -189,6 +189,33 @@ describe('WordForge owns the prose it syncs', () => {
 });
 
 describe('publishing', () => {
+  it('refuses publication if a native edit lands at the guarded write', async () => {
+    const created = await run('create_article_draft', auth, {
+      title: 'Reviewed native draft', body: [{ type: 'paragraph', text: 'Reviewed text' }],
+    });
+    const args = { article_id: created.article.id, published: true };
+    const preview = await tools.set_article_published(env, auth, args);
+
+    const prepare = db.prepare.bind(db);
+    const intercept = vi.spyOn(db, 'prepare').mockImplementation(sql => {
+      if (sql.includes('UPDATE articles SET status')) {
+        prepare('UPDATE articles SET blocks = ? WHERE id = ?')
+          .bind(JSON.stringify([{ type: 'paragraph', text: 'New text' }]), args.article_id).run();
+      }
+      return prepare(sql);
+    });
+    try {
+      const result = await tools.set_article_published(env, auth, { ...args, confirm: preview.confirmation_token });
+      expect(result).toMatchObject({ error: 'stale_article_review' });
+    } finally {
+      intercept.mockRestore();
+    }
+    expect(prepare('SELECT status FROM articles WHERE id = ?').bind(args.article_id).first())
+      .toEqual({ status: 'draft' });
+    expect(prepare("SELECT COUNT(*) AS n FROM activity_logs WHERE action = 'ARTICLE_PUBLISHED_MCP'").first())
+      .toEqual({ n: 0 });
+  });
+
   it('keeps the original date when a piece is corrected and re-published', async () => {
     const created = await run('create_article_draft', auth, {
       title: 'March Piece', body: [{ type: 'paragraph', text: 'x' }],
