@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useId } from 'react';
 import { X, Search } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
 
   const [method, setMethod] = useState<LookupMethod>(isAuthenticated ? 'account' : 'phone');
   const [contact, setContact] = useState('');
+  const contactId = useId();
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef(0);
@@ -56,14 +57,23 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
     }
   }, [dragY, onClose]);
 
-  const findMutation = useMutation<{ magic_token: string }, Error, void>({
-    mutationFn: () => {
-      if (method === 'account') return api.rsvp.findByAccount(slug);
-      if (method === 'email') return api.rsvp.findByEmail(slug, contact.trim());
-      return api.rsvp.findByPhone(slug, contact.trim());
+  const findMutation = useMutation({
+    mutationFn: async (): Promise<string | null> => {
+      if (method === 'account') {
+        const result = await api.rsvp.findByAccount(slug);
+        const token = result?.magic_token;
+        if (typeof token !== 'string' || !token.trim()) throw new Error('Missing reservation token');
+        return token;
+      }
+
+      // The contact lookup sends any access link by email. Its response
+      // cannot establish that a reservation exists or open a reservation.
+      if (method === 'email') await api.rsvp.findByEmail(slug, contact.trim());
+      else await api.rsvp.findByPhone(slug, contact.trim());
+      return null;
     },
-    onSuccess: (result) => {
-      navigate(`/m/${result.magic_token}`);
+    onSuccess: (token) => {
+      if (token) navigate(`/m/${encodeURIComponent(token)}`);
     },
   });
 
@@ -72,7 +82,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || findMutation.isPending) return;
     findMutation.mutate();
   };
 
@@ -135,6 +145,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
                   <button
                     key={id}
                     type="button"
+                    disabled={findMutation.isPending}
                     onClick={() => { setMethod(id); setContact(''); findMutation.reset(); }}
                     className={`relative -mb-px pb-2 pt-1 transition-colors ${
                       isActive ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
@@ -160,13 +171,18 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               </p>
             ) : (
               <div>
-                <label className="label-caps block mb-2">
+                <label htmlFor={contactId} className="label-caps block mb-2">
                   {method === 'phone' ? 'Phone number' : 'Email address'}
                 </label>
                 <input
+                  id={contactId}
                   type={method === 'email' ? 'email' : 'tel'}
                   value={contact}
-                  onChange={(e) => setContact(e.target.value)}
+                  disabled={findMutation.isPending}
+                  onChange={(e) => {
+                    setContact(e.target.value);
+                    findMutation.reset();
+                  }}
                   placeholder={method === 'email' ? 'your@email.com' : '+62 812 3456 7890'}
                   autoFocus
                   className={inputClass}
@@ -174,10 +190,16 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               </div>
             )}
 
+            {findMutation.isSuccess && findMutation.data === null && (
+              <p role="status" className="rounded-md border border-tea-border p-3 text-ui-13 text-tea-text-sec">
+                If your details match an RSVP, check the email address on file for its private link.
+              </p>
+            )}
+
             {findMutation.isError && (() => {
               const raw = findMutation.error?.message ?? '';
               const isNotFound = /not found|404/i.test(raw);
-              const friendly = isNotFound
+              const friendly = method === 'account' && isNotFound
                 ? "We couldn't find your reservation. Try searching by your other contact method, or message the host directly."
                 : 'Something went wrong. Please try again.';
               return (
@@ -214,7 +236,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
           </form>
         </div>
 
-        <div className="pb-[env(safe-area-inset-bottom,0px)]" />
+        <div className="pb-nav" />
       </div>
 
       <style>{`

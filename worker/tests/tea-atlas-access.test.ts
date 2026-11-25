@@ -21,12 +21,16 @@ const databases: SqliteD1[] = [];
 const ARTICLE = 'articles/2012-02-p03-answering-some-puerh-questions.json';
 const HOME = 'home.json';
 const PICTURE = 'media/2012-02/2012-02-001-000.jpg';
+const SEARCH_CATALOG = 'search/catalog.json';
+const SEARCH_SHARD = 'search/text/pu.json';
 
 /** A private bucket holding one article, the home index and one picture. */
 function fakeBucket() {
   const objects = new Map<string, { body: string; type: string }>([
     [ARTICLE, { body: JSON.stringify({ id: '2012-02-p03-answering-some-puerh-questions', blocks: [{ t: 'p', v: 'Puerh questions.' }] }), type: 'application/json' }],
     ['index/v1/home.json', { body: JSON.stringify({ format: 1, sources: [], topics: [] }), type: 'application/json' }],
+    ['index/v1/search/catalog.json', { body: JSON.stringify({ fields: [], rows: [] }), type: 'application/json' }],
+    ['index/v1/search/text/pu.json', { body: JSON.stringify({ puerh: [0] }), type: 'application/json' }],
     [PICTURE, { body: 'JPEGBYTES', type: 'image/jpeg' }],
   ]);
   const reads: string[] = [];
@@ -96,7 +100,13 @@ async function request(env: any, path: string, userId: string | null, options: {
   }), env);
 }
 
-const SURFACES = { 'a page': ARTICLE, 'the API': HOME, 'a picture': PICTURE };
+const SURFACES = {
+  'a page': ARTICLE,
+  'the API': HOME,
+  'a picture': PICTURE,
+  'the search catalog': SEARCH_CATALOG,
+  'a search shard': SEARCH_SHARD,
+};
 
 describe('the library does not exist for anyone without access', () => {
   const outsiders: Array<[string, string | null]> = [
@@ -175,6 +185,8 @@ describe('the tick', () => {
     expect(grant.status).toBe(200);
     expect((await request(env, `/api/atlas/${ARTICLE}`, 'reader')).status).toBe(200);
     expect((await request(env, `/api/atlas/${PICTURE}`, 'reader')).status).toBe(200);
+    expect((await request(env, `/api/atlas/${SEARCH_CATALOG}`, 'reader')).status).toBe(200);
+    expect((await request(env, `/api/atlas/${SEARCH_SHARD}`, 'reader')).status).toBe(200);
 
     const revoke = await request(env, `/api/accounts/${PLATFORM}/members/reader/tea-atlas`, 'site-owner', { method: 'PUT', body: { granted: false } });
     expect(revoke.status).toBe(200);

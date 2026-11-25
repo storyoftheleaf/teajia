@@ -157,14 +157,21 @@ export function parseDraft(body: string, prev: Ids = { byText: new Map(), slots:
   };
   const push = (b: Block) => target().push(b);
   const note = (c: string, tag: string) => c.match(new RegExp(`^%%${tag}:\\s*([^%]*)%%`))?.[1]?.trim();
+  let chunkIndex = 0;
   const pullQuote = (c: string) => {
+    // A blank line may separate the layout note from its blockquote. Consume
+    // only the next blockquote, never skip intervening notes or story words.
+    if (!c.includes('\n') && chunks[chunkIndex + 1]?.startsWith('>')) {
+      c += `\n${chunks[++chunkIndex]}`;
+    }
     const q = c.split('\n').slice(1).join(' ').replace(/^>\s*/, '').trim();
     const inner = unquote(q);
     if (inner === null) throw new DraftError(`A pull quote must sit in quotation marks: ${q.slice(0, 60)}`);
     return pageText(inner);
   };
 
-  for (const c of chunks) {
+  for (; chunkIndex < chunks.length; chunkIndex++) {
+    const c = chunks[chunkIndex];
     if (c.startsWith('## ')) {
       if (where === 'ending' || where === 'closing') throw new DraftError('A part heading after %%ending%%.');
       where = 'parts';
