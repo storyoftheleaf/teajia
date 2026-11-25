@@ -5,6 +5,73 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "taiwan-oolong",
+    "slug": "taiwan-oolong",
+    "kind": "tea_type",
+    "label": "Taiwan oolong",
+    "visibility": "public",
+    "nativeName": "台灣烏龍茶",
+    "parentId": "oolong",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Taiwan oolong is",
+        "sourceIds": []
+      },
+      {
+        "key": "high-mountain",
+        "label": "High mountain tea",
+        "sourceIds": []
+      },
+      {
+        "key": "dong-ding",
+        "label": "Dong Ding",
+        "sourceIds": []
+      },
+      {
+        "key": "baozhong",
+        "label": "Baozhong",
+        "sourceIds": []
+      },
+      {
+        "key": "oriental-beauty",
+        "label": "Oriental Beauty",
+        "sourceIds": []
+      },
+      {
+        "key": "muzha",
+        "label": "Muzha Tieguanyin",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Taiwan oolong grew",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Taiwan oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Taiwan oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged Taiwan oolong",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "tieguanyin",
     "slug": "tieguanyin",
     "kind": "tea_type",

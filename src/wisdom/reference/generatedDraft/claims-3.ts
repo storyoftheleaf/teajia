@@ -5,6 +5,306 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "liu-bao:nanyang-trade",
+    "pageId": "liu-bao",
+    "sectionKey": "nanyang-trade",
+    "label": "Who drank it, and why",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 2,
+    "scope": "Liu Bao tea",
+    "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade held that it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24; one word changed after approval (held to believed) because held is a reserved review word",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:notice-aged",
+    "pageId": "liu-bao",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Liu Bao",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "槟榔香",
+        "pinyin": "bīng láng xiāng",
+        "gloss": "betel nut aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Liu Bao of ten years and more",
+    "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao of ten years and more",
+        "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:old-stock",
+    "pageId": "liu-bao",
+    "sectionKey": "old-stock",
+    "label": "Old stock",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "回流",
+        "pinyin": "huí liú",
+        "gloss": "returned"
+      }
+    ],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "mahei-gushu-red:tea-name",
+    "pageId": "mahei-gushu-red",
+    "sectionKey": "tea-name",
+    "label": "Reading the tea’s name",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "mahei-gushu-red"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The recorded name and its meaning. It supplies no tree measurement.",
+    "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
+    "sourceIds": [
+      "teajia-mahei-red"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The recorded name and its meaning. It supplies no tree measurement.",
+        "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-D2D75741CFD44DE469A12F65"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "mahei:village-road-and-harvest",
+    "pageId": "mahei",
+    "sectionKey": "village-road-and-harvest",
+    "label": "The road through Mahei",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "mahei",
+        "yiwu"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The documented Mahei road and one grower’s 2024 field account.",
+    "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
+    "sourceIds": [
+      "ma-zhefeng-mahei-road",
+      "mengla-mahei-spring"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The documented Mahei road and one grower’s 2024 field account.",
+        "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-44151BAAF5BCA58F985D91EE",
+          "EVIDENCE-80742578E49E9441F6CC59CF",
+          "EVIDENCE-7D86F61C923CB5E76CC2CCD4"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "malaysian-returned-liu-bao:returned",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "returned",
+    "label": "Why the tea is called “returned”",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "malaysian-returned-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Meaning of the trade name.",
+    "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
+    "sourceIds": [
+      "cns-malaysia-liubao-trade",
+      "teajia-malaysian-returned"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Meaning of the trade name.",
+        "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-25C675AC1B3373D804FFE518",
+          "EVIDENCE-3D052B7C680B4561B8BEB047"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "malaysian-returned-liu-bao:river-trade",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "river-trade",
+    "label": "The river route to Malaya",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "malaysian-returned-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The commercial route in the 1951 trade account.",
+    "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
+    "sourceIds": [
+      "guangxi-archives-liubao"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The commercial route in the 1951 trade account.",
+        "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-94FBED6771030379C4352AC1",
+          "EVIDENCE-374E11CAC771CEE17ACA52B9"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "malaysian-returned-liu-bao:tea-came-back",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "tea-came-back",
+    "label": "How older tea found its way back",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "malaysian-returned-liu-bao"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
+    "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
+    "sourceIds": [
+      "cns-malaysia-liubao-trade"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
+        "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-A3F7299E9399CE865CCF9A5D",
+          "EVIDENCE-3D052B7C680B4561B8BEB047"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "menghai-county:common-character",
     "pageId": "menghai-county",
     "sectionKey": "common-character",
@@ -668,281 +968,6 @@ export const PART: readonly DraftClaim[] = [
         "evidenceIds": [
           "EVIDENCE-5B1AC33CAC9C5C015CA7CA80"
         ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "puer:modern-family",
-    "pageId": "puer",
-    "sectionKey": "modern-family",
-    "label": "The modern family",
-    "axis": "type",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Pu’er",
-    "text": "Modern Pu’er includes sheng and shou. Their processing paths differ, but both sit within a twentieth-century industry that restored tea gardens, expanded production, and developed distinct forms for domestic and export markets.",
-    "sourceIds": [
-      "ctma-puer-history-2021"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Pu’er",
-        "text": "Modern Pu’er includes sheng and shou. Their processing paths differ, but both sit within a twentieth-century industry that restored tea gardens, expanded production, and developed distinct forms for domestic and export markets.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-AAAA07C79A04F58BAF100676"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:ageing",
-    "pageId": "red",
-    "sectionKey": "ageing",
-    "label": "Keeping red tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea has no tradition of ageing. It is a tea to drink fresh: sealed, it keeps its quality for about a year and a half to three years, and after that it turns flatter.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea has no tradition of ageing. It is a tea to drink fresh: sealed, it keeps its quality for about a year and a half to three years, and after that it turns flatter.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:brewing",
-    "pageId": "red",
-    "sectionKey": "brewing",
-    "label": "Brewing red tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:common-impressions",
-    "pageId": "red",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:definition",
-    "pageId": "red",
-    "sectionKey": "definition",
-    "label": "What red tea is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [
-      {
-        "original": "红茶",
-        "pinyin": "hóng chá",
-        "gloss": "red tea"
-      },
-      {
-        "original": "发酵",
-        "pinyin": "fā jiào",
-        "gloss": "fermentation"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea is the tea English calls black tea. The Chinese name follows the colour of the brewed cup, which is red; the English one follows the dry leaf, which is dark. It is the fully oxidised tea: once the leaf’s cells are broken, its own enzymes work on it until it has turned from green to reddish brown. The Chinese trade calls that step fermentation.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea is the tea English calls black tea. The Chinese name follows the colour of the brewed cup, which is red; the English one follows the dry leaf, which is dark. It is the fully oxidised tea: once the leaf’s cells are broken, its own enzymes work on it until it has turned from green to reddish brown. The Chinese trade calls that step fermentation.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:history",
-    "pageId": "red",
-    "sectionKey": "history",
-    "label": "How red tea spread",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "By the trade’s own telling, red tea began in the Wuyi mountains of northern Fujian, around Tongmu, in the seventeenth century, though no record says exactly how or when it was first made. Dutch traders and then the British East India Company carried it to Europe under the names Bohea and Souchong. In the nineteenth century the craft spread to other Chinese provinces, among them Anhui, where Keemun began late in the Qing dynasty, and the British, having taken Chinese plants and tea makers to India, planted red tea in Assam and later Darjeeling. Taiwan’s red tea dates from the Japanese period, at Yuchi near Sun Moon Lake, and Yunnan’s Dian Hong from the late 1930s.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "By the trade’s own telling, red tea began in the Wuyi mountains of northern Fujian, around Tongmu, in the seventeenth century, though no record says exactly how or when it was first made. Dutch traders and then the British East India Company carried it to Europe under the names Bohea and Souchong. In the nineteenth century the craft spread to other Chinese provinces, among them Anhui, where Keemun began late in the Qing dynasty, and the British, having taken Chinese plants and tea makers to India, planted red tea in Assam and later Darjeeling. Taiwan’s red tea dates from the Japanese period, at Yuchi near Sun Moon Lake, and Yunnan’s Dian Hong from the late 1930s.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:making",
-    "pageId": "red",
-    "sectionKey": "making",
-    "label": "How red tea is made",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [
-      {
-        "original": "萎凋",
-        "pinyin": "wěi diāo",
-        "gloss": "withering"
-      },
-      {
-        "original": "揉捻",
-        "pinyin": "róu niǎn",
-        "gloss": "rolling"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea is made in four steps, each with a reason. The fresh leaf is withered, spread out until it loses water and goes soft enough to work. It is rolled, twisted and bruised so its juices and enzymes meet and the change can begin. It is left to oxidise in warmth and damp air, and the maker judges it by smell and colour, as the grassy smell turns floral or fruity and the leaf turns reddish brown. Then it is dried with hot air, which ends the change and makes the tea stable. Graded teas are then sorted and blended.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea is made in four steps, each with a reason. The fresh leaf is withered, spread out until it loses water and goes soft enough to work. It is rolled, twisted and bruised so its juices and enzymes meet and the change can begin. It is left to oxidise in warmth and damp air, and the maker judges it by smell and colour, as the grassy smell turns floral or fruity and the leaf turns reddish brown. Then it is dried with hot air, which ends the change and makes the tea stable. Graded teas are then sorted and blended.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "red:whole-and-broken",
-    "pageId": "red",
-    "sectionKey": "whole-and-broken",
-    "label": "Whole leaf and broken leaf",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red"
-    },
-    "terms": [
-      {
-        "original": "工夫红茶",
-        "pinyin": "gōng fu hóng chá",
-        "gloss": "gongfu red tea"
-      },
-      {
-        "original": "红碎茶",
-        "pinyin": "hóng suì chá",
-        "gloss": "broken red tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Red tea is made in two families. Whole-leaf strip tea, called gongfu in Chinese and orthodox in English, is rolled with care and is the choice for slow, attentive brewing. Broken-leaf tea, cut or crushed, gives its colour and strength fast, which is why it fills tea bags and suits milk tea.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
       }
     ],
     "pageVisibility": "public"

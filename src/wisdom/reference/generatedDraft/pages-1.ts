@@ -5,6 +5,68 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "anhua-dark",
+    "slug": "anhua-dark",
+    "kind": "tea_type",
+    "label": "Anhua dark tea",
+    "visibility": "public",
+    "nativeName": "安化黑茶",
+    "parentId": "dark",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Anhua dark tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "family",
+        "label": "The family of Anhua teas",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Anhua tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "rolls",
+        "label": "The rolls",
+        "sourceIds": []
+      },
+      {
+        "key": "grades",
+        "label": "Grades",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How the Anhua trade grew",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Anhua tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Anhua tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in Anhua tea kept for years",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "dark",
     "slug": "dark",
     "kind": "tea_family",
@@ -883,73 +945,6 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "notice-aged",
         "label": "What people often notice in aged ripe pu’er",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "taiwan-oolong",
-    "slug": "taiwan-oolong",
-    "kind": "tea_type",
-    "label": "Taiwan oolong",
-    "visibility": "public",
-    "nativeName": "台灣烏龍茶",
-    "parentId": "oolong",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What Taiwan oolong is",
-        "sourceIds": []
-      },
-      {
-        "key": "high-mountain",
-        "label": "High mountain tea",
-        "sourceIds": []
-      },
-      {
-        "key": "dong-ding",
-        "label": "Dong Ding",
-        "sourceIds": []
-      },
-      {
-        "key": "baozhong",
-        "label": "Baozhong",
-        "sourceIds": []
-      },
-      {
-        "key": "oriental-beauty",
-        "label": "Oriental Beauty",
-        "sourceIds": []
-      },
-      {
-        "key": "muzha",
-        "label": "Muzha Tieguanyin",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How Taiwan oolong grew",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Keeping and ageing Taiwan oolong",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing Taiwan oolong",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged Taiwan oolong",
         "sourceIds": []
       }
     ]

@@ -5,6 +5,306 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "gong-ting:definition",
+    "pageId": "gong-ting",
+    "sectionKey": "definition",
+    "label": "What Gong Ting means",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [
+      {
+        "original": "宫廷",
+        "pinyin": "gōngtíng",
+        "gloss": "palace; used as a grade name"
+      }
+    ],
+    "rev": 2,
+    "scope": "Loose ripe pu’er grading",
+    "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "legacy_import",
+        "legacyRef": "marks:gong-ting",
+        "scope": "General grade designation, used on shou pu’er and aged Taiwanese oolong",
+        "text": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves).",
+        "approvedAt": "2026-11-23",
+        "reason": "Imported from the legacy marks corpus",
+        "evidenceIds": []
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Loose ripe pu’er grading",
+        "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
+        "approvedAt": "2026-11-23",
+        "reason": "Narrowed to loose ripe pu’er grading (pilot correction demo; awaiting Adrian’s review)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:grade-and-quality",
+    "pageId": "gong-ting",
+    "sectionKey": "grade-and-quality",
+    "label": "Grade is not quality",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:name-on-the-label",
+    "pageId": "gong-ting",
+    "sectionKey": "name-on-the-label",
+    "label": "A grade, and a selling word",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "greater-yiwu:common-character",
+    "pageId": "greater-yiwu",
+    "sectionKey": "common-character",
+    "label": "Shared reputation, varied tea",
+    "axis": "sensory_observation",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "attribution": {
+      "sourceId": "teadb-greater-yiwu",
+      "sourceRole": "specialist_editorial",
+      "sample": "Regional convention reported in specialist writing about Greater Yiwu"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Greater Yiwu is often associated with a softer opening and a persistent sweet return when compared with the more forceful profiles linked to western Xishuangbanna. The area contains many growing places, however, and their material can vary substantially; this is a regional tendency, not a tasting promise for an individual tea.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Greater Yiwu is often associated with a softer opening and a persistent sweet return when compared with the more forceful profiles linked to western Xishuangbanna. The area contains many growing places, however, and their material can vary substantially; this is a regional tendency, not a tasting promise for an individual tea.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-063C59A9C3026FEBF80765F1"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:history",
+    "pageId": "greater-yiwu",
+    "sectionKey": "history",
+    "label": "Trade history",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-A856667D478345A121C24FD6"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:scope",
+    "pageId": "greater-yiwu",
+    "sectionKey": "scope",
+    "label": "A name at several scales",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-B4A02CADDFD91399DD30150A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:ageing",
+    "pageId": "lapsang",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Lapsang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:brewing",
+    "pageId": "lapsang",
+    "sectionKey": "brewing",
+    "label": "Brewing Lapsang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:common-impressions",
+    "pageId": "lapsang",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "lapsang:definition",
     "pageId": "lapsang",
     "sectionKey": "definition",
@@ -648,306 +948,6 @@ export const PART: readonly DraftClaim[] = [
         "approvedAt": "2026-11-24",
         "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
         "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:nanyang-trade",
-    "pageId": "liu-bao",
-    "sectionKey": "nanyang-trade",
-    "label": "Who drank it, and why",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 2,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade held that it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      },
-      {
-        "rev": 2,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24; one word changed after approval (held to believed) because held is a reserved review word",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:notice-aged",
-    "pageId": "liu-bao",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Liu Bao",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "槟榔香",
-        "pinyin": "bīng láng xiāng",
-        "gloss": "betel nut aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao of ten years and more",
-    "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of ten years and more",
-        "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:old-stock",
-    "pageId": "liu-bao",
-    "sectionKey": "old-stock",
-    "label": "Old stock",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "回流",
-        "pinyin": "huí liú",
-        "gloss": "returned"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "mahei-gushu-red:tea-name",
-    "pageId": "mahei-gushu-red",
-    "sectionKey": "tea-name",
-    "label": "Reading the tea’s name",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "mahei-gushu-red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The recorded name and its meaning. It supplies no tree measurement.",
-    "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
-    "sourceIds": [
-      "teajia-mahei-red"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The recorded name and its meaning. It supplies no tree measurement.",
-        "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-D2D75741CFD44DE469A12F65"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "mahei:village-road-and-harvest",
-    "pageId": "mahei",
-    "sectionKey": "village-road-and-harvest",
-    "label": "The road through Mahei",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "mahei",
-        "yiwu"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The documented Mahei road and one grower’s 2024 field account.",
-    "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
-    "sourceIds": [
-      "ma-zhefeng-mahei-road",
-      "mengla-mahei-spring"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The documented Mahei road and one grower’s 2024 field account.",
-        "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-44151BAAF5BCA58F985D91EE",
-          "EVIDENCE-80742578E49E9441F6CC59CF",
-          "EVIDENCE-7D86F61C923CB5E76CC2CCD4"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:returned",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "returned",
-    "label": "Why the tea is called “returned”",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Meaning of the trade name.",
-    "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
-    "sourceIds": [
-      "cns-malaysia-liubao-trade",
-      "teajia-malaysian-returned"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Meaning of the trade name.",
-        "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-25C675AC1B3373D804FFE518",
-          "EVIDENCE-3D052B7C680B4561B8BEB047"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:river-trade",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "river-trade",
-    "label": "The river route to Malaya",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The commercial route in the 1951 trade account.",
-    "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
-    "sourceIds": [
-      "guangxi-archives-liubao"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The commercial route in the 1951 trade account.",
-        "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-94FBED6771030379C4352AC1",
-          "EVIDENCE-374E11CAC771CEE17ACA52B9"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:tea-came-back",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "tea-came-back",
-    "label": "How older tea found its way back",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
-    "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
-    "sourceIds": [
-      "cns-malaysia-liubao-trade"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
-        "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-A3F7299E9399CE865CCF9A5D",
-          "EVIDENCE-3D052B7C680B4561B8BEB047"
-        ]
       }
     ],
     "pageVisibility": "public"

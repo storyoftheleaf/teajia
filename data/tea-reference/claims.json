@@ -5268,6 +5268,245 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "安化黑茶",
+          "pinyin": "ānhuà hēichá",
+          "gloss": "Anhua dark tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:family",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "天尖",
+          "pinyin": "tiānjiān",
+          "gloss": "heavenly tip"
+        },
+        {
+          "original": "贡尖",
+          "pinyin": "gòngjiān",
+          "gloss": "tribute tip"
+        },
+        {
+          "original": "生尖",
+          "pinyin": "shēngjiān",
+          "gloss": "raw tip"
+        },
+        {
+          "original": "茯砖",
+          "pinyin": "fúzhuān",
+          "gloss": "Fu brick"
+        },
+        {
+          "original": "千两茶",
+          "pinyin": "qiānliǎng chá",
+          "gloss": "thousand-liang tea"
+        },
+        {
+          "original": "百两茶",
+          "pinyin": "bǎiliǎng chá",
+          "gloss": "hundred-liang tea"
+        },
+        {
+          "original": "花卷茶",
+          "pinyin": "huājuǎn chá",
+          "gloss": "flower roll tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "黑毛茶",
+          "pinyin": "hēi máochá",
+          "gloss": "dark raw tea"
+        },
+        {
+          "original": "松烟香",
+          "pinyin": "sōngyān xiāng",
+          "gloss": "pine-smoke aroma"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:rolls",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:grades",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "一级",
+          "pinyin": "yījí",
+          "gloss": "first grade"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "anhua-dark:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhua"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

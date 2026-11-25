@@ -5,6 +5,305 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "anhua-dark:ageing",
+    "pageId": "anhua-dark",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Anhua tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Anhua tea is kept for years and said to improve: the liquor turns redder and the taste sweeter and mellower, with a fuller scent. No agreed count of years marks it as aged. Keep it clean, dry and aired, away from mould and other smells.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anhua tea is kept for years and said to improve: the liquor turns redder and the taste sweeter and mellower, with a fuller scent. No agreed count of years marks it as aged. Keep it clean, dry and aired, away from mould and other smells.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:brewing",
+    "pageId": "anhua-dark",
+    "sectionKey": "brewing",
+    "label": "Brewing Anhua tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "In a small pot or gaiwan, use water at the boil and start with a steep of about 15 to 30 seconds, a little longer each round. Pressed and aged Anhua tea is also commonly simmered in a pot.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:common-impressions",
+    "pageId": "anhua-dark",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:definition",
+    "pageId": "anhua-dark",
+    "sectionKey": "definition",
+    "label": "What Anhua dark tea is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "安化黑茶",
+        "pinyin": "ānhuà hēichá",
+        "gloss": "Anhua dark tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Anhua dark tea comes from Anhua County, a mountain county on the Zi river in north-central Hunan, under the city of Yiyang. Its name is a protected origin product in China, so it is tied to a defined place of making. Anhua is widely named as the main home of dark tea in China, and as a starting point of the old tea routes to the north-west.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anhua dark tea comes from Anhua County, a mountain county on the Zi river in north-central Hunan, under the city of Yiyang. Its name is a protected origin product in China, so it is tied to a defined place of making. Anhua is widely named as the main home of dark tea in China, and as a starting point of the old tea routes to the north-west.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:family",
+    "pageId": "anhua-dark",
+    "sectionKey": "family",
+    "label": "The family of Anhua teas",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "天尖",
+        "pinyin": "tiānjiān",
+        "gloss": "heavenly tip"
+      },
+      {
+        "original": "贡尖",
+        "pinyin": "gòngjiān",
+        "gloss": "tribute tip"
+      },
+      {
+        "original": "生尖",
+        "pinyin": "shēngjiān",
+        "gloss": "raw tip"
+      },
+      {
+        "original": "茯砖",
+        "pinyin": "fúzhuān",
+        "gloss": "Fu brick"
+      },
+      {
+        "original": "千两茶",
+        "pinyin": "qiānliǎng chá",
+        "gloss": "thousand-liang tea"
+      },
+      {
+        "original": "百两茶",
+        "pinyin": "bǎiliǎng chá",
+        "gloss": "hundred-liang tea"
+      },
+      {
+        "original": "花卷茶",
+        "pinyin": "huājuǎn chá",
+        "gloss": "flower roll tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Anhua teas come in three shapes. The three tips are loose teas, lightly pressed into bamboo baskets: Tianjian from the most tender leaf, Gongjian in the middle, and Shengjian, the coarsest, with the most stalk. The pressed bricks are Fu, Hei and Hua brick; Fu brick is the one grown on purpose with golden flower, in a warm, humid room for some weeks before it is dried hard. The flower rolls are tall columns pressed by hand inside a woven bamboo basket lined with leaf, named by their old weight in liang: Qianliang, a thousand, Bailiang, a hundred, and Shiliang, ten. Huajuan, flower roll, names the whole family and is also a nickname of Qianliang.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anhua teas come in three shapes. The three tips are loose teas, lightly pressed into bamboo baskets: Tianjian from the most tender leaf, Gongjian in the middle, and Shengjian, the coarsest, with the most stalk. The pressed bricks are Fu, Hei and Hua brick; Fu brick is the one grown on purpose with golden flower, in a warm, humid room for some weeks before it is dried hard. The flower rolls are tall columns pressed by hand inside a woven bamboo basket lined with leaf, named by their old weight in liang: Qianliang, a thousand, Bailiang, a hundred, and Shiliang, ten. Huajuan, flower roll, names the whole family and is also a nickname of Qianliang.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:grades",
+    "pageId": "anhua-dark",
+    "sectionKey": "grades",
+    "label": "Grades",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "一级",
+        "pinyin": "yījí",
+        "gloss": "first grade"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The raw leaf is sorted into numbered grades, and each finished tea is made from the grade that suits it, the most tender leaf going into the finest loose tips.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The raw leaf is sorted into numbered grades, and each finished tea is made from the grade that suits it, the most tender leaf going into the finest loose tips.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:history",
+    "pageId": "anhua-dark",
+    "sectionKey": "history",
+    "label": "How the Anhua trade grew",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Anhua became a county in 1072, in the Northern Song, and tea from the area is mentioned from the Tang on, though as tea from the place, not yet as dark tea. In 1595, in the Ming, Anhua tea became an official tea, sold to the north-west. In the Qing, Shanxi merchants and others took over the border trade, and the loose tips and the large rolls grew out of that trade; the rolls are a Qing product, not a Ming one. Fu brick was first made in Anhua itself in 1953, at the Baishaxi factory, after Fu bricks had long been pressed in Shaanxi from Anhua raw tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Anhua became a county in 1072, in the Northern Song, and tea from the area is mentioned from the Tang on, though as tea from the place, not yet as dark tea. In 1595, in the Ming, Anhua tea became an official tea, sold to the north-west. In the Qing, Shanxi merchants and others took over the border trade, and the loose tips and the large rolls grew out of that trade; the rolls are a Qing product, not a Ming one. Fu brick was first made in Anhua itself in 1953, at the Baishaxi factory, after Fu bricks had long been pressed in Shaanxi from Anhua raw tea.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:making",
+    "pageId": "anhua-dark",
+    "sectionKey": "making",
+    "label": "How Anhua tea is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [
+      {
+        "original": "黑毛茶",
+        "pinyin": "hēi máochá",
+        "gloss": "dark raw tea"
+      },
+      {
+        "original": "松烟香",
+        "pinyin": "sōngyān xiāng",
+        "gloss": "pine-smoke aroma"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Every Anhua tea starts as one raw tea, heimaocha, made from large Anhua leaf. The leaf is fixed, rolled, piled, rolled again and dried over a wood fire, and in Anhua that fire burns pine. The pine fire gives the tea its smell of pine smoke or pine resin, which sets it apart from dark teas dried another way; some newer lines dry by machine instead. The raw tea is then steamed soft and pressed: lightly for the loose tips, in moulds for the bricks, and by hand for the rolls.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Every Anhua tea starts as one raw tea, heimaocha, made from large Anhua leaf. The leaf is fixed, rolled, piled, rolled again and dried over a wood fire, and in Anhua that fire burns pine. The pine fire gives the tea its smell of pine smoke or pine resin, which sets it apart from dark teas dried another way; some newer lines dry by machine instead. The raw tea is then steamed soft and pressed: lightly for the loose tips, in moulds for the bricks, and by hand for the rolls.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:notice-aged",
+    "pageId": "anhua-dark",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in Anhua tea kept for years",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "anhua-dark:rolls",
+    "pageId": "anhua-dark",
+    "sectionKey": "rolls",
+    "label": "The rolls",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhua"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A roll is packed into its basket and pressed tight by treading and twisting with long bars, then left to dry slowly in sun and night air for weeks rather than in a dryer. Rolls are usually kept whole to age, and reach drinkers later as slices, discs or small cut pieces, since a whole roll is far too big to buy or brew.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A roll is packed into its basket and pressed tight by treading and twisting with long bars, then left to dry slowly in sun and night air for weeks rather than in a dryer. Rolls are usually kept whole to age, and reach drinkers later as slices, discs or small cut pieces, since a whole roll is far too big to buy or brew.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "dark:ageing",
     "pageId": "dark",
     "sectionKey": "ageing",
@@ -632,305 +931,5 @@ export const PART: readonly DraftClaim[] = [
     "pendingText": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
     "previousRevisions": [],
     "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-ting:definition",
-    "pageId": "gong-ting",
-    "sectionKey": "definition",
-    "label": "What Gong Ting means",
-    "axis": "grade",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "grade": "gong-ting"
-    },
-    "terms": [
-      {
-        "original": "宫廷",
-        "pinyin": "gōngtíng",
-        "gloss": "palace; used as a grade name"
-      }
-    ],
-    "rev": 2,
-    "scope": "Loose ripe pu’er grading",
-    "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "legacy_import",
-        "legacyRef": "marks:gong-ting",
-        "scope": "General grade designation, used on shou pu’er and aged Taiwanese oolong",
-        "text": "A 'palace' or 'imperial court' designation for the highest grade classification within a tea's production, indicating the finest bud or tip material. Seen on shou pu-erh (finest bud material) and on aged Taiwanese oolong (finest buds and leaves).",
-        "approvedAt": "2026-11-23",
-        "reason": "Imported from the legacy marks corpus",
-        "evidenceIds": []
-      },
-      {
-        "rev": 2,
-        "origin": "approved",
-        "scope": "Loose ripe pu’er grading",
-        "text": "Gong Ting is the finest grade of loose ripe pu’er, sorted out for its small leaf and high share of buds. In the market it sits one step above special grade.",
-        "approvedAt": "2026-11-23",
-        "reason": "Narrowed to loose ripe pu’er grading (pilot correction demo; awaiting Adrian’s review)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-ting:grade-and-quality",
-    "pageId": "gong-ting",
-    "sectionKey": "grade-and-quality",
-    "label": "Grade is not quality",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-ting"
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "gong-ting:name-on-the-label",
-    "pageId": "gong-ting",
-    "sectionKey": "name-on-the-label",
-    "label": "A grade, and a selling word",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "grade": "gong-ting"
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "greater-yiwu:common-character",
-    "pageId": "greater-yiwu",
-    "sectionKey": "common-character",
-    "label": "Shared reputation, varied tea",
-    "axis": "sensory_observation",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "attribution": {
-      "sourceId": "teadb-greater-yiwu",
-      "sourceRole": "specialist_editorial",
-      "sample": "Regional convention reported in specialist writing about Greater Yiwu"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Greater Yiwu",
-    "text": "Greater Yiwu is often associated with a softer opening and a persistent sweet return when compared with the more forceful profiles linked to western Xishuangbanna. The area contains many growing places, however, and their material can vary substantially; this is a regional tendency, not a tasting promise for an individual tea.",
-    "sourceIds": [
-      "teadb-greater-yiwu"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Greater Yiwu",
-        "text": "Greater Yiwu is often associated with a softer opening and a persistent sweet return when compared with the more forceful profiles linked to western Xishuangbanna. The area contains many growing places, however, and their material can vary substantially; this is a regional tendency, not a tasting promise for an individual tea.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-063C59A9C3026FEBF80765F1"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "greater-yiwu:history",
-    "pageId": "greater-yiwu",
-    "sectionKey": "history",
-    "label": "Trade history",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Greater Yiwu",
-    "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
-    "sourceIds": [
-      "teadb-greater-yiwu"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Greater Yiwu",
-        "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-A856667D478345A121C24FD6"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "greater-yiwu:scope",
-    "pageId": "greater-yiwu",
-    "sectionKey": "scope",
-    "label": "A name at several scales",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Greater Yiwu",
-    "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
-    "sourceIds": [
-      "teadb-greater-yiwu"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Greater Yiwu",
-        "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-B4A02CADDFD91399DD30150A"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:ageing",
-    "pageId": "lapsang",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Lapsang",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:brewing",
-    "pageId": "lapsang",
-    "sectionKey": "brewing",
-    "label": "Brewing Lapsang",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "lapsang:common-impressions",
-    "pageId": "lapsang",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lapsang and Wuyi red style kit",
-        "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
   }
 ];

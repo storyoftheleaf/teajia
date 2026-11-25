@@ -128,9 +128,22 @@ describe('composeInputs for any kit', () => {
     expect(inputs.fixed.notice?.text).not.toMatch(/smoke/i);
   });
 
-  it('gives a dark tea outside Guangxi only the family kit', () => {
-    const inputs = composeInputs({ ...liuBao, id: 'fu', product_name: 'Fu Brick', origin_region: 'Anhua, Hunan', form: 'Brick' }, claims, { thisYear: 2026, pages });
+  it('gives an Anhua dark tea the Anhua kit, ahead of the dark family', () => {
+    const bailiang = { ...liuBao, id: 'bl', product_name: 'Bai Liang', origin_region: 'Anhua, Hunan', form: 'Brick', year: 2006 };
+    const inputs = composeInputs(bailiang, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type[0]).toBe('anhua-dark:definition');
+    expect(type).toContain('anhua-dark:rolls');
+    expect(type).toContain('dark:definition');
+    expect(type).not.toContain('liu-bao:definition');
+    expect(ids(inputs.layers.age)).toEqual(['anhua-dark:ageing']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged Anhua dark tea');
+  });
+
+  it('gives a dark tea from neither Guangxi nor Anhua only the family kit', () => {
+    const inputs = composeInputs({ ...liuBao, id: 'ya', product_name: "Ya'an Kang Brick", origin_region: "Ya'an, Sichuan", form: 'Brick' }, claims, { thisYear: 2026, pages });
     expect(ids(inputs.layers.type)).not.toContain('liu-bao:definition');
+    expect(ids(inputs.layers.type)).not.toContain('anhua-dark:definition');
     expect(ids(inputs.layers.type)[0]).toBe('dark:definition');
     expect(inputs.fixed.brewing?.text).toMatch(new RegExp(claims.find(claim => claim.claimId === 'dark:brewing-pressed')!.text.slice(0, 20).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
