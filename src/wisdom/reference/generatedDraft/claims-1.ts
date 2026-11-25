@@ -394,6 +394,346 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
+    "claimId": "dancong:ageing",
+    "pageId": "dancong",
+    "sectionKey": "ageing",
+    "label": "Keeping Dancong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Freshly roasted Dancong is rested for some months before it is at its best; how many months is not agreed. Keep it sealed, dry, cool and out of the light.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Freshly roasted Dancong is rested for some months before it is at its best; how many months is not agreed. Keep it sealed, dry, cool and out of the light.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:aromas",
+    "pageId": "dancong",
+    "sectionKey": "aromas",
+    "label": "Aroma types",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "香型",
+        "pinyin": "xiāngxíng",
+        "gloss": "aroma type"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:brewing",
+    "pageId": "dancong",
+    "sectionKey": "brewing",
+    "label": "Brewing Dancong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:common-impressions",
+    "pageId": "dancong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "山韵",
+        "pinyin": "shān yùn",
+        "gloss": "mountain rhyme"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:definition",
+    "pageId": "dancong",
+    "sectionKey": "definition",
+    "label": "What Phoenix Dancong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "凤凰单丛",
+        "pinyin": "fènghuáng dāncóng",
+        "gloss": "Phoenix single bush"
+      },
+      {
+        "original": "乌岽",
+        "pinyin": "wūdōng",
+        "gloss": "Wudong peak"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:history",
+    "pageId": "dancong",
+    "sectionKey": "history",
+    "label": "The local tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "潮州工夫茶",
+        "pinyin": "cháozhōu gōngfu chá",
+        "gloss": "Chaozhou gongfu tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:making",
+    "pageId": "dancong",
+    "sectionKey": "making",
+    "label": "How Dancong is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:mi-lan-xiang",
+    "pageId": "dancong",
+    "sectionKey": "mi-lan-xiang",
+    "label": "Mi Lan Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_includes": [
+        "mi",
+        "lan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "蜜兰香",
+        "pinyin": "mìlán xiāng",
+        "gloss": "honey orchid aroma"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:name",
+    "pageId": "dancong",
+    "sectionKey": "name",
+    "label": "Single bush",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "单丛",
+        "pinyin": "dāncóng",
+        "gloss": "single bush"
+      },
+      {
+        "original": "单枞",
+        "pinyin": "dāncōng",
+        "gloss": "single bush, other spelling"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:old-bushes",
+    "pageId": "dancong",
+    "sectionKey": "old-bushes",
+    "label": "Old bushes and Song tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老丛",
+        "pinyin": "lǎocóng",
+        "gloss": "old bush"
+      },
+      {
+        "original": "宋种",
+        "pinyin": "sòngzhǒng",
+        "gloss": "Song variety"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:ya-shi-xiang",
+    "pageId": "dancong",
+    "sectionKey": "ya-shi-xiang",
+    "label": "Ya Shi Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_any": [
+        "ya",
+        "duck"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鸭屎香",
+        "pinyin": "yā shǐ xiāng",
+        "gloss": "duck dung aroma"
+      },
+      {
+        "original": "银花香",
+        "pinyin": "yínhuā xiāng",
+        "gloss": "silver flower aroma"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "dark:ageing",
     "pageId": "dark",
     "sectionKey": "ageing",
@@ -610,327 +950,6 @@ export const PART: readonly DraftClaim[] = [
         "text": "The first records of dark tea by name are from the Ming dynasty, in Hunan around Anhua and in Sichuan, and in the late Ming it became a state-managed tea sent to the north-west in exchange for horses. In the Qing dynasty merchants carried the craft to more regions and more shapes, and some styles were made for new markets: Guangxi’s Liu Bao, for one, went to the tin mines of Southeast Asia. In the twentieth century state factories took over much of the making and settled the brick shapes that are sold today.",
         "approvedAt": "2026-11-24",
         "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:making",
-    "pageId": "dark",
-    "sectionKey": "making",
-    "label": "How dark tea is made",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [
-      {
-        "original": "渥堆",
-        "pinyin": "wò duī",
-        "gloss": "piling"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dark:why",
-    "pageId": "dark",
-    "sectionKey": "why",
-    "label": "Why it was made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark"
-    },
-    "terms": [
-      {
-        "original": "边销茶",
-        "pinyin": "biān xiāo chá",
-        "gloss": "border tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:ageing",
-    "pageId": "dian-hong",
-    "sectionKey": "ageing",
-    "label": "Keeping Dian Hong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:brewing",
-    "pageId": "dian-hong",
-    "sectionKey": "brewing",
-    "label": "Brewing Dian Hong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:common-impressions",
-    "pageId": "dian-hong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:definition",
-    "pageId": "dian-hong",
-    "sectionKey": "definition",
-    "label": "What Dian Hong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "滇红",
-        "pinyin": "diān hóng",
-        "gloss": "Yunnan red"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:history",
-    "pageId": "dian-hong",
-    "sectionKey": "history",
-    "label": "How Dian Hong began",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:large-leaf",
-    "pageId": "dian-hong",
-    "sectionKey": "large-leaf",
-    "label": "Why the large leaf matters",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "金毫",
-        "pinyin": "jīn háo",
-        "gloss": "golden buds"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:making",
-    "pageId": "dian-hong",
-    "sectionKey": "making",
-    "label": "How Dian Hong is made",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "金芽",
-        "pinyin": "jīn yá",
-        "gloss": "golden bud"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
         "evidenceIds": []
       }
     ],

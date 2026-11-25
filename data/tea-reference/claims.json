@@ -5607,6 +5607,280 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "凤凰单丛",
+          "pinyin": "fènghuáng dāncóng",
+          "gloss": "Phoenix single bush"
+        },
+        {
+          "original": "乌岽",
+          "pinyin": "wūdōng",
+          "gloss": "Wudong peak"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:name",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "单丛",
+          "pinyin": "dāncóng",
+          "gloss": "single bush"
+        },
+        {
+          "original": "单枞",
+          "pinyin": "dāncōng",
+          "gloss": "single bush, other spelling"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:aromas",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "香型",
+          "pinyin": "xiāngxíng",
+          "gloss": "aroma type"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:ya-shi-xiang",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ],
+        "name_any": [
+          "ya",
+          "duck"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "鸭屎香",
+          "pinyin": "yā shǐ xiāng",
+          "gloss": "duck dung aroma"
+        },
+        {
+          "original": "银花香",
+          "pinyin": "yínhuā xiāng",
+          "gloss": "silver flower aroma"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:mi-lan-xiang",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ],
+        "name_includes": [
+          "mi",
+          "lan"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "蜜兰香",
+          "pinyin": "mìlán xiāng",
+          "gloss": "honey orchid aroma"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:old-bushes",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "老丛",
+          "pinyin": "lǎocóng",
+          "gloss": "old bush"
+        },
+        {
+          "original": "宋种",
+          "pinyin": "sòngzhǒng",
+          "gloss": "Song variety"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "潮州工夫茶",
+          "pinyin": "cháozhōu gōngfu chá",
+          "gloss": "Chaozhou gongfu tea"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "dancong:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "origin_includes": [
+          "phoenix mountain"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "山韵",
+          "pinyin": "shān yùn",
+          "gloss": "mountain rhyme"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }

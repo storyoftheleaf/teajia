@@ -5,6 +5,82 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "shou",
+    "slug": "shou",
+    "kind": "tea_type",
+    "label": "Shou (ripe pu’er)",
+    "visibility": "public",
+    "nativeName": "熟普洱",
+    "parentId": "puer",
+    "sourceIds": [
+      "white2tea-ripe-puer"
+    ],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What ripe pu’er is",
+        "sourceIds": []
+      },
+      {
+        "key": "wet-piling",
+        "label": "Wet piling",
+        "sourceIds": [
+          "white2tea-ripe-puer"
+        ]
+      },
+      {
+        "key": "piling-history",
+        "label": "How piling came to be",
+        "sourceIds": []
+      },
+      {
+        "key": "piling-1973",
+        "label": "Yunnan learns the pile",
+        "sourceIds": []
+      },
+      {
+        "key": "piling-today",
+        "label": "Piling today",
+        "sourceIds": []
+      },
+      {
+        "key": "age-young",
+        "label": "Young ripe pu’er",
+        "sourceIds": []
+      },
+      {
+        "key": "age-settling",
+        "label": "Five to ten years",
+        "sourceIds": []
+      },
+      {
+        "key": "age-aged",
+        "label": "Ten years and more",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing ripe pu’er",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing-pressed",
+        "label": "Breaking a pressed tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in aged ripe pu’er",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "taiwan-oolong",
     "slug": "taiwan-oolong",
     "kind": "tea_type",

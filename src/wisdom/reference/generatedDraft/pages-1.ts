@@ -67,6 +67,73 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "dancong",
+    "slug": "dancong",
+    "kind": "tea_type",
+    "label": "Phoenix Dancong",
+    "visibility": "public",
+    "nativeName": "凤凰单丛",
+    "parentId": "oolong",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Phoenix Dancong is",
+        "sourceIds": []
+      },
+      {
+        "key": "name",
+        "label": "Single bush",
+        "sourceIds": []
+      },
+      {
+        "key": "aromas",
+        "label": "Aroma types",
+        "sourceIds": []
+      },
+      {
+        "key": "ya-shi-xiang",
+        "label": "Ya Shi Xiang",
+        "sourceIds": []
+      },
+      {
+        "key": "mi-lan-xiang",
+        "label": "Mi Lan Xiang",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Dancong is made",
+        "sourceIds": []
+      },
+      {
+        "key": "old-bushes",
+        "label": "Old bushes and Song tea",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "The local tea",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping Dancong",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Dancong",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "dark",
     "slug": "dark",
     "kind": "tea_family",
@@ -869,82 +936,6 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "notice-aged",
         "label": "What people often notice in aged raw pu’er",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "shou",
-    "slug": "shou",
-    "kind": "tea_type",
-    "label": "Shou (ripe pu’er)",
-    "visibility": "public",
-    "nativeName": "熟普洱",
-    "parentId": "puer",
-    "sourceIds": [
-      "white2tea-ripe-puer"
-    ],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What ripe pu’er is",
-        "sourceIds": []
-      },
-      {
-        "key": "wet-piling",
-        "label": "Wet piling",
-        "sourceIds": [
-          "white2tea-ripe-puer"
-        ]
-      },
-      {
-        "key": "piling-history",
-        "label": "How piling came to be",
-        "sourceIds": []
-      },
-      {
-        "key": "piling-1973",
-        "label": "Yunnan learns the pile",
-        "sourceIds": []
-      },
-      {
-        "key": "piling-today",
-        "label": "Piling today",
-        "sourceIds": []
-      },
-      {
-        "key": "age-young",
-        "label": "Young ripe pu’er",
-        "sourceIds": []
-      },
-      {
-        "key": "age-settling",
-        "label": "Five to ten years",
-        "sourceIds": []
-      },
-      {
-        "key": "age-aged",
-        "label": "Ten years and more",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing ripe pu’er",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing-pressed",
-        "label": "Breaking a pressed tea",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged ripe pu’er",
         "sourceIds": []
       }
     ]

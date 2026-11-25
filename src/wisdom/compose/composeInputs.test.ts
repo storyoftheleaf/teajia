@@ -128,6 +128,21 @@ describe('composeInputs for any kit', () => {
     expect(inputs.fixed.notice?.text).not.toMatch(/smoke/i);
   });
 
+  it('gives a Phoenix Dancong the Dancong kit, and each aroma only its own section', () => {
+    const ysx = { id: 'ysx', product_name: 'Ya Shi Xiang Dancong', type: 'Oolong', form: 'Loose', year: null, origin_region: 'Phoenix Mountain, Guangdong', origin_country: 'China' };
+    const type = ids(composeInputs(ysx, claims, { thisYear: 2026, pages }).layers.type);
+    expect(type[0]).toBe('dancong:definition');
+    expect(type).toContain('dancong:ya-shi-xiang');
+    expect(type).not.toContain('dancong:mi-lan-xiang');
+    expect(type).toContain('oolong:definition');
+    const duck = ids(composeInputs({ ...ysx, id: 'dk', product_name: 'Duck Shit Aroma', origin_region: 'Phoenix Mountain', form: 'Bag', year: 2026 }, claims, { thisYear: 2026, pages }).layers.type);
+    expect(duck).toContain('dancong:ya-shi-xiang');
+    const mlx = composeInputs({ ...ysx, id: 'mlx', product_name: 'Mi Lan Xiang Dancong' }, claims, { thisYear: 2026, pages });
+    expect(ids(mlx.layers.type)).toContain('dancong:mi-lan-xiang');
+    expect(ids(mlx.layers.type)).not.toContain('dancong:ya-shi-xiang');
+    expect(mlx.fixed.claimIds).toEqual(expect.arrayContaining(['dancong:brewing', 'dancong:common-impressions']));
+  });
+
   it('gives an Anhua dark tea the Anhua kit, ahead of the dark family', () => {
     const bailiang = { ...liuBao, id: 'bl', product_name: 'Bai Liang', origin_region: 'Anhua, Hunan', form: 'Brick', year: 2006 };
     const inputs = composeInputs(bailiang, claims, { thisYear: 2026, pages });
