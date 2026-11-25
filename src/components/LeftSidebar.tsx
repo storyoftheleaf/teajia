@@ -9,49 +9,33 @@ import { useAuth } from '../hooks/useAuth';
 import { useSiteProblemCount } from '../lib/useSiteIncidents';
 import { useAppStore } from '../lib/store';
 import type { SidebarRoom } from '../lib/store';
-import { TYPOGRAPHY_CLASSES } from '../designTokens';
-// Phosphor (Light weight), refined hairlines, replaces the generic lucide
-// stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
-import { Stack, CaretLeft, CaretRight, SquaresFour } from '@phosphor-icons/react';
+import { Stack } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
 import { useManageNav, isManagePathActive, type ManageItem } from './manageNav';
 
-const PHOSPHOR_WEIGHT = 'light' as const;
-
-// The two rooms of the desk. Browse is the rail's four words; Manage is a
-// fifth word on the rail that opens the column beside it. Only one hierarchy
-// is visible at a time.
+// One rail for everyone, a drawer for the people who run the shop
+// (Adrian, 2026-11-25, "Narrow B as a pair, one wide").
 //
-// The rail wears `.nav-rail` (card-utilities.css): the page's own ground
-// lifted a few percent, one keyline on its right edge, and nothing else. It
-// used to be two floating pods cut from the mobile bar's material, and on a
-// wide dark page two capsules with a 32px shadow read as objects placed on
-// the page rather than part of it. Depth now comes from tone, not effects.
+// Every visitor sees the rail alone: the four words, then the foot (search,
+// the person, the bag, People, Places). It is the whole navigation and has to
+// read as complete. Someone who may manage the shop gets one more word at the
+// very bottom of the same rail, under a hairline. While Manage is the room,
+// a drawer of room buttons, one wide, stands beside the rail, stacked up from
+// that word, and the word itself takes the drawer's tone so the two read as
+// one shape rather than a second rail. Nothing the visitor sees moves.
 //
-// The Manage column itself has two states: open (10.5rem, sized to its own
-// longest label rather than a round number, see the measurement note below)
-// and collapsed to a 3rem icon strip. Collapsing is `sidebarCollapsed` in
-// the store, which used to sit unused; it now means "the Manage column is
-// folded", not "the whole sidebar is". It stays folded across navigation and
-// reloads until the collapse or expand control is clicked, or the rail word
-// "manage" is clicked again, which always re-opens it.
+// A room's own screens (Publish's Collections, Wisdom...) are no longer listed
+// here: they are tabs across the top of the page (ManageRoomTabs), so the left
+// edge never grows a third column. `sidebarCollapsed` now means "the drawer is
+// put away"; pressing the word manage again while standing in Manage puts it
+// away or brings it back. The canvas: outputs/sidebar-directions-2026-11-25.
 
-// The narrowest width, in rem, that seats every Manage label (parent or
-// child) on one line. Measured against the real rendered rows, including
-// their padding, margin and border, not just the text: "Collections" is the
-// longest parent at roughly 130px all-in, "Carry from network" the longest
-// child at roughly 167px all-in (that number already carries the column's
-// own 28px/12px child indent). 10.5rem, 168px, clears both with a hair to spare (narrowed from 11rem
-// on 2026-09-28 at Adrian's ask, "a little less wide"), inside the 10rem to 12.5rem band Adrian
-// asked for, and narrower than the 12.5rem the column used to run at flat.
-const MANAGE_COLUMN_WIDTH_REM = 10.5;
-const MANAGE_STRIP_WIDTH_REM = 3;
-const RAIL_WIDTH_REM = 4.5;
-
-const Hairline: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`h-px bg-tea-border mx-[22px] shrink-0 ${className}`} />
-);
+// 60px rail: "advise" and "manage", the widest words, sit inside it with room.
+// 84px drawer: "Sessions" and "Settings", the widest room words, fit on one
+// line inside its buttons.
+const RAIL_WIDTH_REM = 3.75;
+const DRAWER_WIDTH_REM = 5.25;
 
 interface NavItem {
   id: string;
@@ -59,50 +43,7 @@ interface NavItem {
   icon: React.ReactNode;
   section?: Section;
   path?: string;
-  badge?: number;
-  action?: () => void;
 }
-
-// ── NavRow ─────────────────────────────────────────────────────────────────
-// A single row inside the Manage column. Words only; the active state is the
-// same gold + glow treatment BottomTabBar uses for its tabs, so desktop and
-// mobile read as one navigation system rather than two designs.
-const NavRow: React.FC<{
-  item: Pick<NavItem, 'label' | 'path' | 'badge' | 'action'>;
-  isActive: boolean;
-  onClick: () => void;
-  minHeight: number;
-  textClass: string;
-}> = ({ item, isActive, onClick, minHeight, textClass }) => {
-  const labelClass = `${textClass} text-left lowercase transition-colors duration-200 ${
-    isActive ? 'text-tea-gold font-semibold' : 'text-tea-text-sec group-hover:text-tea-text'
-  }`;
-  const labelStyle: React.CSSProperties = isActive
-    ? { filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / 0.32))' }
-    : {};
-
-  const badgeEl = item.badge !== undefined && item.badge > 0 && (
-    <span className="ml-auto text-ui-11 font-semibold text-tea-gold shrink-0">
-      {item.badge > 9 ? '9+' : item.badge}
-    </span>
-  );
-
-  const baseClass = `w-full flex items-center justify-between gap-3 px-[28px] group`;
-  const inner = (
-    <>
-      <span className={labelClass} style={labelStyle}>{item.label}</span>
-      {badgeEl}
-    </>
-  );
-
-  return item.action ? (
-    <button onClick={item.action} className={baseClass} style={{ minHeight }}>{inner}</button>
-  ) : item.path ? (
-    <Link to={item.path} onClick={onClick} className={baseClass} style={{ minHeight }}>{inner}</Link>
-  ) : (
-    <button onClick={onClick} className={baseClass} style={{ minHeight }}>{inner}</button>
-  );
-};
 
 // ── LeftSidebar ────────────────────────────────────────────────────────────
 
@@ -190,18 +131,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const room: SidebarRoom = hasManageRoom ? sidebarRoom : 'browse';
   const showPanel = hasManageRoom && room === 'manage';
 
-  // The aside is the rail alone (4.5rem), rail plus the open Manage column
-  // (4.5 + 10.5 = 15rem), or rail plus the collapsed icon strip (4.5 + 3 =
-  // 7.5rem). Full-screen panels read this to clear it (`.sidebar-inset`), and
-  // App.tsx reads it for the main column's left margin.
+  // The aside is the rail alone (3.75rem) or the rail plus the open drawer
+  // (3.75 + 5.25 = 9rem). Full-screen panels read this to clear it
+  // (`.sidebar-inset`), and App.tsx reads it for the main column's margin.
+  const drawerOpen = showPanel && !sidebarCollapsed;
   useEffect(() => {
-    const width = !showPanel
-      ? `${RAIL_WIDTH_REM}rem`
-      : sidebarCollapsed
-        ? `${RAIL_WIDTH_REM + MANAGE_STRIP_WIDTH_REM}rem`
-        : `${RAIL_WIDTH_REM + MANAGE_COLUMN_WIDTH_REM}rem`;
+    const width = drawerOpen ? `${RAIL_WIDTH_REM + DRAWER_WIDTH_REM}rem` : `${RAIL_WIDTH_REM}rem`;
     document.documentElement.style.setProperty('--teajia-sidebar-w', width);
-  }, [showPanel, sidebarCollapsed]);
+  }, [drawerOpen]);
 
   // Landing on an admin route puts you in the workshop. Picking a room by hand
   // does not navigate, so it survives until the next navigation, at which point
@@ -218,12 +155,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     : 'Sign in';
 
   // ── Render ────────────────────────────────────────────────────────────────
-  // The desk's navigation is a 72px rail of words against the left edge, and
-  // a 176px column beside it that exists only while Manage is the room and
-  // is not collapsed. No pod, no shadow, no radius: the rail is lifted from
-  // the page by a few percent of tone and one keyline (`.nav-rail`), which is
-  // the whole of its material. Browse has no children, so browse is rail plus
-  // page. Collapsed, the column becomes a 48px strip of icons in its place.
   const railWord = (active: boolean) =>
     `font-display text-ui-14 lowercase tracking-[0.04em] leading-none transition-colors duration-200 ${
       active ? 'text-tea-gold font-semibold' : 'text-tea-text-sec hover:text-tea-text'
@@ -248,11 +179,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       data-testid="left-sidebar"
       aria-label="Main navigation"
       className={`hidden lg:flex flex-row fixed left-0 top-0 h-screen z-sticky select-none transition-[width] duration-300 ${
-        !showPanel ? 'w-[4.5rem]' : sidebarCollapsed ? 'w-[7.5rem]' : 'w-[15rem]'
+        drawerOpen ? 'w-[9rem]' : 'w-[3.75rem]'
       }`}
     >
       {/* ── The rail ─────────────────────────────────────────────────────── */}
-      <div className="nav-rail w-[4.5rem] shrink-0 h-full flex flex-col items-center pt-7 pb-6">
+      <div className="nav-rail w-[3.75rem] shrink-0 h-full flex flex-col items-center pt-7 pb-6">
         <button
           onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
           className="tap-target flex items-center justify-center group shrink-0"
@@ -297,29 +228,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             );
           })}
 
-          {hasManageRoom && (
-            <>
-              <span className="block w-5 h-px bg-tea-border" aria-hidden="true" />
-              <button
-                onClick={() => {
-                  setSidebarRoom('manage');
-                  // Clicking "manage" is the one action that always re-opens
-                  // the column, even if it was left collapsed from a prior
-                  // visit. Collapsing itself only happens from its own
-                  // control, so this only ever moves false, never true.
-                  if (sidebarCollapsed) toggleSidebarCollapsed();
-                  // An owner arrives at Today; everyone else at their first room.
-                  const door = today?.path ?? manageItems[0]?.path;
-                  if (!isAdminRoute && door) navigate(door);
-                }}
-                aria-pressed={room === 'manage'}
-                className={`nav-rail-word ${railWord(room === 'manage')}`}
-                style={room === 'manage' ? activeGlow : undefined}
-              >
-                Manage
-              </button>
-            </>
-          )}
         </nav>
 
         <div className="flex-1" />
@@ -373,148 +281,69 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             Places
           </Link>
         </nav>
+
+        {/* Manage: the one word only shop staff see, last on the rail. Open,
+            it wears the drawer's tone and reaches the rail's edge, so the word
+            and the drawer beside it are one shape. */}
+        {hasManageRoom && (
+          <>
+            <span className="block w-5 h-px bg-tea-border mt-6 mb-3 shrink-0" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => {
+                // Standing in Manage with the drawer out, the word puts it
+                // away; anywhere else it brings the drawer out (and from the
+                // shop, walks to the first room).
+                if (room === 'manage' && isAdminRoute && !sidebarCollapsed) {
+                  toggleSidebarCollapsed();
+                  return;
+                }
+                setSidebarRoom('manage');
+                if (sidebarCollapsed) toggleSidebarCollapsed();
+                const door = today?.path ?? manageItems[0]?.path;
+                if (!isAdminRoute && door) navigate(door);
+              }}
+              aria-pressed={room === 'manage'}
+              aria-expanded={drawerOpen}
+              aria-controls="manage-drawer"
+              data-open={drawerOpen ? 'true' : undefined}
+              className={`nav-manage-word ${railWord(room === 'manage')}`}
+            >
+              Manage
+            </button>
+          </>
+        )}
       </div>
 
-      {/* ── The Manage column: only while Manage is the room, open or
-          collapsed to its icon strip ─────────────────────────────────── */}
-      <AnimatePresence initial={false} mode="wait">
-        {showPanel && (sidebarCollapsed ? (
-          <motion.div
-            key="manage-strip"
+      {/* ── The drawer: the rooms, one wide, stacked up from the word ─── */}
+      <AnimatePresence initial={false}>
+        {drawerOpen && (
+          <motion.nav
+            key="manage-drawer"
+            id="manage-drawer"
+            aria-label="Manage"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="w-[3rem] shrink-0 h-full border-r border-tea-border flex flex-col items-center overflow-y-auto hide-scrollbar"
+            className="nav-drawer w-[5.25rem] shrink-0 h-full flex flex-col justify-end overflow-y-auto hide-scrollbar"
           >
-            <div className="shrink-0" style={{ padding: '30px 0 14px' }}>
-              <button
-                type="button"
-                onClick={() => toggleSidebarCollapsed()}
-                className="tap-target flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200"
-                title="Expand"
-                aria-label="Expand manage column"
-              >
-                <CaretRight size={16} weight={PHOSPHOR_WEIGHT} />
-              </button>
-            </div>
-            <nav className="flex flex-col items-center flex-1 min-h-0 w-full" aria-label="Manage (collapsed)">
-              {today && (
-                <Link
-                  to={today.path}
-                  title={today.label}
-                  aria-label={today.label}
-                  className={`w-full flex items-center justify-center transition-colors duration-200 ${isTodayActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
-                  style={{ minHeight: 42 }}
-                >
-                  <SquaresFour size={18} weight={PHOSPHOR_WEIGHT} />
+            <span className="nav-drawer-label">Manage</span>
+            {today && (
+              <Link to={today.path} className="nav-room" aria-current={isTodayActive ? 'page' : undefined}>
+                {today.label}
+              </Link>
+            )}
+            {manageItems.map(item => {
+              const isActive = here(item.path) || (item.children?.some(c => here(c.path)) ?? false);
+              return (
+                <Link key={item.id} to={item.path} className="nav-room" aria-current={isActive ? 'page' : undefined}>
+                  {item.label}
                 </Link>
-              )}
-              {manageItems.map(item => {
-                const isAnyChildActive = item.children?.some(c => here(c.path)) ?? false;
-                const isParentExact = here(item.path);
-                const isActive = isParentExact || isAnyChildActive;
-                const iconClass = `w-full flex items-center justify-center transition-colors duration-200 ${
-                  isActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                }`;
-                return (
-                  <Link key={item.id} to={item.path} title={item.label} aria-label={item.label} className={iconClass} style={{ minHeight: 42 }}>
-                    <item.Icon size={18} weight={PHOSPHOR_WEIGHT} />
-                  </Link>
-                );
-              })}
-              <div className="flex-1" />
-            </nav>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="manage-panel"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="nav-manage-col w-[10.5rem] shrink-0 h-full border-r border-tea-border flex flex-col overflow-y-auto hide-scrollbar"
-          >
-            <div className="shrink-0 flex items-center justify-between" style={{ padding: '30px 24px 14px' }}>
-              {/* The word Manage is the door to Today, the owner's overview. It
-                  used to be a Dashboard row; now it is the heading itself. */}
-              {today ? (
-                <Link
-                  to={today.path}
-                  title={today.label}
-                  aria-current={isTodayActive ? 'page' : undefined}
-                  className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold hover:opacity-80 transition-opacity"
-                  style={isTodayActive ? { filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75))' } : undefined}
-                >
-                  Manage
-                </Link>
-              ) : (
-                <span className="font-display text-ui-15 font-medium tracking-[0.04em] lowercase text-tea-gold">
-                  Manage
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => toggleSidebarCollapsed()}
-                className="tap-target flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200"
-                title="Collapse"
-                aria-label="Collapse manage column"
-              >
-                <CaretLeft size={16} weight={PHOSPHOR_WEIGHT} />
-              </button>
-            </div>
-            <nav className="flex flex-col flex-1 min-h-0" aria-label="Manage">
-              {manageItems.map((item, index) => {
-                const hasChildren = (item.children?.length ?? 0) > 0;
-                const isAnyChildActive = item.children?.some(c => here(c.path)) ?? false;
-                const isParentExact = here(item.path);
-                const showActive = isParentExact && !isAnyChildActive;
-                const showChildren = hasChildren && (isParentExact || isAnyChildActive);
-
-                return (
-                  <React.Fragment key={item.id}>
-                    {index > 0 && <Hairline />}
-                    <NavRow
-                      item={item}
-                      isActive={showActive || isAnyChildActive}
-                      minHeight={42}
-                      textClass="font-display text-ui-16 font-medium tracking-[0.04em] leading-[1.3]"
-                      onClick={() => {}}
-                    />
-                    <AnimatePresence initial={false}>
-                      {showChildren && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.18, ease: 'easeInOut' }}
-                          className="overflow-hidden"
-                        >
-                          <div className="flex flex-col border-l border-tea-border" style={{ marginLeft: 28, paddingLeft: 12, paddingBottom: 8 }}>
-                            {item.children!.map(child => (
-                              <Link
-                                key={child.id}
-                                to={child.path}
-                                className={`relative flex items-center min-h-[26px] transition-colors duration-150 ${
-                                  here(child.path) ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                                }`}
-                              >
-                                <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} lowercase`}>
-                                  {child.label}
-                                </span>
-                              </Link>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </React.Fragment>
-                );
-              })}
-              <div className="flex-1" />
-            </nav>
-          </motion.div>
-        ))}
+              );
+            })}
+          </motion.nav>
+        )}
       </AnimatePresence>
     </aside>
   );
