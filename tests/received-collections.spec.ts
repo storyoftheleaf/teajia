@@ -1,4 +1,4 @@
-import { test, expect, type Page } from './fixtures';
+import { test, expect, tapFloor, type Page } from './fixtures';
 
 const shelf = {
   id: 'collection-1',
@@ -57,7 +57,7 @@ for (const path of [fullPage, embeddedPage]) {
     await expect(section.getByText('No collections yet')).toHaveCount(0);
     await expect(section.getByText('0 collections shared with you')).toHaveCount(0);
     const retry = section.getByRole('button', { name: 'Try again' });
-    expect((await retry.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    expect((await retry.boundingBox())?.height).toBeGreaterThanOrEqual(tapFloor());
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
     await section.screenshot({ path: testInfo.outputPath('failed-state.png') });
 

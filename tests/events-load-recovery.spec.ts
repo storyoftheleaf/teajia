@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, tapFloor, test, type Page } from './fixtures';
 
 const event = {
   id: 'session-1',
@@ -53,7 +53,7 @@ test('the calendar shows loading, failure and recovered sessions as distinct sta
   releaseFailure();
   await expect(page.getByRole('alert')).toHaveText('Could not load sessions.');
   const retry = page.getByRole('button', { name: 'Try again' });
-  expect((await retry.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  expect((await retry.boundingBox())?.height).toBeGreaterThanOrEqual(tapFloor());
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.screenshot({ path: testInfo.outputPath('failed-calendar.png') });
   await expect(page.getByText('No upcoming sessions')).toHaveCount(0);
