@@ -703,6 +703,43 @@ export function DefinitionSection({ term, body, etymology }: { term: string; bod
   );
 }
 
+// Conversation: an interview passage. The question is the interviewer's voice
+// (display italic, the pull-quote colour at reading size); the answer is prose.
+export function ConversationSection({ items }: { items: Array<{ q: string; a: string }> }) {
+  return (
+    <section className="py-16 md:py-24">
+      <ReadingColumn>
+        <dl className="space-y-12 md:space-y-16">
+          {items.map(({ q, a }, item) => (
+            <Reveal key={item}>
+              <dt className="font-display font-medium italic text-tea-gold-lt leading-[1.25] text-ui-22 md:text-ui-26">{q}</dt>
+              <dd className="font-body text-tea-text text-ui-18 md:text-ui-20 leading-[1.78] mt-4">{a}</dd>
+            </Reveal>
+          ))}
+        </dl>
+      </ReadingColumn>
+    </section>
+  );
+}
+
+// Sidebar passage: prose with a quieter note beside it. On a phone the note
+// drops under the prose; `side: 'left'` puts it first on a wide screen.
+export function SidebarSection({ body, sidebar, side, image }: {
+  body: string; sidebar: string; side: 'left' | 'right' | 'image'; image?: string;
+}) {
+  return (
+    <section className="py-16 md:py-24">
+      <Reveal className="px-6 md:px-8 mx-auto max-w-[960px] flex flex-wrap items-start gap-x-12 gap-y-8">
+        <p className="min-w-0 grow basis-[420px] font-body text-tea-text text-ui-18 md:text-ui-20 leading-[1.78]">{body}</p>
+        <aside className={`min-w-0 grow basis-[220px] max-w-[320px] border-l border-tea-border pl-5 ${side === 'left' ? 'md:order-first' : ''}`}>
+          {image && <img src={image} alt="" loading="lazy" className="mb-4 w-full rounded-md" />}
+          <p className="font-body italic text-tea-text-sec text-ui-15 md:text-ui-16 leading-[1.65]">{sidebar}</p>
+        </aside>
+      </Reveal>
+    </section>
+  );
+}
+
 // Derive 0..5 tasting scores from tasting_notes. A note has no numeric score in
 // the model, so we map by sensible keyword weighting and fall back to a middle
 // value, keeps the radar meaningful without a new block field. Noted as an
@@ -819,6 +856,12 @@ export function renderBlock(block: ArticleBlock, index: number, ctx?: RenderBloc
       return <ComparisonSlider key={index} before={block.before} after={block.after} beforeLabel={block.beforeLabel} afterLabel={block.afterLabel} caption={block.caption} />;
     case 'audio':
       return <AudioBlock key={index} src={block.src} title={block.title} />;
+    // What WordForge sends for an interview. Without these two a scrolling
+    // story silently dropped every question, answer and side note.
+    case 'qa_pair':
+      return <ConversationSection key={index} items={block.items} />;
+    case 'pull_sidebar':
+      return <SidebarSection key={index} body={block.body} sidebar={block.sidebar} side={block.side} image={block.image} />;
     case 'product_link':
       return <ProductCard key={index} title={block.title} blurb={block.blurb} href={block.href} image={block.image} />;
     default:
