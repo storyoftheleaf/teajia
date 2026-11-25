@@ -9473,7 +9473,7 @@ const handleListMyProfileFavorites: Handler = async (request, env) => {
          JOIN products p ON p.id = pl.legacy_product_id AND p.account_id = pl.account_id
         WHERE pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      )
      SELECT tp.id, tp.name, tp.chinese_name, tp.type, tp.harvest_year,
@@ -25977,7 +25977,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
           AND tp.status = 'published'
           AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      )
      SELECT tea_profile_id, note AS why, tea_slug, tea_name, tea_image_url,
@@ -26164,7 +26164,7 @@ const handleGetProductSelectedBy: Handler = async (_request, env, params) => {
        JOIN contributors c ON c.id = pf.contributor_id AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
        JOIN accounts a ON a.id = p.account_id
       WHERE (p.id = ? OR p.slug = ?)
-        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1
+        AND p.status = 'Active' AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
         AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
         AND a.public_enabled = 1 AND a.status = 'active'
       ORDER BY pf.position ASC
@@ -26209,7 +26209,7 @@ const handleGetPublicProfileFavorites: Handler = async (_request, env, params) =
           AND tp.status = 'published'
           AND pl.status = 'active' AND pl.is_public = 1 AND pl.shown_in_shop = 1
           AND pl.legacy_product_id IS NOT NULL
-          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1
+          AND p.status IN ('Active', 'Sold Out') AND p.is_public = 1 AND p.shown_in_shop = 1 AND NOT ${INWARD_ORDERS_PAUSED_SQL}
           AND a.public_enabled = 1 AND a.status = 'active'
      ), chosen AS (
        SELECT * FROM eligible_favorites WHERE listing_rank = 1
