@@ -904,45 +904,51 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
-    "claimId": "gong-ting:appearance",
-    "pageId": "gong-ting",
-    "sectionKey": "appearance",
-    "label": "Reading the leaf",
-    "axis": "grade",
+    "claimId": "gaba:brewing",
+    "pageId": "gaba",
+    "sectionKey": "brewing",
+    "label": "Brewing GABA oolong",
+    "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": false,
+    "listingEligible": true,
     "appliesWhen": {
-      "grade": "gong-ting"
+      "type": "Oolong",
+      "process_in_name": [
+        "gaba"
+      ]
     },
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+    "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Dry Gong Ting is tight, straight and fine, thick with golden down on the buds, and carries no stray stems. Because so little of a batch qualifies, it is the scarcest and usually the dearest ripe grade.",
+    "pendingText": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
     "previousRevisions": [],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   },
   {
-    "claimId": "gong-ting:common-impressions",
-    "pageId": "gong-ting",
+    "claimId": "gaba:common-impressions",
+    "pageId": "gaba",
     "sectionKey": "common-impressions",
     "label": "What people often notice",
-    "axis": "sensory_observation",
+    "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": false,
+    "listingEligible": true,
     "appliesWhen": {
-      "grade": "gong-ting"
+      "type": "Oolong",
+      "process_in_name": [
+        "gaba"
+      ]
     },
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
+    "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.",
+    "pendingText": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
     "previousRevisions": [],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   }
 ];

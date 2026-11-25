@@ -156,6 +156,18 @@ describe('composeInputs for any kit', () => {
     expect(yunnan).not.toContain('fujian-white:definition');
   });
 
+  it('gives a GABA oolong with no recorded origin the GABA kit by its name', () => {
+    const gaba = { id: 'gb', product_name: 'Gaba High Mountain', type: 'Oolong', form: 'Loose', year: 2025, origin_region: '', origin_country: '' };
+    const inputs = composeInputs(gaba, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type[0]).toBe('gaba:definition');
+    expect(type).toContain('gaba:making');
+    expect(type).toContain('oolong:definition');
+    expect(inputs.fixed.claimIds).toContain('gaba:brewing');
+    const plain = ids(composeInputs({ ...gaba, id: 'hm', product_name: 'High Mountain' }, claims, { thisYear: 2026, pages }).layers.type);
+    expect(plain).not.toContain('gaba:definition');
+  });
+
   it('gives an Anhua dark tea the Anhua kit, ahead of the dark family', () => {
     const bailiang = { ...liuBao, id: 'bl', product_name: 'Bai Liang', origin_region: 'Anhua, Hunan', form: 'Brick', year: 2006 };
     const inputs = composeInputs(bailiang, claims, { thisYear: 2026, pages });

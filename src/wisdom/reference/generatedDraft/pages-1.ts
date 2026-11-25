@@ -309,6 +309,48 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "gaba",
+    "slug": "gaba",
+    "kind": "tea_type",
+    "label": "GABA oolong",
+    "visibility": "public",
+    "nativeName": "佳葉龍茶",
+    "parentId": "oolong",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What GABA oolong is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How GABA oolong is made",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How GABA tea began",
+        "sourceIds": []
+      },
+      {
+        "key": "threshold",
+        "label": "The 150 milligram line",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing GABA oolong",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "gong-ting",
     "slug": "gong-ting",
     "kind": "leaf_grade",

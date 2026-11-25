@@ -6374,6 +6374,131 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "gaba:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "process_in_name": [
+          "gaba"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "佳葉龍茶",
+          "pinyin": "jiāyèlóng chá",
+          "gloss": "Jiayelong tea"
+        },
+        {
+          "original": "γ-氨基丁酸",
+          "pinyin": "γ ānjī dīngsuān",
+          "gloss": "gamma-aminobutyric acid"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "gaba:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "process_in_name": [
+          "gaba"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "厭氧",
+          "pinyin": "yànyǎng",
+          "gloss": "without oxygen"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "gaba:history",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "process_in_name": [
+          "gaba"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "gaba:threshold",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "process_in_name": [
+          "gaba"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "gaba:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "process_in_name": [
+          "gaba"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "gaba:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Oolong",
+        "process_in_name": [
+          "gaba"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }
