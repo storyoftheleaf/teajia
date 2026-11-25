@@ -3475,7 +3475,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .nav-drawer {
   background: var(--tea-surface);
   padding: 0 var(--space-1) var(--space-6);
-  gap: 3px;
+  gap: var(--space-1);
 }
 .nav-drawer-label {
   display: block;
