@@ -6,7 +6,7 @@ import { ArrowUpRight, RefreshCw } from 'lucide-react';
 import type { Product } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { inventoryMetrics, type NamedValue } from '../lib/inventoryMetrics';
-import { dashboardStockSignals } from '../lib/dashboardSignals';
+import { dashboardStockSignals, teaQuestions, type TeaQuestion } from '../lib/dashboardSignals';
 import { fmtRecordDollars } from '../../utils/formatNumber';
 import { api, getTokenClaims, type AttentionItem } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
@@ -38,6 +38,27 @@ function StockGroup({ title, products, note }: { title: string; products: Produc
   </div>;
 }
 
+const QUESTION: Record<TeaQuestion['kind'], { action: string; note: string }> = {
+  cost: { action: 'Add the cost', note: 'No price until the cost is in' },
+  weight: { action: 'Add the bag weight', note: 'No price until the grams that cost bought are in' },
+};
+
+function questionRow({ kind, product }: TeaQuestion) {
+  return <Link key={`${kind}-${product.id}`} to={`/admin/stock?panel=${encodeURIComponent(product.id)}`} className={rowClass}>
+    <span className="min-w-0"><span className={`${T.label} mb-1 block text-tea-gold`}>{QUESTION[kind].action}</span><span className={`${T.bodyLight} block break-words`}>{product.givenName || product.productName}{product.year ? <span className="num"> {product.year}</span> : null}</span><span className={`${T.accountMeta} block text-tea-text-dim`}>{QUESTION[kind].note}{product.status === 'Draft' ? ' · draft' : ''}</span></span><ArrowUpRight size={18} className="shrink-0" aria-hidden="true" />
+  </Link>;
+}
+
+/** Teas the shop cannot price until Adrian answers one thing. Same rows as the orders above. */
+function TeaQuestions({ questions }: { questions: TeaQuestion[] }) {
+  if (questions.length === 0) return null;
+  return <div className="mt-8">
+    <h3 className={`${T.h3} flex items-baseline justify-between gap-3`}>Teas waiting on an answer<span className={`${T.mono} text-tea-text-dim`}>{questions.length}</span></h3>
+    {questions.slice(0, 6).map(questionRow)}
+    {questions.length > 6 && <details className="mt-3"><summary className={`min-h-tap cursor-pointer py-3 ${T.link}`}>Show {questions.length - 6} more</summary>{questions.slice(6).map(questionRow)}</details>}
+  </div>;
+}
+
 function Breakdown({ title, values }: { title: string; values: NamedValue[] }) {
   return <div className="min-w-0"><h3 className={`${T.h3} mb-3`}>{title}</h3>{values.length ? values.map(item => <div key={item.name} className="flex flex-wrap justify-between gap-2 border-b border-tea-border py-3"><span className={`${T.link} break-words`}>{item.name}</span><span className={`${T.mono} text-tea-text-sec`}>{fmtRecordDollars(item.value)}</span></div>) : <p className={`${T.bodyLight} text-tea-text-dim`}>No stock to summarise.</p>}</div>;
 }
@@ -52,6 +73,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
   const customers = useQuery({ queryKey: ['dashboard-rfm', ...scope], queryFn: async () => await api.analytics.rfm() as RFMData, staleTime: 60_000, retry: false });
   const metrics = useMemo(() => inventoryMetrics(products, rates), [products, rates]);
   const stock = useMemo(() => dashboardStockSignals(products), [products]);
+  const questions = useMemo(() => teaQuestions(products), [products]);
   const weeks = revenue.data?.weekly_revenue ?? [];
   const salesTotal = weeks.reduce((total, w) => total + w.revenue, 0);
   const orderCount = weeks.reduce((total, w) => total + w.order_count, 0);
@@ -72,6 +94,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
         {attention.isSuccess && attention.data.items.map(item => <Link key={`${item.kind}-${item.id}`} to={item.href} className={rowClass}>
           <span className="min-w-0"><span className={`${T.label} mb-1 block text-tea-gold`}>{ACTION[item.kind]}</span><span className={`${T.bodyLight} block break-words`}>{item.label}</span>{item.meta && <span className={`${T.accountMeta} block text-tea-text-dim`}>{item.meta}</span>}</span><ArrowUpRight size={18} className="shrink-0" aria-hidden="true" />
         </Link>)}
+        {!isLoading && <TeaQuestions questions={questions} />}
       </section>
 
       <section aria-labelledby="dashboard-stock"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 id="dashboard-stock" className={T.h2}>On the shelf</h2><Link to="/admin/stock" className={`tap-target ${T.link} underline underline-offset-4`}>Open stock</Link></div>
