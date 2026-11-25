@@ -510,6 +510,63 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "liu-an",
+    "slug": "liu-an",
+    "kind": "tea_type",
+    "label": "Liu An",
+    "visibility": "public",
+    "nativeName": "六安篓茶",
+    "parentId": "dark",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Liu An basket tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Liu An is made",
+        "sourceIds": []
+      },
+      {
+        "key": "basket",
+        "label": "The basket and its tickets",
+        "sourceIds": []
+      },
+      {
+        "key": "southern-trade",
+        "label": "The southern trade",
+        "sourceIds": []
+      },
+      {
+        "key": "old-stock",
+        "label": "Old baskets",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Liu An",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Liu An",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in Liu An kept for years",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "liu-bao",
     "slug": "liu-bao",
     "kind": "tea_type",
@@ -904,57 +961,6 @@ export const PART: readonly DraftReferencePage[] = [
         "key": "common-impressions",
         "label": "What people often notice",
         "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "san-he-liu-bao",
-    "slug": "san-he-liu-bao",
-    "kind": "named_tea",
-    "label": "San He Liu Bao",
-    "visibility": "public",
-    "nativeName": "三鹤六堡茶",
-    "sourceIds": [
-      "china-coop-san-he-baskets",
-      "cns-wuzhou-aging-warehouse",
-      "guangxi-archives-liubao",
-      "mofcom-three-cranes"
-    ],
-    "sections": [
-      {
-        "key": "three-cranes",
-        "label": "The three cranes",
-        "sourceIds": [
-          "mofcom-three-cranes"
-        ]
-      },
-      {
-        "key": "export-buyers",
-        "label": "What buyers wanted from the leaf",
-        "sourceIds": [
-          "guangxi-archives-liubao"
-        ]
-      },
-      {
-        "key": "cold-water-piling",
-        "label": "Water and the Wuzhou pile",
-        "sourceIds": [
-          "mofcom-three-cranes"
-        ]
-      },
-      {
-        "key": "basket-weavers",
-        "label": "The basket makers",
-        "sourceIds": [
-          "china-coop-san-he-baskets"
-        ]
-      },
-      {
-        "key": "aging-warehouse",
-        "label": "A warehouse built for aging",
-        "sourceIds": [
-          "cns-wuzhou-aging-warehouse"
-        ]
       }
     ]
   }

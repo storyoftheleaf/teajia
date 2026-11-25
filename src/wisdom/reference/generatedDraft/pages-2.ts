@@ -5,6 +5,57 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "san-he-liu-bao",
+    "slug": "san-he-liu-bao",
+    "kind": "named_tea",
+    "label": "San He Liu Bao",
+    "visibility": "public",
+    "nativeName": "三鹤六堡茶",
+    "sourceIds": [
+      "china-coop-san-he-baskets",
+      "cns-wuzhou-aging-warehouse",
+      "guangxi-archives-liubao",
+      "mofcom-three-cranes"
+    ],
+    "sections": [
+      {
+        "key": "three-cranes",
+        "label": "The three cranes",
+        "sourceIds": [
+          "mofcom-three-cranes"
+        ]
+      },
+      {
+        "key": "export-buyers",
+        "label": "What buyers wanted from the leaf",
+        "sourceIds": [
+          "guangxi-archives-liubao"
+        ]
+      },
+      {
+        "key": "cold-water-piling",
+        "label": "Water and the Wuzhou pile",
+        "sourceIds": [
+          "mofcom-three-cranes"
+        ]
+      },
+      {
+        "key": "basket-weavers",
+        "label": "The basket makers",
+        "sourceIds": [
+          "china-coop-san-he-baskets"
+        ]
+      },
+      {
+        "key": "aging-warehouse",
+        "label": "A warehouse built for aging",
+        "sourceIds": [
+          "cns-wuzhou-aging-warehouse"
+        ]
+      }
+    ]
+  },
+  {
     "id": "sheng",
     "slug": "sheng",
     "kind": "tea_type",

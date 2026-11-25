@@ -5,6 +5,287 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "menghai-tea-mountain-circuit:reading-the-circuit",
+    "pageId": "menghai-tea-mountain-circuit",
+    "sectionKey": "reading-the-circuit",
+    "label": "Reading the circuit",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "menghai-tea-mountain-circuit:seven-mountain-route",
+    "pageId": "menghai-tea-mountain-circuit",
+    "sectionKey": "seven-mountain-route",
+    "label": "Seven mountain stops",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "nanqiao-ruigong-brick:malaysian-tea-fair",
+    "pageId": "nanqiao-ruigong-brick",
+    "sectionKey": "malaysian-tea-fair",
+    "label": "A brick on the Malaysian tea market",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "nanqiao-ruigong-brick"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "A 2008 Ruigong product shown at the 2022 fair.",
+    "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
+    "sourceIds": [
+      "dahonghua-ruigong-brick"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "A 2008 Ruigong product shown at the 2022 fair.",
+        "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-0621572B10EDCD30C5521E55",
+          "EVIDENCE-12982E87A3E2D326852D474A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "nanqiao-ruigong-brick:nanqiao-name",
+    "pageId": "nanqiao-ruigong-brick",
+    "sectionKey": "nanqiao-name",
+    "label": "Where the Nanqiao name comes from",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "nanqiao-ruigong-brick"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The Nanqiao company and its trade.",
+    "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
+    "sourceIds": [
+      "ctma-nanqiao-company"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The Nanqiao company and its trade.",
+        "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-6B4D99DDB582935C71194716",
+          "EVIDENCE-4C832477FC20B224F7F37626",
+          "EVIDENCE-5468B24272F8BE0E9BB775EB",
+          "EVIDENCE-2E575AC1E516A475D2D6C4ED"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:ageing",
+    "pageId": "oolong",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:brewing",
+    "pageId": "oolong",
+    "sectionKey": "brewing",
+    "label": "Brewing oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:common-impressions",
+    "pageId": "oolong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:definition",
+    "pageId": "oolong",
+    "sectionKey": "definition",
+    "label": "What oolong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "乌龙茶",
+        "pinyin": "wūlóng chá",
+        "gloss": "oolong tea"
+      },
+      {
+        "original": "青茶",
+        "pinyin": "qīng chá",
+        "gloss": "blue-green tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:families",
+    "pageId": "oolong",
+    "sectionKey": "families",
+    "label": "The four families",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "岩韵",
+        "pinyin": "yán yùn",
+        "gloss": "rock rhyme"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "oolong:history",
     "pageId": "oolong",
     "sectionKey": "history",
@@ -679,266 +960,6 @@ export const PART: readonly DraftClaim[] = [
         "approvedAt": "2026-11-24",
         "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
         "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:ageing",
-    "pageId": "sheng",
-    "sectionKey": "ageing",
-    "label": "Raw pu’er with age",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er past its first years",
-    "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er past its first years",
-        "text": "With years, a well-kept raw pu’er turns from pale gold toward amber and then red in the cup, and its bitterness and astringency soften as it grows smoother and sweeter. How fast depends on how it is pressed and stored. The trade does not agree where aged begins: some say ten years, many wait for twenty or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:aging",
-    "pageId": "sheng",
-    "sectionKey": "aging",
-    "label": "Change through storage",
-    "axis": "process",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Sheng is not given shou’s rapid fermentation. Its character instead changes gradually during storage, with leaf, liquor, aroma, and texture developing over years. Storage conditions therefore belong to the tea’s history, not as a guarantee of quality but as part of how any particular cake has evolved.",
-    "sourceIds": [
-      "marshaln-young-puer-2013"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Sheng is not given shou’s rapid fermentation. Its character instead changes gradually during storage, with leaf, liquor, aroma, and texture developing over years. Storage conditions therefore belong to the tea’s history, not as a guarantee of quality but as part of how any particular cake has evolved.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-E31C7DFEB22516770374C078"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:brewing",
-    "pageId": "sheng",
-    "sectionKey": "brewing",
-    "label": "Brewing raw pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:brewing-pressed",
-    "pageId": "sheng",
-    "sectionKey": "brewing-pressed",
-    "label": "Breaking a pressed cake",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:common-impressions",
-    "pageId": "sheng",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "回甘",
-        "pinyin": "huí gān",
-        "gloss": "returning sweetness"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "In young raw pu’er, a bitter, drying bite that turns into a returning sweetness, a feel in the throat that makes the mouth water, and fresh, floral or fruity notes such as apricot or plum. Tea kept in humid storage can carry a damp, earthy storage taste.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:history",
-    "pageId": "sheng",
-    "sectionKey": "history",
-    "label": "How the trade grew",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:history-modern",
-    "pageId": "sheng",
-    "sectionKey": "history-modern",
-    "label": "Collectors and mountains",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "古树",
-        "pinyin": "gǔ shù",
-        "gloss": "old trees"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:identity",
-    "pageId": "sheng",
-    "sectionKey": "identity",
-    "label": "What sheng means",
-    "axis": "type",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
-    "sourceIds": [
-      "teaguardian-raw-cooked-puer"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-3BB473838666F92132E285E0"
-        ]
       }
     ],
     "pageVisibility": "public"

@@ -168,6 +168,19 @@ describe('composeInputs for any kit', () => {
     expect(plain).not.toContain('gaba:definition');
   });
 
+  it('gives a 1990 Liu An from Anhui the Liu An kit, and an Anhua tea not', () => {
+    const liuAn = { ...liuBao, id: 'la', product_name: 'Liu An', origin_region: 'Anhui', form: 'Loose', year: 1990 };
+    const inputs = composeInputs(liuAn, claims, { thisYear: 2026, pages });
+    const type = ids(inputs.layers.type);
+    expect(type[0]).toBe('liu-an:definition');
+    expect(type).toContain('liu-an:basket');
+    expect(type).not.toContain('anhua-dark:definition');
+    expect(ids(inputs.layers.age)).toEqual(['liu-an:ageing']);
+    expect(inputs.fixed.notice?.styleName).toBe('aged Liu An');
+    const anhua = ids(composeInputs({ ...liuAn, id: 'ah', product_name: 'Bai Liang', origin_region: 'Anhua, Hunan' }, claims, { thisYear: 2026, pages }).layers.type);
+    expect(anhua).not.toContain('liu-an:definition');
+  });
+
   it('gives an Anhua dark tea the Anhua kit, ahead of the dark family', () => {
     const bailiang = { ...liuBao, id: 'bl', product_name: 'Bai Liang', origin_region: 'Anhua, Hunan', form: 'Brick', year: 2006 };
     const inputs = composeInputs(bailiang, claims, { thisYear: 2026, pages });

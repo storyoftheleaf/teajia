@@ -5,6 +5,285 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
+    "claimId": "liu-an:definition",
+    "pageId": "liu-an",
+    "sectionKey": "definition",
+    "label": "What Liu An basket tea is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [
+      {
+        "original": "六安篓茶",
+        "pinyin": "liù ān lǒu chá",
+        "gloss": "Liu An basket tea"
+      },
+      {
+        "original": "安茶",
+        "pinyin": "ān chá",
+        "gloss": "An tea"
+      },
+      {
+        "original": "祁门",
+        "pinyin": "qímén",
+        "gloss": "Qimen"
+      },
+      {
+        "original": "六安瓜片",
+        "pinyin": "liù ān guāpiàn",
+        "gloss": "Liu An Gua Pian"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Liu An basket tea is a dark tea packed into small bamboo baskets and kept for years. Despite its name it is made in Qimen County in southern Anhui, around Luxi and Rongkou, not in Lu'an, from the local small-leaf Qimen bush that Keemun red tea also comes from. In the south it was sold as Liu An, and sellers today use Liu An, Lu An, Lao Liu An and An tea for the same basket tea; the name is said to come from its following the Liu An way of making and trading. It is not Liu An Gua Pian, a green tea from the Lu'an area that only shares part of the name.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Liu An basket tea is a dark tea packed into small bamboo baskets and kept for years. Despite its name it is made in Qimen County in southern Anhui, around Luxi and Rongkou, not in Lu'an, from the local small-leaf Qimen bush that Keemun red tea also comes from. In the south it was sold as Liu An, and sellers today use Liu An, Lu An, Lao Liu An and An tea for the same basket tea; the name is said to come from its following the Liu An way of making and trading. It is not Liu An Gua Pian, a green tea from the Lu'an area that only shares part of the name.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-an:making",
+    "pageId": "liu-an",
+    "sectionKey": "making",
+    "label": "How Liu An is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [
+      {
+        "original": "夜露",
+        "pinyin": "yè lù",
+        "gloss": "night dew"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Spring leaf, picked around Grain Rain, is first made much like a green tea: withered, fixed, rolled and dried into rough tea, which rests through the summer. In early autumn it is sorted, graded, blended and fired over charcoal. Then comes the step most accounts single out: the fired tea is spread on bamboo mats outdoors for one night to take the dew, and gathered before sunrise. It is steamed soft, packed into baskets lined with bamboo leaf, tied into bundles and fired a last time over charcoal, and it is sold only after resting for some years, commonly three.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Spring leaf, picked around Grain Rain, is first made much like a green tea: withered, fixed, rolled and dried into rough tea, which rests through the summer. In early autumn it is sorted, graded, blended and fired over charcoal. Then comes the step most accounts single out: the fired tea is spread on bamboo mats outdoors for one night to take the dew, and gathered before sunrise. It is steamed soft, packed into baskets lined with bamboo leaf, tied into bundles and fired a last time over charcoal, and it is sold only after resting for some years, commonly three.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-an:notice-aged",
+    "pageId": "liu-an",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in Liu An kept for years",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-an:old-stock",
+    "pageId": "liu-an",
+    "sectionKey": "old-stock",
+    "label": "Old baskets",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Old baskets were kept in Hong Kong and Macau tea houses, medicine shops and homes, and the oldest are treated as collector's pieces, with prices that climb steeply with age. Fakes exist, so buyers look at the tickets, the basket's shape and the story of the stock.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Old baskets were kept in Hong Kong and Macau tea houses, medicine shops and homes, and the oldest are treated as collector's pieces, with prices that climb steeply with age. Fakes exist, so buyers look at the tickets, the basket's shape and the story of the stock.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-an:southern-trade",
+    "pageId": "liu-an",
+    "sectionKey": "southern-trade",
+    "label": "The southern trade",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Basket tea went south to Guangdong, Hong Kong, Macau and the overseas Chinese of Southeast Asia, and that is where it was known and drunk. It was kept in homes and medicine shops, added to herbal remedies, and older drinkers in the south still call it a cooling tea in the traditional Chinese sense. Production stopped in the 1930s and 1940s, as war cut the southern trade, and the tea was nearly gone for decades. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Basket tea went south to Guangdong, Hong Kong, Macau and the overseas Chinese of Southeast Asia, and that is where it was known and drunk. It was kept in homes and medicine shops, added to herbal remedies, and older drinkers in the south still call it a cooling tea in the traditional Chinese sense. Production stopped in the 1930s and 1940s, as war cut the southern trade, and the tea was nearly gone for decades. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:age-aged",
+    "pageId": "liu-bao",
+    "sectionKey": "age-aged",
+    "label": "Ten years and more",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Liu Bao of ten years and more",
+    "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao of ten years and more",
+        "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:age-settling",
+    "pageId": "liu-bao",
+    "sectionKey": "age-settling",
+    "label": "Five to ten years",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Liu Bao of about five to ten years",
+    "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao of about five to ten years",
+        "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:age-young",
+    "pageId": "liu-bao",
+    "sectionKey": "age-young",
+    "label": "Young Liu Bao",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Liu Bao under about five years",
+    "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao under about five years",
+        "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:brewing",
+    "pageId": "liu-bao",
+    "sectionKey": "brewing",
+    "label": "Brewing Liu Bao",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
     "claimId": "liu-bao:common-impressions",
     "pageId": "liu-bao",
     "sectionKey": "common-impressions",
@@ -688,286 +967,5 @@ export const PART: readonly DraftClaim[] = [
     "pendingText": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
     "previousRevisions": [],
     "pageVisibility": "draft"
-  },
-  {
-    "claimId": "menghai-tea-mountain-circuit:reading-the-circuit",
-    "pageId": "menghai-tea-mountain-circuit",
-    "sectionKey": "reading-the-circuit",
-    "label": "Reading the circuit",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
-    "sourceIds": [
-      "ctma-menghai-seven-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "menghai-tea-mountain-circuit:seven-mountain-route",
-    "pageId": "menghai-tea-mountain-circuit",
-    "sectionKey": "seven-mountain-route",
-    "label": "Seven mountain stops",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
-    "sourceIds": [
-      "ctma-menghai-seven-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "nanqiao-ruigong-brick:malaysian-tea-fair",
-    "pageId": "nanqiao-ruigong-brick",
-    "sectionKey": "malaysian-tea-fair",
-    "label": "A brick on the Malaysian tea market",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "nanqiao-ruigong-brick"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "A 2008 Ruigong product shown at the 2022 fair.",
-    "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
-    "sourceIds": [
-      "dahonghua-ruigong-brick"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "A 2008 Ruigong product shown at the 2022 fair.",
-        "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-0621572B10EDCD30C5521E55",
-          "EVIDENCE-12982E87A3E2D326852D474A"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "nanqiao-ruigong-brick:nanqiao-name",
-    "pageId": "nanqiao-ruigong-brick",
-    "sectionKey": "nanqiao-name",
-    "label": "Where the Nanqiao name comes from",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "nanqiao-ruigong-brick"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The Nanqiao company and its trade.",
-    "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
-    "sourceIds": [
-      "ctma-nanqiao-company"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The Nanqiao company and its trade.",
-        "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-6B4D99DDB582935C71194716",
-          "EVIDENCE-4C832477FC20B224F7F37626",
-          "EVIDENCE-5468B24272F8BE0E9BB775EB",
-          "EVIDENCE-2E575AC1E516A475D2D6C4ED"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:ageing",
-    "pageId": "oolong",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:brewing",
-    "pageId": "oolong",
-    "sectionKey": "brewing",
-    "label": "Brewing oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:common-impressions",
-    "pageId": "oolong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:definition",
-    "pageId": "oolong",
-    "sectionKey": "definition",
-    "label": "What oolong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [
-      {
-        "original": "乌龙茶",
-        "pinyin": "wūlóng chá",
-        "gloss": "oolong tea"
-      },
-      {
-        "original": "青茶",
-        "pinyin": "qīng chá",
-        "gloss": "blue-green tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:families",
-    "pageId": "oolong",
-    "sectionKey": "families",
-    "label": "The four families",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [
-      {
-        "original": "岩韵",
-        "pinyin": "yán yùn",
-        "gloss": "rock rhyme"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
   }
 ];

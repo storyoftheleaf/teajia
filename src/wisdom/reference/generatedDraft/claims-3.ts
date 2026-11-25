@@ -827,135 +827,115 @@ export const PART: readonly DraftClaim[] = [
     "pageVisibility": "public"
   },
   {
-    "claimId": "liu-bao:age-aged",
-    "pageId": "liu-bao",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
+    "claimId": "liu-an:ageing",
+    "pageId": "liu-an",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Liu An",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": false,
+    "listingEligible": true,
     "appliesWhen": {
       "type": "Dark",
       "origin_includes": [
-        "guangxi"
+        "anhui"
       ]
     },
     "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao of ten years and more",
-    "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
+    "rev": null,
+    "scope": "",
+    "text": "Liu An is said to improve with years in its basket, turning mellower, rounder and redder in the cup. Young tea has an edge of charcoal or smoke that settles with age. Keep it dry, clean, away from smells and direct sun, in wrapping that breathes, not sealed airtight.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of ten years and more",
-        "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
+    "reviewState": "draft",
+    "pendingText": "Liu An is said to improve with years in its basket, turning mellower, rounder and redder in the cup. Young tea has an edge of charcoal or smoke that settles with age. Keep it dry, clean, away from smells and direct sun, in wrapping that breathes, not sealed airtight.",
+    "previousRevisions": [],
     "pageVisibility": "public"
   },
   {
-    "claimId": "liu-bao:age-settling",
-    "pageId": "liu-bao",
-    "sectionKey": "age-settling",
-    "label": "Five to ten years",
+    "claimId": "liu-an:basket",
+    "pageId": "liu-an",
+    "sectionKey": "basket",
+    "label": "The basket and its tickets",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": false,
+    "listingEligible": true,
     "appliesWhen": {
       "type": "Dark",
       "origin_includes": [
-        "guangxi"
+        "anhui"
       ]
     },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao of about five to ten years",
-    "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
+    "terms": [
       {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of about five to ten years",
-        "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
+        "original": "箬叶",
+        "pinyin": "ruò yè",
+        "gloss": "bamboo leaf lining"
+      },
+      {
+        "original": "茶票",
+        "pinyin": "chá piào",
+        "gloss": "tea ticket"
+      },
+      {
+        "original": "孙义顺",
+        "pinyin": "sūn yì shùn",
+        "gloss": "Sun Yi Shun"
       }
     ],
+    "rev": null,
+    "scope": "",
+    "text": "The tea is packed into woven bamboo baskets lined with bamboo leaf, from about 250 to 600 grams each, several tied into a bundle. The leaf lining gives the tea a bamboo note that sellers liken to rice dumplings, and drinkers keep the leaves to brew a small piece with the tea. Old baskets carry printed paper tickets naming the firm, which collectors use to tell editions and fakes apart. Sun Yi Shun is the best-known old firm, but modern baskets carry the name too, so the name alone does not date a basket.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The tea is packed into woven bamboo baskets lined with bamboo leaf, from about 250 to 600 grams each, several tied into a bundle. The leaf lining gives the tea a bamboo note that sellers liken to rice dumplings, and drinkers keep the leaves to brew a small piece with the tea. Old baskets carry printed paper tickets naming the firm, which collectors use to tell editions and fakes apart. Sun Yi Shun is the best-known old firm, but modern baskets carry the name too, so the name alone does not date a basket.",
+    "previousRevisions": [],
     "pageVisibility": "public"
   },
   {
-    "claimId": "liu-bao:age-young",
-    "pageId": "liu-bao",
-    "sectionKey": "age-young",
-    "label": "Young Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao under about five years",
-    "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao under about five years",
-        "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:brewing",
-    "pageId": "liu-bao",
+    "claimId": "liu-an:brewing",
+    "pageId": "liu-an",
     "sectionKey": "brewing",
-    "label": "Brewing Liu Bao",
+    "label": "Brewing Liu An",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": false,
+    "listingEligible": true,
     "appliesWhen": {
       "type": "Dark",
       "origin_includes": [
-        "guangxi"
+        "anhui"
       ]
     },
     "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
+    "rev": null,
+    "scope": "",
+    "text": "Use water at or near the boil, rinse the leaf quickly, and keep the steeps short, each a little longer than the last, in a gaiwan or clay pot; doses run from about 3 to 8 grams for 100 ml, for six to ten or more steeps. A small piece of the basket's bamboo leaf is often brewed with it. Aged tea can also be simmered in a larger pot, about 1 gram to 200 to 300 ml, for a few minutes or longer.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
+    "reviewState": "draft",
+    "pendingText": "Use water at or near the boil, rinse the leaf quickly, and keep the steeps short, each a little longer than the last, in a gaiwan or clay pot; doses run from about 3 to 8 grams for 100 ml, for six to ten or more steeps. A small piece of the basket's bamboo leaf is often brewed with it. Aged tea can also be simmered in a larger pot, about 1 gram to 200 to 300 ml, for a few minutes or longer.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-an:common-impressions",
+    "pageId": "liu-an",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Bamboo leaf above all, herbal or medicinal notes, a sweetness that returns after swallowing, a cooling feel in the mouth and throat, and a smooth, thick cup with little bitterness; young tea shows some smoke or charcoal, and the liquor runs from orange-gold to red.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Bamboo leaf above all, herbal or medicinal notes, a sweetness that returns after swallowing, a cooling feel in the mouth and throat, and a smooth, thick cup with little bitterness; young tea shows some smoke or charcoal, and the liquor runs from orange-gold to red.",
+    "previousRevisions": [],
     "pageVisibility": "public"
   }
 ];

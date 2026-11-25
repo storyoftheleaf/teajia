@@ -6568,6 +6568,211 @@
         }
       ],
       "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:definition",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "六安篓茶",
+          "pinyin": "liù ān lǒu chá",
+          "gloss": "Liu An basket tea"
+        },
+        {
+          "original": "安茶",
+          "pinyin": "ān chá",
+          "gloss": "An tea"
+        },
+        {
+          "original": "祁门",
+          "pinyin": "qímén",
+          "gloss": "Qimen"
+        },
+        {
+          "original": "六安瓜片",
+          "pinyin": "liù ān guāpiàn",
+          "gloss": "Liu An Gua Pian"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:making",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "夜露",
+          "pinyin": "yè lù",
+          "gloss": "night dew"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:basket",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [
+        {
+          "original": "箬叶",
+          "pinyin": "ruò yè",
+          "gloss": "bamboo leaf lining"
+        },
+        {
+          "original": "茶票",
+          "pinyin": "chá piào",
+          "gloss": "tea ticket"
+        },
+        {
+          "original": "孙义顺",
+          "pinyin": "sūn yì shùn",
+          "gloss": "Sun Yi Shun"
+        }
+      ],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:southern-trade",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:old-stock",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:ageing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:brewing",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:common-impressions",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
+    },
+    {
+      "claim_id": "liu-an:notice-aged",
+      "basis": "trade_knowledge",
+      "axis": "type",
+      "listing_eligible": true,
+      "applies_when": {
+        "type": "Dark",
+        "origin_includes": [
+          "anhui"
+        ]
+      },
+      "attribution": null,
+      "terms": [],
+      "status": "draft",
+      "current_rev": null,
+      "revisions": [],
+      "withdrawn": null
     }
   ]
 }
