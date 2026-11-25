@@ -3,6 +3,126 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "yunnan-white:history",
+    "pageId": "yunnan-white",
+    "sectionKey": "history",
+    "label": "How Yunnan white began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Yunnan white is a recent tea in the market. The name Moonlight White and the trade in Yunnan white tea have grown popular only in recent years, though local practice may be older.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "yunnan-white:making",
+    "pageId": "yunnan-white",
+    "sectionKey": "making",
+    "label": "How Yunnan white is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Yunnan white follows the white tea way: the leaf is withered and then dried, never heated to stop its change and never rolled. The withering is done indoors or in shade rather than in hot midday sun, and the leaf is then dried by air, without the final low bake that Fujian white tea usually gets. A longer or darker wither gives a darker, redder cup. It is sold loose and pressed, in the cake, coin and brick shapes of pu’er.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "yunnan-white:moonlight-white",
+    "pageId": "yunnan-white",
+    "sectionKey": "moonlight-white",
+    "label": "Moonlight White",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ],
+      "name_includes": [
+        "moonlight"
+      ]
+    },
+    "terms": [
+      {
+        "original": "月光白",
+        "pinyin": "yuè guāng bái",
+        "gloss": "Moonlight White"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Moonlight White, yue guang bai, is the best-known Yunnan white. Its home is Jinggu County in Pu’er City, and the Jinggu tea is made from the Jinggu Da Bai Cha variety, whose mother tree grows in Yangta village; other Yunnan makers use the name too. Two explanations are given for the name: the look of the leaf, dark on top and silver beneath, like the moon in a dark sky, and a story that it was picked or withered by moonlight.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "yunnan-white:yabao",
+    "pageId": "yunnan-white",
+    "sectionKey": "yabao",
+    "label": "Yabao",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "yunnan"
+      ],
+      "name_includes": [
+        "yabao"
+      ]
+    },
+    "terms": [
+      {
+        "original": "芽苞",
+        "pinyin": "yá bāo",
+        "gloss": "bud"
+      }
+    ],
+    "rev": 1,
+    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
+    "text": "Yabao is made from the buds of wild-growing or old trees in south-west Yunnan, picked in late winter or early spring before they open and sun-dried with little else done to them. It is mostly sold as white tea. Which plant the buds come from is not settled: some are said to be from a wild tea species, not the cultivated tea plant.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "yunnan:geographic-frame",
+    "pageId": "yunnan",
+    "sectionKey": "geographic-frame",
+    "label": "The geographic frame",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Yunnan Pu’er Regions",
+    "text": "Pu’er is unusually place-bound for a broad tea family. Yunnan is the central geographic frame, while comparable processing outside the province does not by itself make a tea Yunnan Pu’er.",
+    "sourceIds": [
+      "teadb-yunnan-overview"
+    ],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "yunnan:reading-labels",
     "pageId": "yunnan",
     "sectionKey": "reading-labels",

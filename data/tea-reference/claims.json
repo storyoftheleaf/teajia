@@ -6399,9 +6399,19 @@
           "gloss": "gamma-aminobutyric acid"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "GABA oolong process kit",
+          "text": "GABA tea names a way of making tea, not a plant or a place. GABA, gamma-aminobutyric acid, is an amino acid found in tea leaf, and the leaf is treated so that the finished tea holds much more of it than ordinary tea. It can be made as green, oolong or red tea; oolong is the form Taiwan is best known for, where the tea research station named its version GABA oolong. In Japan, where the method began, it was called Gabaron, and in Taiwan the trade name is Jiayelong.",
+          "approved_at": "2026-11-25",
+          "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -6423,9 +6433,28 @@
           "gloss": "without oxygen"
         }
       ],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 2,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "GABA oolong process kit",
+          "text": "The fresh leaf is held for some hours without oxygen, in a sealed chamber or drum filled with nitrogen or emptied to a vacuum. Without oxygen the leaf turns its glutamic acid into GABA and cannot break it down again, so it builds up. The leaf is then made in the usual way for its type; for oolong that means withering and tossing, fixing, rolling, drying and sometimes a roast. Taiwan's oolong method alternates rounds without oxygen and rounds in air, rather than one long hold.",
+          "approved_at": "2026-11-25",
+          "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+          "evidence_ids": []
+        },
+        {
+          "rev": 2,
+          "origin": "approved",
+          "scope": "GABA oolong process kit",
+          "text": "The fresh leaf is kept for some hours without oxygen, in a sealed chamber or drum filled with nitrogen or emptied to a vacuum. Without oxygen the leaf turns its glutamic acid into GABA and cannot break it down again, so it builds up. The leaf is then made in the usual way for its type; for oolong that means withering and tossing, fixing, rolling, drying and sometimes a roast. Taiwan's oolong method alternates rounds without oxygen and rounds in air, rather than one long spell.",
+          "approved_at": "2026-11-25",
+          "reason": "Adrian approved the GABA oolong kit 2026-11-25; one word changed after approval (held to kept, hold to spell) because held is barred from public text",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -6441,9 +6470,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "GABA oolong process kit",
+          "text": "The method was found in Japan, by Dr Tsushida and colleagues at the government tea research institute, and the finding is dated to 1987. The first Japanese teas had a stuffy, sour smell and taste, and Taiwan's tea research station changed the method and adapted it to oolong. It spread among Taiwanese makers, and Taiwan is now a main source of GABA tea sold abroad. It needs no special leaf: ordinary oolong types serve.",
+          "approved_at": "2026-11-25",
+          "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -6459,9 +6498,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "GABA oolong process kit",
+          "text": "The figure most often given for calling a tea GABA tea is at least 150 mg of GABA in every 100 grams of dry tea. It is repeated widely for Japan and Taiwan, though no standard document behind it is quoted.",
+          "approved_at": "2026-11-25",
+          "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -6477,9 +6526,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "GABA oolong process kit",
+          "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
+          "approved_at": "2026-11-25",
+          "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     },
     {
@@ -6495,9 +6554,19 @@
       },
       "attribution": null,
       "terms": [],
-      "status": "draft",
-      "current_rev": null,
-      "revisions": [],
+      "status": "approved",
+      "current_rev": 1,
+      "revisions": [
+        {
+          "rev": 1,
+          "origin": "approved",
+          "scope": "GABA oolong process kit",
+          "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
+          "approved_at": "2026-11-25",
+          "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+          "evidence_ids": []
+        }
+      ],
       "withdrawn": null
     }
   ]

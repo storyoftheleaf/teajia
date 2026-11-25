@@ -22,7 +22,8 @@ import { GENERATED_CLAIMS } from './generatedClaims';
 /**
  * A style page that is not itself a tea type (Liu Bao inside Dark) carries
  * its teas through its approved claims' conditions: a recorded type and,
- * where given, recorded origin parts. Never the product's name.
+ * where given, recorded origin parts. Never the product's name, except for a
+ * way of making the name carries (process_in_name, GABA).
  */
 function matchesStylePage(product: PublicProduct, pageId: string): boolean {
   const type = normalizeTeaType(product.type);
@@ -32,6 +33,11 @@ function matchesStylePage(product: PublicProduct, pageId: string): boolean {
     if (claim.pageId !== pageId) return false;
     const when = claim.appliesWhen;
     if (!when.type || when.type !== type) return false;
+    // A way of making named in the tea's name (GABA) is the one case a name decides; it never names a place.
+    if (when.process_in_name) {
+      const words = normalizedWords(product.productName ?? '').split(' ').filter(Boolean);
+      return when.process_in_name.some(value => words.includes(value));
+    }
     return (when.origin_includes ?? []).every(value => parts.includes(value));
   });
 }

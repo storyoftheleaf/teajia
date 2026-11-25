@@ -918,13 +918,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "GABA oolong process kit",
     "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "GABA oolong process kit",
+        "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -942,13 +951,22 @@ export const PART: readonly DraftClaim[] = [
       ]
     },
     "terms": [],
-    "rev": null,
-    "scope": "",
+    "rev": 1,
+    "scope": "GABA oolong process kit",
     "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "GABA oolong process kit",
+        "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   }
 ];

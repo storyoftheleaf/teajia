@@ -182,6 +182,7 @@ describe('sellable Tea Reference catalogue', () => {
       'dark',
       'dian-hong',
       'fujian-white',
+      'gaba',
       'greater-yiwu',
       'lapsang',
       'lincang',
@@ -687,6 +688,15 @@ describe('style and family pages beyond pu’er', () => {
   const tea = (id: string, type: string, originRegion: string): PublicProduct => ({
     ...product({ id, productName: id, originRegion }),
     type: type as PublicProduct['type'],
+  });
+
+  it('gives GABA oolong only the oolongs whose name says GABA, with or without an origin', () => {
+    const result = buildGeneratedTeaReferenceCatalogue([
+      tea('Gaba High Mountain', 'Oolong', ''),
+      tea('Alishan High Mountain', 'Oolong', 'Alishan, Chiayi'),
+      tea('Gaba Red', 'Red', ''),
+    ]);
+    expect(result.types.find(type => type.id === 'gaba')?.productIds).toEqual(['Gaba High Mountain']);
   });
 
   it('gives Liu Bao its Guangxi dark teas and Dark tea every dark tea, from the record and never the name', () => {
