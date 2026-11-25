@@ -153,14 +153,15 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
       } : undefined}
     >
       {v.id && heldFace ? (
-        <button
+        <Button
+          variant="plain"
           type="button"
           onClick={() => void place(heldFace.key, v)}
           className="group block w-full text-left rounded-xl p-1.5 transition-colors hover:bg-tea-accent-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
           aria-label={`Make this ${v.name}'s face`}
         >
           {tileBody(v)}
-        </button>
+        </Button>
       ) : v.id ? (
         <Link to={`/admin/vendors/${v.id}`} className="group block rounded-xl p-1.5 transition-colors hover:bg-tea-accent-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50">
           {tileBody(v)}
@@ -226,7 +227,8 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
           <ul className="flex flex-wrap gap-3 px-1.5 pt-2 pr-3 max-h-64 overflow-y-auto">
             {loose.map(face => (
               <li key={face.key} className="relative">
-                <button
+                <Button
+                  variant="plain"
                   type="button"
                   draggable
                   onDragStart={e => { e.dataTransfer.setData(FACE_DRAG_TYPE, face.key); e.dataTransfer.effectAllowed = 'copy'; setHeld(face.key); }}
@@ -238,7 +240,7 @@ export const VendorFaceGallery: React.FC<{ vendors: FaceVendor[] }> = ({ vendors
                   className={`block w-24 h-24 rounded-xl overflow-hidden border cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 ${held === face.key ? 'border-tea-gold ring-2 ring-tea-gold/60' : 'border-tea-border hover:border-tea-gold'}`}
                 >
                   <img src={face.preview} alt="" className="w-full h-full object-cover pointer-events-none" />
-                </button>
+                </Button>
                 <Button
                   type="button"
                   variant="icon"
