@@ -8,6 +8,7 @@ import { teaSourcingConnections } from '../../lib/teaSourcingConnections';
 import { api } from '../../lib/api';
 import { isoCurrencyCode } from '../../lib/currency';
 import type { TeaCompassEntry } from '../TeaCompass/types';
+import { SupplierFaceThumb } from '../vendors/SupplierSourceLink';
 
 export function useTeaSupplier(entry?: Pick<TeaCompassEntry, 'vendorId' | 'linkedCustomerId' | 'vendorName'>) {
   const scope = usePrivateQueryScope();
@@ -41,11 +42,14 @@ export function TeaSourcingConnections({ entry }: { entry: ConnectedTea }) {
   return <section className="space-y-3 border-t border-tea-border pt-3" aria-label="Connected sourcing">
     <h3 className="text-ui-14 font-medium text-tea-text">Sourcing</h3>
     <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-3">
+      {vendor.supplier?.face_photo && <SupplierFaceThumb photo={vendor.supplier.face_photo} size={40} />}
       <div className="min-w-0 text-ui-13 text-tea-text-sec">
         <span className="block text-ui-11">Supplier</span>
         <span>{vendor.name || 'Choose the supplier above'}</span>
         {vendor.supplier?.company && vendor.supplier.company !== vendor.name && <span className="block">{vendor.supplier.company}</span>}
         {vendor.supplier && <span className="block">{[vendor.supplier.city, vendor.supplier.country].filter(Boolean).join(', ')}</span>}
+      </div>
       </div>
       {supplierHref && <Link className="btn-quiet btn-sm tap-target" to={supplierHref}>Supplier record</Link>}
     </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { InventoryItem } from '../../../types';
+import { SupplierSourceLink } from '../../vendors/SupplierSourceLink';
 
 interface AlcoveIdentityHeaderProps {
   item: InventoryItem;
@@ -227,9 +228,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
       {/* Vendor / Source: admin-only link to source profile */}
       {item.supplier && isAdmin && (
         <div className="pt-1">
-          <button type="button" onClick={onNavigateSource} className="alcove-source-link">
-            Source: {item.supplier}
-          </button>
+          <SupplierSourceLink supplier={item.supplier} onClick={onNavigateSource} />
         </div>
       )}
     </header>
