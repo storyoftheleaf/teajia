@@ -15049,9 +15049,10 @@ const handleCreateInquiry: Handler = async (request, env, params, ctx) => {
     ? readVia((await request.clone().json().catch(() => null) as { via?: unknown } | null)?.via)
     : null;
   const response = await createInquiry(request, env, params, ctx);
-  if (via && response.ok) {
-    const saved = await response.clone().json().catch(() => null) as { id?: unknown } | null;
-    if (typeof saved?.id === 'string') await recordOrderSessionSource(env.DB, saved.id, via);
+  if (via && response.status === 201) {
+    const saved = await response.clone().json().catch(() => null) as { id?: unknown; idempotent?: unknown } | null;
+    // A replay answers with an order saved earlier: where it came from was settled then.
+    if (typeof saved?.id === 'string' && saved.idempotent !== true) await recordOrderSessionSource(env.DB, saved.id, via);
   }
   return response;
 };

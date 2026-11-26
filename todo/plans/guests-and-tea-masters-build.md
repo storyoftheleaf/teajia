@@ -291,7 +291,14 @@ The orchestrator keeps this current.
 | Launch 1 run sheet | `claude/project-thread-nks12x` | Written 2026-11-26, nothing built | Fable | |
 | Launch 1 integration | `build/launch-1` | Open, from `main` on 2026-11-26 | Opus 5.5 | |
 | S1 the contract | `build/launch-1` | Done 2026-11-26: migration 0128, flag, types, routes, test table, three checks | Opus 5.5 | S9 (Astra) |
-| S2 invite repair | `build/l1-s2-invite` | Started | Opus 5.5 | |
-| S3 to S7, S9 | `build/l1-s<n>-*` | Waiting on the Mac (Codex) | Sol, Astra | Sonnet first read |
-| S10, S11 | `build/l1-s10-tools`, `build/l1-s11-checks` | After S4, S5 / S3 to S8 | Sonnet 5.5 | Opus |
-| S8 order source | `build/launch-1` | Server and site side written with S1; the thank-you link half lands with S3 | Opus 5.5 | S9 (Astra) |
+| S2 invite repair | `build/l1-s2-invite` | Merged, PR 481 | Opus 5.5 | Opus (sandbox) |
+| S3 the thank-you teas, playlist, reading | `build/l1-s3-thanks` | Merged, PR 483 | Sol (gpt-5.6-sol) | Opus |
+| S4 a reading for each session | `build/l1-s4-reading` | Merged, PR 484 | Sol (gpt-5.6-sol) | Opus |
+| S5 keep a session tea | `build/l1-s5-keep` | Merged, PR 482 | Sol (gpt-5.6-sol) | Opus |
+| S6 a bought tea in the chest | `build/l1-s6-bought` | Merged, PR 487. Decided in review: a deleted chest tea can be kept again, once | Astra (gpt-6-astra) | Opus |
+| S7 where a chest tea came from, taste this | `build/l1-s7-chest` | Merged, PR 485 | Sol (gpt-5.6-sol) | Opus |
+| S8 order source | `build/launch-1` | Written with S1 and S3 | Opus 5.5 | S9 (Astra) |
+| S9 audit | read only | Done: five findings. Fixed: hidden product details copied on keep, replay gaining a source, a reload reviving a used reference, party links unable to keep. Answered: the invoice join goes through `inquiries.converted_invoice_id` | Astra (gpt-6-astra) | Opus |
+| S10 agent tools | `build/l1-s10-tools` | Merged, PR 486 | Sonnet 5.5 | Opus |
+| S11 browser journey | `build/l1-s11-checks` | Merged, PR 488: 14 of 14 at phone and desktop after three fixes | Sonnet 5.5 | Opus |
+| S9 fixes | `build/l1-s9-fixes` | In review | Opus 5.5 | |

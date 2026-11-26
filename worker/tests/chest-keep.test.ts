@@ -35,9 +35,14 @@ async function issue(attendeeId = 'seat-a', eventId = 'event-a') {
   return (await response.json() as { credential: string }).credential;
 }
 
+// Stands in for the shop's public catalogue rule: only a public, shown product is readable.
+const readPublic = async (accountId: string, productId: string) => db.sqlite.prepare(
+  'SELECT id FROM products WHERE account_id = ? AND id = ? AND is_public = 1 AND shown_in_shop = 1',
+).get(accountId, productId) as Record<string, unknown> | undefined ?? null;
+
 async function keep(credential: string, userId: string, teaId: string) {
   return keepSessionTea(db as unknown as D1Database, {
-    userId, teaId, credentialHash: await hashAfterSitCredential(credential),
+    userId, teaId, credentialHash: await hashAfterSitCredential(credential), readPublic,
   });
 }
 
@@ -67,7 +72,7 @@ beforeEach(() => {
 afterEach(() => db.close());
 
 describe('keeping a served tea in a guest Tea Chest', () => {
-  it('keeps stated tea and product details without inventing grams or cost, linking only a public shop product', async () => {
+  it('keeps details of a public product only; a hidden product gives its name and nothing more', async () => {
     const credential = await issue();
     const publicItem = await keep(credential, 'guest-a', 'tea-public');
     const privateItem = await keep(credential, 'guest-a', 'tea-private');
@@ -79,7 +84,7 @@ describe('keeping a served tea in a guest Tea Chest', () => {
       source: { kind: 'session', eventId: 'event-a', eventTitle: 'First table' },
     });
     expect(privateItem).toMatchObject({
-      name: 'Private red', type: 'Red', year: 2020, origin: 'Yunnan, China', grams: 0,
+      name: 'Private red', type: null, year: null, origin: null, grams: 0,
       linkedProductId: null, costAmount: null, costCurrency: null,
     });
     expect(db.sqlite.prepare(`SELECT grams, chest_cost_amount, chest_cost_currency, source_kind,
@@ -88,6 +93,22 @@ describe('keeping a served tea in a guest Tea Chest', () => {
         { grams: 0, chest_cost_amount: null, chest_cost_currency: null, source_kind: 'session', source_event_id: 'event-a', source_tea_ref: 'tea-private', linked_product_id: null },
         { grams: 0, chest_cost_amount: null, chest_cost_currency: null, source_kind: 'session', source_event_id: 'event-a', source_tea_ref: 'tea-public', linked_product_id: 'product-public' },
       ]);
+  });
+
+  it('lets a party link keep a tea, as it opens the thank-you', async () => {
+    const response = await call('/api/admin/events/:eventId/after-sit/:attendeeId/party', { first_name: 'Mei' },
+      { 'Test-Host': 'shop-a' }, {}, { attendeeId: 'seat-a', eventId: 'event-a' });
+    expect(response.status).toBe(200);
+    const { credential } = await response.json() as { credential: string };
+    expect(await keep(credential, 'guest-b', 'tea-public')).toMatchObject({ name: 'Session white', linkedProductId: 'product-public' });
+  });
+
+  it('copies nothing but the name when no catalogue reader is given', async () => {
+    const credential = await issue();
+    const item = await keepSessionTea(db as unknown as D1Database, {
+      userId: 'guest-a', teaId: 'tea-public', credentialHash: await hashAfterSitCredential(credential),
+    });
+    expect(item).toMatchObject({ name: 'Session white', type: null, year: null, origin: null, linkedProductId: null });
   });
 
   it('returns the same chest item when the same user keeps the tea twice', async () => {

@@ -8,6 +8,8 @@
 
 import { TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { findEligibleSeat } from './afterSitAccess';
+import { findPartyRecap } from './afterSitPartyLinks';
+import type { PublicProductReader } from './sessionTeas';
 import { sessionServedTeas } from './sessionServedTeas';
 
 /** The chest row as the owner's API returns it (see ownedCellarItemToApi in index.ts). */
@@ -72,29 +74,36 @@ export async function keptSessionTeaIds(db: D1Database, userId: string, eventId:
 /**
  * Keep one poured tea from a session in the caller's chest (slice S5).
  * Returns the chest row, the same row on a repeat, or null when the seat link
- * is not eligible or the tea was not served at that session.
+ * is not eligible or the tea was not served at that session. Any link that
+ * opens the thank-you (a seat's own, an extra, or a party link) may keep.
+ * Product details (type, year, origin, the product link) are copied only when
+ * the shop's own public catalogue rule shows that product; otherwise the chest
+ * gets the name the thank-you already showed, and nothing more.
  */
 export async function keepSessionTea(
-  db: D1Database, input: { userId: string; credentialHash: string; teaId: string },
+  db: D1Database,
+  input: { userId: string; credentialHash: string; teaId: string; readPublic?: PublicProductReader },
 ): Promise<KeptChestItem | null> {
-  const seat = await findEligibleSeat(db, input.credentialHash);
+  const seat = await findEligibleSeat(db, input.credentialHash) ?? await findPartyRecap(db, input.credentialHash);
   if (!seat) return null;
   const teas = JSON.parse(seat.teas_json) as Array<{ id?: unknown }>;
   if (!teas.some(tea => tea.id === input.teaId)) return null;
 
   const served = await db.prepare(
-    `SELECT tea.name, p.type, p.year, p.origin_country, p.origin_region,
-        CASE WHEN p.is_public = 1 AND p.shown_in_shop = 1
-          AND shop.status = 'active' AND shop.public_enabled = 1 THEN p.id ELSE NULL END AS linked_product_id
+    `SELECT tea.name, tea.product_id, p.type, p.year, p.origin_country, p.origin_region
      FROM (${sessionServedTeas('?1', '?2')}) AS tea
      LEFT JOIN products p ON p.id = tea.product_id AND p.account_id = ?1
-     LEFT JOIN accounts shop ON shop.id = ?1
      WHERE tea.id = ?3 LIMIT 1`,
   ).bind(seat.account_id, seat.id, input.teaId).first<{
-    name: string; type: string | null; year: number | null;
-    origin_country: string | null; origin_region: string | null; linked_product_id: string | null;
+    name: string; product_id: string | null; type: string | null; year: number | null;
+    origin_country: string | null; origin_region: string | null;
   }>();
   if (!served) return null;
+  const shown = served.product_id && input.readPublic
+    ? Boolean(await input.readPublic(seat.account_id, served.product_id))
+    : false;
+  if (!shown) Object.assign(served, { type: null, year: null, origin_country: null, origin_region: null });
+  const linkedProductId = shown ? served.product_id : null;
 
   const id = `cellar_${crypto.randomUUID().replace(/-/g, '')}`;
   const origin = [served.origin_region, served.origin_country].filter(Boolean).join(', ') || null;
@@ -106,7 +115,7 @@ export async function keepSessionTea(
         linked_product_id, source_kind, source_event_id, source_tea_ref)
      VALUES (?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, 'session', ?, ?)
      ON CONFLICT DO NOTHING`,
-  ).bind(id, input.userId, served.name, served.type, year, origin, served.linked_product_id, seat.id, input.teaId).run();
+  ).bind(id, input.userId, served.name, served.type, year, origin, linkedProductId, seat.id, input.teaId).run();
 
   const row = await db.prepare(
     `SELECT c.*, e.title AS source_event_title
