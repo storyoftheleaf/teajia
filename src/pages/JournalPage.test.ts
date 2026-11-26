@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CustomerTasting } from '../types';
 import { journalEntriesForDeepLink } from '../components/tasting/TastingJournal';
-import { readJournalDeepLink } from './JournalPage';
+import { journalTastingForDeepLink, readJournalDeepLink } from './JournalPage';
+import type { CellarItem } from '../lib/teaChestTypes';
 import { keptSetupTastingHref } from '../lib/keptSetupTasting';
 import { fromApiRow } from '../lib/tastingJournalRead';
 
@@ -61,6 +62,39 @@ describe('inventory to personal journal deep links', () => {
     expect(normalized.note).toMatchObject({ tasting: { rating: 8 }, personalNote: 'Old note', rating: 8 });
     expect(normalized.tastings).toHaveLength(1);
     expect(normalized.tastings[0]).toMatchObject({ tasting: { rating: 8 }, createdAt: '2026-08-01T00:00:00Z' });
+  });
+});
+
+describe('Tea Chest to personal journal deep links', () => {
+  const chestTea = (linkedProductId: string | null): CellarItem => ({
+    id: 'chest-1',
+    name: 'Gifted Rou Gui',
+    type: 'Oolong',
+    grams: 25,
+    placementStatus: 'private',
+    linkedProductId,
+    shelfPublished: false,
+    createdAt: '2026-11-26T00:00:00Z',
+    updatedAt: '2026-11-26T00:00:00Z',
+  });
+
+  it('uses the linked shop product while keeping the chest tea identity', () => {
+    const deepLink = readJournalDeepLink('?chest=chest-1');
+    expect(deepLink).toMatchObject({ chestItemId: 'chest-1' });
+    expect(journalTastingForDeepLink(deepLink, [chestTea('product-1')])).toEqual({
+      id: 'product-1',
+      name: 'Gifted Rou Gui',
+      type: 'Oolong',
+    });
+  });
+
+  it('starts an unlinked chest tea under its own stable journal key', () => {
+    const deepLink = readJournalDeepLink('?chest=chest-1');
+    expect(journalTastingForDeepLink(deepLink, [chestTea(null)])).toEqual({
+      id: 'member-tea:chest:chest-1',
+      name: 'Gifted Rou Gui',
+      type: 'Oolong',
+    });
   });
 });
 

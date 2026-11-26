@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink, Pencil, Check } from 'lucide-react';
-import { api, type CellarItem, type ShelfOfferInput } from '../../lib/api';
+import { api, type CellarItem, type ChestSourceInput, type ShelfOfferInput } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
+import { firstTableOpen } from '../../lib/firstTable';
 import { CellarOfferEditor } from './CellarOfferEditor';
 import { TeaChestStockLinks, useTeaChestStockAccount } from './TeaChestStockLinks';
 import { Button } from '../shared/Button';
@@ -12,6 +14,58 @@ import { formatPersonalTeaMoney, readPersonalTeaMoney } from '../../lib/personal
 import { emptyMoneyFields, TeaChestMoneyFields } from './TeaChestMoneyFields';
 
 const chestField = 'min-w-0 rounded-md border border-tea-border bg-tea-bg px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
+type HandSourceKind = '' | 'gift' | 'own';
+
+function handSourceKind(item: CellarItem): HandSourceKind {
+  return item.source?.kind === 'gift' || item.source?.kind === 'own' ? item.source.kind : '';
+}
+
+function sourceLine(item: CellarItem): string | null {
+  if (item.source?.kind === 'gift') return item.source.fromName?.trim() ? `A gift from ${item.source.fromName.trim()}` : 'A gift';
+  if (item.source?.kind === 'session') return item.source.eventTitle?.trim() ? `From ${item.source.eventTitle.trim()}` : 'From a session';
+  if (item.source?.kind === 'bought') return 'Bought';
+  return null;
+}
+
+function gramsLine(item: CellarItem): string {
+  return item.source?.kind === 'session' && item.grams === 0 ? 'Tasted, none held' : `${item.grams} g`;
+}
+
+function SourceChoice({ kind, fromName, onKindChange, onFromNameChange }: {
+  kind: HandSourceKind;
+  fromName: string;
+  onKindChange: (kind: HandSourceKind) => void;
+  onFromNameChange: (name: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-end gap-2">
+      <label className="min-w-0 flex-1 text-ui-12 text-tea-text-sec">
+        <span className="mb-1 block">Where it came from</span>
+        <select
+          value={kind}
+          onChange={event => onKindChange(event.target.value as HandSourceKind)}
+          className={`w-full ${chestField}`}
+        >
+          <option value="">Not set</option>
+          <option value="gift">A gift</option>
+          <option value="own">My own</option>
+        </select>
+      </label>
+      {kind === 'gift' && (
+        <label className="min-w-0 flex-1 text-ui-12 text-tea-text-sec">
+          <span className="mb-1 block">From</span>
+          <input
+            type="text"
+            value={fromName}
+            onChange={event => onFromNameChange(event.target.value)}
+            placeholder="Name (optional)"
+            className={`w-full ${chestField}`}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
 
 interface CellarViewProps {
   onBack: () => void;
@@ -26,6 +80,8 @@ const PLACEMENT_LABEL: Record<CellarItem['placementStatus'], string> = {
 
 export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const tableOpen = firstTableOpen();
   const stockAccount = useTeaChestStockAccount();
   const memberships = useAppStore(s => s.memberships);
   const activeAccount = useAppStore(s => s.activeAccount);
@@ -33,6 +89,8 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const [name, setName] = useState('');
   const [grams, setGrams] = useState('');
   const [label, setLabel] = useState('');
+  const [sourceKind, setSourceKind] = useState<HandSourceKind>('');
+  const [sourceFromName, setSourceFromName] = useState('');
   const [costFields, setCostFields] = useState(emptyMoneyFields);
   const [editCostFields, setEditCostFields] = useState(emptyMoneyFields);
   const [search, setSearch] = useState('');
@@ -46,6 +104,8 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const [editName, setEditName] = useState('');
   const [editGrams, setEditGrams] = useState('');
   const [editLabel, setEditLabel] = useState('');
+  const [editSourceKind, setEditSourceKind] = useState<HandSourceKind>('');
+  const [editSourceFromName, setEditSourceFromName] = useState('');
 
   const cost = readPersonalTeaMoney(enteredNumber(costFields.amount), costFields.currency);
   const editCost = readPersonalTeaMoney(enteredNumber(editCostFields.amount), editCostFields.currency);
@@ -99,15 +159,15 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   });
 
   const createMut = useMutation({
-    mutationFn: (payload: { name: string; grams: number; label: string; costAmount: number; costCurrency: string }) => api.cellar.create(payload),
-    onSuccess: () => { setName(''); setGrams(''); setLabel(''); setCostFields(emptyMoneyFields); setAdding(false); invalidate(); },
+    mutationFn: (payload: { name: string; grams: number; label: string; costAmount: number; costCurrency: string } & ChestSourceInput) => api.cellar.create(payload),
+    onSuccess: () => { setName(''); setGrams(''); setLabel(''); setSourceKind(''); setSourceFromName(''); setCostFields(emptyMoneyFields); setAdding(false); invalidate(); },
   });
   const removeMut = useMutation({
     mutationFn: (id: string) => api.cellar.remove(id),
     onSuccess: invalidate,
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CellarItem> }) => api.cellar.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<CellarItem> & ChestSourceInput }) => api.cellar.update(id, data),
     onSuccess: () => { setEditingId(null); invalidate(); },
   });
   const requestMut = useMutation({
@@ -123,7 +183,15 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
     const trimmed = name.trim();
     if (!trimmed || !cost) return;
     const g = Number(grams);
-    createMut.mutate({ name: trimmed, label, costAmount: cost.amount, costCurrency: cost.currency, grams: Number.isFinite(g) && g > 0 ? g : 0 });
+    createMut.mutate({
+      name: trimmed,
+      label,
+      costAmount: cost.amount,
+      costCurrency: cost.currency,
+      grams: Number.isFinite(g) && g > 0 ? g : 0,
+      source_kind: sourceKind || null,
+      source_from_name: sourceKind === 'gift' ? sourceFromName.trim() || null : null,
+    });
   };
 
   const startEdit = (item: CellarItem) => {
@@ -131,14 +199,23 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
     setEditName(item.name);
     setEditGrams(String(item.grams));
     setEditLabel(item.label ?? '');
+    setEditSourceKind(handSourceKind(item));
+    setEditSourceFromName(item.source?.kind === 'gift' ? item.source.fromName ?? '' : '');
     setEditCostFields({ amount: item.costAmount == null ? '' : String(item.costAmount), currency: item.costCurrency ?? '' });
   };
   const submitEdit = (id: string) => {
     const trimmed = editName.trim();
     if (!trimmed || (editCostRequired && !editCost)) return;
     const g = Number(editGrams);
+    const item = items.find(candidate => candidate.id === id);
+    const siteSetSource = item?.source?.kind === 'bought' || item?.source?.kind === 'session';
     updateMut.mutate({ id, data: { name: trimmed, label: editLabel, grams: Number.isFinite(g) && g >= 0 ? g : 0,
-      ...(editCost && { costAmount: editCost.amount, costCurrency: editCost.currency }) } });
+      ...(editCost && { costAmount: editCost.amount, costCurrency: editCost.currency }),
+      ...(tableOpen && !siteSetSource && {
+        source_kind: editSourceKind || null,
+        source_from_name: editSourceKind === 'gift' ? editSourceFromName.trim() || null : null,
+      }),
+    } });
   };
 
   const accountName = (id: string | null | undefined): string =>
@@ -161,13 +238,23 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
             <h2 className="text-ui-14 text-tea-text">Previous holdings</h2>
             <ul className="divide-y divide-tea-border">
               {items.map(item => (
-                <li key={item.id} className="flex items-start gap-2 justify-between py-2">
+                <li key={item.id} className="flex flex-wrap items-start gap-2 justify-between py-2">
                   <div className="min-w-0 break-words text-ui-14 text-tea-text">
                     <p>{item.name}</p>
                     {item.label && <p className="text-ui-12 text-tea-text-sec">{item.label}</p>}
                     {item.notes && <p className="text-ui-12 text-tea-text-sec">{item.notes}</p>}
+                    {sourceLine(item) && <p className="text-ui-12 text-tea-text-dim">{sourceLine(item)}</p>}
                   </div>
-                  <span className="shrink-0 text-ui-13 text-tea-text-sec">{item.grams} g</span>
+                  <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+                    <span className="shrink-0 text-ui-13 text-tea-text-sec">{gramsLine(item)}</span>
+                    {tableOpen && <button
+                      type="button"
+                      onClick={() => navigate(`/account/journal?chest=${encodeURIComponent(item.id)}`)}
+                      className="tap-target text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
+                    >
+                      Taste this
+                    </button>}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -270,6 +357,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
             className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
           />
           <input aria-label="Private label" placeholder="Private label (optional)" maxLength={60} value={label} onChange={event => setLabel(event.target.value)} className={`w-full ${chestField}`} />
+          {tableOpen && <SourceChoice kind={sourceKind} fromName={sourceFromName} onKindChange={setSourceKind} onFromNameChange={setSourceFromName} />}
           <div className="flex items-center gap-2">
             <input
               aria-label="Holding weight in grams"
@@ -287,7 +375,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
           <TeaChestMoneyFields label="Purchase cost" required value={costFields} onChange={setCostFields} fieldClass={`w-full ${chestField}`} />
           <div className="flex items-center justify-between pt-1">
             <button
-              onClick={() => { setAdding(false); setName(''); setGrams(''); setLabel(''); setCostFields(emptyMoneyFields); }}
+              onClick={() => { setAdding(false); setName(''); setGrams(''); setLabel(''); setSourceKind(''); setSourceFromName(''); setCostFields(emptyMoneyFields); }}
               className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
@@ -348,6 +436,11 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                     className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                   />
                   <input aria-label="Private label" placeholder="Private label (optional)" maxLength={60} value={editLabel} onChange={event => setEditLabel(event.target.value)} className={`w-full ${chestField}`} />
+                  {!tableOpen ? null : item.source?.kind === 'bought' || item.source?.kind === 'session' ? (
+                    <p className="text-ui-12 text-tea-text-sec">Where it came from: {sourceLine(item)}</p>
+                  ) : (
+                    <SourceChoice kind={editSourceKind} fromName={editSourceFromName} onKindChange={setEditSourceKind} onFromNameChange={setEditSourceFromName} />
+                  )}
                   <TeaChestMoneyFields label="Purchase cost" value={editCostFields} onChange={setEditCostFields} fieldClass={`w-full ${chestField}`} />
                   <div className="flex flex-wrap items-center gap-2">
                     <input
@@ -385,12 +478,13 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                   <div className="break-words text-ui-14 text-tea-text">{item.name}</div>
                   <div className="mt-0.5 break-words text-ui-12 text-tea-text-dim">
                     {[item.type, item.origin, item.year, item.label,
-                      item.costAmount != null && item.costCurrency ? `Paid ${formatPersonalTeaMoney(item.costAmount, item.costCurrency)}` : null,
+                      item.source?.kind !== 'session' && item.costAmount != null && item.costCurrency ? `Paid ${formatPersonalTeaMoney(item.costAmount, item.costCurrency)}` : null,
                     ].filter(Boolean).join(' · ')}
                   </div>
+                  {sourceLine(item) && <div className="mt-0.5 break-words text-ui-12 text-tea-text-dim">{sourceLine(item)}</div>}
                 </div>
                 <div className="flex shrink-0 items-center">
-                  <span className="text-ui-13 text-tea-text-sec tabular-nums">{item.grams} g</span>
+                  <span className="text-ui-13 text-tea-text-sec tabular-nums">{gramsLine(item)}</span>
                   {item.placementStatus === 'private' && (
                     <>
                       <button
@@ -416,6 +510,13 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
               {/* Placement (the move), hidden while editing this item */}
               {editingId !== item.id && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
+                {tableOpen && <button
+                  type="button"
+                  onClick={() => navigate(`/account/journal?chest=${encodeURIComponent(item.id)}`)}
+                  className="tap-target text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
+                >
+                  Taste this
+                </button>}
                 {!item.shelfPublished && (
                   <span className="text-ui-12 text-tea-text-sec">
                     {PLACEMENT_LABEL[item.placementStatus]}
