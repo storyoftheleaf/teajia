@@ -40,7 +40,9 @@ const RequestedView: React.FC<RequestedViewProps> = ({ attendee, event }) => {
             Your request has been received.
           </p>
           <p className="text-sm text-tea-text-sec leading-relaxed max-w-xs mx-auto">
-            We typically confirm within 24 hours.
+            {event.privateHost
+              ? 'The host will answer you. You can come back to this page at any time.'
+              : 'We typically confirm within 24 hours.'}
           </p>
         </div>
 
