@@ -109,6 +109,7 @@ Flags, one per part so each can be switched on alone: `TEA_TABLE_OPEN` (replacin
 | K12 | Browser journey, by a helper that built none of it | Sonnet | Last | |
 | A4 | Audit: keep counts unreadable, a private table never beyond its area, a withdrawn item gone from every place | Astra, findings | After K2, K4 | |
 | K13 | Truth-up: the pillar's "no feed" and "not a social network" lines, `docs/SITE_MAP`, the rule wording in the files SECTIONS.md lists | Opus | Same commit as K1 and K7 ship | |
+| K14 | Scores are personal, words are shared: an audit of every place a score, star count or average of a tea is shown to anyone but its giver, then those are taken off public pages; chosen words on a tea's page, placed by hand with the writer's yes (the existing tasting excerpts path); a tea master's top teas on their page, shape to be picked by Adrian | Astra audits read-only **today**; Sol builds after | Audit today | The shape of top teas |
 
 ## The messages to send
 

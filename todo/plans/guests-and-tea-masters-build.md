@@ -50,6 +50,10 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 - **Q7, the bar words.** One word is settled in his mind: "I think just the word tea house will actually fit" (over tea home). The other slot, table or gather or another, is not picked. No label changes until he gives all four.
 - **No "curated" word.** "Let's do no label then." Approval shows only as where a table can be found, never as a word on it.
 
+- **Scores are personal, words are shared (project chat, 2026-11-26).** "We're not trying to be Amazon with how many stars was tea. You can rate it for yourself... I think it's usually more personal than global. But good comments or reviews we can put on the tea so people who like it can hear more about it." So: a score a person gives a tea is theirs, shown to them and never as a public number, star count or average on a tea. Chosen words about a tea may be shown on that tea's page, by hand, with the writer's yes. A host's live tasting results stay as they are, seen by that tasting's host. Launch 4 slice K14.
+- **A tea master's top teas (same message, an idea, not yet a decision).** "Maybe every tea master can pick a top tea from every category into their profile as well, or a top two: one from themselves and one from someone else." Folded into the favourites work as K14's second half; the exact shape (one per category, or two) is his to pick.
+- **The bar words fit (measured 2026-11-26).** In the real bottom bar at 320, 375, 390 and 430 wide, every candidate set fits on one line at the present letter size with no side scroll, "read, tea table, tea house, shop" included. At 320 that set leaves about 4 pixels each side of the two long words, so it is the tightest. Pictures are in the project files under `bar-words/`. He is weighing "tea table" and "tea house"; no pick yet, no label changes.
+
 ## How the build is run
 
 ### The people and the agents
