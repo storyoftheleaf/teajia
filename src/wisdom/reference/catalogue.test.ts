@@ -178,6 +178,8 @@ describe('sellable Tea Reference catalogue', () => {
 
     expect(result.pages.map(page => page.id)).toEqual([
       'anhua-dark',
+      'banzhang',
+      'bulang-mountain',
       'dancong',
       'dark',
       'dian-hong',
@@ -185,6 +187,8 @@ describe('sellable Tea Reference catalogue', () => {
       'gaba',
       'greater-yiwu',
       'green',
+      'jingmai',
+      'kunlu-mountain',
       'lapsang',
       'lincang',
       'liu-an',
@@ -202,6 +206,7 @@ describe('sellable Tea Reference catalogue', () => {
       'shou',
       'sichuan-dark',
       'taiwan-oolong',
+      'tea-heads',
       'tieguanyin',
       'white',
       'y562',
@@ -236,8 +241,11 @@ describe('sellable Tea Reference catalogue', () => {
       expect.objectContaining({ id: 'taiwan-oolong', familyId: 'oolong', productIds: ['tea-oolong', 'tea-oolong-sheng-name'] }),
     ]);
     expect(result.origins).toEqual([
+      // The sample cake is named "Bulang Mountain old tree", so the Bulang Mountain page reaches it.
+      expect.objectContaining({ id: 'bulang-mountain', parentId: 'menghai-county', productIds: ['tea-sheng-active'] }),
       expect.objectContaining({ id: 'greater-yiwu', parentId: 'yunnan', productIds: ['tea-sheng-active'] }),
-      expect.objectContaining({ id: 'menghai-county', parentId: 'yunnan', productIds: ['tea-sheng-sold-out', 'tea-shou-active'] }),
+      // Bulang Mountain sits inside Menghai County, so its tea is counted there too.
+      expect.objectContaining({ id: 'menghai-county', parentId: 'yunnan', productIds: ['tea-sheng-active', 'tea-sheng-sold-out', 'tea-shou-active'] }),
       expect.objectContaining({ id: 'yunnan', productIds: ['tea-sheng-active', 'tea-sheng-sold-out', 'tea-shou-active'] }),
     ]);
     expect(result.sources.find(source => source.sourceId === 'ctma-puer-history-2021')?.title).toBe(

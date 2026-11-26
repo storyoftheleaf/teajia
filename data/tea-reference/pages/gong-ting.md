@@ -27,3 +27,7 @@ Gong Ting is a modern market name, not an old court grade: the trade dates it to
 ## What people often notice {#common-impressions}
 
 People often notice a smooth, soft and sweet cup with a deep red liquor. Next to coarser grades it is lighter in body and gives fewer good steeps, and a very fine young Gong Ting can show a green or bitter edge. Its small leaf gives up flavour quickly, so short pours suit it.
+
+## Other names and other teas {#other-names}
+
+Gong Ting is also written Gongting and sold in English as Palace Grade. The older record of the word notes that it is also used for the finest bud and leaf of aged Taiwanese oolong, so the name is not limited to ripe pu’er. That oolong use rests on one record and has not been checked against other places.

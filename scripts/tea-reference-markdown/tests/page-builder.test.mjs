@@ -285,9 +285,11 @@ test('validates every canonical Markdown file but generates only the approved, r
   });
 
   const markdownFiles = (await fs.readdir(PAGES_DIRECTORY)).filter(fileName => fileName.endsWith('.md'));
-  assert.equal(markdownFiles.length, 35);
+  assert.equal(markdownFiles.length, 40);
   assert.deepEqual(registry.pages.map(page => page.id), [
     'anhua-dark',
+    'banzhang',
+    'bulang-mountain',
     'dancong',
     'dark',
     'dian-hong',
@@ -295,6 +297,8 @@ test('validates every canonical Markdown file but generates only the approved, r
     'gaba',
     'greater-yiwu',
     'green',
+    'jingmai',
+    'kunlu-mountain',
     'lapsang',
     'lincang',
     'liu-an',
@@ -312,6 +316,7 @@ test('validates every canonical Markdown file but generates only the approved, r
     'shou',
     'sichuan-dark',
     'taiwan-oolong',
+    'tea-heads',
     'tieguanyin',
     'white',
     'y562',
