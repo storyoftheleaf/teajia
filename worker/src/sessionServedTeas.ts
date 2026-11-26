@@ -1,3 +1,5 @@
+import { crossShopTeaSql } from './hostTableTeas';
+
 // The caller supplies SQL expressions for an already scoped account/event pair.
 // Keep legacy menu roots visible only when the saved recap has no typed list.
 export function sessionServedTeas(accountId: string, eventId: string) {
@@ -26,7 +28,7 @@ export function sessionServedTeas(accountId: string, eventId: string) {
     UNION ALL
     SELECT m.id, ${menuName} AS name, p.id AS product_id, m.brew_order AS position
     FROM event_tea_menu m
-    LEFT JOIN products p ON p.id = m.product_id AND p.account_id = m.account_id
+    LEFT JOIN products p ON p.id = m.product_id AND (p.account_id = m.account_id OR ${crossShopTeaSql('p')})
     WHERE m.account_id = ${accountId} AND m.event_id = ${eventId}
       AND (m.reveal_date IS NULL OR datetime(m.reveal_date) <= datetime('now'))
       AND ${menuName} IS NOT NULL

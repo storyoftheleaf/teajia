@@ -116,6 +116,9 @@ const DeveloperDocsPage = import.meta.env.DEV
     );
 const BriefingPage = lazyWithRetry(() => import('./pages/BriefingPage'));
 const SiteFixesPage = lazyWithRetry(() => import('./pages/SiteFixesPage'));
+// Launch 2, a few hosts: both show nothing until src/lib/fewHosts.ts opens. No link leads here yet.
+const HostTablePage = lazyWithRetry(() => import('./pages/HostTablePage'));
+const HostedTablePage = lazyWithRetry(() => import('./pages/HostedTablePage'));
 const SessionPage = lazyWithRetry(() => import('./pages/SessionPage'));
 const JoinPage = lazyWithRetry(() => import('./pages/JoinPage'));
 const TableCardPage = lazyWithRetry(() => import('./pages/TableCardPage'));
@@ -1283,6 +1286,8 @@ const AppContent = () => {
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/fixes" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SiteFixesPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/host" element={<ErrorBoundary><Suspense fallback={null}><HostTablePage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/host/:id" element={<ErrorBoundary><Suspense fallback={null}><HostedTablePage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/briefing"element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
                 {/* Design harnesses: reachable while developing (and by the browser
                     suite, which runs the dev server), never on the live site. */}
