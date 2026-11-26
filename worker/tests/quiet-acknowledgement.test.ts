@@ -73,6 +73,44 @@ describe('photograph by <first name>', () => {
     expect((await shown(db)).photograph_by).toBeNull();
   });
 
+  it('when not allowed, neither the full nor the first name nor the page leaves the worker', async () => {
+    const db = setup();
+    // A published page whose name and address both carry the photographer's name.
+    db.exec(`INSERT INTO contributors (id, account_id, user_id, display_name, is_published)
+      VALUES ('mei-lin-tan', '${SHOP}', 'mei', 'Mei Lin Tan', 1)`);
+    db.exec(`UPDATE member_photographs SET shop_use = 'placed' WHERE id = 'photo'`);
+    db.exec(`INSERT INTO member_photographs (id, account_id, product_id, author_user_id, full_key, small_key, full_bytes, small_bytes,
+        full_width, full_height, small_width, small_height, share_state, shop_use)
+      VALUES ('lead', '${SHOP}', 'tea', 'mei', 'lead-full.jpg', 'lead-small.jpg', 900000, 90000, 2000, 1500, 480, 360, 'offered', 'lead'),
+             ('fam', '${SHOP}', 'tea', 'mei', 'fam-full.jpg', 'fam-small.jpg', 900000, 90000, 2000, 1500, 480, 360, 'page', 'none')`);
+    const text = await (await request(db, '/api/family/teas/tea/photographs')).text();
+    const body = JSON.parse(text) as { lead: Record<string, unknown>; placed: Array<Record<string, unknown>>; family: Array<Record<string, unknown>> };
+    expect([body.lead, ...body.placed, ...body.family]).toHaveLength(3);
+    for (const photo of [body.lead, ...body.placed, ...body.family]) {
+      expect(photo.author).toBeNull();
+      expect(photo.photograph_by).toBeNull();
+    }
+    expect(text).not.toMatch(/mei/i);
+    expect(text).not.toContain('Tan');
+
+    // Allowed: the first name, and the published page, and still never the full name.
+    await request(db, '/api/family/photographs/fam/credit', { actor: mei, method: 'PUT', body: { credit_name_shown: true } });
+    const after = JSON.parse(await (await request(db, '/api/family/teas/tea/photographs')).text()) as typeof body;
+    expect(after.family[0].author).toEqual({ name: 'Mei', page_id: 'mei-lin-tan' });
+    expect(JSON.stringify(after)).not.toContain('Mei Lin Tan');
+    expect(after.lead.author).toBeNull();
+  });
+
+  it('the shop still sees who offered a photograph', async () => {
+    const db = setup();
+    db.exec(`UPDATE member_photographs SET share_state = 'offered', offered_at = datetime('now') WHERE id = 'photo'`);
+    const shop = await request(db, '/api/admin/family/photographs', { actor: { userId: 'owner', name: 'owner', accountId: SHOP } });
+    expect(shop.status).toBe(200);
+    const pile = await shop.json() as { photographs?: Array<{ author: { name: string } }> } | Array<{ author: { name: string } }>;
+    const rows = Array.isArray(pile) ? pile : pile.photographs ?? [];
+    expect(rows[0].author.name).toBe('Mei Lin Tan');
+  });
+
   it('nobody else can say it for them, and the answer must be a yes or a no', async () => {
     const db = setup();
     expect((await request(db, '/api/family/photographs/photo/credit', { actor: jun, method: 'PUT', body: { credit_name_shown: true } })).status).toBe(404);

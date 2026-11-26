@@ -79,7 +79,7 @@ export function buildTeaRow(
   });
   const theirs = (p: FamilySharedPhotograph): TeaRowPhotograph => ({
     id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height, shape: p.shape ?? 'square', frame: p.frame ?? null,
-    mine: false, author: p.author, isCover: false, isLead: shared.lead?.id === p.id,
+    mine: false, author: p.author ?? null, isCover: false, isLead: shared.lead?.id === p.id,
     photographBy: typeof p.photograph_by === 'string' && p.photograph_by.trim() ? p.photograph_by.trim() : null,
   });
   const ownIds = new Set(own.map(p => p.id));

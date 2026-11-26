@@ -15,7 +15,7 @@ const product = {
 const familyPhoto = (id: string, photographBy: string | null) => ({
   id, full_url: `https://media.teajia.co/${id}-full.jpg`, small_url: `https://media.teajia.co/${id}-small.jpg`,
   full_width: 1200, full_height: 1200, small_width: 480, small_height: 480, shape: 'square', frame: null,
-  author: { name: 'Mei Lin Tan', page_id: null }, photograph_by: photographBy,
+  author: photographBy ? { name: photographBy, page_id: null } : null, photograph_by: photographBy,
 });
 
 const profile = (over: Record<string, unknown>) => ({

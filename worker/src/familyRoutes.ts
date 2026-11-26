@@ -151,13 +151,34 @@ function ownPhoto(row: PhotoRow): FamilyPhotograph {
   };
 }
 
-function sharedPhoto(row: PhotoRow & { author_name: string | null; page_id: string | null }): FamilySharedPhotograph {
-  const author: FamilyAuthor = { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null };
+type AuthoredRow = PhotoRow & { author_name: string | null; page_id: string | null };
+
+function photoParts(row: AuthoredRow) {
   return {
     id: row.id, full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
-    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), frame: frameOf(row), author,
-    photograph_by: photographBy(row, row.author_name),
+    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), frame: frameOf(row),
+  };
+}
+
+/** The shop's own view of an offered photograph: it knows who sent it. Never served in public. */
+function shopPhoto(row: AuthoredRow): FamilySharedPhotograph & { author: FamilyAuthor } {
+  const author: FamilyAuthor = { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null };
+  return { ...photoParts(row), author, photograph_by: photographBy(row, row.author_name) };
+}
+
+/**
+ * A photograph as any visitor sees it. The photographer's name leaves the
+ * worker only when they allowed it, and then as a first name; their page is
+ * linked only then too, and only when it is published (AUTHOR_COLUMNS). When
+ * they did not allow it there is no author at all: no name, no page, no slug.
+ */
+function publicPhoto(row: AuthoredRow): FamilySharedPhotograph {
+  const firstName = photographBy(row, row.author_name);
+  return {
+    ...photoParts(row),
+    author: firstName ? { name: firstName, page_id: row.page_id ?? null } : null,
+    photograph_by: firstName,
   };
 }
 
@@ -252,7 +273,7 @@ export async function listOfferedPhotographs(db: D1Database, accountId: string, 
       LIMIT 200`,
   ).bind(accountId).all<PhotoRow & { author_name: string | null; page_id: string | null; product_name: string | null; hidden: number }>();
   return Promise.all((results ?? []).map(async row => ({
-    ...(await signPhotograph(secret, sharedPhoto(row))),
+    ...(await signPhotograph(secret, shopPhoto(row))),
     product_id: row.product_id,
     product_name: row.product_name,
     share_state: row.share_state,
@@ -592,10 +613,10 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     const lead = rows.find(row => row.shop_use === 'lead');
     const body: FamilyTeaPhotographs = {
       product_id: product.id,
-      lead: lead ? sharedPhoto(lead) : null,
-      placed: rows.filter(row => row.shop_use === 'placed').map(sharedPhoto),
+      lead: lead ? publicPhoto(lead) : null,
+      placed: rows.filter(row => row.shop_use === 'placed').map(publicPhoto),
       family: rows.filter(row => row.shop_use !== 'placed' && row.shop_use !== 'lead'
-        && row.removed_by_member_at === null && row.share_state !== 'private').map(sharedPhoto),
+        && row.removed_by_member_at === null && row.share_state !== 'private').map(publicPhoto),
     };
     return json(body);
   };

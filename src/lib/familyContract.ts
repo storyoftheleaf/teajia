@@ -141,7 +141,13 @@ export interface FamilySharedPhotograph {
   small_height: number;
   shape: FamilyPhotographShape;
   frame?: FamilyPhotographFrame | null;
-  author: FamilyAuthor;
+  /**
+   * Who took it. On a public answer this is present only when the photographer
+   * allowed their name, and then holds their first name; otherwise null, so
+   * neither their name nor their page leaves the worker. The shop's own
+   * offered pile always knows who sent it.
+   */
+  author: FamilyAuthor | null;
   /**
    * "Photograph by <first name>": the photographer's first name, only when they
    * allowed it (credit_name_shown). Null when they did not, so nothing is shown.
@@ -162,6 +168,7 @@ export interface FamilyTeaPhotographs {
 
 /** One photograph in the shop's offered pile. */
 export interface FamilyOfferedPhotograph extends FamilySharedPhotograph {
+  author: FamilyAuthor;
   product_id: string;
   product_name: string | null;
   share_state: FamilyShareState;
