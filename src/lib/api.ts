@@ -3865,7 +3865,7 @@ export const api = {
 
   network: {
     /** Public list of accounts with public_enabled = true */
-    getStores: async (): Promise<Array<{ id: string; slug: string; name: string; tagline?: string; logo_url?: string; location_city?: string; location_country?: string }>> => {
+    getStores: async (): Promise<Array<{ id: string; slug: string; name: string; tagline?: string; logo_url?: string; cover_image_url?: string | null; location_city?: string; location_country?: string; next_session?: import('../types').NetworkNextSession | null }>> => {
       return authedFetch(`${API_URL}/api/network/stores`)
     },
 
