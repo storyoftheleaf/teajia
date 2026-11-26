@@ -25,6 +25,10 @@ test('the counter counts one click and one field', async ({ page }, info) => {
   }, info);
   const row = readSteps().filter(r => r.task === 'rig: count' && r.project === info.project.name).pop();
   expect(row).toMatchObject({ clicks: 1, fields: 1 });
+  // A second task on the same page counts its own clicks, not into the first.
+  await task(page, 'rig: count again', 2, async () => { await page.click('#b'); await page.click('#b'); }, info);
+  const again = readSteps().filter(r => r.task === 'rig: count again' && r.project === info.project.name).pop();
+  expect(again).toMatchObject({ clicks: 2, fields: 0 });
 });
 
 test('the on-now table is there for the host', async ({ page }) => {
