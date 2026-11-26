@@ -241,6 +241,7 @@ export async function serveOwnerGuestBookPhoto(
 
 export async function reviewGuestBookPhotos(
   request: Request, db: D1Database, bucket: R2Bucket | undefined, accountId: string, eventId: string, grantId?: string,
+  audience: 'staff' | 'host' = 'staff',
 ) {
   const event = [accountId, eventId];
   const found = await db.prepare(`SELECT 1 FROM events e JOIN accounts shop ON shop.id = e.account_id
@@ -248,8 +249,14 @@ export async function reviewGuestBookPhotos(
   if (!found) return missing();
   const scoped = `${roster} AND g.account_id = ? AND g.event_id = ?`;
   if (!grantId) {
-    const { results } = await db.prepare(`SELECT ${visiblePhoto}, g.status ${scoped}
-      ORDER BY CASE g.status WHEN 'pending' THEN 0 WHEN 'included' THEN 1 ELSE 2 END, g.offered_at DESC, g.id`)
+    const ordered = `${scoped} ORDER BY CASE g.status WHEN 'pending' THEN 0 WHEN 'included' THEN 1 ELSE 2 END, g.offered_at DESC, g.id`;
+    // Host photos have no entry key that could link them back to a named note.
+    if (audience === 'host') {
+      const { results } = await db.prepare(`SELECT g.id, ${takerFirstName} AS display_name, g.alt_text, g.status ${ordered}`)
+        .bind(...event).all();
+      return json({ photos: results });
+    }
+    const { results } = await db.prepare(`SELECT ${visiblePhoto}, g.status ${ordered}`)
       .bind(...event).all<{ user_id: string }>();
     return json({ photos: await guestBookEntryKeys(results, accountId, eventId) });
   }
