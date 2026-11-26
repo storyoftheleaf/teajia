@@ -3,17 +3,12 @@
 // A guest's magic token is a bearer link: whoever holds it reads that guest's
 // page, the way to the house included once the seat is confirmed, and can
 // change or cancel the seat. Staff answers carry it only to the account's
-// owner and to the session's host. The host is events.host_user_id, else the
-// user of the session's lead host contributor, the same person
-// order_session_sources names.
+// owner and to the session's host, by the one rule in sessionHost.ts (the
+// same person order_session_sources names and "Hosted by" shows).
 
-/** SQL for the session's host user, for an events alias. */
-export function sessionHostUserSql(event: string): string {
-  return `COALESCE(${event}.host_user_id,
-    (SELECT c.user_id FROM event_contributors ec JOIN contributors c ON c.id = ec.contributor_id
-      WHERE ec.event_id = ${event}.id AND ec.account_id = ${event}.account_id AND ec.role = 'lead_host' AND c.user_id IS NOT NULL
-      ORDER BY ec.display_order ASC, ec.id ASC LIMIT 1))`;
-}
+import { sessionHostUserSql } from './sessionHost';
+
+export { sessionHostUserSql };
 
 /**
  * The sessions among `eventIds` whose guest links this caller may hold. An

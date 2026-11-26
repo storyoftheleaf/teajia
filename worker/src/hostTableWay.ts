@@ -15,6 +15,7 @@
 // point a guest's phone at somewhere else.
 
 import type { OwnHostedTable } from './hostTableGuests';
+import { bareWayPhotoUrl, guidePhotoUrls, signWayGuide, WAY_HOST } from './wayMedia';
 
 export const WAY_MAX_STEPS = 20;
 export const WAY_STEP_MAX = 280;
@@ -135,7 +136,8 @@ export function readTableWayInput(body: Record<string, unknown> | null, accountI
       }
       // A step with neither words nor a photograph says nothing; leave it out.
       if (!description.trim() && !image) continue;
-      steps.push(image ? { description: description.trim(), image_url: image } : { description: description.trim() });
+      // Kept bare: the address handed out is signed per answer (wayMedia.ts).
+      steps.push(image ? { description: description.trim(), image_url: bareWayPhotoUrl(image) } : { description: description.trim() });
     }
     const notes: Partial<WayGuide> = {};
     for (const [field, words] of [
@@ -149,6 +151,57 @@ export function readTableWayInput(body: Record<string, unknown> | null, accountI
     if (steps.length || Object.keys(notes).length) guide = { steps, ...notes };
   }
   return { address, map_link: mapLink, venue_guide: guide };
+}
+
+/**
+ * Any other door that writes a guide (the admin event form, saved places)
+ * holds it to the same rule as the host's page: a step photograph is one this
+ * account uploaded for the way in, or one the stored guide already names (an
+ * older photograph uploaded as a flyer). Photographs are stored bare. Answers
+ * the guide to store, as JSON or null.
+ */
+export function guardGuideWrite(value: unknown, accountId: string, stored: unknown): { venue_guide: string | null } | Refused {
+  if (value === undefined || value === null || value === '') return { venue_guide: null };
+  let guide: unknown = value;
+  if (typeof value === 'string') {
+    try { guide = JSON.parse(value); } catch { return refuse('table_way_invalid', 'Send the steps as a list.'); }
+  }
+  if (guide === null) return { venue_guide: null };
+  if (typeof guide !== 'object' || Array.isArray(guide)) return refuse('table_way_invalid', 'Send the steps as a list.');
+  const source = guide as Record<string, unknown>;
+  const stepsInput = source.steps ?? [];
+  if (!Array.isArray(stepsInput)) return refuse('table_way_invalid', 'Send the steps as a list.');
+  const kept = guidePhotoUrls(stored);
+  const steps: unknown[] = [];
+  for (const raw of stepsInput) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return refuse('table_way_invalid', 'Each step is a line and a photograph.');
+    const step = { ...(raw as Record<string, unknown>) };
+    const image = step.image_url;
+    if (image === undefined || image === null || image === '') {
+      delete step.image_url;
+    } else {
+      if (typeof image !== 'string') return refuse('table_way_photo', 'Add each photograph through the editor on this page.');
+      const bare = bareWayPhotoUrl(image);
+      if (!isOwnWayPhoto(bare, accountId) && !kept.has(bare)) {
+        return refuse('table_way_photo', 'Add each photograph through the editor on this page.');
+      }
+      step.image_url = bare;
+    }
+    steps.push(step);
+  }
+  return { venue_guide: JSON.stringify({ ...source, steps }) };
+}
+
+/** The way and saved places with their step photographs signed for the host. */
+export async function signWayForHost<T extends { way: TableWay; places?: WayPlace[] } | { place: WayPlace }>(secret: string | undefined, answer: T): Promise<T> {
+  const sign = async <G extends { venue_guide: WayGuide | null }>(item: G): Promise<G> =>
+    ({ ...item, venue_guide: item.venue_guide ? await signWayGuide(secret, item.venue_guide, WAY_HOST) : null });
+  if ('place' in answer) return { ...answer, place: await sign(answer.place) };
+  return {
+    ...answer,
+    way: await sign(answer.way),
+    ...(answer.places ? { places: await Promise.all(answer.places.map(sign)) } : {}),
+  };
 }
 
 /** Save the way to this table. */

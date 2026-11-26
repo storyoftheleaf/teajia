@@ -195,12 +195,12 @@ function WayForm({ tableId, answer }: { tableId: string; answer: HostedTableWayA
                   upload={async file => (await api.tables.uploadWayPhoto(tableId, file)).url}
                   onChange={url => changeStep(key, { image_url: url || undefined })} />
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" className="btn-icon tap-target" aria-label={`Move step ${n} up`}
-                    disabled={index === 0} onClick={() => moveStep(index, -1)}><ArrowUp size={16} aria-hidden /></button>
-                  <button type="button" className="btn-icon tap-target" aria-label={`Move step ${n} down`}
-                    disabled={index === draft.steps.length - 1} onClick={() => moveStep(index, 1)}><ArrowDown size={16} aria-hidden /></button>
-                  <button type="button" className="btn-icon tap-target" aria-label={`Remove step ${n}`}
-                    onClick={() => removeStep(index)}><Trash2 size={16} aria-hidden /></button>
+                  <Button type="button" variant="icon" className="tap-target" aria-label={`Move step ${n} up`}
+                    disabled={index === 0} onClick={() => moveStep(index, -1)} icon={<ArrowUp size={16} aria-hidden />} />
+                  <Button type="button" variant="icon" className="tap-target" aria-label={`Move step ${n} down`}
+                    disabled={index === draft.steps.length - 1} onClick={() => moveStep(index, 1)} icon={<ArrowDown size={16} aria-hidden />} />
+                  <Button type="button" variant="icon" className="tap-target" aria-label={`Remove step ${n}`}
+                    onClick={() => removeStep(index)} icon={<Trash2 size={16} aria-hidden />} />
                 </div>
               </li>
             );

@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import { usePhotoEditor } from '../shared/usePhotoEditor';
 import { mediaUrl } from '../../lib/mediaUrl';
+import { Button } from '../shared/Button';
 
 export interface WayStepPhotoProps {
   /** Step number, from 1, for the words read aloud. */
@@ -52,16 +53,16 @@ export function WayStepPhoto({ step, imageUrl, upload, onChange, onError, compac
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-secondary btn-sm tap-target" disabled={busy}
-          onClick={() => picker.current?.click()} aria-label={`${shown ? 'Change' : 'Add'} the photograph for step ${step}`}>
-          {busy ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <ImagePlus size={14} aria-hidden />}
-          <span>{busy ? 'Uploading…' : shown ? 'Change photograph' : 'Add a photograph'}</span>
-        </button>
+        <Button type="button" variant="secondary" size="sm" className="tap-target" disabled={busy}
+          onClick={() => picker.current?.click()} aria-label={`${shown ? 'Change' : 'Add'} the photograph for step ${step}`}
+          icon={busy ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <ImagePlus size={14} aria-hidden />}>
+          {busy ? 'Uploading…' : shown ? 'Change photograph' : 'Add a photograph'}
+        </Button>
         {shown && !busy && (
-          <button type="button" className="btn-quiet btn-sm tap-target" onClick={() => onChange('')}
+          <Button type="button" variant="quiet" size="sm" className="tap-target" onClick={() => onChange('')}
             aria-label={`Take out the photograph for step ${step}`}>
             Take out
-          </button>
+          </Button>
         )}
       </div>
       {error && <p className="type-small text-tea-text-sec" role="alert">{error}</p>}

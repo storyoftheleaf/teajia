@@ -14,10 +14,14 @@ import { captureAfterSitCredential } from './lib/afterSitAccess';
 import { shouldPersistQueryKey } from './lib/queryPersistence';
 import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } from './lib/refreshCommerce';
 import { captureOrderViaFromLocation } from './lib/orderVia';
+import { sweepEndedWays } from './lib/keptWay';
 import './styles/tailwind.css';
 import './styles/card-utilities.css';
 
 captureAfterSitCredential();
+// A way in kept on this phone leaves once its session has ended, on any visit
+// to the site, not only when a guest page is opened again (src/lib/keptWay.ts).
+void sweepEndedWays();
 
 const queryClient = new QueryClient({
   defaultOptions: {

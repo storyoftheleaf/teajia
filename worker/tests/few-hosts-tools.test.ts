@@ -132,11 +132,12 @@ beforeEach(async () => {
   guest('g-shop', 'Shop guest', 't-shop', 'platform-home');
 
   db.exec(`
-    INSERT INTO products (id, account_id, type, product_name, given_name, slug, is_public, shown_in_shop, status) VALUES
-      ('p-shou', 'platform-home', 'Ripe Pu-erh', '2015 Menghai Shou', '2015 Shou', 'shou-2015', 1, 1, 'Active'),
-      ('p-draft', 'platform-home', 'Oolong', 'Draft Oolong', NULL, 'draft-oolong', 1, 1, 'Draft'),
-      ('p-chest', 'ana-personal', 'Oolong', 'Ana Dong Ding', NULL, 'ana-dong-ding', 0, 0, 'Active'),
-      ('p-bo', 'bo-personal', 'Green', 'Bo Green', NULL, 'bo-green', 0, 0, 'Active');
+    -- The shop tea is in stock: tea search lists only what the shop's browse list shows (A2 F9).
+    INSERT INTO products (id, account_id, type, product_name, given_name, slug, is_public, shown_in_shop, status, stock_grams) VALUES
+      ('p-shou', 'platform-home', 'Ripe Pu-erh', '2015 Menghai Shou', '2015 Shou', 'shou-2015', 1, 1, 'Active', 500),
+      ('p-draft', 'platform-home', 'Oolong', 'Draft Oolong', NULL, 'draft-oolong', 1, 1, 'Draft', 500),
+      ('p-chest', 'ana-personal', 'Oolong', 'Ana Dong Ding', NULL, 'ana-dong-ding', 0, 0, 'Active', 0),
+      ('p-bo', 'bo-personal', 'Green', 'Bo Green', NULL, 'bo-green', 0, 0, 'Active', 0);
   `);
 });
 
