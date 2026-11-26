@@ -5,6 +5,10 @@
 ALTER TABLE events ADD COLUMN contribution_kind TEXT CHECK (contribution_kind IN ('free','contribution','price'));
 ALTER TABLE events ADD COLUMN contribution_note TEXT CHECK (contribution_note IS NULL OR length(contribution_note) <= 140);
 
+-- The host says a session is a tasting; only then are guests offered a screen per tea (J8).
+-- Separate from event_format, so turning it off loses nothing.
+ALTER TABLE events ADD COLUMN is_tasting INTEGER NOT NULL DEFAULT 0 CHECK (is_tasting IN (0,1));
+
 -- Reports on a session or a person, reviewed by the platform owner (J5).
 CREATE TABLE IF NOT EXISTS session_reports (
   id               TEXT PRIMARY KEY,

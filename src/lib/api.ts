@@ -2946,6 +2946,13 @@ export const api = {
       });
       return handleResponse(res);
     },
+    /** A signed-in confirmed guest of a tasting joins its session; answers the session id. */
+    openTasting: async (token: string): Promise<{ session_id: string }> => {
+      return authedFetch(`${API_URL}/api/rsvp/${encodeURIComponent(token)}/tasting`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+    },
     getPostSession: async (token: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}/post-session`, {
         headers: { 'Content-Type': 'application/json' },

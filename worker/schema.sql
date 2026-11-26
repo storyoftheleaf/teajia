@@ -4005,6 +4005,7 @@ CREATE TABLE IF NOT EXISTS order_session_sources (
 -- 0130_session_reports_contribution.sql
 ALTER TABLE events ADD COLUMN contribution_kind TEXT CHECK (contribution_kind IN ('free','contribution','price'));
 ALTER TABLE events ADD COLUMN contribution_note TEXT CHECK (contribution_note IS NULL OR length(contribution_note) <= 140);
+ALTER TABLE events ADD COLUMN is_tasting INTEGER NOT NULL DEFAULT 0 CHECK (is_tasting IN (0,1));
 
 CREATE TABLE IF NOT EXISTS session_reports (
   id               TEXT PRIMARY KEY,

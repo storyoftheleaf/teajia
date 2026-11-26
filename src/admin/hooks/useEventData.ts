@@ -77,6 +77,7 @@ export function mapEvent(e: any): TeaEvent {
     venueId: e.venue_id || undefined,
     activeSpaceIds: e.active_space_ids ? safeParse(e.active_space_ids, []) : [],
     requiresApproval: e.requires_approval == null ? true : Boolean(e.requires_approval),
+    ...(e.is_tasting == null ? {} : { isTasting: Number(e.is_tasting) === 1 }),
     lifecycleStatus: e.lifecycle_status || undefined,
     publicVisibility: e.public_visibility || undefined,
     networkDiscovery: e.network_discovery == null ? undefined : Boolean(e.network_discovery),

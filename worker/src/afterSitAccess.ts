@@ -12,6 +12,7 @@ import type { PublicProductReader } from './sessionTeas';
 import { readableArticleFor } from './eventDomain';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { keptSessionTeaIds, keepSessionTea } from './chestKeep';
+import { journalTeasOf } from './sessionTasting';
 
 type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket; FIRST_TABLE_OPEN?: string };
 type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown; photo?: unknown; teaId?: unknown; publicRecap?: unknown };
@@ -154,10 +155,10 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     // a tea's own public page, the session's playlist and its published reading.
     const [extra, resolved] = await Promise.all([
       env.DB.prepare(
-        `SELECT e.reading_article_id, COALESCE(NULLIF(trim(ps.playlist_url), ''), NULLIF(trim(e.playlist_url), '')) AS playlist_url
+        `SELECT e.reading_article_id, e.is_tasting, COALESCE(NULLIF(trim(ps.playlist_url), ''), NULLIF(trim(e.playlist_url), '')) AS playlist_url
          FROM events e LEFT JOIN event_post_session ps ON ps.event_id = e.id AND ps.account_id = e.account_id
          WHERE e.id = ? AND e.account_id = ?`,
-      ).bind(id, account_id).first<{ reading_article_id: string | null; playlist_url: string | null }>(),
+      ).bind(id, account_id).first<{ reading_article_id: string | null; is_tasting: number | null; playlist_url: string | null }>(),
       deps.readPublic ? servedTeasOf(env.DB, deps.readPublic(env), { id, account_id }) : Promise.resolve([]),
     ]);
     const paths = new Map(resolved.map(tea => [tea.id, 'href' in tea ? tea.href ?? null : null]));
@@ -168,6 +169,9 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
       playlist_url: extra?.playlist_url ?? null,
       reading: reading ? { slug: reading.slug, title: reading.title } : null,
     };
+    // J8: a tasting's recap offers to add notes written on paper, one journal link per tea that has a record.
+    body.is_tasting = Number(extra?.is_tasting) === 1;
+    if (body.is_tasting) body.journal_teas = await journalTeasOf(env.DB, account_id, id);
     if (firstTableOpen(env)) {
       body.thanks_ref = await thanksRefFor(env.DB, id, account_id);
       const userId = deps.optionalUser ? await deps.optionalUser(request, env) : null;

@@ -38,6 +38,9 @@ export type AfterSitRecap = {
   reading?: { slug: string; title: string } | null;
   /** Carried as `via` on the thank-you's tea links; never the seat's secret. */
   thanks_ref?: string | null;
+  /** Launch 3 (J8): the session was a tasting; `journal_teas` are the poured teas that have a record. */
+  is_tasting?: boolean;
+  journal_teas?: Array<{ id: string; name: string; product_id: string }>;
 };
 
 /**
