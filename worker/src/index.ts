@@ -12,7 +12,9 @@ import { afterSitRoutes } from './afterSitAccess';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
-import { hostApproved, hostDoorsFor, setHostApproval } from './hostApproval';
+import { hostApproved, hostDoorsFor, personalAccountSql, publicSessionHostSql, setHostApproval } from './hostApproval';
+import { isWalkthroughMedia, mayShowWalkthrough, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
+import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
@@ -12404,6 +12406,25 @@ function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: tru
 // discovery choice controls the platform-wide event list. An unlisted event
 // can still be opened and booked by someone holding its direct link.
 const PUBLIC_EVENT_HOST = "a.status = 'active' AND a.public_enabled = 1";
+
+// Launch 2 (slice H2): a direct session read, by its link, also opens a hosted
+// table of an approved host's own private account while the launch is open.
+// Lists, store pages and product reads keep PUBLIC_EVENT_HOST, so such a
+// session is found by nothing but its link. Needs `e` and `a` in the query.
+// Guard: worker/tests/hosted-session-doors.test.ts.
+function sessionLinkHostSql(env: Env): string {
+  return fewHostsOpen(env)
+    ? publicSessionHostSql('a', { anyoneHosts: fewHostsAnyoneHosts(env), event: 'e' })
+    : PUBLIC_EVENT_HOST;
+}
+
+// For reads by a guest's own token or a session's slug that never checked the
+// account (the guest's page, finding a seat again, interest, guest invites):
+// a shop's session behaves as before, and a private account's session opens
+// only while its door does. A stopped host's sessions close.
+function privateHostDoorSql(env: Env): string {
+  return `(NOT ${personalAccountSql('a')} OR ${sessionLinkHostSql(env)})`;
+}
 const PUBLIC_EVENT_DIRECT = "e.public_visibility IN ('public', 'unlisted')";
 const PUBLIC_EVENT_STORE = "e.public_visibility = 'public'";
 const PUBLIC_EVENT_DISCOVERY = "e.public_visibility = 'public' AND e.network_discovery = 1";
@@ -12417,15 +12438,16 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
-            e.requires_approval, e.venue_id, e.reading_article_id,
+            e.requires_approval, e.venue_id, e.reading_article_id, e.host_user_id,
             v.photos AS venue_photos,
             a.name AS account_name,
-            a.location_country AS account_location_country
+            a.location_country AS account_location_country,
+            ${personalAccountSql('a')} AS private_host
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
-       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
+       AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -12469,21 +12491,60 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
       ORDER BY CASE ec.role WHEN 'lead_host' THEN 0 WHEN 'co_host' THEN 1 WHEN 'guest_host' THEN 2 ELSE 3 END, ec.display_order ASC`
   ).bind(event.id).all<Record<string, any>>();
   const hosts = (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
-  const { account_id: _accountId, reading_article_id: readingId, ...publicEvent } = event;
+  const {
+    account_id: _accountId, reading_article_id: readingId, host_user_id: hostUserId,
+    private_host: privateHostFlag, ...publicEvent
+  } = event;
+  const privateHost = Number(privateHostFlag) === 1;
   // A reading is shown only while it is still a published article of this shop.
   const reading = readingId ? await readableArticleFor(env.DB, String(event.account_id), String(readingId)) : null;
+  const host = await publicSessionHost(env, hostUserId ? String(hostUserId) : null, hosts);
+  const pouring = hosts
+    .filter(person => person.role === 'co_host' || person.role === 'guest_host')
+    .map(person => ({ name: person.display_name, path: `/people/${encodeURIComponent(person.slug)}` }));
 
-  return cachedJson({
+  const answer = {
     ...publicEvent,
+    // A private host's account is not named: no shop name, no country.
+    ...(privateHost ? { account_name: host?.name ?? null, account_location_country: null } : {}),
     reading: reading ? { slug: reading.slug, title: reading.title } : null,
     hosts,
-    venue_photos: venuePhotos,
+    host,
+    pouring,
+    // A host's own house is the way in: its photographs go to a confirmed guest only.
+    venue_photos: privateHost ? [] : venuePhotos,
     confirmed_count: confirmedCount,
     offered_count: offeredCount,
     confirmed_names: confirmedNames,
     seats_remaining: Math.max(0, (event.total_capacity as number) - confirmedCount - offeredCount),
-  }, 30);
+  };
+  if (!privateHost) return cachedJson(answer, 30);
+  // A private host's session closes at once when the host is stopped, so no copy is kept.
+  const response = json(answer);
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 };
+
+// "Hosted by": the session's host_user_id first (Launch 2, hard question 6).
+// Their published page when they have one, else their first name as plain
+// words. A session without host_user_id names its lead host, as before.
+async function publicSessionHost(
+  env: Env, hostUserId: string | null, hosts: Array<{ slug: string; display_name: string; role: string }>,
+): Promise<{ name: string; path: string | null } | null> {
+  if (hostUserId) {
+    const page = await env.DB.prepare(
+      `SELECT c.id, c.display_name FROM contributors c
+        WHERE c.user_id = ? AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+        ORDER BY c.id ASC LIMIT 1`
+    ).bind(hostUserId).first<{ id: string; display_name: string }>();
+    if (page) return { name: String(page.display_name), path: `/people/${encodeURIComponent(String(page.id))}` };
+    const person = await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(hostUserId).first<{ name: string | null }>();
+    const first = String(person?.name ?? '').trim().split(/\s+/)[0];
+    return { name: first || 'The host', path: null };
+  }
+  const lead = hosts.find(person => person.role === 'lead_host');
+  return lead ? { name: lead.display_name, path: `/people/${encodeURIComponent(lead.slug)}` } : null;
+}
 
 async function publicEventHosts(env: Env, eventId: string, accountId: string) {
   const hostRows = await env.DB.prepare(
@@ -12652,7 +12713,7 @@ const handleRSVP: Handler = async (request, env, params) => {
     `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status
      FROM events e JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
-       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
+       AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -12845,7 +12906,7 @@ const handleGetEventAvailability: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.total_capacity
      FROM events e JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
-       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
+       AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -12879,14 +12940,16 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide,
             e.timezone, e.status as event_status, e.lifecycle_status, e.session_flow, e.playlist_url, e.slug,
             e.briefing_cards, e.area_hint, e.mood_hints,
-            v.photos AS venue_photos
+            v.photos AS venue_photos,
+            ${privateHostDoorSql(env)} AS door_open
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
+     JOIN accounts a ON a.id = e.account_id
      LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
      WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
-  if (!attendee) return json({ error: 'RSVP not found' }, 404);
+  if (!attendee) return guestPageResponse({ error: 'RSVP not found' }, 404);
 
   // Parse JSON fields
   let sessionFlow = null;
@@ -12910,8 +12973,18 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
     try { venuePhotos = JSON.parse(attendee.venue_photos as string); } catch {}
   }
 
-  // Address gating: only reveal full address + map to confirmed attendees
-  const isConfirmed = attendee.status === 'confirmed';
+  // The way to the house (address, map link, venue guide, venue photos) is
+  // for a confirmed seat, until the session ends, while its host may still
+  // open it (Launch 2, slice H7; the end rule is in sessionWalkthrough.ts).
+  // The seat's status is read on every request, so a seat that becomes
+  // denied, waitlisted or cancelled loses the way at once.
+  const showWay = mayShowWalkthrough(attendee.status, {
+    event_date: attendee.event_date,
+    event_end_date: attendee.event_end_date,
+    timezone: attendee.timezone,
+    lifecycle_status: attendee.lifecycle_status,
+    status: attendee.event_status,
+  }, Number(attendee.door_open) === 1);
 
   // Get revealed tea menu items
   const menu = await env.DB.prepare(
@@ -12928,7 +13001,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
      FROM guest_invites WHERE parent_attendee_id = ?`
   ).bind(attendee.id).all();
 
-  return json({
+  return guestPageResponse({
     attendee: {
       id: attendee.id,
       full_name: attendee.full_name,
@@ -12962,13 +13035,13 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       event_date: attendee.event_date,
       event_end_date: attendee.event_end_date,
       location_name: attendee.location_name,
-      // Full address + map only revealed to confirmed attendees
-      address_text: isConfirmed ? attendee.address_text : null,
-      map_link: isConfirmed ? attendee.map_link : null,
+      // The way to the house, only while showWay holds.
+      address_text: showWay ? attendee.address_text : null,
+      map_link: showWay ? attendee.map_link : null,
       area_hint: attendee.area_hint,
       guidelines_text: attendee.guidelines_text,
-      venue_guide: isConfirmed ? attendee.venue_guide : null,
-      venue_photos: isConfirmed ? venuePhotos : [],
+      venue_guide: showWay ? attendee.venue_guide : null,
+      venue_photos: showWay ? venuePhotos : [],
       timezone: attendee.timezone,
       status: attendee.event_status,
       lifecycle_status: attendee.lifecycle_status,
@@ -12981,6 +13054,15 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
     guest_invites: guestInvites.results,
   });
 };
+
+// The guest's own page is theirs alone and changes with their seat: never kept
+// by a shared cache, and never kept by the browser either.
+function guestPageResponse(data: unknown, status = 200): Response {
+  const response = json(data, status);
+  response.headers.set('Cache-Control', 'private, no-store');
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  return response;
+}
 
 const handleUpdateRSVP: Handler = async (request, env, params) => {
   const attendee = await env.DB.prepare(
@@ -13096,7 +13178,8 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
     `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
-     WHERE ea.magic_token = ? AND ea.status = 'waitlist'`
+     JOIN accounts a ON a.id = e.account_id
+     WHERE ea.magic_token = ? AND ea.status = 'waitlist' AND ${privateHostDoorSql(env)}`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found or not on waitlist' }, 404);
@@ -13411,7 +13494,8 @@ const handleSubmitTastingNotes: Handler = async (request, env, params) => {
 
 const handleFindRSVP: Handler = async (request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id FROM events WHERE slug = ?`
+    `SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND ${privateHostDoorSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -13853,8 +13937,14 @@ const handleGetAttendees: Handler = async (request, env, params) => {
     };
   });
 
-  return json(attendeesWithJourney);
+  // A guest's own page link goes to the owner and the session's host only.
+  return json(await withoutForeignGuestLinks(env.DB, guestLinkCaller(ctx), attendeesWithJourney));
 };
+
+/** The caller as guestLinkHolders.ts reads them: the owner tier holds every guest link. */
+function guestLinkCaller(ctx: AccountCtx) {
+  return { userId: ctx.userId, accountId: ctx.accountId, isOwner: ctx.role === 'owner' };
+}
 
 // GET /api/admin/pending-attendees — cross-event pending RSVPs
 const handleGetPendingAttendees: Handler = async (request, env) => {
@@ -13953,7 +14043,7 @@ const handleGetPendingAttendees: Handler = async (request, env) => {
     };
   });
 
-  return json(enriched);
+  return json(await withoutForeignGuestLinks(env.DB, guestLinkCaller(ctx), enriched));
 };
 
 // Helper: verify event belongs to the caller's account. Returns a 404-style
@@ -14478,6 +14568,9 @@ const handleGetTeaMenu: Handler = async (request, env, params) => {
   return json(result.results);
 };
 
+// A shop's tea list shows for a public session only, as before. An approved
+// host's table is always unlisted and lives by its link, so its tea list
+// opens through the same door as its page (Launch 2, H2).
 const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
     `SELECT e.id, e.account_id
@@ -14486,9 +14579,8 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
      WHERE e.slug = ?
        AND e.status = 'active'
        AND e.lifecycle_status = 'published'
-       AND e.public_visibility = 'public'
-       AND a.status = 'active'
-       AND a.public_enabled = 1`
+       AND ((e.public_visibility = 'public' AND ${PUBLIC_EVENT_HOST})
+         OR (${PUBLIC_EVENT_DIRECT} AND ${personalAccountSql('a')} AND ${sessionLinkHostSql(env)}))`
   ).bind(params.slug).first();
   if (!event) return json({ error: 'Event not found' }, 404);
 
@@ -14658,7 +14750,10 @@ const handleUploadFlyer: Handler = async (request, env) => {
   if (fileError) return fileError;
 
   const ext = safeUploadExtension(file.type);
-  const key = `accounts/${accountId}/flyers/${crypto.randomUUID()}.${ext}`;
+  // A step photograph of the way in is kept apart from flyers, so it is served
+  // private and short-lived (sessionWalkthrough.ts).
+  const folder = formData.get('purpose') === 'venue-guide' ? 'venue-guide' : 'flyers';
+  const key = `accounts/${accountId}/${folder}/${crypto.randomUUID()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
     httpMetadata: { contentType: file.type },
@@ -18607,12 +18702,16 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   }
 
   const att = attendee as any;
-  const ticketUrl = `${att.magic_token ? `/m/${att.magic_token}` : ''}`;
+  // The guest's own page link travels only to the owner and the session's host.
+  const holdsLink = (await guestLinkSessions(env.DB, guestLinkCaller(ctx), [String(att.event_id)])).has(String(att.event_id));
+  const ticketUrl = holdsLink && att.magic_token ? `/m/${att.magic_token}` : '';
   const phone = att.phone_number as string | null;
   const whatsappNotifyUrl = phone
     ? (() => {
         const digits = phone.replace(/\D/g, '');
-        const msg = `Your seat at ${att.event_title} is confirmed! View your ticket: ${ticketUrl}`;
+        const msg = ticketUrl
+          ? `Your seat at ${att.event_title} is confirmed! View your ticket: ${ticketUrl}`
+          : `Your seat at ${att.event_title} is confirmed!`;
         return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
       })()
     : null;
@@ -19136,7 +19235,8 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
     `SELECT gi.*, e.id as event_id, e.account_id as account_id, e.title as event_title, e.event_date
      FROM guest_invites gi
      JOIN events e ON e.id = gi.event_id AND e.account_id = gi.account_id
-     WHERE gi.invite_token = ?`
+     JOIN accounts a ON a.id = e.account_id
+     WHERE gi.invite_token = ? AND ${privateHostDoorSql(env)}`
   ).bind(params.token).first();
 
   if (!invite) return json({ error: 'Invite not found' }, 404);
@@ -19256,7 +19356,8 @@ const handleGetGuestInvite: Handler = async (_request, env, params) => {
             e.title as event_title, e.event_date, e.area_hint, e.flyer_image_url, e.slug as event_slug
      FROM guest_invites gi
      JOIN events e ON e.id = gi.event_id
-     WHERE gi.invite_token = ?`
+     JOIN accounts a ON a.id = e.account_id
+     WHERE gi.invite_token = ? AND ${privateHostDoorSql(env)}`
   ).bind(params.token).first();
 
   if (!invite) return json({ error: 'Invite not found' }, 404);
@@ -19267,7 +19368,8 @@ const handleGetGuestInvite: Handler = async (_request, env, params) => {
 // POST /api/events/:slug/interest
 const handleEventInterest: Handler = async (request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id, account_id FROM events WHERE slug = ?`
+    `SELECT e.id, e.account_id FROM events e JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND ${privateHostDoorSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -32564,8 +32666,13 @@ const requestHandler = {
       const headers = new Headers();
       obj.writeHttpMetadata(headers);
       headers.set('etag', obj.httpEtag);
-      // Objects are immutable (UUID/slot-keyed) — cache hard at edge + browser.
-      headers.set('Cache-Control', familyVerdict === 'signed' ? 'private, max-age=3600' : familyVerdict === 'public' ? 'public, max-age=60' : 'public, max-age=31536000, immutable');
+      // Objects are immutable (UUID/slot-keyed), so cache hard at edge and
+      // browser, except the photographs of the way to a session, which are
+      // private and short-lived (sessionWalkthrough.ts, Launch 2 H7).
+      const walkthrough = familyVerdict === 'not-family' && await isWalkthroughMedia(env.DB, key);
+      headers.set('Cache-Control', familyVerdict === 'signed' ? 'private, max-age=3600' : familyVerdict === 'public' ? 'public, max-age=60'
+        : walkthrough ? WALKTHROUGH_MEDIA_CACHE : 'public, max-age=31536000, immutable');
+      if (walkthrough) headers.set('Referrer-Policy', 'no-referrer');
       const body = request.method === 'HEAD' ? null : obj.body;
       return cors(new Response(body, { headers }), corsOrigin);
     }

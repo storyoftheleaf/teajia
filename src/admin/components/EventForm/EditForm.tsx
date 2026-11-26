@@ -303,7 +303,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     setVenueStepUploading(idx);
     try {
       const compressed = await compressImage(file);
-      const result = await api.events.uploadFlyer(compressed);
+      const result = await api.events.uploadFlyer(compressed, 'venue-guide');
       updateVenueStep(idx, 'image_url', result.url || result);
       showToast('Photo uploaded', 'success');
     } catch (err: any) {

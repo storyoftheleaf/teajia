@@ -19,6 +19,12 @@ export function hostApprovedSql(account: string): string {
     AND ${account}.host_approved_at IS NOT NULL)`;
 }
 
+/** True for a person's own private account (a Tea Chest), never for a shop. */
+export function personalAccountSql(account: string): string {
+  return `(${account}.personal_inventory_user_id IS NOT NULL
+    AND ${account}.owner_user_id = ${account}.personal_inventory_user_id)`;
+}
+
 /**
  * Whether a session of this account may be read by its link. True for a
  * public active account, exactly as PUBLIC_EVENT_HOST in index.ts says today,
@@ -27,16 +33,20 @@ export function hostApprovedSql(account: string): string {
  * session page, its tea list, taking a seat, the guest's own page, the
  * after-sit link); never for store pages, product reads or any list.
  *
+ * With `event` (the events alias), a private account's session opens only
+ * when it is a hosted table of that account's own person
+ * (events.host_user_id = the account owner, which the host table route
+ * always sets). An older session kept in a Tea Chest stays closed.
+ *
  * Adrian, 2026-11-26: anyone may make their own table; his approval is a
  * second level. Launch 2 opens to approved hosts only. When Launch 3's switch
  * (anyoneHostsOpen) is passed as `anyoneHosts`, any active personal account's
  * session opens by its link too, still found by nothing but that link.
  */
-export function publicSessionHostSql(account: string, options: { anyoneHosts?: boolean } = {}): string {
-  const personal = options.anyoneHosts
-    ? `(${account}.personal_inventory_user_id IS NOT NULL AND ${account}.owner_user_id = ${account}.personal_inventory_user_id)`
-    : hostApprovedSql(account);
-  return `(${account}.status = 'active' AND (${account}.public_enabled = 1 OR ${personal}))`;
+export function publicSessionHostSql(account: string, options: { anyoneHosts?: boolean; event?: string } = {}): string {
+  const personal = options.anyoneHosts ? personalAccountSql(account) : hostApprovedSql(account);
+  const hosted = options.event ? ` AND ${options.event}.host_user_id = ${account}.owner_user_id` : '';
+  return `(${account}.status = 'active' AND (${account}.public_enabled = 1 OR (${personal}${hosted})))`;
 }
 
 export type HostDoor = 'request' | 'link';

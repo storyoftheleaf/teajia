@@ -2811,9 +2811,11 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/availability`);
       return handleResponse(res);
     },
-    uploadFlyer: async (file: File | Blob) => {
+    // purpose 'venue-guide': a step photograph of the way in, served private and short-lived.
+    uploadFlyer: async (file: File | Blob, purpose?: 'venue-guide') => {
       const formData = new FormData();
       formData.append('file', file);
+      if (purpose) formData.append('purpose', purpose);
       return authedFetch(`${API_URL}/api/upload-flyer`, {
         method: 'POST',
         body: formData,
