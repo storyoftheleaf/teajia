@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { favouritesRoutes } from '../src/favourites';
-import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
+import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
 
 // Launch 4, favourites in three kinds. Each person sees and changes only what
 // they marked; a draft article cannot be kept; closed, every route is 404.
@@ -146,5 +146,20 @@ describe('favourites', () => {
       { DB: database, FAVOURITES_OPEN: 'true' } as unknown as Parameters<typeof worker.fetch>[1],
     );
     expect(opened.status).toBe(401);
+  });
+
+  it('leaves favourite off the owner\'s Tea Chest answer while closed, as main answers', async () => {
+    database.exec(`UPDATE personal_cellar_items SET favourite = 1 WHERE id = 'chest-mine'`);
+    const token = await signedToken('fav-secret', { sub: 'reader', email: 'reader@test.dev', active_account_id: 'shop', role: 'owner' });
+    const chest = async (open?: string) => {
+      const response = await worker.fetch(
+        new Request('https://worker.test/api/me/cellar', { headers: { Authorization: `Bearer ${token}` } }),
+        { DB: database, JWT_SECRET: 'fav-secret', ...(open ? { FAVOURITES_OPEN: open } : {}) } as unknown as Parameters<typeof worker.fetch>[1],
+      );
+      expect(response.status, await response.clone().text()).toBe(200);
+      return ((await response.json()) as { items: Array<Record<string, unknown>> }).items.find(item => item.id === 'chest-mine')!;
+    };
+    expect(await chest()).not.toHaveProperty('favourite');
+    expect((await chest('true')).favourite).toBe(true);
   });
 });

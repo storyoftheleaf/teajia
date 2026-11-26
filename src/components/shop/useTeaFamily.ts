@@ -68,6 +68,17 @@ export function personPath(pageId: string | null | undefined): string | null {
  * photographs, then what the shop placed and what the family shared. A
  * photograph that is in more than one of those shows once.
  */
+/**
+ * Who the zoom credits. An answer that carries photograph_by (the Tea Table is
+ * open) names the photographer only by the first name they allowed. An answer
+ * without it (the Tea Table is closed) credits the author as the tea page
+ * always has.
+ */
+export function creditOf(p: FamilySharedPhotograph): string | null {
+  if ('photograph_by' in p) return typeof p.photograph_by === 'string' && p.photograph_by.trim() ? p.photograph_by.trim() : null;
+  return p.author?.name?.trim() || null;
+}
+
 export function buildTeaRow(
   own: FamilyPhotograph[],
   coverId: string | null,
@@ -81,7 +92,7 @@ export function buildTeaRow(
   const theirs = (p: FamilySharedPhotograph): TeaRowPhotograph => ({
     id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height, shape: p.shape ?? 'square', frame: p.frame ?? null,
     mine: false, author: p.author ?? null, isCover: false, isLead: shared.lead?.id === p.id,
-    photographBy: typeof p.photograph_by === 'string' && p.photograph_by.trim() ? p.photograph_by.trim() : null,
+    photographBy: creditOf(p),
   });
   const ownIds = new Set(own.map(p => p.id));
   const cover = own.find(p => p.id === coverId);

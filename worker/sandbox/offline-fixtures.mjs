@@ -98,7 +98,7 @@ try {
     // FAVOURITES_OPEN=true opens Launch 4's favourites the same way (src/lib/favouritesOpen.ts).
     // FEW_HOSTS_OPEN=true opens Launch 2 the same way (src/lib/fewHosts.ts).
     // ANYONE_HOSTS_OPEN=true opens Launch 3 the same way (src/lib/anyoneHosts.ts).
-    // CIRCLES_OPEN, HOST_TOKENS_OPEN and HOST_CREDIT_OPEN=true open Launch 5's three parts the same way.
+    // CIRCLES_OPEN, HOST_TOKENS_OPEN, HOST_CREDIT_OPEN, KNOW_THIS_TEA_OPEN and TABLE_CARD_OPEN=true open Launch 5's parts the same way.
     const flags = [
       ...(process.env.FIRST_TABLE_OPEN === 'true' ? ['--var', 'FIRST_TABLE_OPEN:true'] : []),
       ...(process.env.FEW_HOSTS_OPEN === 'true' ? ['--var', 'FEW_HOSTS_OPEN:true'] : []),
@@ -107,7 +107,7 @@ try {
       // Launch 4's other switches, the same way (tests/launch-4.spec.ts).
       ...['TEA_TABLE_OPEN', 'YOUR_TABLE_PAGE_OPEN', 'HOST_ARTICLES_OPEN', 'TOP_TEAS_OPEN', 'TEA_HOUSES_OPEN', 'YOUR_TABLE_PLACE_OPEN']
         .flatMap(name => (process.env[name] === 'true' ? ['--var', `${name}:true`] : [])),
-      ...['CIRCLES_OPEN', 'HOST_TOKENS_OPEN', 'HOST_CREDIT_OPEN', 'KNOW_THIS_TEA_OPEN']
+      ...['CIRCLES_OPEN', 'HOST_TOKENS_OPEN', 'HOST_CREDIT_OPEN', 'KNOW_THIS_TEA_OPEN', 'TABLE_CARD_OPEN']
         .flatMap(flag => (process.env[flag] === 'true' ? ['--var', `${flag}:true`] : [])),
       // Ports of its own, so a check can run beside another sandbox.
       ...(process.env.SANDBOX_PORT ? ['--port', process.env.SANDBOX_PORT] : []),

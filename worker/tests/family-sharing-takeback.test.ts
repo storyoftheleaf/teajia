@@ -292,4 +292,13 @@ describe('revocable answers are not cached', () => {
     expect(photo.status).toBe(200);
     expect(photo.headers.get('Cache-Control')).toBe('private, no-cache');
   });
+
+  // Kept with every Launch 4 switch off: these are withdrawal fixes, not Launch 4 features.
+  it('keeps no-store on a recap that is gone, with every switch off', async () => {
+    const { env } = setup();
+    expect((env as Record<string, unknown>).TEA_TABLE_OPEN).toBeUndefined();
+    const gone = await call(env, null, '/api/events/no-such-sit/recap');
+    expect(gone.status).toBe(404);
+    expect(gone.headers.get('Cache-Control')).toBe('no-store');
+  });
 });

@@ -264,8 +264,8 @@ describe('sharing a tasting', () => {
     const publicText = await publicView.text();
     const publicBody = JSON.parse(publicText);
     expect(publicBody.family).toHaveLength(1);
-    // The member never allowed their name, so the public answer carries no author (quiet acknowledgement).
-    expect(publicBody.family[0].author).toBeNull();
+    // Closed, the tea page credits the photograph as main does (the first-name choice opens with the Tea Table).
+    expect(publicBody.family[0].author).toEqual({ name: 'Mei', page_id: null });
     // Closed, the public answer carries no credit line at all (A4 review, finding 11).
     expect(publicBody.family[0]).not.toHaveProperty('photograph_by');
     for (const text of [sharedText, publicText, await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).text()]) {
@@ -338,7 +338,7 @@ describe('the shop\'s side', () => {
     }
     expect((await call(env, OWNER, `/api/admin/family/photographs/${third}/lead`, { method: 'POST' })).status).toBe(200);
     tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
-    expect(tea.lead).toMatchObject({ id: third, author: null });
+    expect(tea.lead).toMatchObject({ id: third, author: { name: 'Mei Lin', page_id: 'mei-page' } });
     expect(tea.lead).not.toHaveProperty('photograph_by');
 
     // A placed photograph made lead, then a new lead: the old lead steps back to what it was.

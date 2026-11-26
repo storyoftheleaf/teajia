@@ -1484,7 +1484,14 @@ describe('Events Release 1 persisted route contracts', () => {
           'menu-future', 'account-a', 'event-a', 'product-a', 'Future tea', 'Not revealed', 3,
         );
 
-      const response = await worker.fetch(new Request('https://worker.test/api/events/cliff-tea/tea-menu'), { DB: db } as any);
+      // Closed (as live), the menu carries no year or place, as main answers.
+      const closed = await (await worker.fetch(new Request('https://worker.test/api/events/cliff-tea/tea-menu'), { DB: db } as any)).json() as Array<Record<string, unknown>>;
+      expect(closed).toHaveLength(2);
+      for (const row of closed) {
+        for (const key of ['product_year', 'product_origin_region', 'product_origin_country']) expect(row).not.toHaveProperty(key);
+      }
+
+      const response = await worker.fetch(new Request('https://worker.test/api/events/cliff-tea/tea-menu'), { DB: db, TABLE_CARD_OPEN: 'true' } as any);
 
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual([

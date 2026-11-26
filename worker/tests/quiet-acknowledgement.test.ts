@@ -244,6 +244,12 @@ describe('while the Tea Table is closed', () => {
     `);
     const photos = await (await request(db, '/api/family/teas/tea/photographs')).json() as { family: Array<Record<string, unknown>> };
     expect(photos.family[0]).not.toHaveProperty('photograph_by');
+    // The tea page credits the photograph as main does: the author's name, whatever the first-name choice.
+    expect(photos.family[0].author).toEqual({ name: 'mei', page_id: null });
+    db.exec(`UPDATE member_photographs SET credit_name_shown = 0 WHERE id = 'photo'`);
+    const unchosen = await (await request(db, '/api/family/teas/tea/photographs')).json() as { family: Array<Record<string, unknown>> };
+    expect(unchosen.family[0].author).toEqual({ name: 'mei', page_id: null });
+    db.exec(`UPDATE member_photographs SET credit_name_shown = 1 WHERE id = 'photo'`);
     const { recap } = await (await request(db, '/api/public/sit-recaps/courtyard')).json() as { recap: Record<string, unknown> };
     expect(recap).not.toHaveProperty('poured_with');
     const { contributors } = await (await request(db, '/api/people')).json() as { contributors: Array<Record<string, unknown>> };

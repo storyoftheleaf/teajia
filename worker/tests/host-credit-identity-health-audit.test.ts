@@ -70,12 +70,13 @@ describe('host credit identity and incident audit', () => {
     expect(openIncidents().length).toBeGreaterThan(0);
   });
 
-  it('reverses a newly identified self-purchase even while earning is closed', async () => {
+  it('does nothing at all while closed, and a self-purchase found then is reversed once credit opens', async () => {
     expect((await settleHostCredit(env(), 'sale')).earned).toBe(1);
     db.sqlite.exec("UPDATE invoices SET customer_id = 'host-customer' WHERE id = 'sale'");
     const closed = { ...env(), HOST_CREDIT_OPEN: 'false' };
-    expect((await settleHostCredit(closed, 'sale')).reversed).toBe(1);
-    expect((await settleHostCredit(closed, 'sale')).reversed).toBe(0);
+    expect(await settleHostCredit(closed, 'sale')).toEqual({ pending: 0, earned: 0, reversed: 0, awaiting_approval: false });
+    expect(db.sqlite.prepare("SELECT kind FROM host_credit_entries WHERE kind = 'reversed'").all()).toEqual([]);
+    expect((await settleHostCredit(env(), 'sale')).reversed).toBe(1);
     expect(db.sqlite.prepare("SELECT reason, amount FROM host_credit_entries WHERE kind = 'reversed'").all())
       .toEqual([{ reason: 'self_purchase', amount: 2 }]);
   });
@@ -84,6 +85,34 @@ describe('host credit identity and incident audit', () => {
     db.sqlite.exec("UPDATE invoices SET customer_id = 'host-customer' WHERE id = 'sale'");
     await settleHostCredit({ ...env(), HOST_CREDIT_OPEN: 'false' }, 'sale');
     expect(db.sqlite.prepare('SELECT kind FROM host_credit_entries').all()).toEqual([]);
+    expect(openIncidents()).toEqual([]);
+  });
+
+  it('closed, reads nothing and files nothing, even with the credit tables missing', async () => {
+    db.sqlite.exec('DROP TABLE host_credit_spend_requests; DROP TABLE host_credit_entries;');
+    const seen: string[] = [];
+    const watched = new Proxy(db as unknown as D1Database, {
+      get(target, key, receiver) {
+        if (key === 'prepare') return (sql: string) => { seen.push(sql); return target.prepare(sql); };
+        const value = Reflect.get(target, key, receiver);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    for (const closed of [{ DB: watched }, { DB: watched, HOST_CREDIT_OPEN: 'false' }]) {
+      expect(await settleHostCredit(closed, 'sale')).toEqual({ pending: 0, earned: 0, reversed: 0, awaiting_approval: false });
+    }
+    expect(seen).toEqual([]);
+
+    // Through a live invoice path: the guest claims their order with credit closed.
+    const token = await signedToken(secret, {
+      sub: 'host', email: 'host@test.dev', name: 'Host', active_account_id: 'host-home', platform_role: null,
+    });
+    const response = await worker.fetch(new Request(`https://worker.test/api/inquiries/${trackingRef}/claim`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    }), { DB: watched, JWT_SECRET: secret } as Parameters<typeof worker.fetch>[1], { waitUntil() {} } as never);
+    expect(response.status, await response.text()).toBe(200);
+    expect(seen.filter(sql => /host_credit|order_session_sources/.test(sql))).toEqual([]);
+    expect(seen.filter(sql => /SELECT id FROM invoices WHERE account_id = \? AND \(id = \? OR source_inquiry_id = \?\)/.test(sql))).toEqual([]);
     expect(openIncidents()).toEqual([]);
   });
 

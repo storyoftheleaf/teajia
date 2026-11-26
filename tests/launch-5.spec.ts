@@ -20,7 +20,7 @@
  * one site for each (worker/sandbox/README.md, "offline fixtures"):
  *   state  TEAJIA_OFFLINE_FIXTURES_STATE=<dir> node --experimental-sqlite --experimental-strip-types sandbox/offline-fixtures.mjs --prepare-only
  *   ON     SANDBOX_PORT=8891 SANDBOX_INSPECTOR_PORT=9291 FIRST_TABLE_OPEN=true FEW_HOSTS_OPEN=true ANYONE_HOSTS_OPEN=true
- *          FAVOURITES_OPEN=true CIRCLES_OPEN=true HOST_TOKENS_OPEN=true HOST_CREDIT_OPEN=true (same command, no --prepare-only)
+ *          FAVOURITES_OPEN=true CIRCLES_OPEN=true HOST_TOKENS_OPEN=true HOST_CREDIT_OPEN=true TABLE_CARD_OPEN=true (same command, no --prepare-only)
  *   OFF    SANDBOX_PORT=8892 SANDBOX_INSPECTOR_PORT=9292 with Launch 1 to 4 only
  *   sites  vite --port 7891 (VITE_API_URL and TEAJIA_API_PROXY at 8891, every VITE_ switch of ON plus
  *          VITE_CIRCLES_OPEN, VITE_HOST_TOKENS_OPEN, VITE_HOST_CREDIT_OPEN, VITE_TABLE_CARD_OPEN)
