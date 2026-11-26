@@ -2,6 +2,7 @@
 // "The contract"). Reached as api.hosting and api.tables. Every route answers
 // 404 until src/lib/fewHosts.ts opens, and the table routes answer 404 to
 // anyone who may not host yet (in Launch 2, anyone Adrian has not approved).
+import type { VenueGuide } from '../types/events';
 
 /** 'open' exists in the table's check but every route refuses it until Launch 3. */
 export type HostedTableDoor = 'request' | 'link';
@@ -82,6 +83,18 @@ export interface HostedTableDetail {
   doors: HostedTableDoor[];
 }
 export interface HostedTableChange { door?: HostedTableDoor; seats?: number }
+/** The way to the house for one table (slice H8). The guide is events.venue_guide. */
+export interface HostedTableWay {
+  address: string | null;
+  map_link: string | null;
+  venue_guide: VenueGuide | null;
+  /** The saved place this table's way was last kept as. */
+  place_id: string | null;
+}
+/** A place the host kept the way to, for the next table there. */
+export interface HostedWayPlace { id: string; name: string; address: string | null; map_link: string | null; venue_guide: VenueGuide | null }
+export interface HostedTableWayAnswer { way: HostedTableWay; places: HostedWayPlace[] }
+export type HostedTableWayInput = Pick<HostedTableWay, 'address' | 'map_link' | 'venue_guide'>;
 /** The host's private line about one guest (slice H9). Never shown to the guest. */
 export interface HostGuestNote { attendee_id: string; note: string; updated_at: string }
 
@@ -132,5 +145,18 @@ export function createTablesApi({ apiUrl, authedFetch }: HostingApiDependencies)
       authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/note`, {
         method: 'PUT', body: JSON.stringify({ note }),
       }),
+    // The way to the house (slice H8). The host's alone; a guest receives it
+    // only through their own page, once confirmed and until the session ends.
+    way: (id: string): Promise<HostedTableWayAnswer> => authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/way`),
+    saveWay: (id: string, way: HostedTableWayInput): Promise<HostedTableWayAnswer> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/way`, { method: 'PUT', body: JSON.stringify(way) }),
+    keepWay: (id: string, name: string): Promise<{ place: HostedWayPlace }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/way/keep`, { method: 'POST', body: JSON.stringify({ name }) }),
+    /** One step photograph, already framed in the shared photo editor. Kept under venue-guide/, served private. */
+    uploadWayPhoto: (id: string, file: File | Blob): Promise<{ url: string; key: string }> => {
+      const form = new FormData();
+      form.append('file', file);
+      return authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/way/photos`, { method: 'POST', body: form });
+    },
   };
 }

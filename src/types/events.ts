@@ -65,6 +65,8 @@ export interface VenueGuide {
   parking_notes?: string;
   transit_notes?: string;
   arrival_notes?: string;
+  /** A number a guest can call if they are lost on the way (Launch 2, H8). */
+  lost_phone?: string;
 }
 
 // ============================================================
