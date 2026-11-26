@@ -16,8 +16,10 @@ The enduring product principles are:
 
 - Technology supports sourcing, preparation, commerce, learning, and memory before and after the tea table; it does not intrude during tea practice.
 - Human curation and conversation remain central. WhatsApp-led ordering is intentional.
-- Teajia is not a conventional social network, franchise system, or engagement machine.
-- Do not add feeds, likes, followers, rankings, averaged reviews, streaks, badges, algorithmic recommendations, or auto-replenishment subscriptions.
+- The Tea Table is the one exception to the rule against social feeds. One public page may show, newest first, what people have chosen to put there: shared tastings with their words and photographs, and published session recaps. It shows what has happened. A host may hold their own recap at the top for a while by hand, and Adrian may hold any piece. Nothing rises by itself. A person may keep a piece in their own favourites. Only Adrian can see the number of keeps, in Manage. There are no likes, comments, follows, follower or view counts, scores, streaks, rankings, recommendations or notifications on the Tea Table. The site calls it the Tea Table. A person can take off their own item, and the owner can hide any item. It is off by default behind `TEA_TABLE_OPEN`.
+- Quiet acknowledgement comes from one person to another: a host’s thank-you, being quoted by name, “Photograph by”, “Poured with”, or a word Adrian grants by hand on a person’s page. No numbers, levels, titles for volume or nudges. Adrian may decide a host’s reach by hand and that standing stays private.
+- Tea scores and score-like verdicts are personal. Public and ordinary shared views omit them. Words can be shared by choice, and a tea-page excerpt requires the writer’s permission and manual placement. The structured tasting host’s authenticated live screen still receives guest ratings, verdicts and purchase intent.
+- Keep automated subscriptions and gamification out of the product.
 - People may use only the part that serves them: shop, journal, events, education, inventory, or professional tools.
 
 ## What Teajia is now
@@ -158,4 +160,4 @@ The community should grow from useful tea practices and named human contribution
 
 Teajia is not “a community platform that failed to launch.” It is a highly developed private tea operating system with public shop, learning, memory, and future-network layers. Its central task is to become trustworthy and effortless in Adrian's actual tea business. Its larger opportunity is to preserve the things ordinary commerce software loses: provenance, curatorial judgment, the memory of a tea over time, and relationships formed around real tables.
 
-Build time should therefore favor operational completeness, mobile usability, authentic content, and small real-world rituals. The community does not need a feed. It needs useful reasons for several named people to return, contribute, meet, remember, and buy tea through a system that still feels human.
+Build time should therefore favor operational completeness, mobile usability, authentic content, and small real-world rituals. The Tea Table gives people one place to see the tastings and recaps others chose to share. The rest of the site helps them meet, remember and buy tea.
