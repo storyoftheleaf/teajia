@@ -1,0 +1,70 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:27:04.947Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "997225e0-c2b5-4769-b869-e9a635462462",
+    "name": "Huangpian Ripe",
+    "chineseName": "黄片熟",
+    "type": "Shou Puer",
+    "form": "Loose Leaf",
+    "year": "1990s",
+    "origin": "Yunnan, China",
+    "stockGrams": 50,
+    "pricePerGramUsd": 0.22,
+    "tags": []
+  },
+  "entry": {
+    "productId": "997225e0-c2b5-4769-b869-e9a635462462",
+    "paragraphs": [
+      {
+        "layer": "grade",
+        "text": "Huangpian are the older, coarser leaves pulled out when tea is sorted. For a long time the trade counted them as low grade, and some threw them away, before it came round to them. This is huangpian from Yunnan, made into loose [ripe pu’er](shou:definition) in the 1990s. That was within three decades of 1973, when the [wet-pile method](shou:wet-piling) reached production."
+      },
+      {
+        "layer": "age",
+        "text": "Made in the 1990s, the tea is well past the ten years after which the trade counts a ripe pu’er as [aged](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, so the way it has been kept shapes it as much as the years have."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:33.391Z"
+}

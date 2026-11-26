@@ -1,0 +1,92 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:28:53.392Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "f40e5962-395f-4959-a089-a203ec0683ca",
+    "name": "Menghai Raw Loose",
+    "chineseName": "勐海生散茶",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": 1976,
+    "origin": "Menghai, Yunnan, China",
+    "stockGrams": 111,
+    "pricePerGramUsd": 2.32,
+    "tags": [
+      "aged camphor",
+      "dark plum",
+      "sweet earth",
+      "old wood",
+      "lingering hui gan"
+    ]
+  },
+  "entry": {
+    "productId": "f40e5962-395f-4959-a089-a203ec0683ca",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A loose [raw pu’er](sheng:identity) from Menghai, made in 1976 during the Cultural Revolution, when pu’er came out of [state factories](sheng:history) working to standard recipes. The leaf was picked, withered, fried in a wok to [kill the green](sheng:making), rolled and dried in the sun, then left as loose [maocha](sheng:processing) rather than pressed."
+      },
+      {
+        "layer": "age",
+        "text": "The wok stops most of the leaf’s own activity but not all, and because the leaf is never dried with hot air afterwards, what survives is what has let this tea keep changing. Left loose, it has had more air than a cake would give it, and a [loose tea changes faster](sheng:pressing) than a tight one. Fifty years on it sits well past the point where the trade starts to call raw pu’er [aged](sheng:ageing), whether that line falls at ten years or twenty, and the way it was [stored](sheng:aging) belongs to its history as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:history",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:processing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:pressing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:33.852Z"
+}

@@ -5101,7 +5101,8 @@ export const api = {
             account_kind: account.account_kind ?? undefined,
           })),
         },
-        favorites: (Array.isArray(favoritesResponse?.favorites) ? favoritesResponse.favorites : []).map((row: any) => normalizeProfileFavorite(row, true)),
+        // The public list carries its order, not a position number.
+        favorites: (Array.isArray(favoritesResponse?.favorites) ? favoritesResponse.favorites : []).map((row: any, index: number) => normalizeProfileFavorite({ ...row, position: index }, true)),
       };
     },
     getPublicPaymentMethods: async (

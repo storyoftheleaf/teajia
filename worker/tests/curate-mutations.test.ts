@@ -120,11 +120,13 @@ describe('confirmed Curate corrections',()=>{
   const {db,env}=setup();
   await expect(previewCurateMutation(env,auth,{action:'taste_sample',entity:'sample',id:'sample',consumed_grams:26})).rejects.toThrow('exceeds');
   await expect(previewCurateMutation(env,auth,{action:'taste_sample',entity:'sample',id:'sample',consumed_grams:-1})).rejects.toThrow('nonnegative');
-  await apply(env,{action:'taste_sample',entity:'sample',id:'sample',consumed_grams:5,tasting:{flavor:['honey']},score:9});
+  // The tea is another writer's, so its score stays theirs: the score is refused, the terms are kept.
+  await expect(previewCurateMutation(env,auth,{action:'taste_sample',entity:'sample',id:'sample',consumed_grams:5,score:9})).rejects.toThrow('person who gave it');
+  await apply(env,{action:'taste_sample',entity:'sample',id:'sample',consumed_grams:5,tasting:{flavor:['honey']}});
   expect(row(db,'tea_samples','sample')).toMatchObject({grams:20,status:'tasted'});
   expect(row(db,'products','product').quantity).toBe(100);
   expect(row(db,'tea_compass_entries','tea').sample_state).toBe('tasted');
-  expect(JSON.parse(row(db,'tea_compass_entries','tea').tasting).quality).toBe(9);
+  expect(JSON.parse(row(db,'tea_compass_entries','tea').tasting).quality).toBe(8);
   const undo=await previewCurateUndo(env,auth);await confirmCurateMutation(env,auth,undo.confirmation_token);
   expect(row(db,'tea_samples','sample')).toMatchObject({grams:25,status:'untasted'});
  });

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { tastingWithoutScores } from '../src/publicScores';
+import { previewCurateMutation } from '../src/curateMutations';
+import { curateIntakeTools } from '../src/mcpTools/curateIntake';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
 
 // K14 (Adrian, 2026-11-26): a tea score is personal. A person may rate a tea
@@ -260,5 +262,114 @@ describe('the scrubber', () => {
       .toEqual({ notes: [{ text: 'a' }] });
     expect(tastingWithoutScores(null)).toBeNull();
     expect(tastingWithoutScores('8/10')).toBe('8/10');
+  });
+});
+
+// Fix after K14 (Adrian, 2026-11-26): the giver is a person, not a role. The
+// checks below compare who reads or writes with who gave the score.
+const MCP_TOKEN = 'tjmcp_score_giver_test';
+async function seedMcpToken(db: SqliteD1, userId: string) {
+  const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${MCP_TOKEN}_${userId}`))))
+    .map(value => value.toString(16).padStart(2, '0')).join('');
+  db.sqlite.prepare(`INSERT INTO mcp_tokens (id,account_id,user_id,user_email,label,token_hash,token_prefix,scopes,creator_tier,expires_at)
+    VALUES (?,?,?,?,'test',?,'tjmcp_',?,'read_only',?)`)
+    .run(`token-${userId}`, SHOP, userId, `${userId}@test.dev`, hash, JSON.stringify(['inventory:read']), Math.floor(Date.now() / 1000) + 3600);
+}
+async function mcpTool(env: any, path: string, token: string | null, name: string, args: Record<string, unknown>) {
+  const headers = new Headers({ 'content-type': 'application/json' });
+  if (token) headers.set('authorization', `Bearer ${token}`);
+  const response = await worker.fetch(new Request(`https://worker.test${path}`, {
+    method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
+  }), env);
+  expect(response.status).toBe(200);
+  const body = await response.json() as any;
+  expect(body.error).toBeUndefined();
+  return body.result.structuredContent ?? JSON.parse(body.result.content[0].text);
+}
+
+describe('the shop score is the owner\'s person, not the owner\'s role', () => {
+  it('does not reach a platform administrator opening the shop\'s inventory', async () => {
+    const { db, env } = setup();
+    seedIdentity(db, { userId: 'platform-admin', accountId: OTHER_SHOP, role: 'owner', platformRole: 'platform_admin' });
+    const admin = { userId: 'platform-admin', account: SHOP };
+    const list = (await read(env, admin, '/api/products')).find((p: any) => p.id === 'tea-a');
+    const detail = await read(env, admin, '/api/products/tea-a');
+    for (const product of [list, detail]) {
+      expect(product.tasting).toEqual({ aroma: ['orchid'] });
+      expect(product.tasting_notes).toEqual([{ text: 'Stone fruit' }]);
+    }
+  });
+
+  it('does not reach a curator reading their own collection; the owner reads it whole', async () => {
+    const { db, env } = setup();
+    seedIdentity(db, { userId: 'curator', accountId: SHOP, role: 'staff', bundles: ['publish'] });
+    db.sqlite.exec(`
+      INSERT INTO collections (id, account_id, title, curator_user_id) VALUES ('col-1', '${SHOP}', 'Spring', 'curator');
+      INSERT INTO collection_items (id, collection_id, product_id, position) VALUES ('ci-1', 'col-1', 'tea-a', 0);
+    `);
+    const curated = await read(env, { userId: 'curator' }, '/api/collections/col-1');
+    expect(JSON.parse(curated.items[0].tasting_notes)).toEqual([{ text: 'Stone fruit' }]);
+    expect(curated.items[0]).not.toHaveProperty('product_account_id');
+    const own = await read(env, OWNER, '/api/collections/col-1');
+    expect(JSON.parse(own.items[0].tasting_notes)).toEqual([{ rating: 8, text: 'Stone fruit' }]);
+  });
+
+  it('does not reach another person\'s agent through authenticated get_tea', async () => {
+    const { db, env } = setup();
+    await seedMcpToken(db, 'editor');
+    await seedMcpToken(db, 'owner');
+    const theirs = await mcpTool(env, '/mcp', `${MCP_TOKEN}_editor`, 'get_tea', { id: 'tea-a' });
+    expect(theirs.tasting_notes).toEqual([{ text: 'Stone fruit' }]);
+    const own = await mcpTool(env, '/mcp', `${MCP_TOKEN}_owner`, 'get_tea', { id: 'tea-a' });
+    expect(own.tasting_notes).toEqual([{ rating: 8, text: 'Stone fruit' }]);
+  });
+});
+
+describe('a score is written against the person who gave it', () => {
+  it('refuses a manager\'s sample score on another person\'s Curate tea, so the writer reads their own', async () => {
+    const { db, env } = setup();
+    db.sqlite.exec(`INSERT INTO tea_samples (id, account_id, set_id, name, compass_entry_id, grams, grams_known, status)
+      VALUES ('s-m', '${SHOP}', 'set-1', 'Member tea portion', 'entry-m', 10, 1, 'received')`);
+    const manager = { accountId: SHOP, userId: 'manager', userEmail: 'manager@test.dev', tokenId: 'token', creatorTier: 'admin' } as any;
+    await expect(previewCurateMutation(env as any, manager, { action: 'taste_sample', entity: 'sample', id: 's-m', consumed_grams: 1, score: 3 } as any))
+      .rejects.toThrow('person who gave it');
+    await expect(curateIntakeTools.handlers.curate_update_tea(env as any, manager, { tea_id: 'entry-m', score: 3 }))
+      .rejects.toThrow('person who gave it');
+    const own = (await read(env, MEMBER, '/api/compass/entries')).entries.find((e: any) => e.id === 'entry-m');
+    expect(JSON.parse(own.tasting).quality).toBe(8);
+  });
+
+  it('keeps the owner\'s rating on an old notes list when another editor saves its words', async () => {
+    const { db, env } = setup();
+    const saved = await call(env, EDITOR, '/api/products/tea-a/catalog', { method: 'PUT', body: {
+      tasting_notes: [{ text: 'Stone fruit', rating: 2 }, { text: 'Honey', rating: 3 }],
+    } });
+    expect(saved.status).toBeLessThan(300);
+    const stored = JSON.parse(String((db.sqlite.prepare('SELECT tasting_notes FROM products WHERE id = ?').get('tea-a') as any).tasting_notes));
+    expect(stored).toEqual([{ text: 'Stone fruit', rating: 8 }, { text: 'Honey' }]);
+  });
+
+  it('lands an editor\'s bulk import with the words and no score', async () => {
+    const { db, env } = setup();
+    const imported = await call(env, EDITOR, '/api/products/bulk', { method: 'POST', body: { products: [{
+      type: 'Oolong', product_name: 'Imported', cost_amount: 10, cost_currency: 'Yuan',
+      tasting: { quality: 9, aroma: ['orchid'] }, tasting_notes: [{ rating: 9, text: 'Pine' }],
+    }] } });
+    expect(imported.status).toBeLessThan(300);
+    const row = db.sqlite.prepare("SELECT tasting, tasting_notes FROM products WHERE product_name = 'Imported'").get() as any;
+    expect(JSON.parse(row.tasting)).toEqual({ aroma: ['orchid'] });
+    expect(JSON.parse(row.tasting_notes)).toEqual([{ text: 'Pine' }]);
+  });
+
+  it('drops a structure nested below the scrubber\'s depth, on the public get_tea too', async () => {
+    let deep: unknown = { rating: 8, text: 'buried' };
+    for (let i = 0; i < 10; i += 1) deep = [deep];
+    expect(JSON.stringify(tastingWithoutScores({ notes: deep, aroma: ['orchid'] }))).not.toContain('rating');
+    const { db, env } = setup();
+    db.sqlite.prepare('UPDATE products SET tasting_notes = ? WHERE id = ?').run(JSON.stringify([{ text: 'Stone fruit' }, deep]), 'tea-a');
+    const publicEnv = { ...env, PUBLIC_MCP_LIMITER: { limit: async () => ({ success: true }) } };
+    const publicTea = await mcpTool(publicEnv, `/mcp/public?account=${SHOP}`, null, 'get_tea', { id: 'tea-a' });
+    expect(publicTea.tasting_notes[0]).toEqual({ text: 'Stone fruit' });
+    expect(JSON.stringify(publicTea)).not.toContain('rating');
   });
 });

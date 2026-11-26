@@ -12,24 +12,35 @@ export const TASTING_SCORE_KEYS = [
 
 const SCORE_KEY_SET = new Set<string>(TASTING_SCORE_KEYS);
 
+const MAX_DEPTH = 6;
+
+/** What stands in for a list or object deeper than the scrubber reads: nothing. */
+const UNEXAMINED = Symbol('unexamined');
+
 function scrub(value: unknown, depth: number): unknown {
-  if (depth > 6 || !value || typeof value !== 'object') return value;
-  if (Array.isArray(value)) return value.map(item => scrub(item, depth + 1));
+  if (!value || typeof value !== 'object') return value;
+  // Deeper than this is not read, so it is not passed on either: a score
+  // buried below the limit must not come back unexamined.
+  if (depth > MAX_DEPTH) return UNEXAMINED;
+  if (Array.isArray(value)) return value.map(item => scrub(item, depth + 1)).filter(item => item !== UNEXAMINED);
   const copy: Record<string, unknown> = {};
   for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
     if (SCORE_KEY_SET.has(key)) continue;
-    copy[key] = scrub(inner, depth + 1);
+    const kept = scrub(inner, depth + 1);
+    if (kept !== UNEXAMINED) copy[key] = kept;
   }
   return copy;
 }
 
 /**
- * A copy of a tasting without its scores, at any depth, so a list in an old
- * shape (`[{ rating: 8 }]`) loses them as surely as one object does.
+ * A copy of a tasting without its scores, so a list in an old shape
+ * (`[{ rating: 8 }]`) loses them as surely as one object does. Lists and
+ * objects nested deeper than the scrubber reads are dropped, not passed on.
  * Anything that is not an object or a list comes back as it was.
  */
 export function tastingWithoutScores<T>(tasting: T): T {
-  return scrub(tasting, 0) as T;
+  const scrubbed = scrub(tasting, 0);
+  return (scrubbed === UNEXAMINED ? null : scrubbed) as T;
 }
 
 /** A JSON text of a tasting, read and written back without its scores. Unreadable text comes back as null. */

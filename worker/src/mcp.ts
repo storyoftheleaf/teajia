@@ -67,7 +67,7 @@ import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
 import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
-import { tastingWithoutScores } from './publicScores';
+import { isShopOwner, tastingWithoutScores } from './publicScores';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName, isRefreshedCurrency } from './exchangeRateFeed';
@@ -1342,6 +1342,9 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
   if (typeof tastingNotes === 'string') {
     try { tastingNotes = JSON.parse(tastingNotes); } catch { tastingNotes = []; }
   }
+  // The old notes' ratings are the shop owner's. A token reads them only when
+  // the person it acts for is that owner; any other agent reads the words.
+  if (!await isShopOwner(env.DB, accountId, auth.userId)) tastingNotes = tastingWithoutScores(tastingNotes);
 
   return {
     ...productSummary(product),

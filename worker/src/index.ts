@@ -2848,7 +2848,7 @@ const handleGetProducts: Handler = async (request, env, params) => {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
   const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
-  const seesShopScores = shopScoreGiver(ctx);
+  const seesShopScores = await shopScoreGiver(env, ctx);
 
   const products = (result.results as any[]).map(p => {
     // Override the legacy is_featured column with the derived shop-collection
@@ -2881,11 +2881,43 @@ const handleGetProducts: Handler = async (request, env, params) => {
 
 /**
  * Who may see the score on a shop's own tea. Every write of a product tasting
- * is stamped the owner's voice (tasting_source 'owner'), so the owner is its
- * giver. Staff, viewers and other shops read the words.
+ * is stamped the owner's voice (tasting_source 'owner'), so the shop's owner
+ * is its giver. The person is compared, not the role: a platform administrator
+ * opening the shop acts with the owner's role but is not the owner, and reads
+ * the words like staff, viewers and other shops do.
  */
-function shopScoreGiver(ctx: { role: string }): boolean {
-  return ctx.role === 'owner';
+async function shopScoreGiver(env: Env, ctx: { accountId: string; userId: string }): Promise<boolean> {
+  return isShopOwner(env.DB, ctx.accountId, ctx.userId);
+}
+
+/**
+ * The old list of tasting notes, as someone other than the shop's owner writes
+ * it. They read it without the owner's ratings, so what they send carries
+ * none; a note they kept word for word keeps the rating the owner gave it.
+ * Returns the JSON text to store.
+ */
+async function keepShopNoteScoresOnWrite(env: Env, accountId: string, productId: string | null, incoming: unknown): Promise<string> {
+  let parsed: unknown = incoming;
+  if (typeof incoming === 'string') {
+    // Plain words, not a stored list: there is no structured score to keep or drop.
+    try { parsed = JSON.parse(incoming); } catch { return incoming; }
+  }
+  if (!Array.isArray(parsed)) return JSON.stringify(tastingWithoutScores(parsed));
+  const words = tastingWithoutScores(parsed) as unknown[];
+  if (!productId) return JSON.stringify(words);
+  const row = await env.DB.prepare('SELECT tasting_notes FROM products WHERE id = ? AND account_id = ?').bind(productId, accountId).first<{ tasting_notes: string | null }>();
+  let stored: unknown = null;
+  try { stored = row?.tasting_notes ? JSON.parse(row.tasting_notes) : null; } catch { stored = null; }
+  if (!Array.isArray(stored)) return JSON.stringify(words);
+  const scoresByWords = new Map<string, Record<string, unknown>>();
+  for (const note of stored) {
+    const scores = tastingScoresOnly(note);
+    if (Object.keys(scores).length) scoresByWords.set(JSON.stringify(tastingWithoutScores(note)), scores);
+  }
+  return JSON.stringify(words.map(note => {
+    const scores = note && typeof note === 'object' && !Array.isArray(note) ? scoresByWords.get(JSON.stringify(note)) : undefined;
+    return scores ? { ...(note as Record<string, unknown>), ...scores } : note;
+  }));
 }
 
 /**
@@ -3121,6 +3153,9 @@ const handleCreateProduct: Handler = async (request, env) => {
   // Convert tasting_notes array to JSON string
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  const createsAsScoreGiver = await shopScoreGiver(env, ctx);
+  // An old-shape list of notes is written by the same rule as the tasting: its ratings are the owner's.
+  if (body.tasting_notes != null && !createsAsScoreGiver) body.tasting_notes = await keepShopNoteScoresOnWrite(env, accountId, null, body.tasting_notes);
   // Admin-created products with tasting data default to owner-authored unless
   // the caller explicitly says otherwise.
   // TODO(second-writer): see handleUpdateProduct for the upgrade path.
@@ -3128,7 +3163,7 @@ const handleCreateProduct: Handler = async (request, env) => {
     body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
   }
   // A score on a shop's tea is the owner's; another member's new tea carries the words.
-  if ('tasting' in body && !shopScoreGiver(ctx)) body.tasting = await keepShopScoreOnWrite(env, accountId, null, body.tasting);
+  if ('tasting' in body && !createsAsScoreGiver) body.tasting = await keepShopScoreOnWrite(env, accountId, null, body.tasting);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
@@ -3248,6 +3283,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     })
   );
   const existingById = new Map((existingProducts.results as any[]).map(p => [p.id, p]));
+  const importsAsScoreGiver = await shopScoreGiver(env, ctx);
 
   const newLines: Array<{ id: string; clientRowId: string | null; statements: D1PreparedStatement[]; movementInput: StockMovementInput | null }> = [];
   // Addresses handed out earlier in this import, so two identically named rows
@@ -3354,6 +3390,11 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+    // An imported score is the shop owner's; anyone else's import lands the words alone.
+    if (!importsAsScoreGiver) {
+      if (body.tasting != null) body.tasting = await keepShopScoreOnWrite(env, accountId, null, body.tasting);
+      if (body.tasting_notes != null) body.tasting_notes = await keepShopNoteScoresOnWrite(env, accountId, null, body.tasting_notes);
+    }
     if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
     for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
       if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
@@ -3626,6 +3667,9 @@ async function applyProductUpdate(
   }
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  const writesAsScoreGiver = await shopScoreGiver(env, ctx);
+  // The old list of notes keeps the owner's ratings when someone else saves its words.
+  if (body.tasting_notes != null && !writesAsScoreGiver) body.tasting_notes = await keepShopNoteScoresOnWrite(env, accountId, params.id, body.tasting_notes);
   // Any admin-authenticated write that mutates the tasting profile is, by
   // default, the owner's voice. Explicit callers (community aggregation,
   // seed scripts) can override by passing tasting_source themselves.
@@ -3639,7 +3683,7 @@ async function applyProductUpdate(
     body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
   }
   // Someone other than the owner saves the words; the owner's score stays as it was.
-  if ('tasting' in body && !shopScoreGiver(ctx)) body.tasting = await keepShopScoreOnWrite(env, accountId, params.id, body.tasting);
+  if ('tasting' in body && !writesAsScoreGiver) body.tasting = await keepShopScoreOnWrite(env, accountId, params.id, body.tasting);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
@@ -9804,9 +9848,8 @@ const handleOrderMyProfileFavorites: Handler = async (request, env) => {
   const currentIds = (current.results ?? []).map(row => String(row.tea_profile_id)).sort();
   const requestedIds = [...ids].sort();
   if (currentIds.length !== requestedIds.length || currentIds.some((id, index) => id !== requestedIds[index])) {
-    return restError(409, 'Favorite order is stale; refresh and submit the complete set', 'favorite_order_stale', {
-      expected_count: currentIds.length,
-    });
+    // No count in the refusal: refreshing gives the whole set, in order.
+    return restError(409, 'Favorite order is stale; refresh and submit the complete set', 'favorite_order_stale');
   }
   await env.DB.batch(ids.map((id, position) => env.DB.prepare(
     'UPDATE profile_favorites SET position = ?, updated_at = datetime(\'now\') WHERE contributor_id = ? AND tea_profile_id = ?'
@@ -16557,7 +16600,8 @@ const handlePutUserFavorites: Handler = async (request, env) => {
       await env.DB.batch(batch);
     }
   }
-  return json({ ok: true, count: body.favorites.length });
+  // An acknowledgement, not a total: how many a person keeps is nobody's number.
+  return json({ ok: true });
 };
 
 // ── Personal cellar (stock spine step 4) ────────────────────────────────────
@@ -25883,7 +25927,8 @@ const handleGetMyJourney: Handler = async (request, env) => {
   const lovedSamples = samples.filter(s => s.verdict === 'love').length;
   const portraitParts: string[] = [];
   if (topTypes.length > 0) portraitParts.push(`Your palate leans toward ${topTypes.join(' and ')}${topRegions.length > 0 ? `, from ${topRegions.join(' and ')}` : ''}`);
-  if (favorites.length > 0) portraitParts.push(`${favorites.length} tea${favorites.length !== 1 ? 's' : ''} from the table stood out enough to mark`);
+  // No number: what a person marked is theirs, and the sentence does not count it.
+  if (favorites.length > 0) portraitParts.push('At the table, you marked the teas that stood out');
   if (lovedSamples > 0) portraitParts.push(`${lovedSamples} sample${lovedSamples !== 1 ? 's' : ''} earned a love`);
   if (compass.length > 0) portraitParts.push(`${compass.length} ${compass.length === 1 ? 'tea has' : 'teas have'} made it into your collection`);
   const portrait = portraitParts.length >= 2 ? portraitParts.join('. ') + '.' : '';
@@ -28030,13 +28075,13 @@ const handleGetPublicProfileFavorites: Handler = async (_request, env, params) =
        SELECT * FROM eligible_favorites WHERE listing_rank = 1
      )
      SELECT tea_profile_id, note,
-            ROW_NUMBER() OVER (ORDER BY favorite_position, created_at) - 1 AS position,
             slug, name, chinese_name, type, form, origin_country, origin_region,
             varietal, harvest_year, description, image_url,
             source_account_slug, source_account_name, public_path, product_id, (product_status = 'Sold Out' OR (product_stock IS NOT NULL AND product_stock <= 0)) AS sold_out
        FROM chosen
       ORDER BY favorite_position, created_at`
   ).bind(params.slug).all();
+  // The order of the list is the order; no position number is sent.
   return cachedJson({ favorites: rows.results ?? [] }, 60);
 };
 
@@ -28676,12 +28721,20 @@ const handleGetCollection: Handler = async (request, env, params) => {
             p.chinese_name, p.year, p.origin_country, p.origin_region,
             p.image_url, p.status AS product_status, p.stock_grams, p.quantity_units,
             p.fixed_retail_price_usd,
-            p.tasting_notes, p.description
+            p.tasting_notes, p.description, p.account_id AS product_account_id
        FROM collection_items ci
        JOIN products p ON p.id = ci.product_id
       WHERE ci.collection_id = ?
       ORDER BY ci.position ASC`
   ).bind(params.id).all();
+  // The old notes' ratings are the shop owner's: the curator, staff and a
+  // platform administrator read the words; the owner reads their own tea whole.
+  const readsOwnShopScores = await shopScoreGiver(env, ctx);
+  const collectionItems = ((items.results ?? []) as Record<string, any>[]).map(({ product_account_id, ...item }) => (
+    readsOwnShopScores && product_account_id === ctx.accountId
+      ? item
+      : { ...item, tasting_notes: item.tasting_notes ? tastingJsonWithoutScores(item.tasting_notes) ?? '[]' : item.tasting_notes }
+  ));
 
   const pubs = await env.DB.prepare(
     `SELECT id, collection_id, target_type, target_id, slug, recipients_json,
@@ -28698,7 +28751,7 @@ const handleGetCollection: Handler = async (request, env, params) => {
 
   return json({
     collection: found.row,
-    items: items.results ?? [],
+    items: collectionItems,
     publications,
   });
 };
