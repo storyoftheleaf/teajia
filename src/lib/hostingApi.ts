@@ -41,13 +41,24 @@ export interface HostedTableGuest {
   plus_one: number | null;
   attended: number | null;
   created_at: string | null;
+  /** What the guest wrote when they asked for a seat. */
+  note: string | null;
+  /** The phone number the guest gave, for the host's own WhatsApp. */
+  phone: string | null;
+  /** The guest asked not to be photographed. */
+  no_photographs: boolean;
 }
 export interface HostedTableTea { id: string; name: string | null; product_id: string | null; brew_order: number | null }
 export interface HostedTableDetail {
-  table: Omit<HostedTableSummary, 'guests'> & { requires_approval: number; public_visibility: string };
+  table: Omit<HostedTableSummary, 'guests'> & { requires_approval: number; public_visibility: string; seats_taken: number };
   guests: HostedTableGuest[];
   teas: HostedTableTea[];
+  /** The doors this host may give the table. */
+  doors: HostedTableDoor[];
 }
+export interface HostedTableChange { door?: HostedTableDoor; seats?: number }
+/** The host's private line about one guest (slice H9). Never shown to the guest. */
+export interface HostGuestNote { attendee_id: string; note: string; updated_at: string }
 
 interface HostingApiDependencies {
   apiUrl: string;
@@ -67,5 +78,23 @@ export function createTablesApi({ apiUrl, authedFetch }: HostingApiDependencies)
     }),
     list: (): Promise<{ tables: HostedTableSummary[] }> => authedFetch(`${apiUrl}/api/me/tables`),
     get: (id: string): Promise<HostedTableDetail> => authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}`),
+    // The host's page for one table (slice H4). Every call is the table's host's alone.
+    change: (id: string, change: HostedTableChange): Promise<{ ok: true }> => authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}`, {
+      method: 'PUT', body: JSON.stringify(change),
+    }),
+    sayYes: (id: string, guestId: string): Promise<{ ok: true; status: 'confirmed' }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/yes`, { method: 'PUT', body: '{}' }),
+    sayNo: (id: string, guestId: string): Promise<{ ok: true; status: 'denied' }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/no`, { method: 'PUT', body: '{}' }),
+    markWhoCame: (id: string, attendeeIds: string[]): Promise<{ ok: true }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/came`, { method: 'PUT', body: JSON.stringify({ attendee_ids: attendeeIds }) }),
+    thanksLink: (id: string, guestId: string): Promise<{ credential: string; expires_at: string }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/thanks-link`, { method: 'POST', body: '{}' }),
+    // The host's private guest book (slice H9).
+    notes: (id: string): Promise<{ notes: HostGuestNote[] }> => authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/notes`),
+    saveNote: (id: string, guestId: string, note: string): Promise<{ note: HostGuestNote | null }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/note`, {
+        method: 'PUT', body: JSON.stringify({ note }),
+      }),
   };
 }

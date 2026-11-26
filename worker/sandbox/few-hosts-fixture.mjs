@@ -15,6 +15,10 @@
 //   - One confirmed guest, "Rui Guest" (attendee fh-seat-rui, guest page
 //     /m/fh-magic-rui), marked attended, with no account and no contact.
 //   - A tea menu of two plain names (fh-menu-1, fh-menu-2), no product record.
+//   - A second table, a week ahead and open (slice H4): "Ana's next table"
+//     (event fh-event-next), by request, 4 seats, with two guests waiting
+//     for her yes: "Mei Asks" (fh-seat-mei, a phone number, a note, asked not
+//     to be photographed) and "Tao Asks" (fh-seat-tao, no contact).
 // The Launch 2 routes stay closed unless the sandbox starts with
 // FEW_HOSTS_OPEN=true (src/lib/fewHosts.ts).
 import { createHash } from 'node:crypto';
@@ -29,6 +33,14 @@ export const fewHosts = {
   eventSlug: 'fh-ana-table-test',
   guest: { attendeeId: 'fh-seat-rui', magicToken: 'fh-magic-rui', name: 'Rui Guest' },
   teas: ['fh-menu-1', 'fh-menu-2'],
+  next: {
+    eventId: 'fh-event-next',
+    eventSlug: 'fh-ana-table-next',
+    waiting: [
+      { attendeeId: 'fh-seat-mei', seatId: 'fh-party-mei', magicToken: 'fh-magic-mei', name: 'Mei Asks' },
+      { attendeeId: 'fh-seat-tao', seatId: 'fh-party-tao', magicToken: 'fh-magic-tao', name: 'Tao Asks' },
+    ],
+  },
 };
 
 const f = fewHosts;
@@ -57,4 +69,19 @@ export const fewHostsStatements = [
      ('${f.teas[1]}', '${f.accountId}', '${f.eventId}', NULL, 'Aged oolong, the last of the tin', 2)`,
   `INSERT INTO event_attendees (id, account_id, event_id, full_name, email, phone_number, magic_token, status, attended) VALUES
      ('${f.guest.attendeeId}', '${f.accountId}', '${f.eventId}', '${f.guest.name}', NULL, NULL, '${f.guest.magicToken}', 'confirmed', 1)`,
+  // The next table, by request, with two guests waiting for her yes. Each
+  // has the primary party seat a request makes, so a yes goes through the
+  // guarded allocator exactly as a real request would.
+  `INSERT INTO events (id, account_id, slug, title, event_date, status, lifecycle_status, total_capacity, timezone,
+     requires_approval, public_visibility, network_discovery, host_user_id, door, location_name, area_hint)
+   VALUES ('${f.next.eventId}', '${f.accountId}', '${f.next.eventSlug}', 'Ana’s next table', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+7 days'),
+     'active', 'published', 4, 'Asia/Makassar', 1, 'unlisted', 0, '${f.host.id}', 'request', 'Ana’s home', 'Ubud')`,
+  `INSERT INTO event_attendees (id, account_id, event_id, full_name, email, phone_number, magic_token, status, notes, photo_consent) VALUES
+     ('${f.next.waiting[0].attendeeId}', '${f.accountId}', '${f.next.eventId}', '${f.next.waiting[0].name}', NULL, '+62 812 0000 0001',
+       '${f.next.waiting[0].magicToken}', 'requested', 'First time at a tea table.', 0),
+     ('${f.next.waiting[1].attendeeId}', '${f.accountId}', '${f.next.eventId}', '${f.next.waiting[1].name}', NULL, NULL,
+       '${f.next.waiting[1].magicToken}', 'requested', NULL, 1)`,
+  `INSERT INTO event_party_members (id, account_id, event_id, participation_id, full_name, is_primary, seat_status) VALUES
+     ('${f.next.waiting[0].seatId}', '${f.accountId}', '${f.next.eventId}', '${f.next.waiting[0].attendeeId}', '${f.next.waiting[0].name}', 1, 'requested'),
+     ('${f.next.waiting[1].seatId}', '${f.accountId}', '${f.next.eventId}', '${f.next.waiting[1].attendeeId}', '${f.next.waiting[1].name}', 1, 'requested')`,
 ];

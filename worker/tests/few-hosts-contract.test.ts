@@ -204,8 +204,9 @@ describe('the host routes', () => {
     expect((await call('/api/me/tables', { actor: ana, method: 'POST', body: table })).status).toBe(201);
     expect(db.sqlite.prepare(`SELECT count(*) AS n FROM accounts WHERE personal_inventory_user_id = 'ana'`).get()).toEqual({ n: 1 });
 
-    expect((await call('/api/me/tables/anything/notes', { actor: ana })).status).toBe(501);
-    expect((await call('/api/me/tables/anything/guests/g/note', { actor: ana, method: 'PUT', body: { note: 'x' } })).status).toBe(501);
+    // The guest book (H9) answers only for a table of hers.
+    expect((await call('/api/me/tables/anything/notes', { actor: ana })).status).toBe(404);
+    expect((await call('/api/me/tables/anything/guests/g/note', { actor: ana, method: 'PUT', body: { note: 'x' } })).status).toBe(404);
   });
 
   it('refuse the open door, and any table without a true day, time and time zone, before making anything', async () => {
@@ -269,7 +270,7 @@ describe('the host routes', () => {
 });
 
 describe('the sandbox fixture', () => {
-  it('seeds one approved host with one finished hosted table in her private account', async () => {
+  it('seeds one approved host with one finished hosted table and one open one in her private account', async () => {
     // In the sandbox the operator fixture runs first; here, only the approver it names.
     seedIdentity(db, { userId: 'sandbox-operator', accountId: 'sandbox-home' });
     for (const statement of fewHostsStatements) db.sqlite.exec(statement);
@@ -278,8 +279,10 @@ describe('the sandbox fixture', () => {
     expect(account).toEqual({ public_enabled: 0, kind: 'master' });
     const host = { userId: fewHosts.host.id, name: fewHosts.host.name, accountId: fewHosts.accountId };
     const list = await (await call('/api/me/tables', { actor: host })).json() as { tables: Record<string, any>[] };
-    expect(list.tables).toHaveLength(1);
-    expect(list.tables[0]).toMatchObject({
+    // The finished table, and the next one a week ahead (H4) with two guests waiting.
+    expect(list.tables.map(row => row.id)).toEqual([fewHosts.next.eventId, fewHosts.eventId]);
+    expect(list.tables[0]).toMatchObject({ door: 'request', lifecycle_status: 'published', guests: { confirmed: 0, requested: 2, waitlist: 0 } });
+    expect(list.tables[1]).toMatchObject({
       id: fewHosts.eventId, door: 'link', lifecycle_status: 'completed', guests: { confirmed: 1, requested: 0, waitlist: 0 },
     });
     const one = await (await call(`/api/me/tables/${fewHosts.eventId}`, { actor: host })).json() as Record<string, any>;

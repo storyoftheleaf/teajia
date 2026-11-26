@@ -158,6 +158,7 @@ describe('createHostedTable', () => {
     expect(past.status).toBe(400);
     expect(await past.json()).toMatchObject({ code: 'hosted_table_past_day' });
     expect((await call('/api/me/tables', { ...body, seats: 41 }, token)).status).toBe(400);
-    expect(rows()).toHaveLength(2);
+    // The fixture's two tables, and the one made here.
+    expect(rows()).toHaveLength(3);
   });
 });
