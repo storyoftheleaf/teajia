@@ -12,6 +12,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { Icons } from '../components/Icons';
 import type { ContactMethod } from '../types/events';
+import { AccountInviteAccept } from '../components/auth/AccountInviteAccept';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -67,8 +68,9 @@ const GuestInviteClaimPage: React.FC = () => {
     );
   }
 
-  // Error / not found
+  // Not a session invite: account and tea master invites share this address.
   if (isError || !invite) {
+    if (token && /^[a-f0-9]{32,128}$/i.test(token)) return <AccountInviteAccept token={token} />;
     return (
       <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap">
         <div className="text-center">
