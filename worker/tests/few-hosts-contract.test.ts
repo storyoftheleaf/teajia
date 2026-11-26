@@ -163,6 +163,9 @@ describe('the switch', () => {
       ['GET', '/api/me/tables/e-ana', ana],
       ['GET', '/api/me/tables/e-ana/notes', ana],
       ['PUT', '/api/me/tables/e-ana/guests/g/note', ana, { note: 'Likes it strong' }],
+      ['GET', '/api/me/tables/e-ana/way', ana],
+      ['PUT', '/api/me/tables/e-ana/way', ana, { venue_guide: { steps: [] } }],
+      ['POST', '/api/me/tables/e-ana/way/keep', ana, { name: 'Home' }],
     ];
     for (const [method, path, actor, body] of routes) {
       expect((await call(path, { actor, method, body, open: false })).status, `${method} ${path}`).toBe(404);
@@ -178,6 +181,7 @@ describe('the host routes', () => {
     for (const [method, path, body] of [
       ['GET', '/api/me/tables'], ['POST', '/api/me/tables', table], ['GET', '/api/me/tables/anything'],
       ['GET', '/api/me/tables/anything/notes'], ['PUT', '/api/me/tables/anything/guests/g/note', { note: 'x' }],
+      ['GET', '/api/me/tables/anything/way'], ['PUT', '/api/me/tables/anything/way', { venue_guide: { steps: [] } }],
     ] as [string, string, unknown?][]) {
       expect((await call(path, { actor: bo, method, body })).status, `${method} ${path}`).toBe(404);
     }

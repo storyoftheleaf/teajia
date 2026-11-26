@@ -1,32 +1,32 @@
 import React from 'react';
-import { X, Loader2, Plus, Trash2, Upload } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { VenueGuide, VenueGuideStep } from '../../../../types/events';
 import { Field, inputClass } from '../shared';
 import SectionHeader from './SectionHeader';
+import { WayStepPhoto } from '../../../../components/events/WayStepPhoto';
 
 export interface VenueGuideSectionProps {
   venueGuide: VenueGuide;
   isOpen: boolean;
-  venueStepUploading: number | null;
-  venueStepFileRefs: React.MutableRefObject<Record<number, HTMLInputElement | null>>;
   onToggle: () => void;
   onAddVenueStep: () => void;
   onUpdateVenueStep: (idx: number, field: keyof VenueGuideStep, value: string) => void;
   onRemoveVenueStep: (idx: number) => void;
-  onVenueStepImageUpload: (idx: number, e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Uploads a step photograph already framed in the shared photo editor. */
+  uploadVenueStepPhoto: (file: File) => Promise<string>;
+  onVenueStepPhotoFailed: (message: string) => void;
   onUpdateVenueGuide: (next: VenueGuide) => void;
 }
 
 const VenueGuideSection: React.FC<VenueGuideSectionProps> = ({
   venueGuide,
   isOpen,
-  venueStepUploading,
-  venueStepFileRefs,
   onToggle,
   onAddVenueStep,
   onUpdateVenueStep,
   onRemoveVenueStep,
-  onVenueStepImageUpload,
+  uploadVenueStepPhoto,
+  onVenueStepPhotoFailed,
   onUpdateVenueGuide,
 }) => {
   return (
@@ -45,38 +45,14 @@ const VenueGuideSection: React.FC<VenueGuideSectionProps> = ({
                   className={inputClass}
                   placeholder="Step description"
                 />
-                {step.image_url ? (
-                  <div className="relative w-full h-24 rounded-md overflow-hidden border border-tea-border">
-                    <img src={step.image_url} alt={`Step ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
-                    <button
-                      type="button"
-                      onClick={() => onUpdateVenueStep(idx, 'image_url', '')}
-                      className="absolute top-1 right-1 bg-tea-bg/80 text-tea-text p-0.5 rounded-full hover:bg-tea-bg transition-colors"
-                    >
-                      <X size={10} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => venueStepFileRefs.current[idx]?.click()}
-                    disabled={venueStepUploading === idx}
-                    className="w-full h-16 border border-dashed border-tea-border rounded-md flex items-center justify-center gap-2 text-tea-text-sec hover:border-tea-gold/50 hover:text-tea-text-sec transition-colors text-xs"
-                  >
-                    {venueStepUploading === idx ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Upload size={14} />
-                    )}
-                    <span>{venueStepUploading === idx ? 'Uploading...' : 'Upload photo'}</span>
-                  </button>
-                )}
-                <input
-                  ref={(el) => { venueStepFileRefs.current[idx] = el; }}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => onVenueStepImageUpload(idx, e)}
-                  className="hidden"
+                {/* Every step photograph opens in the shared photo editor first. */}
+                <WayStepPhoto
+                  step={idx + 1}
+                  imageUrl={step.image_url}
+                  compact
+                  upload={uploadVenueStepPhoto}
+                  onError={onVenueStepPhotoFailed}
+                  onChange={(url) => onUpdateVenueStep(idx, 'image_url', url)}
                 />
               </div>
               <button type="button" aria-label="Remove step" onClick={() => onRemoveVenueStep(idx)} className="text-tea-text-sec hover:text-tea-text p-1 mt-1 tap-target">

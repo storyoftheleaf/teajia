@@ -20,6 +20,7 @@ import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTa
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
+import { keepTableWay, readTableWay, readTableWayInput, saveTableWay } from './hostTableWay';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -17352,6 +17353,51 @@ const handleHostedTableTeaPhoto: Handler = async (request, env, params) => {
   return hostTableJson({ url: `https://media.teajia.co/${key}` }, 201);
 };
 
+// The way to the house, from the host's side (H8): GET and PUT
+// /api/me/tables/:id/way, POST /api/me/tables/:id/way/keep {name}, and
+// POST /api/me/tables/:id/way/photos (multipart, one photograph already
+// framed in the shared photo editor). The table's host alone; a guest
+// receives the way only through the guest page's own gate (H7).
+const handleHostedTableWay: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  if (request.method === 'GET') return hostTableJson(await readTableWay(env.DB, own.table));
+  const input = readTableWayInput(await request.json().catch(() => null) as Record<string, unknown> | null, own.table.account_id);
+  if ('refused' in input) return restError(input.refused.status, input.refused.error, input.refused.code);
+  await saveTableWay(env.DB, own.table, input);
+  return hostTableJson(await readTableWay(env.DB, own.table));
+};
+
+const handleKeepHostedTableWay: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const body = await request.json().catch(() => null) as { name?: unknown } | null;
+  const kept = await keepTableWay(env.DB, own.table, body?.name);
+  if ('refused' in kept) return restError(kept.refused.status, kept.refused.error, kept.refused.code);
+  return hostTableJson(kept);
+};
+
+const handleHostedTableWayPhoto: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${own.table.account_id}:${own.host.userId}:upload-flyer`);
+  if (limited) return limited;
+  if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
+  const file = (await request.formData()).get('file') as File | null;
+  if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  // Under venue-guide/, so it is served private and short-lived (sessionWalkthrough.ts).
+  const key = `accounts/${own.table.account_id}/venue-guide/${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
+  return hostTableJson({ url: `https://media.teajia.co/${key}`, key }, 201);
+};
+
 const handleGrantShelf: Handler = async (request, env, params) => {
   const authErr = await requirePlatformOwner(request, env);
   if (authErr) return authErr;
@@ -32373,6 +32419,10 @@ const routes: [string, string, Handler][] = [
   ['GET',    '/api/me/tables/:id/tea-search', handleHostedTableTeaSearch],
   ['PUT',    '/api/me/tables/:id/teas', handleSaveHostedTableTeas],
   ['POST',   '/api/me/tables/:id/teas/photo', handleHostedTableTeaPhoto],
+  ['GET',    '/api/me/tables/:id/way', handleHostedTableWay],
+  ['PUT',    '/api/me/tables/:id/way', handleHostedTableWay],
+  ['POST',   '/api/me/tables/:id/way/keep', handleKeepHostedTableWay],
+  ['POST',   '/api/me/tables/:id/way/photos', handleHostedTableWayPhoto],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],
