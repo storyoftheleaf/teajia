@@ -27,7 +27,7 @@ export function useStepParam(key: string, fallback = '') {
   const raw = params.get(key);
   const value = raw ?? fallback;
   const set = useCallback(
-    (next: string | null, options: { refine?: boolean; only?: boolean } = {}) => {
+    (next: string | null, options: { refine?: boolean; only?: boolean; state?: unknown } = {}) => {
       // Choosing what is already showing is not a step.
       if ((next || fallback) === (raw ?? fallback)) return;
       setParams(current => {
@@ -35,7 +35,7 @@ export function useStepParam(key: string, fallback = '') {
         if (next === null || next === '') out.delete(key);
         else out.set(key, next);
         return out;
-      }, options.refine ? { replace: true } : undefined);
+      }, { replace: options.refine, state: options.state });
     },
     [key, fallback, raw, setParams],
   );

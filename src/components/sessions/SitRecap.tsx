@@ -6,7 +6,7 @@ import { Button } from '../shared/Button';
 import { PeopleNav, StickyChrome, useReadingProgress } from '../people/immersive';
 import { pouredLabel, SectionRule, sessionDate, SessionBlock, SessionHead, SessionNote } from './SessionBlocks';
 import { SessionPhoto, useSessionPhotoImage, type SessionPhotoSource } from './SessionPhoto';
-import { BREWING_EXPERIENCES_OPEN } from '../../lib/brewingExperiences';
+import { teaTableOpen } from '../../lib/teaTable';
 import { SessionTeaRow } from './SessionTeaRow';
 
 // A sit's recap, ordered by tea (approved drawing, 2026-11-24): the host's
@@ -31,11 +31,11 @@ function PhotoGrid({ photos, columns, caption }: {
   );
 }
 
-/** Under the lead photograph, when its guest also offered it for Brewing experiences. */
+/** Under the lead photograph, when its guest also offered it for the Tea Table. */
 function BrewingLink({ source }: { source: SessionPhotoSource }) {
   const { query } = useSessionPhotoImage(source);
   if (!query.data?.canShowInBrewing) return null;
-  return <div className="px-6 pt-2"><Link className="btn-quiet btn-sm" to="/tea-feed">Brewing experiences</Link></div>;
+  return <div className="px-6 pt-2"><Link className="btn-quiet btn-sm tap-target" to="/tea-table">The Tea Table</Link></div>;
 }
 
 const signed = (photo: SessionPhotograph) => (photo.by ? `${photo.by.name}, ${photo.by.part}` : '');
@@ -104,6 +104,26 @@ function AddYours({ slug, teas }: { slug: string; teas: { id: string; name: stri
   );
 }
 
+/** "Poured with Mei, Jun": the people who poured beside the host, each linking their page when it is published. */
+export function PouredWith({ people }: { people: { name: string; slug: string | null }[] }) {
+  const shown = people.filter(person => person.name.trim());
+  if (!shown.length) return null;
+  return (
+    <p className="m-0 break-words px-6 pt-1.5 font-sans text-ui-13 text-tea-text-dim" data-testid="poured-with">
+      Poured with{' '}
+      {shown.map((person, index) => (
+        <span key={`${person.slug ?? 'name'}-${index}`}>
+          {person.slug
+            ? <Link className="tap-target text-tea-text underline decoration-tea-border underline-offset-4 hover:text-tea-gold-lt"
+                to={`/people/${encodeURIComponent(person.slug)}`}>{person.name}</Link>
+            : <span className="text-tea-text">{person.name}</span>}
+          {index < shown.length - 1 && ', '}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 export function SitRecap({ recap, photo, guestBook = true }: {
   recap: PublicSitRecap;
   /** The lead photograph; a formal sit reads its placed recap photo. */
@@ -114,6 +134,10 @@ export function SitRecap({ recap, photo, guestBook = true }: {
   const seat = useRecapSeat(guestBook ? recap.slug : '');
   const lead = photo === undefined ? { kind: 'formal' as const, slug: recap.slug, fallback: recap.galleryPhoto } : photo;
   const host = recap.people.find(person => person.role === 'lead_host') ?? recap.people[0];
+  // With "poured with" in the answer, the head names the host and the line
+  // beneath it names everyone who poured beside them, so nobody shows twice.
+  const pouredWith = recap.poured_with;
+  const headPeople = pouredWith ? recap.people.filter(person => person.role === 'lead_host') : recap.people;
   const progress = useReadingProgress();
   return (
     <article data-testid="sit-recap">
@@ -125,8 +149,9 @@ export function SitRecap({ recap, photo, guestBook = true }: {
       </div>
       <SessionBlock testId="recap-head">
         {lead && <SessionPhoto source={lead} />}
-        {lead && BREWING_EXPERIENCES_OPEN && <BrewingLink source={lead} />}
-        <SessionHead date={sessionDate(recap.event_date)} part="Session recap" title={recap.title} people={recap.people} level="h1" />
+        {lead && teaTableOpen() && <BrewingLink source={lead} />}
+        <SessionHead date={sessionDate(recap.event_date)} part="Session recap" title={recap.title} people={headPeople} level="h1" />
+        {pouredWith && <PouredWith people={pouredWith} />}
         {recap.note ? <SessionNote text={recap.note.text} by={recap.note.by} className="mx-6 mb-[18px] mt-4" /> : <div className="h-4" />}
       </SessionBlock>
 

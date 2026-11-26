@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import { usePrivateQueryScope } from './usePrivateQueryScope';
 import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData, Venue } from '../../types/events';
 
@@ -77,6 +78,7 @@ export function mapEvent(e: any): TeaEvent {
     venueId: e.venue_id || undefined,
     activeSpaceIds: e.active_space_ids ? safeParse(e.active_space_ids, []) : [],
     requiresApproval: e.requires_approval == null ? true : Boolean(e.requires_approval),
+    ...(e.is_tasting == null ? {} : { isTasting: Number(e.is_tasting) === 1 }),
     lifecycleStatus: e.lifecycle_status || undefined,
     publicVisibility: e.public_visibility || undefined,
     networkDiscovery: e.network_discovery == null ? undefined : Boolean(e.network_discovery),
@@ -193,6 +195,20 @@ export const usePendingAttendees = () => {
         eventDate: a.event_date,
       })) as PendingAttendee[];
     },
+  });
+  return { ...query, data: scope.ready ? query.data : undefined };
+};
+
+// What happened to an event's seats (admin, J9)
+export const useEventSeatNotices = (eventId: string) => {
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['event-seat-notices', eventId, ...scope.key],
+    staleTime: STALE_TIME,
+    refetchOnWindowFocus: false,
+    // Seat notices are Launch 3's (J9): asked for only while its switch is on (A3).
+    enabled: !!eventId && scope.ready && anyoneHostsOpen(),
+    queryFn: async () => (await api.events.getSeatNotices(eventId))?.notices ?? [],
   });
   return { ...query, data: scope.ready ? query.data : undefined };
 };

@@ -33,7 +33,7 @@ const show = (slug: string, userId: string, role: string) =>
   call('PUT', editOwnPath, { slug, eventSlug: 'white-tea' }, { 'Test-User': userId }, { role });
 
 beforeEach(() => {
-  db = new SqliteD1('migrations', '0111');
+  db = new SqliteD1('migrations', '0133'); // 0133: the owner's hide of a recap (A4 review, finding 2)
   seedIdentity(db, { userId: 'lin-user', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'mei-user', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'other-user', accountId: 'shop-b' });

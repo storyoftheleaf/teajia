@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useManageNav, isManagePathActive, type ManageChild } from './manageNav';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { homeBarOpen } from '../lib/homeBar';
 
 // The phone's second door. The bottom bar has seven slots and the site has
 // more than seven places, so the left end of the bar opens this panel the way
@@ -33,6 +34,16 @@ const SITE_LINKS: SiteLink[] = [
   { id: 'people', label: 'People', path: '/people' },
   { id: 'places', label: 'Places', path: '/spaces' },
   { id: 'wisdom', label: 'Tea Wisdom', path: '/wisdom' },
+];
+
+/**
+ * With the new bar (HOME_BAR_OPEN), sessions and people live under "table",
+ * places under "house" and Tea Wisdom under "read", so the menu shrinks to
+ * search, the bag, about and working with Adrian, whose page left the bar
+ * with "advise" (docs/SECTIONS.md, "Phone menu").
+ */
+const LAUNCH_FOUR_LINKS: SiteLink[] = [
+  { id: 'work-with-adrian', label: 'Work with Adrian', path: '/advise' },
 ];
 
 const ROW_CLASS = 'flex items-center justify-between w-full min-h-tap px-5 font-display text-ui-17 lowercase tracking-[0.03em] transition-colors duration-200';
@@ -107,7 +118,7 @@ export const SiteMenu: React.FC<SiteMenuProps> = ({ isOpen, onClose, onSearchCli
               </button>
 
               <BandLabel>The site</BandLabel>
-              {SITE_LINKS.map(link => {
+              {(homeBarOpen() ? LAUNCH_FOUR_LINKS : SITE_LINKS).map(link => {
                 const active = isActive(link.path);
                 return (
                   <Link

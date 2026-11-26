@@ -27,11 +27,17 @@ export const TABLE_AREA_HINT = 'Shown to anyone with the link, such as a neighbo
 export const DOOR_WORDS: Record<HostedTableDoor, string> = {
   request: 'I say yes to each guest',
   link: 'Anyone with the link has a seat',
+  // Launch 3, J10: found more widely; the host still says yes to each guest.
+  open: 'People on Teajia can find it, and I say yes to each guest',
 };
 
 export function doorWords(door: HostedTableDetail['table']['door']): string {
-  return door === 'link' ? DOOR_WORDS.link : DOOR_WORDS.request;
+  return door === 'link' || door === 'open' ? DOOR_WORDS[door] : DOOR_WORDS.request;
 }
+
+/** The stored door as one of the three, an older NULL read as by request. */
+export const doorOf = (door: HostedTableDetail['table']['door']): HostedTableDoor =>
+  door === 'link' || door === 'open' ? door : 'request';
 
 /** The table's day and time, in the table's own time zone. */
 export function tableWhen(eventDate: string, timezone: string | null): string {

@@ -1,9 +1,9 @@
-type GuestBookPart = { id: string; display_name: string; entry_key?: string };
+type GuestBookPart = { id: string; display_name: string | null; entry_key?: string };
 
 export function groupGuestBookEntries<TNote extends GuestBookPart, TPhoto extends GuestBookPart>(
   notes: readonly TNote[], photos: readonly TPhoto[],
 ) {
-  const entries = new Map<string, { key: string; displayName: string; note?: TNote; photos: TPhoto[] }>();
+  const entries = new Map<string, { key: string; displayName: TNote['display_name'] | TPhoto['display_name']; note?: TNote; photos: TPhoto[] }>();
   for (const note of notes) {
     const key = note.entry_key ?? 'note:' + note.id;
     entries.set(key, { key, displayName: note.display_name, note, photos: [] });

@@ -9,6 +9,8 @@ import { seedFromMigrations } from '../tests/helpers/migratedSqlite.ts';
 import { sandboxAccountIds, sandboxOperatorStatements, sandboxUserId } from './operator-fixture.mjs';
 import { firstTableStatements } from './first-table-fixture.mjs';
 import { fewHostsStatements } from './few-hosts-fixture.mjs';
+import { launch5Statements } from './launch-5-fixture.mjs';
+import { launch4Statements } from './launch-4-fixture.mjs';
 
 const worker = fileURLToPath(new URL('../', import.meta.url));
 const config = join(worker, 'wrangler.offline-fixtures.toml');
@@ -74,6 +76,10 @@ async function prepare() {
       ...firstTableStatements,
       // Launch 2's test host: ana / ana, approved, with one finished table in her private account.
       ...fewHostsStatements,
+      // Launch 4's pieces: a tasting to share, one on the table, a recap, a tea master, a tea house, a place.
+      ...launch4Statements,
+      // Launch 5's journey: a host's credit, her own order to use it on, a session for the card.
+      ...launch5Statements,
     ];
     const dump = join(temporary, 'fixtures.sql');
     writeFileSync(dump, schema.replace(/COMMIT;\s*$/, `${fixtures.join(';\n')};\nCOMMIT;\n`));
@@ -89,12 +95,27 @@ try {
   await prepare();
   if (!process.argv.includes('--prepare-only')) {
     // FIRST_TABLE_OPEN=true opens Launch 1 in this local shop only (src/lib/firstTable.ts).
+    // FAVOURITES_OPEN=true opens Launch 4's favourites the same way (src/lib/favouritesOpen.ts).
     // FEW_HOSTS_OPEN=true opens Launch 2 the same way (src/lib/fewHosts.ts).
+    // ANYONE_HOSTS_OPEN=true opens Launch 3 the same way (src/lib/anyoneHosts.ts).
+    // CIRCLES_OPEN, HOST_TOKENS_OPEN, HOST_CREDIT_OPEN, KNOW_THIS_TEA_OPEN and TABLE_CARD_OPEN=true open Launch 5's parts the same way.
     const flags = [
       ...(process.env.FIRST_TABLE_OPEN === 'true' ? ['--var', 'FIRST_TABLE_OPEN:true'] : []),
       ...(process.env.FEW_HOSTS_OPEN === 'true' ? ['--var', 'FEW_HOSTS_OPEN:true'] : []),
+      ...(process.env.ANYONE_HOSTS_OPEN === 'true' ? ['--var', 'ANYONE_HOSTS_OPEN:true'] : []),
+      ...(process.env.FAVOURITES_OPEN === 'true' ? ['--var', 'FAVOURITES_OPEN:true'] : []),
+      // Launch 4's other switches, the same way (tests/launch-4.spec.ts).
+      ...['TEA_TABLE_OPEN', 'YOUR_TABLE_PAGE_OPEN', 'HOST_ARTICLES_OPEN', 'TOP_TEAS_OPEN', 'TEA_HOUSES_OPEN', 'YOUR_TABLE_PLACE_OPEN']
+        .flatMap(name => (process.env[name] === 'true' ? ['--var', `${name}:true`] : [])),
+      ...['CIRCLES_OPEN', 'HOST_TOKENS_OPEN', 'HOST_CREDIT_OPEN', 'KNOW_THIS_TEA_OPEN', 'TABLE_CARD_OPEN']
+        .flatMap(flag => (process.env[flag] === 'true' ? ['--var', `${flag}:true`] : [])),
+      // Ports of its own, so a check can run beside another sandbox.
+      ...(process.env.SANDBOX_PORT ? ['--port', process.env.SANDBOX_PORT] : []),
+      ...(process.env.SANDBOX_INSPECTOR_PORT ? ['--inspector-port', process.env.SANDBOX_INSPECTOR_PORT] : []),
     ];
-    const server = spawn(wrangler, ['dev', ...localOptions, ...flags], { cwd: worker, env, stdio: 'inherit' });
+    // TEAJIA_OFFLINE_FIXTURES_PORT runs a second worker beside the usual 8787.
+    const port = process.env.TEAJIA_OFFLINE_FIXTURES_PORT ? ['--port', process.env.TEAJIA_OFFLINE_FIXTURES_PORT] : [];
+    const server = spawn(wrangler, ['dev', ...localOptions, ...port, ...flags], { cwd: worker, env, stdio: 'inherit' });
     server.on('error', error => { console.error(error.message); process.exitCode = 1; });
     server.on('exit', code => { process.exitCode = code ?? 1; });
   }

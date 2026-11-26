@@ -1,6 +1,9 @@
 import { ProfileSessions } from '../components/sessions/ProfileSessions';
 import { SaleTeaRow } from '../components/sessions/SessionTeaRow';
 import { ProfileSitRecaps } from '../components/people/ProfileSitRecaps';
+import { TopTeasSection } from '../components/people/TopTeasSection';
+import { topTeasOpen } from '../lib/topTeas';
+import { teaTableOpen } from '../lib/teaTable';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -8,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { PersonTastingsSection, SoldOutLine } from '../components/people/PersonTastings';
 import { ReportPageLine } from '../components/people/ReportPageLine';
+import { ReportLink } from '../components/shared/ReportLink';
 import { PLATFORM_NAMES } from '../components/people/PlatformMark';
 import {
   Cover,
@@ -50,6 +54,7 @@ import type {
   ContributorTeaSelectionRef,
 } from '../types';
 import { mediaUrl } from '../lib/mediaUrl';
+import { FAMILY_PAGE_WORDS } from '../lib/familyContract';
 import { isReadPathPublic, type ReadPublishOverrides } from './read/articleLive';
 import { useKnownReadOverrides } from './read/publishGate';
 import storyPeople from './read/storyPeople.generated.json';
@@ -281,7 +286,13 @@ export default function ContributorProfilePage() {
   // Stored as the canonical media host; rendered through the same-origin path (src/lib/mediaUrl.ts).
   const portrait = mediaUrl(data.portrait_url || data.avatar_url || null) ?? null;
   const portraitFocus = data.portrait_url ? data.portrait_focus : data.avatar_focus;
-  const kicker = coverKicker(data.role, data.location_line);
+  const showTopTeas = topTeasOpen() && data.page_tier === 'master';
+  // The granted word in place of the role is quiet acknowledgement, which opens
+  // with the Tea Table; while it is closed the cover keeps the role.
+  const acknowledged = teaTableOpen();
+  const grantedWord = acknowledged && (data.page_tier === 'creator' || data.page_tier === 'master')
+    ? FAMILY_PAGE_WORDS[data.page_tier] : null;
+  const kicker = coverKicker(showTopTeas || grantedWord ? null : data.role, data.location_line);
   const coverLine = ownLine(data);
 
   // In my words: one passage in their own voice, with the sentence the cover
@@ -373,6 +384,9 @@ export default function ContributorProfilePage() {
           >
             {kicker && <Kicker className="mb-3">{kicker}</Kicker>}
             <h1 className="font-display text-ui-40 leading-[0.98] text-tea-text"><SplitName name={data.display_name} /></h1>
+            {grantedWord && <p className="mt-2 font-sans text-ui-13 text-tea-text-sec" data-testid="profile-granted-word">{grantedWord}</p>}
+            {/* Adrian, 2026-11-26: the word stays, with his line beside it. */}
+            {grantedWord && data.page_tier === 'master' && <p className="mt-1 font-sans text-ui-13 text-tea-text-dim" data-testid="profile-master-line">The true master is one who is forever learning.</p>}
             {data.chinese_name && <p className="mt-2 text-ui-22 leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>
@@ -461,6 +475,7 @@ export default function ContributorProfilePage() {
           </Section>
         )}
 
+        {showTopTeas && <TopTeasSection key={data.id} slug={data.id} />}
         {!showOffers && teasSection}
 
         {/* ── Tastings ───────────────────────────────────────────────────── */}
@@ -481,6 +496,7 @@ export default function ContributorProfilePage() {
           {data.closing && <Dek className="text-ui-16">{data.closing}</Dek>}
           <a href="/people" className={`tap-target inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.22em] text-tea-text-dim hover:text-tea-text ${data.closing ? 'mt-5' : ''}`}>All people</a>
           {data.page_tier === 'family' && <ReportPageLine contributorId={data.id} />}
+          <ReportLink targetKind="person" targetId={data.id} />
         </footer>
       </article>
     </PeopleRoot>

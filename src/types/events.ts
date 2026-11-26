@@ -129,6 +129,8 @@ export interface TeaEvent {
   seatsRemaining?: number;
   // RSVP approval mode
   requiresApproval?: boolean;       // camelCase for mapped responses
+  /** The host said this session is a tasting (Launch 3, J8); off by default. */
+  isTasting?: boolean;
   requires_approval?: number;       // snake_case from raw worker response (0 or 1)
   lifecycleStatus?: EventLifecycleStatus;
   publicVisibility?: EventPublicVisibility;
@@ -387,6 +389,8 @@ export interface GuestManagementData {
   teaMenu: TeaMenuItem[];
   guestInvites?: GuestInvite[];
   briefingCards?: BriefingCard[];
+  /** Set only for a confirmed seat at a tasting; sessionId stays null until the first guest opens it. */
+  tasting?: { sessionId: string | null } | null;
 }
 
 // ============================================================

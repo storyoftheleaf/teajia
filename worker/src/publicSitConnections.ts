@@ -9,10 +9,18 @@ export const publicSitProfile = `(c.is_published = 1 OR (c.unpublished_at IS NUL
   SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
 ))) AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`;
 
+/**
+ * The one test of a public recap: every place a recap is shown asks it (the
+ * recap pages, recent sessions, a person's sit links, the Tea Table). A recap
+ * the platform owner hid is gone from all of them (A4 review, finding 2);
+ * its host taking it off the Tea Table alone leaves it on its own page.
+ */
+export const RECAP_NOT_HIDDEN = 'e.tea_table_hidden_at IS NULL';
+
 export const publishedSitRecap = `
   e.lifecycle_status IN ('completed','archived')
   AND e.recap_status = 'published' AND e.public_visibility = 'public'
-  AND a.status = 'active' AND a.public_enabled = 1
+  AND a.status = 'active' AND a.public_enabled = 1 AND ${RECAP_NOT_HIDDEN}
   AND EXISTS (SELECT 1 FROM event_post_session ps WHERE ps.account_id = e.account_id AND ps.event_id = e.id)`;
 
 const exactPublicCredit = `
@@ -32,7 +40,7 @@ const json = (value: unknown, status = 200) => Response.json(value, {
   headers: { 'Cache-Control': 'no-store' },
 });
 
-const formalSessionCardColumns = `
+export const formalSessionCardColumns = `
   e.slug, e.title, e.event_date,
   (SELECT session_notes FROM event_post_session ps
     WHERE ps.event_id = e.id AND ps.account_id = e.account_id LIMIT 1) AS writing,
@@ -51,9 +59,9 @@ const formalSessionCardColumns = `
     WHERE menu.name IS NOT NULL) AS teas_json`;
 
 type SessionCardTea = { id: string; name: string; type: string | null };
-type SessionCardRow = { slug: string; title: string; event_date: string; writing: string | null;
+export type SessionCardRow = { slug: string; title: string; event_date: string; writing: string | null;
   gallery_photo: unknown; served_teas_json: string | null; teas_json: string; role?: SitCreditRole; host?: string };
-function sessionCards(rows: SessionCardRow[], includeGallery = true) {
+export function sessionCards(rows: SessionCardRow[], includeGallery = true) {
   return rows.map(({ writing, gallery_photo, served_teas_json, teas_json, ...row }) => ({
     ...row, writing: writing?.trim().slice(0, 280) ?? '',
     galleryPhoto: includeGallery && typeof gallery_photo === 'string' ? gallery_photo : null,

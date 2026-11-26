@@ -54,7 +54,7 @@ export function PhotographThumb({ photo, size = 'row', onOpen, testId, label, cl
       data-testid={testId}
       data-shape={photographShape(photo.shape)}
       data-size={size}
-      className={['photo-thumb', className].filter(Boolean).join(' ')}
+      className={['tap-target photo-thumb', className].filter(Boolean).join(' ')}
     >
       <FramedImage photo={photo} src={photo.smallSrc} lazy />
     </Button>
@@ -93,7 +93,7 @@ export function PhotographZoom({ photo, onClose, children }: {
       data-testid="photograph-zoom"
       onClick={event => { if (event.target === event.currentTarget) onClose(); }}
     >
-      <Button variant="icon" type="button" ref={closeRef} onClick={onClose} aria-label="Close" className="photo-zoom__close">
+      <Button variant="icon" type="button" ref={closeRef} onClick={onClose} aria-label="Close" className="tap-target photo-zoom__close">
         <X className="h-5 w-5" aria-hidden="true" />
       </Button>
       <figure className="photo-zoom__figure" data-shape={photographShape(photo.shape)}>

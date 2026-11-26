@@ -4,8 +4,11 @@ import { Button } from '../components/shared/Button';
 import { GuestBook } from '../components/events/GuestBook';
 import { PlaylistSection } from '../components/events/PlaylistSection';
 import { PrivateKeptSetup } from '../components/events/PrivateKeptSetup';
+import { SessionGallery } from '../components/events/SessionGallery';
 import { ThanksTeas } from '../components/events/ThanksTeas';
+import { PaperNotesLine } from '../components/events/PaperNotesLine';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
+import { anyoneHostsOpen } from '../lib/anyoneHosts';
 import { currentSignInToken } from '../lib/api';
 import { firstTableOpen } from '../lib/firstTable';
 import { afterSitDeviceKey, getAfterSitCredential, lookupAfterSitRecap, subscribeAfterSitCredential, type AfterSitRecap } from '../lib/afterSitAccess';
@@ -93,8 +96,12 @@ function SitRecap({ recap, deviceKey, credential }: { recap: AfterSitRecap; devi
         </p>
       )}
       {recap.playlist_url && <PlaylistSection playlistUrl={recap.playlist_url} />}
+      {/* The paper notes offer (J8) and the photographs from the table (J7) are Launch 3's:
+          with its switch off the page is main's (A3). */}
+      {anyoneHostsOpen() && recap.is_tasting && <PaperNotesLine teas={recap.journal_teas ?? []} />}
       <PrivateKeptSetup token={credential} setupId={recap.event.id} teas={recap.teas}
         afterSit={{ cacheKey: deviceKey, deviceFallback: <DeviceSetup key={deviceKey} recap={recap} deviceKey={deviceKey} /> }} />
+      {anyoneHostsOpen() && <SessionGallery credential={credential} galleryKey={deviceKey} setupId={recap.event.id} />}
       <GuestBook token={credential} afterSitKey={deviceKey} setupId={recap.event.id} teas={recap.teas} />
     </>
   );

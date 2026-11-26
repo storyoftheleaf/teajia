@@ -25,6 +25,7 @@
  * any "coming soon" panel and publish it, no code change required.
  */
 import React, { useMemo, useState } from 'react';
+import { ReadShelves } from '../../components/shared/ReadShelves';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -470,6 +471,8 @@ const CraftIndex: React.FC = () => {
       </nav>
 
       <article style={{ position: 'relative', zIndex: 1 }}>
+
+        <ReadShelves here="craft" />
 
         {/* MASTHEAD */}
         <header style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: 'clamp(54px,9vw,118px) clamp(24px,5vw,56px) clamp(34px,5vw,56px)', overflow: 'hidden' }}>

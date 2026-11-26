@@ -15,6 +15,27 @@ type ScopedMember = { accountId: string | null; userId: string };
 type SetupPhoto = { id: string; tea_id: string | null; created_at: string; own?: boolean | number; shared?: boolean | number };
 type PendingPhoto = { id: string; file: File; prepared?: Blob };
 
+/** The size a kept-setup photo is saved at, after the shared photo editor. */
+export async function prepareSetupPhoto(file: File) {
+  const prepared = await compressImage(file, 1200, 0.78);
+  return prepared.size > FAMILY_FULL_MAX_BYTES ? compressImage(file, 900, 0.7) : prepared;
+}
+
+/** Save one prepared photo privately to a kept setup (or private sit). */
+export function uploadSetupPhoto(
+  endpoint: string, scope: ScopedMember, prepared: Blob, photoId: string, teaId?: string | null,
+): Promise<SetupPhoto> {
+  const body = new FormData();
+  body.append('image', prepared, 'setup-photo.jpg');
+  body.append('photo_id', photoId);
+  if (teaId) body.append('tea_id', teaId);
+  return authedFetch(endpoint, { cache: 'no-store', expectedAuth: scope, method: 'POST', body, retryTimeouts: true });
+}
+
+/** The private photo endpoint of one kept setup. */
+export const keptSetupPhotosEndpoint = (setupId: string) =>
+  `${API_URL}/api/me/personal-kept-setups/${encodeURIComponent(setupId)}/photos`;
+
 export function KeptSetupPhotoContext({ setupId, teas }: { setupId: string; teas: Array<{ id: string; name: string }> }) {
   const [teaId, setTeaId] = useState('');
   return (
@@ -73,18 +94,8 @@ function SubjectPhotos({ scope, endpoint, setupId, teaId, memberSit }: {
       for (const photo of selection) {
         let prepared = photo.prepared;
         try {
-          if (!prepared) {
-            prepared = await compressImage(photo.file, 1200, 0.78);
-            if (prepared.size > FAMILY_FULL_MAX_BYTES) prepared = await compressImage(photo.file, 900, 0.7);
-          }
-          const body = new FormData();
-          body.append('image', prepared, 'setup-photo.jpg');
-          body.append('photo_id', photo.id);
-          if (teaId) body.append('tea_id', teaId);
-          const savedPhoto: SetupPhoto = await authedFetch(endpoint, {
-            ...options, method: 'POST', body, retryTimeouts: true,
-          });
-          saved.push(savedPhoto);
+          if (!prepared) prepared = await prepareSetupPhoto(photo.file);
+          saved.push(await uploadSetupPhoto(endpoint, scope, prepared, photo.id, teaId));
         } catch {
           failed.push({ ...photo, prepared });
         }

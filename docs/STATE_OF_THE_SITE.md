@@ -16,6 +16,14 @@ Releases 1–3 of the launch-to-real-use program are implemented on the branch a
 
 The real-world launch is not complete. Deployment, production-data judgment, real operators, mainland conditions, and approved editorial content cannot be proven by local fixtures. Their single checklist is [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md).
 
+## Launch 5 branch update, 2026-11-26
+
+**Built on `build/launch-5`, finished on `build/l5-finish`. Every part is off until shipped.** Tea credit for hosts (`HOST_CREDIT_OPEN`) earns on orders that began from a host's thank-you once the shop fills them, and is used on the host's own order only with the owner's approval; it has worker routes and no screens yet (a separate build). Circles and series (`CIRCLES_OPEN`) and a host's own assistant key (`HOST_TOKENS_OPEN`) are on `/account/host`. The card for the table (`TABLE_CARD_OPEN`) prints from a public session in Manage. The first three also need `FEW_HOSTS_OPEN`. Checked by `tests/launch-5.spec.ts` in the offline sandbox and by the worker tests named in the review, `/mnt/project-files/guests-build/a5-launch-5-review.md`.
+
+## Launch 3 branch update, 2026-11-26
+
+**Built on `build/launch-3`. `ANYONE_HOSTS_OPEN` defaults to off until shipped, and needs `FEW_HOSTS_OPEN` too.** Anyone signed in can host by request from their own private account. Adrian's approval adds the by-link door; he can stop a host and set their reach in Manage. Reports, the host's guest book review, the after-sit gallery, tastings, the waiting list with released seats and seat notices, reach and the open door, the contribution line and the [Launch 3 agent tools](../worker/src/mcpTools/launch3.ts) all close with the switch. The privacy review is `guests-build/a3-launch-3-privacy-review.md`; its fixes are guarded by [a3-launch-3-privacy.test.ts](../worker/tests/a3-launch-3-privacy.test.ts).
+
 ## Launch 2 branch update, 2026-11-26
 
 **Built on `build/launch-2`. `FEW_HOSTS_OPEN` defaults to off until shipped.** An approved host opens `/account/host` directly to make an unlisted table from their own private Tea Chest account. By-link guests can take a seat by name while seats are available. By-request guests give a name and contact and need the host's approval. Adrian controls who can host in Manage → Settings → Platform.

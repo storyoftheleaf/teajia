@@ -3,6 +3,8 @@ import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, ChevronDown, Users, BookOpen, Edit3, UserCheck } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
 import { useParallax } from '../../hooks/useParallax';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -12,6 +14,9 @@ import AvailabilityBadge from './AvailabilityBadge';
 import { GroupHead, IndexRow, SplitName } from '../people/immersive';
 import type { PublicPerson } from '../../types';
 import EventCountdown from './EventCountdown';
+import { ReportLink } from '../shared/ReportLink';
+import { yourTableLine } from '../../lib/yourTablePlace';
+import { SessionSeriesLine } from './SessionSeriesLine';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
 interface PublicTeaMenuProps {
@@ -20,8 +25,24 @@ interface PublicTeaMenuProps {
 
 type PublicEvent = TeaEvent & {
   reading?: { slug: string; title: string } | null;
+  contribution_kind?: 'free' | 'contribution' | 'price' | null;
+  contribution_note?: string | null;
 };
 
+function contributionLine(event: PublicEvent): string | null {
+  if (!anyoneHostsOpen()) return null;
+  const note = event.contribution_note;
+  switch (event.contribution_kind) {
+    case 'free':
+      return note ? `Free. ${note}` : 'Free.';
+    case 'contribution':
+      return note ? `By contribution. ${note}` : 'By contribution.';
+    case 'price':
+      return note || null;
+    default:
+      return null;
+  }
+}
 /** A person on the session's page: their name, and their page when they have one. */
 type SessionPerson = { name: string; path: string | null };
 const isSessionPerson = (value: unknown): value is SessionPerson =>
@@ -361,15 +382,21 @@ const EventLanding: React.FC = () => {
   const eventDate: string = ev.eventDate ?? ev.event_date;
   const flyerImageUrl: string | undefined = ev.flyerImageUrl ?? ev.flyer_image_url;
   const locationName: string | undefined = ev.locationName ?? ev.location_name;
-  const areaHint: string | undefined = ev.areaHint ?? ev.area_hint;
+  // Launch 4, K4: a session at the host's own table is described by its area only.
+  const tableLine = yourTableLine(ev.your_table, ev.host?.name);
+  const areaHint: string | undefined = tableLine ?? ev.areaHint ?? ev.area_hint;
   const confirmedCount: number = (ev.confirmedCount ?? ev.confirmed_count) as number ?? 0;
   const seatsRemaining: number = (ev.seatsRemaining ?? ev.seats_remaining) as number ?? 0;
   const guidelinesText: string | undefined = ev.guidelinesText ?? ev.guidelines_text;
   const venueGuide: any = ev.venueGuide ?? (ev.venue_guide ? (typeof ev.venue_guide === 'string' ? JSON.parse(ev.venue_guide) : ev.venue_guide) : undefined);
   const moodHints: string[] | undefined = ev.moodHints ?? (ev.mood_hints ? (typeof ev.mood_hints === 'string' ? JSON.parse(ev.mood_hints) : ev.mood_hints) : undefined);
-  const eventFormat: import('../../types/events').EventFormat | undefined = ev.format ?? ev.event_format ?? undefined;
+  // A person's table carries the default format; its label follows whether the host made it a tasting (J13 finding 4).
+  const eventFormat: import('../../types/events').EventFormat | undefined = ev.private_host === true
+    ? (ev.is_tasting === true ? 'public_tasting' : undefined)
+    : ev.format ?? ev.event_format ?? undefined;
   const gatheringType: import('../../types/events').GatheringType | undefined = ev.gatheringType ?? ev.gathering_type ?? undefined;
   const reading = ev.reading;
+  const contribution = contributionLine(event);
   // requires_approval: raw integer from worker (0 or 1); default true for old events without the column
   const rawRequiresApproval = ev.requires_approval ?? ev.requiresApproval;
   const isInstantConfirm = rawRequiresApproval === false || rawRequiresApproval === 0;
@@ -534,6 +561,12 @@ const EventLanding: React.FC = () => {
             </div>
           )}
 
+          {contribution && (
+            <p data-testid="session-contribution" className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec break-words mb-5`}>
+              {contribution}
+            </p>
+          )}
+
           {(sessionHost || pouring.length > 0) && (
             <div className="flex flex-col items-center gap-1 mb-6 text-ui-13 text-tea-text-sec" data-testid="session-people">
               {sessionHost && (
@@ -552,6 +585,8 @@ const EventLanding: React.FC = () => {
               )}
             </div>
           )}
+
+          <SessionSeriesLine series={ev.series} />
 
           {reading && (
             <a
@@ -841,6 +876,7 @@ const EventLanding: React.FC = () => {
               Hosted by {ev.account_name ?? ev.accountName ?? 'Teajia'}
             </p>
           )}
+          {slug && <ReportLink targetKind="session" targetSlug={slug} />}
         </div>
       </div>
 

@@ -1,10 +1,11 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/shared/Button';
 import { GuestBookPhotoTile } from '../../components/events/GuestBookPhotoTile';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { ApiError } from '../../lib/api';
-import { guestBookApi, type GuestBookAction, type GuestBookReviewEntry, type GuestBookStatus } from '../../lib/guestBookApi';
+import { useStepParam } from '../../hooks/useStepParam';
+import { guestBookApi, type GuestBookAction, type GuestBookReviewEntry, type GuestBookReviewer, type GuestBookStatus } from '../../lib/guestBookApi';
 import { guestBookPhotoApi, type ReviewPhoto } from '../../lib/guestBookPhotoApi';
 import { groupGuestBookEntries } from '../../lib/groupGuestBookEntries';
 import { useAppStore } from '../../lib/store';
@@ -21,26 +22,32 @@ type ReviewInput =
   | { kind: 'note'; part: GuestBookReviewEntry; action: GuestBookAction }
   | { kind: 'photo'; part: ReviewPhoto; action: GuestBookAction };
 
-export function GuestBookReview({ eventId }: { eventId: string }) {
+export function GuestBookReview({ eventId, reviewer = 'staff' }: { eventId: string; reviewer?: GuestBookReviewer }) {
   const accountId = useAppStore(state => state.activeAccountId);
   const userId = useAppStore(state => state.activeUserId);
-  if (!accountId || !userId) return null;
+  if (!userId || (reviewer === 'staff' && !accountId)) return null;
 
-  return <ReviewPanel key={JSON.stringify([accountId, userId, eventId])} eventId={eventId} accountId={accountId} userId={userId} />;
+  return <ReviewPanel key={JSON.stringify([reviewer, accountId, userId, eventId])}
+    eventId={eventId} accountId={accountId} userId={userId} reviewer={reviewer} />;
 }
 
-function ReviewPanel({ eventId, accountId, userId }: { eventId: string; accountId: string; userId: string }) {
+function ReviewPanel({ eventId, accountId, userId, reviewer }: {
+  eventId: string; accountId: string | null; userId: string; reviewer: GuestBookReviewer;
+}) {
   const headingId = useId();
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useStepParam('review-page', '1');
+  const pagedIndex = /^\d+$/.test(page) ? Math.max(0, Number(page) - 1) : 0;
+  const host = reviewer === 'host';
+  const statusLabel = (status: GuestBookStatus) => host && status === 'passed' ? 'Hidden' : REVIEW_STATUS[status];
   const queryClient = useQueryClient();
-  const queryKey = ['guest-book-review', accountId, userId, eventId];
+  const queryKey = ['guest-book-review', reviewer, accountId, userId, eventId];
   const expectedAuth = { accountId, userId };
   const query = useQuery({
     queryKey,
     queryFn: async ({ signal }) => {
       const [notes, pictures] = await Promise.all([
-        guestBookApi.listForReview(eventId, expectedAuth),
-        guestBookPhotoApi.staffList(eventId, expectedAuth, signal),
+        guestBookApi.listForReview(eventId, expectedAuth, reviewer, signal),
+        guestBookPhotoApi.listForReview(eventId, expectedAuth, reviewer, signal),
       ]);
       return groupGuestBookEntries(notes.entries, pictures.photos)
         .map(entry => ({
@@ -59,8 +66,8 @@ function ReviewPanel({ eventId, accountId, userId }: { eventId: string; accountI
     gcTime: 0,
     networkMode: 'always',
     mutationFn: ({ kind, part, action }: ReviewInput) => kind === 'note'
-      ? guestBookApi.review(eventId, part, action, expectedAuth)
-      : guestBookPhotoApi.staffReview(eventId, part, action, expectedAuth),
+      ? guestBookApi.review(eventId, part, action, expectedAuth, reviewer)
+      : guestBookPhotoApi.review(eventId, part, action, expectedAuth, reviewer),
     onSuccess: refresh,
     onError: async error => {
       if (error instanceof ApiError && error.status === 409) await refresh();
@@ -70,12 +77,15 @@ function ReviewPanel({ eventId, accountId, userId }: { eventId: string; accountI
   if (unavailable) return null;
   const conflict = review.error instanceof ApiError && review.error.status === 409;
   const entries = query.data ?? [];
-  const currentPage = Math.min(page, Math.max(0, Math.ceil(entries.length / PAGE_SIZE) - 1));
+  const currentPage = Math.min(pagedIndex, Math.max(0, Math.ceil(entries.length / PAGE_SIZE) - 1));
   const displayed = entries.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const Heading = host ? 'h3' : 'h2';
 
   return (
     <section aria-labelledby={headingId} className="mt-6 border-t border-tea-border pt-4">
-      <h2 id={headingId} className={TYPOGRAPHY_CLASSES.h2}>Guest Book</h2>
+      <Heading id={headingId} className={host ? TYPOGRAPHY_CLASSES.h3 : TYPOGRAPHY_CLASSES.h2}>
+        {host ? 'Guest Book contributions' : 'Guest Book'}
+      </Heading>
       {query.isPending ? (
         <p role="status" className={TYPOGRAPHY_CLASSES.bodyLight}>Loading Guest Book entries…</p>
       ) : query.isError ? (
@@ -87,7 +97,10 @@ function ReviewPanel({ eventId, accountId, userId }: { eventId: string; accountI
         <p className={TYPOGRAPHY_CLASSES.bodyLight}>No entries submitted yet.</p>
       ) : (
         <>
-          <p className={TYPOGRAPHY_CLASSES.bodyLight}>Included notes and photos are visible to verified session guests.</p>
+          <p className={TYPOGRAPHY_CLASSES.bodyLight}>
+            {host ? 'Hide notes or photos from the session’s pages. You can bring them back here.' :
+              'Included notes and photos are visible to verified session guests.'}
+          </p>
           {review.isError && (
             <p role="alert" className="mt-2 text-ui-13 text-tea-text-sec">
               {conflict ? 'This entry changed. Check it before reviewing again.' : 'Could not save the review. Try again.'}
@@ -96,26 +109,28 @@ function ReviewPanel({ eventId, accountId, userId }: { eventId: string; accountI
           <ul aria-label="Guest Book entries for review" className="mt-2 divide-y divide-tea-border">
             {displayed.map(({ key, displayName, note, photos }) => (
               <li key={key} className="space-y-2 py-3">
-                <h3 className="truncate text-ui-14 font-medium text-tea-text">{displayName}</h3>
+                {displayName && <p className="truncate text-ui-14 font-medium text-tea-text">{displayName}</p>}
                 {note && (
                   <div className="flex flex-wrap items-start gap-2">
                     <div className="min-w-0 flex-1">
                       <p className={`${TYPOGRAPHY_CLASSES.bodyLight} whitespace-pre-wrap break-words`}>{note.note}</p>
-                      <p role="status" className="text-ui-12 text-tea-text-sec">Note · {REVIEW_STATUS[note.status]}</p>
+                      <p role="status" className="text-ui-12 text-tea-text-sec">Note · {statusLabel(note.status)}</p>
                     </div>
-                    <ReviewActions kind="note" name={displayName} status={note.status} busy={review.isPending}
+                    <ReviewActions subject={`note from ${note.display_name}`} status={note.status} busy={review.isPending} host={host}
                       onReview={action => review.mutate({ kind: 'note', part: note, action })} />
                   </div>
                 )}
                 {photos.map(photo => (
                   <div key={photo.id} className="flex flex-wrap items-center gap-2">
-                    <GuestBookPhotoTile queryKey={[...queryKey, 'photo', photo.id]} alt={photo.alt_text} title={`Photo by ${displayName}`}
-                      load={signal => guestBookPhotoApi.staffRead(eventId, photo.id, expectedAuth, signal)} />
+                    <GuestBookPhotoTile queryKey={[...queryKey, 'photo', photo.id]} previewId={photo.id} alt={photo.alt_text}
+                      title={photo.display_name ? `Photo by ${photo.display_name}` : 'Photo from the table'}
+                      load={signal => guestBookPhotoApi.readForReview(eventId, photo.id, expectedAuth, reviewer, signal)} />
                     <div className="min-w-0 flex-1">
                       <p className="break-words text-ui-13 text-tea-text">{photo.alt_text}</p>
-                      <p role="status" className="text-ui-12 text-tea-text-sec">Photo · {REVIEW_STATUS[photo.status]}</p>
+                      <p role="status" className="text-ui-12 text-tea-text-sec">Photo · {statusLabel(photo.status)}</p>
                     </div>
-                    <ReviewActions kind="photo" name={displayName} status={photo.status} busy={review.isPending}
+                    <ReviewActions subject={host ? `photo: ${photo.alt_text}` : `photo from ${displayName}`}
+                      status={photo.status} busy={review.isPending} host={host}
                       onReview={action => review.mutate({ kind: 'photo', part: photo, action })} />
                   </div>
                 ))}
@@ -124,9 +139,10 @@ function ReviewPanel({ eventId, accountId, userId }: { eventId: string; accountI
           </ul>
           {entries.length > PAGE_SIZE && (
             <nav aria-label="Guest Book review pages" className="flex flex-wrap gap-2">
-              <Button variant="quiet" size="sm" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous entries</Button>
+              <Button variant="quiet" size="sm" disabled={currentPage === 0}
+                onClick={() => setPage(currentPage === 1 ? null : String(currentPage))}>Previous entries</Button>
               <Button variant="quiet" size="sm" disabled={currentPage + 1 >= Math.ceil(entries.length / PAGE_SIZE)}
-                onClick={() => setPage(currentPage + 1)}>Next entries</Button>
+                onClick={() => setPage(String(currentPage + 2))}>Next entries</Button>
             </nav>
           )}
         </>
@@ -135,19 +151,21 @@ function ReviewPanel({ eventId, accountId, userId }: { eventId: string; accountI
   );
 }
 
-function ReviewActions({ kind, name, status, busy, onReview }: {
-  kind: 'note' | 'photo'; name: string; status: GuestBookStatus; busy: boolean; onReview: (action: GuestBookAction) => void;
+function ReviewActions({ subject, status, busy, host, onReview }: {
+  subject: string; status: GuestBookStatus; busy: boolean; host: boolean; onReview: (action: GuestBookAction) => void;
 }) {
+  const pass = host ? 'Hide' : status === 'included' ? 'Remove' : 'Pass';
+  const include = host && status === 'passed' ? 'Bring back' : 'Include';
   return (
     <div className="ml-auto flex flex-wrap gap-2">
       {status !== 'passed' && (
-        <Button type="button" size="sm" variant="quiet" disabled={busy}
-          aria-label={`${status === 'included' ? 'Remove' : 'Pass on'} ${kind} from ${name}`}
-          onClick={() => onReview('pass')}>{status === 'included' ? 'Remove' : 'Pass'}</Button>
+        <Button type="button" size="sm" variant="quiet" className="tap-target" disabled={busy}
+          aria-label={`${pass === 'Pass' ? 'Pass on' : pass} ${subject}`}
+          onClick={() => onReview('pass')}>{pass}</Button>
       )}
       {status !== 'included' && (
-        <Button type="button" size="sm" variant="secondary" disabled={busy} aria-label={`Include ${kind} from ${name}`}
-          onClick={() => onReview('include')}>Include</Button>
+        <Button type="button" size="sm" variant="secondary" className="tap-target" disabled={busy}
+          aria-label={`${include} ${subject}`} onClick={() => onReview('include')}>{include}</Button>
       )}
     </div>
   );

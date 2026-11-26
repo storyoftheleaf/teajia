@@ -228,3 +228,77 @@ describe('deleting an account with things on the family pages', () => {
     expect(db.sqlite.prepare(`SELECT shop_use, shop_decided_by FROM member_photographs WHERE id = 'photo-2'`).get()).toEqual({ shop_use: 'placed', shop_decided_by: null });
   });
 });
+
+// A4 review (2026-11-26), finding 3: a tasting the owner hid takes its
+// photographs and quotes with it, and an offered tasting made private takes
+// its placed or lead photograph off the tea page.
+describe('a hidden or private tasting leaves nothing behind', () => {
+  const card = async (env: any) => (await read(env, null, '/api/people/mei')).tastings.find((t: any) => t.product_id === 'tea-a');
+  const everyPhoto = (tea: any) => [tea.lead?.id, ...tea.placed.map((p: any) => p.id), ...tea.family.map((p: any) => p.id)].filter(Boolean);
+
+  it('the owner\'s hide of a tasting takes its photograph card and its quotes too, and unhiding brings them back', async () => {
+    const { env, db } = setup();
+    expect((await card(env)).photographs.map((p: any) => p.id)).toEqual(['photo-1', 'photo-2']);
+    // The photographs name no journal row: the hide still reaches them through the author and the tea.
+    db.sqlite.prepare(`UPDATE member_photographs SET journal_entry_id = NULL`).run();
+    expect((await call(env, OWNER, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'tasting', target_id: 'journal-one' } })).status).toBe(200);
+    expect(await card(env)).toBeUndefined();
+    expect(await read(env, null, '/api/products/tea-a/impressions')).toEqual([]);
+    expect(await read(env, null, `/api/s/${SLUG}/tasting-excerpts`)).toEqual([]);
+    expect(everyPhoto(await read(env, null, '/api/family/teas/tea-a/photographs'))).toEqual([]);
+    expect((await call(env, null, '/api/media/family-photos/photo-1/small.jpg')).status).toBe(404);
+    expect((await call(env, null, '/api/media/family-photos/photo-2/small.jpg')).status).toBe(404);
+    expect((await call(env, OWNER, '/api/admin/family/unhide', { method: 'POST', body: { target_kind: 'tasting', target_id: 'journal-one' } })).status).toBe(200);
+    expect((await card(env)).photographs.map((p: any) => p.id)).toEqual(['photo-1', 'photo-2']);
+    expect(await read(env, null, '/api/products/tea-a/impressions')).toHaveLength(1);
+  });
+
+  it('an offered tasting made private takes its placed and lead photographs off the tea page', async () => {
+    const { env, db } = setup();
+    db.sqlite.prepare(`UPDATE member_photographs SET shop_use = 'lead', shop_use_before_lead = 'placed' WHERE id = 'photo-1'`).run();
+    expect(await read(env, null, '/api/family/teas/tea-a/photographs')).toMatchObject({ lead: { id: 'photo-1' }, placed: [{ id: 'photo-2' }] });
+    expect((await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'private' } })).status).toBe(200);
+    expect(await read(env, null, '/api/family/teas/tea-a/photographs')).toMatchObject({ lead: null, placed: [], family: [] });
+    expect(db.sqlite.prepare(`SELECT id, shop_use FROM member_photographs ORDER BY id`).all()).toEqual([
+      { id: 'photo-1', shop_use: 'none' }, { id: 'photo-2', shop_use: 'none' },
+    ]);
+    expect((await call(env, null, '/api/media/family-photos/photo-2/small.jpg')).status).toBe(404);
+    // The shop cannot place it again while it is private.
+    for (const action of ['lead', 'place']) {
+      const refused = await call(env, OWNER, `/api/admin/family/photographs/photo-2/${action}`, { method: 'POST' });
+      expect(refused.status).toBe(409);
+      expect(((await refused.json()) as any).code).toBe('made_private');
+    }
+  });
+
+  it('one photograph made private leaves the tea page too, even when placed', async () => {
+    const { env } = setup();
+    expect((await call(env, MEMBER, '/api/family/photographs/photo-2/share', { method: 'PUT', body: { share_state: 'private' } })).status).toBe(200);
+    expect(everyPhoto(await read(env, null, '/api/family/teas/tea-a/photographs'))).toEqual(['photo-1']);
+    expect((await call(env, null, '/api/media/family-photos/photo-2/small.jpg')).status).toBe(404);
+  });
+});
+
+// A4 review, finding 4: what can be taken back is never kept by a browser or a cache.
+describe('revocable answers are not cached', () => {
+  it('sends no-store on a person\'s page and a tea\'s photographs, and revalidation on family photographs', async () => {
+    const { env } = setup();
+    for (const path of ['/api/people/mei', '/api/family/teas/tea-a/photographs']) {
+      const response = await call(env, null, path);
+      expect(response.status, path).toBe(200);
+      expect(response.headers.get('Cache-Control'), path).toBe('no-store');
+    }
+    const photo = await call(env, null, '/api/media/family-photos/photo-1/small.jpg');
+    expect(photo.status).toBe(200);
+    expect(photo.headers.get('Cache-Control')).toBe('private, no-cache');
+  });
+
+  // Kept with every Launch 4 switch off: these are withdrawal fixes, not Launch 4 features.
+  it('keeps no-store on a recap that is gone, with every switch off', async () => {
+    const { env } = setup();
+    expect((env as Record<string, unknown>).TEA_TABLE_OPEN).toBeUndefined();
+    const gone = await call(env, null, '/api/events/no-such-sit/recap');
+    expect(gone.status).toBe(404);
+    expect(gone.headers.get('Cache-Control')).toBe('no-store');
+  });
+});

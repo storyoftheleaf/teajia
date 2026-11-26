@@ -4,15 +4,20 @@
  * A photograph's address holds an unguessable id, but an address that was once
  * public stays in anyone's history. So a stored family photograph is served to
  * the public only while it is on show: shared to a page or offered, not taken
- * off the page by its author, and not hidden by the shop (or the shop's own
- * placed or lead picture, which stays on the tea page by design). Everyone
- * else, the author looking at a private picture and the shop reading its pile,
- * gets a short-lived signed address from this module.
+ * off the page by its author, and not hidden by the shop, with the tasting it
+ * belongs to. A placed or lead picture its author made private is withdrawn
+ * too (A4 review, finding 3). Everyone else, the author looking at a private
+ * picture and the shop reading its pile, gets a short-lived signed address
+ * from this module.
  *
  * Other keys are not family photographs and are not decided here.
  */
+import { PHOTO_TASTING_NOT_HIDDEN } from './familyPersonTastings';
+
 const MEDIA_PREFIX = 'https://media.teajia.co/';
 export const FAMILY_PHOTO_KEY_PREFIX = 'family-photos/';
+/** A question's photograph on the Tea Table lives under the family prefix, so it is never served without this door's yes. */
+export const QUESTION_PHOTO_KEY_PREFIX = `${FAMILY_PHOTO_KEY_PREFIX}tea-table-questions/`;
 const SIGNED_SECONDS = 12 * 60 * 60;
 
 const hex = (bytes: ArrayBuffer) => Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -54,6 +59,13 @@ export async function familyMediaVerdict(
 ): Promise<FamilyMediaVerdict> {
   if (!key.startsWith(FAMILY_PHOTO_KEY_PREFIX)) return 'not-family';
   if (await validSignature(secret, key, params)) return 'signed';
+  if (key.startsWith(QUESTION_PHOTO_KEY_PREFIX)) {
+    // "Does anyone know this tea?" (knowThisTea.ts): public only while the question is on the table.
+    const question = await db.prepare(
+      `SELECT 1 AS ok FROM tea_table_questions WHERE (full_key = ?1 OR small_key = ?1) AND taken_off_at IS NULL AND hidden_at IS NULL`,
+    ).bind(key).first();
+    return question ? 'public' : 'refused';
+  }
   const row = await db.prepare(
     `SELECT 1 AS ok FROM member_photographs p
        JOIN products lot ON lot.id = p.product_id AND lot.account_id = p.account_id
@@ -62,9 +74,9 @@ export async function familyMediaVerdict(
         AND a.status = 'active' AND a.public_enabled = 1
         AND (p.full_key = ?1 OR p.small_key = ?1)
         AND p.removed_by_member_at IS NULL
-        AND (p.share_state IN ('page', 'offered') OR (p.offered_at IS NOT NULL AND p.shop_use IN ('placed', 'lead')))
+        AND p.share_state IN ('page', 'offered')
         AND NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)
-        AND NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'tasting' AND h.target_id = p.journal_entry_id)
+        AND ${PHOTO_TASTING_NOT_HIDDEN}
         AND NOT EXISTS (SELECT 1 FROM family_hides h JOIN contributors hc ON hc.id = h.target_id
                          WHERE h.account_id = p.account_id AND h.target_kind = 'page' AND hc.user_id = p.author_user_id)`,
   ).bind(key).first();

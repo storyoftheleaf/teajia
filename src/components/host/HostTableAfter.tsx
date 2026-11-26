@@ -3,10 +3,12 @@
 // Below it sits the host's private guest book (GuestBookPrivate, H9).
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { GuestBookReview } from '../../admin/components/GuestBookReview';
 import { Button } from '../shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useStepParam } from '../../hooks/useStepParam';
 import { api } from '../../lib/api';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import type { HostedTableGuest } from '../../lib/hostingApi';
 import { GuestBookPrivate } from './GuestBookPrivate';
 import { hostSmallText, hostTableQueryKey, hostText, tableHasBegun, type HostTablePartProps } from './hostTableParts';
@@ -18,6 +20,8 @@ export function HostTableAfter(props: HostTablePartProps) {
     <section aria-labelledby="host-part-after" data-host-part="after" className="space-y-5">
       <h2 id="host-part-after" className={TYPOGRAPHY_CLASSES.h2}>After</h2>
       {begun ? <WhoCame {...props} /> : <p className={hostText}>When the table has begun, mark who came here.</p>}
+      {anyoneHostsOpen() && ['completed', 'archived'].includes(detail.table.lifecycle_status) &&
+        <GuestBookReview eventId={props.tableId} reviewer="host" />}
       {begun && <GuestBookPrivate {...props} />}
     </section>
   );

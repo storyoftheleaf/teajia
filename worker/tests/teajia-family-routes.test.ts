@@ -264,7 +264,10 @@ describe('sharing a tasting', () => {
     const publicText = await publicView.text();
     const publicBody = JSON.parse(publicText);
     expect(publicBody.family).toHaveLength(1);
+    // Closed, the tea page credits the photograph as main does (the first-name choice opens with the Tea Table).
     expect(publicBody.family[0].author).toEqual({ name: 'Mei', page_id: null });
+    // Closed, the public answer carries no credit line at all (A4 review, finding 11).
+    expect(publicBody.family[0]).not.toHaveProperty('photograph_by');
     for (const text of [sharedText, publicText, await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).text()]) {
       expect(text).not.toMatch(/rating|verdict|love|secret words/);
     }
@@ -272,6 +275,25 @@ describe('sharing a tasting', () => {
     await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'private' } });
     expect(((await (await call(env, null, '/api/family/teas/tea-a/photographs')).json()) as any).family).toEqual([]);
     expect((await call(env, null, '/api/family/teas/tea-hidden/photographs')).status).toBe(404);
+  });
+
+  it('reads the share line of every own tasting in one call, behind the Your Table page switch', async () => {
+    const { env } = setup();
+    // Closed (the default): the read does not exist.
+    expect((await call(env, MEMBER, '/api/family/tasting-shares')).status).toBe(404);
+    const open = { ...env, YOUR_TABLE_PAGE_OPEN: 'true' };
+    expect((await call(open, null, '/api/family/tasting-shares')).status).toBe(401);
+    // Saved but never shared: no row, which the site reads as private.
+    expect(await (await call(open, MEMBER, '/api/family/tasting-shares')).json()).toEqual({ shares: [] });
+    await call(open, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
+    const read = await call(open, MEMBER, '/api/family/tasting-shares');
+    const text = await read.text();
+    expect(JSON.parse(text)).toEqual({ shares: [{ product_id: 'tea-a', share_state: 'page' }] });
+    expect(text).not.toMatch(/rating|verdict|love|secret words/);
+    // Somebody else never sees another person's choices.
+    expect(await (await call(open, MEMBER_TWO, '/api/family/tasting-shares')).json()).toEqual({ shares: [] });
+    await call(open, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'private' } });
+    expect(await (await call(open, MEMBER, '/api/family/tasting-shares')).json()).toEqual({ shares: [{ product_id: 'tea-a', share_state: 'private' }] });
   });
 });
 
@@ -317,6 +339,7 @@ describe('the shop\'s side', () => {
     expect((await call(env, OWNER, `/api/admin/family/photographs/${third}/lead`, { method: 'POST' })).status).toBe(200);
     tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
     expect(tea.lead).toMatchObject({ id: third, author: { name: 'Mei Lin', page_id: 'mei-page' } });
+    expect(tea.lead).not.toHaveProperty('photograph_by');
 
     // A placed photograph made lead, then a new lead: the old lead steps back to what it was.
     await call(env, OWNER, `/api/admin/family/photographs/${second}/place`, { method: 'POST' });
@@ -405,8 +428,8 @@ describe('the shop\'s side', () => {
     await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
     const shown = await fetchPath(bare);
     expect(shown.status).toBe(200);
-    // Short, never a year: a browser that saw it must lose it within a minute of its removal.
-    expect(shown.headers.get('Cache-Control')).toBe('public, max-age=60');
+    // Never kept: a browser that saw it asks again on every use, so its removal takes effect at once (A4 review, finding 4).
+    expect(shown.headers.get('Cache-Control')).toBe('private, no-cache');
     for (const [status, isPublic, shownInShop] of [['Draft', 1, 1], ['Active', 0, 1], ['Active', 1, 0]] as const) {
       db.sqlite.prepare('UPDATE products SET status = ?, is_public = ?, shown_in_shop = ? WHERE id = ?')
         .run(status, isPublic, shownInShop, 'tea-a');

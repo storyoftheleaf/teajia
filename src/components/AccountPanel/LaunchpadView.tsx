@@ -1,12 +1,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Package, IdentificationCard, Receipt, Footprints, Warning } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Package, IdentificationCard, Receipt, Footprints, Warning, Leaf } from '@phosphor-icons/react';
+import { formatCredit } from '../../lib/hostCreditApi';
+import { TEA_CREDIT_PATH } from '../../hooks/useMyTeaCredit';
 import { daysWord } from './primitives';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
 import type { PayAccessTable } from '../profile/types';
 import { PayAccessRequestRow, soFarLine } from '../profile/PayAccessPanel';
 import { ATLAS_ROOT } from '../../atlas/atlasPaths';
+import { favouritesPath } from '../../lib/favouritesOpen';
+import { HOST_TABLE_PATH, hostedTablesOpen, useMayHost } from '../../hooks/useMayHost';
+import { Button } from '../shared/Button';
 
 interface LaunchpadTile {
   id: string;
@@ -85,6 +90,12 @@ interface LaunchpadViewProps {
   onApprovePayAccess?: (grantId: string) => void;
   onDeclinePayAccess?: (grantId: string) => void;
   payAccessBusy?: boolean;
+  /**
+   * A host's own tea credit (Launch 5, HOST_CREDIT_OPEN), worked out by the
+   * worker. `null` when the switch is closed, nobody is signed in, or this
+   * person has no credit rows: then there is no tile at all.
+   */
+  teaCredit?: { available: number; currency: string } | null;
 
   // Actions
   onClose: () => void;
@@ -93,9 +104,63 @@ interface LaunchpadViewProps {
   onOpenCellar: () => void;
   onOpenLocationSwitcher: () => void;
   onSignOut: () => void;
+  /**
+   * Your Table as a page (YOUR_TABLE_PAGE_OPEN): the same tiles, each keeping
+   * its word, under the quiet headings of todo/plans/your-table.md decision 3.
+   * Off, the one flat grid as before.
+   */
+  grouped?: boolean;
+}
+
+/**
+ * The page's groups, in order (todo/plans/your-table.md, decision 3). A tile
+ * appears only when the person has it; an empty group is not shown. The last
+ * group carries no heading: tea atlas, library and fixes, for the few who
+ * have them.
+ */
+export const TILE_GROUPS: ReadonlyArray<{ id: string; heading: string | null; tiles: readonly string[] }> = [
+  { id: 'table', heading: 'On your table', tiles: ['steep'] },
+  { id: 'tea', heading: 'Your tea', tiles: ['cellar', 'remember', 'orders', 'credit'] },
+  { id: 'path', heading: 'Your path', tiles: ['sessions', 'journey', 'discover'] },
+  { id: 'page', heading: 'Your page', tiles: ['profile'] },
+  { id: 'houses', heading: 'Your tea houses', tiles: ['switch', 'manage'] },
+  { id: 'more', heading: null, tiles: ['atlas', 'docs', 'fixes'] },
+];
+
+/** The tiles in their groups, in group order; a tile no group names is kept in the last group. */
+export function groupTiles<T extends { id: string }>(tiles: T[]): Array<{ id: string; heading: string | null; tiles: T[] }> {
+  const named = new Set(TILE_GROUPS.flatMap(group => group.tiles));
+  const out = TILE_GROUPS.map(group => ({
+    id: group.id,
+    heading: group.heading,
+    tiles: group.tiles.map(id => tiles.find(tile => tile.id === id)).filter((tile): tile is T => !!tile),
+  }));
+  const loose = tiles.filter(tile => !named.has(tile.id));
+  out[out.length - 1].tiles.push(...loose);
+  return out.filter(group => group.tiles.length > 0);
 }
 
 const ICON_PROPS = { size: 18, weight: 'light' as const };
+
+function HostTableTile({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const { mayHost } = useMayHost();
+  if (!mayHost) return null;
+
+  return (
+    <Button
+      type="button"
+      variant="plain"
+      onClick={() => { onClose(); navigate(HOST_TABLE_PATH); }}
+      className="group mb-4 flex min-h-tap w-full items-center border-y border-tea-border py-2 text-left focus-visible:outline-tea-gold"
+    >
+      <span className="min-w-0">
+        <span className="block font-display text-ui-24 text-tea-text group-hover:text-tea-gold">Host a table</span>
+        <span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">Free to host, and your record is yours.</span>
+      </span>
+    </Button>
+  );
+}
 
 function formatRelativeShort(iso: string | null): string {
   if (!iso) return '—';
@@ -251,12 +316,14 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   onApprovePayAccess,
   onDeclinePayAccess,
   payAccessBusy = false,
+  teaCredit = null,
   onClose,
   onOpenJournal,
   onOpenEvents,
   onOpenCellar,
   onOpenLocationSwitcher,
   onSignOut,
+  grouped = false,
 }) => {
   const navigate = useNavigate();
 
@@ -334,7 +401,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Heart {...ICON_PROPS} />,
       badge: inboundUnreadCount > 0 ? inboundUnreadCount : undefined,
       accent: inboundUnreadCount > 0,
-      onClick: () => { onClose(); navigate('/account/collection'); },
+      onClick: () => { onClose(); navigate(favouritesPath()); },
     },
     {
       // Stock spine step 4: the personal cellar, tea the user actually owns,
@@ -374,6 +441,14 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Receipt {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/orders'); },
     },
+    // Only a host with credit rows has this tile; a guest never sees it.
+    ...(teaCredit ? [{
+      id: 'credit',
+      verb: 'tea credit',
+      hint: teaCredit.available > 0 ? `${formatCredit(teaCredit.available, teaCredit.currency)} to use on tea` : 'from the sessions you host',
+      icon: <Leaf {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate(TEA_CREDIT_PATH); },
+    } as LaunchpadTile] : []),
     {
       id: 'journey',
       verb: 'journey',
@@ -567,9 +642,27 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       )}
 
       {/* ── Tile grid ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
-        {tiles.map(tile => <Tile key={tile.id} {...tile} />)}
-      </div>
+      {hostedTablesOpen() && <HostTableTile onClose={onClose} />}
+      {grouped ? (
+        <div className="space-y-8">
+          {groupTiles(tiles).map(group => (
+            <section key={group.id} aria-label={group.heading ?? undefined} data-testid={`table-group-${group.id}`}>
+              {group.heading && (
+                <h2 className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mb-2 font-normal">
+                  {group.heading}
+                </h2>
+              )}
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
+                {group.tiles.map(tile => <Tile key={tile.id} {...tile} />)}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
+          {tiles.map(tile => <Tile key={tile.id} {...tile} />)}
+        </div>
+      )}
 
       {/* ── Footer: sign out (only thing not a tile, it's an exit) ───────── */}
       <div className="flex justify-center mt-10">

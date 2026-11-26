@@ -148,6 +148,10 @@ export interface IncidentWrite {
   change: IncidentChange;
 }
 
+function incidentKey(signature: string, accountId?: string | null): string {
+  return `${accountId ?? '__global__'}:${signature}`.slice(0, MAX_SIGNATURE_LENGTH);
+}
+
 export async function upsertIncident(
   db: D1Database,
   incident: NormalizedIncident,
@@ -157,7 +161,7 @@ export async function upsertIncident(
   const sampleJson = JSON.stringify(incident.sample);
   // The ledger has a global UNIQUE(signature). Include the verified tenant in
   // that key so one store's report cannot reopen or escalate another's row.
-  const signature = `${context.accountId ?? '__global__'}:${incident.signature}`.slice(0, 240);
+  const signature = incidentKey(incident.signature, context.accountId);
   // Read the status first so the caller can tell a new problem from a repeat.
   // Not atomic with the upsert; two simultaneous first reports may both read
   // "new", which costs at most one extra alert, and the daily cap bounds that.
@@ -213,6 +217,7 @@ export async function upsertIncident(
  */
 export interface HealthProblemInput {
   signature: string;
+  accountId?: string;
   category?: IncidentCategory;
   severity?: IncidentSeverity;
   route?: string;
@@ -233,7 +238,7 @@ export async function recordHealthProblem(db: D1Database, input: HealthProblemIn
     error_code: input.errorCode,
   });
   normalized.safeMessage = input.message.replace(/\s+/g, ' ').trim().slice(0, MAX_STRING_LENGTH);
-  return upsertIncident(db, normalized, { accountId: null, userId: null });
+  return upsertIncident(db, normalized, { accountId: input.accountId ?? null, userId: null });
 }
 
 /**
@@ -241,9 +246,9 @@ export async function recordHealthProblem(db: D1Database, input: HealthProblemIn
  * check can call it on every healthy tick without first asking whether there is
  * anything to clear. Returns whether a row actually changed.
  */
-export async function clearHealthProblem(db: D1Database, signature: string, ref: string): Promise<boolean> {
+export async function clearHealthProblem(db: D1Database, signature: string, ref: string, accountId?: string): Promise<boolean> {
   // The same slug `normalizeIncidentInput` stored it under, or the clear misses.
-  const key = `__global__:${signatureSlug(signature, signature)}`.slice(0, MAX_SIGNATURE_LENGTH);
+  const key = incidentKey(signatureSlug(signature, signature), accountId);
   const result = await db.prepare(`
     UPDATE incident_ledger
        SET status = 'resolved', resolved_at = datetime('now'), resolution_ref = ?

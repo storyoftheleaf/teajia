@@ -19,9 +19,9 @@
  * designed; that is what `set_event_lifecycle` offers.
  *
  * Denying, waitlisting and cancelling an RSVP are also absent, and their
- * absence is deliberate. The admin routes for those call `cascadeWaitlist`,
- * which promotes the first waitlisted party into the freed seat. That helper
- * lives unexported in index.ts, so a tool here could only reimplement it — a
+ * absence is deliberate. The admin routes for those give back seats and offer
+ * them through `worker/src/waitingList.ts`; a tool must call that, never
+ * reimplement it: a
  * second copy of a promotion rule is exactly the shape that once gave this
  * shop four freight rates, and here the cost would be a guest who was promised
  * a seat and never told. See REQUIREMENTS below.
@@ -40,11 +40,9 @@
  *     `worker/tests/mcp-events.test.ts` reads index.ts's source and fails if the
  *     two copies drift, which is a splint, not a fix.
  *
- *  2. `worker/src/index.ts` — `cascadeWaitlist` should move to `eventDomain.ts`
- *     too. It is the reason there is no tool here for denying, waitlisting or
- *     cancelling an RSVP: those routes call it to promote the first waitlisted
- *     party into the freed seat, and a tool that freed a seat without it would
- *     leave a guest who was promised one and never told.
+ *  2. Done in J9: the offer of a freed seat now lives in
+ *     `worker/src/waitingList.ts` (`releaseSeats`, `offerFreedSeats`), which a
+ *     tool for releasing a seat (J12) should call rather than reimplement.
  *
  *  3. `worker/src/mcp.ts` — SERVER_INFO's description still lists inventory,
  *     invoicing and the order process, and says nothing about running a
@@ -90,7 +88,7 @@
 
 import { customerTagList } from '../customerContactHandles';
 import { guestLinkSessions } from '../guestLinkHolders';
-import { seatsTakenSql } from '../hostTableGuests';
+import { SEAT_OF_A_GUEST_STILL_COMING, seatsTakenSql } from '../hostTableGuests';
 import {
   EVENT_TRANSITIONS,
   reservePartySeats,
@@ -233,7 +231,7 @@ const EVENT_SELECT = `
          e.gathering_type, e.public_visibility, e.event_format,
          COALESCE((SELECT COUNT(*) FROM event_party_members pm
            WHERE pm.event_id = e.id AND pm.account_id = e.account_id
-             AND pm.seat_status IN ('held','confirmed')), 0) AS held_seats,
+             AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}), 0) AS held_seats,
          COALESCE((SELECT COUNT(*) FROM event_attendees offer
            WHERE offer.event_id = e.id AND offer.account_id = e.account_id
              AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL

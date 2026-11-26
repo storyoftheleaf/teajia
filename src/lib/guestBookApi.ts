@@ -4,6 +4,7 @@ export const GUEST_BOOK_NOTE_LIMIT = 280;
 
 export type GuestBookStatus = 'pending' | 'included' | 'passed';
 export type GuestBookAction = 'include' | 'pass';
+export type GuestBookReviewer = 'staff' | 'host';
 
 type SharedGuestBookEntry = { id: string; entry_key?: string; display_name: string; note: string };
 
@@ -35,8 +36,9 @@ function requestGuestBook(token: string, init: ApiRequestInit = {}) {
   );
 }
 
-function staffEndpoint(eventId: string) {
-  return `${API_URL}/api/admin/events/${encodeURIComponent(eventId)}/guest-book`;
+export function guestBookReviewEndpoint(eventId: string, reviewer: GuestBookReviewer) {
+  const tables = reviewer === 'host' ? '/api/me/tables' : '/api/admin/events';
+  return `${API_URL}${tables}/${encodeURIComponent(eventId)}/guest-book`;
 }
 
 function requestAfterSitGuestBook<T>(credential: string, input: object, expectedAuth: Identity, signal?: AbortSignal) {
@@ -65,10 +67,10 @@ export const guestBookApi = {
     body: JSON.stringify({ note }),
   }),
   withdraw: (token: string, expectedAuth?: StaffIdentity) => requestGuestBook(token, { method: 'DELETE', expectedAuth }),
-  listForReview: (eventId: string, expectedAuth: StaffIdentity): Promise<{ entries: GuestBookReviewEntry[] }> =>
-    authedFetch(staffEndpoint(eventId), { expectedAuth, cache: 'no-store' }),
-  review: (eventId: string, entry: GuestBookReviewEntry, action: GuestBookAction, expectedAuth: StaffIdentity) =>
-    authedFetch(`${staffEndpoint(eventId)}/${encodeURIComponent(entry.id)}/review`, {
+  listForReview: (eventId: string, expectedAuth: Identity, reviewer: GuestBookReviewer = 'staff', signal?: AbortSignal): Promise<{ entries: GuestBookReviewEntry[] }> =>
+    authedFetch(guestBookReviewEndpoint(eventId, reviewer), { expectedAuth, cache: 'no-store', signal }),
+  review: (eventId: string, entry: GuestBookReviewEntry, action: GuestBookAction, expectedAuth: Identity, reviewer: GuestBookReviewer = 'staff') =>
+    authedFetch(`${guestBookReviewEndpoint(eventId, reviewer)}/${encodeURIComponent(entry.id)}/review`, {
       method: 'POST',
       expectedAuth,
       body: JSON.stringify({ action, revision: entry.revision }),
