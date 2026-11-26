@@ -1,3 +1,5 @@
+import { SEAT_OF_A_GUEST_STILL_COMING } from './hostTableGuests';
+
 export type EventLifecycle =
   | 'draft'
   | 'published'
@@ -197,7 +199,7 @@ function capacityGuard(
         AND (
           (SELECT COUNT(*) FROM event_party_members pm
            WHERE pm.event_id = capacity_event.id AND pm.account_id = capacity_event.account_id
-             AND pm.seat_status IN ('held', 'confirmed') ${seatExclusion})
+             AND pm.seat_status IN ('held', 'confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')} ${seatExclusion})
           + ?
           + (SELECT COUNT(*) FROM event_attendees offer
              WHERE offer.event_id = capacity_event.id AND offer.account_id = capacity_event.account_id
@@ -295,6 +297,7 @@ export async function reservePartySeats(
     `SELECT
        (SELECT COUNT(*) FROM event_party_members pm
         WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')
+          AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}
           ${operationSeatIds.length ? `AND pm.id NOT IN (${sqlPlaceholders(operationSeatIds)})` : ''}) AS accepted,
        (SELECT COUNT(*) FROM event_attendees offer
         WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
@@ -463,7 +466,8 @@ export async function reservePartySeats(
     const latest = await env.DB.prepare(
       `SELECT
         (SELECT COUNT(*) FROM event_party_members pm
-         WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')) AS accepted,
+         WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')
+           AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}) AS accepted,
         (SELECT COUNT(*) FROM event_attendees offer
          WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
            AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`

@@ -2667,6 +2667,10 @@ export const api = {
     getNotifications: async (id: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/notifications`)
     },
+    /** What happened to the session's seats (J9). An in-app list; nothing is sent. */
+    getSeatNotices: async (id: string): Promise<{ notices: import('./hostingApi').SeatNotice[] }> => {
+      return authedFetch(`${API_URL}/api/admin/events/${encodeURIComponent(id)}/seat-notices`)
+    },
     createNotifications: async (id: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/notifications`, {
         method: 'POST',
