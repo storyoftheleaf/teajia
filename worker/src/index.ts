@@ -14,6 +14,7 @@ import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type Boug
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
+import { favouritesOpen } from '../../src/lib/favouritesOpen';
 import { teaTableRoutes } from './teaTable';
 import { teaHousesRoutes } from './teaHouses';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
@@ -12594,8 +12595,11 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const hosts = (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
   const {
     account_id: _accountId, reading_article_id: readingId, host_user_id: hostUserId,
-    private_host: privateHostFlag, venue_id: _venueId, id: eventId, is_tasting: tastingFlag, ...publicEvent
+    private_host: privateHostFlag, venue_id: _venueId, id: eventId, is_tasting: tastingFlag,
+    contribution_kind: contributionKind, contribution_note: contributionNote, ...publicEvent
   } = withYourTable(event);
+  // The contribution line opens with Launch 3; while it is closed the page answers as main does.
+  const contribution = anyoneMayHost(env) ? { contribution_kind: contributionKind ?? null, contribution_note: contributionNote ?? null } : {};
   const privateHost = Number(privateHostFlag) === 1;
   // A reading is shown only while it is still a published article of this shop.
   const reading = readingId ? await readableArticleFor(env.DB, String(event.account_id), String(readingId)) : null;
@@ -12609,6 +12613,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     // link uses it; a private host's session is known by its link alone (A2 F4).
     ...(privateHost ? {} : { id: eventId }),
     ...publicEvent,
+    ...contribution,
     // A private host's account is not named: no shop name, no country.
     ...(privateHost ? { account_name: host?.name ?? null, account_location_country: null } : {}),
     // A person's table, not a shop's session: with no area given the page
@@ -14105,6 +14110,8 @@ async function updateEvent(env: Env, accountId: string, eventId: string, input: 
     body.briefing_cards = JSON.stringify(body.briefing_cards);
   }
   if (body.event_format === undefined) delete body.event_format;
+  // The contribution line is Launch 3's: while it is closed a save leaves it as main did, untouched.
+  if (!anyoneMayHost(env)) { delete body.contribution_kind; delete body.contribution_note; }
   if (body.contribution_kind !== undefined) {
     if (body.contribution_kind === '' ) body.contribution_kind = null;
     if (body.contribution_kind !== null && !['free', 'contribution', 'price'].includes(body.contribution_kind)) {
@@ -16508,7 +16515,8 @@ function cellarItemToApi(row: any) {
   };
 }
 
-function ownedCellarItemToApi(row: any) {
+/** favourite travels only while favourites are open (Launch 4), so the closed answer is main's. */
+function ownedCellarItemToApi(row: any, favourites: boolean) {
   return {
     ...cellarItemToApi(row),
     label: row.chest_label ?? null,
@@ -16516,7 +16524,7 @@ function ownedCellarItemToApi(row: any) {
     costCurrency: row.chest_cost_currency ?? null,
     shelfNeedsReview: !!row.shelf_published && (row.shelf_offer_name == null || row.shelf_offer_price_amount == null),
     source: cellarSourceToApi(row),
-    favourite: row.favourite === 1,
+    ...(favourites ? { favourite: row.favourite === 1 } : {}),
     shelfOffer: row.shelf_offer_name == null ? null : {
       name: row.shelf_offer_name,
       price_amount: row.shelf_offer_price_amount ?? null,
@@ -16547,7 +16555,7 @@ const handleListCellar: Handler = async (request, env) => {
      LEFT JOIN events e ON e.id = c.source_event_id
      WHERE c.owner_user_id = ? ORDER BY c.created_at DESC`
   ).bind(userId).all();
-  return json({ items: (results as any[]).map(ownedCellarItemToApi) });
+  return json({ items: (results as any[]).map(row => ownedCellarItemToApi(row, favouritesOpen(env))) });
 };
 
 // POST /api/me/cellar — add a tea the caller owns, with a quantity. Private.
@@ -16589,7 +16597,7 @@ const handleCreateCellarItem: Handler = async (request, env) => {
   ).run();
   if (!inserted.meta.changes) return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(id).first();
-  return json({ item: ownedCellarItemToApi(row) }, 201);
+  return json({ item: ownedCellarItemToApi(row, favouritesOpen(env)) }, 201);
 };
 
 // PUT /api/me/cellar/:id — edit a cellar item the caller owns.
@@ -16657,7 +16665,7 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
   if (!saved.meta.changes && placementGuard) {
     return json({ error: 'Stock for a placed tea is managed at its location.' }, 409);
   }
-  return json({ item: ownedCellarItemToApi(row) });
+  return json({ item: ownedCellarItemToApi(row, favouritesOpen(env)) });
 };
 
 // DELETE /api/me/cellar/:id — remove a cellar item the caller owns.
@@ -16702,7 +16710,7 @@ const handleRequestCellarPlacement: Handler = async (request, env, params) => {
   ).bind(accountId, params.id, userId).run();
   if (!result.meta.changes) return json({ error: 'Withdraw the shelf offer before requesting placement, or reload the holding.' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
-  return row ? json({ item: ownedCellarItemToApi(row) }) : json({ error: 'Not found' }, 404);
+  return row ? json({ item: ownedCellarItemToApi(row, favouritesOpen(env)) }) : json({ error: 'Not found' }, 404);
 };
 
 // POST /api/me/cellar/:id/cancel-placement — withdraw a pending placement
@@ -16728,7 +16736,7 @@ const handleCancelCellarPlacement: Handler = async (request, env, params) => {
   ).bind(params.id, userId).run();
   if (!result.meta.changes) return json({ error: 'No pending placement request to cancel' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
-  return row ? json({ item: ownedCellarItemToApi(row) }) : json({ error: 'Not found' }, 404);
+  return row ? json({ item: ownedCellarItemToApi(row, favouritesOpen(env)) }) : json({ error: 'Not found' }, 404);
 };
 
 // GET /api/cellar-placements — location-owner view of pending placement

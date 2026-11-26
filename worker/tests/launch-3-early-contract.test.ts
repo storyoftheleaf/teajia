@@ -7,7 +7,7 @@ const databases: SqliteD1[] = [];
 afterEach(() => databases.splice(0).forEach(db => db.close()));
 const secret = 'launch-3-early';
 
-async function setup() {
+async function setup(vars: Record<string, string> = { ANYONE_HOSTS_OPEN: 'true' }) {
   const db = new SqliteD1('migrations'); databases.push(db);
   seedIdentity(db, { userId: 'host', accountId: 'shop', bundles: ['gather'] });
   db.sqlite.exec(`
@@ -19,7 +19,7 @@ async function setup() {
   const send = async (path: string, method = 'GET', body?: unknown) => worker.fetch(new Request(`https://app.test${path}`, {
     method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Teajia-Account': 'shop' },
     body: body === undefined ? undefined : JSON.stringify(body),
-  }), { DB: db, JWT_SECRET: secret } as never, { waitUntil: () => undefined } as never);
+  }), { DB: db, JWT_SECRET: secret, ...vars } as never, { waitUntil: () => undefined } as never);
   return { db, send };
 }
 
@@ -38,6 +38,18 @@ describe('Launch 3 early contract', () => {
     const { send } = await setup();
     expect((await send('/api/admin/events/sit', 'PUT', { contribution_kind: 'tips' })).status).toBe(400);
     expect((await send('/api/admin/events/sit', 'PUT', { contribution_note: 'x'.repeat(141) })).status).toBe(400);
+  });
+
+  it('while Launch 3 is closed, the public answer carries no contribution line and a save leaves it alone', async () => {
+    const { db, send } = await setup({});
+    db.sqlite.exec(`UPDATE events SET contribution_kind = 'free', contribution_note = 'Tea on us' WHERE id = 'sit'`);
+    const body = await (await send('/api/events/courtyard/public')).json() as Record<string, unknown>;
+    expect(body).not.toHaveProperty('contribution_kind');
+    expect(body).not.toHaveProperty('contribution_note');
+    // Main ignored these fields on a save; so does the closed state, even a value main would never have checked.
+    expect((await send('/api/admin/events/sit', 'PUT', { title: 'Tea in the garden', contribution_kind: 'tips', contribution_note: 'x'.repeat(141) })).status).toBeLessThan(300);
+    expect(db.sqlite.prepare(`SELECT contribution_kind, contribution_note FROM events WHERE id = 'sit'`).get())
+      .toEqual({ contribution_kind: 'free', contribution_note: 'Tea on us' });
   });
 
   it('has the reports table with its checks', async () => {
