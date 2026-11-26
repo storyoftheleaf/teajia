@@ -3,11 +3,13 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { authPagePath } from '../lib/authNavigation';
 import { buildPublicProductHref, DEFAULT_PUBLIC_STORE_SLUG } from '../lib/publicProductNavigation';
 import type { ProductImpression } from '../components/shop/ProductImpressions';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { quoteForDisplay } from '../lib/teaPricing';
 import { usePublicProducts } from '../hooks/usePublicProducts';
+import { HOST_TABLE_PATH, useMayHost } from '../hooks/useMayHost';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { LogoText } from '../components/Logos/LogoText';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -225,6 +227,8 @@ const HomeV2Page: React.FC = () => {
         </div>
       </section>
 
+      <HostTablePlate />
+
       {/* The table: three plates of equal width. */}
       <section
         aria-label="On the table"
@@ -333,6 +337,23 @@ const HomeV2Page: React.FC = () => {
     </StoryEditProvider>
   );
 };
+
+function HostTablePlate() {
+  const { mayHost, showSignIn } = useMayHost();
+  if (!mayHost && !showSignIn) return null;
+
+  return (
+    <div className={`${EDGE} mt-8 px-6 sm:px-10`}>
+      <Link
+        to={mayHost ? HOST_TABLE_PATH : authPagePath('signin', HOST_TABLE_PATH)}
+        className="group block rounded-md border border-tea-border bg-tea-surface p-4 hover:border-tea-gold focus-visible:outline-tea-gold"
+      >
+        <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text group-hover:text-tea-gold`}>Host a table</h2>
+        <p className={`${BODY} mt-1 italic text-tea-text-sec`}>Free to host, and your record is yours.</p>
+      </Link>
+    </div>
+  );
+}
 
 /** The three facets of jiā, in Adrian's words (2026-09-22), paired with their shared pronunciation. */
 const FACETS = [

@@ -1,22 +1,33 @@
-// Launch 2, a few hosts: whether this person may see the host pages. Both
-// gates stand together: the switch (src/lib/fewHosts.ts) and what the server
-// says this person may host (GET /api/me/hosting, `doors`). In Launch 2 only
-// approved hosts have doors; when Launch 3 lifts that gate on the server,
-// anyone gets the by-request door and this hook needs no change. While the
-// switch is closed nothing is asked of the server.
+import { useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api, hasToken } from '../lib/api';
+import { api, AUTH_TOKEN_CHANGED_EVENT, currentSignInToken } from '../lib/api';
+import { anyoneHostsOpen } from '../lib/anyoneHosts';
 import { fewHostsOpen } from '../lib/fewHosts';
+import { useAppStore } from '../lib/store';
 
-export function useMayHost(): boolean {
-  const open = fewHostsOpen();
-  const signedIn = hasToken();
-  const { data } = useQuery({
-    queryKey: ['me-hosting'],
+export const HOST_TABLE_PATH = '/account/host';
+export const hostedTablesOpen = () => fewHostsOpen() && anyoneHostsOpen();
+
+function subscribeToToken(listener: () => void): () => void {
+  window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, listener);
+  return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, listener);
+}
+
+/** Launch 3 entry points share the server's decision about available hosting doors. */
+export function useMayHost() {
+  const open = hostedTablesOpen();
+  const token = useSyncExternalStore(subscribeToToken, currentSignInToken, currentSignInToken);
+  const userId = useAppStore(state => state.activeUserId);
+  const canCheck = open && Boolean(token && userId);
+  const { data, isSuccess } = useQuery({
+    queryKey: ['me-hosting', userId],
     queryFn: () => api.hosting.get(),
-    enabled: open && signedIn,
+    enabled: canCheck,
     staleTime: 60_000,
     retry: false,
   });
-  return open && signedIn && Array.isArray(data?.doors) && data.doors.length > 0;
+  return {
+    mayHost: canCheck && isSuccess && Array.isArray(data?.doors) && data.doors.length > 0,
+    showSignIn: open && !token,
+  };
 }
