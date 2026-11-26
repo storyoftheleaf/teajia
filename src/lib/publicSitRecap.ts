@@ -10,6 +10,12 @@ export type PublicSitRecap = {
   title: string;
   event_date: string;
   people: SessionPerson[];
+  /**
+   * "Poured with": the sit's public co-hosts and guest hosts, by the name the
+   * host credited. `slug` is set only when that person's page is published.
+   * Absent on an older answer, and on a casual sit.
+   */
+  poured_with?: { name: string; slug: string | null }[];
   note: { text: string; by: SessionSignature | null } | null;
   galleryPhoto: string | null;
   teas: PublicRecapTea[];

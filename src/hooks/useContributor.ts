@@ -116,6 +116,7 @@ export const useContributors = () => {
         page_tier: familyPageTierOf(r.page_tier),
         family_last_active: typeof r.family_last_active === 'string' ? r.family_last_active : null,
         list_group: r.list_group === 'season' || r.list_group === 'founding' || r.list_group === 'family' ? r.list_group : null,
+        pours: r.pours === true,
       }));
     },
     staleTime: 1000 * 60 * 5,

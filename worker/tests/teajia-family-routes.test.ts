@@ -264,7 +264,9 @@ describe('sharing a tasting', () => {
     const publicText = await publicView.text();
     const publicBody = JSON.parse(publicText);
     expect(publicBody.family).toHaveLength(1);
-    expect(publicBody.family[0].author).toEqual({ name: 'Mei', page_id: null });
+    // The member never allowed their name, so the public answer carries no author (quiet acknowledgement).
+    expect(publicBody.family[0].author).toBeNull();
+    expect(publicBody.family[0].photograph_by).toBeNull();
     for (const text of [sharedText, publicText, await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).text()]) {
       expect(text).not.toMatch(/rating|verdict|love|secret words/);
     }
@@ -309,7 +311,8 @@ describe('the shop\'s side', () => {
     expect(pile.photographs.find((p: any) => p.id === first)).toMatchObject({ removed_by_author: true });
     expect((await call(env, OWNER, `/api/admin/family/photographs/${first}/lead`, { method: 'POST' })).status).toBe(200);
     let tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
-    expect(tea.lead).toMatchObject({ id: first, author: { name: 'Mei Lin', page_id: 'mei-page' } });
+    // Not allowed to show the name: no author, no page, even as the lead picture.
+    expect(tea.lead).toMatchObject({ id: first, author: null, photograph_by: null });
 
     // A placed photograph made lead, then a new lead: the old lead steps back to what it was.
     await call(env, OWNER, `/api/admin/family/photographs/${second}/place`, { method: 'POST' });

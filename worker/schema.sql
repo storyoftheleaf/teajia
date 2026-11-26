@@ -4011,3 +4011,5 @@ CREATE TABLE IF NOT EXISTS favourite_articles (
   PRIMARY KEY (user_id, article_id)
 );
 ALTER TABLE personal_cellar_items ADD COLUMN favourite INTEGER NOT NULL DEFAULT 0 CHECK (favourite IN (0,1));
+-- 0132_quiet_acknowledgement.sql
+ALTER TABLE member_photographs ADD COLUMN credit_name_shown INTEGER NOT NULL DEFAULT 0 CHECK (credit_name_shown IN (0, 1));

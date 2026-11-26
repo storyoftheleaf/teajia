@@ -40,6 +40,9 @@ export const familyApi = {
   /** How the author wants one photograph shown: square, upright (2:3) or across (3:2). */
   setPhotographShape: (photographId: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null = null): Promise<{ photograph: FamilyPhotograph }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/shape`, { method: 'PUT', body: JSON.stringify({ shape, frame }) }),
+  /** The photographer's own yes or no to "photograph by <first name>". Starts at no. */
+  setPhotographCredit: (photographId: string, creditNameShown: boolean): Promise<{ photograph: FamilyPhotograph }> =>
+    authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/credit`, { method: 'PUT', body: JSON.stringify({ credit_name_shown: creditNameShown }) }),
   /** "Remove from my page". The shop keeps what was offered to it. */
   removePhotograph: (photographId: string): Promise<{ id: string; removed: true }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/remove`, { method: 'POST' }),
