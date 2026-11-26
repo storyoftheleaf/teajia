@@ -7,6 +7,7 @@ import CalendarDownload from '../CalendarDownload';
 import CopyInviteLink from './CopyInviteLink';
 import CancelConfirmModal from './CancelConfirmModal';
 import TastingDoor from './TastingDoor';
+import { wayEndsAt } from '../../../lib/keptWay';
 
 const VenueGuide = lazy(() => import('../VenueGuide'));
 const TeaMenuPreview = lazy(() => import('../TeaMenuPreview'));
@@ -171,6 +172,16 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
               venueGuide={event.venueGuide}
               mapLink={event.mapLink}
               className="mb-10"
+              // Kept on this phone for where the signal ends, until the session ends (H8).
+              keep={{
+                page: attendee.magicToken,
+                endsAt: wayEndsAt({
+                  event_date: event.eventDate, event_end_date: event.eventEndDate, timezone: event.timezone,
+                  lifecycle_status: event.lifecycleStatus, status: event.status,
+                }),
+                title: event.title,
+                address: event.addressText ?? null,
+              }}
             />
           </Suspense>
         )}
