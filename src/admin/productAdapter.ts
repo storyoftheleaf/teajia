@@ -2,6 +2,7 @@ import { inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { inventoryTeaType } from '../wisdom/vocabulary';
 import type { Product } from './types';
 import { storedRatePerKg } from '../lib/shippingRate';
+import { isFreightMethod } from '../lib/freightMethod';
 
 export function normalizeAdminProductTastingSource(value: unknown): Product['tastingSource'] | undefined {
   return value === 'owner' || value === 'community' || value === 'source' || value === 'common'
@@ -55,6 +56,7 @@ export function mapAdminProduct(p: any): Product {
            column, the Add Product modal, the edit panel) were already written
            to read a null here and had never once been handed one. */
         shippingRatePerKg: storedRatePerKg(p.shipping_rate_per_kg),
+        freightMethod: isFreightMethod(p.freight_method) ? p.freight_method : null,
         fixedRetailPriceUSD: p.fixed_retail_price_usd == null ? null : Number(p.fixed_retail_price_usd),
         isPersonal: !!p.is_personal,
         canReorder: !!p.can_reorder,

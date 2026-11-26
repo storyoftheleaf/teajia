@@ -38,7 +38,7 @@ describe('shipping routes', () => {
 
   it('refuses nonsense by name instead of storing it', async () => {
     const d = db();
-    await expect(saveRoute(d, A, null, { mode: 'truck' })).rejects.toThrow(/air or sea/);
+    await expect(saveRoute(d, A, null, { mode: 'truck' })).rejects.toThrow(/air, sea or suitcase/);
     await expect(saveRoute(d, A, null, { mode: 'air', packing_percent: 'lots' })).rejects.toThrow(/packing_percent/);
     await expect(saveRoute(d, A, null, { mode: 'air', billing_step_kg: 0 })).rejects.toThrow(/billing_step_kg/);
   });

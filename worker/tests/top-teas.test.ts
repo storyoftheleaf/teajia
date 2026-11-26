@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { seedIdentity, signedToken, SqliteD1 } from './helpers/sqliteD1';
@@ -9,6 +10,7 @@ const photos = new Map<string, { bytes: ArrayBuffer; type: string }>();
 
 beforeEach(() => {
   db = new SqliteD1('migrations', '0140');
+  db.exec(readFileSync(new URL('../migrations/0148_freight_method.sql', import.meta.url), 'utf8'));
   photos.clear();
   seedIdentity(db, { userId: 'mei-user' });
   seedIdentity(db, { userId: 'other-user' });

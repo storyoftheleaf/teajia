@@ -18,7 +18,8 @@ import { ledgerItemGrams } from '../CurateV2/curatePricing';
 
 export interface ShippingRoute {
   id: string;
-  mode: 'air' | 'sea';
+  /** 'suitcase' prices shelf freight only; the basket's order estimate reads air and sea. */
+  mode: 'air' | 'sea' | 'suitcase';
   carrier: string | null;
   destination: string | null;
   rate_per_kg: number | null;

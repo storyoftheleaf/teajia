@@ -1,6 +1,6 @@
 import { canonicalCurrency, isUnrecordedCurrency } from '../../src/lib/currency';
 import { SHOP_MARKUP_MULTIPLIER } from './markup';
-import { shippingPerGramUsd, resolveShopFreightDefault } from './shippingRate';
+import { shippingPerGramUsd, resolveShopFreightDefault, freightDefaultFor, methodRatesFromRoutes, type FreightDefaults, type RouteRateRow } from './shippingRate';
 
 /**
  * Case-insensitive rate lookup with alias normalization, so 'CNY' resolves to
@@ -23,20 +23,43 @@ export function lookupRateToUsd(rates: Map<string, number>, rawCurrency: string 
 }
 
 /**
- * The shop's own freight rate, converted to USD at today's rate.
+ * The shop's own freight rate and each freight method's route rate, converted
+ * to USD at today's rate.
  *
- * Read per request rather than cached: it is one indexed row, and a rate that
- * kept serving the old number after Adrian changed it in Store Settings would
- * be the same class of bug this whole area exists to stop.
+ * Read per request rather than cached: two indexed reads, and a rate that kept
+ * serving the old number after Adrian changed it in Settings would be the same
+ * class of bug this whole area exists to stop.
  */
-export async function shopFreightPerKgUsd(env: { DB: D1Database }, accountId: string, rates: Map<string, number>): Promise<number | null> {
-  const account = await env.DB.prepare(
-    'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
-  ).bind(accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
-  return resolveShopFreightDefault(account, c => lookupRateToUsd(rates, c)).perKgUsd;
+export async function accountFreightDefaults(env: { DB: D1Database }, accountId: string, rates: Map<string, number>): Promise<FreightDefaults> {
+  return (await freightDefaultsByAccount(env, [accountId], rates)).get(accountId)!;
 }
 
-export function addPricingFields(product: any, rates: Map<string, number>, shopDefaultPerKgUsd: number | null): any {
+/** The same, for every shop a response carries teas from, in two reads however many shops. */
+export async function freightDefaultsByAccount(env: { DB: D1Database }, accountIds: readonly string[], rates: Map<string, number>): Promise<Map<string, FreightDefaults>> {
+  const ids = [...new Set(accountIds.filter(Boolean))];
+  const out = new Map<string, FreightDefaults>();
+  if (!ids.length) return out;
+  const marks = ids.map(() => '?').join(', ');
+  const accounts = await env.DB.prepare(
+    `SELECT id, default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id IN (${marks})`,
+  ).bind(...ids).all<{ id: string; default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null }>();
+  const routes = await env.DB.prepare(
+    `SELECT account_id, mode, rate_per_kg, rate_currency FROM shipping_routes
+      WHERE account_id IN (${marks}) AND archived_at IS NULL AND rate_per_kg IS NOT NULL ORDER BY created_at, id`,
+  ).bind(...ids).all<RouteRateRow & { account_id: string }>();
+  const lookup = (c: string) => lookupRateToUsd(rates, c);
+  const accountRows = accounts.results ?? [];
+  const routeRows = routes.results ?? [];
+  for (const id of ids) {
+    out.set(id, {
+      shopPerKgUsd: resolveShopFreightDefault(accountRows.find(a => a.id === id) ?? null, lookup).perKgUsd,
+      methodPerKgUsd: methodRatesFromRoutes(routeRows.filter(r => r.account_id === id), lookup),
+    });
+  }
+  return out;
+}
+
+export function addPricingFields(product: any, rates: Map<string, number>, freightDefaults: FreightDefaults): any {
   /* A named cost currency with no rate is not a rate of 1. Reading a 380 yuan
      cost as 380 dollars is a seven-fold error that the x3 then triples, and it
      arrives looking like an expensive tea rather than like a fault. Nothing to
@@ -58,7 +81,8 @@ export function addPricingFields(product: any, rates: Map<string, number>, shopD
     storedRatePerKg: product.shipping_rate_per_kg,
     rateToUsd: rate,
     isTeaware,
-    shopDefaultPerKgUsd,
+    // The tea's own rate, else its method's route, else the shop's: worker/src/shippingRate.ts.
+    shopDefaultPerKgUsd: freightDefaultFor(product.freight_method, freightDefaults),
   });
   if (!rate || !Number.isFinite(rate) || rate <= 0 || freight === null || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
     return {

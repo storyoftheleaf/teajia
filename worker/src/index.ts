@@ -105,8 +105,8 @@ import { receiptProductDetails } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
-import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, shopFreightPerKgUsd } from './productPricing';
+import { isFreightMethod, resolveShopFreightDefault } from './shippingRate';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -2847,7 +2847,7 @@ const handleGetProducts: Handler = async (request, env, params) => {
   for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   const seesShopScores = await shopScoreGiver(env, ctx);
 
   const products = (result.results as any[]).map(p => {
@@ -2874,7 +2874,7 @@ const handleGetProducts: Handler = async (request, env, params) => {
     }
     // Keep a missing balance from looking like a recorded zero after price projection.
     if ((p.type === 'Teaware' ? p.quantity_units : p.stock_grams) == null) p.stock_known_at = null;
-    return addPricingFields(p, rates, shopDefaultPerKgUsd);
+    return addPricingFields(p, rates, freightDefaults);
   });
   return params?.id ? (products[0] ? json(products[0]) : restError(404, 'Product not found', 'product_not_found')) : json(products);
 };
@@ -3476,7 +3476,7 @@ const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_COLUMNS = new Set([
-  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg',
+  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'freight_method',
   'quantity_purchased', 'markup_multiplier', 'fixed_retail_price_usd',
   'price_per_gram_usd', 'wholesale_price', 'vendor', 'vendor_id', 'vendor_url',
   'can_reorder',
@@ -3657,6 +3657,13 @@ async function applyProductUpdate(
       .bind(params.id, accountId).first() as { cost_currency?: string | null } | null;
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
+  }
+  // How the tea travels home: Suitcase, Airmail, Boat, or nothing said (worker/src/shippingRate.ts).
+  if (body.freight_method !== undefined) {
+    if (body.freight_method === '' ) body.freight_method = null;
+    if (body.freight_method !== null && !isFreightMethod(body.freight_method)) {
+      return json({ error: 'freight_method must be suitcase, air, sea, or empty.', code: 'validation_failed' }, 400);
+    }
   }
   if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
     try { Object.assign(body, decodeInventoryPurposeWrite(body)); }
@@ -10826,7 +10833,7 @@ const handleGetVendorProducts: Handler = async (request, env, params) => {
   const result = await env.DB.prepare(`
     SELECT id, product_name, given_name, chinese_name, type, image_url,
       origin_country, origin_region, stock_grams, status, cost_amount, cost_currency,
-      cost_currency_source, quantity_purchased, quantity_units, shipping_rate_per_kg
+      cost_currency_source, quantity_purchased, quantity_units, shipping_rate_per_kg, freight_method
     FROM products
     WHERE vendor_id = ? AND account_id = ?
     ORDER BY product_name ASC
@@ -10834,12 +10841,12 @@ const handleGetVendorProducts: Handler = async (request, env, params) => {
 
   const ratesResult = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
   const rates = new Map<string, number>((ratesResult.results as any[]).map(r => [r.currency, r.rate_to_usd]));
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   // Keep the supplied-products contract's raw stock/currency values. Only add
   // the shared pricing result used by vendor economics, without a second
   // whole-account inventory read or its collection-publication joins.
   return json((result.results as any[]).map(row => ({
-    ...row, cost_per_gram_usd: addPricingFields(row, rates, shopDefaultPerKgUsd).cost_per_gram_usd,
+    ...row, cost_per_gram_usd: addPricingFields(row, rates, freightDefaults).cost_per_gram_usd,
   })));
 };
 
@@ -11196,7 +11203,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
               COALESCE(tp.mood, p.mood) AS mood,
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
-              p.shipping_rate_per_kg, p.fixed_retail_price_usd,
+              p.shipping_rate_per_kg, p.freight_method, p.fixed_retail_price_usd,
               p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g,
               p.tasting, p.tasting_source,
               (SELECT COUNT(*) > 0 FROM collection_items ci2
@@ -11227,6 +11234,9 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
     for (const r of ratesResult.results as any[]) {
       rates.set(r.currency as string, r.rate_to_usd as number);
     }
+    /* One response can carry teas from more than one shop, so freight is read
+       per owning account: its shop rate and its routes for teas with a method. */
+    const freightByAccount = await freightDefaultsByAccount(env, (result.results as any[]).map(p => p.account_id), rates);
     const products = (result.results as any[]).map(p => {
       if (typeof p.tasting_notes === 'string') {
         try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
@@ -11237,14 +11247,15 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       if (typeof p.tasting === 'string') {
         try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
       }
-      /* One response can carry teas from more than one shop, so the freight
-         default is read per row from the owning account rather than once for
-         the request. Both aliases fall outside PUBLIC_FIELDS and so never
-         reach the response. */
-      const withPricing = addPricingFields(p, rates, resolveShopFreightDefault(
-        { default_shipping_rate_per_kg: p.account_freight_per_kg, default_shipping_rate_currency: p.account_freight_currency },
-        c => lookupRateToUsd(rates, c),
-      ).perKgUsd);
+      /* The account freight aliases fall outside PUBLIC_FIELDS and so never
+         reach the response; the shop rate itself is read with the routes above. */
+      const withPricing = addPricingFields(p, rates, freightByAccount.get(p.account_id) ?? {
+        shopPerKgUsd: resolveShopFreightDefault(
+          { default_shipping_rate_per_kg: p.account_freight_per_kg, default_shipping_rate_currency: p.account_freight_currency },
+          c => lookupRateToUsd(rates, c),
+        ).perKgUsd,
+        methodPerKgUsd: {},
+      });
       const safe: Record<string, unknown> = {};
       for (const key of PUBLIC_FIELDS) {
         if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
@@ -15660,11 +15671,11 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
   ]);
   if ((productRows.results ?? []).length !== productIds.length) throw new Error('Store or items not found');
   const rates = new Map<string, number>((rateRows.results as any[]).map(row => [row.currency, row.rate_to_usd]));
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   const products = new Map<string, Record<string, any>>();
   for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
     if (sellerUserId && row.owner_user_id && row.owner_user_id !== sellerUserId) throw new Error('Store or items not found');
-    const priced = addPricingFields(row, rates, shopDefaultPerKgUsd);
+    const priced = addPricingFields(row, rates, freightDefaults);
     const currency = String(row.cost_currency || '').trim();
     if (row.fixed_retail_price_usd == null && (row.cost_amount == null || (currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency)))) {
       priced.retail_price_per_gram_usd = null;
@@ -16415,10 +16426,10 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all(),
   ]);
   const rates = new Map<string, number>((rateRows.results as any[]).map(row => [row.currency, row.rate_to_usd]));
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   const products = new Map<string, Record<string, any>>();
   for (const row of (productRows.results ?? []) as Array<Record<string, any>>) {
-    const priced = addPricingFields(row, rates, shopDefaultPerKgUsd);
+    const priced = addPricingFields(row, rates, freightDefaults);
     const currency = String(row.cost_currency || '').trim();
     const missingRate = currency && currency.toUpperCase() !== 'UNK' && !lookupRateToUsd(rates, currency);
     // addPricingFields' browse fallback is zero; an invoice must not turn an
@@ -24761,7 +24772,7 @@ async function fetchPublicProductsForAccount(
               COALESCE(tp.mood, p.mood) AS mood,
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
-              p.shipping_rate_per_kg, p.fixed_retail_price_usd,
+              p.shipping_rate_per_kg, p.freight_method, p.fixed_retail_price_usd,
               p.material, p.capacity_ml, p.teaware_category, p.teaware_details, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
               p.personal_offer_pack_price_usd AS exact_pack_price_usd,
               p.tasting, p.tasting_source,
@@ -24794,7 +24805,7 @@ async function fetchPublicProductsForAccount(
   for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
-  const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const freightDefaults = await accountFreightDefaults(env, accountId, rates);
   return (result.results as any[]).map(p => {
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
@@ -24805,7 +24816,7 @@ async function fetchPublicProductsForAccount(
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
-    const withPricing = addPricingFields(p, rates, shopDefaultPerKgUsd);
+    const withPricing = addPricingFields(p, rates, freightDefaults);
     const safe: Record<string, unknown> = {};
     for (const key of PUBLIC_FIELDS) {
       if (key in withPricing && (key !== 'exact_pack_price_usd' || withPricing[key] != null)) safe[key] = withPricing[key];

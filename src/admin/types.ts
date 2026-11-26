@@ -1,3 +1,4 @@
+import type { FreightMethod } from '../lib/freightMethod';
 import type { TeaType, TeaForm as WisdomTeaForm } from '../wisdom';
 
 // Non-tea categories (Teaware, Misc) plus the "type not yet set" sentinel are
@@ -100,6 +101,9 @@ export interface Product {
      apart here, because the gold dot in the inventory list is drawn from
      exactly this being null or not. */
   shippingRatePerKg?: number | null;
+  /* How the tea travels home (migration 0148). NULL keeps the shop rate; a
+     method takes that method's shipping route. See src/lib/freightMethod.ts. */
+  freightMethod?: FreightMethod | null;
   fixedRetailPriceUSD?: number | null; // Explicit override price
   isPersonal: boolean; // Personal collection flag
   canReorder: boolean; // Restockable flag

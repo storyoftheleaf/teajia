@@ -40,7 +40,9 @@ import { addTeaToDraftOrder } from '../../components/CurateV2/orderBuy';
 import { buildProductUpdatePayload } from '../productUpdatePayload';
 import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
 import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
-import { useShopFreightDefault } from '../hooks/useAdminData';
+import { useFreightDefaults } from '../hooks/useAdminData';
+import { freightDefaultFor } from '../../lib/freightMethod';
+import { TeaFreight } from './inventory/stock/TeaFreight';
 import { getThemeColor } from '../themeUtils';
 import { INVENTORY_TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getTeaReadiness } from './inventory/domain';
@@ -1086,7 +1088,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   /* The shop's own freight rate, for teas that have not entered one. Read from
      the hook rather than passed down, because it is one cached row and every
      surface that shows this field needs the same answer. */
-  const shopFreight = useShopFreightDefault();
+  const freightDefaults = useFreightDefaults();
+  // The tea's fallback rate: its method's route when it has one, else the shop's.
+  const freightFallbackUsd = freightDefaultFor(product?.freightMethod, freightDefaults);
 
   // Stock spine step 2: only the location owner curates what shows in the shop.
   const isOwnerTier = useAppStore(selectIsOwnerTier);
@@ -1339,7 +1343,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const pricingCalc = useMemo(() => {
     if (!product) return null;
     const freight = product.type === 'Teaware' ? 0
-      : product.shippingRatePerKg ?? shopRateInCurrency(shopFreight.perKgUsd, costRateToUsd);
+      : product.shippingRatePerKg ?? shopRateInCurrency(freightFallbackUsd, costRateToUsd);
     if (freight === null) return null;
     return calculatePricing(
       product.costAmount,
@@ -1360,7 +1364,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     product?.costCurrency,
     product?.type,
     rates,
-    shopFreight.perKgUsd,
+    freightFallbackUsd,
     costRateToUsd,
   ]);
 
@@ -1552,28 +1556,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   <GhostInput ariaLabel="Batch grams" align="right" value={product.quantityPurchased || 0} onSave={(val) => persistField(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
                   <span className="text-ui-12 text-admin-text-dim">g</span>
                 </TeaLine>
-                <TeaLine label="Freight">
-                  {/* Entered in USD a kilo, stored in the tea's own cost currency.
-                      Cleared hands the tea back to the shop rate; a typed 0 means
-                      free. Disabled when there is no exchange rate to store it in. */}
-                  <GhostInput
-                    ariaLabel="Freight, dollars a kilo"
-                    align="right"
-                    value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd) ?? ''}
-                    disabled={costRateToUsd === null}
-                    onSave={(val) => {
-                      if (costRateToUsd === null) return;
-                      handleUpdate(product.id, 'shippingRatePerKg', String(val).trim() === '' ? null : (Number(val) || 0) * costRateToUsd);
-                    }}
-                    type="number"
-                    className="tabular-nums"
-                  />
-                  <span className="text-ui-12 text-admin-text-dim">$ / kg</span>
-                </TeaLine>
-                <div className="tea-page-note">
-                  {product.shippingRatePerKg != null ? 'This tea has its own freight rate. Clear it to follow the shop rate.' : 'Following the shop rate.'}
-                  {' '}<button type="button" className="tap-target text-tea-gold" onClick={() => navigate('/admin/settings')}>Shipping routes</button>
-                </div>
+                <TeaFreight product={product} defaults={freightDefaults} rates={rates} costRateToUsd={costRateToUsd}
+                  onSave={(field, value) => persistField(product.id, field, value)}
+                  onOpenRoutes={() => navigate('/admin/settings')} />
                 {(() => {
                   const calc = pricingCalc && pricingCalc.suggestedRetailUSD > 0 ? pricingCalc : null;
                   const hasOverride = product.fixedRetailPriceUSD != null;

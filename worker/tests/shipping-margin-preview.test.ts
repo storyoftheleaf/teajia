@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { transpileModule, ScriptTarget } from 'typescript';
 import { describe, expect, it } from 'vitest';
-import { resolveShopFreightDefault, shippingPerGramUsd } from '../src/shippingRate';
+import { freightDefaultFor, shippingPerGramUsd } from '../src/shippingRate';
+import { accountFreightDefaults } from '../src/productPricing';
 import { currencyStated } from '../src/costCurrency';
 
 // Exercise only the actual margin-computation block, before the confirmation
@@ -16,10 +17,10 @@ const js = transpileModule(`async function compute() { ${block}\nreturn { costUs
 async function compute({ own = null, type = 'Red', yuan }: { own?: number | null; type?: string; yuan?: number } = {}) {
   const env = { DB: { prepare: (sql: string) => ({
     all: async () => ({ results: [{ currency: 'USD', rate_to_usd: 1 }, ...(yuan ? [{ currency: 'Yuan', rate_to_usd: yuan }] : [])] }),
-    bind: () => ({ first: async () => ({ default_shipping_rate_per_kg: 85, default_shipping_rate_currency: 'Yuan' }) }),
+    bind: () => ({ all: async () => ({ results: sql.includes('shipping_routes') ? [] : [{ id: 'synthetic', default_shipping_rate_per_kg: 85, default_shipping_rate_currency: 'Yuan' }] }) }),
   }) } };
-  return new Function('env','auth','currencyStated','resolveShopFreightDefault','shippingPerGramUsd','newCostCurrency','newCostAmount','newQuantity','newShippingRatePerKg','product','newRetail', js+'; return compute();')(
-    env, { accountId: 'synthetic' }, currencyStated, resolveShopFreightDefault, shippingPerGramUsd, 'USD', 100, 1000, own, { type }, .2,
+  return new Function('env','auth','currencyStated','accountFreightDefaults','freightDefaultFor','shippingPerGramUsd','newCostCurrency','newCostAmount','newQuantity','newShippingRatePerKg','product','newRetail', js+'; return compute();')(
+    env, { accountId: 'synthetic' }, currencyStated, accountFreightDefaults, freightDefaultFor, shippingPerGramUsd, 'USD', 100, 1000, own, { type }, .2,
   ) as Promise<{ costUsd: number | null; marginWarning: string | null }>;
 }
 describe('actual margin preview computation without executing MCP confirmations', () => {

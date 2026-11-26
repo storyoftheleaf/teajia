@@ -66,7 +66,8 @@ import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
 import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService } from './mcpTools/registry';
-import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
+import { freightDefaultFor, shippingPerGramUsd } from './shippingRate';
+import { accountFreightDefaults } from './productPricing';
 import { isShopOwner, tastingWithoutScores } from './publicScores';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
@@ -2414,7 +2415,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     : undefined;
 
   const product = await env.DB.prepare(
-    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, status FROM products WHERE id = ? AND account_id = ?'
+    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, freight_method, status FROM products WHERE id = ? AND account_id = ?'
   ).bind(productId, auth.accountId).first() as Record<string, any> | null;
   if (!product) return { error: 'not_found' };
   /* An amount needs a unit. The row's own currency counts, since most calls
@@ -2479,15 +2480,13 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
       const rateToUsd = newCostCurrency === 'USD' ? 1 : rates.get(newCostCurrency!);
       // No rate row → skip the warning rather than emit a false one.
       if (rateToUsd) {
-        const account = await env.DB.prepare(
-          'SELECT default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id = ?'
-        ).bind(auth.accountId).first() as { default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null } | null;
-        const shopFreight = resolveShopFreightDefault(account, currency => rates.get(currency));
+        // The shop rate, or the route of the tea's freight method: worker/src/shippingRate.ts.
+        const freightDefaults = await accountFreightDefaults(env, auth.accountId, rates);
         const freight = shippingPerGramUsd({
           storedRatePerKg: newShippingRatePerKg,
           rateToUsd,
           isTeaware: product.type === 'Teaware',
-          shopDefaultPerKgUsd: shopFreight.perKgUsd,
+          shopDefaultPerKgUsd: freightDefaultFor(product.freight_method, freightDefaults),
         });
         if (freight !== null && Number.isFinite(rateToUsd) && rateToUsd > 0) {
           costUsd = (newCostAmount / newQuantity) / rateToUsd + freight;
