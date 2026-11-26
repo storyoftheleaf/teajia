@@ -59,8 +59,9 @@ const makeTable = (actor: Actor, extra: Record<string, unknown> = {}, anyone = t
   call('/api/me/tables', { actor, method: 'POST', body: { ...table, ...extra }, anyone });
 const storedReach = (userId: string) =>
   (db.sqlite.prepare('SELECT host_reach FROM users WHERE id = ?').get(userId) as { host_reach: string | null }).host_reach;
+// A person's table is listed by its slug: its row carries no id (A3).
 const listedIds = async (path = '/api/events', actor?: Actor, anyone = true) =>
-  ((await json(await call(path, { actor, anyone }))) as unknown as { id: string }[]).map(row => row.id).sort();
+  ((await json(await call(path, { actor, anyone }))) as unknown as { slug: string }[]).map(row => row.slug).sort();
 
 /** A host's first table, made a day earlier, so the next one is never their first. */
 async function firstTable(actor: Actor) {
@@ -241,9 +242,13 @@ describe('J10, the lists', () => {
     const { first, open } = await openTable(bo, 'listed');
     const listText = await (await call('/api/events')).text();
     const list = JSON.parse(listText) as Record<string, unknown>[];
-    expect(list.map(row => row.id).sort()).toEqual([open.id, 'shop-1'].sort());
-    expect(list.map(row => row.id)).not.toContain(first.id);
-    const row = list.find(entry => entry.id === open.id)!;
+    expect(list.map(row => row.slug).sort()).toEqual([open.slug, 'shop-1'].sort());
+    expect(list.map(row => row.slug)).not.toContain(first.slug);
+    const row = list.find(entry => entry.slug === open.slug)!;
+    // A person's table is known by its link alone; the shop's session keeps its id (A3).
+    expect(row).not.toHaveProperty('id');
+    expect(list.find(entry => entry.slug === 'shop-1')).toMatchObject({ id: 'shop-1' });
+    expect(listText).not.toContain(open.id);
     expect(row).toMatchObject({ title: "Bo's open table", location_name: 'Ubud', area_hint: 'North of the market', seats_remaining: 6 });
     for (const secret of ['address_text', 'map_link', 'venue_guide', 'host_reach', 'door', 'Jalan Rahasia', 'maps.test']) {
       expect(listText).not.toContain(secret);
@@ -258,7 +263,7 @@ describe('J10, the lists', () => {
     // Their second is listed; the first still is not.
     const second = await json(await makeTable(cy, { door: 'open' }));
     db.sqlite.prepare(`UPDATE events SET created_at = datetime('now', '-1 day') WHERE id = ?`).run(made.id);
-    expect(await listedIds()).toEqual([second.id, 'shop-1'].sort());
+    expect(await listedIds()).toEqual([second.slug, 'shop-1'].sort());
   });
 
   it('lists only open tables: a listed host’s by-request table stays found by its link', async () => {
@@ -277,20 +282,21 @@ describe('J10, the lists', () => {
     expect(signedIn.status).toBe(200);
     expect(signedIn.headers.get('Cache-Control')).toBe('private, no-store');
     const text = await signedIn.text();
-    expect((JSON.parse(text) as { id: string }[]).map(row => row.id).sort()).toEqual([open.id, 'shop-1'].sort());
+    expect((JSON.parse(text) as { slug: string }[]).map(row => row.slug).sort()).toEqual([open.slug, 'shop-1'].sort());
+    expect(text).not.toContain(open.id);
     for (const secret of ['address_text', 'map_link', 'host_reach', 'Jalan Rahasia']) expect(text).not.toContain(secret);
   });
 
   it('shows a listed host’s open table to signed-in people too', async () => {
     const { open } = await openTable(bo, 'listed');
-    expect(await listedIds('/api/me/sessions', cy)).toEqual([open.id, 'shop-1'].sort());
+    expect(await listedIds('/api/me/sessions', cy)).toEqual([open.slug, 'shop-1'].sort());
   });
 
   it('takes the tables off at once when reach is lowered, the host is stopped, or the table is past or done', async () => {
     const { open } = await openTable(bo, 'listed');
     await setReach('bo', 'teajia');
     expect(await listedIds()).toEqual(['shop-1']);
-    expect(await listedIds('/api/me/sessions', cy)).toEqual([open.id, 'shop-1'].sort());
+    expect(await listedIds('/api/me/sessions', cy)).toEqual([open.slug, 'shop-1'].sort());
     await setReach('bo', 'invitation');
     expect(await listedIds('/api/me/sessions', cy)).toEqual(['shop-1']);
 
@@ -299,7 +305,7 @@ describe('J10, the lists', () => {
     expect(await listedIds()).toEqual(['shop-1']);
     expect(await listedIds('/api/me/sessions', cy)).toEqual(['shop-1']);
     await stop('bo', false);
-    expect(await listedIds()).toEqual([open.id, 'shop-1'].sort());
+    expect(await listedIds()).toEqual([open.slug, 'shop-1'].sort());
 
     db.sqlite.prepare(`UPDATE events SET lifecycle_status = 'completed' WHERE id = ?`).run(open.id);
     expect(await listedIds()).toEqual(['shop-1']);
@@ -317,7 +323,7 @@ describe('J10, the lists', () => {
     // Another person named as host of a table in Bo's account is not Bo's table.
     db.sqlite.prepare(`UPDATE events SET host_user_id = 'cy' WHERE id = ?`).run(open.id);
     await setReach('cy', 'listed');
-    expect(await listedIds()).not.toContain(open.id);
+    expect(await listedIds()).not.toContain(open.slug);
   });
 
   it('reads reach in SQL from the person, for the reaches asked', () => {
@@ -355,7 +361,7 @@ describe('J10, with ANYONE_HOSTS_OPEN off: exactly as now', () => {
     const { open } = await openTable(bo, 'listed');
     const before = await (await call('/api/events', { anyone: false })).text();
     expect((JSON.parse(before) as { id: string }[]).map(row => row.id)).toEqual(['shop-1']);
-    expect(await listedIds('/api/events', undefined, false)).not.toContain(open.id);
+    expect(await listedIds('/api/events', undefined, false)).not.toContain(open.slug);
     expect((await call('/api/me/sessions', { actor: cy, anyone: false })).status).toBe(404);
   });
 

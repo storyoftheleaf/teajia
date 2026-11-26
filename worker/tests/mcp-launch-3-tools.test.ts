@@ -128,7 +128,8 @@ describe('Launch 3 MCP tools', () => {
   it.each([
     [false, false, []],
     [false, true, ['report']],
-    [true, false, ['release_my_seat', 'release_guest_seat', 'same_table_again', ...OWNER_TOOLS]],
+    // Launch 3's tools close with its switch (A3); stopping a host stays with Launch 2's.
+    [true, false, [...OWNER_TOOLS]],
     [true, true, ALL_TOOLS],
   ] as const)('lists tools for FEW_HOSTS_OPEN=%s and ANYONE_HOSTS_OPEN=%s', async (few, anyone, expected) => {
     fewHosts = few;

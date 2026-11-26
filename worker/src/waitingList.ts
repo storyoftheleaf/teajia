@@ -45,7 +45,7 @@
 // second before it reads as expired in JavaScript; whole seconds make the two
 // agree. Liveness is still decided in SQL wherever a write depends on it.
 
-import { hostDoorSql } from './hostApproval';
+import { hostDoorSql, hostingStoppedSql } from './hostApproval';
 import { seatsTakenSql } from './hostTableGuests';
 import { sessionInstant } from './sessionWalkthrough';
 
@@ -194,13 +194,16 @@ export async function offerFreedSeats(db: Db, scope: { eventId: string; accountI
   await lapseExpiredOffers(db, scope);
   const event = await db.prepare(
     `SELECT e.total_capacity, e.claim_window_minutes, e.lifecycle_status, e.event_date, e.timezone,
-            ${hostDoorSql('a', 'e', { anyoneHosts: true })} AS door
+            ${hostDoorSql('a', 'e', { anyoneHosts: true })} AS door, ${hostingStoppedSql('a')} AS host_stopped
        FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ? AND e.account_id = ?`
   ).bind(scope.eventId, scope.accountId).first<{
     total_capacity: number; claim_window_minutes: number | null; lifecycle_status: string; event_date: string; timezone: string | null;
-    door: string | null;
+    door: string | null; host_stopped: number | null;
   }>();
   if (!event || event.lifecycle_status !== 'published') return [];
+  // A stopped host's table takes no one new (J2), so no seat is offered or
+  // asked for there: an offer the claim route would refuse is no offer (A3).
+  if (Number(event.host_stopped) === 1) return [];
   const start = sessionInstant(event.event_date, event.timezone);
   if (start && start.at <= now) return [];
   if (event.door === 'request') {

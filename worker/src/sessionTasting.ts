@@ -52,6 +52,26 @@ const seatBelongsTo = `(a.user_id = ? OR (
 ))`;
 
 /**
+ * Whether this person still holds a confirmed seat at the event, on the same
+ * rule as joining (seatBelongsTo). The tasting a guest's first open makes
+ * (eventTastingId) is the table's own: a member whose seat is given back,
+ * said no to or moved to waiting no longer reads it (A3).
+ */
+export async function holdsEventTastingSeat(db: Db, session: { event_id: string; account_id: string }, userId: string) {
+  const row = await db.prepare(
+    `SELECT 1 AS ok FROM event_attendees a
+      WHERE a.event_id = ? AND a.account_id = ? AND a.status = 'confirmed' AND ${seatBelongsTo} LIMIT 1`,
+  ).bind(session.event_id, session.account_id, userId, userId).first<{ ok: number }>();
+  return Boolean(row);
+}
+
+/** The first name only, as the gallery names a taker (J7). */
+export function memberFirstName(name: unknown): string | null {
+  if (typeof name !== 'string') return null;
+  return name.trim().split(/\s+/)[0] || null;
+}
+
+/**
  * POST /api/rsvp/:token/tasting: a signed-in, confirmed guest of a tasting
  * joins that event's tasting session, creating it on the first open.
  */

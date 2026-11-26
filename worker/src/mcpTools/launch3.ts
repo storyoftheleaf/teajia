@@ -143,19 +143,23 @@ const changeHosting = (stopped: boolean): Action => async (env, auth, services, 
 };
 
 const ownerOnly = (env: ToolEnv, auth: ToolAuth) => fewHostsOpen(env) && auth.creatorTier === 'platform_owner';
+// Every tool here but stopping a host is Launch 3's, so each needs its switch
+// (A3). Stopping a host only takes something away, so it stays with Launch 2's
+// switch, exactly as PUT /api/platform/users/:id/hosting-stopped does.
+const launch3Open = (env: ToolEnv) => fewHostsOpen(env) && anyoneHostsOpen(env);
 const tools = [
   writeTool('report', 'Report a session or person to Teajia.', anyoneHostsOpen,
     { target_kind: { type: 'string', enum: ['session', 'person'] }, target_id: string, reason: string },
     ['target_kind', 'target_id'], report, 'signed-in'),
-  writeTool('release_my_seat', 'Give back your own seat using its attendee ID.', fewHostsOpen,
+  writeTool('release_my_seat', 'Give back your own seat using its attendee ID.', launch3Open,
     { attendee_id: string }, ['attendee_id'], releaseMySeat, 'signed-in'),
-  writeTool('release_guest_seat', 'Release a confirmed guest’s seat at your own table.', fewHostsOpen,
+  writeTool('release_guest_seat', 'Release a confirmed guest’s seat at your own table.', launch3Open,
     { table_id: string, attendee_id: string }, ['table_id', 'attendee_id'], releaseGuestSeat, 'sales:write'),
-  writeTool('same_table_again', 'Make a draft copy of your own table with a new slug and date.', fewHostsOpen,
+  writeTool('same_table_again', 'Make a draft copy of your own table with a new slug and date.', launch3Open,
     { table_id: string, slug: string, event_date: { type: 'string', description: 'New start, for example 2027-04-05T14:00.' } },
     ['table_id', 'slug', 'event_date'], sameTableAgain, 'catalog:write'),
   writeTool('set_session_tasting', 'Mark your own table as a tasting or clear that choice.',
-    env => fewHostsOpen(env) && anyoneHostsOpen(env),
+    launch3Open,
     { table_id: string, is_tasting: { type: 'boolean' } }, ['table_id', 'is_tasting'], setSessionTasting, 'catalog:write'),
   writeTool('stop_host', 'Pause a person’s ability to make tables and confirm new guests. Platform owner only.', ownerOnly,
     { user_id: string }, ['user_id'], changeHosting(true), 'admin:write'),
