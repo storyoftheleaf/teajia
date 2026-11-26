@@ -21,6 +21,8 @@ export function seatNoticeWords(notice: SeatNotice, by: 'host' | 'shop' = 'host'
       return `${name} was offered a seat that opened.`;
     case 'offer_lapsed':
       return `${name} did not take the offered seat in time, so it moved on.`;
+    case 'returned':
+      return `A seat opened, and ${name}, who was waiting, is asking for it.`;
     case 'claimed':
       return `${name} took the offered seat.`;
     default:

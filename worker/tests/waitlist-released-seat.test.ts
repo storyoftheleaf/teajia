@@ -48,11 +48,16 @@ function personalAccount(actor: Actor) {
   db.sqlite.prepare(`UPDATE users SET host_approved_at = '2026-11-26T00:00:00Z' WHERE id = ?`).run(actor.userId);
 }
 
-function table(id: string, accountId: string, seats: number, options: { startsIn?: number; hostUserId?: string | null } = {}) {
+// The offer-and-claim path is the by-link table's (and a shop session's). At a
+// by-request table a freed seat sends the next guest back to asking instead:
+// worker/tests/anyone-hosts-j13-fixes.test.ts.
+function table(id: string, accountId: string, seats: number, options: { startsIn?: number; hostUserId?: string | null; door?: 'link' | 'request' } = {}) {
+  const door = options.door ?? 'link';
   db.sqlite.prepare(`INSERT INTO events (id, account_id, slug, title, event_date, total_capacity, timezone, door,
       requires_approval, public_visibility, network_discovery, host_user_id, status, lifecycle_status, claim_window_minutes)
-    VALUES (?, ?, ?, ?, ?, ?, 'UTC', 'request', 1, 'unlisted', 0, ?, 'active', 'published', 30)`)
+    VALUES (?, ?, ?, ?, ?, ?, 'UTC', ?, ?, 'unlisted', 0, ?, 'active', 'published', 30)`)
     .run(id, accountId, id, `Table ${id}`, new Date(Date.now() + (options.startsIn ?? 7 * DAY)).toISOString().slice(0, 16), seats,
+      door, door === 'link' ? 0 : 1,
       options.hostUserId === undefined ? (accountId === ana.accountId ? ana.userId : null) : options.hostUserId);
 }
 

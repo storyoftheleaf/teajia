@@ -278,8 +278,10 @@ describe('case 3: a guest with no contact loses their link', () => {
     const found = await call('/api/events/t-link/find-rsvp', { method: 'POST', actor: mei });
     expect(found.status).toBe(200);
     expect((await found.json() as { magic_token: string }).magic_token).toBe(token);
-    // Another person's account does not find it.
-    expect((await call('/api/events/t-link/find-rsvp', { method: 'POST', actor: ana })).status).toBe(404);
+    // Another person's account does not find it: no seat, said with a 200 (H13 finding 2).
+    const other = await call('/api/events/t-link/find-rsvp', { method: 'POST', actor: ana });
+    expect(other.status).toBe(200);
+    expect((await other.json() as { magic_token: string | null }).magic_token).toBeNull();
   });
 });
 

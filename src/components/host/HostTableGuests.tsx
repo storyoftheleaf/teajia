@@ -45,7 +45,7 @@ export function HostTableGuests({ tableId, detail }: HostTablePartProps) {
             {guests.length === 0 && <p className={hostSmallText}>{group.empty}</p>}
             <ul className="space-y-2">
               {guests.map(guest => (
-                <GuestRow key={guest.id} guest={guest} open={open}
+                <GuestRow key={guest.id} guest={guest} open={open} byLink={detail.table.door === 'link'}
                   busy={(answer.isPending && answer.variables?.guestId === guest.id) || (release.isPending && release.variables === guest.id)}
                   onAnswer={yes => answer.mutate({ guestId: guest.id, yes })}
                   onRelease={() => release.mutate(guest.id)} />
@@ -65,8 +65,8 @@ function offerTime(at: string): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(parsed));
 }
 
-function GuestRow({ guest, open, busy, onAnswer, onRelease }: {
-  guest: HostedTableGuest; open: boolean; busy: boolean; onAnswer: (yes: boolean) => void; onRelease: () => void;
+function GuestRow({ guest, open, byLink, busy, onAnswer, onRelease }: {
+  guest: HostedTableGuest; open: boolean; byLink: boolean; busy: boolean; onAnswer: (yes: boolean) => void; onRelease: () => void;
 }) {
   const [asking, setAsking] = useState(false);
   const whatsapp = guestWhatsApp(guest);
@@ -106,7 +106,12 @@ function GuestRow({ guest, open, busy, onAnswer, onRelease }: {
       </div>
       {releasable && asking && (
         <div className="flex flex-wrap items-center gap-2" data-host-release-ask={guest.id}>
-          <p className={hostSmallText}>Give back {guest.full_name}’s seat? It goes to whoever has waited longest.</p>
+          <p className={hostSmallText}>
+            Give back {guest.full_name}’s seat? {byLink
+              ? 'It goes to whoever has waited longest.'
+              // By request, a freed seat is never given: the guest waiting longest asks again (J13 finding 1).
+              : 'Whoever has waited longest asks for it again, and you say yes or no.'}
+          </p>
           <Button type="button" size="sm" variant="secondary" className="tap-target" disabled={busy} onClick={() => setAsking(false)}>
             Keep it
           </Button>

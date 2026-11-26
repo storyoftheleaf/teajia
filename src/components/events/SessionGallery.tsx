@@ -57,6 +57,18 @@ function GalleryPanel({ credential, galleryKey, setupId, identity }: {
       client.setQueryData<typeof gallery.data>(queryKey, previous => previous && {
         ...previous, photos: previous.photos.filter(photo => photo.id !== grantId),
       });
+      // The Guest Book below shows the same photograph; its picture is gone now, so it leaves
+      // that list too and is not asked for again (that answer is a 404; J13 finding 5).
+      client.setQueriesData<{ gallery?: Array<{ id: string }> }>(
+        { queryKey: [GUEST_BOOK_PHOTOS_QUERY, identity.accountId, identity.userId] },
+        previous => previous && Array.isArray(previous.gallery)
+          ? { ...previous, gallery: previous.gallery.filter(photo => photo.id !== grantId) } : previous,
+      );
+      client.removeQueries({
+        predicate: query => query.queryKey[0] === GUEST_BOOK_PHOTOS_QUERY
+          && query.queryKey.includes('included') && query.queryKey[query.queryKey.length - 1] === grantId,
+      });
+      client.removeQueries({ queryKey: imageKey(grantId), exact: true });
       setOpenId(null);
       await refresh();
     },
@@ -78,14 +90,22 @@ function GalleryPanel({ credential, galleryKey, setupId, identity }: {
       {photos.length > 0 && (
         <ul aria-label="Photographs" className="flex flex-wrap gap-2">
           {photos.map((photo, index) => (
-            <li key={photo.id}>
+            <li key={photo.id} className="flex flex-col items-start gap-1">
               <GalleryTile photo={photo} index={index} imageKey={imageKey(photo.id)}
                 load={signal => sessionGalleryApi.bytes(credential, photo.id, identity, signal)}
                 onOpen={() => setOpenId(photo.id)} />
+              {/* The taker's own tile takes it out in one tap (J13 finding 5). */}
+              {photo.own && (
+                <Button variant="quiet" size="sm" type="button" className="tap-target" disabled={withdraw.isPending}
+                  onClick={() => withdraw.mutate(photo.id)}>
+                  {withdraw.isPending && withdraw.variables === photo.id ? 'Withdrawing…' : 'Withdraw my photograph'}
+                </Button>
+              )}
             </li>
           ))}
         </ul>
       )}
+      {withdraw.isError && !open && <p role="alert" className={TYPOGRAPHY_CLASSES.bodyLight}>Couldn’t withdraw the photograph.</p>}
       {gallery.data?.waiting && (
         <p role="status" className={TYPOGRAPHY_CLASSES.bodyLight}>Your photograph is with the host. It joins the table once they include it.</p>
       )}
