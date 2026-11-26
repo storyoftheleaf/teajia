@@ -212,17 +212,75 @@ Each of these stands alone and can ship when ready. The order is by value.
 
 ## Who builds what
 
-Adrian will name the models in the build thread. This table is the shape to fill; the tiers above say what each kind of work needs.
+Adrian, 2026-11-26: "You pick which models for what job", and "build everything in the plan". So the whole plan is built, launch by launch, in the order above. Each launch is built on its own integration branch behind its own flag, and a launch reaches people only at its gate, with his "ship". Building a later launch does not wait for the one before to be used, but turning it on does. A package blocked by one of his questions (Q4 to Q11) is built last in its launch or left out until he answers, and no navigation word changes without his explicit yes.
 
-| Role | Kind of work | Model |
+| Model | Kind of work |
+|---|---|
+| **Opus 5.5** | Owns the build: contracts, shared files, anything touching what is stored, who sees what, sign-in or navigation, integration, each launch gate |
+| **GPT-6.2 Sol** | Settled, bounded features and screens in their own files, with a stated check. Run through Codex on Adrian's Mac |
+| **GPT-6.2 Astra** | Settled behaviour where details are easy to get wrong, and every audit of privacy or of older data carried over. Run through Codex on Adrian's Mac |
+| **Sonnet 5.5** | Opus's helpers in the cloud: fixtures, agent tools, browser checks, documents, drafts of readings and articles, a first read of every GPT pull request |
+| **Haiku 5.5** | Mechanical errands: running suites, finding call sites, wording and colour checks, the ledger |
+| **Fable** | The approach, where it is still uncertain, and the run sheet for each launch |
+
+Two rules hold throughout. No model's work on privacy, sign-in or stored data is merged on a read from its own family alone. And Launch 1's exact slices and worker messages are in [guests-and-tea-masters-launch-1-run.md](guests-and-tea-masters-launch-1-run.md); each later launch gets the same kind of run sheet from Fable once the launch before it has merged its contract, because the messages quote names that do not exist until then.
+
+**Launch 2**
+
+| Package | Builds | Checks |
 |---|---|---|
-| Orchestrator | Contracts, all A packages, all wiring into shared files, review of everything, the launch gate | Fable, the build thread |
-| Strong builder | B packages | To be named by Adrian |
-| Lower-cost builder | C packages | To be named by Adrian |
-| Independent reviewer | R packages, always a different model family from the builder | To be named by Adrian |
-| Writer | L1-12 and the people articles, as drafts for Adrian | To be named by Adrian |
+| L2-01 a small host's account | Opus | Astra: what a host account can reach in the shop that made it |
+| L2-02 hosting on one screen | Sol | Sonnet |
+| L2-03 one invitation link, the three doors, a seat by name | Opus | Astra: a seat claimed twice, a full table, a door changed after links went out |
+| L2-04 any tea on a session | Sol | Sonnet |
+| L2-05 the arrival walkthrough | Opus | Astra: can anyone not confirmed, or anyone after the session, read an address or a step |
+| L2-06 the host's private guest book | Sol | Astra: host-only, across two hosts of one session |
+| L2-07 hosted by and pouring | Sol | Sonnet |
+| L2-08 the photograph line and "please not me" | Sol | Sonnet |
+| L2-09 tools, browser checks, truth-up | Sonnet | Opus |
 
-Two rules that hold whoever is named. A model new to this repository starts on one C package before it is given a B. And no model reviews its own family's work on an A package.
+**Launch 3**
+
+| Package | Builds | Checks |
+|---|---|---|
+| L3-01 one kind of session | Fable settles the design, Opus writes the migration and shows Adrian the before and after page | Astra: every older private sit carried over, none lost, none made visible |
+| L3-02 "Host a table" | Sol | Sonnet |
+| L3-03 the floor for strangers in homes | Opus | Astra: the address before the host's yes, and reports |
+| L3-04 a host reviews their session | Sol | Sonnet |
+| L3-05 the session gallery and one-tap photograph | Sol | Astra: a photograph withdrawn after others have seen it |
+| L3-06 "this is a tasting" | Sol | Sonnet |
+| L3-07 waiting list, released seat, same table again | Astra | Opus |
+| L3-08 reach, set by hand | Opus | Astra: reach is never readable outside Manage |
+| L3-09 free, contribution, or paid to the host | Sol | Sonnet |
+| L3-10 tools, browser checks, truth-up | Sonnet | Opus |
+
+**Launch 4**
+
+| Package | Builds | Checks |
+|---|---|---|
+| L4-01 the Tea Table, first form | Sol, from the existing `/tea-feed` page | Astra: consent and withdrawal, things shared before the wording existed |
+| L4-02 hold at the top, the private keep | Opus | Astra: keep counts readable only by Adrian |
+| L4-03 "add your table", tea house pages | Opus | Astra: a private table never appears beyond its area |
+| L4-04 favourites in three kinds, the chest's three states | Sol | Sonnet |
+| L4-05 Home in full and the bar words | Opus, only after Q7 | Sonnet, `npm run test:mobile` before and after |
+| L4-06 quiet acknowledgement, people articles | Sol, Sonnet drafts the articles | Opus |
+| L4-07 a host offers an article | Sol | Sonnet |
+| L4-08 Your Table as a page, Read's three shelves | Opus for the page and routing, Sol for the shelves | Sonnet |
+| L4-09 tools, browser checks, truth-up | Sonnet | Opus |
+
+**Launch 5**
+
+| Package | Builds | Checks |
+|---|---|---|
+| L5-01 the shelf and credit in tea | Fable settles the approach once Q8 is answered, then Opus | Astra: credit counted once, refunds, orders with two sources |
+| L5-02 the wrapper reader for hosts | Opus | Sonnet |
+| L5-03 a card for the table | Sol | Sonnet |
+| L5-04 circles and series | Sol | Sonnet |
+| L5-05 a tea for the table | Fable settles the approach, then Opus | Astra |
+| L5-06 every action as a tool, a host's own token | Opus | Astra: what a host's token can reach |
+| L5-07 the host's box, the tasting box | Fable settles the approach once Q10 is answered | |
+| L5-08 "does anyone know this tea?" | Sol | Sonnet |
+| L5-09 short video, the app | Later | |
 
 ## The ledger
 
