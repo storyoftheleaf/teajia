@@ -119,16 +119,16 @@ test('Guest Book submits one consented entry, retries it in place, and withdraws
   await expect(entry.getByText('Pending host review', { exact: true })).toBeVisible();
   await expect(book.getByRole('list', { name: 'Entries from session guests' })).toHaveCount(0);
   expect(state.submissions).toHaveLength(2);
-  expect(state.submissions[0]).toEqual({ note, photo: { photoId: firstPhoto, grantId: expect.any(String) } });
+  expect(state.submissions[0]).toEqual({ note, teaId: null, publicRecap: false, photo: { photoId: firstPhoto, grantId: expect.any(String) } });
   expect(state.submissions[1]).toEqual(state.submissions[0]);
 
   await entry.getByRole('button', { name: 'Edit entry' }).click();
   await expect(entry.getByLabel('Saved photo (optional)')).toHaveCount(0);
   await entry.getByRole('textbox', { name: 'Note', exact: true }).fill(note + ' Thank you.');
-  await entry.getByRole('checkbox').check();
+  await entry.getByRole('checkbox', { name: /Share this entry with the host/ }).check();
   await submit.click();
   await expect(entry.getByRole('button', { name: 'Edit entry' })).toBeVisible();
-  expect(state.submissions[2]).toEqual({ note: note + ' Thank you.' });
+  expect(state.submissions[2]).toEqual({ note: note + ' Thank you.', teaId: null, publicRecap: false });
   expect(state.grants).toHaveLength(1);
 
   if (!state.note) throw new Error('Expected the note');

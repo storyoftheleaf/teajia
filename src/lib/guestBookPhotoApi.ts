@@ -1,8 +1,9 @@
 import { API_URL, authedBlobFetch, authedFetch } from './api';
 import type { GuestBookAction, GuestBookStatus } from './guestBookApi';
 
-export type GuestBookPhoto = { id: string; entry_key?: string; display_name: string; alt_text: string };
-export type ReviewPhoto = GuestBookPhoto & { status: GuestBookStatus };
+/** `display_name` is the taker's first name, and only when they chose to show it (the host's review list carries the full name). */
+export type GuestBookPhoto = { id: string; entry_key?: string; display_name: string | null; alt_text: string };
+export type ReviewPhoto = Omit<GuestBookPhoto, 'display_name'> & { display_name: string; status: GuestBookStatus };
 export type OwnPhoto = {
   id: string; tea_name: string | null; created_at: string; grant_id: string | null; status: GuestBookStatus | null; alt_text: string | null;
 };
@@ -12,7 +13,7 @@ type GuestPhotoInput =
   | { action: 'photo-bytes'; grantId: string }
   | { action: 'photo-withdraw'; grantId: string }
   | { action: 'private-photo-preview'; photoId: string }
-  | { action: 'photo-offer'; photoId: string; grantId: string; description: string };
+  | { action: 'photo-offer'; photoId: string; grantId: string; description: string; showName?: boolean };
 
 function options(expectedAuth: Identity) {
   return { expectedAuth, cache: 'no-store', referrerPolicy: 'no-referrer', reportIncident: false } as const;

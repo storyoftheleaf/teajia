@@ -1,4 +1,4 @@
-import { API_URL, fetchWithTimeout } from './api';
+import { API_URL, authedBlobFetch, authedFetch, fetchWithTimeout } from './api';
 
 type AfterSitWindow = Window & { __teajiaAfterSit?: string };
 
@@ -82,3 +82,38 @@ export async function keepAfterSitTea(credential: string, teaId: string, signInT
   if (!response.ok) throw new Error('The tea could not be kept.');
   return (await response.json() as { item: import('./teaChestTypes').CellarItem }).item;
 }
+
+/** One photograph from the table. `taker_first_name` is present only when the taker chose to show it. */
+export type SessionGalleryPhoto = { id: string; alt_text: string; taker_first_name: string | null; own: boolean };
+export type SessionGallery = { photos: SessionGalleryPhoto[]; can_add: boolean; waiting: boolean };
+type GalleryIdentity = { accountId: string | null; userId: string };
+
+const galleryEndpoint = `${API_URL}/api/after-sit/gallery`;
+const galleryOptions = (credential: string, body: object, expectedAuth: GalleryIdentity, signal?: AbortSignal) => ({
+  expectedAuth, cache: 'no-store', referrerPolicy: 'no-referrer', reportIncident: false, background: true,
+  method: 'POST', body: JSON.stringify({ credential, ...body }), signal,
+} as const);
+
+/**
+ * Launch 3 (J7): the session gallery on the after-sit page. Read by a signed-in
+ * person holding a seat link for this session (the booking's own or a personal
+ * party link). Photographs are offered and withdrawn through the Guest Book.
+ */
+export const sessionGalleryApi = {
+  list: async (credential: string, identity: GalleryIdentity, signal?: AbortSignal): Promise<SessionGallery> => {
+    const gallery = await authedFetch(galleryEndpoint, galleryOptions(credential, { action: 'read' }, identity, signal)) as Partial<SessionGallery> | null;
+    return {
+      photos: Array.isArray(gallery?.photos) ? gallery.photos : [],
+      can_add: gallery?.can_add === true,
+      waiting: gallery?.waiting === true,
+    };
+  },
+  bytes: (credential: string, grantId: string, identity: GalleryIdentity, signal?: AbortSignal) =>
+    authedBlobFetch(galleryEndpoint, galleryOptions(credential, { action: 'bytes', grantId }, identity, signal)),
+  /** Keeps this sit's setup privately (a no-op when already kept): a photograph is saved there before it is offered. */
+  keepSetup: (credential: string, identity: GalleryIdentity) =>
+    authedFetch(`${API_URL}/api/after-sit/setup`, {
+      expectedAuth: identity, cache: 'no-store', referrerPolicy: 'no-referrer', reportIncident: false,
+      method: 'POST', body: JSON.stringify({ credential, action: 'save' }), retryTimeouts: true,
+    }),
+};
