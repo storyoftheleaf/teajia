@@ -32,7 +32,7 @@ const json = (value: unknown, status = 200) => Response.json(value, {
   headers: { 'Cache-Control': 'no-store' },
 });
 
-const formalSessionCardColumns = `
+export const formalSessionCardColumns = `
   e.slug, e.title, e.event_date,
   (SELECT session_notes FROM event_post_session ps
     WHERE ps.event_id = e.id AND ps.account_id = e.account_id LIMIT 1) AS writing,
@@ -51,9 +51,9 @@ const formalSessionCardColumns = `
     WHERE menu.name IS NOT NULL) AS teas_json`;
 
 type SessionCardTea = { id: string; name: string; type: string | null };
-type SessionCardRow = { slug: string; title: string; event_date: string; writing: string | null;
+export type SessionCardRow = { slug: string; title: string; event_date: string; writing: string | null;
   gallery_photo: unknown; served_teas_json: string | null; teas_json: string; role?: SitCreditRole; host?: string };
-function sessionCards(rows: SessionCardRow[], includeGallery = true) {
+export function sessionCards(rows: SessionCardRow[], includeGallery = true) {
   return rows.map(({ writing, gallery_photo, served_teas_json, teas_json, ...row }) => ({
     ...row, writing: writing?.trim().slice(0, 280) ?? '',
     galleryPhoto: includeGallery && typeof gallery_photo === 'string' ? gallery_photo : null,

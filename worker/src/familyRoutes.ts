@@ -33,6 +33,8 @@ import {
   isFamilyPhotographShape, readFamilyPhotographFrame, type FamilyPhotographFrame, type FamilyPhotographShape,
 } from '../../src/lib/familyContract';
 import { inspectJpeg } from './familyJpeg';
+import { teaTableSittings } from './teaTable';
+import { teaTableOpen } from '../../src/lib/teaTable';
 import { ensureFamilyPage } from './familyPages';
 import { describeReports, familyFeedbackRoutes } from './familyFeedback';
 import { signPhotograph } from './familyMedia';
@@ -45,6 +47,8 @@ export interface FamilyEnv extends TeaVoiceEnvironment {
   MEDIA_BUCKET?: R2Bucket;
   PROVIDER_LIMITER?: RateLimiter;
   JWT_SECRET?: string;
+  /** See src/lib/teaTable.ts. */
+  TEA_TABLE_OPEN?: string;
 }
 
 type Person = { userId: string; email: string; name: string };
@@ -551,6 +555,24 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     // Private takes the tasting's offered and approved quotes off Home and the
     // tea listing too, as withdrawing each offer would, in the same batch.
     const withdrawQuotes = state === 'private' ? withdrawTastingQuotes(env.DB, journal.id, person.userId) : [];
+    // The Tea Table's consent (worker/src/teaTable.ts): only a share made under
+    // the Tea Table wording, while the Tea Table is open, records the moment
+    // and the sittings the journal holds now. Private takes it off the table.
+    // A share under the older wording leaves what was recorded as it was.
+    const toTeaTable = state !== 'private' && body.tea_table === true && teaTableOpen(env);
+    const sittings = toTeaTable
+      ? teaTableSittings((await env.DB.prepare('SELECT tastings FROM customer_tasting_journal WHERE id = ?')
+        .bind(journal.id).first<{ tastings: string | null }>())?.tastings ?? null)
+      : null;
+    const teaTable = state === 'private'
+      ? [env.DB.prepare(
+        `UPDATE member_tasting_shares SET tea_table_at = NULL, tea_table_sittings = NULL WHERE journal_entry_id = ? AND author_user_id = ?`,
+      ).bind(journal.id, person.userId)]
+      : toTeaTable
+        ? [env.DB.prepare(
+          `UPDATE member_tasting_shares SET tea_table_at = datetime('now'), tea_table_sittings = ? WHERE journal_entry_id = ? AND author_user_id = ?`,
+        ).bind(sittings, journal.id, person.userId)]
+        : [];
     const [, photos] = await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO member_tasting_shares (journal_entry_id, account_id, product_id, author_user_id, share_state, shared_at, updated_at)
@@ -571,11 +593,13 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
           WHERE author_user_id = ?3 AND product_id = ?4 AND removed_by_member_at IS NULL`,
       ).bind(state, journal.id, person.userId, product.id),
       ...withdrawQuotes,
+      ...teaTable,
     ]);
     // The first share makes the person's page (family, live without review); later ones leave it as it is.
     const page = state === 'private' ? null : await ensureFamilyPage(env.DB, person);
     return json({
       product_id: product.id, journal_entry_id: journal.id, share_state: state, photographs_updated: Number(photos.meta?.changes ?? 0),
+      on_tea_table: toTeaTable,
       page_id: page?.id ?? null, page_path: page ? `/people/${encodeURIComponent(page.id)}` : null, page_created: page?.created ?? false,
     });
   };

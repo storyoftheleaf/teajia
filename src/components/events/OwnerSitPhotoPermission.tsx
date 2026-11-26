@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { revocableSitPhotoApi, recapPhotoPublicQuery } from '../../lib/revocableSitPhotoApi';
 import { Button } from '../shared/Button';
-import { BREWING_EXPERIENCES_OPEN, brewingConsent } from '../../lib/brewingExperiences';
+import { teaTableConsent, teaTableOpen } from '../../lib/teaTable';
 
 type Props = {
   setupId: string; photoId: string; scope: { accountId: string | null; userId: string };
@@ -29,7 +29,7 @@ export function OwnerSitPhotoPermission({ setupId, photoId, scope, showUnavailab
   };
 
   const offer = useMutation({
-    mutationFn: () => revocableSitPhotoApi.offer(setupId, photoId, { id: version, credit, canShowInBrewing: brewingConsent(canShowInBrewing) }, scope),
+    mutationFn: () => revocableSitPhotoApi.offer(setupId, photoId, { id: version, credit, canShowInBrewing: teaTableConsent(canShowInBrewing) }, scope),
     onSuccess: () => {
       setCredit('');
       setCanShowInBrewing(false);
@@ -70,7 +70,7 @@ export function OwnerSitPhotoPermission({ setupId, photoId, scope, showUnavailab
               ? 'Approved for the public recap.' : permission.status === 'offered' && status.data.eligible
                 ? 'Offered to the host for review.' : 'Permission granted. This photo is currently unavailable for the recap.'}
             {' '}Credit: {permission.credit}
-            {BREWING_EXPERIENCES_OPEN && permission.canShowInBrewing && ' · Also offered for Brewing experiences and the photo essay.'}
+            {teaTableOpen() && permission.canShowInBrewing && ' · Also offered for the Tea Table and the photo essay.'}
           </p>
           {withdraw.isError && <p role="alert" className="text-ui-13 text-tea-text-sec">Couldn’t withdraw permission. Try again.</p>}
           <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => withdraw.mutate(permission.id)}>
@@ -87,11 +87,11 @@ export function OwnerSitPhotoPermission({ setupId, photoId, scope, showUnavailab
             <input className="btn-field mt-1 w-full" value={credit} onChange={event => setCredit(event.currentTarget.value)}
               placeholder="Name or pen name" maxLength={120} disabled={busy} />
           </label>
-          {/* Asked only while Brewing experiences can be reached (src/lib/brewingExperiences.ts). */}
-          {BREWING_EXPERIENCES_OPEN && <label className="flex min-h-tap cursor-pointer items-center gap-2 text-ui-13 text-tea-text-sec">
+          {/* Asked only while the Tea Table can be reached (src/lib/teaTable.ts). */}
+          {teaTableOpen() && <label className="flex min-h-tap cursor-pointer items-center gap-2 text-ui-13 text-tea-text-sec">
             <input type="checkbox" className="h-4 w-4 shrink-0 accent-tea-gold" checked={canShowInBrewing}
               disabled={busy} onChange={event => setCanShowInBrewing(event.currentTarget.checked)} />
-            <span>Also allow this photo and credit in Brewing experiences and the photo essay.</span>
+            <span>Also allow this photo and credit on the Tea Table and in the photo essay.</span>
           </label>}
           {withdraw.isSuccess && <p className="text-ui-13 text-tea-text-sec" role="status">Public permission withdrawn. Your private photo is still saved.</p>}
           {offer.isError && <p role="alert" className="text-ui-13 text-tea-text-sec">Couldn’t offer this photo. Check the permission and try again.</p>}

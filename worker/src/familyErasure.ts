@@ -18,6 +18,7 @@
  * Photograph files are listed by familyPhotoKeysForUser before the batch so the
  * caller can remove them from storage once the rows are gone.
  */
+import { teaTableErasureStatements } from './teaTable';
 
 /** The storage keys of every photograph the person added to the family. */
 export async function familyPhotoKeysForUser(db: D1Database, userId: string): Promise<string[]> {
@@ -35,6 +36,8 @@ export function familyErasureStatements(db: D1Database, userId: string): D1Prepa
     db.prepare('DELETE FROM tasting_note_candidates WHERE author_user_id = ?').bind(userId),
     db.prepare('UPDATE tasting_note_candidates SET promoted_by = NULL WHERE promoted_by = ?').bind(userId),
     db.prepare('UPDATE tasting_note_candidates SET dismissed_by = NULL WHERE dismissed_by = ?').bind(userId),
+    // Their keeps and holds, and anyone's keeps and holds on their tastings, go before the shares do.
+    ...teaTableErasureStatements(db, userId),
     db.prepare('DELETE FROM member_tasting_shares WHERE author_user_id = ?').bind(userId),
     db.prepare('DELETE FROM member_tea_covers WHERE author_user_id = ?').bind(userId),
     db.prepare(

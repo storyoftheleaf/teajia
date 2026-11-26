@@ -43,9 +43,9 @@ export const familyApi = {
   /** "Remove from my page". The shop keeps what was offered to it. */
   removePhotograph: (photographId: string): Promise<{ id: string; removed: true }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/remove`, { method: 'POST' }),
-  /** The Share step after Save: the tasting and its photographs together. Save the tasting first. */
-  shareTasting: (productId: string, shareState: FamilyShareState): Promise<{ product_id: string; journal_entry_id: string; share_state: FamilyShareState; photographs_updated: number; page_id: string | null; page_path: string | null; page_created: boolean }> =>
-    authedFetch(`${API_URL}/api/family/teas/${encodeURIComponent(productId)}/share`, { method: 'PUT', body: JSON.stringify({ share_state: shareState }) }),
+  /** The Share step after Save: the tasting and its photographs together. Save the tasting first. `teaTable` says the person chose the Tea Table wording (src/lib/teaTable.ts); the worker records it only then. */
+  shareTasting: (productId: string, shareState: FamilyShareState, teaTable = false): Promise<{ product_id: string; journal_entry_id: string; share_state: FamilyShareState; photographs_updated: number; page_id: string | null; page_path: string | null; page_created: boolean; on_tea_table?: boolean }> =>
+    authedFetch(`${API_URL}/api/family/teas/${encodeURIComponent(productId)}/share`, { method: 'PUT', body: JSON.stringify(teaTable ? { share_state: shareState, tea_table: true } : { share_state: shareState }) }),
   /** What a public tea page shows: the lead picture, placed photographs and "From the family". No sign-in needed. */
   teaPhotographs: async (productId: string): Promise<FamilyTeaPhotographs> =>
     handleResponse(await fetchWithTimeout(`${API_URL}/api/family/teas/${encodeURIComponent(productId)}/photographs`)),

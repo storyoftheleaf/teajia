@@ -15,6 +15,7 @@ import { NotificationPanel } from './NotificationPanel';
 import { PostSessionEditor } from './PostSessionEditor';
 import { GuestBookReview } from './GuestBookReview';
 import { RecapPhotoReview } from './RecapPhotoReview';
+import { TeaTableRecapControl } from './TeaTableRecapControl';
 import { ApprovalCard } from './ApprovalCard';
 import { BriefingCardsEditor } from './BriefingCardsEditor';
 import { ReminderTimeline } from './ReminderTimeline';
@@ -894,6 +895,7 @@ export const EventDetail: React.FC = () => {
               eventId={event.id}
               canShareAttendeeRecap={event.lifecycleStatus === 'completed' && event.recapStatus !== 'published'}
             />
+            {event.recapStatus === 'published' && <TeaTableRecapControl eventId={event.id} />}
             <section aria-labelledby="photo-essay-draft-heading" className="rounded-md border border-tea-border bg-tea-surface p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
