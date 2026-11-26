@@ -140,6 +140,10 @@ export interface TeaEvent {
   accountLocationCountry?: string;
   accountName?: string;
   account_name?: string;
+  /** Who hosts the session, by the rule of worker/src/sessionHost.ts; null when the session names nobody. */
+  host?: { name: string; path: string | null } | null;
+  /** A person's own table rather than a shop's session. */
+  privateHost?: boolean;
 }
 
 export interface EventAvailability {
