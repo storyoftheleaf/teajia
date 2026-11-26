@@ -24,7 +24,7 @@ afterEach(() => { while (databases.length) databases.pop()!.close(); });
 
 const AUTH = {
   accountId: 'acct', userId: 'host', userEmail: 'host@test.dev',
-  tokenId: 'token-one', creatorTier: 'owner',
+  tokenId: 'token-one', creatorTier: 'account_owner',
 };
 const OTHER_TOKEN = { ...AUTH, tokenId: 'token-two' };
 

@@ -89,6 +89,7 @@
  */
 
 import { customerTagList } from '../customerContactHandles';
+import { guestLinkSessions } from '../guestLinkHolders';
 import {
   EVENT_TRANSITIONS,
   reservePartySeats,
@@ -100,6 +101,9 @@ import {
 } from '../eventDomain';
 import type { ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET as expiredTicket, consumeTicket as consumeShared, issueTicket, previewEnvelope } from './tickets';
+
+// Tiers that count as account ownership. Mirrors OWNER_TIERS in mcp.ts.
+const OWNER_TIERS: ReadonlySet<string> = new Set(['platform_owner', 'account_owner']);
 
 // ── the two maps index.ts owns and does not export ──
 //
@@ -893,15 +897,22 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
     `${pending.fullName} added to "${pending.eventTitle}" via MCP as ${status}${pending.guestNames.length ? ` with ${pending.guestNames.length} guest(s)` : ''}`,
     pending.userEmail, 'event_attendee', pending.attendeeId, pending.accountId).run();
 
+  // The magic token is a bearer link to that person's RSVP page. It is
+  // returned once, here, because it is the only way to hand them their
+  // ticket, and it appears in no read tool. Only the account's owner and the
+  // session's host receive it (Launch 2, H7); staff hand the ticket on from
+  // the admin's guest list once the host has sent it.
+  const holdsLink = (await guestLinkSessions(env.DB, {
+    userId: auth.userId, accountId: pending.accountId, isOwner: OWNER_TIERS.has(auth.creatorTier),
+  }, [pending.eventId])).has(pending.eventId);
   return {
     committed: true, action: 'record_event_rsvp',
     attendee_id: pending.attendeeId, event_id: pending.eventId, name: pending.fullName,
     status,
     seats_taken: status === 'confirmed' ? 1 + pending.guestNames.length : 0,
-    // The magic token is a bearer link to that person's RSVP page. It is
-    // returned once, here, because it is the only way to hand them their
-    // ticket, and it appears in no read tool.
-    rsvp_link: `/m/${pending.magicToken}`,
+    ...(holdsLink
+      ? { rsvp_link: `/m/${pending.magicToken}` }
+      : { rsvp_link: null, rsvp_link_note: 'The guest\'s own link goes to the owner and the session\'s host only.' }),
   };
 };
 
