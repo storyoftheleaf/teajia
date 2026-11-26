@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { TEA_HOUSES_TITLE } from '../../lib/teaHouses';
-import { teaHousesApi } from '../../lib/teaHousesApi';
+import { TEA_HOUSE_READ, teaHousesApi } from '../../lib/teaHousesApi';
 import { TEA_HOUSE_PART_OFFERS, teaHousePagePath } from '../../lib/teaHousesContract';
 import { SectionSkeleton } from '../../components/shared/SectionSkeleton';
 
@@ -13,7 +13,7 @@ import { SectionSkeleton } from '../../components/shared/SectionSkeleton';
  * done it somewhere, and points at the houses where he did, in his order.
  */
 export default function TeaHousesBuildPage() {
-  const query = useQuery({ queryKey: ['tea-houses', 'build'], queryFn: () => teaHousesApi.build(), staleTime: 1000 * 60 });
+  const query = useQuery({ queryKey: ['tea-houses', 'build'], queryFn: () => teaHousesApi.build(), ...TEA_HOUSE_READ });
   const parts = query.data?.parts ?? [];
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-build">

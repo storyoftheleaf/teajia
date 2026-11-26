@@ -286,14 +286,13 @@ export function createHostArticleHandlers<Env extends OfferEnv>(access: Access<E
   }
 
   async function photo(request: Request, env: Env, params: Record<string, string>) {
-    const open = hostArticlesOpen(env);
-    // A closed flag can reach the worker before the migration does. Published
-    // media remains readable when the intake is closed after publication.
-    if (!open && !await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE name = 'host_article_offers'").first()) return notFound();
+    // Closed, no photograph of an offer is read, published or not (A4
+    // review, finding 10). A closed flag can also reach the worker before the
+    // migration does, so nothing here touches the table until it opens.
+    if (!hostArticlesOpen(env)) return notFound();
     const offer = await env.DB.prepare(`${OFFER_ROWS} AND o.id = ?`).bind(accountId, params.id).first<OfferRow>();
     if (!offer || !photoIds(offer).includes(params.photoId)) return notFound();
     if (!offer.slug) {
-      if (!open) return notFound();
       const user = await access.optionalUser(request, env);
       if (!user || (user.userId !== offer.writer_user_id && await access.requireOwner(request, env))) return notFound();
     }

@@ -8,7 +8,6 @@ import { useAuth } from '../hooks/useAuth';
 import { authPagePath } from '../lib/authNavigation';
 import { familyApi } from '../lib/familyApi';
 import { mediaUrl } from '../lib/mediaUrl';
-import { publicEventsQuery } from '../lib/publicEventsQuery';
 import { recapPath } from '../lib/publicSitConnections';
 import { TEA_TABLE_MINE_KEY, teaTableApi, useTeaTableMine } from '../lib/teaTableApi';
 import {
@@ -193,29 +192,6 @@ function Piece({ item, kept, mine }: { item: TeaTableItem; kept: Set<string>; mi
     : <RecapPiece item={item} kept={kept.has(key)} />;
 }
 
-/** One quiet line naming the next session, when there is one. The table itself shows only what has happened. */
-function NextSessionLine() {
-  const { data } = useQuery({ ...publicEventsQuery, retry: false });
-  const next = useMemo(() => {
-    if (!Array.isArray(data)) return null;
-    const now = Date.now();
-    return data
-      .map(event => {
-        const raw = event as unknown as Record<string, unknown>;
-        const when = (event.eventDate ?? raw.event_date) as string | undefined;
-        return { slug: event.slug, title: event.title, when, at: when ? new Date(when).getTime() : NaN };
-      })
-      .filter(event => event.slug && event.title && Number.isFinite(event.at) && event.at >= now)
-      .sort((a, b) => a.at - b.at)[0] ?? null;
-  }, [data]);
-  if (!next) return null;
-  return (
-    <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-4 text-tea-text-sec`} data-testid="tea-table-next-session">
-      Next at a table: <Link to={`/event/${encodeURIComponent(next.slug)}`} className={quietLink}>{next.title}</Link>, {calendarDay(next.when!)}.
-    </p>
-  );
-}
-
 function groupByDay(items: TeaTableItem[]) {
   const days: Array<{ day: string; items: TeaTableItem[] }> = [];
   for (const item of items) {
@@ -257,7 +233,6 @@ export default function TeaTablePage() {
           <Link to="/people" className="btn-tab">People</Link>
         </div>
 
-        <NextSessionLine />
 
         <div role="group" aria-label="Show" className="mt-4 flex flex-wrap items-center gap-2" data-testid="tea-table-show">
           {TEA_TABLE_SHOWS.map(option => (

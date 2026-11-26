@@ -23,9 +23,9 @@ export function pilotEnv(db: SqliteD1, appUrl = 'https://pilot.test') {
 }
 
 export async function request(
-  db: SqliteD1, path: string, options: { actor?: Actor; method?: string; body?: unknown } = {},
+  db: SqliteD1, path: string, options: { actor?: Actor; method?: string; body?: unknown; vars?: Record<string, string> } = {},
 ) {
-  const { actor, body, method = 'GET' } = options;
+  const { actor, body, method = 'GET', vars } = options;
   const headers = new Headers({ 'Content-Type': 'application/json' });
   if (actor) {
     const token = await signedToken(SECRET, {
@@ -36,7 +36,7 @@ export async function request(
   }
   return worker.fetch(new Request(`https://worker.test${path}`, {
     headers, method, body: body === undefined ? undefined : JSON.stringify(body),
-  }), pilotEnv(db));
+  }), vars ? { ...(pilotEnv(db) as object), ...vars } as never : pilotEnv(db));
 }
 
 export async function json<T>(response: Response, status = 200): Promise<T> {

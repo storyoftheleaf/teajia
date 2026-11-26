@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { TEA_HOUSES_TITLE } from '../../lib/teaHouses';
-import { teaHousesApi } from '../../lib/teaHousesApi';
+import { TEA_HOUSE_READ, teaHousesApi } from '../../lib/teaHousesApi';
 import { TEA_HOUSE_PART_LABELS, type TeaHouseContribution } from '../../lib/teaHousesContract';
 import { SectionSkeleton } from '../../components/shared/SectionSkeleton';
 
@@ -44,7 +44,7 @@ export default function TeaHousePortfolioPage() {
     queryKey: ['tea-houses', 'page', slug],
     queryFn: () => teaHousesApi.page(slug),
     retry: false,
-    staleTime: 1000 * 60,
+    ...TEA_HOUSE_READ,
   });
 
   return (
