@@ -12,6 +12,8 @@ import { afterSitRoutes } from './afterSitAccess';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
+import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnHostCredit, readShopHostCredit, settleHostCredit } from './hostCreditLedger';
+import { hostCreditOpen } from '../../src/lib/hostCredit';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
 import { eraseKeptSetup, queueKeptPhotoCleanupForUser, retryKeptPhotoCleanup, serveKeptSetupPhotos } from './privateKeptSetupPhotos';
@@ -314,6 +316,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   AFTER_SIT_LIMITER?: RateLimit;
   /** "true" opens Launch 1 in a local sandbox only; see src/lib/firstTable.ts. Never set on the live worker. */
   FIRST_TABLE_OPEN?: string;
+  /** "true" opens tea credit for hosts (Launch 5, M1); see src/lib/hostCredit.ts. */
+  HOST_CREDIT_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -5285,6 +5289,7 @@ async function handlePayPalPayment(request: Request, env: Env, params: Record<st
             methodLabel: live ? 'PayPal' : 'PayPal Sandbox · test only', reference: receipt.capture_id, note: live ? 'Verified PayPal capture.' : 'Verified sandbox capture; no real money.' },
           claimedBy: 'operator', status: 'confirmed', requestId: (live ? 'live_paypal_' : 'sandbox_paypal_') + receipt.capture_id });
         const result = await recomputeInvoicePaymentStatus(env, invoice);
+        await settleHostCredit(env, invoiceId);
         // Stock confirmation owns the same lease, so give it back after the verified ledger write.
         if (lease) await releaseInvoiceLinkLease(env, inquiry.account_id, invoiceId, lease.claimToken);
         const account = await env.DB.prepare('SELECT owner_user_id FROM accounts WHERE id=?').bind(inquiry.account_id).first<{ owner_user_id: string | null }>();
@@ -5421,6 +5426,7 @@ const handleRecordInvoicePayment: Handler = async (request, env, params) => {
   if (!payment.inserted) {
     const current = await loadLedgerInvoice(env, invoice.id, ctx.accountId);
     const result = current ? await recomputeInvoicePaymentStatus(env, current) : null;
+    await settleHostCredit(env, invoice.id);
     const stock = result?.payment_status === 'paid'
       ? await applyConfirmedPaymentStock(env, invoice.id, ctx)
       : { state: 'not_due' as const };
@@ -5428,6 +5434,7 @@ const handleRecordInvoicePayment: Handler = async (request, env, params) => {
   }
   const paymentId = payment.id;
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await settleHostCredit(env, invoice.id);
   const stock = result.payment_status === 'paid'
     ? await applyConfirmedPaymentStock(env, invoice.id, ctx)
     : { state: 'not_due' as const };
@@ -5491,6 +5498,7 @@ async function transitionInvoicePayment(
   }
 
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await settleHostCredit(env, invoice.id);
   const stock = next === 'confirmed' && result.payment_status === 'paid'
     ? await applyConfirmedPaymentStock(env, invoice.id, ctx)
     : { state: 'not_due' as const };
@@ -6294,6 +6302,7 @@ const handleUpdateInvoice: Handler = async (request, env, params, execution) => 
     if (current) payment = await recomputeInvoicePaymentStatus(env, current);
   }
   await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
+  await settleHostCredit(env, params.id);
   if (quoteChanged || body.status === 'Pending') {
     const delivery = processPendingShippingQuoteNotifications(env.DB, env, { accountId, invoiceId: params.id, limit: 1 })
       .catch(() => console.error('Shipping payment notification processing failed'));
@@ -6521,6 +6530,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     }
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
   }
+  await settleHostCredit(env, invoice_id);
 
   // Post-fulfillment: populate customer's compass tasting queue (non-blocking)
   const customerUserId = (invoice as any).customer_user_id as string | null;
@@ -6882,6 +6892,7 @@ const handleCancelInvoice: Handler = async (request, env) => {
         ctx.email, 'invoice', invoiceId, ctx.accountId),
     ]);
     if (!Number(results[restore.length + 1]?.meta?.changes || 0)) return restError(409, 'Order changed before cancellation', 'invoice_busy');
+    await settleHostCredit(env, invoiceId);
     const cancelled = await env.DB.prepare('SELECT refund_required,cancelled_at FROM invoices WHERE id=? AND account_id=?')
       .bind(invoiceId, ctx.accountId).first() as { refund_required: number; cancelled_at: string } | null;
     return json({ success: true, refund_required: Boolean(cancelled?.refund_required), cancelled_at: cancelled?.cancelled_at ?? null });
@@ -6930,7 +6941,7 @@ const handleShipInvoice: Handler = async (request, env) => {
     `SELECT id,status,inventory_deducted,fulfilled_at,shipping_quote_status FROM invoices WHERE id=? AND account_id=? AND deleted_at IS NULL`
   ).bind(invoiceId, ctx.accountId).first() as Record<string, any> | null;
   if (!invoice) return restError(404, 'Invoice not found', 'invoice_not_found');
-  if (invoice.status === 'Filled'){const trail=await shipmentTeaTrail(env,ctx.accountId,invoiceId);if(trail.length)await env.DB.batch(trail);return json({ success: true, idempotent: true, shipped_at: invoice.fulfilled_at });}
+  if (invoice.status === 'Filled'){const trail=await shipmentTeaTrail(env,ctx.accountId,invoiceId);if(trail.length)await env.DB.batch(trail);await settleHostCredit(env, invoiceId);return json({ success: true, idempotent: true, shipped_at: invoice.fulfilled_at });}
   if (invoice.shipping_quote_status === 'requested') return restError(409, 'Confirm the shipping charge before dispatch. Tea payment does not cover shipping.', 'shipping_quote_required');
   const priced = await loadLedgerInvoice(env, invoiceId, ctx.accountId);
   const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
@@ -6966,6 +6977,7 @@ const handleShipInvoice: Handler = async (request, env) => {
   const [changed]=await env.DB.batch([shipment,...trail]);
   if (!Number(changed.meta?.changes || 0)) return restError(409, 'Order changed before shipping', 'invoice_busy');
   await buildActivityLog(env, 'INVOICE_SHIPPED', `Order ${invoiceId} shipped`, ctx.email, 'invoice', invoiceId, ctx.accountId).run();
+  await settleHostCredit(env, invoiceId);
   return json({ success: true, shipped_at: shippedAt, tracking_number: tracking });
 };
 
@@ -7089,6 +7101,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
     ).bind(invoice_id, accountId, voidClaim).run().catch(() => {});
     return json({ error: 'Void failed — no changes were committed' }, 500);
   }
+  await settleHostCredit(env, invoice_id);
   return json({ success: true });
 };
 
@@ -7301,6 +7314,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
     return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
   }
   await ensureContactRelationship(env, accountId, invoice.customer_id, 'buyer', 'workflow', 'invoice', newId);
+  await settleHostCredit(env, newId);
   return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
 };
 
@@ -15059,7 +15073,13 @@ const handleCreateInquiry: Handler = async (request, env, params, ctx) => {
   if (via && response.status === 201) {
     const saved = await response.clone().json().catch(() => null) as { id?: unknown; idempotent?: unknown } | null;
     // A replay answers with an order saved earlier: where it came from was settled then.
-    if (typeof saved?.id === 'string' && saved.idempotent !== true) await recordOrderSessionSource(env.DB, saved.id, via);
+    if (typeof saved?.id === 'string' && saved.idempotent !== true && await recordOrderSessionSource(env.DB, saved.id, via)) {
+      // A website checkout is already an order: its tea lines are held as
+      // pending credit now, worked out from the stored rows.
+      const { results: orders } = await env.DB.prepare('SELECT id FROM invoices WHERE source_inquiry_id = ?')
+        .bind(saved.id).all<{ id: string }>();
+      for (const order of orders) await settleHostCredit(env, order.id);
+    }
   }
   return response;
 };
@@ -15888,6 +15908,7 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
   if (customer?.id) {
     await ensureContactRelationship(env, accountId, customer.id, 'buyer', 'workflow', 'invoice', invoiceId);
   }
+  await settleHostCredit(env, invoiceId);
 
   return json({ invoice_id: invoiceId, invoice_number: invoiceNumber });
 };
@@ -21138,6 +21159,9 @@ const ACCOUNT_UPDATE_FIELDS = new Set([
   // Freight. Quoted in the currency it is paid in, converted to USD live, and
   // folded into the cost basis the markup multiplies. See worker/src/shippingRate.ts.
   'default_shipping_rate_per_kg', 'default_shipping_rate_currency',
+  // Tea credit for hosts: the share and the per-order ceiling (USD). Empty
+  // follows the defaults in src/lib/hostCredit.ts. See hostCreditLedger.ts.
+  ...HOST_CREDIT_SETTING_KEYS,
 ]);
 
 // ─── Opening a store to buyers ───────────────────────────────────────────────
@@ -21298,6 +21322,13 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
       return restError(400, 'Freight rate must be a non-negative number', 'freight_rate_invalid');
     }
     body.default_shipping_rate_per_kg = n;
+  }
+
+  for (const key of HOST_CREDIT_SETTING_KEYS) {
+    if (!(key in body)) continue;
+    const setting = readHostCreditSetting(key, body[key]);
+    if ('error' in setting) return restError(400, setting.error, 'host_credit_setting_invalid');
+    body[key] = setting.value;
   }
 
   const validated = validatedUpdateFields(body, ACCOUNT_UPDATE_FIELDS);
@@ -24195,6 +24226,78 @@ async function boughtOrderForChest(
   ).bind(invoice.id, userId).first();
   return { userId, invoice, lines, payment, linkedToUser: Boolean(linked) };
 }
+
+// ── Tea credit for hosts (Launch 5, M1; worker/src/hostCreditLedger.ts) ──
+// Nothing here reads an amount, a share, a host or an order's credit from the
+// request: every figure is worked out from stored rows. A host reads only
+// their own credit; a guest has nothing to read. Only the shop's owner, or the
+// platform owner, reads every host's credit and approves.
+
+// GET /api/me/tea-credit: the signed-in host's own balance and credited lines.
+const handleGetMyTeaCredit: Handler = async (request, env) => {
+  if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
+  const user = await optionalAuthenticatedUser(request, env);
+  if (!user) return json({ error: 'Sign in to see your tea credit' }, 401);
+  return json(await readOwnHostCredit(env.DB, user.userId));
+};
+
+async function requireHostCreditOwner(request: Request, env: Env): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+  if (ctx.isPlatform) {
+    const role = await resolveDbPlatformRole(env, ctx.userId);
+    if (role === 'platform_owner') return ctx;
+  } else if (ctx.role === 'owner') {
+    return ctx;
+  }
+  return { error: restError(403, 'Only the shop owner can see host credit', 'owner_required') };
+}
+
+// GET /api/host-credit: every host's credit in this shop, for Manage.
+const handleListShopHostCredit: Handler = async (request, env) => {
+  if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
+  const ctx = await requireHostCreditOwner(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json(await readShopHostCredit(env.DB, ctx.accountId));
+};
+
+// POST /api/host-credit/invoices/:id/approve: the owner lets an order over the
+// ceiling earn. The order must still be Filled and fully paid; the amounts are
+// worked out again from the stored order, never taken from this request.
+const handleApproveHostCreditOrder: Handler = async (request, env, params) => {
+  if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
+  const ctx = await requireHostCreditOwner(request, env);
+  if ('error' in ctx) return ctx.error;
+  const invoice = await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL')
+    .bind(params.id, ctx.accountId).first();
+  if (!invoice) return restError(404, 'Order not found', 'invoice_not_found');
+  const result = await settleHostCredit(env, params.id, { approvedBy: ctx.userId });
+  const earned = await env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM host_credit_entries WHERE invoice_id = ? AND account_id = ? AND kind = 'earned'",
+  ).bind(params.id, ctx.accountId).first<{ n: number }>();
+  if (!Number(earned?.n || 0)) {
+    return restError(409, 'This order has no credit ready to earn. It must be Filled, fully paid, and have begun from a host thank-you.', 'host_credit_not_ready');
+  }
+  return json({ success: true, earned: result.earned, idempotent: result.earned === 0 });
+};
+
+// POST /api/host-credit/spend-requests/:id/approve { confirm_over_ceiling? }
+// POST /api/host-credit/spend-requests/:id/decline
+const handleDecideHostCreditSpend: Handler = async (request, env, params) => {
+  if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
+  const ctx = await requireHostCreditOwner(request, env);
+  if ('error' in ctx) return ctx.error;
+  const approve = new URL(request.url).pathname.endsWith('/approve');
+  const body = await request.json().catch(() => ({})) as { confirm_over_ceiling?: unknown } | null;
+  const decision = approve
+    ? await approveHostCreditSpend(env, {
+        accountId: ctx.accountId, requestId: params.id, approverUserId: ctx.userId,
+        confirmOverCeiling: body?.confirm_over_ceiling === true,
+      })
+    : await declineHostCreditSpend(env, { accountId: ctx.accountId, requestId: params.id, approverUserId: ctx.userId });
+  if (decision.ok) return json(decision);
+  return restError(decision.error === 'not_found' ? 404 : 409, decision.message, `host_credit_${decision.error}`);
+};
 
 // POST /api/me/orders/:id/keep-in-chest { lineId }: the buyer's one tap.
 const handleKeepOrderLineInChest: Handler = async (request, env, params) => {
@@ -31969,6 +32072,11 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/orders', handleGetMyOrders],
   ['GET', '/api/me/orders/:id', handleGetMyOrderDetail],
   ['POST', '/api/me/orders/:id/keep-in-chest', handleKeepOrderLineInChest],
+  ['GET', '/api/me/tea-credit', handleGetMyTeaCredit],
+  ['GET', '/api/host-credit', handleListShopHostCredit],
+  ['POST', '/api/host-credit/invoices/:id/approve', handleApproveHostCreditOrder],
+  ['POST', '/api/host-credit/spend-requests/:id/approve', handleDecideHostCreditSpend],
+  ['POST', '/api/host-credit/spend-requests/:id/decline', handleDecideHostCreditSpend],
   ['POST', '/api/me/orders/:id/payment-claim', handleCreateMyOrderPaymentClaim],
   ['GET', '/api/me/samples', handleGetMySamples],
   ['GET', '/api/members/search', handleMemberSearch],

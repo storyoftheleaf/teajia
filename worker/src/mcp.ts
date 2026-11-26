@@ -113,6 +113,7 @@ import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabul
 import { reviewedDescription } from './wisdomWordingReview';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 import { MCP_SERVER_ICONS, MCP_SERVER_WEBSITE } from './siteIcons';
+import { settleHostCredit } from './hostCreditLedger';
 
 type Env = {
   DB: D1Database;
@@ -120,6 +121,8 @@ type Env = {
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
   JWT_SECRET: string;
+  /** See src/lib/hostCredit.ts. */
+  HOST_CREDIT_OPEN?: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // Edge rate limiter for the public prepare_order tool, which unlike the
@@ -2884,6 +2887,7 @@ async function commitVoidInvoice(
     }
     throw error;
   }
+  await settleHostCredit(env, m.invoiceId);
 
   return {
     committed: true,
@@ -4191,6 +4195,7 @@ async function commitFulfillInvoice(
     }
     throw error;
   }
+  await settleHostCredit(env, m.invoiceId);
 
   return {
     committed: true,
@@ -4362,6 +4367,7 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
     }
   }
 
+  await settleHostCredit(env, m.invoiceId);
   return {
     committed: true,
     action: 'mark_invoice_paid',
@@ -5262,6 +5268,7 @@ async function commitConvertOrderRequest(env: Env, m: Extract<PendingMutation, {
   }
 
   await ensureBuyerRelationship(env, m.accountId, customer?.id ?? null, invoiceId);
+  await settleHostCredit(env, invoiceId);
 
   const total = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
   const unpriced = lines.filter(line => !(line.price_at_sale > 0)).length;
@@ -5436,6 +5443,7 @@ async function commitConfirmPayment(env: Env, m: Extract<PendingMutation, { kind
   const changed = Number(update.meta?.changes || 0) > 0;
 
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await settleHostCredit(env, invoice.id);
   if (changed) {
     await logOrderProcessActivity(env, {
       accountId: m.accountId, userEmail: m.userEmail,
@@ -5632,6 +5640,7 @@ async function commitRecordPayment(env: Env, m: Extract<PendingMutation, { kind:
   ).run();
 
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await settleHostCredit(env, invoice.id);
   await logOrderProcessActivity(env, {
     accountId: m.accountId, userEmail: m.userEmail,
     action: 'INVOICE_PAYMENT_RECORDED',
