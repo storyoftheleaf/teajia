@@ -48,6 +48,8 @@ Read runs through all of it: it is how people sharpen their skill, and where art
 
 One rule governs the phone. **The app never asks during a session:** it sends nothing, prompts nothing and shows nothing to scroll while people are sitting. A photograph is one tap. A tasting is the one kind of session where writing is the point, and the host chooses it. Adrian, 2026-11-26: "We're not trying to control people, but we don't want people in their mind or on the app."
 
+A tea master's page is also their shelf: their own tea, sold by them or only shown, and Teajia's tea that they pour without holding stock. Tea a guest buys through a tea master is recorded as theirs from the start, and earns them credit under a rule Adrian will set later (Adrian, 2026-11-26).
+
 Two more things from the second round, both in the plan: **quiet acknowledgement** (active people are respected only through things one person gives another, never numbers or titles for volume), and **everything by voice or agent** (each screen ships with its tool, so a host need not use the screens at all).
 
 ## Why this shape
@@ -267,6 +269,7 @@ Revised in the second pass. The order follows the loop, so that the first stages
 | 7 | **Favourites in three kinds, and the Tea Chest's three states** | No |
 | 8 | **Home in full, and the bar words** in one change. `npm run test:mobile` before and after | Yes |
 | 9 | **Quiet acknowledgement, who pours on the people list, the first people articles** | No |
+| 9b | **A tea master's shelf and credit** for tea sold through them, tracked from stage 3 | No |
 | 10 | **Every tool**: anything on a screen can be said to an agent | No |
 | 11 | **Your Table as a page, Read's three shelves, truth-up** of PILLAR, SITE_MAP and the rule wording | Glyph only |
 | Later | Short video. The tea tasting box. An app | |

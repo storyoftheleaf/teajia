@@ -123,6 +123,7 @@ Each gap has a number. The build stages below refer to them.
 | G14 | **There is no thank-you.** Nothing composes the host's note, the teas poured with price and availability, the playlist and the three asks into one message | After-sit link, post-event form, recap, each separate |
 | G15 | **A session has one host in the plan and no way to show others pouring as tea masters**, and a private table does not exist apart from a venue | Host roles on a session, venues in Manage |
 | G16 | **Video.** People take short videos and nothing accepts them | Photographs only, shrunk on the phone before upload |
+| G17 | **A sale that came through a tea master is not recorded as theirs, and no credit exists.** A tea master with no stock has no way to offer Teajia's tea as their own shelf | "Selected by" on a tea's page; invoices record seller and stock owner |
 
 ## The phone at the table
 
@@ -205,6 +206,29 @@ A Tea Chest tea has three states, in Adrian's words of 2026-11-26, and its owner
 
 The four personal records stay separate, as the pillar requires. A favourite is a pointer to an article, a tea or a chest tea. It does not merge the journal, the chest and the journey.
 
+## A tea master's shelf, and credit for tea sold through them
+
+Adrian, 2026-11-26: "The tea master will also have a profile in a place where he is sharing his teas. He may even use this to sell his teas or create promotion." And: "If a tea master doesn't have a website, this is a place where he can sell his tea also. Maybe the tea master doesn't have teas he sells, he uses other teas that other people source. This website will be the source for that tea master and they might not even have to stock it. If they buy it from the site, they can get credit. Think of it like affiliate. Maybe it's credit based on tea. We can tune this in later. It's important that it's in the plan. And it is tracked."
+
+This answers blind spots B3 (what a host gains) and B4 (where a host's tea comes from) in one move. A tea master's page is their shelf, and the shelf can hold three kinds of tea:
+
+| Kind of tea on the shelf | Who stocks it | Who is paid | Today |
+|---|---|---|---|
+| **Their own tea, sold by them** | The tea master | The tea master, in full, directly | Built: the personal storefront and offered packs, with your approval |
+| **Their own tea, shown and not for sale** | The tea master | Nobody | The Tea Chest's "shown" state, in this plan |
+| **Tea from Teajia that they pour and recommend** | Teajia. The tea master holds none | Teajia is paid. The tea master earns **credit** | Their chosen teas show "Selected by". Nothing is tracked or credited |
+
+The third row is the new thing. A tea master with no stock and no website pours Teajia's tea, names it on their page and in their thank-you, and when a guest buys it the sale is counted to them.
+
+**Two parts, built at different times.**
+
+1. **Tracking, early and quietly.** Every order that begins from a tea master's page, their session, their thank-you, their favourites or their invitation carries that tea master's name. It is recorded from the first day the thank-you exists (stage 3), before any credit rule is chosen, so that when the rule is tuned there is real history to tune it on. An order keeps the name it started with. Invoices already record who sold a line, whose stock it was and how it settled (`sold_by_user_id`, `stock_owner_user_id`, `sales_settlements`), so this adds one more name to a record that exists: who it came through.
+2. **Credit, later, tuned by Adrian.** The rule is his to set: how much, on which teas, for how long after a session. The recommended form is the one he named, credit in tea. A tea master's credit is spent on tea from the shop, which they then pour for the next table. That keeps the 2026-08-31 decision intact, "money never moves through Teajia", and it feeds the loop instead of paying out of it. A cash commission would need that decision reopened, along with payouts and tax, so it is noted and not planned.
+
+**What each person sees.** The tea master sees, privately, which of their teas guests went on to buy and their credit balance. Adrian sees every tea master's figures in Manage. A guest sees nothing about credit, only "Selected by" and "poured at Mei's table". No figure appears on any public page, which keeps this inside the quiet acknowledgement rule.
+
+**Why this needs curation.** Adrian: "Another reason to curate and facilitate good content, quality content rather than cheap, crappy content." Once a page can earn, some people will fill it to sell. The guards are the ones already chosen: the word on a page is granted by hand, a storefront opens only with his approval, a session's reach is decided by hand, and credit is earned only on tea a guest actually bought, never on clicks, posts or invitations sent. A plain line where a tea master recommends tea says they receive credit when it is bought, so guests are not misled.
+
 ## Tables and tea houses
 
 Two kinds of place, and they must never be confused.
@@ -246,13 +270,14 @@ Each stage leaves the site whole and is useful by itself. None changes a bar wor
 | 0 | **Repairs.** Confirm G1 on the live site and fix the invite address so account and tea master invites land on a page that accepts them. Correct the profile screen wording | G1, part of G10 | Nothing |
 | 1 | **The words.** Vocabulary applied to copy, the plans, the pillar and the standing rules. No code beyond labels | G10 | Nothing more |
 | 2 | **Before: invite to a session.** One invitation link and code per session. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. A private sit may invite more than one person | G2, G3, G11, G15 | The safety floor (B1) and the session wording (B2) |
-| 3 | **After: the thank-you.** The host composes one message from the session: their words, the teas poured with links, price and what is for sale, the playlist, and the three asks. The guest answers on one screen: how the teas felt, what it was like, photographs. It reuses the Guest Book, the tasting screen and the photo editor | G6, G14 | Nothing |
+| 3 | **After: the thank-you.** The host composes one message from the session: their words, the teas poured with links, price and what is for sale, the playlist, and the three asks. The guest answers on one screen: how the teas felt, what it was like, photographs. It reuses the Guest Book, the tasting screen and the photo editor | G6, G14, the tracking half of G17 | Nothing. Orders that start from a thank-you, a session or a tea master's page carry that name from this stage on |
 | 4 | **During.** The one-tap camera for a session, and "this is a tasting" as the host's choice with one screen per tea. Paper notes can be entered afterward | part of G6 | Nothing |
 | 5 | **The Tea Table, first form.** `/tea-table` with sessions poured, the words people shared and their photographs, as [tea-table.md](tea-table.md) describes, with its consent and withdrawal gates. A "Host a table" door | G5 | The Tea Table rule exception; one real sit |
 | 6 | **Tables and tea houses.** "Add your table" in Your Table, private. Public tea house pages, the Visit list, who has poured there. Then Build and Work from [tea-houses.md](tea-houses.md) | G4 | His facts for the build offering |
 | 7 | **Favourites in three kinds, and the Tea Chest's three states.** Articles, shop teas and chest teas on one favourites page, private until shown | G7 | Nothing |
 | 8 | **Home, and the bar words.** The new Home order, then the one change to bar, rail, phone menu and keyboard keys. Home's first two parts can ship earlier, with stage 2 | G8 | The explicit yes on the words |
 | 9 | **Quiet acknowledgement, the people list, and the people articles.** Quoted words and "poured with" on pages, who pours on the people list, the first three people articles | G9, G12 | Three people to write about |
+| 9b | **A tea master's shelf and credit.** Teajia's tea on a tea master's shelf with no stock held, the private view of what came through them, and credit in tea once Adrian sets the rule | G17 | His credit rule: how much, on which teas, for how long |
 | 10 | **Every tool.** A sweep so that anything a host or keeper can do on a screen can be said to an agent, and a scoped token a tea master can connect themselves | G13 | Nothing |
 | 11 | **Your Table as a page, Read's three shelves, truth-up.** As [docs/SECTIONS.md](../../docs/SECTIONS.md) had them | none new | Decision 6 of the first pass |
 | Later | Short video. The tea tasting box. The app | G16 | |
@@ -330,7 +355,7 @@ Adrian asked for one more pass over the whole thing: the holes, and what he had 
 
 1. B2: should a session say "hosted by" and "pouring", keeping "tea master" for the word you grant?
 2. B1: is the safety floor right as written, and is there anything from your own years of hosting that belongs on it?
-3. B3: should a host see that their guests found tea through them?
+3. B3: answered on 2026-11-26. A tea master is credited for tea bought through them, it is tracked from the start, and the rule is tuned later. See "A tea master's shelf".
 4. I1: is a small host's box worth bringing forward, ahead of the full tasting box?
 5. I6: which coming session could be run by hand as the test?
 
@@ -344,6 +369,8 @@ Adrian asked for one more pass over the whole thing: the holes, and what he had 
 - A public address, map or listing for a tea master's own table.
 - A thank-you sent by a timer, or a reminder to a guest who did not answer one.
 - A rating of tea masters, houses or sessions.
+- Credit for anything other than tea a guest bought: no credit for clicks, posts, invitations or sign-ups.
+- A public figure of what anyone sold or earned, and any chart that ranks tea masters by sales.
 - An application form to become a tea master. The word on the page stays Adrian's to give.
 
 ## Related files
