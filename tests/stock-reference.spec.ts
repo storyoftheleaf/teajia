@@ -242,8 +242,14 @@ test('Stock reference cards resize and persist naming and photos, and continue a
   const picker = page.waitForEvent('filechooser');
   await photos.getByRole('button', { name: 'Photo library', exact: true }).click();
   await (await picker).setFiles({ name: 'tea.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64') });
+  // Every added photo opens in the one shared photo editor first (2026-11-25);
+  // nothing uploads until it is saved there.
+  const editor = page.getByRole('dialog', { name: 'Product photo' });
+  await expect(editor.getByRole('button', { name: 'Use photo' })).toBeEnabled({ timeout: 15_000 });
+  expect(uploads).toHaveLength(0);
+  await editor.getByRole('button', { name: 'Use photo' }).click();
   await expect(photos).toHaveCount(0);
-  expect(uploads).toHaveLength(1);
+  await expect.poll(() => uploads.length).toBe(1);
   expect(writes.at(-1)).toEqual({ image_url: 'https://media.teajia.com/stock-reference.jpg' });
   await page.reload();
   await row.locator('.stock-camera-action').click();

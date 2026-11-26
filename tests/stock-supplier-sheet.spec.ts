@@ -304,7 +304,8 @@ test('Stock shortcuts, smaller view menu and missing suppliers remain connected'
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     // A phone keeps the 8 October single line (44px); its filters sit in View options.
-    expect((await page.getByTestId('inventory-purpose-row').boundingBox())!.height).toBe(width < 768 ? 44 : 48);
+    // Polled: the layout swaps on the resize event, a moment after the viewport changes.
+    await expect.poll(async () => (await page.getByTestId('inventory-purpose-row').boundingBox())?.height).toBe(width < 768 ? 44 : 48);
     if (width < 768) await page.getByRole('button', { name: 'View options', exact: true }).click();
     await expect(page.getByRole('combobox', { name: 'Tea type', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Supplier', exact: true })).toBeVisible();

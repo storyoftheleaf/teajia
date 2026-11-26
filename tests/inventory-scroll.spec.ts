@@ -51,7 +51,8 @@ test.describe('Inventory page — scroll regression guard', () => {
       } else await route.fulfill({ json: [] });
     });
     const openCurrency = async () => {
-      await page.getByTestId('inventory-primary-row').getByRole('button', { name: 'View options' }).click();
+      // The laptop keeps it in the top bar; the phone list puts it in its own header line.
+      await page.getByRole('button', { name: 'View options', exact: true }).filter({ visible: true }).first().click();
       const dialog = page.getByRole('dialog', { name: 'View options' });
       await dialog.getByText('Shop preview currency', { exact: true }).click();
       return dialog.getByRole('combobox', { name: 'Currency for shop preview' });
