@@ -14,6 +14,7 @@ beforeEach(() => {
     CREATE TABLE users (id TEXT PRIMARY KEY);
     CREATE TABLE events (id TEXT PRIMARY KEY, title TEXT);
     CREATE TABLE contributors (id TEXT PRIMARY KEY, display_name TEXT);
+    CREATE TABLE session_guest_book_photos (id TEXT PRIMARY KEY);
     INSERT INTO users VALUES ('visitor'), ('owner');
     INSERT INTO events VALUES ('event', 'Evening tea');
     INSERT INTO contributors VALUES ('profile', 'Tea Host');
