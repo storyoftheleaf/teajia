@@ -1108,8 +1108,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   // Events & tasting aggregate
   const [productEvents, setProductEvents] = useState<any[]>([]);
   const [productEventsLoading, setProductEventsLoading] = useState(false);
+  // Guests' words only: a guest's score or pick is their own, never averaged or counted.
   const [productTastingAgg, setProductTastingAgg] = useState<{
-    avgRating: number; totalNotes: number; favoriteCount: number; impressions: string[];
+    totalNotes: number; impressions: string[];
   } | null>(null);
 
   // Compute prev/next from products array
@@ -1185,11 +1186,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
           } catch { /* skip */ }
         }
         if (!cancelled && allNotes.length > 0) {
-          const ratings = allNotes.filter(n => n.rating).map(n => n.rating as number);
           setProductTastingAgg({
-            avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
             totalNotes: allNotes.length,
-            favoriteCount: allNotes.filter(n => n.isFavorite || n.is_favorite).length,
             impressions: allNotes.filter(n => n.impression).map(n => n.impression as string).slice(0, 5),
           });
         }
@@ -2043,24 +2041,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <p className="text-ui-12 text-admin-text-sec py-1">Not featured at any events yet.</p>
               ) : (
                 <>
-                  {productTastingAgg && productTastingAgg.totalNotes > 0 && (
+                  {productTastingAgg && productTastingAgg.impressions.length > 0 && (
                     <div className="mb-4 rounded-md bg-admin-input border border-admin-border overflow-hidden">
-                      <div className="flex items-center gap-4 px-4 py-3 border-b border-admin-border">
-                        <div className="flex items-baseline gap-1">
-                          <span className="font-sans text-ui-20 font-medium text-admin-text leading-none tabular-nums">{productTastingAgg.avgRating.toFixed(1)}</span>
-                          <span className="font-mono text-ui-11 text-admin-text-dim">/5</span>
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-ui-12 text-admin-text-sec">
-                            {productTastingAgg.totalNotes} tasting {productTastingAgg.totalNotes === 1 ? 'note' : 'notes'}
-                          </span>
-                          {productTastingAgg.favoriteCount > 0 && (
-                            <span className="text-ui-12 text-admin-text-dim">
-                              {productTastingAgg.favoriteCount} {productTastingAgg.favoriteCount === 1 ? 'guest favorited' : 'guests favorited'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
                       {productTastingAgg.impressions.length > 0 && (
                         <div className="px-4 py-3 space-y-2.5">
                           <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.08em]">Guest impressions</div>

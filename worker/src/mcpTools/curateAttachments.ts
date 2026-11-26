@@ -14,6 +14,6 @@ export const curateAttachmentTools:ToolModule={area:'curate-evidence-and-holding
  // shop, which is the read that exhausted D1's daily allowance; `holdings`
  // stays the first key so a caller reading `result.holdings` is unaffected.
  curate_stock:async(env,auth,args)=>{await requireCurateManager(env.DB,auth);
-  const page=await readCurateHoldingsPage(env.DB,auth.accountId,{teaId:args?.tea_id,samplesOnly:args?.samples_only===true,limit:args?.limit,cursor:args?.cursor});
+  const page=await readCurateHoldingsPage(env.DB,auth.accountId,{teaId:args?.tea_id,samplesOnly:args?.samples_only===true,limit:args?.limit,cursor:args?.cursor,viewerUserId:auth.userId});
   return {holdings:page.holdings,has_more:page.has_more,next_cursor:page.next_cursor,page_size:page.limit};}
 }};

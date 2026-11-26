@@ -209,7 +209,7 @@ export type FamilyImpression = 'love' | 'like' | 'neutral' | 'pass';
 
 /**
  * One note a member wrote, as the shop reads it. The impression and the score
- * are the member's own and are sent to the shop's screens only.
+ * the member gave are theirs alone and are not part of it (Adrian, 2026-11-26).
  */
 export interface FamilyFeedbackNote {
   journal_entry_id: string;
@@ -222,9 +222,6 @@ export interface FamilyFeedbackNote {
   text: string;
   written_at: string | null;
   status: 'open' | 'promoted' | 'dismissed';
-  impression: FamilyImpression | null;
-  /** Out of ten, or null when the member gave none. */
-  rating: number | null;
   /** True when the member shared this tasting, which is what a tasting hide needs. */
   shared: boolean;
   tasting_hidden: boolean;

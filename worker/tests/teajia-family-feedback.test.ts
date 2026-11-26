@@ -91,7 +91,7 @@ async function call(env: any, who: Who, path: string, init: { method?: string; b
 }
 
 describe('GET /api/admin/family/feedback', () => {
-  it('lists every note about this shop\'s teas with the member\'s impression and score, to the shop only', async () => {
+  it('lists every note about this shop\'s teas in the member\'s words, with no impression or score', async () => {
     const { env } = setup();
     const response = await call(env, OWNER, '/api/admin/family/feedback');
     expect(response.status).toBe(200);
@@ -99,13 +99,18 @@ describe('GET /api/admin/family/feedback', () => {
     const byText = Object.fromEntries(notes.map((n: any) => [n.text, n]));
     // Found even though Mei's journal row has no account: the tea is the shop's.
     expect(byText['Orchid and wet stone']).toMatchObject({
-      product_name: 'Tea tea-a', author_name: 'Mei Lin', page_id: 'mei-page', impression: 'love', rating: 9, shared: false,
+      product_name: 'Tea tea-a', author_name: 'Mei Lin', page_id: 'mei-page', shared: false,
     });
+    // A score is the member's own (Adrian, 2026-11-26): the shop's list carries none.
+    for (const note of notes) {
+      expect('rating' in note).toBe(false);
+      expect('impression' in note).toBe(false);
+    }
     // An earlier dated sitting is a note too, listed once, not decidable here.
-    expect(byText['Sweet on the second steep']).toMatchObject({ note_key: 'sitting-0', status: 'open', rating: 9 });
+    expect(byText['Sweet on the second steep']).toMatchObject({ note_key: 'sitting-0', status: 'open' });
     expect(notes.filter((n: any) => n.text === 'Orchid and wet stone')).toHaveLength(1);
     expect(byText['Smoky the week before'].written_at).toBe('2026-11-12T09:00:00Z');
-    expect(byText['=HYPERLINK("x"), thin,\nflat']).toMatchObject({ impression: 'pass', rating: 4, author_name: 'Li' });
+    expect(byText['=HYPERLINK("x"), thin,\nflat']).toMatchObject({ author_name: 'Li' });
     // One piece of writing saved as both the personal note and a dated note is one row.
     expect(notes.filter((n: any) => n.author_name === 'Li')).toHaveLength(1);
     // Tenancy: the other shop's note is not here, and the other shop sees only its own.
@@ -150,7 +155,7 @@ describe('GET /api/admin/family/feedback', () => {
 });
 
 describe('GET /api/admin/family/sheet', () => {
-  it('downloads only the named day\'s notes and ratings as a CSV, with spreadsheet formulas fenced', async () => {
+  it('downloads only the named day\'s notes as a CSV, with no score, and spreadsheet formulas fenced', async () => {
     const { env } = setup();
     const response = await call(env, OWNER, '/api/admin/family/sheet?day=2026-11-19&from=2026-11-19T00:00:00.000Z&to=2026-11-20T00:00:00.000Z');
     expect(response.status).toBe(200);
@@ -160,21 +165,21 @@ describe('GET /api/admin/family/sheet', () => {
     const bytes = new Uint8Array(await response.clone().arrayBuffer());
     expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
     const text = await response.text();
-    expect(text.startsWith('Written,Tea,Person,Note,Impression,Rating out of ten\r\n')).toBe(true);
-    expect(text).toContain('Tea tea-a,Mei Lin,Orchid and wet stone,Love,9');
+    expect(text.startsWith('Written,Tea,Person,Note\r\n')).toBe(true);
+    expect(text).toContain('Tea tea-a,Mei Lin,Orchid and wet stone\r\n');
+    expect(text).not.toMatch(/Love|Dislike|Rating/);
     // Another day's sitting and another shop's note are not on today's sheet.
     expect(text).not.toContain('Sweet on the second steep');
     expect(text).not.toContain('Smoky the week before');
     expect(text).not.toContain('other shop');
     // A formula is fenced, then quoted as CSV needs for the comma, quote and line break.
     expect(text).toContain(`"'=HYPERLINK(""x""), thin,\nflat"`);
-    expect(text).toContain(',Dislike,4');
   });
 
   it('answers a day with nothing in it with just the header, and refuses a bad day', async () => {
     const { env } = setup();
     const empty = await (await call(env, OWNER, '/api/admin/family/sheet?day=2026-01-01')).text();
-    expect(empty).toBe('Written,Tea,Person,Note,Impression,Rating out of ten\r\n');
+    expect(empty).toBe('Written,Tea,Person,Note\r\n');
     expect((await call(env, OWNER, '/api/admin/family/sheet?day=yesterday')).status).toBe(400);
     expect((await call(env, OWNER, '/api/admin/family/sheet?from=2026-11-20T00:00:00Z&to=2026-11-19T00:00:00Z')).status).toBe(400);
   });

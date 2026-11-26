@@ -1,6 +1,7 @@
 import { canonicalizeCostCurrency, stampCostCurrencySource } from './costCurrency';
 import { refreshedCurrencyName } from './exchangeRateFeed';
 import { tastingForShop, tastingHasTerms } from './curateImportTasting';
+import { isShopOwner, tastingWithoutScores } from './publicScores';
 import { customerTagList } from './customerContactHandles';
 
 type Row = Record<string, any>;
@@ -59,7 +60,9 @@ export async function receiptProductDetails(db: D1Database, accountId: string, p
       vendorId = order.vendor_id;
     }
   }
-  const tasting = tastingForShop(entry?.tasting);
+  // A score reaches the shop's tea only when the owner gave it; anyone else's stays on their entry.
+  const captured = tastingForShop(entry?.tasting);
+  const tasting = await isShopOwner(db, accountId, entry?.user_id) ? captured : tastingWithoutScores(captured);
   const details: Row = {
     chinese_name: entry?.chinese_name ?? null, form: entry?.form ?? null,
     year: entry?.year == null ? null : String(entry.year), origin_region: entry?.origin_region ?? null,

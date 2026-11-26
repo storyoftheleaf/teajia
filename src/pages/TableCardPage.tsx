@@ -20,7 +20,6 @@ interface TableCardEntry {
 
 interface TableCardData {
   entry: TableCardEntry;
-  verdictCounts: { love: number; like: number; neutral: number; pass: number };
   token: string;
 }
 
@@ -81,7 +80,7 @@ const TableCardPage: React.FC = () => {
         setSelectedVerdict(verdict);
         queryClient.invalidateQueries({ queryKey: ['table-card', token] });
       } catch {
-        // silent, verdict counts will refresh on next poll
+        // silent: the choice stays on this device and can be sent again
       } finally {
         setSubmitting(false);
       }
@@ -135,8 +134,8 @@ const TableCardPage: React.FC = () => {
     );
   }
 
-  const { entry, verdictCounts } = data;
-  const totalVotes = verdictCounts.love + verdictCounts.like + verdictCounts.neutral + verdictCounts.pass;
+  // What each person thought is their own: the card shows no tally of it.
+  const { entry } = data;
 
   const metaChunks = [
     entry.type,
@@ -257,35 +256,6 @@ const TableCardPage: React.FC = () => {
               >
                 {notesSaved ? 'Saved' : 'Save note'}
               </button>
-            </div>
-          )}
-
-          {/* Live verdict counts */}
-          {totalVotes > 0 && (
-            <div>
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-3">
-                {totalVotes} {totalVotes === 1 ? 'response' : 'responses'}
-              </p>
-              <div className="space-y-2">
-                {VERDICT_OPTIONS.map(({ value, label }) => {
-                  const count = verdictCounts[value];
-                  const pct = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
-                  return (
-                    <div key={value} className="flex items-center gap-3">
-                      <span className="w-14 text-ui-11 text-tea-text-sec">{label}</span>
-                      <div className="flex-1 h-1 bg-tea-surface rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-tea-gold/60 rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="w-5 text-ui-11 text-tea-text-dim text-right num">
-                        {count}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           )}
 

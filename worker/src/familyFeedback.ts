@@ -5,9 +5,8 @@
  * Two shop-only reads (the `publish` bundle, scoped to the caller's account):
  *
  * - the feedback list: every note a member wrote about one of this shop's
- *   teas, with the impression and the score the member gave. Those two are
- *   the member's own and are shown to the shop only; the public reads in
- *   familyPersonTastings.ts and familyRoutes.ts never select them.
+ *   teas. The impression and the score the member gave are theirs alone
+ *   (Adrian, 2026-11-26): neither list nor sheet carries them.
  * - the day sheet: the same notes for one day as a CSV download. It is a
  *   download, never a scheduled job.
  *
@@ -21,13 +20,9 @@ import { journalRowToNotes } from './tastingNoteCuration';
 import { wordsFromSittings } from './familyPersonTastings';
 import { signedFamilyMediaUrl } from './familyMedia';
 import type { FamilyDeps, FamilyEnv, FamilyHandler } from './familyRoutes';
-import type { FamilyFeedbackNote, FamilyImpression, FamilyReport } from '../../src/lib/familyContract';
+import type { FamilyFeedbackNote, FamilyReport } from '../../src/lib/familyContract';
 
 const MAX_JOURNALS = 500;
-
-const IMPRESSIONS: readonly FamilyImpression[] = ['love', 'like', 'neutral', 'pass'];
-/** What the sheet calls each stored impression. `pass` is how a dislike is stored. */
-export const IMPRESSION_WORDS: Record<FamilyImpression, string> = { love: 'Love', like: 'Like', neutral: 'Neutral', pass: 'Dislike' };
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -47,22 +42,6 @@ function parseObject(value: unknown): Record<string, any> | null {
 
 const validDate = (value: string | null | undefined): value is string =>
   typeof value === 'string' && value !== '' && !Number.isNaN(new Date(value).getTime());
-
-function numberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined || value === '') return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-/** The impression and score a member gave, wherever the journal row keeps them. */
-export function memberScore(row: Record<string, any>): { impression: FamilyImpression | null; rating: number | null } {
-  const note = parseObject(row.note);
-  const tasting = parseObject(note?.tasting) ?? parseObject(row.tasting);
-  const verdict = String(note?.verdict ?? '');
-  const impression = (IMPRESSIONS as readonly string[]).includes(verdict) ? verdict as FamilyImpression : null;
-  const rating = numberOrNull(row.rating) ?? numberOrNull(note?.rating) ?? numberOrNull(tasting?.quality) ?? numberOrNull(tasting?.rating);
-  return { impression, rating };
-}
 
 /** The day each note in a journal row's current tasting was written, by its key. */
 function capturedDates(row: Record<string, any>): Map<string, string> {
@@ -89,7 +68,6 @@ export function feedbackFromRow(
   row: Record<string, any>,
   resolved: Map<string, 'promoted' | 'dismissed'>,
 ): FamilyFeedbackNote[] {
-  const score = memberScore(row);
   const dates = capturedDates(row);
   const base = {
     journal_entry_id: String(row.id),
@@ -97,8 +75,6 @@ export function feedbackFromRow(
     product_name: row.product_name ? String(row.product_name) : null,
     author_name: String(row.author_name || 'A member'),
     page_id: row.page_id ? String(row.page_id) : null,
-    impression: score.impression,
-    rating: score.rating,
     shared: Number(row.shared) === 1,
     tasting_hidden: Number(row.tasting_hidden) === 1,
     page_hidden: Number(row.page_hidden) === 1,
@@ -153,7 +129,7 @@ export async function feedbackNotes(
 ): Promise<FamilyFeedbackNote[]> {
   const [journals, decided] = await Promise.all([
     db.prepare(
-      `SELECT j.id, j.product_id, j.user_id, j.note, j.tasting, j.tastings, j.personal_note, j.rating, j.created_at,
+      `SELECT j.id, j.product_id, j.user_id, j.note, j.tasting, j.tastings, j.personal_note, j.created_at,
               COALESCE(NULLIF(p.given_name, ''), p.product_name) AS product_name,
               u.id AS author_user_id,
               COALESCE((SELECT NULLIF(c.display_name, '') FROM contributors c WHERE c.user_id = u.id AND c.is_published = 1 ORDER BY c.created_at LIMIT 1),
@@ -201,7 +177,7 @@ export function csvCell(value: string | number | null | undefined): string {
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-const SHEET_HEADER = ['Written', 'Tea', 'Person', 'Note', 'Impression', 'Rating out of ten'];
+const SHEET_HEADER = ['Written', 'Tea', 'Person', 'Note'];
 
 /** The day sheet as CSV text, with a byte order mark so a spreadsheet reads it as UTF-8. */
 export function sheetCsv(notes: FamilyFeedbackNote[]): string {
@@ -212,8 +188,6 @@ export function sheetCsv(notes: FamilyFeedbackNote[]): string {
       note.product_name ?? '',
       note.author_name,
       note.text,
-      note.impression ? IMPRESSION_WORDS[note.impression] : '',
-      note.rating ?? '',
     ].map(csvCell).join(','));
   }
   return `﻿${lines.join('\r\n')}\r\n`;
@@ -277,7 +251,7 @@ export async function describeReports(db: D1Database, accountId: string, rows: R
 }
 
 export function familyFeedbackRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string, string, FamilyHandler<E>][] {
-  // GET /api/admin/family/feedback?from=&to=: every note, with the member's impression and score.
+  // GET /api/admin/family/feedback?from=&to=: every note, in the member's words.
   const feedback: FamilyHandler<E> = async (request, env) => {
     const shop = await deps.requireBundle(request, env, 'publish');
     if ('error' in shop) return shop.error;
@@ -288,7 +262,7 @@ export function familyFeedbackRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): 
     return json({ notes: await feedbackNotes(env.DB, shop.accountId, range ?? undefined) });
   };
 
-  // GET /api/admin/family/sheet?day=YYYY-MM-DD&from=&to=: the day's notes and ratings as a CSV download.
+  // GET /api/admin/family/sheet?day=YYYY-MM-DD&from=&to=: the day's notes as a CSV download.
   const sheet: FamilyHandler<E> = async (request, env) => {
     const shop = await deps.requireBundle(request, env, 'publish');
     if ('error' in shop) return shop.error;
