@@ -78,6 +78,13 @@ His words: "One, yes, two, yes. Three, yes. Four, yes. Five. Yes, but they are n
 13. **Q10, wait.** The host's box waits until the first hosts are running.
 14. **Q12, skipped for now.** A tea for the table is not built.
 
+### Home's words: what exists, and Fable's recommendation (2026-11-26, awaiting his yes)
+
+Adrian shared what the site and Instagram say today. Home opens with the core line "Tea deepens with what you bring to the table and what you leave behind.", then four tags, Source, Discover, Deepen, Create, then the house line "a home for tea: source, study, share". Instagram's bio says "no tea masters here, forever students of the leaf".
+
+- **Recommendation for Home:** keep the core line as the headline and the house line as it is. Do not add a new sentence. Make the four tags the four doors, each with a few plain words under it and each leading to a bar word: Discover to read, Deepen to tea table, Create to tea house, Source to shop. The two doors "Come to a table" and "Host a table" follow.
+- **"Tea master" against "no tea masters here":** raised with him. Recommendation: "host" is the everyday word for anyone who opens a table ("hosted by", "pouring"); "tea master" is never a rank or a title anyone claims, and where it stays it is explained once as the person pouring at that table, a student like everyone else. His choice.
+
 ## How the build is run
 
 ### The people and the agents
