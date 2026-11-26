@@ -1,5 +1,5 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
-import { publicSitRoutes } from './publicSitConnections';
+import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
 import { formalSessionCardsFor, publicSessionRoutes } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
 import {
@@ -238,7 +238,7 @@ import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
 import { articleWisdomClaimUseRoutes, moveClaimUsesWithBlocks, publicArticleClaimUses } from './articleWisdomClaimUses';
-import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
+import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, QUOTE_TASTING_NOT_HIDDEN, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
 import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
 import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
 import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, personalInventoryAccessSql, readOfferInput, recordedChestCostSql, shelfContactSql } from './personalShelf';
@@ -1597,6 +1597,13 @@ function json(data: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/** An answer that can be taken back (a recap, a person's page): never kept by a browser or a cache. */
+function noStoreJson(data: unknown, status = 200): Response {
+  const response = json(data, status);
+  response.headers.set('Cache-Control', 'no-store');
+  return response;
 }
 
 function restError(
@@ -12584,22 +12591,18 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.flyer_image_url, e.event_date, a.slug AS account_slug
      FROM events e
      JOIN accounts a ON a.id = e.account_id
-     WHERE e.slug = ?
-       AND e.lifecycle_status IN ('completed', 'archived')
-       AND e.recap_status = 'published'
-       AND e.public_visibility = 'public'
-       AND a.status = 'active'
-       AND a.public_enabled = 1`
+     WHERE e.slug = ? AND ${publishedSitRecap}`
   ).bind(params.slug).first();
 
-  if (!event) return json({ error: 'Recap not found' }, 404);
+  // A recap can be taken down or hidden, so no answer is kept (A4 review, finding 4).
+  if (!event) return noStoreJson({ error: 'Recap not found' }, 404);
 
   const postSession = await env.DB.prepare(
     `SELECT id, session_notes, playlist_url, gallery_images, shared_tasting_notes, tea_ledger
      FROM event_post_session WHERE event_id = ? AND account_id = ?`
   ).bind(event.id, event.account_id).first();
 
-  if (!postSession) return json({ error: 'Recap not found' }, 404);
+  if (!postSession) return noStoreJson({ error: 'Recap not found' }, 404);
 
   // Parse JSON fields safely
   let galleryImages: string[] | null = null;
@@ -12665,7 +12668,7 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
 
   const hosts = await publicEventHosts(env, String(event.id), String(event.account_id));
 
-  return json({
+  return noStoreJson({
     event: {
       id: event.id,
       slug: event.slug,
@@ -20390,7 +20393,7 @@ const PUBLIC_TASTING_EXCERPTS_FROM = `
   JOIN tasting_note_candidates c ON c.id = i.candidate_id AND c.product_id = i.product_id AND c.account_id = i.account_id
   JOIN products p ON p.id = i.product_id AND p.account_id = i.account_id
   JOIN accounts a ON a.id = i.account_id
-  WHERE c.offered_at IS NOT NULL AND c.status = 'promoted' AND ${TASTING_LOT_IS_PUBLIC}
+  WHERE c.offered_at IS NOT NULL AND c.status = 'promoted' AND ${TASTING_LOT_IS_PUBLIC} AND ${QUOTE_TASTING_NOT_HIDDEN}
 `;
 
 function tastingExcerptResponse(rows: Record<string, any>[]) {
@@ -26553,7 +26556,8 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
 
   const effectivelyPublished = row.is_published === 1 || (!row.unpublished_at && hasPublishedArticle);
 
-  return json({
+  // A person's page carries what they can take back, so no answer is kept (A4 review, finding 4).
+  return noStoreJson({
     id: row.id,
     display_name: row.display_name,
     business_name: row.business_name ?? null,
@@ -32640,7 +32644,8 @@ const requestHandler = {
       obj.writeHttpMetadata(headers);
       headers.set('etag', obj.httpEtag);
       // Objects are immutable (UUID/slot-keyed) — cache hard at edge + browser.
-      headers.set('Cache-Control', familyVerdict === 'signed' ? 'private, max-age=3600' : familyVerdict === 'public' ? 'public, max-age=60' : 'public, max-age=31536000, immutable');
+      // A family photograph can be withdrawn at any moment, so every use asks again (A4 review, finding 4).
+      headers.set('Cache-Control', familyVerdict === 'signed' || familyVerdict === 'public' ? 'private, no-cache' : 'public, max-age=31536000, immutable');
       const body = request.method === 'HEAD' ? null : obj.body;
       return cors(new Response(body, { headers }), corsOrigin);
     }

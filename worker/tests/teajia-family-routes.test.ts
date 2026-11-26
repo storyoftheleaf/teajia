@@ -426,8 +426,8 @@ describe('the shop\'s side', () => {
     await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
     const shown = await fetchPath(bare);
     expect(shown.status).toBe(200);
-    // Short, never a year: a browser that saw it must lose it within a minute of its removal.
-    expect(shown.headers.get('Cache-Control')).toBe('public, max-age=60');
+    // Never kept: a browser that saw it asks again on every use, so its removal takes effect at once (A4 review, finding 4).
+    expect(shown.headers.get('Cache-Control')).toBe('private, no-cache');
     for (const [status, isPublic, shownInShop] of [['Draft', 1, 1], ['Active', 0, 1], ['Active', 1, 0]] as const) {
       db.sqlite.prepare('UPDATE products SET status = ?, is_public = ?, shown_in_shop = ? WHERE id = ?')
         .run(status, isPublic, shownInShop, 'tea-a');

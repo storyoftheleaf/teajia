@@ -20,6 +20,22 @@
  * Every read applies the gate, so a withdrawn or hidden piece is gone from
  * the stream, the held pieces and everyone's kept pieces in the same moment.
  *
+ * Taking off and hiding (A4 review, 2026-11-26). Adrian's rule: a person can
+ * take their own item off, and the owner can hide any item; a withdrawn item
+ * is gone from every place.
+ * - The author taking a tasting off: when they had chosen their own page by
+ *   itself before (member_tasting_shares.page_alone_at), it leaves the table
+ *   and stays on that page. When the table was the only reason it was public,
+ *   it goes private everywhere, with its photographs and quotes
+ *   (worker/src/tastingWithdrawal.ts).
+ * - The owner's hide of a tasting is a family hide, honoured on the person's
+ *   page, its photographs and its quotes as well as here.
+ * - A host taking a recap off: the table only; the recap stays public on its
+ *   own page. The owner's hide of a recap takes it off every public place
+ *   (RECAP_NOT_HIDDEN inside publishedSitRecap).
+ * - Only a host of the session, acting for its shop, puts a recap on, takes it
+ *   off or holds it; the platform owner may act on any.
+ *
  * The hand (K2). A host may hold their own recap at the top for a while; the
  * platform owner may hold any piece. A hold always has an end. Anyone signed
  * in may keep a piece to their own favourites. The number of keeps is read by
@@ -31,6 +47,7 @@ import { formalSessionCardColumns, publishedSitRecap, sessionCards, type Session
 import { isFamilyPhotographShape, readFamilyPhotographFrame, type FamilyPersonPhotograph } from '../../src/lib/familyContract';
 import { recapPath } from '../../src/lib/publicSitConnections';
 import { teaTableOpen } from '../../src/lib/teaTable';
+import { withdrawTastingShare } from './tastingWithdrawal';
 import {
   TEA_TABLE_HOLD_DAYS, TEA_TABLE_SHOWS, teaTableKey, teaTableMoment,
   type TeaTableItem, type TeaTableKind, type TeaTableManageItem, type TeaTableMine, type TeaTablePage,
@@ -261,6 +278,22 @@ export async function isTeaTablePlatformOwner(db: D1Database, userId: string): P
   return row?.platform_role === 'platform_owner';
 }
 
+/**
+ * Whether this person hosted this session: credited as its lead host, co-host
+ * or guest host through their page, or named as its host directly where the
+ * events table has that column (hostArticleOffers.ts reads hosts the same way).
+ */
+export async function hostedTeaTableSession(db: D1Database, eventId: string, accountId: string, userId: string): Promise<boolean> {
+  const credited = await db.prepare(
+    `SELECT 1 FROM event_contributors ec JOIN contributors c ON c.id = ec.contributor_id
+      WHERE ec.event_id = ? AND ec.account_id = ? AND c.user_id = ? AND ec.role IN ('lead_host', 'co_host', 'guest_host') LIMIT 1`,
+  ).bind(eventId, accountId, userId).first();
+  if (credited) return true;
+  const direct = await db.prepare("SELECT 1 FROM pragma_table_info('events') WHERE name = 'host_user_id'").first();
+  return Boolean(direct && await db.prepare('SELECT 1 FROM events WHERE id = ? AND account_id = ? AND host_user_id = ?')
+    .bind(eventId, accountId, userId).first());
+}
+
 // Use the read gates in the insert itself, so concurrent withdrawal cannot create a new keep or hold.
 function visiblePiece(kind: TeaTableKind, idBind: string) {
   return kind === 'tasting'
@@ -286,6 +319,16 @@ export async function setTeaTableKeep(db: D1Database, userId: string, kind: TeaT
 }
 
 export async function takeTastingOffTeaTable(db: D1Database, userId: string, id: string) {
+  const share = await db.prepare(
+    `SELECT product_id, page_alone_at FROM member_tasting_shares
+      WHERE journal_entry_id = ? AND author_user_id = ? AND tea_table_at IS NOT NULL`,
+  ).bind(id, userId).first<{ product_id: string; page_alone_at: string | null }>();
+  if (!share) return notFound();
+  if (!share.page_alone_at) {
+    // The Tea Table was the only reason it was public: it goes private everywhere.
+    await db.batch(withdrawTastingShare(db, id, userId, share.product_id));
+    return privateJson({ kind: 'tasting', id, on_table: false, on_page: false });
+  }
   const [, result] = await db.batch([
     db.prepare(`DELETE FROM tea_table_holds WHERE item_kind = 'tasting' AND item_id = ?
       AND EXISTS (SELECT 1 FROM member_tasting_shares WHERE journal_entry_id = ? AND author_user_id = ? AND tea_table_at IS NOT NULL)`)
@@ -293,7 +336,7 @@ export async function takeTastingOffTeaTable(db: D1Database, userId: string, id:
     db.prepare(`UPDATE member_tasting_shares SET tea_table_at = NULL, tea_table_sittings = NULL, updated_at = datetime('now')
       WHERE journal_entry_id = ? AND author_user_id = ? AND tea_table_at IS NOT NULL`).bind(id, userId),
   ]);
-  return result.meta?.changes ? privateJson({ kind: 'tasting', id, on_table: false }) : notFound();
+  return result.meta?.changes ? privateJson({ kind: 'tasting', id, on_table: false, on_page: true }) : notFound();
 }
 
 export function isTeaTableHoldDays(value: unknown): value is number {
@@ -402,7 +445,11 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     return person;
   };
 
-  /** The event, when the caller may act for it: the platform owner or a host with gather for the event's shop. */
+  /**
+   * The event, when the caller may act for it: the platform owner, or a host of
+   * this session acting for its shop (gather in the event's shop). Holding
+   * gather or publish in the shop is not enough on its own (A4 review, finding 7).
+   */
   const hostOf = async (request: Request, env: E, eventId: string): Promise<{ userId: string; accountId: string } | { error: Response }> => {
     const person = await signedIn(request, env);
     if ('error' in person) return person;
@@ -413,6 +460,9 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     if ('error' in shop) return shop;
     // A host acts only for sessions of their own shop.
     if (shop.accountId !== event.account_id) return { error: notFound() };
+    if (!(await hostedTeaTableSession(env.DB, event.id, event.account_id, person.userId))) {
+      return { error: refuse(403, 'Only a host of this session can do that.', 'not_host') };
+    }
     return { userId: person.userId, accountId: event.account_id };
   };
 
@@ -456,7 +506,8 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     return setTeaTableKeep(env.DB, person.userId, kind, id, kept);
   };
 
-  // DELETE /api/tea-table/mine/tasting/:id: the author takes their tasting off the table. It stays on their page.
+  // DELETE /api/tea-table/mine/tasting/:id: the author takes their tasting off the table. It stays on
+  // their page only when they had chosen their page by itself; otherwise it goes private everywhere.
   const takeOff: Handler<E> = async (request, env, { id }) => {
     const person = await signedIn(request, env);
     if ('error' in person) return person.error;

@@ -4073,3 +4073,6 @@ CREATE TABLE IF NOT EXISTS contributor_top_teas (
   product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
   PRIMARY KEY (contributor_id, slot)
 );
+
+-- 0145_tea_table_page_alone.sql
+ALTER TABLE member_tasting_shares ADD COLUMN page_alone_at TEXT;

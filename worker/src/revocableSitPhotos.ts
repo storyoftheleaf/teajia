@@ -1,6 +1,7 @@
 import { FAMILY_FULL_MAX_BYTES } from '../../src/lib/familyContract';
 import { publicSitPhotoJpeg } from './revocableSitPhotoJpeg';
 import { sessionServedTeaName } from './sessionServedTeas';
+import { RECAP_NOT_HIDDEN } from './publicSitConnections';
 
 type Scope = { accountId: string; userId: string };
 type PhotoTea = { tea_id?: string | null; tea_name?: string | null; can_show_in_brewing?: number };
@@ -56,7 +57,7 @@ const publicRecapPlacement = `
   SELECT g.id, g.credit, p.object_key, r.alt_text, r.observation, ${photoTeaSelection}
   FROM sit_photo_recap_placements r
   JOIN (
-    SELECT g.id ${recapAudienceSelect} AND ${publicRecap} AND e.slug = ?
+    SELECT g.id ${recapAudienceSelect} AND ${publicRecap} AND ${RECAP_NOT_HIDDEN} AND e.slug = ?
   ) eligible ON eligible.id = r.permission_id
   JOIN sit_photo_public_permissions g ON ${placedVersion}
   JOIN private_kept_setup_photos p ON ${exactPhoto}

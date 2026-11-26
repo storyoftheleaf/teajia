@@ -89,7 +89,7 @@ Two more things from the second round, both in the plan: **quiet acknowledgement
 
 A host may hold a recap from their own shop at the top for one to fourteen days. Adrian may hold any piece. Otherwise the list is newest first by placement time. Members can keep pieces privately. With `FAVOURITES_OPEN` also on, kept pieces appear under “From the Tea Table” at `/account/favourites`. Adrian alone sees keep totals in Manage under Publish, Guest notes.
 
-An author’s “Take off the table” preserves the profile share. “Remove from my page” withdraws the tasting from both. Taking down, hiding or unpublishing a piece removes it from the Tea Table list, holds and saved copies shown there. A still-published recap may remain at its own address. Its public photo endpoint checks the photo permission and recap publication independently of Tea Table placement. With the flag on, `/tea-feed` forwards to `/tea-table`. With it off, both send visitors Home.
+An author’s “Take off the table” preserves the profile share when they had put the tasting on their page by itself before; when the table was the only reason it was public, it goes private everywhere. “Remove from my page” withdraws the tasting from both. Taking down, hiding or unpublishing a piece removes it from the Tea Table list, holds and saved copies shown there. A recap its host took off the table remains at its own address; one the platform owner hid is gone from every public place. Its public photo endpoint checks the photo permission and recap publication independently of Tea Table placement. With the flag on, `/tea-feed` forwards to `/tea-table`. With it off, both send visitors Home.
 
 Full plan: [tea-table.md](../todo/plans/tea-table.md).
 

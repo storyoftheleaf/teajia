@@ -9,10 +9,18 @@ export const publicSitProfile = `(c.is_published = 1 OR (c.unpublished_at IS NUL
   SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
 ))) AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`;
 
+/**
+ * The one test of a public recap: every place a recap is shown asks it (the
+ * recap pages, recent sessions, a person's sit links, the Tea Table). A recap
+ * the platform owner hid is gone from all of them (A4 review, finding 2);
+ * its host taking it off the Tea Table alone leaves it on its own page.
+ */
+export const RECAP_NOT_HIDDEN = 'e.tea_table_hidden_at IS NULL';
+
 export const publishedSitRecap = `
   e.lifecycle_status IN ('completed','archived')
   AND e.recap_status = 'published' AND e.public_visibility = 'public'
-  AND a.status = 'active' AND a.public_enabled = 1
+  AND a.status = 'active' AND a.public_enabled = 1 AND ${RECAP_NOT_HIDDEN}
   AND EXISTS (SELECT 1 FROM event_post_session ps WHERE ps.account_id = e.account_id AND ps.event_id = e.id)`;
 
 const exactPublicCredit = `
