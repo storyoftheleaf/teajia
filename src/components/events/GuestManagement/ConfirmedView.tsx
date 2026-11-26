@@ -6,6 +6,7 @@ import EventCountdown from '../EventCountdown';
 import CalendarDownload from '../CalendarDownload';
 import CopyInviteLink from './CopyInviteLink';
 import CancelConfirmModal from './CancelConfirmModal';
+import TastingDoor from './TastingDoor';
 
 const VenueGuide = lazy(() => import('../VenueGuide'));
 const TeaMenuPreview = lazy(() => import('../TeaMenuPreview'));
@@ -110,6 +111,11 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
 
         {/* Countdown */}
         <EventCountdown eventDate={event.eventDate} className="mb-8" />
+
+        {/* A tasting only: one button on the day, nothing otherwise (J8). */}
+        {status === 'confirmed' && data.tasting && (
+          <TastingDoor magicToken={attendee.magicToken} eventDate={event.eventDate} timezone={event.timezone} />
+        )}
 
         {/* Calendar download */}
         <div className="flex justify-center mb-10">

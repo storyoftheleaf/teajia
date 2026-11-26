@@ -41,7 +41,7 @@ async function credential() {
 }
 
 beforeEach(() => {
-  db = new SqliteD1('migrations', '0128');
+  db = new SqliteD1('migrations', '0130'); // 0130 adds events.is_tasting, which the recap reads
   seedIdentity(db, { userId: 'guest', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'other-user', accountId: 'shop-b' });
   db.exec(`

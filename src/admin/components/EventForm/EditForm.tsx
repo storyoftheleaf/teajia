@@ -53,6 +53,9 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const [durationHours, setDurationHours] = useState(2);
   const [repeatDates, setRepeatDates] = useState<string[]>([]);
   const [editRequiresApproval, setEditRequiresApproval] = useState(true);
+  const [isTasting, setIsTasting] = useState(false);
+  // Like the reading: send the choice only once it is known or changed, so a failed load never turns it off.
+  const tastingKnownRef = useRef(false);
   const [readingArticleId, setReadingArticleId] = useState('');
   const contributionOpen = anyoneHostsOpen();
   const [contribution, setContribution] = useState<Contribution | null>(null);
@@ -125,6 +128,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       reading_article_id?: string | null;
     }).readingArticleId ?? (initialData as TeaEvent & { reading_article_id?: string | null }).reading_article_id ?? '';
     setReadingArticleId(initialReading);
+    tastingKnownRef.current = initialData.isTasting !== undefined;
+    setIsTasting(initialData.isTasting ?? false);
     api.events.getAdmin(initialData.id).then(rawEvent => {
       if (!active) return;
       if (contributionOpen && rawEvent) {
@@ -132,6 +137,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           kind: rawEvent.contribution_kind ?? null,
           note: rawEvent.contribution_note ?? '',
         });
+      }
+      if (!tastingKnownRef.current && rawEvent && rawEvent.is_tasting != null) {
+        tastingKnownRef.current = true;
+        setIsTasting(Number(rawEvent.is_tasting) === 1);
       }
       if (readingChangedRef.current) return;
       readingKnownRef.current = true;
@@ -440,6 +449,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         venue_id: editVenueId || null,
         active_space_ids: editSpaceIds.length > 0 ? JSON.stringify(editSpaceIds) : null,
         requires_approval: editRequiresApproval ? 1 : 0,
+        ...(tastingKnownRef.current ? { is_tasting: isTasting } : {}),
         ...(readingChangedRef.current || readingKnownRef.current ? { reading_article_id: readingArticleId || null } : {}),
         ...(contributionOpen && contribution && contributionChanged.current ? {
           contribution_kind: contribution.kind,
@@ -476,6 +486,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           gatheringType={form.gatheringType}
           flyerImageUrl={form.flyerImageUrl}
           requiresApproval={editRequiresApproval}
+          isTasting={isTasting}
           readingArticleId={readingArticleId}
           publishedArticles={publishedArticles}
           repeatDates={repeatDates}
@@ -490,6 +501,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           onDurationChange={setDurationHours}
           onRepeatDatesChange={setRepeatDates}
           onRequiresApprovalChange={setEditRequiresApproval}
+          onIsTastingChange={(value) => {
+            tastingKnownRef.current = true;
+            setIsTasting(value);
+          }}
           onReadingArticleChange={(value) => {
             readingChangedRef.current = true;
             setReadingArticleId(value);

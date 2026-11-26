@@ -18,6 +18,8 @@ export interface BasicInfoSectionProps {
   gatheringType: GatheringType | undefined;
   flyerImageUrl: string | undefined;
   requiresApproval: boolean;
+  /** Only when on are guests offered a screen per tea during the session. */
+  isTasting?: boolean;
   readingArticleId: string;
   publishedArticles: Array<{ id: string; title: string }>;
   repeatDates: string[];
@@ -32,6 +34,7 @@ export interface BasicInfoSectionProps {
   onDurationChange: (hours: number) => void;
   onRepeatDatesChange: React.Dispatch<React.SetStateAction<string[]>>;
   onRequiresApprovalChange: (value: boolean) => void;
+  onIsTastingChange?: (value: boolean) => void;
   onReadingArticleChange: (value: string) => void;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -50,6 +53,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   gatheringType,
   flyerImageUrl,
   requiresApproval,
+  isTasting = false,
   readingArticleId,
   publishedArticles,
   repeatDates,
@@ -64,6 +68,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   onDurationChange,
   onRepeatDatesChange,
   onRequiresApprovalChange,
+  onIsTastingChange,
   onReadingArticleChange,
   onImageUpload,
 }) => {
@@ -318,6 +323,17 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                   <span className="block text-ui-11 text-tea-text-dim">When off, guests are confirmed instantly (subject to capacity).</span>
                 </span>
               </label>
+              {onIsTastingChange && (
+                <label className="flex items-start gap-3 cursor-pointer group pt-1">
+                  <input
+                    type="checkbox"
+                    checked={isTasting}
+                    onChange={(e) => onIsTastingChange(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded-md border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
+                  />
+                  <span className="block text-sm text-tea-text">This is a tasting. Guests can write about each tea as it is poured.</span>
+                </label>
+              )}
             </div>
             {/* Right: Flyer */}
             <div className="space-y-4">
