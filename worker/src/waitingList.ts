@@ -77,6 +77,7 @@ export type ReleaseSeatsInput = {
   /** 'cancelled' when the guest gave the seat up, 'released' when the host did. */
   kind: 'cancelled' | 'released';
   cancellationNote?: string;
+  userId?: string;
 };
 
 /**
@@ -89,9 +90,11 @@ export type ReleaseSeatsInput = {
 export async function releaseSeats(db: Db, input: ReleaseSeatsInput): Promise<{ seats: number } | null> {
   if (input.from.length === 0) return null;
   const statuses = input.from.map(() => '?').join(', ');
+  const ownerGuard = input.userId === undefined ? '' : ' AND user_id = ?';
+  const ownerValues = input.userId === undefined ? [] : [input.userId];
   const stillThere = `EXISTS (SELECT 1 FROM event_attendees guest
-      WHERE guest.id = ? AND guest.event_id = ? AND guest.account_id = ? AND guest.status IN (${statuses}))`;
-  const stillThereValues = [input.attendeeId, input.eventId, input.accountId, ...input.from];
+      WHERE guest.id = ? AND guest.event_id = ? AND guest.account_id = ? AND guest.status IN (${statuses})${ownerGuard})`;
+  const stillThereValues = [input.attendeeId, input.eventId, input.accountId, ...input.from, ...ownerValues];
   // Seats given back: the party's own held and confirmed seats, or one seat
   // for a confirmed guest from before party seats existed.
   const seatsSql = `(
@@ -121,12 +124,29 @@ export async function releaseSeats(db: Db, input: ReleaseSeatsInput): Promise<{ 
     ).bind(input.attendeeId, input.eventId, ...stillThereValues),
     db.prepare(
       `UPDATE event_attendees SET status = 'cancelled', claim_expires_at = NULL${input.cancellationNote !== undefined ? ', cancellation_note = ?' : ''}
-        WHERE id = ? AND event_id = ? AND account_id = ? AND status IN (${statuses})`
-    ).bind(...(input.cancellationNote !== undefined ? [input.cancellationNote] : []), ...party, ...input.from),
+        WHERE id = ? AND event_id = ? AND account_id = ? AND status IN (${statuses})${ownerGuard}`
+    ).bind(...(input.cancellationNote !== undefined ? [input.cancellationNote] : []), ...party, ...input.from, ...ownerValues),
   ]);
   if (!Number(results[3]?.meta?.changes || 0)) return null;
   const row = await db.prepare(`SELECT seats FROM event_seat_notices WHERE id = ?`).bind(id).first<{ seats: number }>();
   return { seats: Number(row?.seats ?? 0) };
+}
+
+/** Guest cancellation, shared by the private guest link and the signed-in agent. */
+export async function cancelGuestSeat(db: Db, input: Omit<ReleaseSeatsInput, 'from' | 'kind'>) {
+  const released = await releaseSeats(db, { ...input, from: ['confirmed', 'requested', 'waitlist'], kind: 'cancelled' });
+  if (!released) {
+    const now = await db.prepare(`SELECT status FROM event_attendees WHERE id = ? AND event_id = ? AND account_id = ?
+      ${input.userId === undefined ? '' : 'AND user_id = ?'}`)
+      .bind(input.attendeeId, input.eventId, input.accountId, ...(input.userId === undefined ? [] : [input.userId]))
+      .first<{ status: string }>();
+    return now?.status === 'cancelled' ? { success: true, status: 'cancelled' } as const : null;
+  }
+  if (released.seats > 0) await offerFreedSeats(db, input);
+  return {
+    success: true, status: 'cancelled',
+    ...(input.cancellationNote !== undefined ? { cancellation_note: input.cancellationNote } : {}),
+  } as const;
 }
 
 /**
