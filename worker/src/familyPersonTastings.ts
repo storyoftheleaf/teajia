@@ -101,7 +101,7 @@ type ProductRow = {
 };
 
 /** The teas a person has shared, newest first, as their page shows them. */
-export async function personTastings(db: D1Database, userId: string | null | undefined, authorName: string | null): Promise<FamilyPersonTasting[]> {
+export async function personTastings(db: D1Database, userId: string | null | undefined, authorName: string | null, credit = false): Promise<FamilyPersonTasting[]> {
   if (!userId) return [];
   const [shares, photos] = await Promise.all([
     db.prepare(
@@ -138,7 +138,8 @@ export async function personTastings(db: D1Database, userId: string | null | und
       small_width: Number(photo.small_width), small_height: Number(photo.small_height),
       shape: isFamilyPhotographShape(photo.shape) ? photo.shape : 'square',
       frame: storedFrame(photo.frame),
-      photograph_by: photographBy(photo, authorName),
+      // "Photograph by" opens with the Tea Table (A4 review, finding 11).
+      ...(credit ? { photograph_by: photographBy(photo, authorName) } : {}),
     });
     pictures.set(photo.product_id, list);
     if (!order.includes(photo.product_id)) order.push(photo.product_id);

@@ -489,3 +489,94 @@ describe('account deletion', () => {
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM tea_table_holds').get()).toEqual({ n: 0 });
   });
 });
+
+// A4 review, finding 14: a hold never hides a piece, a page boundary never
+// loses one, and sharing a tasting again does not move it forward.
+describe('every piece, once', () => {
+  /** n published recaps in the house, each put on the table at the given moment. */
+  function recaps(db: SqliteD1, n: number, at: (i: number) => string) {
+    for (let i = 0; i < n; i += 1) {
+      const id = `bulk-${String(i).padStart(2, '0')}`;
+      db.sqlite.prepare(`INSERT INTO events (id, account_id, slug, title, event_date, lifecycle_status, public_visibility,
+          recap_status, network_discovery, tea_table_at)
+        VALUES (?, ?, ?, ?, '2026-11-01', 'completed', 'public', 'published', 1, ?)`).run(id, SHOP, id, `Sit ${i}`, at(i));
+      db.sqlite.prepare(`INSERT INTO event_post_session (id, account_id, event_id, session_notes) VALUES (?, ?, ?, 'Tea.')`)
+        .run(`post-${id}`, SHOP, id);
+    }
+  }
+  async function walk(env: any) {
+    const seen: string[] = [];
+    let before: string | null = null;
+    for (let page = 0; page < 20; page += 1) {
+      const body: any = await table(env, before ? `?before=${encodeURIComponent(before)}` : '');
+      seen.push(...keys(body));
+      if (!body.earlier) break;
+      before = body.earlier;
+    }
+    return seen;
+  }
+
+  it('walks every page without losing a piece put on the table in the same second', async () => {
+    const { db, env } = setup();
+    recaps(db, 47, () => '2026-11-20 09:00:00');
+    const seen = await walk(env);
+    expect(seen).toHaveLength(47);
+    expect(new Set(seen).size).toBe(47);
+  });
+
+  it('keeps a held piece beyond the six at the top in its place below, and repeats none', async () => {
+    const { db, env } = setup();
+    recaps(db, 30, i => `2026-11-${String(10 + (i % 15)).padStart(2, '0')} 09:00:${String(i).padStart(2, '0')}`);
+    for (let i = 0; i < 9; i += 1) {
+      db.sqlite.prepare(`INSERT INTO tea_table_holds (item_kind, item_id, held_by, held_until)
+        VALUES ('recap', ?, 'platform-owner', datetime('now', '+3 days'))`).run(`bulk-${String(i).padStart(2, '0')}`);
+    }
+    const first: any = await table(env);
+    expect(first.held).toHaveLength(6);
+    const seen = await walk(env);
+    expect(seen).toHaveLength(30);
+    expect(new Set(seen).size).toBe(30);
+  });
+
+  it('refuses a cursor that is not one', async () => {
+    const { env } = setup();
+    expect((await call(env, null, '/api/tea-table?before=2026-11-20%2009%3A00%3A00~nothing')).status).toBe(400);
+    expect((await call(env, null, '/api/tea-table?before=2026-11-20')).status).toBe(200);
+  });
+
+  it('does not move a tasting forward when it is shared again', async () => {
+    const { db, env } = setup();
+    await shareToTable(env);
+    db.exec(`UPDATE member_tasting_shares SET tea_table_at = '2026-11-15 08:00:00' WHERE journal_entry_id = 'journal-one'`);
+    const before = db.sqlite.prepare(`SELECT tea_table_at, tea_table_sittings FROM member_tasting_shares WHERE journal_entry_id = 'journal-one'`).get();
+    await shareToTable(env);
+    await ok(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'offered', tea_table: true } });
+    expect(db.sqlite.prepare(`SELECT tea_table_at, tea_table_sittings FROM member_tasting_shares WHERE journal_entry_id = 'journal-one'`).get())
+      .toEqual(before);
+  });
+});
+
+describe('closed', () => {
+  it('answers every Tea Table address exactly as an address that does not exist', async () => {
+    const { env } = setup();
+    const closed = { ...env, TEA_TABLE_OPEN: 'false' };
+    const absent = await call(closed, PLATFORM, '/api/no-such-address');
+    const absentText = await absent.text();
+    const requests: Array<[string, string, unknown]> = [
+      ['GET', '/api/tea-table', undefined], ['GET', '/api/tea-table/me', undefined],
+      ['PUT', '/api/tea-table/keeps/recap/event-1', undefined], ['DELETE', '/api/tea-table/keeps/recap/event-1', undefined],
+      ['DELETE', '/api/tea-table/mine/tasting/journal-one', undefined],
+      ['PUT', '/api/tea-table/holds/recap/event-1', { days: 3 }], ['DELETE', '/api/tea-table/holds/recap/event-1', undefined],
+      ['GET', '/api/admin/tea-table', undefined], ['POST', '/api/admin/tea-table/hide', { kind: 'recap', id: 'event-1' }],
+      ['GET', '/api/admin/tea-table/recaps/event-1', undefined], ['PUT', '/api/admin/tea-table/recaps/event-1', undefined],
+    ];
+    for (const [method, path, body] of requests) {
+      for (const who of [null, MEMBER, HOST, PLATFORM]) {
+        const response = await call(closed, who, path, { method, body });
+        expect(response.status, `${method} ${path}`).toBe(404);
+        expect(await response.text()).toBe(absentText);
+        expect(response.headers.get('Cache-Control')).toBe(absent.headers.get('Cache-Control'));
+      }
+    }
+  });
+});

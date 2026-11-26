@@ -36,6 +36,8 @@ import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTa
 import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTableWay, signWayForHost } from './hostTableWay';
 import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
 import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
+import { teaHousesOpen } from '../../src/lib/teaHouses';
+import { launch4RouteClosed, openRoutes } from './launch4Closed';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnAvailableInShop, readOwnHostCredit, readShopHostCredit, settleHostCredit, useHostCreditOnOrder } from './hostCreditLedger';
 import { hostCreditOpen } from '../../src/lib/hostCredit';
@@ -263,7 +265,7 @@ import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDe
 import { fileReport, openReports, resolveReport } from './sessionReports';
 import { anyoneHostsOpen } from '../../src/lib/anyoneHosts';
 import { articleWisdomClaimUseRoutes, moveClaimUsesWithBlocks, publicArticleClaimUses } from './articleWisdomClaimUses';
-import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, QUOTE_TASTING_NOT_HIDDEN, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
+import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, QUOTE_TASTING_NOT_HIDDEN, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia'; import { acknowledgementOpen } from './photographCredit';
 import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
 import { readPersonalTeaMoney } from '../../src/lib/personalTeaMoney';
 import { approvedShelfOfferSql, getOrderableShelfSlug, getPublicShelf, personalInventoryAccessSql, readOfferInput, recordedChestCostSql, shelfContactSql } from './personalShelf';
@@ -24529,6 +24531,21 @@ const handlePlatformUpgradeToLocation: Handler = async (request, env, params) =>
 // private), active, published (or with registration closed), and still ahead. Only its slug, title and
 // date are read: never an address, a map link or a venue guide.
 const handleGetNetworkStores: Handler = async (_request, env) => {
+  // The photograph and the next session are for Visit, which opens with the
+  // tea houses (A4 review, finding 11). Closed, the list is as it was before.
+  if (!teaHousesOpen(env)) {
+    const { results } = await env.DB.prepare(
+      `SELECT id, slug, name, tagline, logo_url, location_city, location_country
+       FROM accounts a
+       WHERE a.public_enabled = 1 AND a.status = 'active'
+         AND EXISTS (
+           SELECT 1 FROM products p
+            WHERE p.account_id = a.id AND p.status = 'Active' AND p.is_public = 1
+         )
+       ORDER BY a.is_platform_owner DESC, a.name ASC`
+    ).all();
+    return cachedJson(results, 300);
+  }
   const { results } = await env.DB.prepare(
     `SELECT a.id, a.slug, a.name, a.tagline, a.logo_url, a.cover_image_url,
             a.location_city, a.location_country,
@@ -27371,6 +27388,21 @@ const handlePutTopTea: Handler = async (request, env, params) => {
   }
   if (!name || name.length > TOP_TEA_NAME_LIMIT) return json({ error: 'Enter a tea name of up to 160 characters' }, 400);
 
+  // "One of my own" and "From someone else" never hold the same shop tea (A4
+  // review, finding 15). Checked here for the sentence, and again in the write
+  // itself, so two saves at once cannot both land.
+  const otherMaker = params.slot === 'own' ? 'elsewhere' : params.slot === 'elsewhere' ? 'own' : null;
+  if (otherMaker && productId) {
+    const taken = await env.DB.prepare(
+      'SELECT 1 AS taken FROM contributor_top_teas WHERE contributor_id = ? AND slot = ? AND product_id = ?'
+    ).bind(profile.id, otherMaker, productId).first();
+    if (taken) {
+      return json({ error: otherMaker === 'own' ? 'This tea is already picked as one of your own.' : 'This tea is already picked as from someone else.' }, 409);
+    }
+  }
+  const makerGuard = `NOT EXISTS (SELECT 1 FROM contributor_top_teas other
+      WHERE other.contributor_id = ? AND other.slot = ? AND other.product_id IS NOT NULL AND other.product_id = ?)`;
+
   let photoId = current?.photo_id ?? '';
   if (photo) {
     const limit = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${profile.user_id}:top-tea-photo`);
@@ -27385,12 +27417,15 @@ const handlePutTopTea: Handler = async (request, env, params) => {
   const saved = await (current
     ? env.DB.prepare(
       `UPDATE contributor_top_teas SET account_id = ?, name = ?, note = ?, photo_id = ?, product_id = ?
-        WHERE contributor_id = ? AND slot = ? AND photo_id = ?`
-    ).bind(profile.account_id, name, note, photoId, productId, profile.id, params.slot, current.photo_id)
+        WHERE contributor_id = ? AND slot = ? AND photo_id = ? AND ${makerGuard}`
+    ).bind(profile.account_id, name, note, photoId, productId, profile.id, params.slot, current.photo_id,
+      profile.id, otherMaker ?? '', otherMaker ? productId : null)
     : env.DB.prepare(
       `INSERT INTO contributor_top_teas (contributor_id, account_id, slot, name, note, photo_id, product_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(contributor_id, slot) DO NOTHING`
-    ).bind(profile.id, profile.account_id, params.slot, name, note, photoId, productId)
+       SELECT ?, ?, ?, ?, ?, ?, ? WHERE ${makerGuard}
+       ON CONFLICT(contributor_id, slot) DO NOTHING`
+    ).bind(profile.id, profile.account_id, params.slot, name, note, photoId, productId,
+      profile.id, otherMaker ?? '', otherMaker ? productId : null)
   ).run();
   if (!saved.meta.changes) {
     if (photo) await env.ATLAS_BUCKET?.delete(topTeaPhotoKey(photoId)).catch(() => {});
@@ -27479,7 +27514,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     article_count: Number(row.article_count || 0),
   }));
 
-  return json({ contributors: arrangePeopleList(contributors) });
+  return json({ contributors: arrangePeopleList(contributors, acknowledgementOpen(env)) });
 };
 
 async function publicPaymentAvailability(env: Env, contributorId: string): Promise<{
@@ -27828,7 +27863,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     // Pay shows for tea masters only; a page from before the family keeps its Pay.
     has_payment_methods: familyPageAllowsPay(familyPageTierOf(row.page_tier)) && paymentAvailability.hasAnyMethod,
     payment_accounts: familyPageAllowsPay(familyPageTierOf(row.page_tier)) ? paymentAvailability.accounts : [],
-    seasonal_line: seasonalLine, page_tier: familyPageTierOf(row.page_tier), tastings: await personTastings(env.DB, row.user_id as string | null, row.display_name as string | null),
+    seasonal_line: seasonalLine, page_tier: familyPageTierOf(row.page_tier), tastings: await personTastings(env.DB, row.user_id as string | null, row.display_name as string | null, acknowledgementOpen(env)),
   });
 };
 
@@ -34121,7 +34156,9 @@ const requestHandler = {
       return cors(response, corsOrigin);
     }
 
-    const match = matchRoute(request.method, url.pathname, routes);
+    let match = matchRoute(request.method, url.pathname, routes);
+    // A closed Launch 4 route answers as one that does not exist (A4 review, finding 12).
+    if (match && launch4RouteClosed(match.pattern, env)) match = matchRoute(request.method, url.pathname, openRoutes(routes, env));
     if (!match) {
       return cors(json({ error: 'Not found' }, 404), corsOrigin);
     }

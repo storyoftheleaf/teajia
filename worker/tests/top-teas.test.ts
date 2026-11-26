@@ -143,3 +143,31 @@ describe('top teas on a person page', () => {
     expect((await call(current)).status).toBe(404);
   });
 });
+
+// A4 review, finding 15: "One of my own" and "From someone else" never hold the same shop tea.
+describe('the two maker slots', () => {
+  it('refuse the same shop tea in both, whichever is saved first, and keep the first', async () => {
+    expect((await save('own', { product_id: 'public-tea' })).status).toBe(200);
+    const twice = await save('elsewhere', { product_id: 'public-tea' });
+    expect(twice.status).toBe(409);
+    expect(await twice.json()).toEqual({ error: 'This tea is already picked as one of your own.' });
+    expect((await save('elsewhere', { name: 'A friend\'s tea' })).status).toBe(200);
+    const relink = await save('elsewhere', { product_id: 'public-tea' }, false);
+    expect(relink.status).toBe(409);
+    expect(await relink.json()).toEqual({ error: 'This tea is already picked as one of your own.' });
+    const rows = db.sqlite.prepare(`SELECT slot, product_id FROM contributor_top_teas WHERE contributor_id = 'mei' ORDER BY slot`).all();
+    expect(rows).toEqual([{ slot: 'elsewhere', product_id: null }, { slot: 'own', product_id: 'public-tea' }]);
+
+    // Taken out of one, it may go in the other.
+    expect((await save('own', { name: 'My own', product_id: '' }, false)).status).toBe(200);
+    expect((await save('elsewhere', { product_id: 'public-tea' }, false)).status).toBe(200);
+    const back = await save('own', { product_id: 'public-tea' }, false);
+    expect(back.status).toBe(409);
+    expect(await back.json()).toEqual({ error: 'This tea is already picked as from someone else.' });
+  });
+
+  it('still lets a type slot and a maker slot name the same tea', async () => {
+    expect((await save('Oolong', { product_id: 'public-tea' })).status).toBe(200);
+    expect((await save('own', { product_id: 'public-tea' })).status).toBe(200);
+  });
+});

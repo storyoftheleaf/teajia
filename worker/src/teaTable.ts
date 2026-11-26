@@ -101,13 +101,34 @@ const RECAP_ON_TABLE = `
 const held = (kind: TeaTableKind, id: string) => `EXISTS (SELECT 1 FROM tea_table_holds th
   WHERE th.item_kind = '${kind}' AND th.item_id = ${id} AND datetime(th.held_until) > datetime('now'))`;
 
-type Filter = { before?: string | null; hold?: 'only' | 'without'; ids?: string[]; limit: number };
+/**
+ * Where a page of the table starts: everything strictly older than this moment,
+ * and, at the same moment, everything whose key sorts below this key. The key
+ * breaks ties, so pieces put on the table in the same second are never lost
+ * between pages (A4 review, finding 14).
+ */
+export type TeaTableCursor = { at: string; key: string | null };
+type Filter = {
+  before?: TeaTableCursor | null; hold?: 'only'; ids?: string[];
+  /** Pieces already shown at the top as held, left out of the list below. */
+  except?: Array<{ kind: TeaTableKind; id: string }>; limit: number;
+};
 
 function where(kind: TeaTableKind, column: string, id: string, filter: Filter, binds: unknown[]): string {
   const parts: string[] = [];
-  if (filter.before) { parts.push(`datetime(${column}) < datetime(?)`); binds.push(filter.before); }
+  const key = `('${kind}:' || ${id})`;
+  if (filter.before) {
+    if (filter.before.key) {
+      parts.push(`(datetime(${column}) < datetime(?) OR (datetime(${column}) = datetime(?) AND ${key} < ?))`);
+      binds.push(filter.before.at, filter.before.at, filter.before.key);
+    } else {
+      parts.push(`datetime(${column}) < datetime(?)`);
+      binds.push(filter.before.at);
+    }
+  }
   if (filter.hold === 'only') parts.push(held(kind, id));
-  if (filter.hold === 'without') parts.push(`NOT ${held(kind, id)}`);
+  const except = (filter.except ?? []).filter(item => item.kind === kind).map(item => item.id);
+  if (except.length) { parts.push(`${id} NOT IN (${except.map(() => '?').join(',')})`); binds.push(...except); }
   if (filter.ids) { parts.push(`${id} IN (${filter.ids.map(() => '?').join(',') || 'NULL'})`); binds.push(...filter.ids); }
   return parts.map(part => ` AND ${part}`).join('');
 }
@@ -169,7 +190,7 @@ async function readTastings(db: D1Database, filter: Filter): Promise<TeaTableTas
             s.author_user_id AS author, s.product_id, c.id AS page_id, c.display_name AS person,
             COALESCE(NULLIF(p.given_name, ''), p.product_name) AS tea, p.chinese_name, p.slug, p.type, a.slug AS account_slug
      ${TASTING_FROM}
-     WHERE ${TASTING_ON_TABLE}${conditions}
+     WHERE ${TASTING_ON_TABLE} AND COALESCE(NULLIF(p.given_name, ''), p.product_name) IS NOT NULL${conditions}
      ORDER BY datetime(s.tea_table_at) DESC, s.journal_entry_id DESC LIMIT ?`,
   ).bind(...binds, filter.limit).all<TastingRow>();
   const rows = results ?? [];
@@ -234,8 +255,18 @@ async function readRecaps(db: D1Database, filter: Filter): Promise<TeaTableRecap
   }));
 }
 
-const newestFirst = (a: TeaTableStreamItem, b: TeaTableStreamItem) =>
-  teaTableMoment(b.at).getTime() - teaTableMoment(a.at).getTime() || teaTableKey(b).localeCompare(teaTableKey(a));
+const second = (at: string) => Math.floor(teaTableMoment(at).getTime() / 1000);
+/** Newest first, then by key: the same order the SQL uses (whole seconds, then a plain comparison of keys). */
+const newestFirst = (a: TeaTableStreamItem, b: TeaTableStreamItem) => {
+  const byTime = second(b.at) - second(a.at);
+  if (byTime) return byTime;
+  const [ka, kb] = [teaTableKey(a), teaTableKey(b)];
+  return ka === kb ? 0 : (kb > ka ? 1 : -1);
+};
+
+/** The cursor for the page after this piece, as the address carries it: "<moment>~<kind>:<id>". */
+const cursorAfter = (item: TeaTableStreamItem) =>
+  `${teaTableMoment(item.at).toISOString().slice(0, 19).replace('T', ' ')}~${teaTableKey(item)}`;
 
 async function readBoth(db: D1Database, show: TeaTableShow, filter: Filter): Promise<TeaTableItem[]> {
   const [tastings, recaps] = await Promise.all([
@@ -246,22 +277,26 @@ async function readBoth(db: D1Database, show: TeaTableShow, filter: Filter): Pro
 }
 
 /**
- * One page of the table. Held pieces sit above the rest on the first page and are not repeated below.
- * With `questions`, "Does anyone know this tea?" pieces join the time order in the "all" view
- * (worker/src/knowThisTea.ts); they are never held.
+ * One page of the table. Held pieces (at most MOST_HELD) sit above the rest on
+ * the first page and are not repeated below on any page; a held piece beyond
+ * that number stays in its place in the list, so a hold never hides anything
+ * (A4 review, finding 14). With `questions`, "Does anyone know this tea?"
+ * pieces join the time order in the "all" view (worker/src/knowThisTea.ts);
+ * they are never held, and page by the same cursor.
  */
-export async function readTeaTable(db: D1Database, show: TeaTableShow, before: string | null, questions = false): Promise<TeaTablePage> {
-  const [heldItems, pieces, asked] = await Promise.all([
-    before ? Promise.resolve([]) : readBoth(db, show, { hold: 'only', limit: MOST_HELD }),
-    readBoth(db, show, { hold: 'without', before, limit: PAGE + 1 }),
+export async function readTeaTable(db: D1Database, show: TeaTableShow, before: TeaTableCursor | null, questions = false): Promise<TeaTablePage> {
+  const heldItems = (await readBoth(db, show, { hold: 'only', limit: MOST_HELD })).slice(0, MOST_HELD);
+  const [pieces, asked] = await Promise.all([
+    readBoth(db, show, { before, except: heldItems, limit: PAGE + 1 }),
     questions && show === 'all' ? readTableQuestions(db, { before, limit: PAGE + 1 }) : Promise.resolve([]),
   ]);
   const rest: TeaTableStreamItem[] = [...pieces, ...asked].sort(newestFirst);
-  let cut = Math.min(rest.length, PAGE);
-  // Pieces put on the table in the same second stay on the same page, so "Earlier" never skips one.
-  while (cut > 0 && cut < rest.length && rest[cut].at === rest[cut - 1].at) cut += 1;
-  const items = rest.slice(0, cut);
-  return { held: heldItems.slice(0, MOST_HELD), items, earlier: rest.length > cut ? items[items.length - 1].at : null };
+  const items = rest.slice(0, PAGE);
+  return {
+    held: before ? [] : heldItems,
+    items,
+    earlier: rest.length > PAGE ? cursorAfter(items[items.length - 1]) : null,
+  };
 }
 
 /** Pieces still on the table, by kind and id, in the order given. A withdrawn or hidden one is simply missing. */
@@ -429,12 +464,17 @@ export async function setTeaTableHidden(db: D1Database, userId: string, kind: Te
   return privateJson({ kind, id, hidden });
 }
 
-function normalBefore(value: string | null): string | null | 'bad' {
+/** The address's "before": a moment alone (an older link), or "<moment>~<kind>:<id>". */
+function normalBefore(value: string | null): TeaTableCursor | null | 'bad' {
   if (!value) return null;
-  if (value.length > 40) return 'bad';
-  const moment = teaTableMoment(value);
+  if (value.length > 160) return 'bad';
+  const split = value.indexOf('~');
+  const when = split < 0 ? value : value.slice(0, split);
+  const key = split < 0 ? null : value.slice(split + 1);
+  if (key !== null && !/^(recap|tasting):[^~\s]{1,100}$/.test(key)) return 'bad';
+  const moment = teaTableMoment(when);
   if (Number.isNaN(moment.getTime())) return 'bad';
-  return moment.toISOString().slice(0, 19).replace('T', ' ');
+  return { at: moment.toISOString().slice(0, 19).replace('T', ' '), key };
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────

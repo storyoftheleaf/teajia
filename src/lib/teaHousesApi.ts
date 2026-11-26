@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_URL, authedFetch, fetchWithTimeout, handleResponse } from './api';
 import { teaHousesOpen } from './teaHouses';
+import { REVOCABLE_QUERY } from './revocableQuery';
 import type { TeaHouseBuild, TeaHouseManage, TeaHousePage, TeaHousePart, TeaHouseWork } from './teaHousesContract';
 
 const house = (id: string) => encodeURIComponent(id);
@@ -33,12 +34,19 @@ export const teaHousesApi = {
 
 export const TEA_HOUSES_WORK_KEY = ['tea-houses', 'work'] as const;
 
+/**
+ * A house page can stop qualifying (taken down, its words taken off, the house
+ * made private), so no view shows a copy kept from before: read again on every
+ * open and focus, and keep nothing once the view closes (A4 review, finding 13).
+ */
+export const TEA_HOUSE_READ = { ...REVOCABLE_QUERY, gcTime: 0 } as const;
+
 /** The shown houses in Adrian's order, while the portfolio is open. */
 export function useTeaHouseWork() {
   return useQuery({
     queryKey: TEA_HOUSES_WORK_KEY,
     queryFn: () => teaHousesApi.work(),
     enabled: teaHousesOpen(),
-    staleTime: 1000 * 60,
+    ...TEA_HOUSE_READ,
   });
 }

@@ -78,7 +78,11 @@ const hide = (db: SqliteD1, kind: string, id: string) =>
 
 describe('a person page shows what they shared', () => {
   it('credits the photographer by first name only while they allow it', async () => {
-    const { db, env } = setup();
+    const { db, env: closedEnv } = setup();
+    // "Photograph by" opens with the Tea Table (A4 review, finding 11).
+    const closedPage = await (await get(closedEnv, '/api/people/mei')).json() as any;
+    for (const tea of closedPage.tastings) for (const p of tea.photographs) expect(p).not.toHaveProperty('photograph_by');
+    const env = { ...closedEnv, TEA_TABLE_OPEN: 'true' };
     db.exec("UPDATE contributors SET display_name = 'Mei Chen' WHERE id = 'mei'");
     db.exec("UPDATE member_photographs SET credit_name_shown = 1 WHERE id = 'p-shared'");
     const credits = async () => {
