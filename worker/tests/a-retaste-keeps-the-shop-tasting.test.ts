@@ -30,7 +30,7 @@ describe('a tasting from Curate on its way to the shop', () => {
 });
 
 describe('promoting a tea to the shop', () => {
-  it('carries only known words, and claims the tasting only when it has some', async () => {
+  it('carries only known words, claims the tasting only when it has some, and leaves a non-owner\'s score on their entry', async () => {
     const db = ReceiptDb.seeded();
     Object.assign(db.entries.get('entry-a')!, { tasting: JSON.stringify({ quality: 9, flavor: ['not-a-term'] }) });
     const res = await receiptRequest(db, '/api/compass/entries/entry-a/promote', { method: 'POST' });
@@ -38,7 +38,8 @@ describe('promoting a tea to the shop', () => {
     const { id } = await res.json() as { id: string };
     const product = db.products.get(id)!;
     expect(product.tasting_source).toBeNull();
-    expect(JSON.parse(String(product.tasting))).toEqual({ quality: 9 });
+    // The Curate entry's writer is not the shop owner here, so the score stays theirs (K14).
+    expect(JSON.parse(String(product.tasting))).toEqual({});
   });
 
   it('claims it when the tasting carries the full tasting\'s words', async () => {

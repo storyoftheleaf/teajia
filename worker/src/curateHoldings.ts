@@ -1,3 +1,4 @@
+import { compassEntryForViewer } from './compassScores';
 /**
  * One reading for the Samples-only inventory view and agent stock answers.
  *
@@ -72,6 +73,11 @@ export type CurateHoldingsOptions = {
   limit?: number;
   /** An opaque `next_cursor` from a previous page. */
   cursor?: string | null;
+  /**
+   * Who is reading. A tea's score is its writer's own, so every other reader
+   * gets the tasting without it. Left out, nobody's score is returned.
+   */
+  viewerUserId?: string;
 };
 
 export type CurateHolding = {
@@ -235,7 +241,7 @@ export async function readCurateHoldingsPage(
     const receivedPortion = samples.some(sample => SAMPLE_HELD_STATES.includes(sample.status));
     if (options.samplesOnly && ((!['received', 'tasted'].includes(entry.sample_state) && !receivedPortion) || Number(entry.stock_grams) > 0)) continue;
     holdings.push({
-      entry,
+      entry: compassEntryForViewer(entry, options.viewerUserId),
       stock_grams: Number(entry.stock_grams),
       sample_grams: samples.length && samples.every(sample => sample.grams !== null)
         ? samples.reduce((sum, s) => sum + Number(s.grams ?? 0), 0)

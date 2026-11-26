@@ -294,22 +294,29 @@ describe('the shop\'s side', () => {
     expect((await call(env, OTHER_OWNER, `/api/admin/family/photographs/${offered}/lead`, { method: 'POST' })).status).toBe(404);
   });
 
-  it('keeps a photograph the member removed from their page, and can make it the credited lead picture and restore', async () => {
+  it('takes back a photograph the member removed from their page, and can make another the credited lead picture and restore', async () => {
     const { env, db } = setup();
     db.sqlite.prepare(`INSERT INTO contributors (id, account_id, display_name, user_id, is_published, links)
       VALUES ('mei-page', ?, 'Mei Lin', 'member-one', 1, '[]')`).run(SHOP);
     const first = await offeredPhoto(env);
     const second = await offeredPhoto(env);
-    expect((await call(env, MEMBER, `/api/family/photographs/${first}/remove`, { method: 'POST' })).status).toBe(200);
-    // Gone from the member's page and view...
-    expect(((await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).json()) as any).photographs.map((p: any) => p.id)).toEqual([second]);
-    expect(((await (await call(env, null, '/api/family/teas/tea-a/photographs')).json()) as any).family.map((p: any) => p.id)).toEqual([second]);
-    // ...and still the shop's to use.
-    const pile = await (await call(env, OWNER, '/api/admin/family/photographs')).json() as any;
-    expect(pile.photographs.find((p: any) => p.id === first)).toMatchObject({ removed_by_author: true });
+    const third = await offeredPhoto(env);
     expect((await call(env, OWNER, `/api/admin/family/photographs/${first}/lead`, { method: 'POST' })).status).toBe(200);
+    expect((await call(env, MEMBER, `/api/family/photographs/${first}/remove`, { method: 'POST' })).status).toBe(200);
+    // Gone from the member's page and view, and from the tea page, lead included...
+    expect(((await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).json()) as any).photographs.map((p: any) => p.id).sort()).toEqual([second, third].sort());
     let tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
-    expect(tea.lead).toMatchObject({ id: first, author: { name: 'Mei Lin', page_id: 'mei-page' } });
+    expect(tea.lead).toBeNull();
+    expect(tea.family.map((p: any) => p.id).sort()).toEqual([second, third].sort());
+    // ...still listed in the shop's pile as taken back, and no longer the shop's to use.
+    const pile = await (await call(env, OWNER, '/api/admin/family/photographs')).json() as any;
+    expect(pile.photographs.find((p: any) => p.id === first)).toMatchObject({ removed_by_author: true, shop_use: 'none' });
+    for (const action of ['lead', 'place']) {
+      expect((await call(env, OWNER, `/api/admin/family/photographs/${first}/${action}`, { method: 'POST' })).status).toBe(409);
+    }
+    expect((await call(env, OWNER, `/api/admin/family/photographs/${third}/lead`, { method: 'POST' })).status).toBe(200);
+    tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
+    expect(tea.lead).toMatchObject({ id: third, author: { name: 'Mei Lin', page_id: 'mei-page' } });
 
     // A placed photograph made lead, then a new lead: the old lead steps back to what it was.
     await call(env, OWNER, `/api/admin/family/photographs/${second}/place`, { method: 'POST' });
@@ -317,7 +324,7 @@ describe('the shop\'s side', () => {
     tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
     expect(tea.lead.id).toBe(second);
     expect(tea.placed).toEqual([]);
-    expect(tea.family).toEqual([]);
+    expect(tea.family.map((p: any) => p.id)).toEqual([third]);
     // Restore puts the tea back as it was before the lead: the second photograph placed, no lead.
     const restored = await call(env, OWNER, `/api/admin/family/photographs/${second}/restore`, { method: 'POST' });
     expect(await restored.json()).toMatchObject({ id: second, shop_use: 'placed' });

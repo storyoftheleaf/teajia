@@ -1,0 +1,74 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T06:17:52.842Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "163dd7e7-68f8-4440-b9d8-dc0682df2fbf",
+    "name": "Phoenix Mountain",
+    "chineseName": "",
+    "type": "Oolong",
+    "form": null,
+    "year": 2012,
+    "origin": "China",
+    "stockGrams": 230,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "163dd7e7-68f8-4440-b9d8-dc0682df2fbf",
+    "paragraphs": [
+      {
+        "layer": "age",
+        "text": "An [oolong](oolong:definition) from China, made in 2012 and now fourteen years old. Only oolong that was well made and well roasted is [kept to age](oolong:ageing). The lighter, green style teas are meant to be drunk young. Damp is the risk over that many years: leaf that was not dried enough takes up moisture, so oolong kept this long is usually roasted again at low heat from time to time. That is skilled work, and each round can cost the tea a little. The trade has no agreed age at which an oolong counts as aged."
+      },
+      {
+        "layer": "type",
+        "text": "Oolong sits between green tea and red tea, and its making sets where. The leaf is [tossed in rounds](oolong:making) with rests between them, so its bruised edges oxidise and the change spreads slowly inward. Then high heat stops it at the point the maker wants. How hard the leaf is [roasted](oolong:oxidation-and-roast) afterwards is a separate choice. Roasting lowers the moisture in the leaf."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged oolong",
+      "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:making",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:oxidation-and-roast",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T06:40:40.678Z"
+}

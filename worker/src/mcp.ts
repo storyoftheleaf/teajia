@@ -63,6 +63,7 @@ import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
 import type { CurateReceiptService, InventoryReceiptService, StockMovementService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
+import { tastingWithoutScores } from './publicScores';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName, isRefreshedCurrency } from './exchangeRateFeed';
@@ -1137,7 +1138,7 @@ const SEARCH_CANDIDATE_CEILING = 5_000;
  * arrive in the same vendor, name, id order the holdings reading returns, and
  * sorting by score is stable, so ties still break the same way.
  */
-async function searchCurateHoldings(env: Env, accountId: string, query: string, limit: number) {
+async function searchCurateHoldings(env: Env, accountId: string, query: string, limit: number, viewerUserId: string) {
   const { results } = await env.DB.prepare(
     `SELECT id, name, chinese_name, vendor_name, vendor_item_number, origin_region, year
        FROM tea_compass_entries
@@ -1162,6 +1163,7 @@ async function searchCurateHoldings(env: Env, accountId: string, query: string, 
   const byId = new Map((await readCurateHoldings(env.DB, accountId, {
     teaIds: scored.map(item => item.id),
     limit: Math.min(scored.length, MAX_CURATE_HOLDINGS_PAGE),
+    viewerUserId,
   })).map(holding => [String(holding.entry.id), holding] as const));
   return {
     holdings: scored.flatMap(item => {
@@ -1202,7 +1204,7 @@ async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
     .slice(0, limit);
 
   const curate = await curateManagerAccess(env, auth)
-    ? await searchCurateHoldings(env, accountId, query, limit)
+    ? await searchCurateHoldings(env, accountId, query, limit, auth.userId)
     : { holdings: [], truncated: false };
 
   return {
@@ -1228,7 +1230,7 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
   if (source !== 'product' && source !== 'curate') throw new Error('source must be product or curate');
   if (source === 'curate') {
     if (!await curateManagerAccess(env, auth)) return { error: 'curate_management_required' };
-    const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id });
+    const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id, viewerUserId: auth.userId });
     return holding ? curateHoldingSummary(holding) : { error: 'not_found' };
   }
 
@@ -1244,7 +1246,7 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
     // An omitted source may be a Curate ID. Never present it as a product ID,
     // and never use fallback to reveal private sourcing to an ordinary reader.
     if (args?.source === undefined && await curateManagerAccess(env, auth)) {
-      const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id });
+      const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id, viewerUserId: auth.userId });
       if (holding) return curateHoldingSummary(holding);
     }
     return { error: 'not_found' };
@@ -1292,7 +1294,7 @@ async function toolListLowStock(env: Env, auth: McpAuth, args: any) {
   ).bind(accountId).all();
 
   const samples = args?.include_samples
-    ? (await readCurateHoldings(env.DB, accountId)).filter(holding => holding.samples.length > 0)
+    ? (await readCurateHoldings(env.DB, accountId, { viewerUserId: auth.userId })).filter(holding => holding.samples.length > 0)
     : [];
   return {
     items: (results as unknown as ProductRow[]).map(p => productSummary(p)),
@@ -8166,6 +8168,8 @@ async function publicGetTea(env: Env, accountId: string, args: any) {
 
   let tasting: any = p.tasting_notes;
   if (typeof tasting === 'string') { try { tasting = JSON.parse(tasting); } catch { tasting = []; } }
+  // Public: words only, whatever shape the stored notes have.
+  tasting = tastingWithoutScores(tasting);
 
   return { ...publicProductSummary(accountId, p), description: reviewedDescription(p.id, p.description ?? null), tasting_notes: tasting };
 }
