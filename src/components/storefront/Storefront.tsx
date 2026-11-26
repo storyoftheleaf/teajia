@@ -529,80 +529,9 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
   );
 };
 
-// ─── Network reviews section ───────────────────────────────────────────────
-
-interface NetworkReview {
-  id: string;
-  tea_key?: string;
-  product_id?: string;
-  product_account_id?: string;
-  rating?: number;
-  notes?: string;
-  session_date?: string;
-  verdict?: string;
-  tasting?: Record<string, unknown>;
-}
-
-const StoreNetworkReviews: React.FC<{ storeId: string }> = ({ storeId }) => {
-  const { data, isLoading } = useQuery<{ reviews?: NetworkReview[] }>({
-    queryKey: ['tea-reviews', 'network', storeId],
-    queryFn: () => api.teaReviews.list({ visibility: 'network' }),
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const storeReviews = useMemo(() => {
-    if (!data?.reviews) return [];
-    return (data.reviews as NetworkReview[]).filter(
-      r => r.product_account_id === storeId
-    );
-  }, [data, storeId]);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-6">
-        <div className="w-5 h-5 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (storeReviews.length === 0) return null;
-
-  // Group by tea_key or product_id
-  const grouped = storeReviews.reduce<Record<string, NetworkReview[]>>((acc, r) => {
-    const key = r.tea_key ?? r.product_id ?? r.id;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(r);
-    return acc;
-  }, {});
-
-  return (
-    <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
-      <h3 className="label-caps text-tea-text-dim mb-4">
-        Network Reviews
-      </h3>
-      <ul className="space-y-3">
-        {Object.entries(grouped).map(([key, reviews]) => {
-          const avg = reviews.reduce((s, r) => s + (r.rating ?? 0), 0) / reviews.filter(r => r.rating).length;
-          return (
-            <li key={key} className="bg-tea-surface border border-tea-border rounded-xl p-4">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <p className="text-ui-14 text-tea-text font-mono truncate">{key}</p>
-                {!Number.isNaN(avg) && avg > 0 && (
-                  <span className="text-ui-12 text-tea-gold shrink-0 font-mono tabular-nums">
-                    {'★'.repeat(Math.round(avg))}{'☆'.repeat(5 - Math.round(avg))} {avg.toFixed(1)}
-                  </span>
-                )}
-              </div>
-              <p className="text-ui-11 text-tea-text-dim">
-                {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
-              </p>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-};
+// A shop page shows no star average or review tally: a score is its giver's
+// own (Adrian, 2026-11-26). Words from reviews reach a tea's own page only
+// with the writer's yes.
 
 // ─── About section ─────────────────────────────────────────────────────────
 
@@ -618,7 +547,6 @@ const StorefrontAboutSection: React.FC<{ store: Account }> = ({ store }) => {
           This table is still finding its voice.
         </p>
       )}
-      {store.id && <StoreNetworkReviews storeId={store.id} />}
     </div>
   );
 };

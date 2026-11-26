@@ -72,6 +72,9 @@ root.render(
         persistOptions={{
           persister,
           maxAge: 1000 * 60 * 60 * 24, // 24h
+          // A snapshot saved before scores were taken off public reads is
+          // dropped, not restored (Adrian, 2026-11-26: a score is personal).
+          buster: 'scores-personal-2026-11-26',
           dehydrateOptions: {
             shouldDehydrateQuery: (q) => {
               return q.state.status === 'success' && shouldPersistQueryKey(q.queryKey);
