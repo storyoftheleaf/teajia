@@ -13,7 +13,7 @@ import { enteredTastingFlag, eventTastingSessionId, joinEventTasting } from './s
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
-import { hostApproved, hostDoorsFor, personalAccountSql, publicSessionHostSql, setHostApproval } from './hostApproval';
+import { anyoneMayHost, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostStanding, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, setHostApproval, setHostingStopped } from './hostApproval';
 import { isWalkthroughMedia, mayShowWalkthrough, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
@@ -12506,7 +12506,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
-            e.requires_approval, e.door, e.venue_id, e.reading_article_id, e.host_user_id, e.contribution_kind, e.contribution_note,
+            e.requires_approval, ${hostDoorSql('a', 'e')} AS door, e.venue_id, e.reading_article_id, e.host_user_id, e.contribution_kind, e.contribution_note,
             v.photos AS venue_photos,
             a.name AS account_name,
             a.location_country AS account_location_country,
@@ -12758,6 +12758,7 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
        AND e.event_date >= datetime('now')
        AND a.is_platform_owner = 1
        AND ${PUBLIC_EVENT_DISCOVERY} AND ${PUBLIC_EVENT_HOST}
+       AND ${listableHostedSessionSql('e')}
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
@@ -12783,7 +12784,8 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status, e.door
+    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status,
+            ${hostDoorSql('a', 'e')} AS door, ${hostingStoppedSql('a')} AS host_stopped
      FROM events e JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
        AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
@@ -12803,7 +12805,10 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Launch 2, slice H5: a by-link door seats a guest by name alone. The
   // decisions live in worker/src/seatRequest.ts; an older session (door NULL)
   // behaves as before. Guard: worker/tests/seat-request.test.ts.
-  const doorRule = seatDoorRule(event.door);
+  // Launch 3 (J2): the by-link door is the approved host's (hostDoorSql),
+  // and a stopped host's table takes no new seat. The guest is told only
+  // that the table is not taking seats, never why.
+  const doorRule = Number(event.host_stopped) === 1 ? 'closed' : seatDoorRule(event.door);
   const contact = seatContact(body);
   const refusal = seatRequirement(doorRule, body.full_name, contact);
   if (refusal) return json({ error: refusal.error, code: refusal.code }, refusal.status);
@@ -13331,7 +13336,7 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      JOIN accounts a ON a.id = e.account_id
-     WHERE ea.magic_token = ? AND ea.status = 'waitlist' AND ${privateHostDoorSql(env)}`
+     WHERE ea.magic_token = ? AND ea.status = 'waitlist' AND ${privateHostDoorSql(env)} AND NOT ${hostingStoppedSql('a')}`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found or not on waitlist' }, 404);
@@ -17106,21 +17111,41 @@ const handleSellerApproval: Handler = async (request, env, params) => {
 
 const fewHostsClosed = () => json({ error: 'Not found' }, 404);
 
-// Launch 3 returns anyoneHostsOpen(env) here (src/lib/anyoneHosts.ts on build/launch-3).
-function fewHostsAnyoneHosts(_env: Env): boolean {
-  return false;
+// Launch 3 (slice J2): anyone signed in may host by request once
+// ANYONE_HOSTS_OPEN is on (hostApproval.ts, the J1 contract). Off, this is
+// false and everything is exactly Launch 2.
+function fewHostsAnyoneHosts(env: Env): boolean {
+  return anyoneMayHost(env);
 }
 
+const hostingStoppedAnswer = (what: 'table' | 'seat' | 'change') => restError(403, {
+  table: 'New tables are paused on your account. Write to Teajia to talk it over.',
+  seat: 'New seats are paused on your account. Guests already confirmed keep their seats.',
+  change: 'Your tables are paused, so their door and seats stay as they are.',
+}[what], 'hosting_stopped');
+
+// Whether this account is the private account of a host Adrian stopped. The
+// shop's own Sessions room seats a guest through the same allocator as the
+// host's page, so its yes is refused the same way.
+async function accountHostingStopped(env: Env, accountId: string): Promise<boolean> {
+  const row = await env.DB.prepare(`SELECT ${hostingStoppedSql('a')} AS stopped FROM accounts a WHERE a.id = ?`)
+    .bind(accountId).first<{ stopped: number }>();
+  return Number(row?.stopped) === 1;
+}
+
+// A stopped host (Launch 3, J2) still opens the tables they already host, to
+// see who is coming and to mark who came, with no door to give. Every write
+// that would seat someone new refuses them through hostingStoppedAnswer.
 async function requireFewHostsHost(request: Request, env: Env): Promise<
-  { userId: string; name: string; approved: boolean; doors: HostedTableDoor[] } | { error: Response }
+  { userId: string; name: string; approved: boolean; stopped: boolean; doors: HostedTableDoor[] } | { error: Response }
 > {
   if (!fewHostsOpen(env)) return { error: fewHostsClosed() };
   const ctx = await requireAuthenticatedUser(request, env);
   if ('error' in ctx) return ctx;
-  const approved = await hostApproved(env.DB, ctx.userId);
-  const doors = hostDoorsFor(approved, fewHostsAnyoneHosts(env));
-  if (!doors) return { error: fewHostsClosed() };
-  return { userId: ctx.userId, name: ctx.name, approved, doors };
+  const standing = await hostStanding(env.DB, ctx.userId);
+  const doors = hostDoorsFor(standing, fewHostsAnyoneHosts(env));
+  if (!doors && !(standing.stopped && await hostsAnyTable(env.DB, ctx.userId))) return { error: fewHostsClosed() };
+  return { userId: ctx.userId, name: ctx.name, approved: standing.approved, stopped: standing.stopped, doors: doors ?? [] };
 }
 
 // PUT /api/platform/users/:id/host-approval {approved}. Adrian alone.
@@ -17137,18 +17162,39 @@ const handleHostApproval: Handler = async (request, env, params) => {
   return json({ ok: true, may_host: body.approved });
 };
 
+// PUT /api/platform/users/:id/hosting-stopped {stopped}. Adrian alone (Launch
+// 3, J2): no new table and no new seat for this person, or hosting again.
+// Their sessions, guests and approval stay as they were.
+const handleHostingStopped: Handler = async (request, env, params) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { stopped?: unknown } | null;
+  if (typeof body?.stopped !== 'boolean') return json({ error: 'Say whether this person’s hosting is stopped.' }, 400);
+  const actor = parseToken(isAuthed(request)!);
+  const result = await setHostingStopped(env.DB, params.id, body.stopped, actor?.sub ?? 'unknown');
+  if (!result) return json({ error: 'User not found' }, 404);
+  await logPlatformAction(env, 'host.hosting_stopped_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { stopped: body.stopped });
+  return json({ ok: true, hosting_stopped: body.stopped });
+};
+
 // GET /api/me/hosting. Whether the signed-in person may host, and their
 // personal account when they have one. Makes nothing.
 const handleGetHosting: Handler = async (request, env) => {
   if (!fewHostsOpen(env)) return fewHostsClosed();
   const ctx = await requireAuthenticatedUser(request, env);
   if ('error' in ctx) return ctx.error;
-  const [approved, account] = await Promise.all([
-    hostApproved(env.DB, ctx.userId),
+  const [standing, account] = await Promise.all([
+    hostStanding(env.DB, ctx.userId),
     personalInventoryAccount(env.DB, ctx.userId),
   ]);
   // doors: what this person may give a table, or null when they may not host yet.
-  return json({ approved, account_id: account?.id ?? null, doors: hostDoorsFor(approved, fewHostsAnyoneHosts(env)) });
+  // stopped is told to the person themself only, and only when true.
+  return json({
+    approved: standing.approved, account_id: account?.id ?? null,
+    doors: hostDoorsFor(standing, fewHostsAnyoneHosts(env)),
+    ...(standing.stopped ? { stopped: true } : {}),
+  });
 };
 
 const HOSTED_TABLE_DEFAULT_SEATS = 6;
@@ -17209,6 +17255,7 @@ const handleCreateHostedTable: Handler = async (request, env) => {
   const input = readHostedTableInput(await request.json().catch(() => null) as Record<string, unknown> | null);
   if ('refusal' in input) return input.refusal;
   // The by-link door is the approved host's (Adrian, 2026-11-26).
+  if (host.stopped) return hostingStoppedAnswer('table');
   if (!host.doors.includes(input.door)) {
     return restError(403, 'A table by link opens once Teajia has approved you as a host. A table by request is yours now.', 'hosted_table_door_needs_approval');
   }
@@ -17322,6 +17369,7 @@ const handleHostedTableGuestBookPhotos = hostedTableGuestBookHandler('photos');
 const handleChangeHostedTable: Handler = async (request, env, params) => {
   const own = await requireOwnHostedTable(request, env, params.id);
   if ('error' in own) return own.error;
+  if (own.host.stopped) return hostingStoppedAnswer('change');
   const change = readTableChange(await request.json().catch(() => null) as Record<string, unknown> | null, own.host.doors);
   if ('refused' in change) return restError(change.refused.status, change.refused.error, change.refused.code);
   const result = await changeHostedTable(env.DB, own.table, change);
@@ -17340,6 +17388,7 @@ const handleHostSaysYes: Handler = async (request, env, params) => {
   if (attendee.status !== 'requested') {
     return restError(409, 'This guest is no longer waiting for your yes.', 'state_conflict');
   }
+  if (own.host.stopped) return hostingStoppedAnswer('seat');
   const reservation = await buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, Number(attendee.requested_guests) || 0);
   if (!reservation) return restError(409, 'This guest’s request is incomplete. Ask them to take a seat again.', 'state_conflict');
   const reserved = await reservePartySeats(env, reservation);
@@ -17430,8 +17479,8 @@ const handleHostRecord: Handler = async (request, env) => {
   if (!fewHostsOpen(env)) return fewHostsClosed();
   const ctx = await requireAuthenticatedUser(request, env);
   if ('error' in ctx) return ctx.error;
-  const approved = await hostApproved(env.DB, ctx.userId);
-  if (!hostDoorsFor(approved, fewHostsAnyoneHosts(env)) && !(await hostsAnyTable(env.DB, ctx.userId))) {
+  const standing = await hostStanding(env.DB, ctx.userId);
+  if (!hostDoorsFor(standing, fewHostsAnyoneHosts(env)) && !(await hostsAnyTable(env.DB, ctx.userId))) {
     return fewHostsClosed();
   }
   const now = new Date();
@@ -19103,6 +19152,7 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).first() as ApprovalAttendeeRow | null;
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
+  if (await accountHostingStopped(env, accountId)) return hostingStoppedAnswer('seat');
 
   const body = await request.json() as { approved_guests?: number; message?: string };
   const approvedGuests = body.approved_guests ?? 0;
@@ -19560,6 +19610,7 @@ const handleApproveBatch: Handler = async (request, env, params) => {
   const { accountId } = ctx;
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
+  if (await accountHostingStopped(env, accountId)) return hostingStoppedAnswer('seat');
 
   const body = await request.json() as {
     attendee_ids: string[];
@@ -19707,7 +19758,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
      FROM guest_invites gi
      JOIN events e ON e.id = gi.event_id AND e.account_id = gi.account_id
      JOIN accounts a ON a.id = e.account_id
-     WHERE gi.invite_token = ? AND ${privateHostDoorSql(env)}`
+     WHERE gi.invite_token = ? AND ${privateHostDoorSql(env)} AND NOT ${hostingStoppedSql('a')}`
   ).bind(params.token).first();
 
   if (!invite) return json({ error: 'Invite not found' }, 404);
@@ -23205,6 +23256,7 @@ const handlePlatformListUsers: Handler = async (request, env) => {
             (u.seller_approved_at IS NOT NULL OR EXISTS (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id
               AND pa.personal_seller_approved_at IS NOT NULL)) AS seller_approved,
             u.host_approved_at,
+            u.hosting_stopped_at,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -23230,6 +23282,8 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     may_sell: u.seller_approved === 1,
     // Launch 2: whether Adrian lets this person open tables by link. Shown on this screen only.
     ...(fewHostsOpen(env) ? { may_host: u.host_approved_at != null, host_approved_at: u.host_approved_at ?? null } : {}),
+    // Launch 3: whether Adrian stopped this person's hosting. Shown on this screen only.
+    ...(fewHostsOpen(env) ? { hosting_stopped_at: u.hosting_stopped_at ?? null } : {}),
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
@@ -32007,6 +32061,7 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/platform/users/:id/shelf', handleGrantShelf],
   ['PUT',  '/api/platform/users/:id/seller-approval', handleSellerApproval],
   ['PUT',  '/api/platform/users/:id/host-approval', handleHostApproval],
+  ['PUT',  '/api/platform/users/:id/hosting-stopped', handleHostingStopped],
   ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
   ['GET',  '/api/platform/all-stock', handlePlatformAllStock],

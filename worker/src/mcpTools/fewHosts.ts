@@ -33,7 +33,7 @@
  */
 import { fewHostsOpen } from '../../../src/lib/fewHosts';
 import { reservePartySeats } from '../eventDomain';
-import { hostApproved, hostDoorsFor, setHostApproval, type HostDoor } from '../hostApproval';
+import { anyoneMayHost, hostDoorsFor, hostStanding, setHostApproval, type HostDoor } from '../hostApproval';
 import { GUEST_NOTE_MAX, guestNotesFor, saveGuestNote } from '../hostGuestNotes';
 import { createHostedTable } from '../hostTable';
 import {
@@ -76,7 +76,8 @@ type Host = { userId: string; accountId: string; doors: HostDoor[] };
 
 /**
  * The caller, as a host: Launch 2 is open, the token is on the caller's own
- * active personal account, and Adrian has approved them. Null otherwise.
+ * active personal account, and they may host (hostDoorsFor: Adrian approved
+ * them, or Launch 3 lets anyone host by request; never once stopped). Null otherwise.
  * Run on every call, previews and confirms alike.
  */
 async function hostOf(env: ToolEnv, auth: ToolAuth): Promise<Host | null> {
@@ -86,7 +87,7 @@ async function hostOf(env: ToolEnv, auth: ToolAuth): Promise<Host | null> {
        AND status = 'active'`,
   ).bind(auth.accountId, auth.userId).first<{ id: string }>();
   if (!own) return null;
-  const doors = hostDoorsFor(await hostApproved(env.DB, auth.userId), false);
+  const doors = hostDoorsFor(await hostStanding(env.DB, auth.userId), anyoneMayHost(env));
   return doors ? { userId: auth.userId, accountId: own.id, doors } : null;
 }
 

@@ -4043,3 +4043,8 @@ ALTER TABLE session_guest_book_photos ADD COLUMN show_name INTEGER NOT NULL DEFA
 
 -- 0136_host_table_tea_photos.sql
 ALTER TABLE event_tea_menu ADD COLUMN photo_url TEXT;
+
+-- 0141_anyone_hosts.sql
+ALTER TABLE users ADD COLUMN hosting_stopped_at TEXT;
+ALTER TABLE users ADD COLUMN hosting_stopped_by TEXT REFERENCES users(id);
+ALTER TABLE users ADD COLUMN host_reach TEXT CHECK (host_reach IN ('invitation','teajia','listed'));

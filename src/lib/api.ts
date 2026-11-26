@@ -480,6 +480,8 @@ export interface PlatformUser {
   /** Launch 2: Adrian lets this person open tables by link. Only sent while Launch 2 is open. */
   may_host?: boolean;
   host_approved_at?: string | null;
+  /** Launch 3: when Adrian stopped this person's hosting. Only sent while Launch 2 is open. */
+  hosting_stopped_at?: string | null;
   memberships: { account_id: string; role: string }[];
 }
 
@@ -4315,6 +4317,12 @@ export const api = {
     setMayHost: async (userId: string, approved: boolean): Promise<{ ok: boolean; may_host: boolean }> => {
       return authedFetch(`${API_URL}/api/platform/users/${userId}/host-approval`, {
         method: 'PUT', body: JSON.stringify({ approved }),
+      });
+    },
+    // Launch 3: stop one host (no new table, no new seat), or let them host again.
+    setHostingStopped: async (userId: string, stopped: boolean): Promise<{ ok: boolean; hosting_stopped: boolean }> => {
+      return authedFetch(`${API_URL}/api/platform/users/${userId}/hosting-stopped`, {
+        method: 'PUT', body: JSON.stringify({ stopped }),
       });
     },
     grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {

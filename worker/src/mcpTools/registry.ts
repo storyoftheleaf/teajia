@@ -72,6 +72,8 @@ export interface ToolEnv {
   EDITORIAL_PILOT_ACCOUNT_ID?: string;
   /** Launch 2's switch (src/lib/fewHosts.ts). The host tools answer "not available" unless it is open. */
   FEW_HOSTS_OPEN?: string;
+  /** Launch 3's switch (src/lib/anyoneHosts.ts): anyone signed in may host by request. */
+  ANYONE_HOSTS_OPEN?: string;
   /** The site's address, for a table's link. */
   APP_URL?: string;
   hostSeats?: HostSeatService;

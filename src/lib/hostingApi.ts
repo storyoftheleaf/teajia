@@ -6,8 +6,11 @@ import type { VenueGuide } from '../types/events';
 
 /** 'open' exists in the table's check but every route refuses it until Launch 3. */
 export type HostedTableDoor = 'request' | 'link';
-/** doors: what this person may give a table, or null when they may not host yet. */
-export interface HostingStatus { approved: boolean; account_id: string | null; doors: HostedTableDoor[] | null }
+/**
+ * doors: what this person may give a table, or null when they may not host yet.
+ * stopped (Launch 3): present and true only when Teajia paused their hosting; told to them alone.
+ */
+export interface HostingStatus { approved: boolean; account_id: string | null; doors: HostedTableDoor[] | null; stopped?: boolean }
 export interface HostedTableInput {
   /** YYYY-MM-DD */
   date: string;
