@@ -23313,18 +23313,42 @@ const handlePlatformUpgradeToLocation: Handler = async (request, env, params) =>
 // GET /api/network/stores — PUBLIC list of accounts with public_enabled = 1
 // that have at least one public, active product. A store flipped public with an
 // empty catalog must not advertise an empty shell in the directory.
+//
+// Each house also carries its photograph (the same cover_image_url its own page
+// serves) and its next coming session, for the Visit list. The session is only
+// one the house lists publicly (public_visibility 'public', never unlisted or
+// private), active, published (or with registration closed), and still ahead. Only its slug, title and
+// date are read: never an address, a map link or a venue guide.
 const handleGetNetworkStores: Handler = async (_request, env) => {
   const { results } = await env.DB.prepare(
-    `SELECT id, slug, name, tagline, logo_url, location_city, location_country
+    `SELECT a.id, a.slug, a.name, a.tagline, a.logo_url, a.cover_image_url,
+            a.location_city, a.location_country,
+            ne.slug AS next_session_slug, ne.title AS next_session_title,
+            ne.event_date AS next_session_date
      FROM accounts a
+     LEFT JOIN events ne ON ne.id = (
+       SELECT e.id FROM events e
+        WHERE e.account_id = a.id AND e.status = 'active'
+          AND ${PUBLIC_EVENT_STORE}
+          AND e.lifecycle_status IN ('published', 'registration_closed')
+          AND e.event_date >= datetime('now')
+        ORDER BY e.event_date ASC
+        LIMIT 1
+     )
      WHERE a.public_enabled = 1 AND a.status = 'active'
        AND EXISTS (
          SELECT 1 FROM products p
           WHERE p.account_id = a.id AND p.status = 'Active' AND p.is_public = 1
        )
      ORDER BY a.is_platform_owner DESC, a.name ASC`
-  ).all();
-  return cachedJson(results, 300);
+  ).all<Record<string, unknown>>();
+  const stores = (results ?? []).map(({ next_session_slug, next_session_title, next_session_date, ...store }) => ({
+    ...store,
+    next_session: next_session_slug
+      ? { slug: next_session_slug, title: next_session_title, event_date: next_session_date }
+      : null,
+  }));
+  return cachedJson(stores, 300);
 };
 
 // GET /api/s/:slug — PUBLIC account profile

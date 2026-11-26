@@ -124,6 +124,7 @@ const ShelfPage = lazyWithRetry(() => import('./pages/ShelfPage'));
 const EventsPage = lazyWithRetry(() => import('./pages/EventsPage'));
 const ForYourSpacePage = lazyWithRetry(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazyWithRetry(() => import('./pages/SpacesPage'));
+const TeaHousesVisitPage = lazyWithRetry(() => import('./pages/TeaHousesVisitPage'));
 const StartHerePage = lazyWithRetry(() => import('./pages/StartHerePage'));
 const DiscoverPage = lazyWithRetry(() => import('./pages/DiscoverPage'));
 const ArticlePage = lazyWithRetry(() => import('./pages/ArticlePage'));
@@ -1323,6 +1324,7 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                <Route path="/tea-houses/visit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaHousesVisitPage /></Suspense></ErrorBoundary>} />
                 {/* Legacy community URL now points to the network directory. */}
                 <Route path="/community" element={<Navigate to="/find-a-table" replace />} />
                 <Route path="/store/:slug" element={
