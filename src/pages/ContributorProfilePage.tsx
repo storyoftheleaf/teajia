@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { PersonTastingsSection, SoldOutLine } from '../components/people/PersonTastings';
 import { ReportPageLine } from '../components/people/ReportPageLine';
+import { ReportLink } from '../components/shared/ReportLink';
 import { PLATFORM_NAMES } from '../components/people/PlatformMark';
 import {
   Cover,
@@ -491,6 +492,7 @@ export default function ContributorProfilePage() {
           {data.closing && <Dek className="text-ui-16">{data.closing}</Dek>}
           <a href="/people" className={`tap-target inline-flex min-h-tap items-center font-sans text-[9.5px] uppercase tracking-[0.22em] text-tea-text-dim hover:text-tea-text ${data.closing ? 'mt-5' : ''}`}>All people</a>
           {data.page_tier === 'family' && <ReportPageLine contributorId={data.id} />}
+          <ReportLink targetKind="person" targetId={data.id} />
         </footer>
       </article>
     </PeopleRoot>

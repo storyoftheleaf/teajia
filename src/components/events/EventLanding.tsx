@@ -1,16 +1,20 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, ChevronDown, Users, BookOpen, Edit3, UserCheck } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
 import { useParallax } from '../../hooks/useParallax';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import type { TeaEvent, TeaMenuItem } from '../../types/events';
+import type { SessionDoor, TeaEvent, TeaMenuItem } from '../../types/events';
+import { forgetSeatKey } from '../../lib/seatKey';
 import AvailabilityBadge from './AvailabilityBadge';
 import { GroupHead, IndexRow, SplitName } from '../people/immersive';
 import type { PublicPerson } from '../../types';
 import EventCountdown from './EventCountdown';
+import { ReportLink } from '../shared/ReportLink';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
 interface PublicTeaMenuProps {
@@ -19,7 +23,35 @@ interface PublicTeaMenuProps {
 
 type PublicEvent = TeaEvent & {
   reading?: { slug: string; title: string } | null;
+  contribution_kind?: 'free' | 'contribution' | 'price' | null;
+  contribution_note?: string | null;
 };
+
+function contributionLine(event: PublicEvent): string | null {
+  if (!anyoneHostsOpen()) return null;
+  const note = event.contribution_note;
+  switch (event.contribution_kind) {
+    case 'free':
+      return note ? `Free. ${note}` : 'Free.';
+    case 'contribution':
+      return note ? `By contribution. ${note}` : 'By contribution.';
+    case 'price':
+      return note || null;
+    default:
+      return null;
+  }
+}
+/** A person on the session's page: their name, and their page when they have one. */
+type SessionPerson = { name: string; path: string | null };
+const isSessionPerson = (value: unknown): value is SessionPerson =>
+  !!value && typeof (value as SessionPerson).name === 'string' && (value as SessionPerson).name.trim().length > 0;
+
+/** A name, as a link to its page when it has one and as plain words when not. */
+const PersonName: React.FC<{ person: SessionPerson }> = ({ person }) => (
+  person.path && person.path.startsWith('/')
+    ? <Link to={person.path} className="tap-target text-tea-readgold hover:text-tea-gold-lt transition-colors">{person.name}</Link>
+    : <span className="text-tea-text">{person.name}</span>
+);
 
 const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
   if (items.length === 0) return null;
@@ -28,7 +60,7 @@ const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
     <div className="mb-10">
       <h3 className="h3 mb-1">What we'll be tasting</h3>
       <p className="label-caps text-tea-text-dim mb-6">
-        {sorted.length} {sorted.length === 1 ? 'selection' : 'selections'} curated for this session
+        {sorted.length} {sorted.length === 1 ? 'tea' : 'teas'} for this session
       </p>
       <div className="space-y-3">
         {sorted.map((item, idx) => (
@@ -38,7 +70,12 @@ const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
               {item.productType && (
                 <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-readgold mb-0.5">{item.productType}</p>
               )}
-              <p className="text-ui-16 text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{item.customName || item.productName}</p>
+              <p className="text-ui-16 text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+                {/* A tea of Teajia's shop leads to its page (Launch 2, H6); any other tea is its name. */}
+                {item.shopPath
+                  ? <Link to={item.shopPath} className="underline decoration-tea-border underline-offset-4 hover:decoration-tea-gold">{item.customName || item.productName}</Link>
+                  : item.customName || item.productName}
+              </p>
               {item.customDescription && (
                 <p className="body-light mt-1">{item.customDescription}</p>
               )}
@@ -149,6 +186,7 @@ const EventLanding: React.FC = () => {
           id: m.id as string,
           eventId: m.event_id as string,
           productId: (m.product_id as string) || undefined,
+          shopPath: typeof m.shop_path === 'string' && m.shop_path.startsWith('/shop/') ? m.shop_path : undefined,
           customName: (m.custom_name as string) || undefined,
           customDescription: (m.custom_description as string) || undefined,
           revealDate: (m.reveal_date as string) || undefined,
@@ -326,16 +364,23 @@ const EventLanding: React.FC = () => {
   const eventFormat: import('../../types/events').EventFormat | undefined = ev.format ?? ev.event_format ?? undefined;
   const gatheringType: import('../../types/events').GatheringType | undefined = ev.gatheringType ?? ev.gathering_type ?? undefined;
   const reading = ev.reading;
+  const contribution = contributionLine(event);
   // requires_approval: raw integer from worker (0 or 1); default true for old events without the column
   const rawRequiresApproval = ev.requires_approval ?? ev.requiresApproval;
   const isInstantConfirm = rawRequiresApproval === false || rawRequiresApproval === 0;
+  // A hosted table's door (Launch 2). At 'link' a name is a seat, and a full table has no waiting list.
+  const door: SessionDoor = ev.door === 'link' || ev.door === 'request' || ev.door === 'open' ? ev.door : null;
+  // "Hosted by" and "Pouring", from the public answer: a name, linked only when it has a page.
+  const sessionHost: SessionPerson | null = isSessionPerson(ev.host) ? ev.host : null;
+  const pouring: SessionPerson[] = Array.isArray(ev.pouring) ? ev.pouring.filter(isSessionPerson) : [];
 
   const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(eventDate);
   const isCompleted = event.status === 'closed';
   const isCancelled = event.status === 'archived';
   const isFull = seatsRemaining === 0;
   const canRSVP = !isCompleted && !isCancelled && !isFull;
-  const showWaitlist = !isCompleted && !isCancelled && isFull;
+  const showWaitlist = !isCompleted && !isCancelled && isFull && door !== 'link';
+  const tableFull = !isCompleted && !isCancelled && isFull && door === 'link';
   const showInterestOnly = isCompleted || isCancelled;
 
   const teaGradients: Record<string, string[]> = {
@@ -477,6 +522,31 @@ const EventLanding: React.FC = () => {
             </span>
           </div>
 
+          {contribution && (
+            <p data-testid="session-contribution" className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec break-words mb-5`}>
+              {contribution}
+            </p>
+          )}
+
+          {(sessionHost || pouring.length > 0) && (
+            <div className="flex flex-col items-center gap-1 mb-6 text-ui-13 text-tea-text-sec" data-testid="session-people">
+              {sessionHost && (
+                <p data-testid="session-host">Hosted by <PersonName person={sessionHost} /></p>
+              )}
+              {pouring.length > 0 && (
+                <p data-testid="session-pouring">
+                  Pouring:{' '}
+                  {pouring.map((person, index) => (
+                    <React.Fragment key={`${person.name}-${index}`}>
+                      {index > 0 && ', '}
+                      <PersonName person={person} />
+                    </React.Fragment>
+                  ))}
+                </p>
+              )}
+            </div>
+          )}
+
           {reading && (
             <a
               href={`/article/${encodeURIComponent(reading.slug)}`}
@@ -564,6 +634,8 @@ const EventLanding: React.FC = () => {
                           setCancelling(true);
                           try {
                             await api.rsvp.cancel(token);
+                            // A new request from this browser is a new seat.
+                            if (slug) forgetSeatKey(slug);
                             setMyAttendee(null);
                             setShowCancelConfirm(false);
                           } catch {
@@ -618,6 +690,17 @@ const EventLanding: React.FC = () => {
                 </Suspense>
               </div>
             </div>
+          )}
+
+          {/* A full table at a by-link door: said plainly, with no waiting list in this launch. */}
+          {tableFull && !myAttendee && (
+            <p className="subtitle" data-testid="table-full">This table is full.</p>
+          )}
+
+          {(canRSVP || showWaitlist) && (
+            <p className="text-center text-ui-12 text-tea-text-dim leading-relaxed max-w-xs mx-auto pt-3" data-testid="photographs-line">
+              Photographs are sometimes taken at the table. Tell the host if you would rather not be in them.
+            </p>
           )}
 
           {!myAttendee && (canRSVP || showWaitlist) && (
@@ -747,18 +830,21 @@ const EventLanding: React.FC = () => {
           );
         })()}
 
-        {/* Footer */}
+        {/* Footer: the shop, when the session names no host of its own above. */}
         <div className="text-center pt-6 pb-12">
-          <p className="label-caps text-tea-text-dim">
-            Hosted by {ev.account_name ?? ev.accountName ?? 'Teajia'}
-          </p>
+          {!sessionHost && (
+            <p className="label-caps text-tea-text-dim">
+              Hosted by {ev.account_name ?? ev.accountName ?? 'Teajia'}
+            </p>
+          )}
+          <ReportLink targetKind="session" targetId={event.id} />
         </div>
       </div>
 
       {/* RSVP Form Sheet */}
       {showRSVP && slug && (
         <Suspense fallback={null}>
-          <RSVPFormSheet slug={slug} onClose={() => setShowRSVP(false)} accountLocationCountry={(event as any).account_location_country} requiresApproval={!isInstantConfirm} />
+          <RSVPFormSheet slug={slug} onClose={() => setShowRSVP(false)} accountLocationCountry={(event as any).account_location_country} requiresApproval={!isInstantConfirm} door={door} />
         </Suspense>
       )}
 

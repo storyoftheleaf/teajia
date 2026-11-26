@@ -1479,6 +1479,8 @@ describe('Events Release 1 persisted route contracts', () => {
           chinese_name: '肉桂',
           product_type: 'oolong',
           product_image_url: 'https://media.test/tea.jpg',
+          // A tea of the session's own shop is not a cross-shop link (Launch 2, H6).
+          shop_path: null,
         },
         {
           id: 'menu-revealed',
@@ -1493,6 +1495,8 @@ describe('Events Release 1 persisted route contracts', () => {
           chinese_name: '肉桂',
           product_type: 'oolong',
           product_image_url: 'https://media.test/tea.jpg',
+          // A tea of the session's own shop is not a cross-shop link (Launch 2, H6).
+          shop_path: null,
         },
       ]);
     } finally {

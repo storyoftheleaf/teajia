@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { seedFromMigrations } from '../tests/helpers/migratedSqlite.ts';
 import { sandboxAccountIds, sandboxOperatorStatements, sandboxUserId } from './operator-fixture.mjs';
 import { firstTableStatements } from './first-table-fixture.mjs';
+import { fewHostsStatements } from './few-hosts-fixture.mjs';
 
 const worker = fileURLToPath(new URL('../', import.meta.url));
 const config = join(worker, 'wrangler.offline-fixtures.toml');
@@ -71,6 +72,8 @@ async function prepare() {
       ...sandboxOperatorStatements,
       // Launch 1's test table: one finished session, two guests, one paid order.
       ...firstTableStatements,
+      // Launch 2's test host: ana / ana, approved, with one finished table in her private account.
+      ...fewHostsStatements,
     ];
     const dump = join(temporary, 'fixtures.sql');
     writeFileSync(dump, schema.replace(/COMMIT;\s*$/, `${fixtures.join(';\n')};\nCOMMIT;\n`));
@@ -87,8 +90,12 @@ try {
   if (!process.argv.includes('--prepare-only')) {
     // FIRST_TABLE_OPEN=true opens Launch 1 in this local shop only (src/lib/firstTable.ts).
     // FAVOURITES_OPEN=true opens Launch 4's favourites the same way (src/lib/favouritesOpen.ts).
+    // FEW_HOSTS_OPEN=true opens Launch 2 the same way (src/lib/fewHosts.ts).
+    // ANYONE_HOSTS_OPEN=true opens Launch 3 the same way (src/lib/anyoneHosts.ts).
     const flags = [
       ...(process.env.FIRST_TABLE_OPEN === 'true' ? ['--var', 'FIRST_TABLE_OPEN:true'] : []),
+      ...(process.env.FEW_HOSTS_OPEN === 'true' ? ['--var', 'FEW_HOSTS_OPEN:true'] : []),
+      ...(process.env.ANYONE_HOSTS_OPEN === 'true' ? ['--var', 'ANYONE_HOSTS_OPEN:true'] : []),
       ...(process.env.FAVOURITES_OPEN === 'true' ? ['--var', 'FAVOURITES_OPEN:true'] : []),
     ];
     const server = spawn(wrangler, ['dev', ...localOptions, ...flags], { cwd: worker, env, stdio: 'inherit' });

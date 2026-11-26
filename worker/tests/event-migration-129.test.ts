@@ -529,9 +529,8 @@ describe('migration 129', () => {
     // adds a column. That drift is what let a query for a column production
     // never had reach the live site unnoticed.
     migrated.exec(forward('0004_event_guest_list_flag.sql'));
-    // 0128 (the first table) adds two event columns and 0133 (the Tea Table)
-    // three; replay just their events statements.
-    for (const file of ['0128_first_table.sql', '0133_tea_table.sql']) {
+    // Later migrations that add event columns: replay just their events statements, in order.
+    for (const file of ['0128_first_table.sql', '0129_few_hosts.sql', '0130_session_reports_contribution.sql', '0133_tea_table.sql']) {
       migrated.exec(forward(file).split('\n').filter(line => !line.startsWith('--')).join('\n')
         .split(';').map(statement => statement.trim())
         .filter(statement => /^(ALTER TABLE events |CREATE UNIQUE INDEX IF NOT EXISTS idx_events_)/.test(statement)).join(';\n') + ';');

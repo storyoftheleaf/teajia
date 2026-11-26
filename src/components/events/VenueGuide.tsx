@@ -1,179 +1,171 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Navigation, Car, Train, DoorOpen } from 'lucide-react';
+// The way to the house, for a guest with a phone in one hand (Launch 2, slice
+// H8: todo/plans/guests-and-tea-masters-launch-2-run.md, "Sol, H8").
+//
+// One step at a time: a large photograph, the line beneath, and Back and Next
+// as large targets at the bottom, where a thumb reaches. "Open in maps" sits
+// at the top. Given `keep`, the steps and photographs are kept on the phone
+// (src/lib/keptWay.ts) so the page still opens where the signal ends; given
+// `fromKept`, the photographs are read from what was kept. Who receives the
+// way is decided by the worker (a confirmed seat, until the session ends).
+import React, { useEffect, useState } from 'react';
+import { Car, DoorOpen, Navigation, Phone, Train } from 'lucide-react';
 import type { VenueGuide as VenueGuideType } from '../../types/events';
+import { keepWay, keptPhoto, wayPhotoUrl } from '../../lib/keptWay';
+
+export interface VenueGuideKeep {
+  /** The guest's page this copy belongs to (their link's token). */
+  page: string;
+  /** When the session ends, in milliseconds, or null when it cannot be read. */
+  endsAt: number | null;
+  title?: string | null;
+  address?: string | null;
+}
 
 interface VenueGuideProps {
   venueGuide: VenueGuideType;
   mapLink?: string;
   className?: string;
+  /** Keep this way on the phone for when there is no signal. */
+  keep?: VenueGuideKeep;
+  /** Show the photographs kept on the phone (no signal). */
+  fromKept?: string;
 }
 
-const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className = '' }) => {
+/** The photograph addresses to show: from the network, or from what this phone kept. */
+function usePhotoSources(urls: (string | undefined)[], keptPage: string | undefined) {
+  const [sources, setSources] = useState<Record<string, string>>({});
+  const joined = urls.join('\n');
+  useEffect(() => {
+    if (!keptPage) return undefined;
+    let live = true;
+    const made: string[] = [];
+    void Promise.all(urls.map(async url => {
+      if (!url) return;
+      const local = await keptPhoto(keptPage, url);
+      if (!local) return;
+      made.push(local);
+      if (live) setSources(previous => ({ ...previous, [url]: local }));
+    }));
+    return () => {
+      live = false;
+      made.forEach(url => { try { URL.revokeObjectURL(url); } catch { /* already gone */ } });
+    };
+  }, [joined, keptPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (url: string | undefined) => (url ? (keptPage ? sources[url] : url) : undefined);
+}
+
+const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className = '', keep, fromKept }) => {
+  const steps = venueGuide.steps ?? [];
   const [activeStep, setActiveStep] = useState(0);
-  const steps = venueGuide.steps;
+  const index = Math.min(activeStep, Math.max(steps.length - 1, 0));
+  const photoUrls = steps.map(step => wayPhotoUrl(step.image_url));
+  const source = usePhotoSources(photoUrls, fromKept);
 
-  const hasSteps = steps && steps.length > 0;
-  const hasParkingNotes = !!venueGuide.parking_notes;
-  const hasTransitNotes = !!venueGuide.transit_notes;
-  const hasArrivalNotes = !!venueGuide.arrival_notes;
-  const hasInfoCards = hasParkingNotes || hasTransitNotes || hasArrivalNotes;
+  // Keep the way on this phone, each time it is opened with signal.
+  const keepSignature = keep ? JSON.stringify([keep.page, keep.endsAt, keep.title, keep.address, mapLink, venueGuide]) : '';
+  useEffect(() => {
+    if (!keep) return;
+    void keepWay(keep.page, {
+      ends_at: keep.endsAt, title: keep.title ?? null, address: keep.address ?? null,
+      map_link: mapLink ?? null, guide: venueGuide,
+    });
+  }, [keepSignature]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const goNext = () => setActiveStep((p) => Math.min(p + 1, steps.length - 1));
-  const goPrev = () => setActiveStep((p) => Math.max(p - 1, 0));
+  const goNext = () => setActiveStep(Math.min(index + 1, steps.length - 1));
+  const goPrev = () => setActiveStep(Math.max(index - 1, 0));
 
-  // Handle swipe on mobile
   const [touchStart, setTouchStart] = useState<number | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.touches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStart === null) return;
     const diff = touchStart - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) goNext();
-      else goPrev();
-    }
+    if (Math.abs(diff) > 50) (diff > 0 ? goNext : goPrev)();
     setTouchStart(null);
   };
 
+  const step = steps[index];
+  const photo = source(photoUrls[index]);
+  const notes = [
+    venueGuide.parking_notes && { icon: Car, label: 'Parking', text: venueGuide.parking_notes },
+    venueGuide.transit_notes && { icon: Train, label: 'Getting here', text: venueGuide.transit_notes },
+    venueGuide.arrival_notes && { icon: DoorOpen, label: 'Bring or wear', text: venueGuide.arrival_notes },
+  ].filter(Boolean) as { icon: typeof Car; label: string; text: string }[];
+  const phone = venueGuide.lost_phone?.trim();
+  const dial = phone ? phone.replace(/[^\d+]/g, '') : '';
+
   return (
-    <div className={`${className}`}>
-      <h3 className="font-display text-ui-20 text-tea-text mb-6">Getting There</h3>
+    <section className={className} aria-labelledby="venue-guide-heading" data-venue-guide>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 id="venue-guide-heading" className="font-display text-ui-20 text-tea-text">The way in</h3>
+        {mapLink && (
+          <a href={mapLink} target="_blank" rel="noopener noreferrer" className="btn-secondary btn-sm tap-target">
+            <Navigation className="h-4 w-4" aria-hidden />
+            <span>Open in maps</span>
+          </a>
+        )}
+      </div>
 
-      {/* Step-by-step directions */}
-      {hasSteps && (
-        <div className="mb-8">
-          <div
-            className="relative bg-tea-surface border border-tea-border rounded-md overflow-hidden"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
-            {/* Step image */}
-            {steps[activeStep].image_url && (
-              <div className="relative aspect-[16/9] overflow-hidden">
-                <img
-                  src={steps[activeStep].image_url}
-                  alt={steps[activeStep].description || ''}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-tea-surface via-transparent to-transparent" />
-              </div>
-            )}
-
-            {/* Step content */}
-            <div className="p-5" aria-live="polite">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="flex items-center justify-center w-7 h-7 rounded-full cta-solid text-ui-12 font-semibold shrink-0">
-                  {activeStep + 1}
-                </span>
-                <p className="text-ui-14 text-tea-text-sec leading-relaxed">
-                  {steps[activeStep].description}
-                </p>
-              </div>
-
-              {/* Video link if available */}
-              {steps[activeStep].video_url && (
-                <a
-                  href={steps[activeStep].video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 mt-3 ml-10 text-ui-12 text-tea-gold uppercase tracking-[0.15em] hover:text-tea-gold/80 transition-colors"
-                >
-                  Watch walkthrough
-                </a>
+      {step && (
+        <div
+          className="mb-6 overflow-hidden rounded-md border border-tea-border bg-tea-surface"
+          onTouchStart={e => setTouchStart(e.touches[0].clientX)}
+          onTouchEnd={handleTouchEnd}
+          data-way-reader
+        >
+          {photoUrls[index] && (
+            <div className="aspect-[3/4] w-full overflow-hidden bg-tea-elevated sm:aspect-[4/3]">
+              {photo && (
+                <img src={photo} alt={step.description || `Step ${index + 1}`} className="h-full w-full object-cover"
+                  data-way-photo={index + 1} />
               )}
             </div>
-
-            {/* Navigation arrows */}
-            {steps.length > 1 && (
-              <div className="flex items-center justify-between px-5 pb-5">
-                <button
-                  onClick={goPrev}
-                  disabled={activeStep === 0}
-                  className="tap-target p-2 text-tea-text-sec hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-sec transition-colors"
-                  aria-label="Previous step"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-
-                {/* Step indicators */}
-                <div className="flex gap-1.5">
-                  {steps.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveStep(idx)}
-                      className={`tap-target w-2 h-2 rounded-full transition-all duration-300 ${
-                        idx === activeStep
-                          ? 'bg-tea-gold w-5'
-                          : 'bg-tea-text-sec/30 hover:bg-tea-text-sec/50'
-                      }`}
-                      aria-label={`Go to step ${idx + 1}`}
-                      aria-current={idx === activeStep ? 'true' : undefined}
-                    />
-                  ))}
-                </div>
-
-                <button
-                  onClick={goNext}
-                  disabled={activeStep === steps.length - 1}
-                  className="tap-target p-2 text-tea-text-sec hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-sec transition-colors"
-                  aria-label="Next step"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
+          )}
+          <div className="space-y-2 p-4" aria-live="polite">
+            <p className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
+              Step {index + 1} of {steps.length}
+            </p>
+            {step.description && <p className="type-body text-tea-text" data-way-line>{step.description}</p>}
+            {step.video_url && (
+              <a href={step.video_url} target="_blank" rel="noopener noreferrer" className="type-link">Watch the way in</a>
             )}
           </div>
+          {steps.length > 1 && (
+            <div className="grid grid-cols-2 gap-3 px-4 pb-4">
+              <button type="button" onClick={goPrev} disabled={index === 0}
+                className="btn-secondary btn-lg tap-target h-12 w-full disabled:opacity-40">
+                Back
+              </button>
+              <button type="button" onClick={goNext} disabled={index === steps.length - 1}
+                className="btn-primary btn-lg tap-target h-12 w-full disabled:opacity-40">
+                Next
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Info cards */}
-      {hasInfoCards && (
+      {(notes.length > 0 || phone) && (
         <div className="grid gap-3">
-          {hasParkingNotes && (
-            <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
-              <Car className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
-              <div>
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">Parking</p>
-                <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.parking_notes}</p>
+          {notes.map(({ icon: Icon, label, text }) => (
+            <div key={label} className="flex items-start gap-3 rounded-md border border-tea-border bg-tea-surface p-4">
+              <Icon className="mt-0.5 h-4 w-4 shrink-0 text-tea-gold" aria-hidden />
+              <div className="min-w-0">
+                <p className="mb-1 text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">{label}</p>
+                <p className="type-body text-tea-text-sec">{text}</p>
               </div>
             </div>
-          )}
-          {hasTransitNotes && (
-            <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
-              <Train className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
-              <div>
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">Transit</p>
-                <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.transit_notes}</p>
-              </div>
-            </div>
-          )}
-          {hasArrivalNotes && (
-            <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
-              <DoorOpen className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
-              <div>
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">On Arrival</p>
-                <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.arrival_notes}</p>
-              </div>
-            </div>
+          ))}
+          {phone && (
+            <a href={`tel:${dial}`} className="flex items-start gap-3 rounded-md border border-tea-border bg-tea-surface p-4 tap-target">
+              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-tea-gold" aria-hidden />
+              <span className="min-w-0">
+                <span className="mb-1 block text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">If you are lost</span>
+                <span className="type-body text-tea-text">{phone}</span>
+              </span>
+            </a>
           )}
         </div>
       )}
-
-      {/* Open in Maps */}
-      {mapLink && (
-        <a
-          href={mapLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 mt-6 px-6 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
-        >
-          <Navigation className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors duration-300" />
-          <span className="text-ui-12 uppercase tracking-[0.2em] font-medium">
-            Open in Maps
-          </span>
-        </a>
-      )}
-    </div>
+    </section>
   );
 };
 

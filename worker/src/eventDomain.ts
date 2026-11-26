@@ -169,7 +169,7 @@ type SeatEnv = { DB: SeatDatabase };
 const CREATE_PARTICIPATION_COLUMNS = new Set([
   'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
   'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference',
-  'bringing_tea', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list',
+  'bringing_tea', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list', 'user_id',
 ]);
 
 function sqlPlaceholders(values: readonly unknown[]): string {

@@ -5,6 +5,8 @@ import type { MyFavourites } from './favouritesTypes';
 export type { FavouriteArticle, FavouriteChestTea, FavouriteShopTea, MyFavourites } from './favouritesTypes';
 import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createArticleApi } from './articlesApi';
+import { createHostingApi, createTablesApi } from './hostingApi';
+export type { HostedTableCreated, HostedTableDetail, HostedTableDoor, HostedTableInput, HostedTableSummary, HostingStatus } from './hostingApi';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { VendorProductSale } from './vendorSalesTypes';
@@ -477,6 +479,11 @@ export interface PlatformUser {
   /** They have opened a Tea Chest, so Adrian can decide whether they may sell. */
   has_tea_chest?: boolean;
   may_sell?: boolean;
+  /** Launch 2: Adrian lets this person open tables by link. Only sent while Launch 2 is open. */
+  may_host?: boolean;
+  host_approved_at?: string | null;
+  /** Launch 3: when Adrian stopped this person's hosting. Only sent while Launch 2 is open. */
+  hosting_stopped_at?: string | null;
   memberships: { account_id: string; role: string }[];
 }
 
@@ -2811,9 +2818,11 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/availability`);
       return handleResponse(res);
     },
-    uploadFlyer: async (file: File | Blob) => {
+    // purpose 'venue-guide': a step photograph of the way in, served private and short-lived.
+    uploadFlyer: async (file: File | Blob, purpose?: 'venue-guide') => {
       const formData = new FormData();
       formData.append('file', file);
+      if (purpose) formData.append('purpose', purpose);
       return authedFetch(`${API_URL}/api/upload-flyer`, {
         method: 'POST',
         body: formData,
@@ -2921,6 +2930,9 @@ export const api = {
         })),
         notes: data.notes || undefined,
         show_in_guest_list: data.show_in_guest_list ? true : undefined,
+        // Only a tick on "Please, no photographs of me" is sent; silence stays silence.
+        photo_consent: data.noPhotographs ? false : undefined,
+        seat_key: data.seatKey || undefined,
       };
       return authedFetch(`${API_URL}/api/events/${slug}/rsvp`, {
         method: 'POST',
@@ -2947,6 +2959,13 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
       });
       return handleResponse(res);
+    },
+    /** A signed-in confirmed guest of a tasting joins its session; answers the session id. */
+    openTasting: async (token: string): Promise<{ session_id: string }> => {
+      return authedFetch(`${API_URL}/api/rsvp/${encodeURIComponent(token)}/tasting`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
     },
     getPostSession: async (token: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}/post-session`, {
@@ -4276,6 +4295,10 @@ export const api = {
     },
   },
 
+  // Launch 2, a few hosts (closed until src/lib/fewHosts.ts opens).
+  hosting: createHostingApi({ apiUrl: API_URL, authedFetch }),
+  tables: createTablesApi({ apiUrl: API_URL, authedFetch }),
+
   platform: {
     listUsers: async (): Promise<{ users: PlatformUser[] }> => {
       return authedFetch(`${API_URL}/api/platform/users`)
@@ -4290,6 +4313,18 @@ export const api = {
     setMaySell: async (userId: string, approved: boolean): Promise<{ ok: boolean; may_sell: boolean }> => {
       return authedFetch(`${API_URL}/api/platform/users/${userId}/seller-approval`, {
         method: 'PUT', body: JSON.stringify({ approved }),
+      });
+    },
+    // Launch 2: approve or withdraw a host (closed until src/lib/fewHosts.ts opens).
+    setMayHost: async (userId: string, approved: boolean): Promise<{ ok: boolean; may_host: boolean }> => {
+      return authedFetch(`${API_URL}/api/platform/users/${userId}/host-approval`, {
+        method: 'PUT', body: JSON.stringify({ approved }),
+      });
+    },
+    // Launch 3: stop one host (no new table, no new seat), or let them host again.
+    setHostingStopped: async (userId: string, stopped: boolean): Promise<{ ok: boolean; hosting_stopped: boolean }> => {
+      return authedFetch(`${API_URL}/api/platform/users/${userId}/hosting-stopped`, {
+        method: 'PUT', body: JSON.stringify({ stopped }),
       });
     },
     grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {
