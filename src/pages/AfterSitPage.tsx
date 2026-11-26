@@ -6,6 +6,8 @@ import { PlaylistSection } from '../components/events/PlaylistSection';
 import { PrivateKeptSetup } from '../components/events/PrivateKeptSetup';
 import { ThanksTeas } from '../components/events/ThanksTeas';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
+import { currentSignInToken } from '../lib/api';
+import { firstTableOpen } from '../lib/firstTable';
 import { afterSitDeviceKey, getAfterSitCredential, lookupAfterSitRecap, subscribeAfterSitCredential, type AfterSitRecap } from '../lib/afterSitAccess';
 
 type RecapState =
@@ -25,7 +27,7 @@ function AfterSitContent({ credential }: { credential: string }) {
   useEffect(() => {
     if (!credential) return;
     let current = true;
-    void Promise.all([lookupAfterSitRecap(credential), afterSitDeviceKey(credential)]).then(
+    void Promise.all([lookupAfterSitRecap(credential, firstTableOpen() ? currentSignInToken() : null), afterSitDeviceKey(credential)]).then(
       ([recap, deviceKey]) => {
         if (!current) return;
         if (recap) setState({ status: 'ready', recap, deviceKey });
@@ -83,7 +85,7 @@ function SitRecap({ recap, deviceKey, credential }: { recap: AfterSitRecap; devi
         <time dateTime={recap.event.event_date} className={TYPOGRAPHY_CLASSES.bodyLight}>{displayDate}</time>
       </header>
       {recap.host_note && <p className={`${TYPOGRAPHY_CLASSES.body} whitespace-pre-wrap break-words`}>{recap.host_note}</p>}
-      <ThanksTeas teas={recap.teas} thanksRef={recap.thanks_ref} />
+      <ThanksTeas teas={recap.teas} thanksRef={recap.thanks_ref} credential={credential} />
       {recap.reading && (
         <p className={TYPOGRAPHY_CLASSES.body}>
           To read <Link to={`/article/${encodeURIComponent(recap.reading.slug)}`}

@@ -2,19 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { keepAfterSitTea } from '../../lib/afterSitAccess';
+import { currentSignInToken } from '../../lib/api';
 import { authPagePath } from '../../lib/authNavigation';
 import { firstTableOpen } from '../../lib/firstTable';
 import { Button } from '../shared/Button';
 
 type Props = { credential: string; teaId: string; kept: boolean };
-
-function signInToken() {
-  try {
-    return localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token');
-  } catch {
-    return null;
-  }
-}
 
 export function KeepTeaButton({ credential, teaId, kept }: Props) {
   const navigate = useNavigate();
@@ -31,7 +24,7 @@ export function KeepTeaButton({ credential, teaId, kept }: Props) {
       navigate(authPagePath('signin', '/after-sit'));
       return;
     }
-    const token = signInToken();
+    const token = currentSignInToken();
     if (!token) {
       navigate(authPagePath('signin', '/after-sit'));
       return;

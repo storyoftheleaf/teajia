@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { rememberOrderVia, withOrderVia } from '../../lib/orderVia';
+import { KeepTeaButton } from './KeepTeaButton';
 
 type ThanksTea = {
   id: string;
   name: string;
   path?: string | null;
+  kept?: boolean;
 };
 
-export function ThanksTeas({ teas, thanksRef }: { teas: ThanksTea[]; thanksRef?: string | null }) {
+export function ThanksTeas({ teas, thanksRef, credential }: { teas: ThanksTea[]; thanksRef?: string | null; credential: string }) {
   if (teas.length === 0) return null;
 
   return (
@@ -26,7 +28,7 @@ export function ThanksTeas({ teas, thanksRef }: { teas: ThanksTea[]; thanksRef?:
             ) : (
               <span className="min-w-0 break-words">{tea.name}</span>
             )}
-            {/* KeepTeaButton mounts here, beside the tea name. */}
+            <KeepTeaButton credential={credential} teaId={tea.id} kept={tea.kept === true} />
           </li>
         ))}
       </ul>
