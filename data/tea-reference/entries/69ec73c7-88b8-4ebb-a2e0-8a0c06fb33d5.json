@@ -1,0 +1,73 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T05:37:04.207Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "69ec73c7-88b8-4ebb-a2e0-8a0c06fb33d5",
+    "name": "Yiwu Mushroom",
+    "chineseName": "易武蘑菇形普洱",
+    "type": "Shou Puer",
+    "form": "Other",
+    "year": null,
+    "origin": "Yiwu, Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 4.17,
+    "tags": [
+      "aged sweetness",
+      "woody depth",
+      "camphor",
+      "smooth mineral",
+      "lasting finish"
+    ]
+  },
+  "entry": {
+    "productId": "69ec73c7-88b8-4ebb-a2e0-8a0c06fb33d5",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "Leaf from Yiwu, in Yunnan, made into [ripe pu’er](shou:definition) and pressed into the shape of a mushroom: a rounded cap set on a narrow stem."
+      },
+      {
+        "layer": "type",
+        "text": "Before it was pressed, the leaf went through [wet piling](shou:wet-piling). Sun-dried leaf is wetted and heaped, and covered to hold in the heat its own microbes make. It is turned about once a week to spread it and let air in, and kept below about 65°C so it does not char. The pile was developed to bring about in weeks the change that raw pu’er takes years of keeping to reach, so a tea like this one is ready to drink soon after it is made."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "ripe pu’er",
+      "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T05:41:25.924Z"
+}
