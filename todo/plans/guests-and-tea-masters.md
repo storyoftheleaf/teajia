@@ -39,7 +39,7 @@ Wherever this file still says "tea master" for someone at a session, read "host"
 |---|---|---|
 | **Guest** | Anyone at a session who is not pouring. Away from a session, everyone: you read, you put things on the tea table, you keep favourites, you find tea. | A lower rank. A signed-out visitor is called a visitor, not a guest. |
 | **Host**, and **pouring** | The host created the session and is its master of ceremonies. Others may be pouring beside them. The same person is a guest at the next one. A session says "hosted by" and "pouring", and never calls anyone a master. | A rank, or a permanent class of account. |
-| **Tea master** | Only the word Adrian grants on a person's page, as decided 2026-11-19. It is not used for a role at a session (Adrian, 2026-11-26: "We don't want to create any weirdness around that word, to call someone a master"). | Something a person can call themselves. |
+| **Tea master** | A master of ceremonies, not a master of tea. Adrian, 2026-11-26: "Tea master has been master of ceremonies, not mastery over tea." It names someone who holds a table well, and says nothing about rank or knowledge. It stays the word Adrian grants on a person's page, as decided 2026-11-19, and wherever the site explains the word it says this in one plain line. It is not used for a role at a session (Adrian, 2026-11-26: "We don't want to create any weirdness around that word, to call someone a master"). | Something a person can call themselves. |
 | **Session** | A time when people sit down for tea. It names its host, anyone else pouring, where it is, its seats and its teas. It is either an ordinary sit or a tasting. | A place. |
 | **Table** | A tea master's own place to pour, usually their home. Private. The public sees only the area, and a confirmed guest sees the address. | Something listed or searchable. |
 | **Tea house** | A public place where people can sit down and drink tea. It has a keeper and chose to be seen. Tea masters pour there, including travelling ones who have no table of their own. | A tea master's home. A shop: a house may also have one, and many will not. |
@@ -395,7 +395,7 @@ Adrian asked for one more pass over the whole thing: the holes, and what he had 
 4. I1: is a small host's box worth bringing forward, ahead of the full tasting box?
 5. I6: which coming session could be run by hand as the test?
 6. The Tea Table: answered. Time order, held up by hand, with a private keep.
-7. Does the word tea master stay as a word you grant on a person's page, or should that word go too?
+7. The word tea master: answered. It means master of ceremonies, not mastery over tea. It stays on a person's page as the word Adrian grants, and is not used as a label at a session.
 
 ## Not building
 
