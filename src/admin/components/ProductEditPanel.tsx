@@ -5,8 +5,10 @@ import { toFaceVendor } from '../../components/vendors/vendorFaces';
 import { capturePhotoApi } from '../../lib/capturePhotoApi';
 import { enteredYear } from '../enteredYear';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { PhoneTeaHeader, type TeaAction } from './inventory/phone/PhoneTeaHeader';
-import { RoomTabs, type RoomTab } from './inventory/stock/RoomTabs';
+import type { TeaAction } from './inventory/phone/PhoneTeaHeader';
+import { ROOM_TAB_TO_SECTION, TeaJumpBar, TeaLine, TeaMissing, TeaSection, sectionLabel, teaSectionId, type MissingItem, type TeaPageSection } from './inventory/stock/TeaPage';
+import { fmtNum } from '../../utils/formatNumber';
+import { Button } from '../../components/shared/Button';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -1020,6 +1022,12 @@ export interface ProductEditPanelProps {
   shelfTools?: React.ReactNode;
 }
 
+function countedDate(at?: string | null): string {
+  if (!at) return 'never';
+  const d = new Date(at);
+  return Number.isNaN(d.getTime()) ? 'never' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 const STATUS_COLORS: Record<string, string> = {
   Active: 'var(--admin-text)',
   Draft: 'var(--admin-text-dim)',
@@ -1051,9 +1059,28 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   shelfTools,
 }) => {
   const navigate = useNavigate();
-  const [roomTab, setRoomTab] = useState<RoomTab>('shelf');
-  useEffect(() => { if (openListingReview) setRoomTab('shelf'); }, [openListingReview]);
-  useEffect(() => { const show = (event: Event) => setRoomTab((event as CustomEvent<RoomTab>).detail); window.addEventListener('stock-room-tab', show); return () => window.removeEventListener('stock-room-tab', show); }, []);
+  /* The part of the page last jumped to. It survives moving to the next tea,
+     so a pass through every tea's price is one press of Next per tea. */
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [section, setSection] = useState<TeaPageSection | null>(null);
+  const scrollToSection = useCallback((target: TeaPageSection, behavior: ScrollBehavior) => {
+    const root = scrollRef.current;
+    const el = root?.querySelector<HTMLElement>(`#${teaSectionId(target)}`);
+    const bar = root?.querySelector<HTMLElement>('[data-testid="tea-page-jump"]');
+    if (!root || !el) return;
+    const top = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - (bar?.offsetHeight ?? 0);
+    root.scrollTo({ top: Math.max(0, top), behavior });
+  }, []);
+  const jumpTo = useCallback((target: TeaPageSection) => { setSection(target); scrollToSection(target, 'smooth'); }, [scrollToSection]);
+  useEffect(() => { if (openListingReview) setSection('listed'); }, [openListingReview]);
+  useEffect(() => {
+    const show = (event: Event) => {
+      const target = ROOM_TAB_TO_SECTION[(event as CustomEvent<string>).detail];
+      if (target) window.setTimeout(() => jumpTo(target), 0);
+    };
+    window.addEventListener('stock-room-tab', show);
+    return () => window.removeEventListener('stock-room-tab', show);
+  }, [jumpTo]);
   const { showToast } = useToast();
   const panelQueryClient = useQueryClient();
   /* The shop's own freight rate, for teas that have not entered one. Read from
@@ -1078,6 +1105,20 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     if (index === all.length - 1) return `${text}${all.length > 2 ? ',' : ''} and ${item}`;
     return `${text}, ${item}`;
   }, '') || '';
+
+  /* What this tea still needs, each one a jump to the part that fixes it. */
+  const missingItems: MissingItem[] = [];
+  if (product && !product.imageUrl) missingItems.push({ key: 'photo', label: 'Add a photo', section: 'tea' });
+  const missingWords: Record<string, [string, TeaPageSection]> = {
+    classification: ['Choose the type', 'tea'], retail_price: ['Set a price', 'price'],
+    stock_amount: ['Count the stock', 'stock'], description: ['Write the description', 'later'],
+  };
+  for (const key of readiness?.missing ?? []) {
+    const word = missingWords[key];
+    if (word) missingItems.push({ key, label: word[0], section: word[1] });
+  }
+  const missingMarks: Partial<Record<TeaPageSection, boolean>> = {};
+  for (const item of missingItems) missingMarks[item.section] = true;
 
   const [openingOrder, setOpeningOrder] = useState(false);
   const openReorder = async () => {
@@ -1126,6 +1167,18 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
       nextProduct: idx >= 0 && idx < products.length - 1 ? products[idx + 1] : null,
     };
   }, [product, products]);
+
+  /* A new tea opens at the part last jumped to, or at the top. */
+  useEffect(() => {
+    if (!product) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (section) scrollToSection(section, 'auto');
+      else scrollRef.current?.scrollTo({ top: 0 });
+    });
+    return () => window.cancelAnimationFrame(frame);
+    // Only a change of tea moves the page; jumping within a tea scrolls itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   // Autocomplete data
   const nameSuggestions = useMemo(() => {
@@ -1352,6 +1405,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   {filterLabel}
                 </span>
               )}
+              {onNavigate && nextProduct && (
+                <span data-testid="tea-page-next-at" className="text-ui-11 text-tea-gold leading-none mt-1">
+                  Next opens at {section ? sectionLabel(section) : 'the top'}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-0">
               <button
@@ -1380,171 +1438,27 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             </div>
           )}
 
-          {/* Scrollable content. Identity card lives here too, scrolls with
-              everything else instead of staying fixed under the nav row. */}
-          {product.personalOfferSourceId ? <StockOfferSource product={product} titleId={titleId} /> : <div data-room-tab={roomTab} className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
-            {/* Identity card. Neutral admin surface; the type color signal
-                lives as a 2px left bar so the rest of the card is calm.
-                The bar is a child element rather than an inset box-shadow: an
-                inline boxShadow replaces .admin-card's whole shadow stack, so
-                the old form had to respell the bevel and the drop shadow by
-                hand in raw rgba, and both were white-on-dark literals that
-                would have inverted wrongly the day this panel gets a light
-                mode. Drawn as a span, the card keeps its own shadow. */}
-            <div className="px-3 pb-3">
-              <div className="admin-card relative overflow-hidden pl-4 pr-3 py-3 flex items-start justify-between gap-3">
-                <span
-                  aria-hidden
-                  className="absolute left-0 top-0 bottom-0 w-[2px]"
-                  style={{ background: getThemeColor(product.type) }}  // color-data: the tea type's own colour, from themeUtils
-                />
-                <div className="min-w-0 flex-1">
-                  <h3 id={titleId} className="font-sans text-ui-17 font-medium text-admin-text leading-[1.25] tracking-[-0.005em]" title={product.productName}>{product.productName}</h3>
-                  {product.givenName && product.givenName.trim().toLocaleLowerCase() !== product.productName?.trim().toLocaleLowerCase() && (
-                    <div className="text-ui-13 text-admin-text-sec leading-tight mt-1">{product.givenName}</div>
-                  )}
-                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5">
-                    <span className="text-ui-12 text-admin-text-sec">{product.type}</span>
-                    {product.year && <span className="text-ui-12 text-admin-text-dim font-mono tabular-nums">· {product.year}</span>}
-                    {product.originRegion && <span className="text-ui-12 text-admin-text-dim">· {product.originRegion}</span>}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <div className="relative">
-                    <label className="sr-only" htmlFor={`panel-status-${product.id}`}>Product status</label>
-                    <select
-                      id={`panel-status-${product.id}`}
-                      value={product.status}
-                      onChange={e => handleUpdate(product.id, 'status', e.target.value)}
-                      className="admin-input text-ui-11 uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 cursor-pointer appearance-none"
-                      style={{ color: statusColor }}
-                    >
-                      {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s} className="bg-admin-surface text-admin-text">{s}</option>)}
-                    </select>
-                    <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-admin-text-dim" aria-hidden="true" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
-                      <QrCode size={12} aria-hidden="true" /> QR
-                    </button>
-                  </div>
-                </div>
+          {product.personalOfferSourceId ? <StockOfferSource product={product} titleId={titleId} /> : <div ref={scrollRef} data-room-tab="page" data-testid="tea-page" className="curate-v2 flex-1 overflow-y-auto custom-scrollbar">
+            <TeaJumpBar value={section} marked={missingMarks} onJump={jumpTo} />
+            <TeaMissing items={missingItems} onJump={jumpTo} />
+
+            {/* THE TEA: photos, name and year, what it is, where it is from. */}
+            <TeaSection section="tea" aside={<div className="relative">
+              <label className="sr-only" htmlFor={`panel-status-${product.id}`}>Product status</label>
+              <select id={`panel-status-${product.id}`} value={product.status} onChange={e => handleUpdate(product.id, 'status', e.target.value)}
+                className="admin-input text-ui-11 uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 cursor-pointer appearance-none" style={{ color: statusColor }}>
+                {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s} className="bg-admin-surface text-admin-text">{s}</option>)}
+              </select>
+              <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-admin-text-dim" aria-hidden="true" />
+            </div>}>
+              <div id="tea-section-photos" className="tea-page-photos">
+                <ImageManager product={product} onUpdate={(field, value) => persistField(product.id, field, value)} />
               </div>
-            </div>
-
-            <RoomTabs value={roomTab} onChange={setRoomTab} />
-            <div data-tab-of="shelf" className="px-3 pb-3 space-y-2">
-              <div role="group" aria-label="Inventory purpose" className="flex flex-wrap items-center gap-1.5">
-                <span className="text-ui-10 uppercase tracking-[0.08em] text-admin-text-sec mr-1">Purpose</span>
-                {(['working', 'sample', 'personal'] as const).map((purpose) => (
-                  <button
-                    key={purpose}
-                    aria-label={`${purpose[0].toUpperCase()}${purpose.slice(1)} purpose`}
-                    aria-pressed={effectivePurpose(product) === purpose}
-                    onClick={() => handleUpdate(product.id, 'inventoryPurpose', purpose)}
-                    className={`admin-pill ${effectivePurpose(product) === purpose ? 'admin-pill-on' : ''}`}
-                  >
-                    {purpose === 'working' ? 'Shop stock' : purpose === 'sample' ? 'Sample' : 'Personal'}
-                  </button>
-                ))}
-              </div>
-              {readiness?.state === 'not_ready' && (
-                <div className="text-ui-12 text-admin-text-sec">
-                  Details needed: {missingSentence}
-                </div>
-              )}
-              {sharedRecordId && <button type="button" data-testid="inventory-open-tea-record" data-compass-entry-id={sharedRecordId}
-                onClick={() => navigate(sharedTeaRecordHref(sharedRecordId))}
-                className="min-h-tap inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text">
-                <BookOpen size={14} />View in Library
-              </button>}
-              {sharedRecordId && <button type="button" data-testid="inventory-reorder-ledger" disabled={openingOrder}
-                onClick={() => void openReorder()}
-                className="min-h-tap inline-flex items-center gap-2 text-ui-12 text-admin-text-sec hover:text-admin-text disabled:opacity-50">
-                <Receipt size={14} />{openingOrder ? 'Opening draft…' : 'Reorder in Ledger'}
-              </button>}
-              {readiness?.state === 'not_ready' && !sharedRecordId && (
-                <button
-                  data-compass-entry-id={product.sourceCompassEntryId || undefined}
-                  onClick={() => navigate(product.sourceCompassEntryId
-                    ? `/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`
-                    : `/admin/compass?tab=sourcing&developProduct=${encodeURIComponent(product.id)}&developName=${encodeURIComponent(product.givenName || product.productName)}&developType=${encodeURIComponent(product.type)}`)}
-                  className="min-h-tap inline-flex items-center text-ui-12 text-admin-text-sec hover:text-admin-text"
-                >Develop in Curate</button>
-              )}
-            </div>
-
-            <PhoneTeaHeader product={product} incoming={incoming} onChangeStock={onOpenStockMovement} onRecount={onRecount} onAction={onTeaAction} />
-
-            <div data-tab-of="shelf">
-            <StockListingReview key={`${activeAccountId}:${product.id}`}
-              product={product} entryId={sharedRecordId}
-              openRequested={openListingReview} onOpenHandled={onListingReviewOpened} returnTo={listingReturnTo}
-              canList={canList} canPublish={canPublish} isOwner={isOwnerTier} problem={publicationProblem}
-              canShowWhileCountPending={canShowWhileCountPending}
-              applyWording={text => persistField(product.id, 'description', text)}
-              markReady={() => persistField(product.id, 'status', 'Active')}
-              save={async (gate, value) => {
-                if (gate !== 'shownInShop' || onSaveField || onUpdate) return persistField(product.id, gate, value);
-                await api.products.updateShown(product.id, value);
-                await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [product.id] });
-              }}
-            />
-            </div>
-            <div data-tab-of="shelf" className="px-3 pb-3 flex flex-wrap gap-1.5">
-              <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`} title="Starred, promoted on collection pages">
-                <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
-              </button>
-              {/* This pill read "Top Pick", which is a claim about the reader
-                  and the one thing the flag cannot be. It is a switch one
-                  person flips in this panel: it does not know who is looking,
-                  what they have opened or what they have bought, and it puts
-                  the same tea in front of everyone. The storefront badge for
-                  the same field has always read "Curated", and the shop's
-                  equivalent section was renamed to say plainly that the shelf
-                  is the same for everyone who walks in. This now matches both. */}
-              <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`} title="On the curator's shelf. Shows as Curated on the storefront, the same for every reader.">
-                <Sparkles size={10} /> Curated
-              </button>
-              <button aria-label="Sample-size offering" onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`} title="Sample-size offering">
-                <FlaskConical size={10} /> Sample size
-              </button>
-              <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`admin-pill ${product.canReorder ? 'admin-pill-on' : ''}`} title="Restockable when sold out">
-                <RefreshCw size={10} /> Restockable
-              </button>
-              {/* Sealed tea. The shop cannot open the box, so the amounts it
-                  offers become whole multiples of one unit and one unit is the
-                  minimum order. Needs a unit weight beside it to mean anything;
-                  turning it on is what makes that field appear. */}
-              <button
-                aria-label="Sold only in whole units"
-                onClick={() => handleUpdate(product.id, 'soldInWholeUnits', !product.soldInWholeUnits)}
-                className={`admin-pill ${product.soldInWholeUnits ? 'admin-pill-on' : ''}`}
-                title="Sold only as whole sealed units. The shop offers multiples of one unit and nothing smaller."
-              >
-                <Package size={10} /> Whole units only
-              </button>
-              <CollectionPill productId={product.id} />
-            </div>
-            {shelfTools && <div data-tab-of="shelf" className="hidden px-3 pb-3 md:block">{shelfTools}</div>}
-
-            {/* 1. QUICK ENTRY. Required fields grouped on one bordered card.
-                  Identity, origin, vendor, pricing, stock all live here so a
-                  product can be entered top-to-bottom without expanding sections.
-                  Visibility/promotion toggles moved out, they live in the
-                  always-visible bar above this card. */}
-            <div id="tea-section-details" data-tab-of="shelf details money" className="admin-card mx-3 mb-3 px-4 pt-4 pb-4 scroll-mt-12">
-              <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-admin-border">
-                <span className="font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Quick entry</span>
-                <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">Auto-saves</span>
-              </div>
-              <div>
-              <div data-tab-of="details">
-              {/* Name (full row, autocomplete + autofill) */}
-              <FieldRowFull label="Name">
+              <div id="tea-section-details" className="tea-page-name">
+                <h3 id={titleId} className="sr-only">{product.productName}</h3>
                 <GhostAutocompleteInput
-                  variant="bordered"
                   value={product.productName}
+                  placeholder="Name"
                   onSave={(val) => persistField(product.id, 'productName', val)}
                   suggestions={nameSuggestions}
                   itemData={nameItemData}
@@ -1559,379 +1473,248 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     if (chineseName && !product.chineseName) handleUpdate(product.id, 'chineseName', chineseName);
                   }}
                 />
-              </FieldRowFull>
-
-              <FieldGrid cols={2}>
-                <FieldCell label="Given">
-                  <GhostInput variant="bordered" ariaLabel="Given name" value={product.givenName || ''} onSave={(val) => persistField(product.id, 'givenName', val)} />
-                </FieldCell>
-                <FieldCell label="中文">
-                  <GhostInput variant="bordered" ariaLabel="Chinese name" value={product.chineseName || ''} onSave={(val) => persistField(product.id, 'chineseName', val)} />
-                </FieldCell>
-              </FieldGrid>
-
-              <FieldGrid cols={3}>
-                {inventoryCategory === 'teaware' ? (
-                  <>
-                    <FieldCell label="Category">
-                      <GhostInput variant="bordered" value={product.teawareCategory || ''} onSave={(val) => persistField(product.id, 'teawareCategory', val)} />
-                    </FieldCell>
-                    <FieldCell label="Material">
-                      <GhostInput variant="bordered" value={product.material || ''} onSave={(val) => persistField(product.id, 'material', val)} />
-                    </FieldCell>
-                  </>
-                ) : (
-                  <>
-                    <FieldCell label="Type">
-                      <GhostSelect variant="bordered" ariaLabel="Type" value={product.type} onSave={(val) => persistField(product.id, 'type', val)} options={[...INVENTORY_TEA_TYPES, 'Misc']} />
-                    </FieldCell>
-                    <FieldCell label="Form">
-                      <GhostSelect variant="bordered" ariaLabel="Form" value={product.form || ''} onSave={(val) => persistField(product.id, 'form', val)} options={['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} />
-                    </FieldCell>
-                    {/* Only pressed tea has a piece, and only this tells the
-                        shop how heavy it is. Left blank the shop offers no
-                        whole piece, which beats offering the standard weight
-                        for the form: tuos run from 5 g to 250 g, and a whole
-                        piece is the one amount exempt from the handling fee,
-                        so a guessed weight is a guessed price. */}
-                    {/* A sealed tea has a piece too, whatever its form: the
-                        1993 Y562 is loose leaf in a 100 g box. So the weight
-                        field appears for a pressed form OR for anything marked
-                        sold-in-units, since without a weight the flag has
-                        nothing to count in. */}
-                    {((product.form && ['Cake', 'Tuo', 'Brick', 'Ball'].includes(product.form)) || product.soldInWholeUnits) && (
-                      <FieldCell label={product.soldInWholeUnits ? 'One unit weighs (g)' : 'One piece weighs (g)'}>
-                        <GhostInput
-                          variant="bordered"
-                          value={product.pieceWeightG != null ? String(product.pieceWeightG) : ''}
-                          onSave={(val) => persistField(product.id, 'pieceWeightG', val)}
-                          type="number"
-                          className="tabular-nums"
-                        />
-                      </FieldCell>
-                    )}
-                  </>
-                )}
-                <FieldCell label="Year">
-                  <GhostInput variant="bordered" value={product.year || ''} onSave={(val) => persistField(product.id, 'year', enteredYear(val))} type="text" className="tabular-nums" />
-                </FieldCell>
-              </FieldGrid>
-
-              <FieldGroupDivider />
-
-              <FieldGrid cols={2}>
-                <FieldCell label="Country">
-                  <GhostInput variant="bordered" value={product.originCountry || ''} onSave={(val) => persistField(product.id, 'originCountry', val)} />
-                </FieldCell>
-                <FieldCell label="Region">
-                  <GhostInput variant="bordered" value={product.originRegion || ''} onSave={(val) => persistField(product.id, 'originRegion', val)} />
-                </FieldCell>
-              </FieldGrid>
-
-              {/* Vendor row. Profile link sits trailing-right for clean label edge. */}
-              <div className="mt-4 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between leading-none">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Supplier for this tea</span>
-                  {product.vendor && onCorrectSupplierName ? <button type="button" className="tap-target text-ui-11 text-tea-gold" onClick={() => onCorrectSupplierName(product)}>Correct name everywhere</button> : product.vendor && (
-                    <button
-                      onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor || '')}`)}
-                      className="flex items-center gap-0.5 text-ui-11 text-admin-text-sec hover:text-admin-text uppercase tracking-[0.06em] transition-colors"
-                      title="View vendor profile"
-                    >
-                      Profile <ChevronRight size={11} aria-hidden="true" />
-                    </button>
-                  )}
+                <div className="tea-page-year">
+                  <GhostInput variant="bordered" ariaLabel="Year" placeholder="Year" value={product.year || ''} onSave={(val) => persistField(product.id, 'year', enteredYear(val))} type="text" className="tabular-nums" />
                 </div>
-                <VendorPicker
-                  value={product.vendor || ''}
-                  productId={product.id}
-                  onChange={(val) => handleUpdate(product.id, 'vendor', val)}
-                  className="admin-input w-full h-9 py-2 px-3 text-ui-14 leading-tight"
-                />
               </div>
+              <TeaLine label="Given"><GhostInput ariaLabel="Given name" placeholder="Add" align="right" value={product.givenName || ''} onSave={(val) => persistField(product.id, 'givenName', val)} /></TeaLine>
+              <TeaLine label="中文"><GhostInput ariaLabel="Chinese name" placeholder="Add" align="right" value={product.chineseName || ''} onSave={(val) => persistField(product.id, 'chineseName', val)} /></TeaLine>
+              {inventoryCategory === 'teaware' ? <div className="tea-page-split">
+                <TeaLine label="Category"><GhostInput ariaLabel="Category" placeholder="Add" align="right" value={product.teawareCategory || ''} onSave={(val) => persistField(product.id, 'teawareCategory', val)} /></TeaLine>
+                <TeaLine label="Material"><GhostInput ariaLabel="Material" placeholder="Add" align="right" value={product.material || ''} onSave={(val) => persistField(product.id, 'material', val)} /></TeaLine>
+              </div> : <>
+                <div className="tea-page-split">
+                  <TeaLine label="Type"><GhostSelect ariaLabel="Type" value={product.type} onSave={(val) => persistField(product.id, 'type', val)} options={[...INVENTORY_TEA_TYPES, 'Misc']} /></TeaLine>
+                  <TeaLine label="Form"><GhostSelect ariaLabel="Form" value={product.form || ''} onSave={(val) => persistField(product.id, 'form', val)} options={['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} /></TeaLine>
+                </div>
+                {/* Only pressed or sealed tea has a piece, and only this tells the
+                    shop how heavy it is. Left blank the shop offers no whole
+                    piece, which beats a guessed weight and so a guessed price. */}
+                {((product.form && ['Cake', 'Tuo', 'Brick', 'Ball'].includes(product.form)) || product.soldInWholeUnits) && (
+                  <TeaLine label={product.soldInWholeUnits ? 'One unit weighs' : 'One piece weighs'}>
+                    <GhostInput ariaLabel={product.soldInWholeUnits ? 'One unit weighs (g)' : 'One piece weighs (g)'} placeholder="Add" align="right" type="number" className="tabular-nums"
+                      value={product.pieceWeightG != null ? String(product.pieceWeightG) : ''} onSave={(val) => persistField(product.id, 'pieceWeightG', val)} />
+                    <span className="text-ui-12 text-admin-text-dim">g</span>
+                  </TeaLine>
+                )}
+              </>}
+              <div className="tea-page-split">
+                <TeaLine label="Country"><GhostInput ariaLabel="Country" placeholder="Add" align="right" value={product.originCountry || ''} onSave={(val) => persistField(product.id, 'originCountry', val)} /></TeaLine>
+                <TeaLine label="Region"><GhostInput ariaLabel="Region" placeholder="Add" align="right" value={product.originRegion || ''} onSave={(val) => persistField(product.id, 'originRegion', val)} /></TeaLine>
+              </div>
+              <TeaLine label="From">
+                <VendorPicker value={product.vendor || ''} productId={product.id} onChange={(val) => handleUpdate(product.id, 'vendor', val)} className="w-full bg-transparent border-0 text-right text-ui-15 text-admin-text outline-none" />
+              </TeaLine>
+              <div className="tea-page-note flex flex-wrap gap-x-4 gap-y-1">
+                {product.vendor && (onCorrectSupplierName
+                  ? <button type="button" className="tap-target text-tea-gold" onClick={() => onCorrectSupplierName(product)}>Correct the supplier name everywhere</button>
+                  : <button type="button" className="tap-target text-tea-gold" onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor || '')}`)}>Supplier profile</button>)}
+                {sharedRecordId && <button type="button" data-testid="inventory-open-tea-record" data-compass-entry-id={sharedRecordId}
+                  onClick={() => navigate(sharedTeaRecordHref(sharedRecordId))} className="tap-target text-tea-gold">View in Library</button>}
+                {sharedRecordId && <button type="button" data-testid="inventory-reorder-ledger" disabled={openingOrder}
+                  onClick={() => void openReorder()} className="tap-target text-tea-gold disabled:opacity-50">{openingOrder ? 'Opening draft…' : 'Reorder in Ledger'}</button>}
+                {readiness?.state === 'not_ready' && !sharedRecordId && (
+                  <button type="button" data-compass-entry-id={product.sourceCompassEntryId || undefined} className="tap-target text-tea-gold"
+                    onClick={() => navigate(product.sourceCompassEntryId
+                      ? `/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`
+                      : `/admin/compass?tab=sourcing&developProduct=${encodeURIComponent(product.id)}&developName=${encodeURIComponent(product.givenName || product.productName)}&developType=${encodeURIComponent(product.type)}`)}
+                  >Develop in Curate</button>
+                )}
+              </div>
+            </TeaSection>
 
-              </div><div data-tab-of="money">
-              <FieldGroupDivider />
-              {/* Pricing inputs. Cost gets full-width row so currency + amount have room.
-                  Batch and shipping rate paired below. Calculated retail readout follows. */}
-              {inventoryCategory === 'teaware' ? (
-                <FieldGrid cols={2}>
-                  <FieldCell label="Cost">
-                    <GhostInput variant="bordered" value={product.costAmount ?? ''} onSave={(val) => persistField(product.id, 'costAmount', val)} type="number" className="tabular-nums" />
-                  </FieldCell>
-                  <FieldCell label="Retail / $">
-                    <GhostInput variant="bordered" value={product.pricePerGramUSD ?? ''} onSave={(val) => persistField(product.id, 'pricePerGramUSD', val)} type="number" className="tabular-nums" />
-                  </FieldCell>
-                </FieldGrid>
-              ) : (
-                <>
-                  <FieldRowFull label="Cost">
-                    <div className="flex items-center gap-2 w-full">
-                      <label className="relative shrink-0 cursor-pointer w-[88px]">
-                        {/* A currency nobody recorded shows as "—", not as USD.
-                            `|| 'USD'` here answered an absence with a guess and
-                            then displayed the guess as fact, which is how a
-                            1,200 CNY invoice reads as $1,200 on this very
-                            screen. The amount was right; only the unit was
-                            invented, and it was invented twice: once by the
-                            column's DEFAULT 'USD' and again by this line. */}
-                        <select
-                          value={product.costCurrency || 'UNK'}
-                          onChange={(e) => handleUpdate(product.id, 'costCurrency', e.target.value)}
-                          className={`admin-input w-full h-9 py-2 pl-2.5 pr-6 text-ui-14 uppercase tracking-[0.06em] leading-tight cursor-pointer appearance-none${product.costCurrency ? '' : ' text-tea-error'}`}
-                          aria-label="Cost currency"
-                          title={product.costCurrency ? undefined : 'No currency recorded. The cost above is a number with no unit.'}
-                        >
-                          <option value="UNK" className="bg-admin-surface text-admin-text">—</option>
-                          {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
-                            <option key={c} value={c} className="bg-admin-surface text-admin-text">{isoCurrencyCode(c)}</option>
-                          ))}
-                        </select>
-                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-admin-text-dim/70 pointer-events-none" />
-                      </label>
-                      <GhostInput variant="bordered" value={product.costAmount ?? ''} onSave={(val) => persistField(product.id, 'costAmount', val)} type="number" className="tabular-nums flex-1 min-w-0" />
-                    </div>
-                  </FieldRowFull>
-                  <FieldGrid cols={2}>
-                    <FieldCell label="Batch g">
-                      <GhostInput variant="bordered" value={product.quantityPurchased || 0} onSave={(val) => persistField(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
-                    </FieldCell>
-                    <FieldCell
-                      label="Ship $/kg"
-                      labelAdornment={product.shippingRatePerKg != null ? (
-                        <span
-                          title="Pinned to this tea. Clear the field to follow the shop rate."
-                          className="text-tea-gold leading-none"
-                        >
-                          •<span className="sr-only"> pinned to this tea; clear the field to follow the shop rate</span>
-                        </span>
-                      ) : undefined}
+            {/* PRICE: what it cost, the freight inside it, what it sells for. */}
+            <TeaSection section="price" aside={<span className="curate-v2-label">{inventoryCategory === 'teaware' ? 'each' : 'per gram'}</span>}>
+              {inventoryCategory === 'teaware' ? <>
+                <TeaLine label="It cost"><GhostInput ariaLabel="Cost" placeholder="Add" align="right" value={product.costAmount ?? ''} onSave={(val) => persistField(product.id, 'costAmount', val)} type="number" className="tabular-nums" /></TeaLine>
+                <TeaLine label="Sells for"><span className="text-ui-12 text-admin-text-dim">$</span><GhostInput ariaLabel="Retail price" placeholder="Set a price" align="right" value={product.pricePerGramUSD ?? ''} onSave={(val) => persistField(product.id, 'pricePerGramUSD', val)} type="number" className="tabular-nums" /></TeaLine>
+              </> : <>
+                <TeaLine label="It cost">
+                  <GhostInput ariaLabel="Cost" placeholder="Add" align="right" value={product.costAmount ?? ''} onSave={(val) => persistField(product.id, 'costAmount', val)} type="number" className="tabular-nums" />
+                  {/* A currency nobody recorded shows as "—", never as a guessed USD:
+                      that guess is how a 1,200 CNY invoice once read as $1,200. */}
+                  <label className="relative shrink-0 cursor-pointer">
+                    <select
+                      value={product.costCurrency || 'UNK'}
+                      onChange={(e) => handleUpdate(product.id, 'costCurrency', e.target.value)}
+                      className={`bg-transparent border-0 outline-none text-ui-12 uppercase tracking-[0.06em] cursor-pointer appearance-none${product.costCurrency ? ' text-admin-text-sec' : ' text-tea-error'}`}
+                      aria-label="Cost currency"
+                      title={product.costCurrency ? undefined : 'No currency recorded. The cost is a number with no unit.'}
                     >
-                      {/* Entered and shown in USD, matching the label and the
-                          Add Product form. A tea with nothing recorded shows the
-                          shop's rate rather than a blank, because that is what
-                          it is actually being charged. Saved back in the tea's
-                          own cost currency, which is how the column is stored.
-
-                          Clearing the field is a real instruction, not a typo:
-                          it hands the tea back to the shop rate so it follows
-                          that rate as it changes, where any figure typed here
-                          pins the tea to it. A typed 0 still means free.
-
-                          The dot on the label marks a tea that owns its rate,
-                          matching the inventory column, because the number
-                          alone cannot say it: an inherited 85 and a pinned 85
-                          read identically. It sits on the LABEL because
-                          FieldCell lays its children out in a row, so anything
-                          added beside the input lands next to it and wraps. */}
-                      {/* Disabled, not silently wrong, when the shop has no
-                          rate for this tea's currency. The field is labelled in
-                          dollars and the column stores the tea's own currency,
-                          so without a rate there is nothing to show and nothing
-                          safe to save: multiplying by 1 stored a dollar figure
-                          as though it were yuan and the shelf then charged a
-                          seventh of the freight. */}
+                      <option value="UNK" className="bg-admin-surface text-admin-text">—</option>
+                      {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
+                        <option key={c} value={c} className="bg-admin-surface text-admin-text">{isoCurrencyCode(c)}</option>
+                      ))}
+                    </select>
+                  </label>
+                </TeaLine>
+                <TeaLine label="For a batch of">
+                  <GhostInput ariaLabel="Batch grams" align="right" value={product.quantityPurchased || 0} onSave={(val) => persistField(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
+                  <span className="text-ui-12 text-admin-text-dim">g</span>
+                </TeaLine>
+                <TeaLine label="Freight">
+                  {/* Entered in USD a kilo, stored in the tea's own cost currency.
+                      Cleared hands the tea back to the shop rate; a typed 0 means
+                      free. Disabled when there is no exchange rate to store it in. */}
+                  <GhostInput
+                    ariaLabel="Freight, dollars a kilo"
+                    align="right"
+                    value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd) ?? ''}
+                    disabled={costRateToUsd === null}
+                    onSave={(val) => {
+                      if (costRateToUsd === null) return;
+                      handleUpdate(product.id, 'shippingRatePerKg', String(val).trim() === '' ? null : (Number(val) || 0) * costRateToUsd);
+                    }}
+                    type="number"
+                    className="tabular-nums"
+                  />
+                  <span className="text-ui-12 text-admin-text-dim">$ / kg</span>
+                </TeaLine>
+                <div className="tea-page-note">
+                  {product.shippingRatePerKg != null ? 'This tea has its own freight rate. Clear it to follow the shop rate.' : 'Following the shop rate.'}
+                  {' '}<button type="button" className="tap-target text-tea-gold" onClick={() => navigate('/admin/settings')}>Shipping routes</button>
+                </div>
+                {(() => {
+                  const calc = pricingCalc && pricingCalc.suggestedRetailUSD > 0 ? pricingCalc : null;
+                  const hasOverride = product.fixedRetailPriceUSD != null;
+                  const overrideBelowCost = calc && hasOverride && product.fixedRetailPriceUSD! < calc.trueCostUSD;
+                  return <>
+                    <TeaLine label="Sells for">
+                      <span className="text-ui-12 text-admin-text-dim">$</span>
                       <GhostInput
-                        variant="bordered"
-                        value={shippingRateUsdFor(product.shippingRatePerKg, costRateToUsd, shopFreight.perKgUsd) ?? ''}
-                        disabled={costRateToUsd === null}
-                        onSave={(val) => {
-                          if (costRateToUsd === null) return;
-                          handleUpdate(
-                            product.id,
-                            'shippingRatePerKg',
-                            String(val).trim() === '' ? null : (Number(val) || 0) * costRateToUsd,
-                          );
-                        }}
+                        ariaLabel="Shop price per gram"
+                        align="right"
+                        value={product.fixedRetailPriceUSD ?? ''}
+                        placeholder={calc ? calc.suggestedRetailUSD.toFixed(2) : 'Set a price'}
+                        onSave={(val) => persistField(product.id, 'fixedRetailPriceUSD', val === '' || val === null ? null : Number(val))}
                         type="number"
                         className="tabular-nums"
                       />
-                    </FieldCell>
-                  </FieldGrid>
-                  {pricingCalc && pricingCalc.suggestedRetailUSD > 0 && (() => {
-                    const calc = pricingCalc;
-                    const hasOverride = product.fixedRetailPriceUSD != null;
-                    const overrideBelowCost = hasOverride && product.fixedRetailPriceUSD! < calc.trueCostUSD;
-                    return (
-                      <div className="mt-4 rounded-md bg-admin-input border border-admin-border overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => setBreakdownOpen(!breakdownOpen)}
-                          aria-expanded={breakdownOpen}
-                          aria-label={breakdownOpen ? 'Collapse pricing details' : 'Expand pricing details'}
-                          className="w-full flex items-baseline justify-between gap-3 px-3 py-2.5 hover:bg-admin-elevated transition-colors group"
-                        >
-                          <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.08em]">Suggested retail</span>
-                          <span className="flex items-baseline gap-2">
-                            <span className="font-mono text-ui-14 text-admin-text tabular-nums leading-none">
-                              ${calc.suggestedRetailUSD.toFixed(2)}
-                              <span className="text-ui-11 text-admin-text-dim ml-1">/g</span>
-                            </span>
-                            <ChevronDown size={12} aria-hidden="true" className={`text-admin-text-dim group-hover:text-admin-text-sec transition-transform duration-150 ${breakdownOpen ? 'rotate-180' : ''}`} />
-                          </span>
-                        </button>
-                        <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: breakdownOpen ? '1fr' : '0fr' }}>
-                          <div className="overflow-hidden">
-                            <div className="px-3 pb-3 pt-1 border-t border-admin-border space-y-3">
-                              {/* Override price */}
-                              <div className="flex flex-col gap-1.5 pt-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Override</span>
-                                  {overrideBelowCost && (
-                                    <span className="text-ui-11 text-tea-error" title="Below true cost">Below cost</span>
-                                  )}
-                                </div>
-                                <GhostInput
-                                  variant="bordered"
-                                  value={product.fixedRetailPriceUSD ?? ''}
-                                  placeholder={calc.suggestedRetailUSD.toFixed(2)}
-                                  onSave={(val) => persistField(product.id, 'fixedRetailPriceUSD', val === '' || val === null ? null : Number(val))}
-                                  type="number"
-                                  align="right"
-                                  className={`tabular-nums ${hasOverride ? 'font-medium' : ''}`}
-                                />
-                              </div>
-                              {/* Breakdown */}
-                              <div className="space-y-2 pt-2 border-t border-admin-border">
-                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Source cost/g</span><span className="text-admin-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || '—'}</span></div>
-                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Exchange rate</span><span className="text-admin-text tabular-nums">{calc.rateUsed}</span></div>
-                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">True cost (USD)</span><span className="text-admin-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span></div>
-                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">3× markup</span><span className="text-admin-text tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </>
-              )}
+                      <span className="text-ui-12 text-admin-text-dim">/ g</span>
+                    </TeaLine>
+                    {calc && <div className="tea-page-note">
+                      {overrideBelowCost && <span className="text-tea-error">Below what it cost you. </span>}
+                      Cost and freight, times 3, comes to <span className="font-mono text-admin-text-sec">${calc.suggestedRetailUSD.toFixed(2)} / g</span>
+                      {hasOverride ? '. ' : ', which is what the shop charges. '}
+                      <button type="button" aria-expanded={breakdownOpen} className="tap-target text-tea-gold" onClick={() => setBreakdownOpen(!breakdownOpen)}>{breakdownOpen ? 'Hide the sums' : 'Show the sums'}</button>
+                      {breakdownOpen && <div className="mt-2 space-y-1.5">
+                        <div className="flex justify-between"><span>Source cost / g</span><span className="text-admin-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || '—'}</span></div>
+                        <div className="flex justify-between"><span>Exchange rate</span><span className="text-admin-text tabular-nums">{calc.rateUsed}</span></div>
+                        <div className="flex justify-between"><span>True cost (USD)</span><span className="text-admin-text tabular-nums">${calc.trueCostUSD.toFixed(3)} / g</span></div>
+                        <div className="flex justify-between"><span>3× markup</span><span className="text-admin-text tabular-nums">${calc.suggestedRetailUSD.toFixed(2)} / g</span></div>
+                      </div>}
+                    </div>}
+                  </>;
+                })()}
+              </>}
+            </TeaSection>
 
-              </div><div data-tab-of="shelf">
-              {/* Stock. The box holds the number and nothing else: it is a value
-                  field that happens to be pressable, and the name of the action
-                  sat inside it wrapping onto a second line, which read as part
-                  of the reading rather than as a thing to press. The arrow says
-                  it opens; the panel it opens is titled. */}
-              {inventoryCategory === 'teaware' ? (
-                <FieldGrid cols={2}>
-                  <FieldCell label="Units">
-                    <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)} className="tap-target admin-input flex w-full items-center justify-between gap-2 text-left tabular-nums hover:border-tea-gold transition-colors">
-                      <span>{product.quantityUnits ?? 0} units</span>
-                      <span aria-hidden="true" className="shrink-0 text-admin-text-dim">→</span>
-                    </button>
-                  </FieldCell>
-                  <FieldCell label="Capacity ml">
-                    <GhostInput variant="bordered" value={product.capacityMl || ''} onSave={(val) => persistField(product.id, 'capacityMl', val)} type="number" className="tabular-nums" />
-                  </FieldCell>
-                </FieldGrid>
-              ) : (() => {
+            {/* STOCK: how much is on the shelf, when it was counted, what is coming. */}
+            <TeaSection section="stock" aside={<span className="curate-v2-label">{inventoryCategory === 'teaware' ? 'pieces' : 'grams'}</span>}>
+              {inventoryCategory === 'teaware' ? <>
+                <TeaLine label="On the shelf">
+                  <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)} className="tap-target tabular-nums text-admin-text">{product.quantityUnits ?? 0} units</button>
+                  <Button type="button" variant="quiet" size="sm" onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)}>Change</Button>
+                </TeaLine>
+                <TeaLine label="Holds"><GhostInput ariaLabel="Capacity ml" placeholder="Add" align="right" value={product.capacityMl || ''} onSave={(val) => persistField(product.id, 'capacityMl', val)} type="number" className="tabular-nums" /><span className="text-ui-12 text-admin-text-dim">ml</span></TeaLine>
+              </> : (() => {
                 const stock = product.stockGrams;
                 const threshold = product.lowStockThreshold || 0;
-                const isLow = threshold > 0 && stock <= threshold;
                 const isOut = stock === 0;
-                const stateLabel = isOut ? 'Empty' : isLow ? 'Low' : 'OK';
-                const stateColor = isOut ? 'text-tea-error' : isLow ? 'text-admin-text' : 'text-admin-text-dim';
-                return (
-                  <FieldGrid cols={2}>
-                    <FieldCell
-                      label="Stock g"
-                      labelAdornment={
-                        <span aria-label={`Stock state: ${stateLabel}`} className={`text-ui-11 uppercase tracking-[0.06em] ${stateColor}`}>
-                          · {stateLabel}
-                        </span>
-                      }
-                    >
-                      <button
-                        type="button"
-                        aria-label={`Change stock for ${product.productName || product.givenName}`}
-                        onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)}
-                        className={`tap-target admin-input flex w-full items-center justify-between gap-2 text-left tabular-nums hover:border-tea-gold transition-colors ${isOut ? '!text-tea-error' : ''}`}
-                      >
-                        <span>{stock}g</span>
-                        <span aria-hidden="true" className="shrink-0 text-admin-text-dim">→</span>
-                      </button>
-                    </FieldCell>
-                    <FieldCell label="Low alert g">
-                      <GhostInput variant="bordered" value={threshold} onSave={(val) => persistField(product.id, 'lowStockThreshold', val)} type="number" className="tabular-nums" />
-                    </FieldCell>
-                  </FieldGrid>
-                );
-              })()}
-
-              </div>
-              {/* Visibility / promote / classify pills moved to the consolidated
-                  "Placement" section below, colocated with collections and outbound
-                  links since they all answer "where does this product appear?" */}
-              </div>
-            </div>
-
-            {/* 2. Images: flat, no section header */}
-            <div id="tea-section-photos" data-tab-of="shelf" className="px-3 mb-3 scroll-mt-12">
-              <ImageManager product={product} onUpdate={(field, value) => persistField(product.id, field, value)} />
-            </div>
-
-            {/* 3. Tasting Profile. Tap to open the editor modal. Card matches the
-                  collapsible section styling so the panel reads as one rhythm. */}
-            <div data-tab-of="story">
-            <button
-              id="tea-section-tasting"
-              onClick={() => setTastingEditorProduct(product)}
-              aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
-              className="admin-card admin-card-interactive w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3.5 scroll-mt-12 flex items-center justify-between gap-3 group text-left"
-            >
-              <span className="min-w-0 flex flex-col">
-                <span className="block font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Tasting profile</span>
-                {flattenedTastingCount > 0 && product.mood && (
-                  <span className="block text-ui-12 text-admin-text-sec truncate mt-1">{product.mood}</span>
-                )}
-              </span>
-              <span className="flex items-center gap-2.5 shrink-0">
-                {flattenedTastingCount > 0 ? (
-                  <span className="font-mono text-ui-11 text-admin-text-dim tabular-nums">{flattenedTastingCount} notes</span>
-                ) : (
-                  <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.08em]">Add notes</span>
-                )}
-                <ChevronRight size={14} aria-hidden="true" className="text-admin-text-dim group-hover:text-admin-text-sec transition-colors" />
-              </span>
-            </button>
-
-            {/* Pricing details and Stock details have been folded out:
-                  - Pricing override + cost breakdown live inside the Suggested
-                    retail click-to-expand inside Quick entry above.
-                  - Stock history opens via the row's stock-grams cell (floating
-                    StockLedgerPanel).
-                  - Flag-for-recount lives at the row level (warning icon and
-                    expandable detail panel). */}
-
-            {/* Experience section removed. The freeform 'experience' field, mood
-                chips, and flavor chips are all captured through the Tasting
-                profile editor (TastingSession), opened via the Tasting profile
-                button above the collapsibles. */}
-
-            {/* 7. Story & Background */}
-            <div id="tea-section-story" className="scroll-mt-12" />
-            <CollapsibleSection title="Story & background" description="Personal voice, terroir, processing, and lore." defaultOpen={false}>
-              <div className="space-y-5">
-                {/* Inline tasting-notes editor. Lists every voice / written note
-                    captured in the tasting session, allows editing each in place,
-                    deletion, adding a new written note, and recording a new voice
-                    note (mic → backend transcription). Changes write back to
-                    product.tasting.notes globally so they appear everywhere the
-                    tasting profile is read. */}
-                <TastingNotesEditor
-                  product={product}
-                  onUpdate={onUpdate}
-                  onOpenFullEditor={() => setTastingEditorProduct(product)}
-                />
-
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Introduction</span>
-                    <span className="text-ui-11 text-admin-text-dim">Personal voice</span>
+                const isLow = threshold > 0 && stock <= threshold;
+                const bought = Number(product.quantityPurchased);
+                return <>
+                  <TeaLine label="On the shelf">
+                    <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)}
+                      className={`tap-target tabular-nums ${isOut ? 'text-tea-error' : isLow ? 'text-tea-gold' : 'text-admin-text'}`}>{stock.toLocaleString('en-US')} g</button>
+                    <Button type="button" variant="quiet" size="sm" onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)}>Change</Button>
+                  </TeaLine>
+                  <TeaLine label="Counted">
+                    <span className={product.stockVerifiedAt ? 'text-admin-text' : 'text-tea-warn'}>{countedDate(product.stockVerifiedAt)}</span>
+                    {onRecount && <button type="button" className="tap-target text-tea-gold" onClick={(event) => onRecount(product, event.currentTarget)}>Count now</button>}
+                  </TeaLine>
+                  <TeaLine label="Warn below">
+                    <GhostInput ariaLabel="Low alert grams" align="right" value={threshold} onSave={(val) => persistField(product.id, 'lowStockThreshold', val)} type="number" className="tabular-nums" />
+                    <span className="text-ui-12 text-admin-text-dim">g</span>
+                  </TeaLine>
+                  <div className="tea-page-note">
+                    {incoming && incoming.quantity > 0 ? `${fmtNum(incoming.quantity)} g on the way${incoming.eta ? `, due ${countedDate(incoming.eta)}` : ''}` : 'Nothing on the way'}
+                    {bought > 0 && ` · ${bought.toLocaleString('en-US')} g bought`}
+                    {isOut ? ' · empty' : isLow ? ' · running low' : ''}
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => persistField(product.id, 'description', val)} className="" />
+                </>;
+              })()}
+            </TeaSection>
+
+            {/* WHERE IT'S LISTED: the shop listing, its switches, its collections. */}
+            <TeaSection section="listed" title="Where it's listed">
+              <StockListingReview key={`${activeAccountId}:${product.id}`}
+                product={product} entryId={sharedRecordId}
+                openRequested={openListingReview} onOpenHandled={onListingReviewOpened} returnTo={listingReturnTo}
+                canList={canList} canPublish={canPublish} isOwner={isOwnerTier} problem={publicationProblem}
+                canShowWhileCountPending={canShowWhileCountPending}
+                applyWording={text => persistField(product.id, 'description', text)}
+                markReady={() => persistField(product.id, 'status', 'Active')}
+                save={async (gate, value) => {
+                  if (gate !== 'shownInShop' || onSaveField || onUpdate) return persistField(product.id, gate, value);
+                  await api.products.updateShown(product.id, value);
+                  await refreshCommerceQueries(panelQueryClient, undefined, { changedProductIds: [product.id] });
+                }}
+              />
+              <TeaLine label="Purpose">
+                <div role="group" aria-label="Inventory purpose" className="flex flex-wrap justify-end gap-1.5">
+                  {(['working', 'sample', 'personal'] as const).map((purpose) => (
+                    <Button key={purpose} type="button" variant="chip" size="sm"
+                      aria-label={`${purpose[0].toUpperCase()}${purpose.slice(1)} purpose`}
+                      aria-pressed={effectivePurpose(product) === purpose}
+                      onClick={() => handleUpdate(product.id, 'inventoryPurpose', purpose)}>
+                      {purpose === 'working' ? 'Shop stock' : purpose === 'sample' ? 'Sample' : 'Personal'}
+                    </Button>
+                  ))}
                 </div>
+              </TeaLine>
+              <div className="tea-page-switches">
+                {([
+                  ['isFeatured', 'Starred', 'Starred, promoted on collection pages'],
+                  // "Curated", never "Top Pick": it is one person's switch and the same shelf for everyone.
+                  ['isCurated', 'Curated', 'On the curator\'s shelf. Shows as Curated on the storefront, the same for every reader.'],
+                  ['canReorder', 'Restockable', 'Restockable when sold out'],
+                  ['isSample', 'Sample size', 'Sample-size offering'],
+                  // Sealed tea: the shop offers whole multiples of one unit and nothing smaller.
+                  ['soldInWholeUnits', 'Whole units only', 'Sold only as whole sealed units'],
+                ] as const).map(([field, label, hint]) => (
+                  <button key={field} type="button" title={hint} aria-pressed={Boolean(product[field])}
+                    aria-label={field === 'isSample' ? 'Sample-size offering' : field === 'soldInWholeUnits' ? 'Sold only in whole units' : label}
+                    onClick={() => handleUpdate(product.id, field, !product[field])}>
+                    <span className="curate-v2-label">{label}</span><span className="tea-page-toggle" aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+              <TeaLine label="Collections"><CollectionPill productId={product.id} /></TeaLine>
+              {product?.id && <div className="px-4 py-2 border-b border-tea-border"><ProductCollectionsSection productId={product.id} /></div>}
+            </TeaSection>
+
+            {/* LATER: tasting, story, links, events and the rest of the tools. */}
+            <div id={teaSectionId('later')} className="tea-page-section tea-page-later">Later</div>
+            <div id="tea-section-tasting">
+              <TeaLine label="Tasting">
+                <span className="text-admin-text-sec">{flattenedTastingCount > 0 ? `${flattenedTastingCount} notes` : 'None yet'}</span>
+                <Button type="button" variant="quiet" size="sm" onClick={() => setTastingEditorProduct(product)}
+                  aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}>
+                  {flattenedTastingCount > 0 ? 'Open tasting' : 'Add tasting'}
+                </Button>
+              </TeaLine>
+            </div>
+            <div id="tea-section-story" className="px-4 pt-3 pb-3 border-b border-tea-border">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="curate-v2-label">Introduction</span>
+                <span className="text-ui-11 text-admin-text-dim">What the shop page says</span>
+              </div>
+              <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => persistField(product.id, 'description', val)} className="" />
+            </div>
+            <CollapsibleSection title="More story" description="Tasting words, terroir, processing and lore." defaultOpen={false}>
+              <div className="space-y-5">
+                <TastingNotesEditor product={product} onUpdate={onUpdate} onOpenFullEditor={() => setTastingEditorProduct(product)} />
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Terroir</span>
@@ -1969,58 +1752,32 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </div>
             </CollapsibleSection>
 
-            {/* Placement. Toggles moved OUT of this section to the always-visible
-                bar under the identity card. What stays here is what's actually
-                occasional: the collections this product belongs to and the
-                outbound links (encounter, orders, full story page). */}
-            </div><div data-tab-of="links">
-            <div id="tea-section-placement" className="scroll-mt-12" />
-            <CollapsibleSection title="Placement" description="Collections and outbound links." defaultOpen={false}>
-              {/* Collections, curated bundles this product is in. */}
-              <div>
-                <div className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] mb-2">Collections</div>
-                {product?.id && <ProductCollectionsSection productId={product.id} />}
-              </div>
-
-              {/* Outbound links, same divider-list pattern as before. */}
-              <div className="mt-5 pt-4 border-t border-admin-border">
-                <div className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] mb-1">Links</div>
-                <div className="divide-y divide-admin-border border-y border-admin-border">
-                  {(() => {
-                    const compassEntryId = product.sourceCompassEntryId;
-                    const compassEntry = compassEntryId
-                      ? compassEntries.find(e => e.id === compassEntryId)
-                      : compassEntries.find(e => e.draftProductId === product.id);
-                    if (!compassEntry && !compassEntryId) return null;
-                    const linkId = compassEntry?.id || compassEntryId!;
-                    return (
-                      <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
-                        <span className="flex items-center gap-2 min-w-0">
-                          <Globe size={12} className="text-admin-text-dim group-hover:text-admin-text-sec shrink-0" />
-                          <span className="truncate">
-                            Encounter <span className="text-admin-text-dim">·</span> {compassEntry?.vendorName || 'Entry'}
-                            {compassEntry && <span className="text-admin-text-dim"> · {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
-                          </span>
-                        </span>
-                        <ChevronRight size={12} className="text-admin-text-dim shrink-0" />
-                      </button>
-                    );
-                  })()}
-                  <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
-                    <span className="flex items-center gap-2">
-                      <Receipt size={12} className="text-admin-text-dim group-hover:text-admin-text-sec" />
-                      Order history
-                    </span>
-                    <ChevronRight size={12} className="text-admin-text-dim" />
-                  </button>
-                  <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
-                    <span className="flex items-center gap-2">
-                      <BookOpen size={12} className="text-admin-text-dim group-hover:text-admin-text-sec" />
-                      Full story page
-                    </span>
-                    <ChevronRight size={12} className="text-admin-text-dim" />
-                  </button>
-                </div>
+            <div id="tea-section-placement" />
+            <CollapsibleSection title="Links" description="Where this tea came from, its orders and its story page." defaultOpen={false}>
+              <div className="divide-y divide-admin-border border-y border-admin-border">
+                {(() => {
+                  const compassEntryId = product.sourceCompassEntryId;
+                  const compassEntry = compassEntryId
+                    ? compassEntries.find(e => e.id === compassEntryId)
+                    : compassEntries.find(e => e.draftProductId === product.id);
+                  if (!compassEntry && !compassEntryId) return null;
+                  const linkId = compassEntry?.id || compassEntryId!;
+                  return (
+                    <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors">
+                      <span className="truncate">
+                        Encounter <span className="text-admin-text-dim">·</span> {compassEntry?.vendorName || 'Entry'}
+                        {compassEntry && <span className="text-admin-text-dim"> · {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
+                      </span>
+                      <ChevronRight size={12} className="text-admin-text-dim shrink-0" />
+                    </button>
+                  );
+                })()}
+                <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors">
+                  Order history<ChevronRight size={12} className="text-admin-text-dim" />
+                </button>
+                <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors">
+                  Full story page<ChevronRight size={12} className="text-admin-text-dim" />
+                </button>
               </div>
             </CollapsibleSection>
 
@@ -2030,7 +1787,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </CollapsibleSection>
             )}
 
-            {/* 8. Events */}
             <CollapsibleSection title="Events" description="Tasting aggregate, guest impressions, and the events this tea appeared at." defaultOpen={false}>
               {productEventsLoading ? (
                 <div className="flex items-center gap-2 py-2 text-ui-12 text-admin-text-sec">
@@ -2043,14 +1799,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <>
                   {productTastingAgg && productTastingAgg.impressions.length > 0 && (
                     <div className="mb-4 rounded-md bg-admin-input border border-admin-border overflow-hidden">
-                      {productTastingAgg.impressions.length > 0 && (
-                        <div className="px-4 py-3 space-y-2.5">
-                          <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.08em]">Guest impressions</div>
-                          {productTastingAgg.impressions.map((imp, i) => (
-                            <p key={i} className="text-ui-13 text-admin-text leading-[1.55]">"{imp}"</p>
-                          ))}
-                        </div>
-                      )}
+                      <div className="px-4 py-3 space-y-2.5">
+                        <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.08em]">Guest impressions</div>
+                        {productTastingAgg.impressions.map((imp, i) => (
+                          <p key={i} className="text-ui-13 text-admin-text leading-[1.55]">"{imp}"</p>
+                        ))}
+                      </div>
                     </div>
                   )}
                   <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.08em] mb-2">Appeared at</div>
@@ -2070,10 +1824,16 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               )}
             </CollapsibleSection>
 
-            {/* Collections moved into the Placement section above. */}
-
+            {/* The rest of what can be done to this one tea. Star and Collection
+                are not repeated here: they are the switches and row above. */}
+            <div role="group" aria-label="Do with this tea" className="tea-page-tools">
+              <Button type="button" variant="quiet" size="sm" aria-label="Generate QR code" onClick={() => setQrProduct(product)}>QR</Button>
+              {onTeaAction && ([['invoice', 'Invoice'], ['sample', 'Sample'], ['share', 'Share'], ['journal', 'Journal'], ['archive', 'Archive']] as const).map(([kind, label]) => (
+                <Button key={kind} type="button" variant="quiet" size="sm" aria-label={`${label} this tea`} onClick={() => onTeaAction(kind, product)}>{label}</Button>
+              ))}
             </div>
-            <div className="pb-16" />
+            {shelfTools && <div className="hidden px-4 pb-3 md:block">{shelfTools}</div>}
+            <p className="tea-page-end pb-nav-gap">{nextProduct ? `End of ${product.productName || 'this tea'}. The arrow at the top opens the next tea${section ? ` at ${sectionLabel(section)}` : ''}.` : `End of ${product.productName || 'this tea'}.`}</p>
           </div>}
         </>)}
       </div>
