@@ -53,7 +53,9 @@ const SamplePage: React.FC = () => {
 
   const { toasts, dismiss, showError } = useToast();
 
-  const [sample, setSample] = useState<TeaSample | null>(storeSample || null);
+  // A browser can be shared, so a stored copy is shown without its tastings
+  // until the server says what this reader may see of them.
+  const [sample, setSample] = useState<TeaSample | null>(storeSample ? { ...storeSample, tastings: [] } : null);
   const [loading, setLoading] = useState(!storeSample);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,25 +90,25 @@ const SamplePage: React.FC = () => {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [showTasting]);
 
-  // Fetch from API if not in store
+  // Read from the API first: each taster's score is theirs, and the server
+  // answers for this reader. The stored copy is the fallback when offline.
   useEffect(() => {
-    if (storeSample) {
-      setSample(storeSample);
-      setLoading(false);
-      return;
-    }
     if (!sampleId) return;
-
-    setLoading(true);
+    let cancelled = false;
+    if (!storeSample) setLoading(true);
     api.samples.get(sampleId)
       .then((data: any) => {
+        if (cancelled) return;
         setSample(sampleFromApi(data));
         setLoading(false);
       })
       .catch(() => {
-        setError('Sample not found');
+        if (cancelled) return;
+        if (storeSample) setSample(storeSample);
+        else setError('Sample not found');
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [sampleId, storeSample]);
 
   useEffect(() => {
@@ -516,8 +518,9 @@ const SamplePage: React.FC = () => {
             </p>
             <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
               {sample.tastings.map((t) => {
-                const vCfg = VERDICT_CONFIG[t.verdict];
-                const VIcon = VERDICT_ICONS[t.verdict];
+                // Another taster's verdict is theirs: the server sends only your own.
+                const vCfg = t.verdict ? VERDICT_CONFIG[t.verdict] : undefined;
+                const VIcon = t.verdict ? VERDICT_ICONS[t.verdict] : undefined;
                 return (
                   <li key={t.id} className="px-4 py-3">
                     <div className="flex items-center justify-between mb-1">
@@ -525,9 +528,11 @@ const SamplePage: React.FC = () => {
                         {t.tasterName && (
                           <span className="text-ui-12 font-semibold text-tea-text">{t.tasterName}</span>
                         )}
-                        <span className={`flex items-center gap-1 text-ui-12 font-semibold ${vCfg.color}`}>
-                          <VIcon size={12} /> {vCfg.label}
-                        </span>
+                        {vCfg && VIcon && (
+                          <span className={`flex items-center gap-1 text-ui-12 font-semibold ${vCfg.color}`}>
+                            <VIcon size={12} /> {vCfg.label}
+                          </span>
+                        )}
                       </div>
                       {t.rating && (
                         <div className="flex items-center gap-1 text-ui-12 text-tea-readgold">

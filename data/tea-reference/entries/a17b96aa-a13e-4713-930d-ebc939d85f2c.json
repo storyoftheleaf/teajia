@@ -1,0 +1,70 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T06:17:12.520Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "a17b96aa-a13e-4713-930d-ebc939d85f2c",
+    "name": "te quan yin",
+    "chineseName": "",
+    "type": "Oolong",
+    "form": null,
+    "year": 1983,
+    "origin": "China",
+    "stockGrams": 111,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "a17b96aa-a13e-4713-930d-ebc939d85f2c",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "An [oolong](oolong:definition), the partly oxidised tea, made in China in 1983. How far the leaf is oxidised and how hard it is [roasted](oolong:oxidation-and-roast) are two separate choices. Roasting lowers the moisture in the leaf."
+      },
+      {
+        "layer": "age",
+        "text": "It has been kept for forty-three years. Only oolong that was well made and well roasted is set aside to age, because a light, green oolong fades if it is kept too long, and damp is the danger for oolong that was not dried and roasted enough. Through years of [storage](oolong:ageing), good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, and as the decades pass its liquor deepens towards red-brown."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged oolong",
+      "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:oxidation-and-roast",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T06:40:40.452Z"
+}

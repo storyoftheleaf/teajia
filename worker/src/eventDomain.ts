@@ -1,3 +1,5 @@
+import { SEAT_OF_A_GUEST_STILL_COMING } from './hostTableGuests';
+import { sessionHasEnded, type SessionTimes } from '../../shared/sessionEnd';
 export type EventLifecycle =
   | 'draft'
   | 'published'
@@ -169,7 +171,7 @@ type SeatEnv = { DB: SeatDatabase };
 const CREATE_PARTICIPATION_COLUMNS = new Set([
   'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
   'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference',
-  'bringing_tea', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list',
+  'bringing_tea', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list', 'user_id',
 ]);
 
 function sqlPlaceholders(values: readonly unknown[]): string {
@@ -197,7 +199,7 @@ function capacityGuard(
         AND (
           (SELECT COUNT(*) FROM event_party_members pm
            WHERE pm.event_id = capacity_event.id AND pm.account_id = capacity_event.account_id
-             AND pm.seat_status IN ('held', 'confirmed') ${seatExclusion})
+             AND pm.seat_status IN ('held', 'confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')} ${seatExclusion})
           + ?
           + (SELECT COUNT(*) FROM event_attendees offer
              WHERE offer.event_id = capacity_event.id AND offer.account_id = capacity_event.account_id
@@ -274,9 +276,11 @@ export async function reservePartySeats(
   }
 
   const event = await env.DB.prepare(
-    `SELECT total_capacity, lifecycle_status FROM events WHERE id = ? AND account_id = ?`
-  ).bind(eventId, accountId).first<{ total_capacity: number; lifecycle_status: string }>();
-  if (!event || event.lifecycle_status !== 'published') {
+    `SELECT total_capacity, lifecycle_status, status, event_date, event_end_date, timezone FROM events WHERE id = ? AND account_id = ?`
+  ).bind(eventId, accountId).first<{ total_capacity: number; lifecycle_status: string } & SessionTimes>();
+  // No door seats anyone once the session has ended (audit A2 F6), by the
+  // one end rule in shared/sessionEnd.ts.
+  if (!event || event.lifecycle_status !== 'published' || sessionHasEnded(event)) {
     return { ok: false, code: 'event_not_reservable' };
   }
 
@@ -295,6 +299,7 @@ export async function reservePartySeats(
     `SELECT
        (SELECT COUNT(*) FROM event_party_members pm
         WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')
+          AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}
           ${operationSeatIds.length ? `AND pm.id NOT IN (${sqlPlaceholders(operationSeatIds)})` : ''}) AS accepted,
        (SELECT COUNT(*) FROM event_attendees offer
         WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
@@ -463,7 +468,8 @@ export async function reservePartySeats(
     const latest = await env.DB.prepare(
       `SELECT
         (SELECT COUNT(*) FROM event_party_members pm
-         WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')) AS accepted,
+         WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')
+           AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}) AS accepted,
         (SELECT COUNT(*) FROM event_attendees offer
          WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
            AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`

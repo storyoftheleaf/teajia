@@ -19,9 +19,9 @@
  * designed; that is what `set_event_lifecycle` offers.
  *
  * Denying, waitlisting and cancelling an RSVP are also absent, and their
- * absence is deliberate. The admin routes for those call `cascadeWaitlist`,
- * which promotes the first waitlisted party into the freed seat. That helper
- * lives unexported in index.ts, so a tool here could only reimplement it — a
+ * absence is deliberate. The admin routes for those give back seats and offer
+ * them through `worker/src/waitingList.ts`; a tool must call that, never
+ * reimplement it: a
  * second copy of a promotion rule is exactly the shape that once gave this
  * shop four freight rates, and here the cost would be a guest who was promised
  * a seat and never told. See REQUIREMENTS below.
@@ -40,11 +40,9 @@
  *     `worker/tests/mcp-events.test.ts` reads index.ts's source and fails if the
  *     two copies drift, which is a splint, not a fix.
  *
- *  2. `worker/src/index.ts` — `cascadeWaitlist` should move to `eventDomain.ts`
- *     too. It is the reason there is no tool here for denying, waitlisting or
- *     cancelling an RSVP: those routes call it to promote the first waitlisted
- *     party into the freed seat, and a tool that freed a seat without it would
- *     leave a guest who was promised one and never told.
+ *  2. Done in J9: the offer of a freed seat now lives in
+ *     `worker/src/waitingList.ts` (`releaseSeats`, `offerFreedSeats`), which a
+ *     tool for releasing a seat (J12) should call rather than reimplement.
  *
  *  3. `worker/src/mcp.ts` — SERVER_INFO's description still lists inventory,
  *     invoicing and the order process, and says nothing about running a
@@ -89,6 +87,8 @@
  */
 
 import { customerTagList } from '../customerContactHandles';
+import { guestLinkSessions } from '../guestLinkHolders';
+import { SEAT_OF_A_GUEST_STILL_COMING, seatsTakenSql } from '../hostTableGuests';
 import {
   EVENT_TRANSITIONS,
   reservePartySeats,
@@ -100,6 +100,9 @@ import {
 } from '../eventDomain';
 import type { ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET as expiredTicket, consumeTicket as consumeShared, issueTicket, previewEnvelope } from './tickets';
+
+// Tiers that count as account ownership. Mirrors OWNER_TIERS in mcp.ts.
+const OWNER_TIERS: ReadonlySet<string> = new Set(['platform_owner', 'account_owner']);
 
 // ── the two maps index.ts owns and does not export ──
 //
@@ -210,7 +213,7 @@ type EventRow = {
   event_date: string; event_end_date: string | null;
   location_name: string | null; area_hint: string | null;
   total_capacity: number; claim_window_minutes: number | null; timezone: string | null;
-  status: string; lifecycle_status: string; requires_approval: number;
+  status: string; lifecycle_status: string; requires_approval: number; door: string | null;
   gathering_type: string | null; public_visibility: string; event_format: string;
   held_seats: number; offered_seats: number;
   requested_count: number; waitlist_count: number; interest_count: number;
@@ -224,11 +227,11 @@ type EventRow = {
 const EVENT_SELECT = `
   SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
          e.location_name, e.area_hint, e.total_capacity, e.claim_window_minutes,
-         e.timezone, e.status, e.lifecycle_status, e.requires_approval,
+         e.timezone, e.status, e.lifecycle_status, e.requires_approval, e.door,
          e.gathering_type, e.public_visibility, e.event_format,
          COALESCE((SELECT COUNT(*) FROM event_party_members pm
            WHERE pm.event_id = e.id AND pm.account_id = e.account_id
-             AND pm.seat_status IN ('held','confirmed')), 0) AS held_seats,
+             AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}), 0) AS held_seats,
          COALESCE((SELECT COUNT(*) FROM event_attendees offer
            WHERE offer.event_id = e.id AND offer.account_id = e.account_id
              AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
@@ -597,6 +600,13 @@ const updateEvent: ToolHandler = async (env, auth, args) => {
 
     if (Object.keys(fields).length === 0) throw new Error('Nothing to change — name at least one field, or list one in clear_fields');
 
+    // A hosted table keeps its door and requires_approval together; the door
+    // is changed on the table's own page (slice H5, case 4).
+    if ('requires_approval' in fields && current.door
+      && (fields.requires_approval ? 1 : 0) !== (current.door === 'link' ? 0 : 1)) {
+      return { error: 'hosted_table_door', message: 'This table has a door. Change it on the table’s own page.' };
+    }
+
     // Capacity below the seats already given out leaves an event oversubscribed
     // in silence: nobody is un-seated, the number just stops being true, and
     // the next reservation is refused for a reason that looks like a bug.
@@ -633,14 +643,23 @@ const updateEvent: ToolHandler = async (env, auth, args) => {
   if (!pending || pending.eventId !== current.id) return expiredTicket;
 
   const cols = Object.keys(pending.fields);
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE events SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = datetime('now')
-        WHERE id = ? AND account_id = ?`
-    ).bind(...cols.map(c => pending.fields[c] ?? null), pending.eventId, pending.accountId),
-    activityLog(env, 'event_updated', `Updated "${pending.title}" via MCP: ${cols.join(', ')}`,
-      pending.userEmail, 'event', pending.eventId, pending.accountId),
-  ]);
+  // The preview counted the seats; a seat taken since then must not slip under
+  // a lowered capacity, so the count is checked again in the write itself.
+  const capacity = typeof pending.fields.total_capacity === 'number' ? pending.fields.total_capacity : null;
+  const capacityGuard = capacity === null ? '' : ` AND (? >= total_capacity OR ? >= ${seatsTakenSql('events')})`;
+  const update = await env.DB.prepare(
+    `UPDATE events SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = datetime('now')
+      WHERE id = ? AND account_id = ?${capacityGuard}`
+  ).bind(...cols.map(c => pending.fields[c] ?? null), pending.eventId, pending.accountId,
+    ...(capacity === null ? [] : [capacity, capacity])).run();
+  if (capacity !== null && !Number(update.meta?.changes || 0)) {
+    return {
+      error: 'capacity_below_held_seats',
+      message: 'Seats were taken while this was being confirmed, so the capacity would be below them. Nothing was written.',
+    };
+  }
+  await activityLog(env, 'event_updated', `Updated "${pending.title}" via MCP: ${cols.join(', ')}`,
+    pending.userEmail, 'event', pending.eventId, pending.accountId).run();
 
   return { committed: true, action: 'update_event', event_id: pending.eventId, fields_changed: cols };
 };
@@ -874,7 +893,7 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
     ],
     createParticipation: {
       columns: ['customer_id', 'full_name', 'phone_number', 'email', 'access_tier', 'magic_token',
-        'notes', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list'],
+        'notes', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list', 'photo_consent'],
       values: [
         pending.customerId, pending.fullName, pending.phone, pending.email, pending.accessTier,
         pending.magicToken, pending.notes,
@@ -884,6 +903,8 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
         // Adrian took over a message and typed in himself.
         'mcp',
         pending.showInGuestList ? 1 : 0,
+        // Nobody asked the guest about photographs here, so nothing is recorded.
+        null,
       ],
     },
   });
@@ -893,15 +914,22 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
     `${pending.fullName} added to "${pending.eventTitle}" via MCP as ${status}${pending.guestNames.length ? ` with ${pending.guestNames.length} guest(s)` : ''}`,
     pending.userEmail, 'event_attendee', pending.attendeeId, pending.accountId).run();
 
+  // The magic token is a bearer link to that person's RSVP page. It is
+  // returned once, here, because it is the only way to hand them their
+  // ticket, and it appears in no read tool. Only the account's owner and the
+  // session's host receive it (Launch 2, H7); staff hand the ticket on from
+  // the admin's guest list once the host has sent it.
+  const holdsLink = (await guestLinkSessions(env.DB, {
+    userId: auth.userId, accountId: pending.accountId, isOwner: OWNER_TIERS.has(auth.creatorTier),
+  }, [pending.eventId])).has(pending.eventId);
   return {
     committed: true, action: 'record_event_rsvp',
     attendee_id: pending.attendeeId, event_id: pending.eventId, name: pending.fullName,
     status,
     seats_taken: status === 'confirmed' ? 1 + pending.guestNames.length : 0,
-    // The magic token is a bearer link to that person's RSVP page. It is
-    // returned once, here, because it is the only way to hand them their
-    // ticket, and it appears in no read tool.
-    rsvp_link: `/m/${pending.magicToken}`,
+    ...(holdsLink
+      ? { rsvp_link: `/m/${pending.magicToken}` }
+      : { rsvp_link: null, rsvp_link_note: 'The guest\'s own link goes to the owner and the session\'s host only.' }),
   };
 };
 

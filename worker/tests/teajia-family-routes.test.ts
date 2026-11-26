@@ -264,7 +264,10 @@ describe('sharing a tasting', () => {
     const publicText = await publicView.text();
     const publicBody = JSON.parse(publicText);
     expect(publicBody.family).toHaveLength(1);
+    // Closed, the tea page credits the photograph as main does (the first-name choice opens with the Tea Table).
     expect(publicBody.family[0].author).toEqual({ name: 'Mei', page_id: null });
+    // Closed, the public answer carries no credit line at all (A4 review, finding 11).
+    expect(publicBody.family[0]).not.toHaveProperty('photograph_by');
     for (const text of [sharedText, publicText, await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).text()]) {
       expect(text).not.toMatch(/rating|verdict|love|secret words/);
     }
@@ -272,6 +275,25 @@ describe('sharing a tasting', () => {
     await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'private' } });
     expect(((await (await call(env, null, '/api/family/teas/tea-a/photographs')).json()) as any).family).toEqual([]);
     expect((await call(env, null, '/api/family/teas/tea-hidden/photographs')).status).toBe(404);
+  });
+
+  it('reads the share line of every own tasting in one call, behind the Your Table page switch', async () => {
+    const { env } = setup();
+    // Closed (the default): the read does not exist.
+    expect((await call(env, MEMBER, '/api/family/tasting-shares')).status).toBe(404);
+    const open = { ...env, YOUR_TABLE_PAGE_OPEN: 'true' };
+    expect((await call(open, null, '/api/family/tasting-shares')).status).toBe(401);
+    // Saved but never shared: no row, which the site reads as private.
+    expect(await (await call(open, MEMBER, '/api/family/tasting-shares')).json()).toEqual({ shares: [] });
+    await call(open, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
+    const read = await call(open, MEMBER, '/api/family/tasting-shares');
+    const text = await read.text();
+    expect(JSON.parse(text)).toEqual({ shares: [{ product_id: 'tea-a', share_state: 'page' }] });
+    expect(text).not.toMatch(/rating|verdict|love|secret words/);
+    // Somebody else never sees another person's choices.
+    expect(await (await call(open, MEMBER_TWO, '/api/family/tasting-shares')).json()).toEqual({ shares: [] });
+    await call(open, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'private' } });
+    expect(await (await call(open, MEMBER, '/api/family/tasting-shares')).json()).toEqual({ shares: [{ product_id: 'tea-a', share_state: 'private' }] });
   });
 });
 
@@ -294,22 +316,30 @@ describe('the shop\'s side', () => {
     expect((await call(env, OTHER_OWNER, `/api/admin/family/photographs/${offered}/lead`, { method: 'POST' })).status).toBe(404);
   });
 
-  it('keeps a photograph the member removed from their page, and can make it the credited lead picture and restore', async () => {
+  it('takes back a photograph the member removed from their page, and can make another the credited lead picture and restore', async () => {
     const { env, db } = setup();
     db.sqlite.prepare(`INSERT INTO contributors (id, account_id, display_name, user_id, is_published, links)
       VALUES ('mei-page', ?, 'Mei Lin', 'member-one', 1, '[]')`).run(SHOP);
     const first = await offeredPhoto(env);
     const second = await offeredPhoto(env);
-    expect((await call(env, MEMBER, `/api/family/photographs/${first}/remove`, { method: 'POST' })).status).toBe(200);
-    // Gone from the member's page and view...
-    expect(((await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).json()) as any).photographs.map((p: any) => p.id)).toEqual([second]);
-    expect(((await (await call(env, null, '/api/family/teas/tea-a/photographs')).json()) as any).family.map((p: any) => p.id)).toEqual([second]);
-    // ...and still the shop's to use.
-    const pile = await (await call(env, OWNER, '/api/admin/family/photographs')).json() as any;
-    expect(pile.photographs.find((p: any) => p.id === first)).toMatchObject({ removed_by_author: true });
+    const third = await offeredPhoto(env);
     expect((await call(env, OWNER, `/api/admin/family/photographs/${first}/lead`, { method: 'POST' })).status).toBe(200);
+    expect((await call(env, MEMBER, `/api/family/photographs/${first}/remove`, { method: 'POST' })).status).toBe(200);
+    // Gone from the member's page and view, and from the tea page, lead included...
+    expect(((await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).json()) as any).photographs.map((p: any) => p.id).sort()).toEqual([second, third].sort());
     let tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
-    expect(tea.lead).toMatchObject({ id: first, author: { name: 'Mei Lin', page_id: 'mei-page' } });
+    expect(tea.lead).toBeNull();
+    expect(tea.family.map((p: any) => p.id).sort()).toEqual([second, third].sort());
+    // ...still listed in the shop's pile as taken back, and no longer the shop's to use.
+    const pile = await (await call(env, OWNER, '/api/admin/family/photographs')).json() as any;
+    expect(pile.photographs.find((p: any) => p.id === first)).toMatchObject({ removed_by_author: true, shop_use: 'none' });
+    for (const action of ['lead', 'place']) {
+      expect((await call(env, OWNER, `/api/admin/family/photographs/${first}/${action}`, { method: 'POST' })).status).toBe(409);
+    }
+    expect((await call(env, OWNER, `/api/admin/family/photographs/${third}/lead`, { method: 'POST' })).status).toBe(200);
+    tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
+    expect(tea.lead).toMatchObject({ id: third, author: { name: 'Mei Lin', page_id: 'mei-page' } });
+    expect(tea.lead).not.toHaveProperty('photograph_by');
 
     // A placed photograph made lead, then a new lead: the old lead steps back to what it was.
     await call(env, OWNER, `/api/admin/family/photographs/${second}/place`, { method: 'POST' });
@@ -317,7 +347,7 @@ describe('the shop\'s side', () => {
     tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
     expect(tea.lead.id).toBe(second);
     expect(tea.placed).toEqual([]);
-    expect(tea.family).toEqual([]);
+    expect(tea.family.map((p: any) => p.id)).toEqual([third]);
     // Restore puts the tea back as it was before the lead: the second photograph placed, no lead.
     const restored = await call(env, OWNER, `/api/admin/family/photographs/${second}/restore`, { method: 'POST' });
     expect(await restored.json()).toMatchObject({ id: second, shop_use: 'placed' });
@@ -398,8 +428,8 @@ describe('the shop\'s side', () => {
     await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
     const shown = await fetchPath(bare);
     expect(shown.status).toBe(200);
-    // Short, never a year: a browser that saw it must lose it within a minute of its removal.
-    expect(shown.headers.get('Cache-Control')).toBe('public, max-age=60');
+    // Never kept: a browser that saw it asks again on every use, so its removal takes effect at once (A4 review, finding 4).
+    expect(shown.headers.get('Cache-Control')).toBe('private, no-cache');
     for (const [status, isPublic, shownInShop] of [['Draft', 1, 1], ['Active', 0, 1], ['Active', 1, 0]] as const) {
       db.sqlite.prepare('UPDATE products SET status = ?, is_public = ?, shown_in_shop = ? WHERE id = ?')
         .run(status, isPublic, shownInShop, 'tea-a');

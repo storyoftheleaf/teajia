@@ -2,7 +2,7 @@ import { PrivateSubjectPhotos } from './components/events/PrivateKeptSetupPhotos
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react';
 import { lazyWithRetry } from './lib/lazyWithRetry';
-import { BREWING_EXPERIENCES_OPEN } from './lib/brewingExperiences';
+import { teaTableOpen } from './lib/teaTable'; import { favouritesOpen } from './lib/favouritesOpen';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { FollowRenamedPerson } from './pages/renamedPeople';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
@@ -75,7 +75,7 @@ const AfterSitPage = lazyWithRetry(() => import('./pages/AfterSitPage'));
 const MemberSitPage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitPage })));
 const MemberSitInvitePage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitInvitePage })));
 const EventRecapPage = lazyWithRetry(() => import('./pages/EventRecapPage'));
-const TeaFeedPage = lazyWithRetry(() => import('./pages/TeaFeedPage'));
+const TeaTablePage = lazyWithRetry(() => import('./pages/TeaTablePage'));
 const GuestManagement = lazyWithRetry(() => import('./components/events/GuestManagement'));
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
 const OrderStatusPage = lazyWithRetry(() => import('./pages/OrderStatusPage'));
@@ -94,11 +94,13 @@ const DesignSystemShowcase = lazyWithRetry(() => import('./pages/DesignSystemSho
 const JournalPage = lazyWithRetry(() => import('./pages/JournalPage'));
 const CollectionPage = lazyWithRetry(() => import('./pages/CollectionPage'));
 const CellarPage = lazyWithRetry(() => import('./pages/CellarPage'));
+const FavouritesPage = lazyWithRetry(() => import('./pages/FavouritesPage'));
 const SharedCollectionsPage = lazyWithRetry(() => import('./pages/SharedCollectionsPage'));
 const SignInPage = lazyWithRetry(() => import('./pages/SignInPage'));
 const SignUpPage = lazyWithRetry(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazyWithRetry(() => import('./pages/AccountSettingsPage'));
 const OrderHistoryPage = lazyWithRetry(() => import('./pages/OrderHistoryPage'));
+const TeaCreditPage = lazyWithRetry(() => import('./pages/TeaCreditPage'));
 const OrderDetailPage = lazyWithRetry(() => import('./pages/OrderDetailPage'));
 const SampleHistoryPage = lazyWithRetry(() => import('./pages/SampleHistoryPage'));
 // Tea Wisdom listing pilot: fixtures and stubbed API calls, development only.
@@ -116,6 +118,9 @@ const DeveloperDocsPage = import.meta.env.DEV
     );
 const BriefingPage = lazyWithRetry(() => import('./pages/BriefingPage'));
 const SiteFixesPage = lazyWithRetry(() => import('./pages/SiteFixesPage'));
+// Launch 2, a few hosts: both show nothing until src/lib/fewHosts.ts opens. No link leads here yet.
+const HostTablePage = lazyWithRetry(() => import('./pages/HostTablePage'));
+const HostedTablePage = lazyWithRetry(() => import('./pages/HostedTablePage'));
 const SessionPage = lazyWithRetry(() => import('./pages/SessionPage'));
 const JoinPage = lazyWithRetry(() => import('./pages/JoinPage'));
 const TableCardPage = lazyWithRetry(() => import('./pages/TableCardPage'));
@@ -201,6 +206,7 @@ import { useTeaDiscoverySync } from './hooks/useTeaDiscoverySync';
 import { useCompassSync } from './hooks/useCompassSync';
 import { useNotesSync } from './hooks/useNotesSync';
 import { pathToSection, sectionToPath } from './lib/routes';
+import { useSectionKeys } from './hooks/useSectionKeys';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
@@ -212,6 +218,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ImagePreloaderProvider } from './context/ImagePreloaderContext';
 import { AccountPanel } from './components/AccountPanel';
 import type { PanelView } from './components/AccountPanel/types';
+import { useYourTablePage, YOUR_TABLE_PATHS } from './components/AccountPanel/useYourTablePage';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
@@ -229,6 +236,7 @@ import HomeV2Page from './pages/HomeV2Page';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { EmblemLoader } from './components/shared/EmblemLoader';
+import { teaHouseRoutes } from './pages/teaHouses/teaHouseRoutes';
 import { WisdomFallback } from './pages/wisdom/frame';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
@@ -244,6 +252,7 @@ import { SiteNotFound } from './components/SiteNotFound';
 import AtlasGate from './atlas/AtlasGate';
 import OldAtlasRedirect from './atlas/OldAtlasRedirect';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
+import { hostCreditOpen } from './lib/hostCredit';
 
 // View Transitions API feature detection (#46)
 const supportsViewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document;
@@ -548,22 +557,8 @@ const AppContent = () => {
     return () => window.removeEventListener('keydown', handleSearchShortcut);
   }, []);
 
-  // Desktop keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
-      const sections: Section[] = ['HOME', 'MAGAZINE', 'LEARN', 'OFFERINGS', 'SHOP'];
-      if (e.key >= '1' && e.key <= '5') {
-        e.preventDefault();
-        setActiveSection(sections[parseInt(e.key) - 1]);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveSection]);
+  // Desktop keyboard shortcuts, keys 1 to 5 (src/hooks/useSectionKeys.ts).
+  useSectionKeys(setActiveSection);
 
   // Separate Inventory into Tea and Ware
   const teaInventory = useMemo(() => inventory.filter(i => i.category === 'tea'), [inventory]);
@@ -797,14 +792,17 @@ const AppContent = () => {
     setIsCartOpen(true);
   }, []);
 
+  const tablePage = useYourTablePage(); // Your Table as a page (YOUR_TABLE_PAGE_OPEN); closed, nothing below changes
   const handleOpenAccount = (view?: PanelView) => {
     window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
     setShowGlobalSearch(false);
+    if (tablePage.open) return tablePage.openPage(view);
     setAccountInitialView(view);
     setShowAccountModal(true);
   };
 
   const handleToggleAccount = () => {
+    if (tablePage.open) { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowGlobalSearch(false); return tablePage.toggle(); }
     setShowAccountModal(prev => {
       if (!prev) {
         window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
@@ -831,6 +829,7 @@ const AppContent = () => {
     const handler = (event: Event) => {
       window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
       const view = (event as CustomEvent<{ view?: PanelView } | null>).detail?.view;
+      if (tablePage.ref.current.open) return tablePage.ref.current.openPage(view);
       setAccountInitialView(view);
       setShowAccountModal(true);
     };
@@ -849,11 +848,13 @@ const AppContent = () => {
       const oauthToken = new URLSearchParams(hash.slice(1)).get('oauth_token');
       if (oauthToken) {
         completeSignIn(oauthToken);
-        if (params.get('account') === '1') setShowAccountModal(true);
+        const backToTable = params.get('account') === '1';
+        if (backToTable && !tablePage.ref.current.open) setShowAccountModal(true);
         // Strip the token from the URL so it isn't left in history/shareable.
         params.delete('account');
         const search = params.toString();
         window.history.replaceState(null, '', window.location.pathname + (search ? `?${search}` : ''));
+        if (backToTable && tablePage.ref.current.open) navigate('/account', { replace: true });
         return;
       }
     }
@@ -885,6 +886,7 @@ const AppContent = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('account') !== '1') return;
+    if (tablePage.ref.current.open) return void navigate('/account', { replace: true }); // the page is its address now
     setAccountInitialView(undefined);
     setShowAccountModal(true);
     params.delete('account');
@@ -899,7 +901,7 @@ const AppContent = () => {
   const handleCloseAccount = () => {
     setShowAccountModal(false);
     setAccountInitialView(undefined);
-    if (location.pathname === '/account') {
+    if (location.pathname === '/account' && !tablePage.open) {
       navigate('/', { replace: true });
     }
   };
@@ -1263,10 +1265,13 @@ const AppContent = () => {
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
-                <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
+                {tablePage.open
+                  ? YOUR_TABLE_PATHS.map(path => <Route key={path} path={path} element={<ErrorBoundary><AccountPanel asPage onClose={tablePage.leave} /></ErrorBoundary>} />)
+                  : <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />}
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/cellar" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CellarPage /></Suspense></ErrorBoundary>} />
+                {favouritesOpen() && <Route path="/account/favourites" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><FavouritesPage /></Suspense></ErrorBoundary>} />}
                 <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey/sits/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}>
                   <MemberSitPage renderPhotos={sit => <PrivateSubjectPhotos subject="member-sit" subjectId={sit.id} />} />
@@ -1279,10 +1284,13 @@ const AppContent = () => {
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/profile" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountProfilePage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
+                {hostCreditOpen() && <Route path="/account/tea-credit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaCreditPage /></Suspense></ErrorBoundary>} />}
                 <Route path="/account/orders/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderDetailPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/fixes" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SiteFixesPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/host" element={<ErrorBoundary><Suspense fallback={null}><HostTablePage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/host/:id" element={<ErrorBoundary><Suspense fallback={null}><HostedTablePage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/briefing"element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
                 {/* Design harnesses: reachable while developing (and by the browser
                     suite, which runs the dev server), never on the live site. */}
@@ -1294,7 +1302,8 @@ const AppContent = () => {
                   {WisdomPilotPreview && <Route path="/preview/wisdom-pilot/*" element={<ErrorBoundary><Suspense fallback={null}><WisdomPilotPreview /></Suspense></ErrorBoundary>} />}
                 </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/tea-feed" element={BREWING_EXPERIENCES_OPEN ? <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaFeedPage /></Suspense></ErrorBoundary> : <Navigate to="/" replace />} />
+                {teaTableOpen() && <Route path="/tea-table" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaTablePage /></Suspense></ErrorBoundary>} />}
+                <Route path="/tea-feed" element={<Navigate to={teaTableOpen() ? '/tea-table' : '/'} replace />} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/sits/casual/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CasualSitRecapPage /></Suspense></ErrorBoundary>} />
                 <Route path="/after-sit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AfterSitPage /></Suspense></ErrorBoundary>} />
@@ -1321,6 +1330,7 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                {teaHouseRoutes()}
                 {/* Legacy community URL now points to the network directory. */}
                 <Route path="/community" element={<Navigate to="/find-a-table" replace />} />
                 <Route path="/store/:slug" element={
@@ -1421,7 +1431,7 @@ const AppContent = () => {
       <GlobalSearch isOpen={showGlobalSearch} onClose={() => setShowGlobalSearch(false)} />
 
       {/* --- YOUR TABLE MODAL --- */}
-      {showAccountModal && (
+      {showAccountModal && !tablePage.open && (
         <AccountPanel onClose={handleCloseAccount} initialView={accountInitialView} />
       )}
 
@@ -1505,7 +1515,7 @@ const AppContent = () => {
           px-0 layout still keys off isImmersiveRead); their bottom-right accent
           swatches sit above the bar's height so they don't collide. */}
       {!isFocusedShareRoute && (
-        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={() => { setShowSiteMenu(false); handleToggleAccount(); }} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onMenuClick={() => { if (showSiteMenu) { setShowSiteMenu(false); return; } window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(false); setShowSiteMenu(true); }} onMenuClose={() => setShowSiteMenu(false)} isMenuOpen={showSiteMenu} isAdminRoute={isAdminRoute} />
+        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={() => { setShowSiteMenu(false); handleToggleAccount(); }} onAccountClose={handleCloseAccount} isAccountOpen={tablePage.open ? tablePage.onPage : showAccountModal} onMenuClick={() => { if (showSiteMenu) { setShowSiteMenu(false); return; } window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(false); setShowSiteMenu(true); }} onMenuClose={() => setShowSiteMenu(false)} isMenuOpen={showSiteMenu} isAdminRoute={isAdminRoute} />
       )}
       {!isFocusedShareRoute && (
         <SiteMenu

@@ -152,7 +152,10 @@ test('readiness names omissions and publication remains an independent dual gate
   await selectView(page, 'Needs development');
   await page.locator('tr[data-product-id="needs"]').dispatchEvent('click', { metaKey: true });
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit', exact: true }).click();
-  await expect(page.getByText('Details needed: description, retail price, classification, and stock amount')).toBeVisible();
+  const missing = page.getByRole('group', { name: "What's missing" });
+  for (const need of ['Choose the type', 'Set a price', 'Count the stock', 'Write the description']) {
+    await expect(missing.getByRole('button', { name: new RegExp(need) })).toBeVisible();
+  }
 
   // A tea already linked to its Curate record opens that shared record rather than
   // starting a new development (Develop in Curate is for unlinked teas only).

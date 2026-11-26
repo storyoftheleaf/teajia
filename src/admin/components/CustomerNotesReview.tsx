@@ -9,6 +9,7 @@ import { DaySheetButton } from './guestNotes/DaySheetButton';
 import { FeedbackList } from './guestNotes/FeedbackList';
 import { OfferedPhotographs } from './guestNotes/OfferedPhotographs';
 import { ReportsAndRequests } from './guestNotes/ReportsAndRequests';
+import { TeaTableManage } from './guestNotes/TeaTableManage';
 
 interface GuestExcerpt {
   id: string;
@@ -226,6 +227,7 @@ export function CustomerNotesReview() {
       <DaySheetButton />
       <ReportsAndRequests />
       <OfferedPhotographs />
+      <TeaTableManage />
       <section aria-label="Notes" className="mt-8">
         <OfferedTastingExcerpts />
       </section>

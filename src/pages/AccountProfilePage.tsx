@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle, Circle } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import { ProfileEditor } from '../components/profile/ProfileEditor';
+import { MyHostArticleOffers } from '../components/article/MyHostArticleOffers';
 import { ProfileFavoritesEditor } from '../components/profile/ProfileFavoritesEditor';
 import { PaymentMethodsEditor } from '../components/profile/PaymentMethodsEditor';
 import { PayAccessPanel } from '../components/profile/PayAccessPanel';
@@ -13,13 +14,16 @@ import type { FavoriteWrite, PaymentMethodWrite, SelfProfileUpdate } from '../co
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { familyPageAllowsPay, familyPageNeedsReview } from '../lib/familyContract';
 import { useAuth } from '../hooks/useAuth';
+import { useStepParam } from '../hooks/useStepParam';
 import { api } from '../lib/api';
+import { hostArticlesOpen } from '../lib/hostArticles';
 import { selectHasBundle, useAppStore } from '../lib/store';
 
 export default function AccountProfilePage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [articleOfferStep, setArticleOfferStep] = useStepParam('articleOffer');
   const memberships = useAppStore(state => state.memberships);
   const activeAccountId = useAppStore(state => state.activeAccountId);
   const platformRole = useAppStore(state => state.platformRole);
@@ -45,6 +49,14 @@ export default function AccountProfilePage() {
     );
   }
 
+  if (hostArticlesOpen() && auth.isAuthenticated && auth.isSessionReady && articleOfferStep === 'write') {
+    return (
+      <main className="mx-auto w-full max-w-3xl px-4 pt-6 pb-nav-gap-lg md:px-6 md:pt-10">
+        <MyHostArticleOffers writing onStep={setArticleOfferStep} />
+      </main>
+    );
+  }
+
   if (profileQuery.isLoading || !auth.isSessionReady) return <ProfileLoading />;
   if (profileQuery.isError) return <ProfileError message={profileQuery.error instanceof Error ? profileQuery.error.message : 'The profile could not be loaded.'} onRetry={() => profileQuery.refetch()} />;
 
@@ -65,6 +77,8 @@ export default function AccountProfilePage() {
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-4 max-w-[62ch] text-tea-text-sec`}>{isFamily ? 'The tastings you share, a face if you want one, and where people can find you.' : 'One identity for your tea selections, writing, favorites, and payment destinations across every associated store.'}</p>
         <a href="/account/settings" className="tap-target mt-4 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Name, sign-in and appearance</a>
       </header>
+
+      {hostArticlesOpen() && <MyHostArticleOffers writing={false} onStep={setArticleOfferStep} />}
 
       {!profile ? (
         canStartProfileDraft(Boolean(profileQuery.data?.can_create), activeAccountId)

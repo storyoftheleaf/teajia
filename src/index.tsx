@@ -14,10 +14,14 @@ import { captureAfterSitCredential } from './lib/afterSitAccess';
 import { shouldPersistQueryKey } from './lib/queryPersistence';
 import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } from './lib/refreshCommerce';
 import { captureOrderViaFromLocation } from './lib/orderVia';
+import { sweepEndedWays } from './lib/keptWay';
 import './styles/tailwind.css';
 import './styles/card-utilities.css';
 
 captureAfterSitCredential();
+// A way in kept on this phone leaves once its session has ended, on any visit
+// to the site, not only when a guest page is opened again (src/lib/keptWay.ts).
+void sweepEndedWays();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +76,9 @@ root.render(
         persistOptions={{
           persister,
           maxAge: 1000 * 60 * 60 * 24, // 24h
+          // A snapshot saved before scores were taken off public reads is
+          // dropped, not restored (Adrian, 2026-11-26: a score is personal).
+          buster: 'scores-personal-2026-11-26',
           dehydrateOptions: {
             shouldDehydrateQuery: (q) => {
               return q.state.status === 'success' && shouldPersistQueryKey(q.queryKey);

@@ -17,6 +17,8 @@ import { Button } from './Button';
 import { Icons } from '../Icons';
 import { CartItemRow } from './CartItem';
 import { api } from '../../lib/api';
+import { useMyTeaCredit } from '../../hooks/useMyTeaCredit';
+import { formatCredit, hostCreditApi } from '../../lib/hostCreditApi';
 import { agreedItemForDisplay } from '../../lib/orderTrackingDomain';
 import { createHumanOrderRef, createInquiryPayloadKey, createTrackingToken, validateStoreCart } from '../../lib/publicCartDomain';
 import { checkoutLocation, isUsDelivery, readCheckoutDetails, validateCheckoutDetails, type CheckoutDetails, type DeliveryChoice, type ReplyChannel } from '../../lib/checkoutDetails';
@@ -52,6 +54,10 @@ type SavedOrder = {
   handoff: boolean;
   /** The customer chose WhatsApp (with or without a number), not email. */
   viaWhatsApp: boolean;
+  /** Launch 5: the tea credit the server held for this order, waiting for the shop. */
+  creditAsked?: string;
+  /** The host chose credit but it could not be held just now. */
+  creditMissed?: boolean;
 };
 
 const PENDING_KEY = 'teajia_pendingOrderRequest';
@@ -119,6 +125,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
      three-letter code", and the error sat off screen, so the button looked dead. */
   const orderCurrency = isFixedPackOrder ? 'USD' : isoCurrencyCode(shopPrice.code);
   const formatTotal = isFixedPackOrder ? (usd: number) => formatPersonalTeaMoney(usd, orderCurrency) : shopPrice.total;
+  // Launch 5: a signed-in host with credit in this shop gets one plain choice.
+  // The worker decides the amount; closed or signed out, nothing is asked.
+  const teaCredit = useMyTeaCredit(isOpen ? storeSlug : undefined);
+  const creditAvailable = teaCredit.data?.store_available ?? 0;
+  const offerCredit = creditAvailable > 0 && cart.some(item => item.category === 'tea');
+  const [useCredit, setUseCredit] = useState(false);
 
   useEffect(() => {
     if (isOpen) setRecentRequests(readRecentOrderRequests(storeSlug));
@@ -205,17 +217,31 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const savedSubtotal = result.total_estimate_usd ?? savedItems.reduce((sum, item) => sum + item.totalPrice, 0);
       const shipping = result.shipping_checkout ?? result.shipping_quote;
       const total = savedSubtotal + (shipping?.shipping_usd ?? 0);
-      const message = buildOrderMessage({
+      // Launch 5: the host chose to use their credit. The order is saved first;
+      // the worker then works out and holds the amount for the owner's approval.
+      // Credit is never worth failing an order over.
+      let creditAsked: string | undefined;
+      let creditMissed = false;
+      if (offerCredit && useCredit && result.invoice_id && !result.idempotent) {
+        try {
+          const used = await hostCreditApi.useOnOrder(result.invoice_id);
+          creditAsked = formatCredit(used.request.amount, used.request.currency);
+        } catch { creditMissed = true; }
+      }
+      const orderMessage = buildOrderMessage({
         type: 'inquiry', ref: result.ref_number, invoiceNumber: result.invoice_number, trackingUrl,
         customerName: details.name.trim(), customerContact: contact, customerLocation: location,
         notes: details.notes.trim(), currency: orderCurrency,
         items: savedItems.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams, packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs', price: formatTotal(item.totalPrice / (item.packs ?? 1)), total: formatTotal(item.totalPrice) })),
         subtotal: formatTotal(savedSubtotal), total: formatTotal(total),
       });
+      const message = creditAsked ? `${orderMessage}\n\nI asked to use ${creditAsked} of my tea credit on this order.`
+        : creditMissed ? `${orderMessage}\n\nI would like to use my tea credit on this order.` : orderMessage;
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(WHATSAPP_UPDATES_DEFAULT);
-      setPlacedOrder({ request, items: savedItems, total: formatTotal(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? formatTotal(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website' });
+      setPlacedOrder({ request, items: savedItems, total: formatTotal(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? formatTotal(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website', creditAsked, creditMissed });
+      setUseCredit(false);
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
       clearPublicCart();
@@ -265,6 +291,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             ? 'Your order is reserved.' : `Your request is saved with ${storeName}.`}</p>
           <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.paymentDeadline ? 'Open your order to pay securely and follow its payment status.' : 'Your order request and draft invoice are saved. We’ll confirm your tea first; shipping is quoted and charged separately later.'}</p>
           {placedOrder.invoiceNumber && <p className="num text-ui-13 text-tea-text-sec">{`Invoice ${placedOrder.invoiceNumber}`}</p>}
+          {placedOrder.creditMissed && <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">Your tea credit could not be set aside on this order just now. Mention it when you talk with the shop and they will help.</p>}
+          {placedOrder.creditAsked && <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{`You asked to use ${placedOrder.creditAsked} of your tea credit. The shop will look it over and confirm it with you.`}</p>}
         </div>
         <div className="space-y-4">
           {placedOrder.items.map(item => <div key={lineKeyOf(item)} className="flex items-baseline justify-between gap-3">
@@ -342,6 +370,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
               </div>
               <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{channel === 'whatsapp-chat' ? 'Save your order here, then send it to us from WhatsApp. No number needed; leave one below if you would rather we write first.' : channel === 'whatsapp' ? 'We’ll write to you at this number on WhatsApp.' : 'We’ll reply by email. No message app opens.'}</p>
             </fieldset>
+            {offerCredit && <label className={checkoutTile(useCredit)}>
+              <input type="checkbox" name="use-tea-credit" checked={useCredit} onChange={event => setUseCredit(event.target.checked)} className="absolute inset-0 m-0 w-full h-full opacity-0 cursor-pointer" />
+              <span className="font-body text-ui-15 leading-tight">Use my tea credit on this order</span>{' '}
+              <span className="font-body text-ui-12 leading-tight text-tea-text-sec">{`You have ${formatCredit(creditAvailable)}. The shop approves it by hand.`}</span>
+            </label>}
             {field('name', 'Your name', { autoComplete: 'name' })}
             {field('contact', replyMode === 'website' ? 'Your email address' : 'Your WhatsApp number', { type: replyMode === 'website' ? 'email' : 'tel', inputMode: replyMode === 'website' ? 'email' : 'tel', autoComplete: replyMode === 'website' ? 'email' : 'tel', placeholder: replyMode === 'website' ? 'you@example.com' : '+62… (optional)' })}
             {channel === 'whatsapp' && <WhatsAppUpdatesConsent storeName={storeName} consent={whatsappConsent} onConsent={setWhatsappConsent} email={updateEmail} onEmail={value => { setUpdateEmail(value); setErrors(previous => ({ ...previous, updateEmail: '' })); }} error={errors.updateEmail} />}

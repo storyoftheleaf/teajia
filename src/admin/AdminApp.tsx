@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { tableCardOpen } from '../lib/tableCard';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
@@ -73,6 +74,7 @@ import { ActivityView } from './components/ActivityView';
 // it. Both then share a single on-demand InventoryView chunk.
 const CatalogTeaReading = lazy(() => import('./views/CatalogTeaReading'));
 const StockGalleryProposal = lazy(() => import('./views/StockGalleryProposal'));
+const SessionCardPage = lazy(() => import('../pages/SessionCardPage'));
 const OwnerYixing = lazy(() => import('./views/yixing/OwnerYixing'));
 const DraftsView = lazy(() => import('./components/DraftsView').then((m) => ({ default: m.DraftsView })));
 import { IntakeWorkspace } from './views/IntakeWorkspace';
@@ -582,6 +584,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               {/* Member tools, events + samples open to all members */}
               <Route path="events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+              {tableCardOpen() && <Route path="events/:slug/card" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><SessionCardPage /></ProtectedRoute>} />}
               <Route path="tasting-events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingEventsList /></PageTransition></ProtectedRoute>} />
               <Route path="tasting-events/new" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingEventForm /></PageTransition></ProtectedRoute>} />
               <Route path="tasting-events/:sessionId" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={!isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />

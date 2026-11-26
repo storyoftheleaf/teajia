@@ -1,5 +1,16 @@
 import type { CurateFinalizeMovement } from '../curateImports';
 import type { StockMovementInput } from '../inventoryDomain';
+import type { ReservePartySeatsInput } from '../eventDomain';
+import type { OwnHostedTable } from '../hostTableGuests';
+
+export interface Launch3Services {
+  ownTable: (auth: ToolAuth, tableId: string) => Promise<{ table: OwnHostedTable; stopped: boolean } | null>;
+  duplicate: (table: OwnHostedTable, userId: string, slug: string, date: string, preview: boolean) => Promise<Response>;
+  setTasting: (table: OwnHostedTable, userId: string, isTasting: boolean) => Promise<Response>;
+  releaseGuest: (table: OwnHostedTable, attendeeId: string, email: string, preview: boolean) => Promise<Response>;
+  setHostingStopped: (auth: ToolAuth, userId: string, stopped: boolean) => Promise<Response>;
+  limitReport: () => Promise<Response | null>;
+}
 /**
  * Where MCP tools added from here on live.
  *
@@ -56,8 +67,31 @@ export interface StockMovementService {
   apply: (scope: { accountId:string; userId:string; email?:string|null }, productId:string, input:StockMovementInput) => Promise<{ status:number; value:unknown }>;
 }
 
+/**
+ * The seats a host's yes takes: the admin approval's own reservation,
+ * `buildApprovalReservation` in index.ts, handed in for the same reason as
+ * the stock path. The tool then takes the seats through the guarded
+ * allocator `reservePartySeats`, exactly as PUT /api/me/tables/:id/guests/:id/yes.
+ */
+export interface HostSeatService {
+  reservationFor: (attendee: Record<string, unknown> & { id: string; account_id: string; event_id: string; full_name: string },
+    approvedGuests: number) => Promise<ReservePartySeatsInput | null>;
+}
+
 export interface ToolEnv {
   EDITORIAL_PILOT_ACCOUNT_ID?: string;
+  FAVOURITES_OPEN?: string;
+  TEA_TABLE_OPEN?: string;
+  /** Launch 2's switch (src/lib/fewHosts.ts). The host tools answer "not available" unless it is open. */
+  FEW_HOSTS_OPEN?: string;
+  /** Launch 3's switch (src/lib/anyoneHosts.ts): anyone signed in may host by request. */
+  ANYONE_HOSTS_OPEN?: string;
+  /** Launch 5 M4's switch (src/lib/circles.ts): circles and series, with FEW_HOSTS_OPEN. */
+  CIRCLES_OPEN?: string;
+  /** The site's address, for a table's link. */
+  APP_URL?: string;
+  hostSeats?: HostSeatService;
+  launch3?: Launch3Services;
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ATLAS_BUCKET?: R2Bucket;
@@ -82,10 +116,14 @@ export interface ToolAuth {
 
 export interface ToolDefinition {
   name: string;
-  scope: ToolScope;
+  /** Personal actions may require sign-in without a shop scope. */
+  scope: ToolScope | 'signed-in';
+  available?: (env: ToolEnv, auth: ToolAuth) => boolean;
   description: string;
   inputSchema: Record<string, unknown>;
   annotations?: Record<string, unknown>;
+  /** Return a refusal code when a feature or authority gate is closed. */
+  unavailable?: (env: ToolEnv, auth: ToolAuth) => string | undefined;
 }
 
 export type ToolHandler = (env: ToolEnv, auth: ToolAuth, args: any) => Promise<unknown>;

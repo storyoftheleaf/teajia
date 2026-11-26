@@ -1,0 +1,88 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:33:11.015Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "748fd404-2846-4bac-83e3-797e884e9e22",
+    "name": "Aged Liu An",
+    "chineseName": "老六安",
+    "type": "Dark",
+    "form": "Basket",
+    "year": 1985,
+    "origin": "Qimen, Anhui, China",
+    "stockGrams": 330,
+    "pricePerGramUsd": 1.6,
+    "tags": [
+      "bamboo",
+      "aged plum",
+      "clean mineral",
+      "light smoke",
+      "warm sweetness"
+    ]
+  },
+  "entry": {
+    "productId": "748fd404-2846-4bac-83e3-797e884e9e22",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [Liu An basket tea](liu-an:definition) made in 1985 and kept in its basket ever since. The name points elsewhere, but the leaf is from Qimen County in southern Anhui, from the same small-leaf bush that gives Keemun red tea."
+      },
+      {
+        "layer": "type",
+        "text": "Liu An is a [dark tea](dark:definition): the leaf keeps changing slowly after it is made. Liu An is fired over charcoal, then spread on bamboo mats outdoors for one night to take the [night dew](liu-an:making). It is then steamed soft and packed into small baskets lined with [bamboo leaf](liu-an:basket), so the basket is part of the making, not only the wrapping."
+      },
+      {
+        "layer": "age",
+        "text": "At forty-one years, this basket is old for the tea. Liu An is [said to improve with years](liu-an:ageing) in its basket, and the charcoal edge of a young tea settles as it ages."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Use water at or near the boil, rinse the leaf quickly, and keep the steeps short, each a little longer than the last, in a gaiwan or clay pot; doses run from about 3 to 8 grams for 100 ml, for six to ten or more steeps. A small piece of the basket's bamboo leaf is often brewed with it. Aged tea can also be simmered in a larger pot, about 1 gram to 200 to 300 ml, for a few minutes or longer."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Liu An",
+      "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "liu-an:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-an:making",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-an:basket",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-an:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-an:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-an:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:34.991Z"
+}

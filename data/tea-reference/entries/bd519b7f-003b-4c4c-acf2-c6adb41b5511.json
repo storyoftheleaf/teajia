@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:32:35.637Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "bd519b7f-003b-4c4c-acf2-c6adb41b5511",
+    "name": "Tongqinghao",
+    "chineseName": "同慶號",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": 1980,
+    "origin": "Yunnan, China",
+    "stockGrams": 90,
+    "pricePerGramUsd": 2.77,
+    "tags": [
+      "camphor",
+      "dark plum",
+      "aged honey",
+      "aromatic wood",
+      "complex hui gan"
+    ]
+  },
+  "entry": {
+    "productId": "bd519b7f-003b-4c4c-acf2-c6adb41b5511",
+    "paragraphs": [
+      {
+        "layer": "age",
+        "text": "Raw pu’er from Yunnan, made in 1980 and kept as loose leaf. At forty-six years it sits well past any line the trade draws for [aged](sheng:ageing): some count from ten years, many wait for twenty or more."
+      },
+      {
+        "layer": "type",
+        "text": "[Sheng](sheng:identity) is never given the quick fermentation of shou, so [it changes slowly in storage](sheng:aging), and the years it has been kept become part of its history. It was never pressed: a tight, large cake changes slowly, while [loose or small tea](sheng:pressing) changes sooner."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:pressing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:34.849Z"
+}

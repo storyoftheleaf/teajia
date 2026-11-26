@@ -1,0 +1,70 @@
+// Who may hold a guest's own page link (Launch 2, slice H7).
+//
+// A guest's magic token is a bearer link: whoever holds it reads that guest's
+// page, the way to the house included once the seat is confirmed, and can
+// change or cancel the seat. Staff answers carry it only to the account's
+// owner and to the session's host, by the one rule in sessionHost.ts (the
+// same person order_session_sources names and "Hosted by" shows).
+
+import { sessionHostUserSql } from './sessionHost';
+
+export { sessionHostUserSql };
+
+/**
+ * Who is asking. `privateHost` is the owner of a person's own private account
+ * (the host of their own tables, Launch 3: anyone signed in). On such an
+ * account a guest's link stays with the guest alone (A3): the host's own
+ * page never carries it, and neither does any staff answer.
+ */
+export type GuestLinkCaller = { userId: string; accountId: string; isOwner: boolean; privateHost?: boolean };
+
+/**
+ * The sessions among `eventIds` whose guest links this caller may hold. An
+ * owner holds every one; anyone else holds only those they host. Nobody holds
+ * them on a person's private account.
+ */
+export async function guestLinkSessions(
+  db: D1Database,
+  caller: GuestLinkCaller,
+  eventIds: string[],
+): Promise<Set<string>> {
+  const ids = Array.from(new Set(eventIds.filter(Boolean)));
+  if (caller.privateHost) return new Set();
+  if (caller.isOwner) return new Set(ids);
+  if (!ids.length || !caller.userId) return new Set();
+  const held = new Set<string>();
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50);
+    const rows = await db.prepare(
+      `SELECT e.id FROM events e
+        WHERE e.account_id = ? AND e.id IN (${chunk.map(() => '?').join(',')})
+          AND ${sessionHostUserSql('e')} = ?`,
+    ).bind(caller.accountId, ...chunk, caller.userId).all<{ id: string }>();
+    for (const row of rows.results ?? []) held.add(row.id);
+  }
+  return held;
+}
+
+/** The rows with magic_token removed wherever the caller may not hold it. */
+export async function withoutForeignGuestLinks<T extends Record<string, unknown>>(
+  db: D1Database,
+  caller: GuestLinkCaller,
+  rows: T[],
+): Promise<T[]> {
+  if (caller.privateHost) {
+    // A stranger may host (Launch 3), so on a person's private account the
+    // host reads a guest as their own table page shows them: no private
+    // link, no email and no account id (A3).
+    return rows.map(row => {
+      const { magic_token: _token, email: _email, user_id: _user, ...rest } = row;
+      return rest as T;
+    });
+  }
+  if (caller.isOwner) return rows;
+  const held = await guestLinkSessions(db, caller, rows.map(row => String(row.event_id ?? '')));
+  return rows.map(row => {
+    if (held.has(String(row.event_id ?? ''))) return row;
+    const { magic_token: _token, ...rest } = row;
+    return rest as T;
+  });
+}

@@ -1,4 +1,9 @@
-/** Shared structured results contain ratings and picks, while prose and sensory notes stay with the author. */
+/**
+ * Shared structured results contain ratings and picks, while prose and sensory
+ * notes stay with the author. This shape is for the giver and for the host's
+ * own live screen (/host-live), the one place a host sees results during their
+ * session (Adrian, 2026-11-26).
+ */
 export function sharedSessionVerdict(row: Record<string, unknown>) {
   let tasting: Record<string, unknown> = {};
   try {
@@ -17,4 +22,23 @@ export function sharedSessionVerdict(row: Record<string, unknown>) {
     ...(typeof row.tea_name === 'string' ? { tea_name: row.tea_name } : {}),
     ...(typeof row.position === 'number' ? { position: row.position } : {}),
   };
+}
+
+/**
+ * What another member of the session reads of someone's result: that they
+ * gave one, for which tea. A score and a verdict are the giver's own.
+ */
+export function peerSessionVerdict(row: Record<string, unknown>) {
+  return {
+    user_id: row.user_id,
+    session_tea_id: row.session_tea_id,
+    ...(typeof row.user_name === 'string' ? { user_name: row.user_name } : {}),
+    ...(typeof row.tea_name === 'string' ? { tea_name: row.tea_name } : {}),
+    ...(typeof row.position === 'number' ? { position: row.position } : {}),
+  };
+}
+
+/** The giver reads their own result whole; every other member reads that a result was given. */
+export function sessionVerdictFor(viewerUserId: string) {
+  return (row: Record<string, unknown>) => row.user_id === viewerUserId ? sharedSessionVerdict(row) : peerSessionVerdict(row);
 }

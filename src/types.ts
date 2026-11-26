@@ -328,6 +328,11 @@ export interface ContributorListItem {
   family_last_active?: string | null;
   /** Where the people list puts them: This season, Founding members or The family. */
   list_group?: 'season' | 'founding' | 'family' | null;
+  /**
+   * Has poured at a table: publicly credited as host, co-host or guest host on
+   * at least one completed session. A yes or no only, never a count.
+   */
+  pours?: boolean;
 }
 
 export interface ContributorPullQuote {
@@ -962,6 +967,12 @@ export type UtilitySection = Extract<Section, 'YOUR_TABLE'>;
 // A Teajia "account" is a tea house / store. Users belong to one or more
 // accounts via memberships with per-account roles.
 
+export interface NetworkNextSession {
+  slug: string;
+  title: string;
+  event_date: string;
+}
+
 export interface Account {
   id: string;
   slug: string;
@@ -996,6 +1007,12 @@ export interface Account {
    * the public store payload. Each speaks in their own first line.
    */
   people?: PublicPerson[];
+  /**
+   * The house's next coming session, served only on the network directory
+   * (GET /api/network/stores). Only a session the house lists publicly, and
+   * only its slug, title and date: never an address. Null when none is ahead.
+   */
+  next_session?: NetworkNextSession | null;
   is_platform_owner?: boolean;
   invoice_prefix?: string;
   // BYOK presence flags (the encrypted secret itself is never sent to the client).

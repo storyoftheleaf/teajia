@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { FamilyPersonTasting } from '../../lib/familyContract';
 import { familyApi } from '../../lib/familyApi';
 import { authPagePath } from '../../lib/authNavigation';
 import { useAuth } from '../../hooks/useAuth';
+import { useStepParam } from '../../hooks/useStepParam';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { Button } from '../shared/Button';
 import { Dek, GOLD_TEXT_INLINE, GOLD_TEXT_STYLE, GroupHead, IndexRow } from './immersive';
@@ -55,7 +56,7 @@ export function SoldOutLine({ productId, name }: { productId: string | null | un
         <Link to={authPagePath('signin', `${location.pathname}${location.search}`)} className={GOLD_TEXT_INLINE} style={GOLD_TEXT_STYLE} data-testid="find-me-more">Find me more</Link>
       )}
       {canAsk && isAuthenticated && (
-        <Button variant="plain" type="button" className={GOLD_TEXT_INLINE} style={GOLD_TEXT_STYLE} disabled={state === 'sending'} onClick={ask} aria-label={`Ask Teajia to find more of ${name}`} data-testid="find-me-more">Find me more</Button>
+        <Button variant="plain" type="button" className={`tap-target ${GOLD_TEXT_INLINE}`} style={GOLD_TEXT_STYLE} disabled={state === 'sending'} onClick={ask} aria-label={`Ask Teajia to find more of ${name}`} data-testid="find-me-more">Find me more</Button>
       )}
       {state === 'asked' && <Dek className="text-ui-13">Asked. Teajia will look.</Dek>}
       {state === 'already' && <Dek className="text-ui-13">You have already asked.</Dek>}
@@ -65,7 +66,14 @@ export function SoldOutLine({ productId, name }: { productId: string | null | un
 }
 
 function PhotographGrid({ tasting }: { tasting: FamilyPersonTasting }) {
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useStepParam('photograph');
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const openPhoto = (id: string) => setOpenId(id, { state: { ...state, openedPhotograph: id } });
+  const closePhoto = () => {
+    if (state?.openedPhotograph === openId) navigate(-1);
+    else setOpenId(null, { refine: true, state });
+  };
   if (tasting.photographs.length === 0) return null;
   const toZoom = (photo: FamilyPersonTasting['photographs'][number]): ZoomPhotograph => ({
     id: photo.id,
@@ -75,7 +83,7 @@ function PhotographGrid({ tasting }: { tasting: FamilyPersonTasting }) {
     height: photo.small_height,
     shape: photo.shape,
     frame: photo.frame,
-    alt: `${tasting.name}, photographed by the person on this page`,
+    alt: `Photograph of ${tasting.name}`,
   });
   const open = tasting.photographs.find(photo => photo.id === openId) ?? null;
   return (
@@ -84,10 +92,12 @@ function PhotographGrid({ tasting }: { tasting: FamilyPersonTasting }) {
           to one of the three shapes; the large copy is asked for only in the zoom. */}
       <ul className="photo-row mt-3.5" aria-label={`Photographs of ${tasting.name}`} data-testid="tasting-photographs">
         {tasting.photographs.map(photo => (
-          <li key={photo.id}><PhotographThumb photo={toZoom(photo)} size="page" onOpen={setOpenId} /></li>
+          <li key={photo.id}><PhotographThumb photo={toZoom(photo)} size="page" onOpen={openPhoto} /></li>
         ))}
       </ul>
-      <PhotographZoom photo={open ? toZoom(open) : null} onClose={() => setOpenId(null)} />
+      <PhotographZoom photo={open ? toZoom(open) : null} onClose={closePhoto}>
+        {open?.photograph_by && <p className="photo-zoom__credit">Photograph by {open.photograph_by}</p>}
+      </PhotographZoom>
     </>
   );
 }

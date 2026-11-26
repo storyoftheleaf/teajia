@@ -1,0 +1,76 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:23:43.235Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "353ab782-dec2-4d03-9a8a-95e63854277a",
+    "name": "Shuishalian Yuchi Red",
+    "chineseName": "水沙蓮魚池紅茶",
+    "type": "Red",
+    "form": "Loose",
+    "year": 1979,
+    "origin": "Yuchi, Nantou, Taiwan",
+    "stockGrams": 36,
+    "pricePerGramUsd": 0.95,
+    "tags": [
+      "dried lychee",
+      "malt",
+      "caramel",
+      "warm wood",
+      "clean mineral"
+    ]
+  },
+  "entry": {
+    "productId": "353ab782-dec2-4d03-9a8a-95e63854277a",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [red tea](red:definition) made in 1979 at Shuishalian (水沙蓮), a locality in the Sun Moon Lake basin of Yuchi, Nantou. Red tea is what English calls black tea: the fully oxidised leaf, named in Chinese for the colour of the cup. Yuchi is where [Taiwan's red tea began](red:history), in the Japanese period, so this leaf comes from the place where the island's red tea started."
+      },
+      {
+        "layer": "age",
+        "text": "Forty-seven years is a long time for this kind of tea. Red tea has [no tradition of ageing](red:ageing). It is made to be drunk fresh, and sealed it holds its quality for about a year and a half to three years. A leaf from 1979 that has been kept this long sits well outside the style's usual life."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "red tea",
+      "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "red:history",
+      "rev": 1
+    },
+    {
+      "claimId": "red:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "red:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "red:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:36.034Z"
+}

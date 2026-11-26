@@ -1,0 +1,88 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:31:19.804Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "82271623-93f1-40a7-901d-ba085c08014e",
+    "name": "Red Seal Camphor Puerh",
+    "chineseName": "紅印樟香普洱",
+    "type": "Sheng Puer",
+    "form": "Cake",
+    "year": 1980,
+    "origin": "Yunnan, China",
+    "stockGrams": 140,
+    "pricePerGramUsd": 3.1,
+    "tags": [
+      "camphor",
+      "aged sweetness",
+      "dark plum",
+      "aromatic wood",
+      "deep hui gan"
+    ]
+  },
+  "entry": {
+    "productId": "82271623-93f1-40a7-901d-ba085c08014e",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A cake of [raw pu’er](sheng:identity) made in Yunnan in 1980. The record does not name the mountain or the factory. The year places it in the decades after 1949, when pu’er was made in [state factories](sheng:history) to standard recipes and sold under the state tea company’s labels."
+      },
+      {
+        "layer": "age",
+        "text": "Raw pu’er is never put through shou’s quick fermentation. It [changes slowly in storage](sheng:aging), so the forty-six years since it was pressed are part of this cake’s history. The trade has no agreed point where [aged raw pu’er](sheng:ageing) begins: some count from ten years, many from twenty. This cake is well past both. Heat and humidity set how fast that change runs, which is why [where a cake is kept](sheng:storage) shapes it as much as its age does."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly. Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:history",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:storage",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:34.490Z"
+}

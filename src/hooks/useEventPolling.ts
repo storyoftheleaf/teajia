@@ -48,6 +48,10 @@ function mapEvent(e: any): TeaEvent {
       ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards) as BriefingCard[]
       : undefined,
     areaHint: e.area_hint || undefined,
+    host: e.host && typeof e.host.name === 'string' && e.host.name.trim()
+      ? { name: e.host.name, path: typeof e.host.path === 'string' && e.host.path.startsWith('/') ? e.host.path : null }
+      : null,
+    privateHost: e.private_host === true,
     moodHints: e.mood_hints
       ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
       : undefined,
@@ -177,6 +181,7 @@ export const useGuestManagement = (token: string) => {
         teaMenu: (data.tea_menu || []).map(mapTeaMenuItem),
         guestInvites,
         briefingCards,
+        tasting: data.event?.is_tasting ? { sessionId: data.event.tasting_session_id ?? null } : null,
       } as GuestManagementData;
     },
     enabled: !!token,

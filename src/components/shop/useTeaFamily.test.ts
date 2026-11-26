@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FamilyPhotograph, FamilySharedPhotograph } from '../../lib/familyContract';
-import { buildTeaRow, personPath, readPublicTeaPhotographs } from './useTeaFamily';
+import { buildTeaRow, creditOf, personPath, readPublicTeaPhotographs } from './useTeaFamily';
 
 const shared = (id: string, name = 'Mei', pageId: string | null = 'c1'): FamilySharedPhotograph => ({
   id, full_url: `https://media.teajia.co/family-photos/a/p/${id}-full.jpg`, small_url: `https://media.teajia.co/family-photos/a/p/${id}-small.jpg`,
@@ -57,5 +57,16 @@ describe('reading the public answer', () => {
     const read = readPublicTeaPhotographs({ product_id: 'p', lead: shared('l'), placed: [], family: [shared('f')] });
     expect(read.lead?.id).toBe('l');
     expect(read.family).toHaveLength(1);
+  });
+});
+
+describe('who the zoom credits', () => {
+  it('with the Tea Table closed (no photograph_by), the author as the tea page always credited them', () => {
+    expect(creditOf(shared('a', 'Mei Lin Tan'))).toBe('Mei Lin Tan');
+    expect(creditOf({ ...shared('a'), author: null })).toBeNull();
+  });
+  it('with the Tea Table open, only the first name the photographer allowed', () => {
+    expect(creditOf({ ...shared('a', 'Mei'), photograph_by: 'Mei' })).toBe('Mei');
+    expect(creditOf({ ...shared('a', 'Mei Lin Tan'), author: null, photograph_by: null })).toBeNull();
   });
 });

@@ -188,8 +188,10 @@ These were read for this rewrite from copies. None was copied into the repo. The
 - Preserve inquiry-led commerce. No conventional automated checkout beyond what is live.
 - Preserve human curation. No rankings, averaged reviews or recommendation engines.
 - Journal, Favourites, Tea Chest and Curate stay separate records.
-- No likes, follows, followers, comments, counts, streaks, badges, or engagement notifications. No phone-at-the-table modes.
-- No feed, with one proposed exception: the Tea Table, a plain time-ordered page of what people chose to share, described in [SECTIONS.md](SECTIONS.md). It is not in force until Adrian confirms it.
+- The Tea Table is the one exception to the rule against social feeds. One public page may show, newest first, what people have chosen to put there: shared tastings with their words and photographs, and published session recaps. It shows what has happened. A host may hold their own recap at the top for a while by hand, and Adrian may hold any piece. Nothing rises by itself. A person may keep a piece in their own favourites. Only Adrian can see the number of keeps, in Manage. There are no likes, comments, follows, follower or view counts, scores, streaks, rankings, recommendations or notifications on the Tea Table. The site calls it the Tea Table. A person can take off their own item, and the owner can hide any item. The feature is off by default behind `TEA_TABLE_OPEN`. See [SECTIONS.md](SECTIONS.md).
+- Quiet acknowledgement comes from one person to another: a host’s thank-you, being quoted by name, “Photograph by”, “Poured with”, or a word Adrian grants by hand on a person’s page. No numbers, levels, titles for volume or nudges. Adrian may decide a host’s reach by hand and that standing stays private.
+- Tea scores and score-like verdicts are personal. Public and ordinary shared views omit them. Words can be shared by choice, and a tea-page excerpt requires the writer’s permission and manual placement. The structured tasting host’s authenticated live screen still receives guest ratings, verdicts and purchase intent.
+- During a tea session the app stays quiet. A host may choose a tasting where writing is part of the session.
 - The people list keeps its one exception, order only (Adrian, 2026-11-21).
 - No change to navigation words, tab labels or routes in the nav components without Adrian's explicit yes. SECTIONS is a proposal for exactly that reason.
 - Local fixtures are not proof of real delivery, real data safety, mainland reach, operator ease, or a contributor's true voice.

@@ -34,12 +34,16 @@ import { logisticsTools } from './mcpTools/logistics';
 
 import { customerTagList } from './customerContactHandles';
 import { readVendorDependencies, vendorHasDependencies, deleteUnreferencedVendor } from './vendorDependencies';
-import { combineToolModules, type ToolModule } from './mcpTools/registry';
+import { combineToolModules, type ToolDefinition, type ToolModule } from './mcpTools/registry';
 import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
 import { transferToolModule } from './mcpTools/transfer';
 import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { firstTableToolModule } from './mcpTools/firstTable';
+import { launch4ToolModule } from './mcpTools/launch4';
+import { fewHostsToolModule } from './mcpTools/fewHosts';
+import { launch3ToolModule } from './mcpTools/launch3';
+import { circlesToolModule } from './mcpTools/circles';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -61,8 +65,9 @@ import { stockCountTools } from './mcpTools/stockCount';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
-import type { CurateReceiptService, InventoryReceiptService, StockMovementService } from './mcpTools/registry';
+import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
+import { isShopOwner, tastingWithoutScores } from './publicScores';
 import { deductStockForPaidInvoice } from './orderLifecycle';
 import { costNeedsCurrency, createMissingCost, currencyStated, costCurrencySourceFor, CURRENCY_SOURCE_STATED, COST_CURRENCY_REQUIRED, COST_REQUIRED_ON_CREATE } from './costCurrency';
 import { REFRESHED_CURRENCIES, refreshedCurrencyName, isRefreshedCurrency } from './exchangeRateFeed';
@@ -113,13 +118,28 @@ import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabul
 import { reviewedDescription } from './wisdomWordingReview';
 import { mergeProductTasting, readStoredTasting, tastingHasTerms, tastingTermLabel } from './curateImportTasting';
 import { MCP_SERVER_ICONS, MCP_SERVER_WEBSITE } from './siteIcons';
+import { settleHostCredit } from './hostCreditLedger';
+import { hostTokenMayAct } from './hostTokens';
+import { HOST_SELF_SCOPE } from '../../src/lib/hostTokens';
 
 type Env = {
   DB: D1Database;
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  hostSeats?: HostSeatService;
+  launch3?: Launch3Services;
   JWT_SECRET: string;
+  FAVOURITES_OPEN?: string;
+  TEA_TABLE_OPEN?: string;
+  /** See src/lib/hostCredit.ts. */
+  HOST_CREDIT_OPEN?: string;
+  /** See src/lib/circles.ts. */
+  CIRCLES_OPEN?: string;
+  /** See src/lib/hostTokens.ts: a host's own key (Launch 5, M6). Needs FEW_HOSTS_OPEN too. */
+  HOST_TOKENS_OPEN?: string;
+  FEW_HOSTS_OPEN?: string;
+  ANYONE_HOSTS_OPEN?: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // Edge rate limiter for the public prepare_order tool, which unlike the
@@ -365,7 +385,34 @@ type McpAuth = {
   tokenId: string;
   scopes: McpScope[];
   creatorTier: McpCreatorTier;
+  /**
+   * A host's own key (Launch 5, M6): its only scope is `host:self`, on the
+   * host's own personal account. It lists and calls HOST_SELF_TOOLS and
+   * nothing else; the shop scopes are never consulted for it.
+   */
+  hostSelf?: boolean;
 };
+
+/**
+ * Everything a host's own key may list or call (Launch 5, M6 part two): the
+ * host-facing tools of fewHosts.ts, launch3.ts and circles.ts, and the
+ * person's own favourites. Each one already answers only for the caller's own
+ * tables on their own personal account, so a host key reaches its host's
+ * tables, guests, teas, notes and chest and nothing more: never Manage,
+ * another host, or the shop's books. set_host_approval, stop_host and
+ * let_host_again are Adrian's and stay out. A tool added to a module does not
+ * join this list by itself; it is named here or a host key never sees it.
+ */
+export const HOST_SELF_TOOLS: ReadonlySet<string> = new Set([
+  // fewHosts.ts (Launch 2, H12)
+  'host_table', 'list_my_tables', 'get_table_guests', 'answer_guest', 'add_table_tea', 'set_guest_note', 'get_guest_notes',
+  // launch3.ts, the host's own
+  'release_guest_seat', 'same_table_again', 'set_session_tasting', 'report',
+  // circles.ts (Launch 5, M4)
+  'make_circle', 'put_table_in_circle', 'list_my_circles',
+  // launch4.ts: the person's own favourites, which hold their Tea Chest teas. Read only.
+  'list_my_favourites',
+]);
 
 const MCP_SCOPES = [
   'inventory:read', 'stock:write', 'customers:read', 'sales:read', 'sales:write',
@@ -404,6 +451,22 @@ function parseMcpScopes(raw: unknown): McpScope[] {
     return parsed.filter((scope): scope is McpScope => MCP_SCOPES.includes(scope as McpScope));
   } catch {
     return DEFAULT_MCP_SCOPES;
+  }
+}
+
+/**
+ * Whether stored scopes name a host's own key: 'only' when `host:self` is the
+ * one scope, 'mixed' when it sits beside anything else (refused: a host key is
+ * never widened), 'no' otherwise.
+ */
+function rawScopesNameHostSelf(raw: unknown): 'no' | 'only' | 'mixed' {
+  if (typeof raw !== 'string' || !raw.includes(HOST_SELF_SCOPE)) return 'no';
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.includes(HOST_SELF_SCOPE)) return 'no';
+    return parsed.length === 1 ? 'only' : 'mixed';
+  } catch {
+    return 'mixed';
   }
 }
 
@@ -527,6 +590,28 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     else if (membership.role === 'viewer') creatorTier = 'viewer';
     else return unauthorized(request, 'Invalid or revoked token');
     permissions = membership.permissions;
+  }
+
+  // A host's own key carries `host:self` alone. It works only while both
+  // switches are open, on the host's own personal account, while they may
+  // host: a stopped host's keys refuse here at once.
+  const hostSelf = rawScopesNameHostSelf(row.scopes);
+  if (hostSelf !== 'no') {
+    if (hostSelf !== 'only') return unauthorized(request, 'Invalid or revoked token');
+    let mayAct: boolean;
+    try {
+      mayAct = await hostTokenMayAct(env, user.id, row.account_id);
+    } catch (error) {
+      return authenticationDependencyFailure(error);
+    }
+    if (!mayAct) return unauthorized(request, 'Invalid or revoked token');
+    env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
+      .bind(row.id).run().catch(() => {});
+    // Never a platform-owner tier, whoever holds it: the key is a host's.
+    return {
+      accountId: row.account_id, userId: user.id, userEmail: user.email || row.user_email,
+      tokenId: row.id, scopes: [], creatorTier: 'account_owner', hostSelf: true,
+    };
   }
 
   const scopes = parseMcpScopes(row.scopes);
@@ -1134,7 +1219,7 @@ const SEARCH_CANDIDATE_CEILING = 5_000;
  * arrive in the same vendor, name, id order the holdings reading returns, and
  * sorting by score is stable, so ties still break the same way.
  */
-async function searchCurateHoldings(env: Env, accountId: string, query: string, limit: number) {
+async function searchCurateHoldings(env: Env, accountId: string, query: string, limit: number, viewerUserId: string) {
   const { results } = await env.DB.prepare(
     `SELECT id, name, chinese_name, vendor_name, vendor_item_number, origin_region, year
        FROM tea_compass_entries
@@ -1159,6 +1244,7 @@ async function searchCurateHoldings(env: Env, accountId: string, query: string, 
   const byId = new Map((await readCurateHoldings(env.DB, accountId, {
     teaIds: scored.map(item => item.id),
     limit: Math.min(scored.length, MAX_CURATE_HOLDINGS_PAGE),
+    viewerUserId,
   })).map(holding => [String(holding.entry.id), holding] as const));
   return {
     holdings: scored.flatMap(item => {
@@ -1199,7 +1285,7 @@ async function toolSearchTea(env: Env, auth: McpAuth, args: any) {
     .slice(0, limit);
 
   const curate = await curateManagerAccess(env, auth)
-    ? await searchCurateHoldings(env, accountId, query, limit)
+    ? await searchCurateHoldings(env, accountId, query, limit, auth.userId)
     : { holdings: [], truncated: false };
 
   return {
@@ -1225,7 +1311,7 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
   if (source !== 'product' && source !== 'curate') throw new Error('source must be product or curate');
   if (source === 'curate') {
     if (!await curateManagerAccess(env, auth)) return { error: 'curate_management_required' };
-    const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id });
+    const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id, viewerUserId: auth.userId });
     return holding ? curateHoldingSummary(holding) : { error: 'not_found' };
   }
 
@@ -1241,7 +1327,7 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
     // An omitted source may be a Curate ID. Never present it as a product ID,
     // and never use fallback to reveal private sourcing to an ordinary reader.
     if (args?.source === undefined && await curateManagerAccess(env, auth)) {
-      const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id });
+      const [holding] = await readCurateHoldings(env.DB, accountId, { teaId: id, viewerUserId: auth.userId });
       if (holding) return curateHoldingSummary(holding);
     }
     return { error: 'not_found' };
@@ -1256,6 +1342,9 @@ async function toolGetTea(env: Env, auth: McpAuth, args: any) {
   if (typeof tastingNotes === 'string') {
     try { tastingNotes = JSON.parse(tastingNotes); } catch { tastingNotes = []; }
   }
+  // The old notes' ratings are the shop owner's. A token reads them only when
+  // the person it acts for is that owner; any other agent reads the words.
+  if (!await isShopOwner(env.DB, accountId, auth.userId)) tastingNotes = tastingWithoutScores(tastingNotes);
 
   return {
     ...productSummary(product),
@@ -1289,7 +1378,7 @@ async function toolListLowStock(env: Env, auth: McpAuth, args: any) {
   ).bind(accountId).all();
 
   const samples = args?.include_samples
-    ? (await readCurateHoldings(env.DB, accountId)).filter(holding => holding.samples.length > 0)
+    ? (await readCurateHoldings(env.DB, accountId, { viewerUserId: auth.userId })).filter(holding => holding.samples.length > 0)
     : [];
   return {
     items: (results as unknown as ProductRow[]).map(p => productSummary(p)),
@@ -2884,6 +2973,7 @@ async function commitVoidInvoice(
     }
     throw error;
   }
+  await settleHostCredit(env, m.invoiceId);
 
   return {
     committed: true,
@@ -4191,6 +4281,7 @@ async function commitFulfillInvoice(
     }
     throw error;
   }
+  await settleHostCredit(env, m.invoiceId);
 
   return {
     committed: true,
@@ -4362,6 +4453,7 @@ async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kin
     }
   }
 
+  await settleHostCredit(env, m.invoiceId);
   return {
     committed: true,
     action: 'mark_invoice_paid',
@@ -5262,6 +5354,7 @@ async function commitConvertOrderRequest(env: Env, m: Extract<PendingMutation, {
   }
 
   await ensureBuyerRelationship(env, m.accountId, customer?.id ?? null, invoiceId);
+  await settleHostCredit(env, invoiceId);
 
   const total = roundUsd(lines.reduce((sum, line) => sum + line.quantity * line.price_at_sale, 0));
   const unpriced = lines.filter(line => !(line.price_at_sale > 0)).length;
@@ -5436,6 +5529,7 @@ async function commitConfirmPayment(env: Env, m: Extract<PendingMutation, { kind
   const changed = Number(update.meta?.changes || 0) > 0;
 
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await settleHostCredit(env, invoice.id);
   if (changed) {
     await logOrderProcessActivity(env, {
       accountId: m.accountId, userEmail: m.userEmail,
@@ -5632,6 +5726,7 @@ async function commitRecordPayment(env: Env, m: Extract<PendingMutation, { kind:
   ).run();
 
   const result = await recomputeInvoicePaymentStatus(env, invoice);
+  await settleHostCredit(env, invoice.id);
   await logOrderProcessActivity(env, {
     accountId: m.accountId, userEmail: m.userEmail,
     action: 'INVOICE_PAYMENT_RECORDED',
@@ -6174,7 +6269,7 @@ async function commitIntakeFinalize(env: Env, m: Extract<PendingMutation, { kind
 
 // ── tool registry / JSON-RPC dispatch ──
 
-const TOOL_DEFS = [
+const TOOL_DEFS: ToolDefinition[] = [
   {
     name: 'search_tea',
     scope: 'inventory:read',
@@ -7129,6 +7224,10 @@ const TOOL_MODULES: ToolModule[] = [
   curationTools,
   eventsToolModule,
   firstTableToolModule,
+  launch4ToolModule,
+  fewHostsToolModule,
+  launch3ToolModule,
+  circlesToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,
@@ -7153,26 +7252,40 @@ const TOOL_MODULES: ToolModule[] = [
 
 const { defs: MODULE_TOOL_DEFS, handlers: MODULE_TOOL_HANDLERS } = combineToolModules(TOOL_MODULES);
 
+/** Every tool name /mcp knows, built-in and module. For tests that walk the whole surface. */
+export function mcpToolNames(): string[] {
+  return [...TOOL_DEFS, ...MODULE_TOOL_DEFS].map(tool => tool.name);
+}
+
 function toolDefFor(name: string) {
   return TOOL_DEFS.find(tool => tool.name === name)
     ?? MODULE_TOOL_DEFS.find(tool => tool.name === name);
 }
 
-function visibleToolDefs(auth: McpAuth) {
+function visibleToolDefs(env: Env, auth: McpAuth) {
   // Module tools are listed on the same terms as the built-in ones. A tool that
   // dispatches but never appears in tools/list is a tool nobody can find.
   return [...TOOL_DEFS, ...MODULE_TOOL_DEFS]
     .filter(tool => {
-      const scope = tool.scope as McpScope;
-      if (!hasMcpScope(auth, scope)) return false;
+      const scope = tool.scope;
+      if (auth.hostSelf) return hostSelfMayUse(env, auth, tool);
+      if (tool.available && !tool.available(env, auth)) return false;
+      if (scope !== 'signed-in' && !hasMcpScope(auth, scope)) return false;
       // Owner-tier scoped tools are invisible without current owner authority.
-      if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
-      return true;
+      if (scope !== 'signed-in' && OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
+      return !('unavailable' in tool && tool.unavailable?.(env, auth));
     })
     .map(tool => {
-      const { scope: _scope, ...rest } = tool;
+      const { scope: _scope, available: _available, unavailable: _unavailable, ...rest } = tool as ToolDefinition;
       return { ...rest, annotations: annotationsFor(tool) };
     });
+}
+
+/** A host key sees a tool only when it is a host tool and its own switches are open. */
+function hostSelfMayUse(env: Env, auth: McpAuth, tool: { name: string } & Partial<Pick<ToolDefinition, 'available' | 'unavailable'>>) {
+  if (!HOST_SELF_TOOLS.has(tool.name)) return false;
+  if (tool.available && !tool.available(env, auth)) return false;
+  return !tool.unavailable?.(env, auth);
 }
 
 const AUDITED_TOOLS = new Set([
@@ -7225,12 +7338,21 @@ async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: a
 
 async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   const tool = toolDefFor(name);
-  if (!tool) throw new Error(`Unknown tool: ${name}`);
+  // A closed tool answers exactly as an unknown one, before scope or role is
+  // read (A4 review, finding 12); tools/list already leaves it out.
+  if (!tool || ('unavailable' in tool && tool.unavailable?.(env, auth) === 'feature_closed')) throw new Error(`Unknown tool: ${name}`);
+  // A host key never learns whether any other tool exists.
+  if (auth.hostSelf && !HOST_SELF_TOOLS.has(name)) throw new Error(`Unknown tool: ${name}`);
 
-  const scope = tool.scope as McpScope;
+  const scope = tool.scope;
 
-  // Scope check
-  if (!hasMcpScope(auth, scope)) {
+  if (tool.available && !tool.available(env, auth)) {
+    return mcpContent({ error: 'not_available' });
+  }
+
+  // Scope check. A host key holds no shop scope: HOST_SELF_TOOLS is its whole
+  // authority, and each of those tools answers only for the host's own tables.
+  if (!auth.hostSelf && scope !== 'signed-in' && !hasMcpScope(auth, scope)) {
     return mcpContent({
       error: 'insufficient_mcp_scope',
       required_scope: scope,
@@ -7240,13 +7362,16 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
   // Owner-tier gate — defense in depth: reject even if scope is in the token
   // when the creator no longer has owner-tier authority.
-  if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
+  if (!auth.hostSelf && scope !== 'signed-in' && OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
     return mcpContent({
       error: 'owner_tier_required',
       message: 'This tool requires current account-owner or platform-owner authority.',
       tool: name,
     });
   }
+
+  const unavailable = 'unavailable' in tool && tool.unavailable?.(env, auth);
+  if (unavailable) return mcpContent({ error: unavailable });
 
   let result;
   switch (name) {
@@ -7326,6 +7451,15 @@ const SERVER_INFO = {
   description: 'Teajia inventory, orders, customers and Curate. Ask whats_waiting for pending orders and payments. Use search_tea for products and separate Curate sample holdings; curate_find and curate_get_tea read sourcing records. Curate tools cover structured intake, vendor quotes, attachments and uploads, samples and arrivals. curate_correct edits, clears, deletes, archives or merges records; curate_history and curate_undo preserve attribution; select mutation_id to undo a chosen safe change. curate_drive_photo previews trash or restore of a synced Drive backup. Curate management requires shop ownership or explicit curate_manage permission. Writes use preview and confirmation; curate_promote_tea creates a private zero-stock inventory Draft from a Curate tea; stock and sale tools take product ids only. Available tools depend on token scopes: fetch tools/list after connecting or reconnecting.',
 };
 
+/* What a host's own assistant is told on connecting (Launch 5, M6). Only the
+   host's own tables; nothing of the shop is named. */
+const HOST_SERVER_INFO = {
+  ...SERVER_INFO,
+  name: 'teajia-host',
+  description: 'Your own tables on Teajia: make a table, add its teas, answer guests, keep private notes on them, and gather tables into circles. Only your own tables, guests, teas and notes.',
+};
+const HOST_INSTRUCTIONS = 'Read tools/list after connecting. These tools reach only the host\'s own tables, guests, teas, notes and Tea Chest. Every change is previewed first: read the preview back to the host, and confirm only after they accept it.';
+
 // Default to the current rev (structured output + tool annotations). We echo
 // the client's requested protocolVersion when it sends one in `initialize`, so
 // older clients negotiate down cleanly instead of being forced to our default.
@@ -7370,6 +7504,14 @@ async function mcpFetchInner(request: Request, env: Env): Promise<Response> {
     switch (method) {
       case 'initialize': {
         const requested = typeof params?.protocolVersion === 'string' ? params.protocolVersion : null;
+        if (auth.hostSelf) {
+          return rpcResult(id, {
+            protocolVersion: requested || PROTOCOL_VERSION,
+            capabilities: { tools: { listChanged: false } },
+            serverInfo: HOST_SERVER_INFO,
+            instructions: HOST_INSTRUCTIONS,
+          });
+        }
         return rpcResult(id, {
           protocolVersion: requested || PROTOCOL_VERSION,
           capabilities: { tools: { listChanged: false } },
@@ -7379,7 +7521,7 @@ async function mcpFetchInner(request: Request, env: Env): Promise<Response> {
       }
 
       case 'tools/list':
-        return rpcResult(id, { tools: visibleToolDefs(auth) });
+        return rpcResult(id, { tools: visibleToolDefs(env, auth) });
 
       case 'tools/call': {
         const name = params?.name;
@@ -8157,6 +8299,8 @@ async function publicGetTea(env: Env, accountId: string, args: any) {
 
   let tasting: any = p.tasting_notes;
   if (typeof tasting === 'string') { try { tasting = JSON.parse(tasting); } catch { tasting = []; } }
+  // Public: words only, whatever shape the stored notes have.
+  tasting = tastingWithoutScores(tasting);
 
   return { ...publicProductSummary(accountId, p), description: reviewedDescription(p.id, p.description ?? null), tasting_notes: tasting };
 }

@@ -1,0 +1,76 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:23:42.425Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "41046786-aa37-4b8e-b390-005e6495da52",
+    "name": "Shuishalian Yuchi Red",
+    "chineseName": "水沙蓮魚池紅茶",
+    "type": "Red",
+    "form": "Loose",
+    "year": 1981,
+    "origin": "Yuchi, Nantou, Taiwan",
+    "stockGrams": 120,
+    "pricePerGramUsd": 1.86,
+    "tags": [
+      "dried longan",
+      "dark malt",
+      "roasted sweetness",
+      "aged wood",
+      "deep mineral"
+    ]
+  },
+  "entry": {
+    "productId": "41046786-aa37-4b8e-b390-005e6495da52",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "Yuchi, in Nantou County, is where [Taiwan’s red tea](red:history) began, near Sun Moon Lake, during the Japanese period. This leaf comes from there and was made in 1981 as a [red tea](red:definition), oxidised all the way through, the kind English calls black tea."
+      },
+      {
+        "layer": "age",
+        "text": "At forty-five years it sits far outside the usual life of the style. Red tea is [not traditionally aged](red:ageing): it is made to be drunk fresh, and a sealed pack is expected to hold for a year and a half to three years. This lot has outlasted that span many times over."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "red tea",
+      "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:history",
+      "rev": 1
+    },
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "red:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "red:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "red:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:36.372Z"
+}

@@ -291,7 +291,7 @@ describe('Tea Master route security', () => {
     })).status).toBe(201);
   });
 
-  it('falls back to an eligible public listing, omits unrepresented teas, and renumbers positions', async () => {
+  it('falls back to an eligible public listing, omits unrepresented teas, and keeps order without positions', async () => {
     const db = database(); seedIdentity(db);
     db.sqlite.prepare(`INSERT INTO contributors (id, account_id, user_id, display_name, beginnings, is_published)
       VALUES ('mei-lin','acc-one','user-one','Mei Lin','Beginnings',1)`).run();
@@ -304,7 +304,8 @@ describe('Tea Master route security', () => {
 
     const response = await worker.fetch(new Request('https://worker.test/api/public/people/mei-lin/favorites'), { DB: db as any } as any);
     const body = await response.json() as any;
-    expect(body.favorites.map((favorite: any) => [favorite.tea_profile_id, favorite.position])).toEqual([['tea-a', 0], ['tea-b', 1]]);
+    expect(body.favorites.map((favorite: any) => favorite.tea_profile_id)).toEqual(['tea-a', 'tea-b']);
+    for (const favorite of body.favorites) expect(favorite).not.toHaveProperty('position');
   });
 
   it('requires favorite reorders to contain the complete current set', async () => {
@@ -320,7 +321,9 @@ describe('Tea Master route security', () => {
       method: 'PUT', body: { tea_profile_ids: ['tea-b'] },
     });
     expect(partial.status).toBe(409);
-    expect(await partial.json()).toMatchObject({ code: 'favorite_order_stale' });
+    const stale = await partial.json() as any;
+    expect(stale).toMatchObject({ code: 'favorite_order_stale' });
+    expect(JSON.stringify(stale)).not.toContain('count');
     expect(db.sqlite.prepare(`SELECT tea_profile_id, position FROM profile_favorites
       WHERE contributor_id='mei-lin' ORDER BY position`).all()).toEqual([
       { tea_profile_id: 'tea-a', position: 0 }, { tea_profile_id: 'tea-b', position: 1 },

@@ -1,28 +1,17 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { familyApi } from '../../../lib/familyApi';
-import type { FamilyFeedbackNote, FamilyImpression } from '../../../lib/familyContract';
+import type { FamilyFeedbackNote } from '../../../lib/familyContract';
 import { Chip, SectionHeading, TextAction, dayLabel, errorSentence } from './parts';
 
 /**
- * Every note members wrote, with the impression and score they gave. Those two
- * are theirs alone: this list is the only place the shop reads them, and no
- * page or tea ever shows them.
+ * Every note members wrote, in their words. The impression and score a member
+ * gave are theirs alone (Adrian, 2026-11-26): no list, page or tea shows them.
  *
  * From each row the shop can hide the whole tasting (when it was shared) or the
  * person's whole page, in one tap, and show it again the same way.
  */
 export const FEEDBACK_KEY = ['family-feedback'] as const;
-
-const IMPRESSION_WORDS: Record<FamilyImpression, string> = { love: 'Love', like: 'Like', neutral: 'Neutral', pass: 'Dislike' };
-
-export function scoreWords(note: Pick<FamilyFeedbackNote, 'impression' | 'rating'>): string | null {
-  const parts = [
-    note.impression ? IMPRESSION_WORDS[note.impression] : null,
-    note.rating !== null ? `${note.rating} of 10` : null,
-  ].filter(Boolean);
-  return parts.length ? parts.join(', ') : null;
-}
 
 function FeedbackRow({ note }: { note: FamilyFeedbackNote }) {
   const qc = useQueryClient();
@@ -39,14 +28,12 @@ function FeedbackRow({ note }: { note: FamilyFeedbackNote }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: FEEDBACK_KEY }),
     onError: cause => setError(errorSentence(cause, 'Could not change that.')),
   });
-  const score = scoreWords(note);
   return (
     <li className="border-b border-tea-border py-4 last:border-b-0">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="text-ui-12 font-medium text-tea-text">{note.product_name ?? 'A tea'}</span>
         <span className="text-ui-11 text-tea-text-sec">{note.author_name}</span>
         <span className="text-ui-10 uppercase tracking-[0.14em] text-tea-text-dim">{dayLabel(note.written_at)}</span>
-        {score && <span className="text-ui-11 text-tea-text-dim">{score}</span>}
         {note.status !== 'open' && <Chip>{note.status === 'promoted' ? 'On the tea' : 'Passed'}</Chip>}
         {note.tasting_hidden && <Chip>Tasting hidden</Chip>}
         {note.page_hidden && <Chip>Page hidden</Chip>}

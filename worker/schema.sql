@@ -4001,3 +4001,258 @@ CREATE TABLE IF NOT EXISTS order_session_sources (
   host_user_id TEXT,
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- 0129_few_hosts.sql
+ALTER TABLE users    ADD COLUMN host_approved_at TEXT;
+ALTER TABLE users    ADD COLUMN host_approved_by TEXT REFERENCES users(id);
+ALTER TABLE accounts ADD COLUMN host_approved_at TEXT;
+ALTER TABLE accounts ADD COLUMN host_approved_by TEXT REFERENCES users(id);
+ALTER TABLE events ADD COLUMN host_user_id TEXT REFERENCES users(id);
+ALTER TABLE events ADD COLUMN door TEXT CHECK (door IN ('request','link','open'));
+CREATE TABLE IF NOT EXISTS host_guest_notes (
+  id           TEXT PRIMARY KEY,
+  account_id   TEXT NOT NULL,
+  host_user_id TEXT NOT NULL,
+  event_id     TEXT NOT NULL,
+  attendee_id  TEXT NOT NULL,
+  note         TEXT NOT NULL CHECK (length(note) BETWEEN 1 AND 500),
+  updated_at   TEXT NOT NULL,
+  UNIQUE (host_user_id, event_id, attendee_id)
+);
+
+-- 0130_session_reports_contribution.sql
+ALTER TABLE events ADD COLUMN contribution_kind TEXT CHECK (contribution_kind IN ('free','contribution','price'));
+ALTER TABLE events ADD COLUMN contribution_note TEXT CHECK (contribution_note IS NULL OR length(contribution_note) <= 140);
+ALTER TABLE events ADD COLUMN is_tasting INTEGER NOT NULL DEFAULT 0 CHECK (is_tasting IN (0,1));
+
+CREATE TABLE IF NOT EXISTS session_reports (
+  id               TEXT PRIMARY KEY,
+  target_kind      TEXT NOT NULL CHECK (target_kind IN ('session','person')),
+  target_id        TEXT NOT NULL,
+  reason           TEXT CHECK (reason IS NULL OR length(reason) <= 1000),
+  reporter_user_id TEXT REFERENCES users(id),
+  reporter_seat_id TEXT,
+  status           TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','acted','dismissed')),
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_at      TEXT,
+  resolved_by      TEXT REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_session_reports_open ON session_reports(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_session_reports_target ON session_reports(target_kind, target_id);
+ALTER TABLE session_guest_book_photos ADD COLUMN show_name INTEGER NOT NULL DEFAULT 0 CHECK (show_name IN (0, 1));
+
+-- 0131_favourites.sql
+CREATE TABLE IF NOT EXISTS favourite_articles (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  article_id TEXT NOT NULL,
+  is_public  INTEGER NOT NULL DEFAULT 0 CHECK (is_public IN (0,1)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, article_id)
+);
+ALTER TABLE personal_cellar_items ADD COLUMN favourite INTEGER NOT NULL DEFAULT 0 CHECK (favourite IN (0,1));
+-- 0132_quiet_acknowledgement.sql
+ALTER TABLE member_photographs ADD COLUMN credit_name_shown INTEGER NOT NULL DEFAULT 0 CHECK (credit_name_shown IN (0, 1));
+
+-- 0133_tea_table.sql
+CREATE TABLE IF NOT EXISTS tea_table_holds (
+  item_kind TEXT NOT NULL CHECK (item_kind IN ('recap','casual_sit','tasting')),
+  item_id   TEXT NOT NULL,
+  held_by   TEXT NOT NULL REFERENCES users(id),
+  held_until TEXT NOT NULL,
+  PRIMARY KEY (item_kind, item_id)
+);
+CREATE TABLE IF NOT EXISTS tea_table_keeps (
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_kind TEXT NOT NULL CHECK (item_kind IN ('recap','casual_sit','tasting')),
+  item_id   TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, item_kind, item_id)
+);
+ALTER TABLE member_tasting_shares ADD COLUMN tea_table_at TEXT;
+ALTER TABLE member_tasting_shares ADD COLUMN tea_table_sittings TEXT;
+ALTER TABLE events ADD COLUMN tea_table_at TEXT;
+ALTER TABLE events ADD COLUMN tea_table_by TEXT;
+ALTER TABLE events ADD COLUMN tea_table_hidden_at TEXT;
+
+-- 0134_waiting_list_offers.sql
+ALTER TABLE event_attendees ADD COLUMN offer_lapsed_at TEXT;
+
+CREATE TABLE IF NOT EXISTS event_seat_notices (
+  id          TEXT PRIMARY KEY,
+  account_id  TEXT NOT NULL,
+  event_id    TEXT NOT NULL,
+  attendee_id TEXT,
+  kind        TEXT NOT NULL CHECK (kind IN ('cancelled','released','offered','offer_lapsed','claimed')),
+  seats       INTEGER NOT NULL DEFAULT 0 CHECK (seats >= 0),
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_event_seat_notices_event ON event_seat_notices(event_id, account_id, created_at);
+
+-- 0135_host_credit.sql
+-- Tea credit for hosts (Launch 5, M1). NULL terms follow src/lib/hostCredit.ts.
+ALTER TABLE accounts ADD COLUMN host_credit_percent REAL;
+ALTER TABLE accounts ADD COLUMN host_credit_order_ceiling_usd REAL;
+CREATE TABLE IF NOT EXISTS host_credit_entries (
+  id                TEXT PRIMARY KEY,
+  account_id        TEXT NOT NULL,
+  host_user_id      TEXT NOT NULL,
+  kind              TEXT NOT NULL CHECK (kind IN ('pending','earned','reversed','spent')),
+  amount            REAL NOT NULL CHECK (amount > 0),
+  currency          TEXT NOT NULL CHECK (length(currency) = 3 AND currency != 'UNK'),
+  source_inquiry_id TEXT,
+  event_id          TEXT,
+  invoice_id        TEXT,
+  invoice_line_id   TEXT,
+  product_id        TEXT,
+  basis_quantity    REAL,
+  basis_unit_price  REAL,
+  basis_amount      REAL,
+  basis_currency    TEXT,
+  reverses_entry_id TEXT REFERENCES host_credit_entries(id),
+  spend_request_id  TEXT,
+  reason            TEXT,
+  created_by        TEXT NOT NULL,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  CHECK (kind NOT IN ('pending','earned') OR (source_inquiry_id IS NOT NULL AND event_id IS NOT NULL
+    AND invoice_id IS NOT NULL AND invoice_line_id IS NOT NULL
+    AND basis_amount > 0 AND basis_currency IS NOT NULL AND basis_currency = currency)),
+  CHECK (kind != 'reversed' OR (reverses_entry_id IS NOT NULL AND invoice_line_id IS NOT NULL AND reason IS NOT NULL)),
+  CHECK (kind != 'spent' OR (spend_request_id IS NOT NULL AND invoice_id IS NOT NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_host_credit_line_kind
+  ON host_credit_entries(invoice_line_id, kind) WHERE kind IN ('pending','earned','reversed');
+CREATE UNIQUE INDEX IF NOT EXISTS idx_host_credit_reversed_once
+  ON host_credit_entries(reverses_entry_id) WHERE kind = 'reversed';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_host_credit_spent_once
+  ON host_credit_entries(spend_request_id) WHERE kind = 'spent';
+CREATE INDEX IF NOT EXISTS idx_host_credit_host ON host_credit_entries(host_user_id, account_id);
+CREATE INDEX IF NOT EXISTS idx_host_credit_account ON host_credit_entries(account_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_host_credit_invoice ON host_credit_entries(invoice_id);
+
+CREATE TRIGGER IF NOT EXISTS host_credit_entries_immutable_update
+BEFORE UPDATE ON host_credit_entries
+BEGIN
+  SELECT RAISE(ABORT, 'Host credit entries are append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS host_credit_entries_immutable_delete
+BEFORE DELETE ON host_credit_entries
+BEGIN
+  SELECT RAISE(ABORT, 'Host credit entries are append-only');
+END;
+CREATE TABLE IF NOT EXISTS host_credit_spend_requests (
+  id                 TEXT PRIMARY KEY,
+  account_id         TEXT NOT NULL,
+  host_user_id       TEXT NOT NULL,
+  invoice_id         TEXT NOT NULL,
+  amount             REAL NOT NULL CHECK (amount > 0),
+  currency           TEXT NOT NULL CHECK (length(currency) = 3 AND currency != 'UNK'),
+  status             TEXT NOT NULL DEFAULT 'held' CHECK (status IN ('held','approved','declined')),
+  requested_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_by_user_id TEXT,
+  decided_at         TEXT,
+  over_ceiling       INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_host_credit_requests_host
+  ON host_credit_spend_requests(host_user_id, account_id, status);
+CREATE INDEX IF NOT EXISTS idx_host_credit_requests_account
+  ON host_credit_spend_requests(account_id, status, requested_at);
+
+-- 0136_host_table_tea_photos.sql
+ALTER TABLE event_tea_menu ADD COLUMN photo_url TEXT;
+
+-- 0138_tea_house_portfolio.sql
+CREATE TABLE IF NOT EXISTS tea_house_pages (
+  house_account_id TEXT PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+  account_id       TEXT NOT NULL REFERENCES accounts(id),
+  position         INTEGER NOT NULL DEFAULT 0,
+  is_shown         INTEGER NOT NULL DEFAULT 0 CHECK (is_shown IN (0,1)),
+  created_by       TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_tea_house_pages_order ON tea_house_pages(account_id, position);
+CREATE TABLE IF NOT EXISTS tea_house_contributions (
+  id               TEXT PRIMARY KEY,
+  account_id       TEXT NOT NULL REFERENCES accounts(id),
+  house_account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  part             TEXT NOT NULL CHECK (part IN ('room','teaware','tea_menu','training','opening','sourcing')),
+  words            TEXT NOT NULL,
+  photographs      TEXT NOT NULL DEFAULT '[]',
+  created_by       TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (house_account_id, part)
+);
+CREATE INDEX IF NOT EXISTS idx_tea_house_contributions_house ON tea_house_contributions(house_account_id);
+
+-- 0140_contributor_top_teas.sql
+CREATE TABLE IF NOT EXISTS contributor_top_teas (
+  contributor_id TEXT NOT NULL REFERENCES contributors(id) ON DELETE CASCADE,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  slot TEXT NOT NULL CHECK (slot IN (
+    'Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'own', 'elsewhere'
+  )),
+  name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 160),
+  note TEXT CHECK (length(note) <= 600),
+  photo_id TEXT NOT NULL UNIQUE,
+  product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+  PRIMARY KEY (contributor_id, slot)
+);
+
+-- 0141_anyone_hosts.sql
+ALTER TABLE users ADD COLUMN hosting_stopped_at TEXT;
+ALTER TABLE users ADD COLUMN hosting_stopped_by TEXT REFERENCES users(id);
+ALTER TABLE users ADD COLUMN host_reach TEXT CHECK (host_reach IN ('invitation','teajia','listed'));
+
+-- 0144_your_table_place.sql
+ALTER TABLE saved_locations ADD COLUMN is_host_table INTEGER NOT NULL DEFAULT 0 CHECK (is_host_table IN (0,1));
+ALTER TABLE saved_locations ADD COLUMN area_hint TEXT CHECK (area_hint IS NULL OR length(area_hint) <= 80);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_locations_one_host_table
+  ON saved_locations(account_id) WHERE is_host_table = 1;
+
+-- 0145_tea_table_page_alone.sql
+ALTER TABLE member_tasting_shares ADD COLUMN page_alone_at TEXT;
+
+-- 0146_session_series.sql
+CREATE TABLE IF NOT EXISTS session_series (
+  id TEXT PRIMARY KEY, account_id TEXT NOT NULL, host_user_id TEXT NOT NULL,
+  name TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('circle','series')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_session_series_host ON session_series(host_user_id, account_id);
+ALTER TABLE events ADD COLUMN series_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_events_series ON events(series_id) WHERE series_id IS NOT NULL;
+
+-- 0147_know_this_tea.sql
+CREATE TABLE IF NOT EXISTS tea_table_questions (
+  id TEXT PRIMARY KEY,
+  asker_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  where_from TEXT NOT NULL CHECK (length(where_from) BETWEEN 1 AND 280),
+  full_key TEXT NOT NULL,
+  small_key TEXT NOT NULL,
+  small_width INTEGER NOT NULL,
+  small_height INTEGER NOT NULL,
+  shape TEXT NOT NULL DEFAULT 'square' CHECK (shape IN ('square','upright','across')),
+  asked_at TEXT NOT NULL DEFAULT (datetime('now')),
+  taken_off_at TEXT,
+  hidden_at TEXT,
+  hidden_by TEXT REFERENCES users(id),
+  named_name TEXT CHECK (named_name IS NULL OR length(named_name) BETWEEN 1 AND 120),
+  named_product_id TEXT,
+  named_at TEXT,
+  thanked_note_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tea_table_questions_asked ON tea_table_questions(asked_at);
+CREATE INDEX IF NOT EXISTS idx_tea_table_questions_asker ON tea_table_questions(asker_user_id, asked_at);
+CREATE TABLE IF NOT EXISTS tea_table_question_notes (
+  id TEXT PRIMARY KEY,
+  question_id TEXT NOT NULL REFERENCES tea_table_questions(id) ON DELETE CASCADE,
+  writer_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  words TEXT NOT NULL CHECK (length(words) BETWEEN 1 AND 600),
+  product_id TEXT,
+  name_shown INTEGER NOT NULL DEFAULT 0 CHECK (name_shown IN (0,1)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (question_id, writer_user_id)
+);

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { familyPageTierOf, type FamilyPersonTasting } from '../lib/familyContract';
+import { REVOCABLE_QUERY } from '../lib/revocableQuery';
 import type {
   ContributorProfile,
   ContributorListItem,
@@ -86,7 +87,8 @@ export const useContributor = (slug: string | undefined) => {
         tastings: arrayOf<FamilyPersonTasting>(data.tastings),
       };
     },
-    staleTime: 1000 * 60 * 5,
+    // The page carries tastings and photographs a person can take back.
+    ...REVOCABLE_QUERY,
   });
 };
 
@@ -116,6 +118,7 @@ export const useContributors = () => {
         page_tier: familyPageTierOf(r.page_tier),
         family_last_active: typeof r.family_last_active === 'string' ? r.family_last_active : null,
         list_group: r.list_group === 'season' || r.list_group === 'founding' || r.list_group === 'family' ? r.list_group : null,
+        pours: r.pours === true,
       }));
     },
     staleTime: 1000 * 60 * 5,

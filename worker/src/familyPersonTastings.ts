@@ -17,6 +17,7 @@
  * already has, without adding lines to the pinned worker type check.
  */
 import { isFamilyPhotographShape, readFamilyPhotographFrame, type FamilyPersonPhotograph, type FamilyPersonTasting, type FamilyPersonWord } from '../../src/lib/familyContract';
+import { photographBy } from './photographCredit';
 
 const MEDIA_PREFIX = 'https://media.teajia.co/';
 const mediaUrl = (key: string) => `${MEDIA_PREFIX}${key}`;
@@ -29,6 +30,19 @@ export const TASTING_NOT_HIDDEN =
   `NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = s.account_id AND h.target_kind = 'tasting' AND h.target_id = s.journal_entry_id)`;
 export const PHOTO_NOT_HIDDEN =
   `NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)`;
+/**
+ * True unless the owner hid the tasting this photograph belongs to (A4 review,
+ * finding 3): a hidden tasting takes its photographs with it, whether the
+ * photograph names the journal row or only shares its author and tea.
+ * Needs the member_photographs row aliased `p`.
+ */
+export const PHOTO_TASTING_NOT_HIDDEN =
+  `NOT EXISTS (SELECT 1 FROM family_hides ht WHERE ht.account_id = p.account_id AND ht.target_kind = 'tasting'
+     AND (ht.target_id = p.journal_entry_id OR ht.target_id IN (SELECT ts.journal_entry_id FROM member_tasting_shares ts
+       WHERE ts.author_user_id = p.author_user_id AND ts.product_id = p.product_id)))`;
+/** True unless the owner hid the tasting a quote came from. Needs the tasting_note_candidates row aliased `c`. */
+export const QUOTE_TASTING_NOT_HIDDEN =
+  `NOT EXISTS (SELECT 1 FROM family_hides hq WHERE hq.account_id = c.account_id AND hq.target_kind = 'tasting' AND hq.target_id = c.journal_entry_id)`;
 
 /** The newest moment a person shared a tasting or a photograph. Needs the contributors row aliased `c`. */
 export const FAMILY_LAST_ACTIVE_COLUMN =
@@ -45,7 +59,7 @@ const MAX_TEAS = 60;
 const MAX_NOTES_PER_TEA = 30;
 const MAX_PHOTOS_PER_TEA = 6;
 
-/** The dated notes of one journal row's `tastings` list. Notes that came from other people are left out. */
+/** The dated notes of one journal row's `tastings` list. Notes that came from other people or from another journal row are left out. */
 export function wordsFromSittings(raw: unknown): FamilyPersonWord[] {
   let sittings: unknown;
   try { sittings = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return []; }
@@ -60,7 +74,8 @@ export function wordsFromSittings(raw: unknown): FamilyPersonWord[] {
       const text = typeof note === 'string' ? note : (note && typeof (note as any).text === 'string' ? (note as any).text : '');
       const clean = text.trim();
       if (!clean || seen.has(clean)) continue;
-      if (note && typeof note === 'object' && (note as any).sourceAuthor) continue;
+      // Words that came from someone else, or that were carried over from another journal row, are not this sitting's.
+      if (note && typeof note === 'object' && ((note as any).sourceAuthor || (note as any).sourceJournalEntryId)) continue;
       seen.add(clean);
       const written = note && typeof note === 'object' && typeof (note as any).capturedAt === 'string' ? (note as any).capturedAt : sat;
       words.push({ date: written && !Number.isNaN(new Date(written).getTime()) ? written : null, text: clean });
@@ -78,6 +93,7 @@ function storedFrame(text: string | null | undefined) {
 
 type PhotoRow = {
   id: string; product_id: string; small_key: string; full_key: string; small_width: number; small_height: number; shape?: string | null; frame?: string | null; at: string | null;
+  credit_name_shown: number | null;
 };
 type ProductRow = {
   id: string; name: string | null; chinese_name: string | null; slug: string | null; status: string | null;
@@ -85,7 +101,7 @@ type ProductRow = {
 };
 
 /** The teas a person has shared, newest first, as their page shows them. */
-export async function personTastings(db: D1Database, userId: string | null | undefined): Promise<FamilyPersonTasting[]> {
+export async function personTastings(db: D1Database, userId: string | null | undefined, authorName: string | null, credit = false): Promise<FamilyPersonTasting[]> {
   if (!userId) return [];
   const [shares, photos] = await Promise.all([
     db.prepare(
@@ -97,10 +113,10 @@ export async function personTastings(db: D1Database, userId: string | null | und
         ORDER BY at DESC LIMIT ?`,
     ).bind(userId, MAX_TEAS).all<ShareRow>(),
     db.prepare(
-      `SELECT p.id, p.product_id, p.small_key, p.full_key, p.small_width, p.small_height, p.shape, p.frame, p.updated_at AS at
+      `SELECT p.id, p.product_id, p.small_key, p.full_key, p.small_width, p.small_height, p.shape, p.frame, p.credit_name_shown, p.updated_at AS at
          FROM member_photographs p
         WHERE p.author_user_id = ? AND p.share_state IN ('page', 'offered')
-          AND p.removed_by_member_at IS NULL AND ${PHOTO_NOT_HIDDEN}
+          AND p.removed_by_member_at IS NULL AND ${PHOTO_NOT_HIDDEN} AND ${PHOTO_TASTING_NOT_HIDDEN}
         ORDER BY p.created_at, p.id LIMIT 400`,
     ).bind(userId).all<PhotoRow>(),
   ]);
@@ -122,6 +138,8 @@ export async function personTastings(db: D1Database, userId: string | null | und
       small_width: Number(photo.small_width), small_height: Number(photo.small_height),
       shape: isFamilyPhotographShape(photo.shape) ? photo.shape : 'square',
       frame: storedFrame(photo.frame),
+      // "Photograph by" opens with the Tea Table (A4 review, finding 11).
+      ...(credit ? { photograph_by: photographBy(photo, authorName) } : {}),
     });
     pictures.set(photo.product_id, list);
     if (!order.includes(photo.product_id)) order.push(photo.product_id);

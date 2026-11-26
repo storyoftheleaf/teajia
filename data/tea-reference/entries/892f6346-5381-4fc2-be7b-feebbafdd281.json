@@ -1,0 +1,84 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:31:59.829Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "892f6346-5381-4fc2-be7b-feebbafdd281",
+    "name": "Maojian Raw Puerh",
+    "chineseName": "毛尖生普洱",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": 1963,
+    "origin": "Yunnan, China",
+    "stockGrams": 163,
+    "pricePerGramUsd": 3.68,
+    "tags": [
+      "aged sweetness",
+      "old wood",
+      "dried herbs",
+      "deep mineral",
+      "lasting hui gan"
+    ]
+  },
+  "entry": {
+    "productId": "892f6346-5381-4fc2-be7b-feebbafdd281",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "Raw pu’er from Yunnan, picked in 1963 to the maojian standard of young, downy tips, and kept as loose leaf ever since. The garden it came from is not recorded."
+      },
+      {
+        "layer": "type",
+        "text": "Like all [raw pu’er](sheng:making), the leaf was fried to stop most of its own enzymes, then dried in the sun and never with hot air. The activity that survived is what has let it keep changing for years. It was never pressed and has stayed as [maocha](sheng:processing), the rough tea in its loose state."
+      },
+      {
+        "layer": "age",
+        "text": "At sixty-three years it is well past any line the trade draws for [aged raw pu’er](sheng:ageing), whether that line is ten years or twenty. Over those decades its [storage](sheng:storage) has been part of its history."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:processing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:storage",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:34.638Z"
+}

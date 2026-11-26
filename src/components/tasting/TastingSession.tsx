@@ -151,7 +151,7 @@ function generateDescription(data: TastingData): string {
   if (data.cleanliness) parts.push(data.cleanliness + ' finish');
   if (data.huiGan) parts.push('hui gan');
   if (data.feeling?.length) parts.push(data.feeling.slice(0, 2).map(resolveTermLabel).filter(Boolean).join(', ') + ' effect');
-  if (data.quality != null) parts.push(`scored ${data.quality}/10`);
+  // A score is the taster's own. A description is read by shoppers, so it never carries one.
   return parts.length ? parts.join('. ') + '.' : '';
 }
 

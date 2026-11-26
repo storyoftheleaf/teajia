@@ -1,7 +1,7 @@
 import { serveGuestBook } from './sessionGuestBook';
 import {
   reviewGuestBookPhotos, saveGuestBookEntryWithPhoto, serveGuestBookPhotos, serveOwnerGuestBookPhoto,
-  withdrawGuestBookEntry, type GuestBookPhotoInput,
+  serveSessionGallery, withdrawGuestBookEntry, type GuestBookPhotoInput,
 } from './sessionGuestBookPhotos';
 import { afterSitCredentialFormat, createAfterSitCredential, hashAfterSitCredential } from './afterSitCredential';
 import { getKeptSetup, namedSetupTeas, saveKeptSetup } from './privateKeptSetups';
@@ -11,9 +11,11 @@ import { servedTeasOf } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
 import { readableArticleFor } from './eventDomain';
 import { firstTableOpen } from '../../src/lib/firstTable';
+import { anyoneHostsOpen } from '../../src/lib/anyoneHosts';
 import { keptSessionTeaIds, keepSessionTea } from './chestKeep';
+import { journalTeasOf } from './sessionTasting';
 
-type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket; FIRST_TABLE_OPEN?: string };
+type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket; FIRST_TABLE_OPEN?: string; ANYONE_HOSTS_OPEN?: string };
 type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown; photo?: unknown; teaId?: unknown; publicRecap?: unknown };
 const guestBookPhotoActions = new Set<unknown>(['photos-read', 'photo-bytes', 'private-photo-preview', 'photo-offer', 'photo-withdraw']);
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
@@ -79,6 +81,41 @@ export function findEligibleSeat(db: D1Database, credentialHash: string) {
   }>();
 }
 
+/**
+ * Issue one after-sit (thank-you) link for a guest who came to a finished
+ * session, or null when the seat is not eligible. Used by the shop's own route
+ * below and by a small host's route for their own table (Launch 2, H4); the
+ * caller has already proved the session is theirs.
+ */
+export async function issueAfterSitLink(db: D1Database, { attendeeId, eventId, accountId }: {
+  attendeeId: string; eventId: string; accountId: string;
+}): Promise<{ credential: string; expires_at: string } | null> {
+  const scope = [attendeeId, eventId, accountId];
+  const credential = createAfterSitCredential();
+  const hash = await hashAfterSitCredential(credential);
+  const expiresAt = Math.floor(Date.now() / 1000) + LINK_LIFETIME_SECONDS;
+  // The first link for a seat takes the main slot (or replaces one that has
+  // expired); a later copy is added beside it, so a link the guest already
+  // has keeps working until it expires.
+  const eligible = `SELECT a.id, a.event_id, a.account_id, ?, ? FROM event_attendees a
+     ${eventJoins}
+     WHERE a.id = ? AND a.event_id = ? AND a.account_id = ? AND ${guestSeat}`;
+  const [, first, extra] = await db.batch([
+    db.prepare(`DELETE FROM after_sit_extra_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?
+      AND expires_at <= unixepoch()`).bind(...scope),
+    db.prepare(`INSERT INTO after_sit_access (attendee_id, event_id, account_id, credential_hash, expires_at)
+     ${eligible}
+     ON CONFLICT(attendee_id, event_id, account_id) DO UPDATE SET
+       credential_hash = excluded.credential_hash, expires_at = excluded.expires_at
+     WHERE after_sit_access.expires_at <= unixepoch()`).bind(hash, expiresAt, ...scope),
+    db.prepare(`INSERT INTO after_sit_extra_access (attendee_id, event_id, account_id, credential_hash, expires_at)
+     ${eligible} AND NOT EXISTS (SELECT 1 FROM after_sit_access held WHERE held.credential_hash = ?)`)
+      .bind(hash, expiresAt, ...scope, hash),
+  ]);
+  return first.meta?.changes || extra.meta?.changes
+    ? { credential, expires_at: new Date(expiresAt * 1000).toISOString() } : null;
+}
+
 export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, string, Handler<E>][] {
   const manage: Handler<E> = async (request, env, { eventId, attendeeId }) => {
     const host = await deps.requireHost(request, env);
@@ -96,29 +133,8 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
       return first.meta?.changes || extra.meta?.changes || party.meta?.changes ? json({ revoked: true }) : unavailable();
     }
 
-    const credential = createAfterSitCredential();
-    const hash = await hashAfterSitCredential(credential);
-    const expiresAt = Math.floor(Date.now() / 1000) + LINK_LIFETIME_SECONDS;
-    // The first link for a seat takes the main slot (or replaces one that has
-    // expired); a later copy is added beside it, so a link the guest already
-    // has keeps working until it expires.
-    const eligible = `SELECT a.id, a.event_id, a.account_id, ?, ? FROM event_attendees a
-       ${eventJoins}
-       WHERE a.id = ? AND a.event_id = ? AND a.account_id = ? AND ${guestSeat}`;
-    const [, first, extra] = await env.DB.batch([
-      env.DB.prepare(`DELETE FROM after_sit_extra_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?
-        AND expires_at <= unixepoch()`).bind(...scope),
-      env.DB.prepare(`INSERT INTO after_sit_access (attendee_id, event_id, account_id, credential_hash, expires_at)
-       ${eligible}
-       ON CONFLICT(attendee_id, event_id, account_id) DO UPDATE SET
-         credential_hash = excluded.credential_hash, expires_at = excluded.expires_at
-       WHERE after_sit_access.expires_at <= unixepoch()`).bind(hash, expiresAt, ...scope),
-      env.DB.prepare(`INSERT INTO after_sit_extra_access (attendee_id, event_id, account_id, credential_hash, expires_at)
-       ${eligible} AND NOT EXISTS (SELECT 1 FROM after_sit_access held WHERE held.credential_hash = ?)`)
-        .bind(hash, expiresAt, ...scope, hash),
-    ]);
-    return first.meta?.changes || extra.meta?.changes
-      ? json({ credential, expires_at: new Date(expiresAt * 1000).toISOString() }) : unavailable();
+    const issued = await issueAfterSitLink(env.DB, { attendeeId, eventId, accountId: host.accountId });
+    return issued ? json(issued) : unavailable();
   };
 
   function withLink(run: (request: Request, env: E, credentialHash: string, body: LinkInput) => Promise<Response>): Handler<E> {
@@ -154,10 +170,10 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     // a tea's own public page, the session's playlist and its published reading.
     const [extra, resolved] = await Promise.all([
       env.DB.prepare(
-        `SELECT e.reading_article_id, COALESCE(NULLIF(trim(ps.playlist_url), ''), NULLIF(trim(e.playlist_url), '')) AS playlist_url
+        `SELECT e.reading_article_id, e.is_tasting, COALESCE(NULLIF(trim(ps.playlist_url), ''), NULLIF(trim(e.playlist_url), '')) AS playlist_url
          FROM events e LEFT JOIN event_post_session ps ON ps.event_id = e.id AND ps.account_id = e.account_id
          WHERE e.id = ? AND e.account_id = ?`,
-      ).bind(id, account_id).first<{ reading_article_id: string | null; playlist_url: string | null }>(),
+      ).bind(id, account_id).first<{ reading_article_id: string | null; is_tasting: number | null; playlist_url: string | null }>(),
       deps.readPublic ? servedTeasOf(env.DB, deps.readPublic(env), { id, account_id }) : Promise.resolve([]),
     ]);
     const paths = new Map(resolved.map(tea => [tea.id, 'href' in tea ? tea.href ?? null : null]));
@@ -168,6 +184,10 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
       playlist_url: extra?.playlist_url ?? null,
       reading: reading ? { slug: reading.slug, title: reading.title } : null,
     };
+    // J8: a tasting's recap offers to add notes written on paper, one journal link per tea that has a record.
+    // Launch 3 only (A3): with its switch off no recap is a tasting.
+    body.is_tasting = anyoneHostsOpen(env) && Number(extra?.is_tasting) === 1;
+    if (body.is_tasting) body.journal_teas = await journalTeasOf(env.DB, account_id, id);
     if (firstTableOpen(env)) {
       body.thanks_ref = await thanksRefFor(env.DB, id, account_id);
       const userId = deps.optionalUser ? await deps.optionalUser(request, env) : null;
@@ -250,6 +270,25 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     return privateResponse(await serveGuestBook(input, env.DB, scope, seat.magic_token, hash));
   });
 
+  // POST /api/after-sit/gallery { credential, action: 'read' | 'bytes', grantId? }:
+  // the photographs from the table, for a signed-in person holding a seat link
+  // for this session, the booking's own or a personal party link (as keeps).
+  const galleryLink = withLink(async (request, env, hash, body) => {
+    const actor = await deps.requireUser(request, env);
+    if ('error' in actor) return privateResponse(actor.error);
+    const resolveSeat = async () => {
+      const seat = await findEligibleSeat(env.DB, hash) ?? await findPartyRecap(env.DB, hash);
+      return seat ? { account_id: seat.account_id, event_id: seat.id } : null;
+    };
+    return privateResponse(await serveSessionGallery(
+      request, env.DB, env.ATLAS_BUCKET, actor.userId, hash, resolveSeat, body,
+    ));
+  });
+  // The gallery is Launch 3's (J7): closed with its switch (A3).
+  const gallery: Handler<E> = (request, env, params) => anyoneHostsOpen(env)
+    ? galleryLink(request, env, params)
+    : Promise.resolve(json({ error: 'Not found' }, 404));
+
   const photoReview: Handler<E> = async (request, env, { eventId, grantId }) => {
     const host = await deps.requireHost(request, env);
     if ('error' in host) return privateResponse(host.error);
@@ -270,6 +309,7 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     ['POST', '/api/after-sit/keep-tea', keepTea],
     ['POST', '/api/after-sit/setup', setup],
     ['POST', '/api/after-sit/guest-book', guestBook],
+    ['POST', '/api/after-sit/gallery', gallery],
     ['GET', '/api/admin/events/:eventId/guest-book/photos', photoReview],
     ['GET', '/api/admin/events/:eventId/guest-book/photos/:grantId', photoReview],
     ['PUT', '/api/admin/events/:eventId/guest-book/photos/:grantId', photoReview],

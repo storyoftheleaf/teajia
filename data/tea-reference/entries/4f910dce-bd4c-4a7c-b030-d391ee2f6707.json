@@ -1,0 +1,86 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:24:17.320Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "4f910dce-bd4c-4a7c-b030-d391ee2f6707",
+    "name": "1990s Xiaguan Shou Brick",
+    "chineseName": "九零年代下关熟砖",
+    "type": "Shou Puer",
+    "form": "Brick",
+    "year": "1990s",
+    "origin": "Yunnan, China",
+    "stockGrams": 250,
+    "pricePerGramUsd": 1.12,
+    "tags": []
+  },
+  "entry": {
+    "productId": "4f910dce-bd4c-4a7c-b030-d391ee2f6707",
+    "paragraphs": [
+      {
+        "layer": "named",
+        "text": "Xiaguan is one of the oldest names in Yunnan tea. Merchants first pressed the tuo, a compressed cake shaped like a nest, under that name in 1902. The craft carried on through the Kangzang Tea Factory, founded in 1941, and then the Yunnan Xiaguan Tea Factory, which grew into the largest maker of compressed tea in the province. The name comes from the town of Xiaguan in Dali, in western Yunnan, which was a place for trading and pressing tea rather than growing it. This brick of [ripe pu’er](shou:definition) was pressed under the Xiaguan brand in the 1990s."
+      },
+      {
+        "layer": "type",
+        "text": "The factory had its own part in how ripe pu’er came to be. In 1958 a [steam method](shou:piling-history) at Xiaguan cut fermentation to about fifteen days. In 1973 Xiaguan joined Kunming and Menghai in a [team of seven](shou:piling-1973) sent to the Guangzhou tea factory to learn [wet piling](shou:wet-piling), the warm, damp heap that gives in weeks what raw leaf reaches only after years of keeping. Each factory then worked out its own way of piling."
+      },
+      {
+        "layer": "age",
+        "text": "Made in the 1990s, this brick counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, which is why storage shapes it as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:piling-history",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:piling-1973",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:32.798Z"
+}

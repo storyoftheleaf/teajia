@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BREWING_EXPERIENCES_OPEN } from '../../lib/brewingExperiences';
+import { teaTableOpen } from '../../lib/teaTable';
 import { useBlobObjectUrl } from '../../hooks/useBlobObjectUrl';
 import { recapPhotoPublicQuery, revocableSitPhotoApi } from '../../lib/revocableSitPhotoApi';
 
@@ -45,8 +45,8 @@ export function PublicRecapPhoto({ eventSlug, placement }: { eventSlug: string; 
         {data.tea && <p className="mb-1 break-words text-tea-text">{data.tea.name}</p>}
         {data.observation && <p className="mb-1 whitespace-pre-wrap break-words">{data.observation}</p>}
         <p className="break-words">Photo by {data.credit}</p>
-        {!placement && data.canShowInBrewing && BREWING_EXPERIENCES_OPEN && (
-          <a className="btn-quiet btn-sm tap-target mt-1" href="/tea-feed">Brewing experiences</a>
+        {!placement && data.canShowInBrewing && teaTableOpen() && (
+          <a className="btn-quiet btn-sm tap-target mt-1" href="/tea-table">The Tea Table</a>
         )}
       </figcaption>
     </figure>

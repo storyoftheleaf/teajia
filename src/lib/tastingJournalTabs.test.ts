@@ -121,6 +121,25 @@ describe('the storage listener', () => {
     }
     expect(setState).not.toHaveBeenCalled();
   });
+
+  it('lets go of the journal when another tab signs this person out', () => {
+    let handler: ((event: unknown) => void) | undefined;
+    const setItem = vi.fn();
+    vi.stubGlobal('window', {
+      addEventListener: (_: string, fn: typeof handler) => { handler = fn; },
+      removeEventListener: () => {},
+      localStorage: { setItem },
+    });
+    const mine = { tastingJournal: [entry('mine', 'tea', '2026-11-02T08:00:00.000Z', [])], activeUserId: 'me', activeAccountId: 'a' };
+    const setState = vi.fn();
+    listenForOtherTabJournal({ getState: () => mine, setState }, 'teajia-storage');
+
+    const before = JSON.stringify({ state: { ...mine } });
+    const after = JSON.stringify({ state: { tastingJournal: [], activeUserId: null, activeAccountId: null } });
+    handler?.({ key: 'teajia-storage', oldValue: before, newValue: after });
+    expect(setState).toHaveBeenCalledWith({ tastingJournal: [] });
+    expect(setItem).toHaveBeenCalledWith('teajia-storage', after);
+  });
 });
 
 describe('what is left in storage after joining another tab', () => {

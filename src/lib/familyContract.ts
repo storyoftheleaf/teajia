@@ -107,6 +107,8 @@ export interface FamilyPhotograph {
   share_state: FamilyShareState;
   shape: FamilyPhotographShape;
   frame?: FamilyPhotographFrame | null;
+  /** The photographer's own yes to "photograph by <first name>". Starts at no. */
+  credit_name_shown?: boolean;
   created_at: string;
 }
 
@@ -139,7 +141,18 @@ export interface FamilySharedPhotograph {
   small_height: number;
   shape: FamilyPhotographShape;
   frame?: FamilyPhotographFrame | null;
-  author: FamilyAuthor;
+  /**
+   * Who took it. On a public answer this is present only when the photographer
+   * allowed their name, and then holds their first name; otherwise null, so
+   * neither their name nor their page leaves the worker. The shop's own
+   * offered pile always knows who sent it.
+   */
+  author: FamilyAuthor | null;
+  /**
+   * "Photograph by <first name>": the photographer's first name, only when they
+   * allowed it (credit_name_shown). Null when they did not, so nothing is shown.
+   */
+  photograph_by?: string | null;
 }
 
 /** What a public tea page shows from the family. */
@@ -155,6 +168,7 @@ export interface FamilyTeaPhotographs {
 
 /** One photograph in the shop's offered pile. */
 export interface FamilyOfferedPhotograph extends FamilySharedPhotograph {
+  author: FamilyAuthor;
   product_id: string;
   product_name: string | null;
   share_state: FamilyShareState;
@@ -195,7 +209,7 @@ export type FamilyImpression = 'love' | 'like' | 'neutral' | 'pass';
 
 /**
  * One note a member wrote, as the shop reads it. The impression and the score
- * are the member's own and are sent to the shop's screens only.
+ * the member gave are theirs alone and are not part of it (Adrian, 2026-11-26).
  */
 export interface FamilyFeedbackNote {
   journal_entry_id: string;
@@ -208,9 +222,6 @@ export interface FamilyFeedbackNote {
   text: string;
   written_at: string | null;
   status: 'open' | 'promoted' | 'dismissed';
-  impression: FamilyImpression | null;
-  /** Out of ten, or null when the member gave none. */
-  rating: number | null;
   /** True when the member shared this tasting, which is what a tasting hide needs. */
   shared: boolean;
   tasting_hidden: boolean;
@@ -279,6 +290,8 @@ export interface FamilyPersonPhotograph {
   full_url: string;
   shape: FamilyPhotographShape;
   frame?: FamilyPhotographFrame | null;
+  /** A consent-projected first name, when the photographer allowed it. */
+  photograph_by?: string | null;
 }
 
 /**

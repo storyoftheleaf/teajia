@@ -23,6 +23,15 @@ import type { ContributorListItem } from '../types';
 // prints that order as it arrives. No counts, no dates, no ranking words, no
 // badge: where a person sits is all it says. Past the first
 // PEOPLE_LIST_FAMILY_SHOWN the rest of the family wait behind "See everyone".
+// One plain line may sit beneath a name: "Pours at tables", for someone who
+// has poured at a completed session (the worker's `pours`). Words only: no
+// count of sessions, no icon, nothing that grows with how often.
+
+/** "Pours at tables", or nothing. The same three words for everyone who pours. */
+function PoursLine({ person }: { person: ContributorListItem }) {
+  if (person.pours !== true) return null;
+  return <span className="mt-1 block font-sans text-ui-12 text-tea-text-sec" data-testid="person-pours">Pours at tables</span>;
+}
 
 /** The group a person sits in. The worker says; an answer without it falls back to the word on their page. */
 function groupOf(person: ContributorListItem): PeopleListGroup {
@@ -48,6 +57,7 @@ function PersonCard({ person }: { person: ContributorListItem }) {
         </span>
         <span className="flex min-w-0 flex-1 flex-col justify-end px-[18px] py-4">
           <span className="block font-display text-ui-26 leading-none text-tea-text"><SplitName name={person.display_name} /></span>
+          <PoursLine person={person} />
           {person.own_line && (
             /* Three lines at most, so a long first sentence never pushes the kicker off the top of the card. */
             <Dek className="mt-2 text-[12.5px]" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{person.own_line}</Dek>
@@ -88,6 +98,7 @@ function FamilyRow({ person }: { person: ContributorListItem }) {
       </span>
       <span className="min-w-0">
         <span className="tj-people-title block font-display text-ui-24 leading-[1.08] transition-colors"><SplitName name={person.display_name} /></span>
+        <PoursLine person={person} />
         {person.own_line && <Dek className="mt-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{person.own_line}</Dek>}
       </span>
     </Link>

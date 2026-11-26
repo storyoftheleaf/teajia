@@ -43,6 +43,7 @@ import { prepareCompassSampleWrite } from '../curateSampleBridge';
 import { acquisitionProposalColumns, acquisitionStateSaid, ACQUISITION_STATES, ACQUISITION_UNITS, isAcquisitionState, readAcquiredQuantity, waitsAsArrival, type AcquiredQuantity, type AcquisitionState } from '../curateAcquisition';
 import { refreshedCurrencyName, REFRESHED_CURRENCIES } from '../exchangeRateFeed';
 import { mergeProductTasting, readStoredTasting, tastingTermLabel, TASTING_TERM_CATEGORIES } from '../curateImportTasting';
+import { tastingWithoutScores } from '../publicScores';
 import type { ToolAuth, ToolDefinition, ToolEnv, ToolHandler, ToolModule } from './registry';
 import { INVALID_TICKET, consumeTicket, issueTicket, previewEnvelope } from './tickets';
 
@@ -610,12 +611,16 @@ function readTeaWrite(args: any, label: string, vendor: VendorPlan | null, curre
   return { write, lines };
 }
 
+const SCORE_IS_THE_WRITERS = 'A score belongs to the person who gave it. This Curate tea was written by someone else, so its score is theirs to record; send the tasting terms without a score.';
+
 async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: TeaWrite, isNew: boolean) {
   if (w.note || w.vendorNote) throw new Error('Agent notes are disabled; preview structured fields instead');
   await requireCurateManager(env.DB, auth);
   const vendor = await resolveVendorAtCommit(env, auth, w.vendor, w.agent);
   const current = isNew ? null : await entryById(env, auth, entryId);
   if (!isNew && !current) throw new Error('That tea is no longer active in Curate.');
+  // A Curate tea's score is its writer's; it is never filed under them by someone else.
+  if (w.score != null && current && current.user_id !== auth.userId) throw new Error(SCORE_IS_THE_WRITERS);
   const values: Record<string, unknown> = { ...w.values };
   if (vendor) Object.assign(values, { vendor_id: vendor.id, vendor_name: vendor.name });
   for (const field of w.clear) {
@@ -785,14 +790,18 @@ const toolGetTea: ToolHandler = async (env, auth, args) => {
   const e = await entryById(env, auth, id);
   if (!e) return { error: 'not_found' };
   const [notes, todos, vendor] = await Promise.all([
-    env.DB.prepare(`SELECT id, text, source_type, author_name, created_at FROM notes
-                    WHERE account_id = ? AND compass_entry_id = ? AND (deleted IS NULL OR deleted = 0) ORDER BY created_at ASC`)
-      .bind(auth.accountId, id).all(),
+    // A private note is its writer's alone.
+    env.DB.prepare(`SELECT id, text, source_type, author_id, author_name, created_at FROM notes
+                    WHERE account_id = ? AND compass_entry_id = ? AND (deleted IS NULL OR deleted = 0)
+                      AND (author_id = ? OR COALESCE(visibility, 'private') != 'private') ORDER BY created_at ASC`)
+      .bind(auth.accountId, id, auth.userId).all(),
     env.DB.prepare('SELECT id, text, created_at FROM curate_todos WHERE account_id = ? AND compass_entry_id = ? AND done_at IS NULL AND deleted_at IS NULL ORDER BY created_at ASC')
       .bind(auth.accountId, id).all(),
     e.vendor_id ? vendorById(env, auth, String(e.vendor_id)) : Promise.resolve(null),
   ]);
-  const tasting = readStoredTasting(e.tasting);
+  // The score on someone else's tea is theirs; this reader gets the words.
+  const stored = readStoredTasting(e.tasting);
+  const tasting = e.user_id === auth.userId ? stored : tastingWithoutScores(stored);
   const recentHistory = await curateManagerAccess(env, auth)
     ? (await readCurateHistory(env, auth, { entity_type: 'tea', entity_id: id, limit: 5 })).history
     : [];
@@ -805,7 +814,8 @@ const toolGetTea: ToolHandler = async (env, auth, args) => {
     },
     tasting: Object.fromEntries(Object.entries(tasting).map(([k, v]) =>
       [k, Array.isArray(v) ? v.map(t => ({ id: t, label: tastingTermLabel(String(t)) })) : v])),
-    notes: notes.results ?? [],
+    notes: ((notes.results ?? []) as Record<string, any>[]).map(({ author_id, ...note }) => author_id === auth.userId || note.source_type !== 'tasting'
+      ? note : { ...note, text: typeof note.text === 'string' ? note.text.replace(/^\s*\d+(?:\.\d+)?\/10(?:\s*·\s*)?/, '') : note.text }),
     open_todos: todos.results ?? [],
     vendor: vendor ? vendorSummary(vendor) : null,
     recent_history: recentHistory.map(m => ({
@@ -925,6 +935,7 @@ const toolUpdateTea: ToolHandler = async (env, auth, args) => {
   if (!current) return { error: 'not_found' };
   const vendor = await planVendor(env, auth, str(args?.vendor_id, 80), str(args?.vendor_name, 200));
   const { write, lines } = readTeaWrite(args, current.name ?? 'this tea', vendor, current);
+  if (write.score != null && current.user_id !== auth.userId) throw new Error(SCORE_IS_THE_WRITERS);
   // readTeaFields leaves the name out of the lines because on an add the read_back
   // already says it. On an update a rename is a change like any other: without a
   // line it was refused as nothing to change, and riding with another field it
