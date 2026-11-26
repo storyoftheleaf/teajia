@@ -225,6 +225,8 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
+import { fileReport, openReports, resolveReport } from './sessionReports';
+import { anyoneHostsOpen } from '../../src/lib/anyoneHosts';
 import { articleWisdomClaimUseRoutes, moveClaimUsesWithBlocks, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
 import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
@@ -32053,6 +32055,50 @@ const familyDeps: FamilyDeps<Env> = {
   publicAccountId: BALI_ACCOUNT_ID,
   requireAuthenticatedUser, optionalAuthenticatedUser, requireBundle, enforceDurableLimit, validateUpload, safeUploadExtension,
 };
+// Reports on a session or a person (Launch 3, J5). Anyone may file; only the
+// platform owner reads or resolves, and the reporter is named to nobody else.
+const sessionReportsClosed = () => json({ error: 'Not found' }, 404);
+const handleFileSessionReport: Handler = async (request, env) => {
+  if (!anyoneHostsOpen(env)) return sessionReportsClosed();
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `session-report:${ip}`);
+  if (limited) return limited;
+  let body: Record<string, unknown>;
+  try { body = await request.json() as Record<string, unknown>; } catch { return json({ error: 'Say what you are reporting.', code: 'validation_failed' }, 400); }
+  if (!body || typeof body.target_id !== 'string' || (body.target_kind !== 'session' && body.target_kind !== 'person')) {
+    return json({ error: 'Say what you are reporting.', code: 'validation_failed' }, 400);
+  }
+  const reporter = await optionalAuthenticatedUser(request, env);
+  const outcome = await fileReport(env.DB, {
+    targetKind: body.target_kind, targetId: body.target_id,
+    reason: typeof body.reason === 'string' ? body.reason : null,
+    reporterUserId: reporter?.userId ?? null, reporterSeatId: null,
+  });
+  if ('refused' in outcome) return json({ error: outcome.refused.error, code: outcome.refused.code }, outcome.refused.status);
+  return json(outcome, 201);
+};
+const handleListSessionReports: Handler = async (request, env) => {
+  if (!anyoneHostsOpen(env)) return sessionReportsClosed();
+  const denied = await requirePlatformOwner(request, env);
+  if (denied) return denied;
+  return json({ reports: await openReports(env.DB) });
+};
+const handleResolveSessionReport: Handler = async (request, env, params) => {
+  if (!anyoneHostsOpen(env)) return sessionReportsClosed();
+  const denied = await requirePlatformOwner(request, env);
+  if (denied) return denied;
+  const claims = parseToken(isAuthed(request) || '');
+  let body: Record<string, unknown> = {};
+  try { body = await request.json() as Record<string, unknown>; } catch { /* refused below */ }
+  const outcome = await resolveReport(env.DB, { id: params.id, status: body.status as 'acted' | 'dismissed', actorId: claims?.sub ?? 'unknown' });
+  if ('refused' in outcome) return json({ error: outcome.refused.error, code: outcome.refused.code }, outcome.refused.status);
+  return json(outcome);
+};
+routes.unshift(
+  ['POST', '/api/session-reports', handleFileSessionReport],
+  ['GET', '/api/admin/session-reports', handleListSessionReports],
+  ['POST', '/api/admin/session-reports/:id/resolve', handleResolveSessionReport],
+);
 routes.unshift(
   ['POST', '/api/transcribe', familyTranscribe(familyDeps, handleTranscribe)],
   ['POST', '/api/transcriptions/:id/retry', familyRetryTranscription(familyDeps, handleRetryTranscription)],
