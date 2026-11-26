@@ -243,10 +243,10 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                     <p>{item.name}</p>
                     {item.label && <p className="text-ui-12 text-tea-text-sec">{item.label}</p>}
                     {item.notes && <p className="text-ui-12 text-tea-text-sec">{item.notes}</p>}
-                    {sourceLine(item) && <p className="text-ui-12 text-tea-text-dim">{sourceLine(item)}</p>}
+                    {tableOpen && sourceLine(item) && <p className="text-ui-12 text-tea-text-dim">{sourceLine(item)}</p>}
                   </div>
                   <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-                    <span className="shrink-0 text-ui-13 text-tea-text-sec">{gramsLine(item)}</span>
+                    <span className="shrink-0 text-ui-13 text-tea-text-sec">{tableOpen ? gramsLine(item) : `${item.grams} g`}</span>
                     {tableOpen && <button
                       type="button"
                       onClick={() => navigate(`/account/journal?chest=${encodeURIComponent(item.id)}`)}
@@ -481,10 +481,10 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                       item.source?.kind !== 'session' && item.costAmount != null && item.costCurrency ? `Paid ${formatPersonalTeaMoney(item.costAmount, item.costCurrency)}` : null,
                     ].filter(Boolean).join(' · ')}
                   </div>
-                  {sourceLine(item) && <div className="mt-0.5 break-words text-ui-12 text-tea-text-dim">{sourceLine(item)}</div>}
+                  {tableOpen && sourceLine(item) && <div className="mt-0.5 break-words text-ui-12 text-tea-text-dim">{sourceLine(item)}</div>}
                 </div>
                 <div className="flex shrink-0 items-center">
-                  <span className="text-ui-13 text-tea-text-sec tabular-nums">{gramsLine(item)}</span>
+                  <span className="text-ui-13 text-tea-text-sec tabular-nums">{tableOpen ? gramsLine(item) : `${item.grams} g`}</span>
                   {item.placementStatus === 'private' && (
                     <>
                       <button
