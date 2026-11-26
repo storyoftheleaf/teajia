@@ -26,7 +26,7 @@ Anywhere a person adds a photo, it opens in the shared editor first (`usePhotoEd
 **Never give Adrian a zip file for a handoff.** A handoff is plain files saved on GitHub, given to him as links he can open. No archive as the handoff, and none as a "second copy" either. (Adrian, 2026-11-16.)
 
 ## What this is
-Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, social network, or franchise. Adrian's curation is the engine. WhatsApp checkout is intentional — every order is a personal conversation. The app works before/after tea sessions, never during (no phone-at-the-table features).
+Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, social network, or franchise. Adrian's curation is the engine. WhatsApp checkout is intentional — every order is a personal conversation. The app never asks during a tea session: it sends nothing, prompts nothing and shows nothing to scroll while people are sitting. A photo is one tap. A tasting is the one kind of session where writing is the point, and the host chooses it. (Adrian, 2026-11-26; this replaces "never during".)
 
 ## Stack & constraints
 - React 19 + Vite 6 + TypeScript + Tailwind v3 (CSS-variable tokens, not Tailwind defaults)
@@ -144,6 +144,8 @@ Streak trackers, gamification, engagement notifications, algorithmic recommendat
 **One exception, order only (Adrian, 2026-11-21).** The people list may place the people who use the site most nearer the top of "The family". Position is the whole of it: no badges, counts, streaks, nudges or notifications, and no wording that says why anyone sits where they do. The method lives in `worker/src/peopleList.ts`; the plan is `todo/plans/teajia-family.md`, "The people list".
 
 **Second exception, the Tea Table (proposed by Adrian, 2026-11-25; not in force until he confirms the wording).** One public page may show, newest first, what people have chosen to put on the tea table: shared tastings with their words and photographs, and published session recaps. Time order is the whole of it: no likes, comments, follows, follower or view counts, scores, streaks, ranking, recommendations or notifications, and it is never called a feed on the site. A person can take their own item off and the owner can hide any item. The plan is `todo/plans/tea-table.md`; the section map is `docs/SECTIONS.md`. Build nothing under it until he says yes.
+
+**Third exception, quiet acknowledgement (Adrian, 2026-11-26).** Active people may be acknowledged only through things one person gives another: a host's thank-you, being quoted by name, "photograph by", "poured with", and the word on a page that Adrian grants by hand. No numbers, no levels, no titles for volume, nothing automatic, and nothing that nudges. A host's standing may decide how widely their sessions are shown, by Adrian's hand, and that standing is never displayed. The plan is `todo/plans/guests-and-tea-masters.md`, "Quiet acknowledgement".
 
 ## NEVER change without explicit confirmation
 - Navigation links, tab labels, or routing in `src/components/BottomTabBar.tsx` or any nav component — ask first, do not assume.

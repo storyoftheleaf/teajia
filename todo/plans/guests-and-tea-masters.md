@@ -244,30 +244,95 @@ Each stage leaves the site whole and is useful by itself. None changes a bar wor
 | Stage | What gets built | Closes | Needs from Adrian |
 |---|---|---|---|
 | 0 | **Repairs.** Confirm G1 on the live site and fix the invite address so account and tea master invites land on a page that accepts them. Correct the profile screen wording | G1, part of G10 | Nothing |
-| 1 | **The words.** Vocabulary applied to copy, the plans, the pillar and the standing rules. No code beyond labels | G10 | His yes on the phone rule wording |
-| 2 | **Before: invite to a session.** One invitation link and code per session. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. A private sit may invite more than one person | G2, G3, G11, G15 | Decision 2 |
+| 1 | **The words.** Vocabulary applied to copy, the plans, the pillar and the standing rules. No code beyond labels | G10 | Nothing more |
+| 2 | **Before: invite to a session.** One invitation link and code per session. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. A private sit may invite more than one person | G2, G3, G11, G15 | The safety floor (B1) and the session wording (B2) |
 | 3 | **After: the thank-you.** The host composes one message from the session: their words, the teas poured with links, price and what is for sale, the playlist, and the three asks. The guest answers on one screen: how the teas felt, what it was like, photographs. It reuses the Guest Book, the tasting screen and the photo editor | G6, G14 | Nothing |
 | 4 | **During.** The one-tap camera for a session, and "this is a tasting" as the host's choice with one screen per tea. Paper notes can be entered afterward | part of G6 | Nothing |
 | 5 | **The Tea Table, first form.** `/tea-table` with sessions poured, the words people shared and their photographs, as [tea-table.md](tea-table.md) describes, with its consent and withdrawal gates. A "Host a table" door | G5 | The Tea Table rule exception; one real sit |
 | 6 | **Tables and tea houses.** "Add your table" in Your Table, private. Public tea house pages, the Visit list, who has poured there. Then Build and Work from [tea-houses.md](tea-houses.md) | G4 | His facts for the build offering |
 | 7 | **Favourites in three kinds, and the Tea Chest's three states.** Articles, shop teas and chest teas on one favourites page, private until shown | G7 | Nothing |
 | 8 | **Home, and the bar words.** The new Home order, then the one change to bar, rail, phone menu and keyboard keys. Home's first two parts can ship earlier, with stage 2 | G8 | The explicit yes on the words |
-| 9 | **Quiet acknowledgement, the people list, and the people articles.** Quoted words and "poured with" on pages, who pours on the people list, the first three people articles | G9, G12 | Decision 3; three people to write about |
+| 9 | **Quiet acknowledgement, the people list, and the people articles.** Quoted words and "poured with" on pages, who pours on the people list, the first three people articles | G9, G12 | Three people to write about |
 | 10 | **Every tool.** A sweep so that anything a host or keeper can do on a screen can be said to an agent, and a scoped token a tea master can connect themselves | G13 | Nothing |
 | 11 | **Your Table as a page, Read's three shelves, truth-up.** As [docs/SECTIONS.md](../../docs/SECTIONS.md) had them | none new | Decision 6 of the first pass |
 | Later | Short video. The tea tasting box. The app | G16 | |
 
-## Decisions for Adrian
+## Decisions
 
-**Answered on 2026-11-26.** The words: yes, with the host and other tea masters pouring. A tea master's place is a private table, never public. A Tea Chest tea may be kept, shown as a favourite, or offered for a while. The thirty-second rule was wrong and is rewritten above.
+**Answered by Adrian, 2026-11-26.**
 
-**Still open, three.** Each has a recommendation, and "yes" to all three is a complete answer.
+- The words: yes, with a host and other tea masters pouring.
+- A tea master's place is a private table, never public.
+- A Tea Chest tea may be kept, shown as a favourite, or offered for a while.
+- The phone rule as written above: yes. It is now in `CLAUDE.md`.
+- Who may host: "Anyone can host. There is moderation and curation depending on the people who are hosting. This is where gamification helps, but it's covert gamification."
+- Quiet acknowledgement: yes. It is now the third exception in `CLAUDE.md`.
 
-1. **The phone rule as now written:** "The app never asks during a session," with a tasting as the host's choice. Recommended: yes. It replaces "never during" in the standing rules.
-2. **Who may host.** Recommended: anyone may host a private sit by invitation. A session listed publicly, on the calendar or under a tea house, is for tea creators, tea masters and houses, as now.
-3. **Quiet acknowledgement as a third exception** to the rule against gamification, exactly as the table above: only things one person gives another, and no numbers anywhere. Recommended: yes.
+**What "anyone can host" means in the build.** Every session can exist. How far it is shown depends on its host, and that is decided by a person, never by a counter. Three reaches: by invitation only (the default for a new host), open to people already on Teajia, and listed publicly. Adrian, or the keeper of a tea house for sessions there, moves a host from one reach to the next. The host is told plainly, in private, that listed sessions are chosen by hand. Nothing on anyone's page shows which reach they have.
 
-Still open from the first pass and unchanged: the four bar words (read, table, houses, shop), the Tea Table rule exception, the share wording, review or hide, Your Table as a page, and your facts for the build offering. They are listed in [docs/SECTIONS.md](../../docs/SECTIONS.md).
+Still open from the first pass: the four bar words (read, table, houses, shop), the Tea Table rule exception, the share wording, review or hide, Your Table as a page, and Adrian's facts for the build offering. They are listed in [docs/SECTIONS.md](../../docs/SECTIONS.md). New questions raised by the review below are gathered at its end.
+
+## Blind spots and ideas (review of 2026-11-26)
+
+Adrian asked for one more pass over the whole thing: the holes, and what he had not thought of. These are in order of how much they could hurt or help.
+
+### Blind spots
+
+**B1. Strangers in homes.** "Anyone can join" plus "anyone can host" plus "a table is someone's home" is the one place this could go badly wrong for a real person. Proposed floor, none of it optional: a seat at a private table always needs the host's yes; the address appears only after that yes; a new guest arrives with a line saying who invited them or that nobody did; every session and every person has a quiet report line that reaches Adrian; Adrian can pause a host or a guest in one tap; under-18s sit only with an adult. A guest is shown to other guests by first name and can choose not to be shown.
+
+**B2. The word "tea master" is about to be worn thin.** If anyone can host, then on the site anyone is "the tea master" of their session, while "tea master" is also the word Adrian grants by hand. A first-time host calling themselves a tea master on a public page will look wrong to the very people Adrian most wants to respect. Proposed: a session says "hosted by" and "pouring"; "tea master" stays the granted word on a person's page. Adrian's meaning, master of ceremonies in the moment, is kept by the word host.
+
+**B3. What a host gains is not written anywhere.** A guest's why is clear. A host's is thinner than it looks: when their guests buy Adrian's tea after a session, the host receives nothing and is not even told. The rule that money never moves through Teajia can stay, and the host can still be honoured: an order placed from a session's thank-you carries "from Mei's table" to Adrian, the host sees that their guests found tea through them (no amounts), and Adrian has a real basis for the things he gives by hand: the wholesale tier, the page word, a wider reach. This is where the covert part lives, and it is made of his judgement, not a formula.
+
+**B4. Where does a host's tea come from?** The loop has no step for it, and it is the step that is Adrian's business. A host needs tea to pour. See idea I1.
+
+**B5. Two kinds of session exist in the code, and "anyone can host" lands on the weaker one.** Sessions with RSVP, seats, hosts and recaps belong to an account and are made in Manage (`worker/src/eventDomain.ts`). A member's private sit is a different table (`member_private_sits`, migration 0109) with one invitation and no seats. Building invitations, the thank-you and the tools twice would be the costliest mistake available here. The first engineering decision of stage 2 is one session model that both kinds use, with the account being optional.
+
+**B6. A guest with no account has to be reachable and has to be the same person later.** The thank-you needs somewhere to go, and the site does not message people. The honest channel is the one already in use: the host shares one link in their own WhatsApp, and each guest opens their own page from it. What a guest adds before signing up must attach to them when they do. Parts of this exist (the personal after-sit link, the phone-verified journey). It needs to be one path.
+
+**B7. Photographs of other people.** Guests photograph each other and Adrian posts to Instagram. The current consent covers the photographer, not the people pictured. Proposed: one line on every invitation ("photographs may be taken; tell your host if you would rather not be in them"), a tick when offering a photograph that the people in it are fine with it, and an "offered for Instagram" state separate from "on the site", since the reach is very different. Adrian dropped the lawyer's read on 2026-11-21; pictures of guests in private homes is the case that would justify one short read after all.
+
+**B8. Adrian becomes the moderator of everything.** Anyone hosts, anyone shares, and today every hide and every approval is his. Hosts should review what appears on their own session (the Guest Book already works this way), keepers their own house, and Adrian only what is listed publicly and what is reported.
+
+**B9. An empty table looks dead.** Read from the live figures in the pillar: no upcoming sessions, one tea master page, five articles. If the Tea Table and the Home strips open now, they open empty. The bar word "table" should not go live until there is a real flow: for example ten sessions with something shared, from at least three hosts. Until then it is reached from Home and from sessions.
+
+**B10. Language.** Bali, China and English-speaking guests share these tables. Words on the Tea Table will arrive in several languages. Decide now that a person's words are shown as written, with nothing auto-translated in place, and that the invitation and thank-you screens are the first things worth translating.
+
+**B11. Seat price.** `TODO.md` already says sessions have no seat price, so close-outs land as zero-priced orders. With many hosts this gets worse. A session should be able to say "free", "by contribution" or a price, paid to the host directly, with the site only recording the host's word that it was settled.
+
+**B12. Contact details pile up with every host.** If each host collects names and numbers, every home table becomes a small customer database. Keep a guest's contact in the host's WhatsApp, where it already is, and store only a name on the site unless the guest signs up.
+
+**B13. This is a second product, and the first one is not yet proven.** The working plan's priority is one real sale and one real sit. Nothing above should pass that queue. See idea I6 for a way to learn most of it without building.
+
+### Ideas
+
+**I1. The host's box, sooner than "later".** Adrian placed the tasting box six to twelve months out. Its smaller form may be the real front door for hosting: three or four teas, enough for six people, sold from the shop, arriving with the session already made. The teas are listed, the invitation is ready to send, the thank-you is drafted. A guest who wants to pour buys one and is a host that weekend. It answers B4, it is the August brief's "Second Table in a Box", and it makes every new host a customer. It needs only sets that can be bought, which is already an open line in `TODO.md`.
+
+**I2. A sit of one.** A person at home with one tea is a session with one seat. If the journal treats it that way, the online-only person is inside the same loop from their first day: they sit, they note, they may share, and the day they invite one friend nothing about the screen changes.
+
+**I3. Taste along.** The same tea, the same week, many tables. No live video and nothing during. Afterward the Tea Table shows what each table made of that one tea, side by side. It is the gentlest way for scattered people to learn from each other, and it sells one tea deeply instead of twenty thinly.
+
+**I4. Paper first.** For a tasting, a printed sheet per session with the teas already on it. Guests write by hand. Afterward someone photographs the sheets and they are read into each person's notes, using the reader that already scans tea packages and receipts. The phone stays in the bag for the whole session and nothing is lost.
+
+**I5. Same table again.** Most real tables are the same few people returning. One action for a host: "same table, next date", which makes the next session with the same guests invited. No following and no notices from the site, only the host's invitation as before.
+
+**I6. Run the next sit by hand.** Before any of stages 2 to 4 is built, do one of Adrian's own sessions entirely by hand: a WhatsApp invitation, then a thank-you sent as a plain message with the teas, the links, the playlist and the three asks. See what comes back, in what form, from whom. One evening of evidence will reshape the thank-you screen more than any drawing, and it is the "one real sit" the closeout plan has been waiting for.
+
+**I7. Travelling tea masters and open tables.** A tea master says "I am in Ubud for March and glad to pour". A keeper or a host with a table says "my table is open to a visiting tea master". Adrian introduces them. No matching engine: a short private list and his hand. It is the lineage made practical, and it is how a house hears of the people who might one day keep it.
+
+**I8. The path to a tea house runs through the table.** The first thread's centre was building tea houses with Adrian. It has not been lost: the person who has hosted at home for a year, whose guests return and buy, is the founder that offering is for. The private view of hosts (B3) is also the list of people to have that conversation with.
+
+**I9. Voice before tools.** Other tea masters connecting their own assistant is real but far. Most will not set anything up. The nearer version of the same wish: a host says into their phone "Saturday at four, six seats, the two oolongs and the aged white", and the session is drafted for them to confirm. The transcription and the tea word library are already there.
+
+**I10. Instagram as the far end of the same photograph.** A picture offered for Instagram arrives in one place for Adrian with its credit line and the session it came from, ready to post. The Tea Table is the record and Instagram is the announcement, and the same consent step governs both.
+
+### Questions this raises for Adrian
+
+1. B2: should a session say "hosted by" and "pouring", keeping "tea master" for the word you grant?
+2. B1: is the safety floor right as written, and is there anything from your own years of hosting that belongs on it?
+3. B3: should a host see that their guests found tea through them?
+4. I1: is a small host's box worth bringing forward, ahead of the full tasting box?
+5. I6: which coming session could be run by hand as the test?
 
 ## Not building
 

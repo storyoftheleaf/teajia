@@ -239,7 +239,7 @@ The rules against feeds are written in several places. This is exactly what chan
 
 ## Open decisions for Adrian
 
-**From the second pass, three still open.** They are written out with recommendations in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Decisions for Adrian": the phone rule as rewritten, who may host, and quiet acknowledgement as a third exception. Adrian answered the rest on 2026-11-26.
+**From the second pass, all answered on 2026-11-26**: the words, private tables, the Tea Chest's states, the phone rule, anyone may host with reach decided by hand, and quiet acknowledgement. They are recorded in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Decisions". The same file's "Blind spots and ideas" holds a review of the whole plan and five new questions.
 
 **From the first pass, seven**, each with a recommendation. The first two unlock everything else. Decision 7 is narrower now: Adrian has said what a tea house is, and what remains is his facts for the build offering.
 
