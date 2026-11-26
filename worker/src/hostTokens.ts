@@ -115,13 +115,22 @@ export function readHostTokenLabel(body: Record<string, unknown> | null): { labe
  * DELETE /api/me/assistant-tokens/:id      disconnect one of the host's own keys
  */
 export function hostTokensRoutes<E extends HostTokensEnv>(deps: HostTokensDeps<E>): [string, string, Handler<E>][] {
-  /** The signed-in person, when keys are open and they may host or were stopped after hosting. */
+  /**
+   * The signed-in person, when keys are open and they may host, were stopped
+   * after hosting, or still hold a live key of their own from when they could
+   * (Teajia withdrew their approval). Whoever holds a key may always see and
+   * disconnect it; only a person who may host now makes a new one.
+   */
   const hostFor = async (request: Request, env: E) => {
     if (!hostTokensOpen(env)) return { error: notFound() };
     const person = await deps.requireAuthenticatedUser(request, env);
     if ('error' in person) return person;
     const standing = await mayHostNow(env, person.userId);
-    if (!standing.may && !standing.stopped) return { error: notFound() };
+    if (!standing.may && !standing.stopped) {
+      const accountId = await personalAccountId(env.DB, person.userId);
+      const holds = accountId ? (await liveHostTokens(env.DB, person.userId, accountId)).length > 0 : false;
+      if (!holds) return { error: notFound() };
+    }
     return { ...person, ...standing };
   };
 
@@ -137,6 +146,7 @@ export function hostTokensRoutes<E extends HostTokensEnv>(deps: HostTokensDeps<E
   const mint: Handler<E> = async (request, env) => {
     const host = await hostFor(request, env);
     if ('error' in host) return host.error;
+    if (!host.may && !host.stopped) return notFound();
     if (!host.may) return refuse(403, 'hosting_stopped', 'New keys are paused on your account. Write to Teajia to talk it over.');
     const input = readHostTokenLabel(await request.json().catch(() => null) as Record<string, unknown> | null);
     if ('refused' in input) return refuse(400, 'label', input.refused);
@@ -152,10 +162,18 @@ export function hostTokensRoutes<E extends HostTokensEnv>(deps: HostTokensDeps<E
     const id = crypto.randomUUID();
     const prefix = secret.slice(0, 14);
     const expiresAt = Math.floor(Date.now() / 1000) + HOST_TOKEN_LIFETIME_SECONDS;
-    await env.DB.prepare(
+    // The limit is held in the write itself, so two keys made at once cannot pass it together.
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const inserted = await env.DB.prepare(
       `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'account_owner', ?)`,
-    ).bind(id, account.id, host.userId, host.email, input.label, await sha256Hex(secret), prefix, HOST_SELF_SCOPES_JSON, expiresAt).run();
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'account_owner', ?9
+        WHERE (SELECT COUNT(*) FROM mcp_tokens WHERE user_id = ?3 AND account_id = ?2 AND scopes = ?8 AND revoked_at IS NULL
+                 AND (expires_at IS NULL OR expires_at >= ?10)) < ?11`,
+    ).bind(id, account.id, host.userId, host.email, input.label, await sha256Hex(secret), prefix, HOST_SELF_SCOPES_JSON,
+      expiresAt, nowSeconds, HOST_TOKENS_MAX).run();
+    if (!Number(inserted.meta?.changes || 0)) {
+      return refuse(409, 'too_many_keys', 'Disconnect an assistant you no longer use, then make a new key.');
+    }
     await env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
        VALUES (?, 'MCP_TOKEN_MINTED', ?, ?, 'mcp_token', ?, ?)`,

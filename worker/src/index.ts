@@ -36,7 +36,7 @@ import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTab
 import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
 import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
-import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnHostCredit, readShopHostCredit, settleHostCredit } from './hostCreditLedger';
+import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnHostCredit, readShopHostCredit, settleHostCredit, useHostCreditOnOrder } from './hostCreditLedger';
 import { hostCreditOpen } from '../../src/lib/hostCredit';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -25436,6 +25436,23 @@ const handleGetMyTeaCredit: Handler = async (request, env) => {
   return json(await readOwnHostCredit(env.DB, user.userId));
 };
 
+// POST /api/me/tea-credit/orders/:id/use: the host asks to use credit on one
+// of their own open orders. No amount is read from the request; the ledger
+// works it out from the order and the host's credit in that shop, and holds
+// it until the owner decides in Manage.
+const handleUseMyTeaCredit: Handler = async (request, env, params) => {
+  if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
+  const user = await optionalAuthenticatedUser(request, env);
+  if (!user) return json({ error: 'Sign in to use your tea credit' }, 401);
+  const held = await useHostCreditOnOrder(env, { hostUserId: user.userId, invoiceId: params.id });
+  if ('error' in held) {
+    if (held.error === 'closed') return json({ error: 'Not found' }, 404);
+    if (held.error === 'not_found') return restError(404, 'Order not found', 'invoice_not_found');
+    return restError(409, 'Your credit does not cover any more of this order.', 'host_credit_not_covered');
+  }
+  return json({ success: true, request: held }, 201);
+};
+
 async function requireHostCreditOwner(
   request: Request, env: Env, options: { allowPlatformOwner?: boolean } = {},
 ): Promise<AccountCtx | { error: Response }> {
@@ -33504,6 +33521,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/orders/:id', handleGetMyOrderDetail],
   ['POST', '/api/me/orders/:id/keep-in-chest', handleKeepOrderLineInChest],
   ['GET', '/api/me/tea-credit', handleGetMyTeaCredit],
+  ['POST', '/api/me/tea-credit/orders/:id/use', handleUseMyTeaCredit],
   ['GET', '/api/host-credit', handleListShopHostCredit],
   ['POST', '/api/host-credit/invoices/:id/approve', handleApproveHostCreditOrder],
   ['POST', '/api/host-credit/spend-requests/:id/approve', handleDecideHostCreditSpend],

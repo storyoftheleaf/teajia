@@ -469,6 +469,7 @@ function lineView(row: Record<string, any>): HostCreditLineView {
  */
 export async function readOwnHostCredit(db: D1Database, userId: string): Promise<{
   balances: Array<Omit<HostCreditBalance, 'host_user_id'>>; lines: HostCreditLineView[];
+  requests: HostCreditOwnRequest[]; orders: HostCreditOwnOrder[];
 }> {
   const { results } = await db.prepare(
     `${LINE_SELECT}
@@ -477,7 +478,99 @@ export async function readOwnHostCredit(db: D1Database, userId: string): Promise
   ).bind(userId).all<Record<string, any>>();
   const balances = (await readBalances(db, 'host_user_id = ?', [userId]))
     .map(({ host_user_id: _host, ...rest }) => rest);
-  return { balances, lines: results.map(lineView) };
+  const { results: requests } = await db.prepare(
+    `SELECT r.id, r.account_id, a.name AS shop_name, r.invoice_id, i.invoice_number, r.amount, r.currency, r.status,
+            r.requested_at, r.decided_at
+       FROM host_credit_spend_requests r
+       LEFT JOIN accounts a ON a.id = r.account_id
+       LEFT JOIN invoices i ON i.id = r.invoice_id AND i.account_id = r.account_id
+      WHERE r.host_user_id = ?
+      ORDER BY r.requested_at DESC, r.id DESC LIMIT 200`,
+  ).bind(userId).all<Record<string, any>>();
+  return {
+    balances,
+    lines: results.map(lineView),
+    requests: requests.map(row => ({
+      id: row.id, account_id: row.account_id, shop_name: row.shop_name ?? null, invoice_id: row.invoice_id,
+      invoice_number: row.invoice_number ?? null, amount: Number(row.amount), currency: row.currency,
+      status: row.status, requested_at: row.requested_at, decided_at: row.decided_at ?? null,
+    })),
+    orders: await ownOrdersForCredit(db, userId, balances),
+  };
+}
+
+export type HostCreditOwnRequest = {
+  id: string; account_id: string; shop_name: string | null; invoice_id: string; invoice_number: string | null;
+  amount: number; currency: string; status: 'held' | 'approved' | 'declined'; requested_at: string; decided_at: string | null;
+};
+
+/** One of the host's own open orders in a shop where they hold credit, and what credit it could take now. */
+export type HostCreditOwnOrder = {
+  invoice_id: string; invoice_number: string | null; account_id: string; shop_name: string | null;
+  tea_total: number; already: number; may_use: number; currency: string;
+};
+
+const TEA_TOTAL_SQL = (types: readonly string[]) => `COALESCE((SELECT SUM(li.quantity * li.price_at_sale) FROM invoice_line_items li
+    JOIN products p ON p.id = li.product_id AND p.account_id = i.account_id
+   WHERE li.invoice_id = i.id AND li.quantity > 0 AND li.price_at_sale > 0
+     AND p.type IN (${types.map(() => '?').join(', ')})), 0)`;
+
+async function ownOrdersForCredit(
+  db: D1Database, userId: string, balances: Array<Omit<HostCreditBalance, 'host_user_id'>>,
+): Promise<HostCreditOwnOrder[]> {
+  const shops = balances.filter(balance => balance.currency === HOST_CREDIT_CURRENCY).map(balance => balance.account_id);
+  if (!shops.length) return [];
+  const types = TEA_TYPES as readonly string[];
+  const { results } = await db.prepare(
+    `SELECT i.id, i.invoice_number, i.account_id, a.name AS shop_name, ${TEA_TOTAL_SQL(types)} AS tea_total,
+            COALESCE((SELECT SUM(o.amount) FROM host_credit_spend_requests o
+               WHERE o.invoice_id = i.id AND o.account_id = i.account_id AND o.status IN ('held','approved')), 0) AS already
+       FROM invoices i
+       JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id AND c.user_id = ?
+       LEFT JOIN accounts a ON a.id = i.account_id
+      WHERE i.account_id IN (${shops.map(() => '?').join(', ')})
+        AND i.status IN ('Draft','Pending') AND i.deleted_at IS NULL
+      ORDER BY i.created_at DESC, i.id DESC LIMIT 50`,
+  ).bind(...types, userId, ...shops).all<Record<string, any>>();
+  const available = new Map(balances.map(balance => [balance.account_id, balance.available]));
+  return results
+    .map(row => {
+      const teaTotal = roundUsd(Number(row.tea_total || 0));
+      const already = roundUsd(Number(row.already || 0));
+      const mayUse = roundUsd(Math.max(0, Math.min(available.get(row.account_id) ?? 0, teaTotal - already)));
+      return {
+        invoice_id: row.id, invoice_number: row.invoice_number ?? null, account_id: row.account_id,
+        shop_name: row.shop_name ?? null, tea_total: teaTotal, already, may_use: mayUse, currency: HOST_CREDIT_CURRENCY,
+      };
+    })
+    .filter(order => order.tea_total > 0);
+}
+
+/**
+ * The host asks to use their credit on one of their own open orders. The
+ * amount is worked out here, never taken from the request: as much of the
+ * order's tea lines as their credit in that shop covers, less what is already
+ * held or spent on that order. It is held until the owner decides in Manage.
+ */
+export async function useHostCreditOnOrder(
+  env: CreditEnv, input: { hostUserId: string; invoiceId: string },
+): Promise<{ id: string; amount: number; currency: string } | { error: 'closed' | 'not_found' | 'not_covered' }> {
+  if (!hostCreditOpen(env)) return { error: 'closed' };
+  const invoice = await env.DB.prepare(
+    `SELECT i.id, i.account_id FROM invoices i
+       JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id AND c.user_id = ?
+      WHERE i.id = ? AND i.status IN ('Draft','Pending') AND i.deleted_at IS NULL`,
+  ).bind(input.hostUserId, input.invoiceId).first<{ id: string; account_id: string }>();
+  if (!invoice) return { error: 'not_found' };
+  const balances = (await readBalances(env.DB, 'host_user_id = ? AND account_id = ?', [input.hostUserId, invoice.account_id]))
+    .map(({ host_user_id: _host, ...rest }) => rest);
+  const order = (await ownOrdersForCredit(env.DB, input.hostUserId, balances)).find(row => row.invoice_id === invoice.id);
+  if (!order || !(order.may_use > 0)) return { error: 'not_covered' };
+  const held = await holdHostCreditSpend(env, {
+    accountId: invoice.account_id, hostUserId: input.hostUserId, invoiceId: invoice.id, amount: order.may_use,
+  });
+  if ('error' in held) return { error: held.error === 'closed' ? 'closed' : 'not_covered' };
+  return { id: held.id, amount: order.may_use, currency: HOST_CREDIT_CURRENCY };
 }
 
 /** Everything in one shop, for its owner in Manage: hosts, every line, every spend request. */
@@ -509,6 +602,7 @@ export async function readShopHostCredit(db: D1Database, accountId: string) {
       ...lineView(row),
       host_user_id: row.host_user_id, host_name: names.get(row.host_user_id) ?? null,
       invoice_id: row.invoice_id, invoice_number: row.invoice_number ?? null, source_inquiry_id: row.source_inquiry_id,
+      invoice_status: row.invoice_status ?? null,
     })),
     spend_requests: requests.map(row => ({
       ...row, amount: Number(row.amount), over_ceiling: Number(row.over_ceiling) === 1,
@@ -520,11 +614,12 @@ export async function readShopHostCredit(db: D1Database, accountId: string) {
 // ── Spending: a held request, approved by hand ───────────────────────────────
 
 /**
- * Hold credit against an order to the shop. Not reachable from any route yet:
- * spending at checkout is later work, which must work out `amount` on the
- * server from the order, never from the browser. The hold is one guarded
- * statement: it is written only while the host's available credit covers it,
- * and only up to the tea lines of that order.
+ * Hold credit against an order to the shop. Reached only through
+ * useHostCreditOnOrder, which works out `amount` on the server from the
+ * order, never from the browser. The hold is one guarded statement: it is
+ * written only while the host's available credit covers it, only on an order
+ * of the host's own (its customer is linked to them), and only up to the tea
+ * lines of that order less what other requests already hold or spent on it.
  */
 export async function holdHostCreditSpend(
   env: CreditEnv,
@@ -538,8 +633,12 @@ export async function holdHostCreditSpend(
   const result = await env.DB.prepare(
     `INSERT INTO host_credit_spend_requests (id, account_id, host_user_id, invoice_id, amount, currency, status)
      SELECT ?4, ?1, ?2, ?5, ?6, ?3, 'held'
-      WHERE EXISTS (SELECT 1 FROM invoices i WHERE i.id = ?5 AND i.account_id = ?1 AND i.status IN ('Draft','Pending') AND i.deleted_at IS NULL)
-        AND ?6 <= COALESCE((SELECT SUM(li.quantity * li.price_at_sale) FROM invoice_line_items li
+      WHERE EXISTS (SELECT 1 FROM invoices i
+              JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id AND c.user_id = ?2
+             WHERE i.id = ?5 AND i.account_id = ?1 AND i.status IN ('Draft','Pending') AND i.deleted_at IS NULL)
+        AND ?6 + COALESCE((SELECT SUM(o.amount) FROM host_credit_spend_requests o
+              WHERE o.invoice_id = ?5 AND o.account_id = ?1 AND o.status IN ('held','approved')), 0)
+            <= COALESCE((SELECT SUM(li.quantity * li.price_at_sale) FROM invoice_line_items li
               JOIN products p ON p.id = li.product_id AND p.account_id = ?1
              WHERE li.invoice_id = ?5 AND li.quantity > 0 AND li.price_at_sale > 0
                AND p.type IN (${types.map(() => '?').join(', ')})), 0) + 0.004

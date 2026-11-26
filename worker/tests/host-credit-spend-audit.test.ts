@@ -131,11 +131,16 @@ it('repays debt from later earnings before making credit available to spend', as
       VALUES ('second','shop','event','host'), ('third','shop','event','host');
     INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale)
       VALUES ('partial-tea','shop','partial','tea',60,1), ('surplus-tea','shop','surplus','tea',70,1);
+    -- A second order of the host's own: the first one's tea lines are already paid in full by credit.
+    INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_id, status, payment_status)
+      VALUES ('redemption-2','shop','R2','Host','buyer','Pending','unpaid');
+    INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale)
+      VALUES ('ordered-2','shop','redemption-2','tea',10,1);
   `);
   await settleHostCredit(env(), 'sale');
   const balance = async () => (await readOwnHostCredit(env().DB, 'host')).balances[0];
   const hold = (amount: number) => holdHostCreditSpend(env(), {
-    accountId: 'shop', hostUserId: 'host', invoiceId: 'redemption', amount,
+    accountId: 'shop', hostUserId: 'host', invoiceId: 'redemption-2', amount,
   });
   expect(await balance()).toMatchObject({ debt: 10, available: 0 });
   await settleHostCredit(env(), 'partial');
