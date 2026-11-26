@@ -25,7 +25,7 @@
  *   sites  vite --port 7891 (VITE_API_URL and TEAJIA_API_PROXY at 8891, every VITE_ switch of ON plus
  *          VITE_CIRCLES_OPEN, VITE_HOST_TOKENS_OPEN, VITE_HOST_CREDIT_OPEN, VITE_TABLE_CARD_OPEN)
  *          and vite --port 7892 (at 8892, Launch 1 to 4 only).
- * Then: L5_ON_URL, L5_OFF_URL, L5_ON_API and L5_OFF_API override the defaults below.
+ * Then set L5_ON_URL, L5_OFF_URL, L5_ON_API and L5_OFF_API (the walk is skipped without L5_ON_API).
  * People: ana / ana (an approved host), sandbox / sandbox (the shop's owner).
  */
 import type { Browser, Page } from '@playwright/test';
@@ -44,6 +44,8 @@ test.use({
   ...(process.env.L5_CHROMIUM ? { launchOptions: { executablePath: process.env.L5_CHROMIUM } } : {}),
 });
 test.setTimeout(120_000);
+// Opt in by naming the sandbox, as the other launch walks do; CI starts none for it.
+test.skip(!process.env.L5_ON_API, 'Needs the offline fixture sandbox: set L5_ON_API and the rest (see the header).');
 // The steps share one sandbox and run in order; a failed step does not skip the next.
 test.describe.configure({ mode: 'default' });
 
