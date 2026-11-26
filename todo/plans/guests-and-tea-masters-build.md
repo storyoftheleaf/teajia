@@ -30,7 +30,7 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 | Q1 | Is Launch 1 the right first version (his own tables only)? | Launch 1 as a whole. Treated as the working assumption until he says otherwise |
 | Q2 | The one sentence for Home | L1-08 |
 | Q3 | Which coming session to run by hand | L1-00 |
-| Q4 | Any tea from anyone, shown properly | L2-04 |
+| Q4 | Any tea from anyone, shown properly. **Answered yes, 2026-11-26** | Nothing now |
 | Q5 | Free to host and a host can take their record away, said on the site | L2-01 copy |
 | Q6 | The Tea Table exception wording in CLAUDE.md | All of Launch 4's Tea Table work |
 | Q7 | The four bar words: read, table, houses, shop | L4-05 only. No navigation label changes without his explicit yes |
@@ -38,6 +38,13 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 | Q9 | The wrapper reader opened to hosts | L5-02 |
 | Q10 | A small host's box brought forward | L5-07 |
 | Q11 | May hosts offer articles | L4-07 |
+
+## Adrian's answers, 2026-11-26, in the build thread
+
+- **Q4, yes.** "Yes, this is correct." A host may put any tea on a session, from anywhere, with no price, and a host's session may link Adrian's teas to his shop. Launch 2's H6 is unblocked. He added: distribution and shipping go on the to-do list for a later date. It is in `TODO.md`.
+- **Old private sits.** "This has not been used yet." So there is nothing to carry over. Launch 3's J3 stands as written: the old sits are left where they are and the private sit door makes a hosted table from now on. No migration.
+- **Hosting.** "Anyone can make their own tea table. Maybe there is an extra thing when I get to know them and I approve them. So the curated tables versus just people hosting." Read as: hosting is open to everyone, and his approval is a second level on top, not the entry ticket. This is the model in the Launch 3 sheet (anyone hosts by request; a host he approves gains the by-link door and reach). It changes Launch 2 in one way: its approval gate is a rollout step for the first few hosts, not the lasting rule, and the words "Hosting opens by invitation for now" are temporary. Whether "curated" is ever shown as a word on a table is not decided; until he says so, it shows only as where a table can be found, never as a label.
+- **Still open, explained to him the same day:** Q6 (the Tea Table rule), Q7 (the bar words; he keeps shop and read, likes table and houses, and asks whether a newcomer will understand them; five directions were sent), Q8 (the credit rule).
 
 ## How the build is run
 
