@@ -652,6 +652,11 @@ export function collectionShareUrl(slug: string): string {
 // (14 days) so slide refreshes land while there's still plenty of headroom.
 const PROACTIVE_REFRESH_THRESHOLD_SECONDS = 60 * 60 * 24 * 14;
 
+/** The signed-in person's token on this device, or null. */
+export function currentSignInToken(): string | null {
+  return getToken();
+}
+
 function getToken(): string | null {
   try {
     if (typeof localStorage !== 'undefined') {

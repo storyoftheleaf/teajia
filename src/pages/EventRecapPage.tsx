@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ExternalLink, MessageCircle, Music } from 'lucide-react';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { usePublicSitRecap } from '../lib/publicSitRecap';
+import { PlaylistSection } from '../components/events/PlaylistSection';
 import { SitRecap } from '../components/sessions/SitRecap';
 
 // /event/:slug/recap. The recap is ordered by tea (components/sessions/SitRecap.tsx).
@@ -38,56 +39,6 @@ const SharedNotesSection: React.FC<SharedNotesSectionProps> = ({ notes }) => (
         </blockquote>
       ))}
     </div>
-  </section>
-);
-
-interface PlaylistSectionProps {
-  playlistUrl: string;
-}
-
-const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
-  <section className="mb-12">
-    <div className="flex items-center gap-2 mb-5">
-      <Music className="w-4 h-4 text-tea-gold" aria-hidden="true" />
-      <h2 className="h2">Session playlist</h2>
-    </div>
-    {playlistUrl.includes('spotify.com') ? (
-      <div className="rounded-xl overflow-hidden border border-tea-border">
-        <iframe
-          src={playlistUrl.replace('/playlist/', '/embed/playlist/')}
-          width="100%"
-          height="152"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-          className="border-0"
-          title="Session playlist"
-        />
-      </div>
-    ) : playlistUrl.includes('youtube.com') || playlistUrl.includes('youtu.be') ? (
-      <div className="rounded-xl overflow-hidden border border-tea-border aspect-video">
-        <iframe
-          src={playlistUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-          width="100%"
-          height="100%"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          loading="lazy"
-          className="border-0"
-          title="Session playlist"
-        />
-      </div>
-    ) : (
-      <a
-        href={playlistUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-3 px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-ui-12 font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
-      >
-        <Music className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-        <span>Listen to the session playlist</span>
-        <ExternalLink className="w-3 h-3 text-tea-text-sec ml-auto" />
-      </a>
-    )}
   </section>
 );
 

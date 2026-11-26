@@ -17,6 +17,10 @@ interface PublicTeaMenuProps {
   items: TeaMenuItem[];
 }
 
+type PublicEvent = TeaEvent & {
+  reading?: { slug: string; title: string } | null;
+};
+
 const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
   if (items.length === 0) return null;
   const sorted = [...items].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
@@ -128,7 +132,7 @@ const EventLanding: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { data: event, isLoading, isError, error } = useQuery<TeaEvent>({
+  const { data: event, isLoading, isError, error } = useQuery<PublicEvent>({
     queryKey: ['event-public', slug],
     queryFn: () => api.events.getPublic(slug!),
     enabled: !!slug,
@@ -309,7 +313,7 @@ const EventLanding: React.FC = () => {
   // The public endpoint returns raw snake_case JSON. Access camelCase with snake_case fallback
   // throughout this component. Fields added to the SELECT in handleGetEventBySlug are returned
   // as snake_case; fields that have gone through mapEvent() arrive as camelCase.
-  const ev = event as TeaEvent & Record<string, any>;
+  const ev = event as PublicEvent & Record<string, any>;
   const eventDate: string = ev.eventDate ?? ev.event_date;
   const flyerImageUrl: string | undefined = ev.flyerImageUrl ?? ev.flyer_image_url;
   const locationName: string | undefined = ev.locationName ?? ev.location_name;
@@ -321,6 +325,7 @@ const EventLanding: React.FC = () => {
   const moodHints: string[] | undefined = ev.moodHints ?? (ev.mood_hints ? (typeof ev.mood_hints === 'string' ? JSON.parse(ev.mood_hints) : ev.mood_hints) : undefined);
   const eventFormat: import('../../types/events').EventFormat | undefined = ev.format ?? ev.event_format ?? undefined;
   const gatheringType: import('../../types/events').GatheringType | undefined = ev.gatheringType ?? ev.gathering_type ?? undefined;
+  const reading = ev.reading;
   // requires_approval: raw integer from worker (0 or 1); default true for old events without the column
   const rawRequiresApproval = ev.requires_approval ?? ev.requiresApproval;
   const isInstantConfirm = rawRequiresApproval === false || rawRequiresApproval === 0;
@@ -471,6 +476,18 @@ const EventLanding: React.FC = () => {
               {areaHint ?? locationName ?? 'Location shared after RSVP'}
             </span>
           </div>
+
+          {reading && (
+            <a
+              href={`/article/${encodeURIComponent(reading.slug)}`}
+              className="tap-target inline-flex items-center justify-center gap-1.5 mb-6 text-ui-12 text-tea-gold hover:text-tea-gold-lt transition-colors"
+            >
+              <BookOpen className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>To read before you come</span>
+              <span aria-hidden="true">·</span>
+              <span>{reading.title}</span>
+            </a>
+          )}
 
           {/* Confirmed seat count + opt-in guest names */}
           {confirmedCount > 0 && !isCompleted && (() => {
