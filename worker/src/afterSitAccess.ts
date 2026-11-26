@@ -186,7 +186,9 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     const actor = await deps.requireUser(request, env);
     if ('error' in actor) return privateResponse(actor.error);
     if (typeof body.teaId !== 'string' || !body.teaId) return unavailable();
-    const item = await keepSessionTea(env.DB, { userId: actor.userId, credentialHash, teaId: body.teaId });
+    const item = await keepSessionTea(env.DB, {
+      userId: actor.userId, credentialHash, teaId: body.teaId, readPublic: deps.readPublic?.(env),
+    });
     return item ? json({ item }) : unavailable();
   });
 

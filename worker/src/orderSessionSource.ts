@@ -8,7 +8,13 @@
 //
 // Rules: the order never fails because of `via`. An unknown, malformed,
 // foreign-account or unfinished session's reference writes nothing. The host
-// is read from the session on the server, never taken from the browser.
+// is read from the session on the server, never taken from the browser. Only a
+// fresh save (201) writes a row: a replay of an earlier request does not.
+//
+// To reach the invoice an order became, join through
+// inquiries.converted_invoice_id, which every conversion sets. Do not use
+// invoices.source_inquiry_id: only website checkouts set it, and it drives the
+// website order rules, so a converted cart request leaves it empty.
 
 const VIA_FORMAT = /^[a-f0-9]{18}$/;
 
