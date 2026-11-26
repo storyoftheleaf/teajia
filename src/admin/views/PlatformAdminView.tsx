@@ -13,6 +13,7 @@ import { Button } from '../../components/shared/Button';
 import type { PlatformRole } from '../../types';
 import { useStepParam } from '../../hooks/useStepParam';
 import { fewHostsOpen } from '../../lib/fewHosts';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -204,6 +205,21 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     } finally { setBusy(null); }
   };
 
+  // Launch 3: anyone signed in may host by request. Adrian can stop one
+  // host: no new table and no new seat; guests already confirmed keep theirs.
+  const stoppingOpen = hostingOpen && anyoneHostsOpen();
+  const handleSetHostingStopped = async (user: PlatformUser, stopped: boolean) => {
+    setBusy(`stop-${user.id}`);
+    try {
+      const res = await api.platform.setHostingStopped(user.id, stopped);
+      const at = res.hosting_stopped ? (user.hosting_stopped_at ?? new Date().toISOString()) : null;
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, hosting_stopped_at: at } : u));
+      showToast(res.hosting_stopped ? `${user.name || user.email} hosts no new tables` : `${user.name || user.email} may host again`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to change hosting', 'error');
+    } finally { setBusy(null); }
+  };
+
   const handleResendInvite = async (user: PlatformUser) => {
     setBusy(`invite-${user.id}`);
     try {
@@ -260,6 +276,29 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
               </Button>
             )}
           </div>
+          {stoppingOpen && (
+            <div className="flex flex-wrap items-center justify-between gap-1.5 border-t border-tea-border pt-2" data-testid="hosting-stop">
+              <p className="text-ui-12 text-tea-text-sec min-w-0">
+                {hostUser.hosting_stopped_at
+                  ? `Hosting stopped ${new Date(hostUser.hosting_stopped_at).toLocaleDateString()}. No new table, no new seat. Confirmed guests keep theirs.`
+                  : 'May host by request, like anyone signed in.'}
+              </p>
+              {hostUser.hosting_stopped_at ? (
+                <Button type="button" size="sm" variant="secondary" loading={busy === `stop-${hostUser.id}`}
+                  onClick={() => void handleSetHostingStopped(hostUser, false)}>
+                  Let them host again
+                </Button>
+              ) : (
+                <ConfirmButton
+                  onConfirm={() => void handleSetHostingStopped(hostUser, true)}
+                  busy={busy === `stop-${hostUser.id}`}
+                  idleLabel={<>Stop all hosting</>}
+                  confirmLabel={<>Stop? No new tables or seats</>}
+                  title="No new table and no new seat; guests already confirmed keep theirs, and nobody is told why"
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
       {inviteResult && (

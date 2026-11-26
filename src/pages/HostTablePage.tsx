@@ -36,6 +36,9 @@ function HostingAccess() {
     content = <p className={textClass} role="status">Checking hosting access…</p>;
   } else if (hosting.isError) {
     content = <p className={textClass} role="alert">Could not check hosting access. Reload to try again.</p>;
+  } else if (hosting.data.stopped) {
+    // Launch 3: Teajia paused this person's hosting. Told to them alone, here.
+    content = <p className={textClass}>New tables are paused on your account. Write to Teajia to talk it over.</p>;
   } else if (!hosting.data.doors?.length) {
     content = <p className={textClass}>Hosting opens by invitation for now.</p>;
   } else {
