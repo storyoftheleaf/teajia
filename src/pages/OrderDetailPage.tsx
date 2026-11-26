@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { firstTableOpen } from '../lib/firstTable';
 import { refundProgress } from '../lib/orderTrackingDomain';
 import { api, ApiError, hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
@@ -37,6 +38,18 @@ export default function OrderDetailPage() {
     queryFn: () => api.me.order(id),
     enabled: authed && Boolean(id),
     retry: false,
+  });
+
+  const keep = useMutation({
+    mutationFn: (lineId: string) => api.me.keepOrderLineInChest(id, lineId),
+    onSuccess: ({ item }, lineId) => {
+      queryClient.setQueryData<typeof query.data>(['me', 'orders', id], current => current && ({
+        ...current,
+        items: current.items.map(line => line.id === lineId ? { ...line, chest_item_id: item.id, can_keep: false } : line),
+      }));
+      void queryClient.invalidateQueries({ queryKey: ['cellar'] });
+    },
+    onSettled: () => { void queryClient.invalidateQueries({ queryKey: ['me', 'orders', id] }); },
   });
 
   if (!authed) return null;
@@ -112,6 +125,15 @@ export default function OrderDetailPage() {
                     <p className="text-ui-12 text-tea-text-sec mt-1">
                       {item.quantity}{item.quantity_unit === 'unit' ? ' pieces' : 'g'} × {formatOrderAmount(item.unit_price_usd, order.currency, rates)}
                     </p>
+                    {firstTableOpen() && (item.chest_item_id ? (
+                      <Link to="/account/cellar" className="tap-target text-ui-12 text-tea-text-sec underline">In your Tea Chest</Link>
+                    ) : item.can_keep ? (
+                      <button type="button" className="btn-quiet btn-sm tap-target" disabled={keep.isPending}
+                        onClick={() => keep.mutate(item.id)}>Add to my Tea Chest</button>
+                    ) : null)}
+                    {firstTableOpen() && keep.isError && keep.variables === item.id && (
+                      <p role="status" className="text-ui-12 text-tea-text-sec">Could not add this tea. Please try again.</p>
+                    )}
                   </div>
                   <p className="text-ui-14 text-tea-text font-medium whitespace-nowrap">{formatOrderAmount(item.line_total_usd, order.currency, rates)}</p>
                 </li>

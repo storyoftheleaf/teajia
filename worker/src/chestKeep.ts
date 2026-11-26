@@ -6,6 +6,7 @@
 // kept from a session holds 0 grams and no cost, because none was held and no
 // cost was stated. See todo/plans/guests-and-tea-masters-launch-1-run.md.
 
+import { TEA_TYPES } from '../../src/wisdom/vocabulary';
 import { findEligibleSeat } from './afterSitAccess';
 import { sessionServedTeas } from './sessionServedTeas';
 
@@ -132,17 +133,82 @@ export type BoughtOrder = {
   linkedToUser: boolean;
 };
 
-/** Per order line: the chest row it already became, and whether one tap may add it (slice S6). */
-export async function boughtLineChestState(
-  _db: D1Database, _order: BoughtOrder,
-): Promise<Map<string, { chest_item_id: string | null; can_keep: boolean }>> {
-  // S6 (Astra) fills this in. Until then no line is offered.
-  return new Map();
+/** Shared with order detail: older tea lines were sold in grams. */
+export function boughtLineQuantityUnit(line: Record<string, any>): string {
+  return line.quantity_unit ?? (line.type === 'Teaware' ? 'unit' : 'g');
 }
 
-/** Put one tea line of a paid order into the buyer's chest, once (slice S6). Null when refused. */
+function boughtGrams(line: Record<string, any>): number | null {
+  if (!line.product_id || !line.product_name || !(TEA_TYPES as readonly string[]).includes(line.type)) return null;
+  const quantity = Number(line.quantity);
+  if (!Number.isFinite(quantity) || quantity <= 0) return null;
+  const unit = boughtLineQuantityUnit(line);
+  const weight = Number(line.piece_weight_g);
+  const grams = unit === 'g' ? quantity : unit === 'unit' && weight > 0 ? quantity * weight : NaN;
+  return Number.isFinite(grams) && grams > 0 ? grams : null;
+}
+
+function canKeepBoughtOrder(order: BoughtOrder): boolean {
+  const invoice = order.invoice;
+  const payment = order.payment as { total_usd?: number; paid_usd?: number; outstanding_usd?: number } | null;
+  return order.linkedToUser && ['Pending', 'Filled'].includes(invoice.status)
+    && !invoice.deleted_at && !invoice.cancelled_at && !invoice.refund_required
+    && payment != null && Number.isFinite(payment.total_usd) && payment.total_usd! > 0
+    && Number.isFinite(payment.paid_usd) && payment.paid_usd! >= payment.total_usd!
+    && payment.outstanding_usd === 0;
+}
+
+/** Reads never create chest rows. Legacy contact matches do not authorize copying shop facts. */
+export async function boughtLineChestState(
+  db: D1Database, order: BoughtOrder,
+): Promise<Map<string, { chest_item_id: string | null; can_keep: boolean }>> {
+  const { results } = await db.prepare(
+    `SELECT id, source_invoice_line_id FROM personal_cellar_items
+     WHERE owner_user_id = ? AND source_invoice_id = ?`,
+  ).bind(order.userId, order.invoice.id).all<{ id: string; source_invoice_line_id: string }>();
+  const kept = new Map(results.map(row => [row.source_invoice_line_id, row.id]));
+  return new Map(order.lines.map(line => {
+    const id = kept.get(line.id) ?? null;
+    return [line.id, { chest_item_id: id, can_keep: !id && canKeepBoughtOrder(order) && boughtGrams(line) !== null }];
+  }));
+}
+
+/** Put one tea line into the buyer's chest. The unique index arbitrates concurrent taps. */
 export async function keepBoughtLine(
-  _db: D1Database, _order: BoughtOrder, _lineId: string,
+  db: D1Database, order: BoughtOrder, lineId: string,
 ): Promise<KeptChestItem | null> {
-  return null;
+  const line = order.lines.find(candidate => candidate.id === lineId);
+  if (!order.linkedToUser || !line) return null;
+  const read = () => db.prepare(
+    `SELECT * FROM personal_cellar_items
+     WHERE owner_user_id = ? AND source_invoice_id = ? AND source_invoice_line_id = ?`,
+  ).bind(order.userId, order.invoice.id, lineId).first();
+  // A later refund never rewrites a person's private record, including their edits.
+  const existing = await read();
+  if (existing) return ownedCellarItemToApi(existing);
+  const grams = boughtGrams(line);
+  if (!canKeepBoughtOrder(order) || grams === null) return null;
+  const price = line.price_at_sale == null || line.price_at_sale === '' ? NaN : Number(line.price_at_sale);
+  const cost = price * Number(line.quantity);
+  const amount = Number.isFinite(cost) && price >= 0 ? cost : null;
+  const year = line.year != null && /^\d{4}$/.test(String(line.year).trim()) ? Number(line.year) : null;
+  const origin = [line.origin_region, line.origin_country].filter(Boolean).join(', ') || null;
+  // Repeat mutable order/ownership checks at the write, not just at route load.
+  // If the person deleted the row, a new tap puts it back once (Opus, S6 review).
+  await db.prepare(
+    `INSERT INTO personal_cellar_items
+       (id, owner_user_id, name, type, year, origin, grams, chest_cost_amount, chest_cost_currency,
+        source_kind, source_invoice_id, source_invoice_line_id)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bought', i.id, ?
+     FROM invoices i
+     WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL AND i.cancelled_at IS NULL
+       AND i.status IN ('Pending', 'Filled') AND COALESCE(i.refund_required, 0) = 0
+       AND i.customer_id IN (SELECT id FROM customers WHERE user_id = ? AND account_id = i.account_id)
+       AND EXISTS (SELECT 1 FROM invoice_line_items l WHERE l.id = ? AND l.invoice_id = i.id AND l.account_id = i.account_id)
+     ON CONFLICT(owner_user_id, source_invoice_line_id) WHERE source_invoice_line_id IS NOT NULL DO NOTHING`,
+  ).bind(`cellar_${crypto.randomUUID().replace(/-/g, '')}`, order.userId,
+    line.custom_name || line.product_name, line.type, year, origin, grams, amount, amount === null ? null : 'USD',
+    lineId, order.invoice.id, order.invoice.account_id, order.userId, lineId).run();
+  const row = await read();
+  return row ? ownedCellarItemToApi(row) : null;
 }

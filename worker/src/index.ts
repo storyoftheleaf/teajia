@@ -9,7 +9,7 @@ import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddr
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
-import { boughtLineChestState, keepBoughtLine, type BoughtOrder } from './chestKeep';
+import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
@@ -24106,7 +24106,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
     product_id: (line.product_id as string | null) ?? null,
     name: (line.custom_name || line.product_name || 'Tea') as string,
     quantity: Number(line.quantity),
-    quantity_unit:line.quantity_unit??(line.type==='Teaware'?'unit':'g'),
+    quantity_unit:boughtLineQuantityUnit(line),
     unit_price_usd: Number(line.price_at_sale),
     line_total_usd: Number(line.quantity) * Number(line.price_at_sale),
   })) as Array<Record<string, any> & { id: string }>;
