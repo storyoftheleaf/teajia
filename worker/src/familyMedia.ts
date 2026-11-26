@@ -16,6 +16,8 @@ import { PHOTO_TASTING_NOT_HIDDEN } from './familyPersonTastings';
 
 const MEDIA_PREFIX = 'https://media.teajia.co/';
 export const FAMILY_PHOTO_KEY_PREFIX = 'family-photos/';
+/** A question's photograph on the Tea Table lives under the family prefix, so it is never served without this door's yes. */
+export const QUESTION_PHOTO_KEY_PREFIX = `${FAMILY_PHOTO_KEY_PREFIX}tea-table-questions/`;
 const SIGNED_SECONDS = 12 * 60 * 60;
 
 const hex = (bytes: ArrayBuffer) => Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -57,6 +59,13 @@ export async function familyMediaVerdict(
 ): Promise<FamilyMediaVerdict> {
   if (!key.startsWith(FAMILY_PHOTO_KEY_PREFIX)) return 'not-family';
   if (await validSignature(secret, key, params)) return 'signed';
+  if (key.startsWith(QUESTION_PHOTO_KEY_PREFIX)) {
+    // "Does anyone know this tea?" (knowThisTea.ts): public only while the question is on the table.
+    const question = await db.prepare(
+      `SELECT 1 AS ok FROM tea_table_questions WHERE (full_key = ?1 OR small_key = ?1) AND taken_off_at IS NULL AND hidden_at IS NULL`,
+    ).bind(key).first();
+    return question ? 'public' : 'refused';
+  }
   const row = await db.prepare(
     `SELECT 1 AS ok FROM member_photographs p
        JOIN products lot ON lot.id = p.product_id AND lot.account_id = p.account_id

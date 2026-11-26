@@ -48,13 +48,14 @@ import { isFamilyPhotographShape, readFamilyPhotographFrame, type FamilyPersonPh
 import { recapPath } from '../../src/lib/publicSitConnections';
 import { teaTableOpen } from '../../src/lib/teaTable';
 import { withdrawTastingShare } from './tastingWithdrawal';
+import { ownQuestionKeys, questionsOpen, readTableQuestions } from './knowThisTea';
 import {
   TEA_TABLE_HOLD_DAYS, TEA_TABLE_SHOWS, teaTableKey, teaTableMoment,
   type TeaTableItem, type TeaTableKind, type TeaTableManageItem, type TeaTableMine, type TeaTablePage,
-  type TeaTableRecap, type TeaTableRecapState, type TeaTableShow, type TeaTableTasting,
+  type TeaTableRecap, type TeaTableRecapState, type TeaTableShow, type TeaTableStreamItem, type TeaTableTasting,
 } from '../../src/lib/teaTableContract';
 
-export type TeaTableEnv = { DB: D1Database; TEA_TABLE_OPEN?: string };
+export type TeaTableEnv = { DB: D1Database; TEA_TABLE_OPEN?: string; KNOW_THIS_TEA_OPEN?: string };
 type Person = { userId: string };
 type Shop = { accountId: string; userId: string };
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
@@ -233,7 +234,7 @@ async function readRecaps(db: D1Database, filter: Filter): Promise<TeaTableRecap
   }));
 }
 
-const newestFirst = (a: TeaTableItem, b: TeaTableItem) =>
+const newestFirst = (a: TeaTableStreamItem, b: TeaTableStreamItem) =>
   teaTableMoment(b.at).getTime() - teaTableMoment(a.at).getTime() || teaTableKey(b).localeCompare(teaTableKey(a));
 
 async function readBoth(db: D1Database, show: TeaTableShow, filter: Filter): Promise<TeaTableItem[]> {
@@ -244,12 +245,18 @@ async function readBoth(db: D1Database, show: TeaTableShow, filter: Filter): Pro
   return [...tastings, ...recaps].sort(newestFirst);
 }
 
-/** One page of the table. Held pieces sit above the rest on the first page and are not repeated below. */
-export async function readTeaTable(db: D1Database, show: TeaTableShow, before: string | null): Promise<TeaTablePage> {
-  const [heldItems, rest] = await Promise.all([
+/**
+ * One page of the table. Held pieces sit above the rest on the first page and are not repeated below.
+ * With `questions`, "Does anyone know this tea?" pieces join the time order in the "all" view
+ * (worker/src/knowThisTea.ts); they are never held.
+ */
+export async function readTeaTable(db: D1Database, show: TeaTableShow, before: string | null, questions = false): Promise<TeaTablePage> {
+  const [heldItems, pieces, asked] = await Promise.all([
     before ? Promise.resolve([]) : readBoth(db, show, { hold: 'only', limit: MOST_HELD }),
     readBoth(db, show, { hold: 'without', before, limit: PAGE + 1 }),
+    questions && show === 'all' ? readTableQuestions(db, { before, limit: PAGE + 1 }) : Promise.resolve([]),
   ]);
+  const rest: TeaTableStreamItem[] = [...pieces, ...asked].sort(newestFirst);
   let cut = Math.min(rest.length, PAGE);
   // Pieces put on the table in the same second stay on the same page, so "Earlier" never skips one.
   while (cut > 0 && cut < rest.length && rest[cut].at === rest[cut - 1].at) cut += 1;
@@ -474,7 +481,7 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     if (!(TEA_TABLE_SHOWS as readonly string[]).includes(showParam)) return refuse(400, 'Unknown view.', 'validation_failed');
     const before = normalBefore(url.searchParams.get('before'));
     if (before === 'bad') return refuse(400, 'Unknown date.', 'validation_failed');
-    return json(await readTeaTable(env.DB, showParam as TeaTableShow, before));
+    return json(await readTeaTable(env.DB, showParam as TeaTableShow, before, questionsOpen(env)));
   };
 
   // GET /api/tea-table/me: the caller's kept pieces, and which pieces are theirs to take off.
@@ -493,7 +500,10 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     ]);
     const body: TeaTableMine = {
       kept: await readByIds(env.DB, (keeps.results ?? []).filter(row => isTeaTableKind(row.kind))),
-      mine: (own.results ?? []).map(row => teaTableKey({ kind: 'tasting', id: row.id })),
+      mine: [
+        ...(own.results ?? []).map(row => teaTableKey({ kind: 'tasting', id: row.id })),
+        ...(questionsOpen(env) ? await ownQuestionKeys(env.DB, person.userId) : []),
+      ],
     };
     return privateJson(body);
   };

@@ -13,12 +13,14 @@ import { recapPath } from '../lib/publicSitConnections';
 import { TEA_TABLE_MINE_KEY, teaTableApi, useTeaTableMine } from '../lib/teaTableApi';
 import {
   TEA_TABLE_SHOWS, teaTableKey, teaTableMoment,
-  type TeaTableItem, type TeaTableRecap, type TeaTableShow, type TeaTableTasting,
+  type TeaTableItem, type TeaTableRecap, type TeaTableShow, type TeaTableStreamItem, type TeaTableTasting,
 } from '../lib/teaTableContract';
+import { knowThisTeaOpen } from '../lib/knowThisTea';
 import { Button } from '../components/shared/Button';
 import { PhotographThumb, PhotographZoom, type ZoomPhotograph } from '../components/shared/Photographs';
 import { SessionPhoto } from '../components/sessions/SessionPhoto';
 import { TeaCard, TeaCardMeta, TeaCardTitle } from '../components/tea/TeaCard';
+import { AskAboutATea, AskForm, QuestionPage, QuestionPiece } from '../components/teaTable/KnowThisTea';
 
 // The Tea Table (todo/plans/tea-table.md; the rule is "The Tea Table" in
 // CLAUDE.md). What people chose to put on the table, newest first, grouped by
@@ -31,6 +33,11 @@ import { TeaCard, TeaCardMeta, TeaCardTitle } from '../components/tea/TeaCard';
 // open the session, keep it. The author can take their own piece off. There
 // are no likes, replies, follows, counts or scores anywhere on this page, and
 // "Earlier" is a step in the address, never an endless scroll.
+//
+// While "Does anyone know this tea?" is open (src/lib/knowThisTea.ts), a
+// question sits in the same time order, asking is a step (?ask=1) and each
+// question has its own page as a step (?question=<id>). What people tell the
+// asker shows on that page to the asker alone.
 
 const SHOW_LABEL: Record<TeaTableShow, string> = { all: 'All', tastings: 'Tastings', sessions: 'Sessions' };
 const CHINESE_FONT_STACK = "'Noto Serif SC','Cormorant Garamond',serif";
@@ -186,8 +193,11 @@ function RecapPiece({ item, kept }: { item: TeaTableRecap; kept: boolean }) {
   );
 }
 
-function Piece({ item, kept, mine }: { item: TeaTableItem; kept: Set<string>; mine: Set<string> }) {
+function Piece({ item, kept, mine, onOpenQuestion }: {
+  item: TeaTableStreamItem; kept: Set<string>; mine: Set<string>; onOpenQuestion?: (id: string) => void;
+}) {
   const key = teaTableKey(item);
+  if (item.kind === 'question') return <QuestionPiece item={item} mine={mine.has(key)} onOpen={() => onOpenQuestion?.(item.id)} />;
   return item.kind === 'tasting'
     ? <TastingPiece item={item} kept={kept.has(key)} mine={mine.has(key)} />
     : <RecapPiece item={item} kept={kept.has(key)} />;
@@ -216,8 +226,8 @@ function NextSessionLine() {
   );
 }
 
-function groupByDay(items: TeaTableItem[]) {
-  const days: Array<{ day: string; items: TeaTableItem[] }> = [];
+function groupByDay(items: TeaTableStreamItem[]) {
+  const days: Array<{ day: string; items: TeaTableStreamItem[] }> = [];
   for (const item of items) {
     const day = dayOf(item.at);
     const last = days[days.length - 1];
@@ -230,6 +240,9 @@ function groupByDay(items: TeaTableItem[]) {
 export default function TeaTablePage() {
   const [showParam, setShow] = useStepParam('show', 'all');
   const [before, setBefore] = useStepParam('before');
+  const [questionId, setQuestion] = useStepParam('question');
+  const [asking, setAsking] = useStepParam('ask');
+  const questions = knowThisTeaOpen();
   const show: TeaTableShow = (TEA_TABLE_SHOWS as readonly string[]).includes(showParam) ? showParam as TeaTableShow : 'all';
   const page = useQuery({
     queryKey: ['tea-table', 'page', show, before || null],
@@ -257,6 +270,9 @@ export default function TeaTablePage() {
           <Link to="/people" className="btn-tab">People</Link>
         </div>
 
+        {questions && questionId ? <QuestionPage id={questionId} onBack={() => setQuestion(null)} /> : questions && asking ? (
+          <AskForm onCancel={() => setAsking(null)} onAsked={question => setQuestion(question.id, { only: true })} />
+        ) : <>
         <NextSessionLine />
 
         <div role="group" aria-label="Show" className="mt-4 flex flex-wrap items-center gap-2" data-testid="tea-table-show">
@@ -268,6 +284,7 @@ export default function TeaTablePage() {
             </button>
           ))}
         </div>
+        {questions && <div className="mt-3 flex flex-wrap items-center gap-2"><AskAboutATea onAsk={() => setAsking('1')} /></div>}
 
         {page.isPending && <p role="status" className="mt-8 text-ui-14 text-tea-text-sec">Opening the table…</p>}
         {page.isError && (
@@ -292,7 +309,7 @@ export default function TeaTablePage() {
           <section key={group.day} aria-label={group.day} data-testid="tea-table-day">
             <DayRule label={group.day} />
             <div className="grid gap-4">
-              {group.items.map(item => <Piece key={teaTableKey(item)} item={item} kept={kept} mine={mine} />)}
+              {group.items.map(item => <Piece key={teaTableKey(item)} item={item} kept={kept} mine={mine} onOpenQuestion={setQuestion} />)}
             </div>
           </section>
         ))}
@@ -303,6 +320,7 @@ export default function TeaTablePage() {
             {data.earlier && <Button variant="secondary" size="sm" type="button" className="tap-target" onClick={() => setBefore(data.earlier)} data-testid="tea-table-earlier">Earlier</Button>}
           </div>
         )}
+        </>}
       </div>
     </main>
   );

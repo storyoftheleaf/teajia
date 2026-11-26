@@ -15,6 +15,7 @@ import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
 import { teaTableRoutes } from './teaTable';
+import { knowThisTeaRoutes } from './knowThisTea';
 import { circlesRoutes, publicSeries, seriesForCopy } from './circles';
 import { hostTokensRoutes } from './hostTokens';
 import { teaHousesRoutes } from './teaHouses';
@@ -367,6 +368,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   YOUR_TABLE_PLACE_OPEN?: string;
   /** "true" opens tea credit for hosts (Launch 5, M1); see src/lib/hostCredit.ts. */
   HOST_CREDIT_OPEN?: string;
+  /** "true" or "false" opens or closes "Does anyone know this tea?" (Launch 5, M8); see src/lib/knowThisTea.ts. */
+  KNOW_THIS_TEA_OPEN?: string;
   /** "true" or "false" opens or closes circles and series (Launch 5, M4); see src/lib/circles.ts. */
   CIRCLES_OPEN?: string;
   /** "true" or "false" opens or closes a host's own assistant key (Launch 5, M6); see src/lib/hostTokens.ts. */
@@ -33249,6 +33252,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
+  ...knowThisTeaRoutes<Env>({ requireAuthenticatedUser }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),
   ...circlesRoutes<Env>({ requireAuthenticatedUser }),
   ...hostTokensRoutes<Env>({
