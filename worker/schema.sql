@@ -4223,3 +4223,36 @@ CREATE TABLE IF NOT EXISTS session_series (
 CREATE INDEX IF NOT EXISTS idx_session_series_host ON session_series(host_user_id, account_id);
 ALTER TABLE events ADD COLUMN series_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_events_series ON events(series_id) WHERE series_id IS NOT NULL;
+
+-- 0147_know_this_tea.sql
+CREATE TABLE IF NOT EXISTS tea_table_questions (
+  id TEXT PRIMARY KEY,
+  asker_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  where_from TEXT NOT NULL CHECK (length(where_from) BETWEEN 1 AND 280),
+  full_key TEXT NOT NULL,
+  small_key TEXT NOT NULL,
+  small_width INTEGER NOT NULL,
+  small_height INTEGER NOT NULL,
+  shape TEXT NOT NULL DEFAULT 'square' CHECK (shape IN ('square','upright','across')),
+  asked_at TEXT NOT NULL DEFAULT (datetime('now')),
+  taken_off_at TEXT,
+  hidden_at TEXT,
+  hidden_by TEXT REFERENCES users(id),
+  named_name TEXT CHECK (named_name IS NULL OR length(named_name) BETWEEN 1 AND 120),
+  named_product_id TEXT,
+  named_at TEXT,
+  thanked_note_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tea_table_questions_asked ON tea_table_questions(asked_at);
+CREATE INDEX IF NOT EXISTS idx_tea_table_questions_asker ON tea_table_questions(asker_user_id, asked_at);
+CREATE TABLE IF NOT EXISTS tea_table_question_notes (
+  id TEXT PRIMARY KEY,
+  question_id TEXT NOT NULL REFERENCES tea_table_questions(id) ON DELETE CASCADE,
+  writer_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  words TEXT NOT NULL CHECK (length(words) BETWEEN 1 AND 600),
+  product_id TEXT,
+  name_shown INTEGER NOT NULL DEFAULT 0 CHECK (name_shown IN (0,1)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (question_id, writer_user_id)
+);

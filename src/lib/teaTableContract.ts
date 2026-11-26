@@ -6,6 +6,7 @@
 // in one Manage answer, TeaTableManageItem, read by the platform owner alone.
 import type { FamilyPersonPhotograph, FamilyPersonWord } from './familyContract';
 import type { TeaTableKind } from './teaTable';
+import type { TeaTableQuestion } from './knowThisTeaContract';
 
 export type { TeaTableKind } from './teaTable';
 
@@ -36,6 +37,12 @@ export interface TeaTableRecap {
 }
 
 export type TeaTableItem = TeaTableTasting | TeaTableRecap;
+/**
+ * A piece in the table's time order: a tasting, a recap, or, while
+ * "Does anyone know this tea?" is open (src/lib/knowThisTea.ts), a question.
+ * A question is never held or kept, so it is never in `held` or `kept`.
+ */
+export type TeaTableStreamItem = TeaTableItem | TeaTableQuestion;
 
 export type TeaTableShow = 'all' | 'tastings' | 'sessions';
 export const TEA_TABLE_SHOWS: readonly TeaTableShow[] = ['all', 'tastings', 'sessions'];
@@ -43,14 +50,14 @@ export const TEA_TABLE_SHOWS: readonly TeaTableShow[] = ['all', 'tastings', 'ses
 /** GET /api/tea-table. `held` sits above the rest on the first page only; `earlier` is the next page's `before`. */
 export interface TeaTablePage {
   held: TeaTableItem[];
-  items: TeaTableItem[];
+  items: TeaTableStreamItem[];
   earlier: string | null;
 }
 
 /** GET /api/tea-table/me: what the caller kept, and which pieces are their own to take off. */
 export interface TeaTableMine {
   kept: TeaTableItem[];
-  /** `kind:id` of the caller's own pieces on the table. */
+  /** `kind:id` of the caller's own pieces on the table, their questions included. */
   mine: string[];
 }
 
@@ -77,7 +84,7 @@ export interface TeaTableRecapState {
   held_until: string | null;
 }
 
-export const teaTableKey = (item: { kind: TeaTableKind; id: string }) => `${item.kind}:${item.id}`;
+export const teaTableKey = (item: { kind: TeaTableKind | 'question'; id: string }) => `${item.kind}:${item.id}`;
 
 /** How long a hold may last, in days. A hold always ends. */
 export const TEA_TABLE_HOLD_DAYS = { least: 1, most: 14, usual: 3 } as const;

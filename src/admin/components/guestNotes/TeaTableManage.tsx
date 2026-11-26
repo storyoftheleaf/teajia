@@ -6,6 +6,7 @@ import { teaTableOpen } from '../../../lib/teaTable';
 import { teaTableApi } from '../../../lib/teaTableApi';
 import { TEA_TABLE_HOLD_DAYS, type TeaTableManageItem } from '../../../lib/teaTableContract';
 import { Chip, SectionHeading, TextAction, dayLabel, errorSentence } from './parts';
+import { KnowThisTeaManage } from './KnowThisTeaManage';
 
 /**
  * The Tea Table in Manage, for the platform owner alone (K2). Every piece put
@@ -70,6 +71,7 @@ function OwnerManage() {
       {query.isSuccess && (query.data.items.length
         ? <ul>{query.data.items.map(item => <ManageRow key={`${item.kind}:${item.id}`} item={item} />)}</ul>
         : <p className="py-4 text-ui-13 text-tea-text-sec">Nothing has been put on the Tea Table yet.</p>)}
+      <KnowThisTeaManage />
     </section>
   );
 }

@@ -205,9 +205,9 @@ const NOT_HIDDEN = `
 
 // ── One photograph through the door ───────────────────────────────────────
 
-type CheckedPhoto = { file: File; bytes: Uint8Array; width: number; height: number };
+export type CheckedPhoto = { file: File; bytes: Uint8Array; width: number; height: number };
 
-async function checkPhoto(
+export async function checkPhoto(
   value: unknown,
   label: 'large' | 'small',
   maxBytes: number,
@@ -232,7 +232,7 @@ async function checkPhoto(
   return { file: value, bytes, width: seen.width, height: seen.height };
 }
 
-function sameShape(a: CheckedPhoto, b: CheckedPhoto) {
+export function sameShape(a: CheckedPhoto, b: CheckedPhoto) {
   const ratioA = a.width / a.height;
   const ratioB = b.width / b.height;
   return Math.abs(ratioA - ratioB) / ratioA <= 0.03 && Math.max(b.width, b.height) <= Math.max(a.width, a.height);
