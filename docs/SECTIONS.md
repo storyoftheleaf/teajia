@@ -29,24 +29,26 @@ Three words to hold apart from now on:
 
 ## The centre: guests, tea masters, and the loop
 
-**Everyone is a guest. At a session, one person is its tea master.** Adrian, 2026-11-25: "Master is like master of ceremonies. Many people in the audience may be that, but there is only one that is that in the moment." And: "At one event I may be a master, at another event I may be a guest."
+**Everyone is a guest. A session has a host, and may have other tea masters pouring.** Adrian, 2026-11-25: "Master is like master of ceremonies. Many people in the audience may be that, but there is only one that is that in the moment." And: "At one event I may be a master, at another event I may be a guest."
 
-So the roles belong to a session, not to an account. Anyone can join. A tea master invites people into a session, "not into the site as much". A tea house is "a physical space, somewhere that people can sit down and drink tea", which a tea master can create themselves, and where other tea masters, travelling ones included, can pour.
+So the roles belong to a session, not to an account. Anyone can join. A tea master invites people into a session, "not into the site as much". A tea house is "a physical space, somewhere that people can sit down and drink tea", where tea masters, travelling ones included, can pour. A tea master's own place is a **table**: private, usually their home, shown to the public by area only (Adrian, 2026-11-26). The creator of a session is its host, and others may serve beside them.
 
 The sections are the parts of one circle:
 
 | Step | What happens | Where on the site |
 |---|---|---|
-| 1. Invite | A tea master opens a session and sends its invitation | Tea Table, Sessions |
-| 2. Sit | People meet at a tea house or a private table. The phone stays away | Tea Houses |
-| 3. Put on the table | Afterward a guest adds a note, a photograph or a tasting | Tea Table |
+| 1. Invite | A host opens a session and sends its invitation, before the day | Tea Table, Sessions |
+| 2. Sit | People meet at a private table or a tea house. The app asks for nothing | Tea Houses, Your Table |
+| 3. Put on the table | The host sends a thank-you. Guests add words, photographs and what they thought of the teas | Tea Table |
 | 4. Keep | Favourite articles, teas the shop has, teas in your own Tea Chest | Your Table, and your page |
 | 5. Find the tea | A favourite or a tasting leads to the tea | Shop |
 | 6. Host | A guest opens their own session and is its tea master | Home, Your Table |
 
 Read runs through all of it: it is how people sharpen their skill, and where articles show who people are and why they love tea. Someone who is only ever online has steps 3 to 5 in full.
 
-One rule governs every screen a person might open at a tea table. **Thirty seconds, then away:** one screen, one action, saved by itself, nothing asked afterward. Anything that scrolls belongs to before or after. Adrian: "This would never become a place that people are scrolling while they are on a tea table," and "if someone does use their phone at a tea table they can put it away right away."
+One rule governs the phone. **The app never asks during a session:** it sends nothing, prompts nothing and shows nothing to scroll while people are sitting. A photograph is one tap. A tasting is the one kind of session where writing is the point, and the host chooses it. Adrian, 2026-11-26: "We're not trying to control people, but we don't want people in their mind or on the app."
+
+Two more things from the second round, both in the plan: **quiet acknowledgement** (active people are respected only through things one person gives another, never numbers or titles for volume), and **everything by voice or agent** (each screen ships with its tool, so a host need not use the screens at all).
 
 ## Why this shape
 
@@ -102,7 +104,7 @@ Full plan: [tea-table.md](../todo/plans/tea-table.md).
 
 ### Tea Houses
 
-**What it is.** The section for places. A tea house is a physical place where people sit down and drink tea: a name, where it is, a photograph, its keeper, and the sessions held there. A shop is optional. A house comes to exist in one of three ways: it is already there, a tea master adds their own, or it is built with Adrian. The section answers four questions, in this order:
+**What it is.** The section for places. A tea house is a public place where people sit down and drink tea: a name, where it is, a photograph, its keeper, and the sessions held there. A shop is optional. A tea master's own table is not a tea house: it is private and lives in Your Table. A house comes to exist in one of three ways: it is already there, its keeper adds it, or it is built with Adrian. The section answers four questions, in this order:
 
 | View | Address | The question it answers |
 |---|---|---|
@@ -237,7 +239,7 @@ The rules against feeds are written in several places. This is exactly what chan
 
 ## Open decisions for Adrian
 
-**From the second pass, five.** They are written out with recommendations in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Decisions for Adrian": the words (everyone a guest, one tea master per session), who may host, a tea house as a place first, Tea Chest teas as public favourites, and the quick rule.
+**From the second pass, three still open.** They are written out with recommendations in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Decisions for Adrian": the phone rule as rewritten, who may host, and quiet acknowledgement as a third exception. Adrian answered the rest on 2026-11-26.
 
 **From the first pass, seven**, each with a recommendation. The first two unlock everything else. Decision 7 is narrower now: Adrian has said what a tea house is, and what remains is his facts for the build offering.
 
@@ -256,16 +258,19 @@ Revised in the second pass. The order follows the loop, so that the first stages
 | Stage | What | Touches the bar |
 |---|---|---|
 | 0 | **Repairs.** The tea master invite address, which appears to land on the wrong page, and the profile screen wording | No |
-| 1 | **The words.** Guest, tea master, session, tea house, used one way everywhere | No |
-| 2 | **Invite to a session.** One link and code a tea master sends; a guest has a seat without signing up | No |
-| 3 | **A session names its tea master and its house.** A "Host a table" door. Home's first two parts can ship here | No |
-| 4 | **After the sit, one screen** to put a note, a photograph or a tasting on the table | No |
+| 1 | **The words.** Guest, host, tea master, session, table, tea house, used one way everywhere | No |
+| 2 | **Before: invite to a session.** One link per session, a seat without signing up, the host and who else pours, a private table or a tea house, seats | No |
+| 3 | **After: the thank-you.** The host's note, the teas poured, the playlist, and one screen for the guest's answer | No |
+| 4 | **During.** The one-tap camera, and a tasting as the host's choice | No |
 | 5 | **The Tea Table, first form**, with its consent and withdrawal gates | No |
-| 6 | **Tea houses as places**, then Build and Work | No |
-| 7 | **Favourites in three kinds**: articles, shop teas, Tea Chest teas | No |
+| 6 | **Tables (private) and tea houses (public)**, then Build and Work | No |
+| 7 | **Favourites in three kinds, and the Tea Chest's three states** | No |
 | 8 | **Home in full, and the bar words** in one change. `npm run test:mobile` before and after | Yes |
-| 9 | **The people list shows who pours, and the first people articles** | No |
-| 10 | **Your Table as a page, Read's three shelves, truth-up** of PILLAR, SITE_MAP and the rule wording | Glyph only |
-| Later | The tea tasting box, six to twelve months out. An app | |
+| 9 | **Quiet acknowledgement, who pours on the people list, the first people articles** | No |
+| 10 | **Every tool**: anything on a screen can be said to an agent | No |
+| 11 | **Your Table as a page, Read's three shelves, truth-up** of PILLAR, SITE_MAP and the rule wording | Glyph only |
+| Later | Short video. The tea tasting box. An app | |
+
+From stage 2 on, each stage ships its voice and agent tools with its screens.
 
 Nothing in this order waits on the Manage rebuild, and nothing in it changes a Manage room.

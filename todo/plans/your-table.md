@@ -2,7 +2,7 @@
 
 Status: proposal, 2026-11-25. Nothing built. It waits on Adrian's yes in [docs/SECTIONS.md](../../docs/SECTIONS.md), decision 6.
 
-> **Revised 2026-11-25, second pass.** Your Table also gains two doors from [guests-and-tea-masters.md](guests-and-tea-masters.md): "Host a table" and "add your tea house", and favourites in three kinds (articles, shop teas, Tea Chest teas).
+> **Revised 2026-11-25, second pass.** Your Table also gains two doors from [guests-and-tea-masters.md](guests-and-tea-masters.md): "Host a table" and "add your table" (private, area only), and favourites in three kinds (articles, shop teas, Tea Chest teas).
 
 ## What it is
 
