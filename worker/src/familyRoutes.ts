@@ -34,6 +34,8 @@ import {
 } from '../../src/lib/familyContract';
 import { inspectJpeg } from './familyJpeg';
 import { teaTableSittings } from './teaTable';
+import { withdrawTastingShare } from './tastingWithdrawal';
+import { PHOTO_TASTING_NOT_HIDDEN } from './familyPersonTastings';
 import { teaTableOpen } from '../../src/lib/teaTable';
 import { ensureFamilyPage } from './familyPages';
 import { describeReports, familyFeedbackRoutes } from './familyFeedback';
@@ -75,8 +77,10 @@ const MULTIPART_ALLOWANCE = 64 * 1024;
 const OWNER_ACTIONS = ['place', 'lead', 'pass', 'restore'] as const;
 type OwnerAction = typeof OWNER_ACTIONS[number];
 
+// Everything here is a person's own or can be taken back (A4 review, finding
+// 4), so no answer is kept by a browser or a cache.
 function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 
 /** A refusal in a plain sentence, with a code the screen can branch on. */
@@ -195,7 +199,7 @@ const AUTHOR_COLUMNS = `
 /** Hidden by the owner: the photograph itself, the tasting it belongs to, or the author's whole page. */
 const NOT_HIDDEN = `
   NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)
-  AND NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'tasting' AND h.target_id = p.journal_entry_id)
+  AND ${PHOTO_TASTING_NOT_HIDDEN}
   AND NOT EXISTS (SELECT 1 FROM family_hides h JOIN contributors hc ON hc.id = h.target_id
                    WHERE h.account_id = p.account_id AND h.target_kind = 'page' AND hc.user_id = p.author_user_id)`;
 
@@ -288,13 +292,13 @@ export async function listOfferedPhotographs(db: D1Database, accountId: string, 
 
 export type ShopPhotograph = {
   id: string; product_id: string; shop_use: string; shop_use_before_lead: string | null; offered_at: string | null;
-  removed_by_member_at: string | null;
+  removed_by_member_at: string | null; share_state?: string | null;
 };
 
 /** One photograph in this shop, offered or not. */
 export async function readShopPhotograph(db: D1Database, accountId: string, id: string): Promise<ShopPhotograph | null> {
   return db.prepare(
-    `SELECT id, product_id, shop_use, shop_use_before_lead, offered_at, removed_by_member_at FROM member_photographs WHERE id = ? AND account_id = ?`,
+    `SELECT id, product_id, shop_use, shop_use_before_lead, offered_at, removed_by_member_at, share_state FROM member_photographs WHERE id = ? AND account_id = ?`,
   ).bind(id, accountId).first<ShopPhotograph>();
 }
 
@@ -304,21 +308,14 @@ export function photographUseRefusal(photo: ShopPhotograph, action: OwnerAction)
   if (photo.removed_by_member_at && (action === 'place' || action === 'lead')) {
     return { status: 409, error: 'The member took this photograph off their page, so it cannot be used.', code: 'removed_by_author' };
   }
+  // A photograph its author made private is withdrawn from every place (A4 review, finding 3).
+  if (photo.share_state === 'private' && (action === 'place' || action === 'lead')) {
+    return { status: 409, error: 'The member made this photograph private, so it cannot be used.', code: 'made_private' };
+  }
   return null;
 }
 
-/**
- * Takes one tasting's offered quotes back, as DELETE
- * /api/tasting-journal/:id/offers/:noteKey does for one: the approved quote
- * leaves Home and the tea listing, and the offer leaves the shop's pile.
- */
-export function withdrawTastingQuotes(db: D1Database, journalEntryId: string, authorUserId: string): D1PreparedStatement[] {
-  const offered = `SELECT id FROM tasting_note_candidates WHERE journal_entry_id = ? AND author_user_id = ? AND offered_at IS NOT NULL`;
-  return [
-    db.prepare(`DELETE FROM product_impressions WHERE candidate_id IN (${offered})`).bind(journalEntryId, authorUserId),
-    db.prepare(`DELETE FROM tasting_note_candidates WHERE id IN (${offered})`).bind(journalEntryId, authorUserId),
-  ];
-}
+export { withdrawTastingQuotes } from './tastingWithdrawal';
 
 export type PhotographUseOutcome =
   | { row: Record<string, unknown> | null }
@@ -535,6 +532,9 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
       `UPDATE member_photographs
           SET share_state = ?1,
               offered_at = CASE WHEN ?1 = 'offered' THEN COALESCE(offered_at, datetime('now')) ELSE offered_at END,
+              -- Private withdraws it from the tea page too, as Remove from my page does.
+              shop_use = CASE WHEN ?1 = 'private' AND shop_use IN ('placed', 'lead') THEN 'none' ELSE shop_use END,
+              shop_use_before_lead = CASE WHEN ?1 = 'private' THEN NULL ELSE shop_use_before_lead END,
               updated_at = datetime('now')
         WHERE id = ?2 AND author_user_id = ?3 AND removed_by_member_at IS NULL`,
     ).bind(body.share_state, params.id, person.userId).run();
@@ -621,53 +621,65 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     const journal = await journalFor(env.DB, person, product.id);
     if (!journal) return refuse(409, 'Save the tasting first, then share it.', 'tasting_not_saved');
     const state = body.share_state;
-    // Private takes the tasting's offered and approved quotes off Home and the
-    // tea listing too, as withdrawing each offer would, in the same batch.
-    const withdrawQuotes = state === 'private' ? withdrawTastingQuotes(env.DB, journal.id, person.userId) : [];
     // The Tea Table's consent (worker/src/teaTable.ts): only a share made under
     // the Tea Table wording, while the Tea Table is open, records the moment
-    // and the sittings the journal holds now. Private takes it off the table.
-    // A share under the older wording leaves what was recorded as it was.
+    // and the sittings the journal holds now. A share under the older wording
+    // leaves what was recorded as it was.
     const toTeaTable = state !== 'private' && body.tea_table === true && teaTableOpen(env);
     const sittings = toTeaTable
       ? teaTableSittings((await env.DB.prepare('SELECT tastings FROM customer_tasting_journal WHERE id = ?')
         .bind(journal.id).first<{ tastings: string | null }>())?.tastings ?? null)
       : null;
-    const teaTable = state === 'private'
-      ? [env.DB.prepare(
-        `UPDATE member_tasting_shares SET tea_table_at = NULL, tea_table_sittings = NULL WHERE journal_entry_id = ? AND author_user_id = ?`,
-      ).bind(journal.id, person.userId)]
-      : toTeaTable
-        ? [env.DB.prepare(
-          `UPDATE member_tasting_shares SET tea_table_at = datetime('now'), tea_table_sittings = ? WHERE journal_entry_id = ? AND author_user_id = ?`,
-        ).bind(sittings, journal.id, person.userId)]
-        : [];
-    const [, photos] = await env.DB.batch([
-      env.DB.prepare(
-        `INSERT INTO member_tasting_shares (journal_entry_id, account_id, product_id, author_user_id, share_state, shared_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, CASE WHEN ?5 = 'private' THEN NULL ELSE datetime('now') END, datetime('now'))
-         ON CONFLICT(journal_entry_id) DO UPDATE SET
-           share_state = excluded.share_state,
-           shared_at = CASE WHEN excluded.share_state = 'private' THEN member_tasting_shares.shared_at
-                            ELSE COALESCE(member_tasting_shares.shared_at, excluded.shared_at) END,
-           updated_at = excluded.updated_at
-         WHERE member_tasting_shares.author_user_id = excluded.author_user_id`,
-      ).bind(journal.id, product.account_id, product.id, person.userId, state),
-      env.DB.prepare(
-        `UPDATE member_photographs
-            SET share_state = ?1,
-                offered_at = CASE WHEN ?1 = 'offered' THEN COALESCE(offered_at, datetime('now')) ELSE offered_at END,
-                journal_entry_id = COALESCE(journal_entry_id, ?2),
-                updated_at = datetime('now')
-          WHERE author_user_id = ?3 AND product_id = ?4 AND removed_by_member_at IS NULL`,
-      ).bind(state, journal.id, person.userId, product.id),
-      ...withdrawQuotes,
-      ...teaTable,
-    ]);
+    const upsert = env.DB.prepare(
+      `INSERT INTO member_tasting_shares (journal_entry_id, account_id, product_id, author_user_id, share_state, shared_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, CASE WHEN ?5 = 'private' THEN NULL ELSE datetime('now') END, datetime('now'))
+       ON CONFLICT(journal_entry_id) DO UPDATE SET
+         share_state = excluded.share_state,
+         shared_at = CASE WHEN excluded.share_state = 'private' THEN member_tasting_shares.shared_at
+                          ELSE COALESCE(member_tasting_shares.shared_at, excluded.shared_at) END,
+         updated_at = excluded.updated_at
+       WHERE member_tasting_shares.author_user_id = excluded.author_user_id`,
+    ).bind(journal.id, product.account_id, product.id, person.userId, state);
+    let photographsUpdated: number;
+    if (state === 'private') {
+      // Private takes the tasting back from every place at once: the page, the
+      // Tea Table, a placed or lead photograph, and its offered and approved
+      // quotes on Home and the tea listing (worker/src/tastingWithdrawal.ts).
+      const [, , photos] = await env.DB.batch([upsert, ...withdrawTastingShare(env.DB, journal.id, person.userId, product.id)]);
+      photographsUpdated = Number(photos.meta?.changes ?? 0);
+    } else {
+      // Whether the person chose their own page by itself (A4 review, finding
+      // 1): a page share standing before the tasting goes on the table, or a
+      // share under the older "On my page" wording. Taking the tasting off the
+      // table later leaves it on that page. Before a table share it is read
+      // ahead of the upsert, which changes the state.
+      const pageAlone = env.DB.prepare(
+        `UPDATE member_tasting_shares SET page_alone_at = COALESCE(page_alone_at, datetime('now'))
+          WHERE journal_entry_id = ? AND author_user_id = ?${toTeaTable ? " AND share_state IN ('page', 'offered') AND tea_table_at IS NULL" : ''}`,
+      ).bind(journal.id, person.userId);
+      const results = await env.DB.batch([
+        ...(toTeaTable ? [pageAlone] : []),
+        upsert,
+        env.DB.prepare(
+          `UPDATE member_photographs
+              SET share_state = ?1,
+                  offered_at = CASE WHEN ?1 = 'offered' THEN COALESCE(offered_at, datetime('now')) ELSE offered_at END,
+                  journal_entry_id = COALESCE(journal_entry_id, ?2),
+                  updated_at = datetime('now')
+            WHERE author_user_id = ?3 AND product_id = ?4 AND removed_by_member_at IS NULL`,
+        ).bind(state, journal.id, person.userId, product.id),
+        toTeaTable
+          ? env.DB.prepare(
+            `UPDATE member_tasting_shares SET tea_table_at = datetime('now'), tea_table_sittings = ? WHERE journal_entry_id = ? AND author_user_id = ?`,
+          ).bind(sittings, journal.id, person.userId)
+          : pageAlone,
+      ]);
+      photographsUpdated = Number(results[toTeaTable ? 2 : 1].meta?.changes ?? 0);
+    }
     // The first share makes the person's page (family, live without review); later ones leave it as it is.
     const page = state === 'private' ? null : await ensureFamilyPage(env.DB, person);
     return json({
-      product_id: product.id, journal_entry_id: journal.id, share_state: state, photographs_updated: Number(photos.meta?.changes ?? 0),
+      product_id: product.id, journal_entry_id: journal.id, share_state: state, photographs_updated: photographsUpdated,
       on_tea_table: toTeaTable,
       page_id: page?.id ?? null, page_path: page ? `/people/${encodeURIComponent(page.id)}` : null, page_created: page?.created ?? false,
     });
@@ -683,7 +695,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
          JOIN users u ON u.id = p.author_user_id
         WHERE p.account_id = ? AND p.product_id = ?
           AND p.removed_by_member_at IS NULL
-          AND (p.shop_use IN ('placed', 'lead') OR p.share_state IN ('page', 'offered'))
+          AND p.share_state IN ('page', 'offered')
           AND ${NOT_HIDDEN}
         ORDER BY p.created_at DESC
         LIMIT 60`,

@@ -28,7 +28,7 @@ const request = (method = 'GET', body?: object, surface?: 'brewing' | 'essay') =
 });
 
 function fixture() {
-  const sql = new SqliteD1('migrations', '0117');
+  const sql = new SqliteD1('migrations', '0133'); // 0133: the owner's hide of a recap (A4 review, finding 2)
   databases.push(sql);
   const db = sql as unknown as D1Database;
   const owner = seedIdentity(sql, { userId: 'guest', accountId: 'shop', role: 'viewer' });
@@ -174,6 +174,8 @@ describe('public recap photo permission', () => {
       ["UPDATE events SET recap_status = 'draft' WHERE id = 'sit'", "UPDATE events SET recap_status = 'published' WHERE id = 'sit'"],
       ["UPDATE events SET public_visibility = 'unlisted' WHERE id = 'sit'", "UPDATE events SET public_visibility = 'public' WHERE id = 'sit'"],
       ["UPDATE accounts SET public_enabled = 0 WHERE id = 'shop'", "UPDATE accounts SET public_enabled = 1 WHERE id = 'shop'"],
+      // The platform owner's hide takes the recap's photograph with it (A4 review, finding 2).
+      ["UPDATE events SET tea_table_hidden_at = datetime('now') WHERE id = 'sit'", "UPDATE events SET tea_table_hidden_at = NULL WHERE id = 'sit'"],
       ["UPDATE event_post_session SET account_id = 'outside' WHERE event_id = 'sit'", "UPDATE event_post_session SET account_id = 'shop' WHERE event_id = 'sit'"],
     ]) {
       sql.exec(disqualify);
