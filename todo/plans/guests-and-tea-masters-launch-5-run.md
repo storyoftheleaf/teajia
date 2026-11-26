@@ -16,11 +16,24 @@ Everything else waits on an answer from Adrian or on Launch 3.
 
 | His answer | Package | What he is asked, with a starting proposal to react to |
 |---|---|---|
-| **Q8, the credit rule** | M1 | **Answered 2026-11-26: tea credit first, cash later.** The rule M1 builds: credit in tea worth 10 percent of the tea lines of an order, on all teas, only for orders that began from that host's thank-you or page, counted when the order is Filled and removed if it is made Void, earned for 30 days after the session (the 30 days is Fable's figure, his to change), spent only on tea from the shop, never paid out, never shown to guests. Every "after Q8" below now means "free to start" |
+| **Q8, the credit rule** | M1 | **Answered 2026-11-26: tea credit first, cash later.** The rule M1 builds: credit in tea worth 10 percent of the tea lines of an order, on all teas, only for orders that began from that host's thank-you or page, counted when the order is Filled and removed if it is made Void, with no time window and no expiry (he dropped the 30 days: "ongoing bank"), held under the rules in "Credit is held securely" below, spent only on tea from the shop, never paid out, never shown to guests. Every "after Q8" below now means "free to start" |
 | **Q9, the wrapper reader for hosts** | M2 | May a host photograph a tea and be told what it is. It runs on paid analysis, so it needs a limit. Proposal: approved hosts only, ten readings a month each |
 | **Q10, the host's box** | M7 | Whether a small box for hosts comes before the tasting box. This is a shop product and a session to go with it, more than software. Nothing is built until he describes the box |
 | **Q6, the Tea Table rule** | M8 | Answered yes on 2026-11-26 |
 | **Q12, new: a tea for the table** | M5 | See hard question 3 |
+
+### Credit is held securely (Adrian, 2026-11-26)
+
+His words: "Make sure this is security held so no one can hack an order and anything that uses the percentage has to be approved or verified when the order comes in to make sure if a hacker does get at it, it doesn't clear it out." These bind M1 and Astra's audit of it.
+
+1. **Nothing about credit is ever taken from the browser.** No amount, percentage, host or balance is read from a request. Earned credit is worked out in the worker from the stored order, its stored tea lines and `order_session_sources`.
+2. **Earning waits for a hand.** An order's credit is written as `pending` when the order is made and becomes `earned` only when Adrian marks that order Filled, which he already does by hand. Void removes it. An order nobody has verified earns nothing.
+3. **Spending waits for a hand too.** A host asking to use credit makes a `spend_requested` entry that holds the amount; it leaves the balance only when Adrian approves it on that order in Manage. There is no path that spends credit without his approval, and none through `/mcp` without the usual preview and confirm.
+4. **The balance is a sum, never a stored number.** It is the total of the ledger rows, entries are only ever added (a correction is a new row), and each row carries who, when and which order. One order can earn once: a unique key on order and kind.
+5. **It cannot go below zero or be spent twice.** The approval is one guarded statement that fails if earned minus spent minus held is less than the amount, so two requests at once cannot both pass.
+6. **A ceiling by hand.** One setting on the account, the most credit a single order may use without a second look, default low. Above it the approval page says so in words.
+7. **Oddities go to the builder.** A host earning from their own order, many orders from one device, or credit earned and requested the same day are recorded with `recordHealthProblem`, shown on `/account/fixes`, never on a page.
+8. **Hosts never earn on their own orders.**
 
 ## The hard questions
 
