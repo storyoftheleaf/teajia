@@ -39,7 +39,8 @@ const GUIDE = JSON.stringify({
   steps: [{ description: 'Blue gate by the frangipani', image_url: 'https://media.teajia.co/accounts/ana-personal/venue-guide/gate.jpg' }],
   parking_notes: 'Behind the bakery',
 });
-const SECRETS = ['Jalan Rahasia', 'secret-house', 'frangipani', 'gate.jpg', 'bakery', 'house-front.jpg'];
+// House photographs may be shown (Adrian, 2026-11-26), so house-front.jpg is not a secret.
+const SECRETS = ['Jalan Rahasia', 'secret-house', 'frangipani', 'gate.jpg', 'bakery'];
 
 let db: SqliteD1;
 const allow = { limit: async () => ({ success: true }) };
@@ -369,7 +370,7 @@ describe('H7: the way to the house', () => {
   const way = async (token: string) => {
     const response = await read(await call(`/api/rsvp/${token}`));
     const event = JSON.parse(response.text).event;
-    return { response, shown: event.address_text === ADDRESS && event.map_link === MAP && event.venue_guide === GUIDE && event.venue_photos.length === 1 };
+    return { response, shown: event.address_text === ADDRESS && event.map_link === MAP && event.venue_guide === GUIDE };
   };
 
   it('is shown to a confirmed seat only, and leaves the moment the seat does', async () => {
@@ -385,8 +386,10 @@ describe('H7: the way to the house', () => {
       expect(other.shown, status).toBe(false);
       for (const secret of SECRETS) expect(other.response.text, status).not.toContain(secret);
     }
-    // The public answer never carries the host's venue photographs.
-    expect(await (await call(`/api/events/${slugOf('ana-table')}/public`)).text()).not.toContain('house-front');
+    // Photographs of the house may be shown to anyone; the address never.
+    const publicText = await (await call(`/api/events/${slugOf('ana-table')}/public`)).text();
+    expect(publicText).toContain('house-front');
+    expect(publicText).not.toContain('Jalan Rahasia');
 
     for (const status of ['denied', 'waitlist', 'cancelled']) {
       db.sqlite.prepare(`UPDATE event_attendees SET status = 'confirmed' WHERE id = 'confirmed'`).run();

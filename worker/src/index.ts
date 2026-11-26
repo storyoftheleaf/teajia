@@ -12516,8 +12516,9 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     hosts,
     host,
     pouring,
-    // A host's own house is the way in: its photographs go to a confirmed guest only.
-    venue_photos: privateHost ? [] : venuePhotos,
+    // Photographs of the house or table may be shown (Adrian, 2026-11-26); the
+    // address, map link and the way-in steps stay with a confirmed guest.
+    venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
     offered_count: offeredCount,
     confirmed_names: confirmedNames,
@@ -13109,7 +13110,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       area_hint: attendee.area_hint,
       guidelines_text: attendee.guidelines_text,
       venue_guide: showWay ? attendee.venue_guide : null,
-      venue_photos: showWay ? venuePhotos : [],
+      venue_photos: venuePhotos,
       timezone: attendee.timezone,
       status: attendee.event_status,
       lifecycle_status: attendee.lifecycle_status,
