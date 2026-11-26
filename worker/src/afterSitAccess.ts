@@ -1,7 +1,7 @@
 import { serveGuestBook } from './sessionGuestBook';
 import {
   reviewGuestBookPhotos, saveGuestBookEntryWithPhoto, serveGuestBookPhotos, serveOwnerGuestBookPhoto,
-  withdrawGuestBookEntry, type GuestBookPhotoInput,
+  serveSessionGallery, withdrawGuestBookEntry, type GuestBookPhotoInput,
 } from './sessionGuestBookPhotos';
 import { afterSitCredentialFormat, createAfterSitCredential, hashAfterSitCredential } from './afterSitCredential';
 import { getKeptSetup, namedSetupTeas, saveKeptSetup } from './privateKeptSetups';
@@ -254,6 +254,21 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     return privateResponse(await serveGuestBook(input, env.DB, scope, seat.magic_token, hash));
   });
 
+  // POST /api/after-sit/gallery { credential, action: 'read' | 'bytes', grantId? }:
+  // the photographs from the table, for a signed-in person holding a seat link
+  // for this session, the booking's own or a personal party link (as keeps).
+  const gallery = withLink(async (request, env, hash, body) => {
+    const actor = await deps.requireUser(request, env);
+    if ('error' in actor) return privateResponse(actor.error);
+    const resolveSeat = async () => {
+      const seat = await findEligibleSeat(env.DB, hash) ?? await findPartyRecap(env.DB, hash);
+      return seat ? { account_id: seat.account_id, event_id: seat.id } : null;
+    };
+    return privateResponse(await serveSessionGallery(
+      request, env.DB, env.ATLAS_BUCKET, actor.userId, hash, resolveSeat, body,
+    ));
+  });
+
   const photoReview: Handler<E> = async (request, env, { eventId, grantId }) => {
     const host = await deps.requireHost(request, env);
     if ('error' in host) return privateResponse(host.error);
@@ -274,6 +289,7 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     ['POST', '/api/after-sit/keep-tea', keepTea],
     ['POST', '/api/after-sit/setup', setup],
     ['POST', '/api/after-sit/guest-book', guestBook],
+    ['POST', '/api/after-sit/gallery', gallery],
     ['GET', '/api/admin/events/:eventId/guest-book/photos', photoReview],
     ['GET', '/api/admin/events/:eventId/guest-book/photos/:grantId', photoReview],
     ['PUT', '/api/admin/events/:eventId/guest-book/photos/:grantId', photoReview],

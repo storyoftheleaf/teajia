@@ -20,7 +20,7 @@ const databases: SqliteD1[] = [];
 afterEach(() => databases.splice(0).forEach(db => db.close()));
 
 async function fixture() {
-  const sql = new SqliteD1('migrations', '0127');
+  const sql = new SqliteD1('migrations');
   databases.push(sql);
   const db = sql as unknown as D1Database;
   seedIdentity(sql, { userId: 'owner', accountId: 'shop' });
@@ -99,7 +99,7 @@ describe('formal attendee Guest Book photos', () => {
 
     const list = await gallery();
     expect(list.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(await list.json()).toEqual({ gallery: [{ id: grantId, alt_text: description, display_name: 'Photo Guest', entry_key: expect.stringMatching(/^[a-f0-9]{64}$/) }], own: [] });
+    expect(await list.json()).toEqual({ gallery: [{ id: grantId, alt_text: description, display_name: null, entry_key: expect.stringMatching(/^[a-f0-9]{64}$/) }], own: [] });
     const image = await bytes();
     expect(image.headers.get('Content-Type')).toBe('image/jpeg');
     expect(image.headers.get('Cache-Control')).toBe('private, no-store');
@@ -142,7 +142,7 @@ describe('formal attendee Guest Book photos', () => {
     const attendeeNotes = (await (await book('viewer', viewer, 'read')).json()).entries;
     const attendeePhotos = (await (await gallery()).json()).gallery;
     expect(attendeeNotes).toEqual([{ id: firstEntry.id, display_name: 'Photo Guest', note, entry_key: key }]);
-    expect(attendeePhotos).toEqual([{ id: grantId, display_name: 'Photo Guest', alt_text: description, entry_key: key }]);
+    expect(attendeePhotos).toEqual([{ id: grantId, display_name: null, alt_text: description, entry_key: key }]);
     expect((await save({ note, photo })).status).toBe(200);
     expect(entry()).toMatchObject({ revision: 1, status: 'included' });
 
