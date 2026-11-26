@@ -35,6 +35,7 @@ import { usePersonReadiness } from '../readiness/usePersonReadiness';
 import { usePhotoEditor } from '../shared/usePhotoEditor';
 import { Button } from '../shared/Button';
 import { useStepParam } from '../../hooks/useStepParam';
+import { hasTeaCredit, useMyTeaCredit } from '../../hooks/useMyTeaCredit';
 import { historyIndex } from '../../admin/components/adminHistory';
 
 interface AccountPanelProps {
@@ -131,6 +132,15 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     cartLastAddedAt,
     setUpcomingEventsCount,
   } = useAppStore();
+
+  // A host's own tea credit (Launch 5). Closed or signed out, nothing is asked.
+  const teaCreditRead = useMyTeaCredit();
+  const teaCredit = hasTeaCredit(teaCreditRead.data)
+    ? {
+        available: (teaCreditRead.data?.balances ?? []).filter(b => b.currency === 'USD').reduce((sum, b) => sum + b.available, 0),
+        currency: 'USD',
+      }
+    : null;
 
   const focusTrapRef = useFocusTrap<HTMLDivElement>(!asPage);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -1005,6 +1015,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                 readiness={teaMasterReadiness}
                 payAccess={payAccessQuery.data ?? null}
                 payAccessBusy={payAccessMutation.isPending}
+                teaCredit={teaCredit}
                 onApprovePayAccess={id => payAccessMutation.mutate({ id, decision: 'approve' })}
                 onDeclinePayAccess={id => payAccessMutation.mutate({ id, decision: 'decline' })}
                 onClose={dismiss}

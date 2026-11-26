@@ -5,8 +5,9 @@
  *   - Tea credit (HOST_CREDIT_OPEN), through the worker routes: an order that
  *     began from Ana's thank-you is paid and Filled by the owner and earns; Ana
  *     asks to use it on her own order; the owner approves; the balance is right.
- *     The screens are a separate build (build/l5-credit-screens); their step
- *     is the labelled TODO below.
+ *     Then the screens, at each size: Ana's credit page in Your Table, using
+ *     credit (at checkout on the phone, on an open order on the desktop), and
+ *     the owner approving it in Sales > Waiting.
  *   - Circles and series (CIRCLES_OPEN): Ana makes a circle and a series, puts
  *     her tables in, and asks a guest of an earlier table back.
  *   - A host's own assistant key (HOST_TOKENS_OPEN): Ana makes one, sees it
@@ -114,7 +115,7 @@ test.beforeAll(async ({ browser }) => {
     const owner = await login(page, 'sandbox', 'sandbox', api);
     await page.goto(base, { waitUntil: 'commit', timeout: 90_000 });
     await page.evaluate(({ token }) => { localStorage.setItem('teajia_token', token); localStorage.setItem('teajia_active_account', 'acc_teajia_bali'); }, owner);
-    for (const path of ['/admin/events/l5-card-event', '/admin/events/l5-card-test/card', '/account/host']) {
+    for (const path of ['/admin/events/l5-card-event', '/admin/events/l5-card-test/card', '/account/host', '/account/tea-credit', '/admin/activity?tab=waiting']) {
       for (let attempt = 0; attempt < 2; attempt++) {
         await page.goto(`${base}${path}`, { waitUntil: 'networkidle', timeout: 90_000 }).catch(() => {});
       }
@@ -150,7 +151,8 @@ test('credit: earned on a Filled order, asked for by the host, approved by the o
   expect(earned.body.balances[0]).toMatchObject({ account_id: BALI, currency: 'USD', earned: 5, available: 5, pending: 0, held: 0, spent: 0 });
   expect(earned.body.lines).toEqual([expect.objectContaining({ status: 'earned', credit_amount: 5 })]);
   expect(JSON.stringify(earned.body), 'the host never reads who bought').not.toContain('Mei');
-  expect(earned.body.orders).toEqual([expect.objectContaining({ invoice_id: 'l5-ana-order', tea_total: 10, may_use: 5 })]);
+  // L5-ANA-2 is the credit screens' own order, further down.
+  expect(earned.body.orders).toEqual(expect.arrayContaining([expect.objectContaining({ invoice_id: 'l5-ana-order', tea_total: 10, may_use: 5 })]));
 
   // Ana asks to use it on her own order. Any amount she sends is ignored.
   const asked = await call(page, ON_API, ana, '/api/me/tea-credit/orders/l5-ana-order/use', { method: 'POST', data: { amount: 999 } });
@@ -177,11 +179,96 @@ test('credit: earned on a Filled order, asked for by the host, approved by the o
   expect(after.body.requests).toEqual([expect.objectContaining({ id: requestId, status: 'approved', amount: 5 })]);
 });
 
-// TODO(l5-credit-screens): the credit screens are being built on
-// build/l5-credit-screens (the host's credit in Your Table, using credit at
-// checkout, the owner's approval in Manage). Once they land, this step walks
-// the same journey as the test above in the browser at both sizes.
-test.fixme('TODO credit screens: the host sees and uses credit, the owner approves in Manage', async () => {});
+// The same journey in the browser, at each size: a further order from Ana's
+// thank-you earns 5 USD (paid and filled through the routes, as above); Ana
+// reads it on her credit page, uses it (at checkout on the phone, on her open
+// order L5-ANA-2 on the desktop), and the owner approves it in Sales > Waiting.
+for (const [index, size] of SIZES.entries()) {
+  test(`credit screens at ${size.name}: the host sees and uses credit, the owner approves in Manage`, async ({ browser }) => {
+    const probe = await browser.newContext();
+    const probePage = await probe.newPage();
+    const owner = { ...(await login(probePage, 'sandbox', 'sandbox')), account: BALI };
+    const ana = await login(probePage, 'ana', 'ana');
+    const guestOrder = index === 0 ? 'l5-guest-order-2' : 'l5-guest-order-3';
+    const paid = await call(probePage, ON_API, owner, `/api/invoices/${guestOrder}/payments`, {
+      method: 'POST', data: { amount: 50, request_id: `l5-screens-pay-${RUN}-${index}` },
+    });
+    expect(paid.status, JSON.stringify(paid.body)).toBe(201);
+    const filled = await call(probePage, ON_API, owner, '/api/rpc/ship-invoice', { method: 'POST', data: { invoice_id: guestOrder } });
+    expect(filled.status, JSON.stringify(filled.body)).toBe(200);
+    const ready = (await call(probePage, ON_API, ana, '/api/me/tea-credit')).body.balances.find((b: any) => b.account_id === BALI);
+    expect(ready).toMatchObject({ available: 5, held: 0 });
+    await probe.close();
+
+    // Ana's credit page in Your Table.
+    const host = await signedInPage(browser, size, ON_URL, ana);
+    await host.page.goto('/account/tea-credit');
+    await expect(host.page.getByRole('heading', { name: 'Tea credit', level: 1 })).toBeVisible({ timeout: 20_000 });
+    const card = host.page.getByRole('region', { name: 'Your tea credit' });
+    for (const word of ['Ready to use', 'Earned', 'Waiting', 'Held']) await expect(card.getByText(word, { exact: true })).toBeVisible();
+    await expect(card.getByText('$5.00').first()).toBeVisible();
+    await expect(host.page.getByRole('region', { name: 'Where your credit came from' }).getByText('Old tree white, test').first()).toBeVisible();
+    await expect(host.page.locator('body'), 'the host never reads who bought').not.toContainText('Mei');
+    await noSideScroll(host.page, 'the credit page');
+
+    const useResponse = () => host.page.waitForResponse(r => /\/api\/me\/tea-credit\/orders\/[^/]+\/use$/.test(new URL(r.url()).pathname)
+      && r.request().method() === 'POST', { timeout: 30_000 });
+    if (index === 0) {
+      // At checkout: one plain choice; the amount is the worker's. The sandbox's
+      // Bali shop answers to the slug 'bali'.
+      await host.page.goto('/shop/product/ft-old-tree-white?store=bali');
+      await host.page.getByRole('button', { name: 'Add to order', exact: true }).click();
+      await host.page.getByRole('button', { name: /Open order with 1 item/ }).first().click();
+      await expect(host.page.getByText('Your order', { exact: true })).toBeVisible();
+      const choice = host.page.getByRole('checkbox', { name: /Use my tea credit on this order/ });
+      await expect(choice).toBeVisible({ timeout: 20_000 });
+      await choice.check();
+      await host.page.getByLabel('Town or city').fill('Ubud');
+      await host.page.getByLabel('Country').fill('Indonesia');
+      await host.page.getByLabel('Your name').fill('Ana Host');
+      const email = host.page.getByLabel('Your email address');
+      if (await email.count()) await email.fill(`l5-credit-${RUN}@sandbox.test`);
+      await noSideScroll(host.page, 'checkout with credit');
+      const sent = host.page.waitForResponse(r => r.url().endsWith('/api/inquiries') && r.request().method() === 'POST');
+      const used = useResponse();
+      await host.page.getByRole('button', { name: 'Place order request' }).click();
+      const order = await sent;
+      expect(order.status(), await order.text()).toBeLessThan(300);
+      expect(Object.keys(order.request().postDataJSON() as object).filter(key => /credit/.test(key))).toEqual([]);
+      expect((await used).status()).toBe(201);
+      await expect(host.page.getByText(/You asked to use \$\d+\.\d\d of your tea credit/)).toBeVisible();
+    } else {
+      // On an open order, from the credit page.
+      const row = host.page.getByRole('region', { name: 'Use it on an order' }).locator('li').filter({ hasText: 'Your order L5-ANA-2' });
+      await expect(row).toContainText('$5.00 of it can come from your credit');
+      const used = useResponse();
+      await row.getByRole('button', { name: 'Use my tea credit' }).click();
+      expect((await used).status()).toBe(201);
+      await expect(host.page.getByRole('region', { name: 'Credit you asked to use' }).locator('li').filter({ hasText: 'L5-ANA-2' })).toContainText('Waiting for the shop');
+    }
+    await noSideScroll(host.page, 'after using credit');
+    expect(host.errors, 'page errors').toEqual([]);
+
+    // The owner approves it in Sales > Waiting.
+    const shop = await signedInPage(browser, size, ON_URL, owner);
+    await shop.page.goto('/admin/activity?tab=waiting');
+    const section = shop.page.getByRole('region', { name: 'Tea credit' });
+    await expect(section).toBeVisible({ timeout: 20_000 });
+    const ask = section.getByRole('listitem', { name: /asks to use \$/ }).first();
+    await expect(ask).toBeVisible();
+    await noSideScroll(shop.page, 'tea credit in Sales');
+    await ask.getByRole('button', { name: 'Approve' }).click();
+    await expect(section.getByText('No credit waiting for you.')).toBeVisible();
+    expect(shop.errors, 'page errors').toEqual([]);
+    await shop.context.close();
+
+    await host.page.goto('/account/tea-credit');
+    await expect(host.page.getByRole('region', { name: 'Credit you asked to use' }).getByText('Used', { exact: true }).first()).toBeVisible();
+    const after = (await call(host.page, ON_API, ana, '/api/me/tea-credit')).body.balances.find((b: any) => b.account_id === BALI);
+    expect(after).toMatchObject({ held: 0, available: 0 });
+    await host.context.close();
+  });
+}
 
 // ── Circles, the assistant key and the card, at each size ──────────────────────
 
@@ -351,6 +438,9 @@ for (const [index, size] of SIZES.entries()) {
       await expect(host.page.getByRole('heading', { name: 'Your assistant' })).toHaveCount(0);
       await expect(host.page.locator('body')).not.toContainText(/tea credit/i);
       await noSideScroll(host.page, 'the host page, closed');
+      await host.page.goto('/account/tea-credit');
+      await expect(host.page.getByRole('heading', { name: 'Tea credit' })).toHaveCount(0);
+      await expect(host.page.locator('body')).not.toContainText(/tea credit/i);
       const table = await call(host.page, OFF_API, ana, '/api/me/tables');
       const someTable = (table.body.tables ?? [])[0]?.id as string | undefined;
       if (someTable) {
@@ -367,6 +457,9 @@ for (const [index, size] of SIZES.entries()) {
       await noSideScroll(shop.page, 'the session in Manage, closed');
       await shop.page.goto('/admin/events/l5-card-test/card');
       await expect(shop.page.locator('.session-card')).toHaveCount(0);
+      await shop.page.goto('/admin/activity?tab=waiting');
+      await expect(shop.page.getByText('Pending Orders', { exact: true })).toBeVisible({ timeout: 20_000 });
+      await expect(shop.page.getByRole('region', { name: 'Tea credit' })).toHaveCount(0);
       await shop.context.close();
     });
   });

@@ -37,7 +37,7 @@ import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTab
 import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
 import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
-import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnHostCredit, readShopHostCredit, settleHostCredit, useHostCreditOnOrder } from './hostCreditLedger';
+import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnAvailableInShop, readOwnHostCredit, readShopHostCredit, settleHostCredit, useHostCreditOnOrder } from './hostCreditLedger';
 import { hostCreditOpen } from '../../src/lib/hostCredit';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -25436,7 +25436,13 @@ const handleGetMyTeaCredit: Handler = async (request, env) => {
   if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
   const user = await optionalAuthenticatedUser(request, env);
   if (!user) return json({ error: 'Sign in to see your tea credit' }, 401);
-  return json(await readOwnHostCredit(env.DB, user.userId));
+  const own = await readOwnHostCredit(env.DB, user.userId);
+  // ?store=<slug>: what checkout in that shop may offer, worked out here.
+  const slug = new URL(request.url).searchParams.get('store');
+  if (!slug) return json(own);
+  const store = await getPublicStoreIdentity(env, slug.slice(0, 120));
+  const store_available = store ? await readOwnAvailableInShop(env.DB, user.userId, store.id) : 0;
+  return json({ ...own, store_available });
 };
 
 // POST /api/me/tea-credit/orders/:id/use: the host asks to use credit on one

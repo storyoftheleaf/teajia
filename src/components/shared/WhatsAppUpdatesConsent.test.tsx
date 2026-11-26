@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../admin/hooks/useAdminData', () => ({ useRates: () => ({ data: [] }) }));
 vi.mock('../../lib/api', () => ({ api: { inquiries: { create: vi.fn() } } }));
+// Tea credit (Launch 5) is closed here: nothing to offer at checkout.
+vi.mock('../../hooks/useMyTeaCredit', () => ({ useMyTeaCredit: () => ({ enabled: false, data: undefined, isLoading: false, isError: false }) }));
 
 import { MemoryRouter } from 'react-router-dom';
 import { PublicCart } from './PublicCart';

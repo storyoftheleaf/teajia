@@ -499,6 +499,13 @@ export async function readOwnHostCredit(db: D1Database, userId: string): Promise
   };
 }
 
+/** What this host may use in one shop now, after every open hold (checkout's offer). */
+export async function readOwnAvailableInShop(db: D1Database, userId: string, accountId: string): Promise<number> {
+  const [balance] = await readBalances(db, 'host_user_id = ? AND account_id = ? AND currency = ?',
+    [userId, accountId, HOST_CREDIT_CURRENCY]);
+  return balance?.available ?? 0;
+}
+
 export type HostCreditOwnRequest = {
   id: string; account_id: string; shop_name: string | null; invoice_id: string; invoice_number: string | null;
   amount: number; currency: string; status: 'held' | 'approved' | 'declined'; requested_at: string; decided_at: string | null;
@@ -604,11 +611,41 @@ export async function readShopHostCredit(db: D1Database, accountId: string) {
       invoice_id: row.invoice_id, invoice_number: row.invoice_number ?? null, source_inquiry_id: row.source_inquiry_id,
       invoice_status: row.invoice_status ?? null,
     })),
+    second_look: await readOrdersAwaitingApproval(db, accountId, terms, names),
     spend_requests: requests.map(row => ({
       ...row, amount: Number(row.amount), over_ceiling: Number(row.over_ceiling) === 1,
       host_name: names.get(row.host_user_id) ?? null,
     })),
   };
+}
+
+/**
+ * Orders Filled by hand whose credit is still pending because it is over the
+ * shop's ceiling: they wait for the owner's second look. Payment is checked
+ * again when the owner approves (POST /api/host-credit/invoices/:id/approve).
+ */
+async function readOrdersAwaitingApproval(
+  db: D1Database, accountId: string, terms: HostCreditTerms | null, names: Map<string, string | null>,
+) {
+  if (!terms || terms.ceilingUsd === null) return [];
+  const { results } = await db.prepare(
+    `SELECT p.invoice_id, i.invoice_number, p.host_user_id, ev.title AS event_title, SUM(p.amount) AS credit_amount
+       FROM host_credit_entries p
+       JOIN invoices i ON i.id = p.invoice_id AND i.account_id = p.account_id
+       LEFT JOIN events ev ON ev.id = p.event_id AND ev.account_id = p.account_id
+      WHERE p.account_id = ? AND p.kind = 'pending' AND p.currency = ?
+        AND i.status = 'Filled' AND i.deleted_at IS NULL AND i.cancelled_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM host_credit_entries e WHERE e.kind = 'earned' AND e.invoice_id = p.invoice_id)
+      GROUP BY p.invoice_id, i.invoice_number, p.host_user_id, ev.title
+      HAVING SUM(p.amount) > ? + 0.004
+      ORDER BY p.invoice_id LIMIT 200`,
+  ).bind(accountId, HOST_CREDIT_CURRENCY, terms.ceilingUsd).all<Record<string, any>>();
+  return results.map(row => ({
+    invoice_id: String(row.invoice_id), invoice_number: row.invoice_number ?? null,
+    host_user_id: String(row.host_user_id), host_name: names.get(String(row.host_user_id)) ?? null,
+    event_title: row.event_title ?? null, credit_amount: roundUsd(Number(row.credit_amount)),
+    currency: HOST_CREDIT_CURRENCY, ceiling_usd: terms.ceilingUsd,
+  }));
 }
 
 // ── Spending: a held request, approved by hand ───────────────────────────────

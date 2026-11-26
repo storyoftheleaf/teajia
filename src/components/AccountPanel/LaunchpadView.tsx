@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Package, IdentificationCard, Receipt, Footprints, Warning } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, ArrowsLeftRight, Wrench, Path, BookOpen, Books, Package, IdentificationCard, Receipt, Footprints, Warning, Leaf } from '@phosphor-icons/react';
+import { formatCredit } from '../../lib/hostCreditApi';
+import { TEA_CREDIT_PATH } from '../../hooks/useMyTeaCredit';
 import { daysWord } from './primitives';
 import type { TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import type { AttentionItem } from '../../lib/api';
@@ -88,6 +90,12 @@ interface LaunchpadViewProps {
   onApprovePayAccess?: (grantId: string) => void;
   onDeclinePayAccess?: (grantId: string) => void;
   payAccessBusy?: boolean;
+  /**
+   * A host's own tea credit (Launch 5, HOST_CREDIT_OPEN), worked out by the
+   * worker. `null` when the switch is closed, nobody is signed in, or this
+   * person has no credit rows: then there is no tile at all.
+   */
+  teaCredit?: { available: number; currency: string } | null;
 
   // Actions
   onClose: () => void;
@@ -112,7 +120,7 @@ interface LaunchpadViewProps {
  */
 export const TILE_GROUPS: ReadonlyArray<{ id: string; heading: string | null; tiles: readonly string[] }> = [
   { id: 'table', heading: 'On your table', tiles: ['steep'] },
-  { id: 'tea', heading: 'Your tea', tiles: ['cellar', 'remember', 'orders'] },
+  { id: 'tea', heading: 'Your tea', tiles: ['cellar', 'remember', 'orders', 'credit'] },
   { id: 'path', heading: 'Your path', tiles: ['sessions', 'journey', 'discover'] },
   { id: 'page', heading: 'Your page', tiles: ['profile'] },
   { id: 'houses', heading: 'Your tea houses', tiles: ['switch', 'manage'] },
@@ -308,6 +316,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   onApprovePayAccess,
   onDeclinePayAccess,
   payAccessBusy = false,
+  teaCredit = null,
   onClose,
   onOpenJournal,
   onOpenEvents,
@@ -432,6 +441,14 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Receipt {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/orders'); },
     },
+    // Only a host with credit rows has this tile; a guest never sees it.
+    ...(teaCredit ? [{
+      id: 'credit',
+      verb: 'tea credit',
+      hint: teaCredit.available > 0 ? `${formatCredit(teaCredit.available, teaCredit.currency)} to use on tea` : 'from the sessions you host',
+      icon: <Leaf {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate(TEA_CREDIT_PATH); },
+    } as LaunchpadTile] : []),
     {
       id: 'journey',
       verb: 'journey',
