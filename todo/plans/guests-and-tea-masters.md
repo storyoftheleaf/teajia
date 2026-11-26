@@ -325,11 +325,13 @@ One check before building: read how much of the session code assumes a shop acco
 
 Corrected from the earlier draft, which put the coming sessions under the same word. The Tea Table shows what has happened: sessions poured, the words people gave, the photographs, the teas. It should be the best-looking page on the site, because it is what makes a visitor want to be at the next one. Coming sessions are not on it. They are found from Home's "Come to a table", from a host's page and from an invitation.
 
-On likes, a recommendation, and the choice is Adrian's since it changes a standing rule:
+**Decided by Adrian, 2026-11-26: time order, held up by hand, with a private keep.**
 
-- **Recommended: time order, with a hand that can hold a few pieces at the top.** The host of a session, and Adrian for the whole table, can hold a session or a photograph up for a while. It gets the effect he wants, the best work stays visible, without any count, and it is curation, which is the thing Teajia already stands on.
-- **A middle way: a private "keep".** A person can keep a session or a photograph, which saves it to their own favourites. Nobody sees how many kept it. Adrian sees it privately and may use it when choosing what to hold up. This is his covert layer applied to the table.
-- **Not recommended: likes that show.** A visible count is the one thing every rule so far has refused, it makes people post for the number, and it would turn the newest and quietest tables into the ones that look least loved.
+- The table is newest first.
+- The host of a session, and Adrian for the whole table, can hold a session or a photograph at the top for a while.
+- Anyone can **keep** a session or a photograph. It saves to their own favourites.
+- Nobody sees how many people kept anything: not the person who made it, not other guests, not the host. Adrian sees it privately in Manage and may use it when choosing what to hold up. Nothing rises by itself.
+- Likes that show were considered and not chosen.
 
 ## Blind spots and ideas (review of 2026-11-26)
 
@@ -392,7 +394,7 @@ Adrian asked for one more pass over the whole thing: the holes, and what he had 
 3. B3: answered on 2026-11-26. A tea master is credited for tea bought through them, it is tracked from the start, and the rule is tuned later. See "A tea master's shelf".
 4. I1: is a small host's box worth bringing forward, ahead of the full tasting box?
 5. I6: which coming session could be run by hand as the test?
-6. The Tea Table: time order with a hand that holds pieces up, a private keep, or likes that show?
+6. The Tea Table: answered. Time order, held up by hand, with a private keep.
 7. Does the word tea master stay as a word you grant on a person's page, or should that word go too?
 
 ## Not building
