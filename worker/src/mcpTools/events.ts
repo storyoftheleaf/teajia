@@ -90,6 +90,7 @@
 
 import { customerTagList } from '../customerContactHandles';
 import { guestLinkSessions } from '../guestLinkHolders';
+import { seatsTakenSql } from '../hostTableGuests';
 import {
   EVENT_TRANSITIONS,
   reservePartySeats,
@@ -214,7 +215,7 @@ type EventRow = {
   event_date: string; event_end_date: string | null;
   location_name: string | null; area_hint: string | null;
   total_capacity: number; claim_window_minutes: number | null; timezone: string | null;
-  status: string; lifecycle_status: string; requires_approval: number;
+  status: string; lifecycle_status: string; requires_approval: number; door: string | null;
   gathering_type: string | null; public_visibility: string; event_format: string;
   held_seats: number; offered_seats: number;
   requested_count: number; waitlist_count: number; interest_count: number;
@@ -228,7 +229,7 @@ type EventRow = {
 const EVENT_SELECT = `
   SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
          e.location_name, e.area_hint, e.total_capacity, e.claim_window_minutes,
-         e.timezone, e.status, e.lifecycle_status, e.requires_approval,
+         e.timezone, e.status, e.lifecycle_status, e.requires_approval, e.door,
          e.gathering_type, e.public_visibility, e.event_format,
          COALESCE((SELECT COUNT(*) FROM event_party_members pm
            WHERE pm.event_id = e.id AND pm.account_id = e.account_id
@@ -601,6 +602,13 @@ const updateEvent: ToolHandler = async (env, auth, args) => {
 
     if (Object.keys(fields).length === 0) throw new Error('Nothing to change — name at least one field, or list one in clear_fields');
 
+    // A hosted table keeps its door and requires_approval together; the door
+    // is changed on the table's own page (slice H5, case 4).
+    if ('requires_approval' in fields && current.door
+      && (fields.requires_approval ? 1 : 0) !== (current.door === 'link' ? 0 : 1)) {
+      return { error: 'hosted_table_door', message: 'This table has a door. Change it on the table’s own page.' };
+    }
+
     // Capacity below the seats already given out leaves an event oversubscribed
     // in silence: nobody is un-seated, the number just stops being true, and
     // the next reservation is refused for a reason that looks like a bug.
@@ -637,14 +645,23 @@ const updateEvent: ToolHandler = async (env, auth, args) => {
   if (!pending || pending.eventId !== current.id) return expiredTicket;
 
   const cols = Object.keys(pending.fields);
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE events SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = datetime('now')
-        WHERE id = ? AND account_id = ?`
-    ).bind(...cols.map(c => pending.fields[c] ?? null), pending.eventId, pending.accountId),
-    activityLog(env, 'event_updated', `Updated "${pending.title}" via MCP: ${cols.join(', ')}`,
-      pending.userEmail, 'event', pending.eventId, pending.accountId),
-  ]);
+  // The preview counted the seats; a seat taken since then must not slip under
+  // a lowered capacity, so the count is checked again in the write itself.
+  const capacity = typeof pending.fields.total_capacity === 'number' ? pending.fields.total_capacity : null;
+  const capacityGuard = capacity === null ? '' : ` AND (? >= total_capacity OR ? >= ${seatsTakenSql('events')})`;
+  const update = await env.DB.prepare(
+    `UPDATE events SET ${cols.map(c => `${c} = ?`).join(', ')}, updated_at = datetime('now')
+      WHERE id = ? AND account_id = ?${capacityGuard}`
+  ).bind(...cols.map(c => pending.fields[c] ?? null), pending.eventId, pending.accountId,
+    ...(capacity === null ? [] : [capacity, capacity])).run();
+  if (capacity !== null && !Number(update.meta?.changes || 0)) {
+    return {
+      error: 'capacity_below_held_seats',
+      message: 'Seats were taken while this was being confirmed, so the capacity would be below them. Nothing was written.',
+    };
+  }
+  await activityLog(env, 'event_updated', `Updated "${pending.title}" via MCP: ${cols.join(', ')}`,
+    pending.userEmail, 'event', pending.eventId, pending.accountId).run();
 
   return { committed: true, action: 'update_event', event_id: pending.eventId, fields_changed: cols };
 };
@@ -878,7 +895,7 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
     ],
     createParticipation: {
       columns: ['customer_id', 'full_name', 'phone_number', 'email', 'access_tier', 'magic_token',
-        'notes', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list'],
+        'notes', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list', 'photo_consent'],
       values: [
         pending.customerId, pending.fullName, pending.phone, pending.email, pending.accessTier,
         pending.magicToken, pending.notes,
@@ -888,6 +905,8 @@ const recordEventRsvp: ToolHandler = async (env, auth, args) => {
         // Adrian took over a message and typed in himself.
         'mcp',
         pending.showInGuestList ? 1 : 0,
+        // Nobody asked the guest about photographs here, so nothing is recorded.
+        null,
       ],
     },
   });

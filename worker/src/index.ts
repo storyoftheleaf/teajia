@@ -16,7 +16,8 @@ import { hostApproved, hostDoorsFor, personalAccountSql, publicSessionHostSql, s
 import { isWalkthroughMedia, mayShowWalkthrough, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
-import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, sayNoToGuest, seatsTaken, waitingGuest } from './hostTableGuests';
+import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest } from './hostTableGuests';
+import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
@@ -12441,7 +12442,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
-            e.requires_approval, e.venue_id, e.reading_article_id, e.host_user_id,
+            e.requires_approval, e.door, e.venue_id, e.reading_article_id, e.host_user_id,
             v.photos AS venue_photos,
             a.name AS account_name,
             a.location_country AS account_location_country,
@@ -12715,7 +12716,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status
+    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status, e.door
      FROM events e JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
        AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
@@ -12726,33 +12727,61 @@ const handleRSVP: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   const {
-    full_name, phone_number, email,
     guest_requests, contact_method,
     plus_one, plus_one_name,
     photo_consent, notes, tea_preference, bringing_tea,
     show_in_guest_list,
   } = body;
 
-  if (!full_name) return json({ error: 'full_name is required' }, 400);
-  if (!phone_number && !email) return json({ error: 'phone_number or email is required' }, 400);
+  // Launch 2, slice H5: a by-link door seats a guest by name alone. The
+  // decisions live in worker/src/seatRequest.ts; an older session (door NULL)
+  // behaves as before. Guard: worker/tests/seat-request.test.ts.
+  const doorRule = seatDoorRule(event.door);
+  const contact = seatContact(body);
+  const refusal = seatRequirement(doorRule, body.full_name, contact);
+  if (refusal) return json({ error: refusal.error, code: refusal.code }, refusal.status);
+  const full_name = String(body.full_name).trim();
+  const phone_number = contact.phone;
+  const email = contact.email;
 
-  const contactField = phone_number ? 'phone_number' : 'email';
-  const contactValue = phone_number || email;
-  const phoneSuffix = phone_number ? phone_number.replace(/\D/g, '').slice(-9) : null;
-  const existing = phoneSuffix
-    ? await env.DB.prepare(
-        `SELECT magic_token, status FROM event_attendees
-         WHERE event_id = ? AND (phone_number = ? OR (length(?) = 9 AND phone_number LIKE ?))`
-      ).bind(event.id, phone_number, phoneSuffix, `%${phoneSuffix}`).first()
-    : await env.DB.prepare(
-        `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${contactField} = ?`
-      ).bind(event.id, contactValue).first();
+  // A second tap from the same browser at a by-link door finds the first seat.
+  const browserKey = seatKey(body.seat_key);
+  const keyedSeatId = usesSeatKey(doorRule, browserKey) ? await seatIdFromKey(String(event.id), browserKey) : null;
+  const seatAnswer = (row: Record<string, unknown>, statusCode: number, repeat: boolean) => json({
+    magic_token: row.magic_token,
+    status: row.status,
+    redirect_url: `/m/${row.magic_token}`,
+    // At a by-link door the guest is handed their own page at once, to keep.
+    ...(doorRule === 'link' ? { link: `${(env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '')}/m/${row.magic_token}` } : {}),
+    ...(repeat ? { repeat: true } : {}),
+  }, statusCode);
+  const keyedSeat = async () => keyedSeatId
+    ? env.DB.prepare('SELECT magic_token, status FROM event_attendees WHERE id = ? AND event_id = ? AND account_id = ?')
+      .bind(keyedSeatId, event.id, accountId).first<Record<string, unknown>>()
+    : null;
+  const earlier = await keyedSeat();
+  if (earlier) return seatAnswer(earlier, 200, true);
 
-  if (existing) {
-    return json({
-      ok: true,
-      message: 'Your RSVP request was received. If an RSVP already exists, use RSVP recovery to receive its private link.',
-    });
+  // With no contact there is nothing to match, so nothing is looked up.
+  if (looksUpByContact(contact)) {
+    const contactField = phone_number ? 'phone_number' : 'email';
+    const contactValue = phone_number || email;
+    const phoneSuffix = phone_number ? phone_number.replace(/\D/g, '').slice(-9) : null;
+    const existing = phoneSuffix
+      ? await env.DB.prepare(
+          `SELECT magic_token, status FROM event_attendees
+           WHERE event_id = ? AND (phone_number = ? OR (length(?) = 9 AND phone_number LIKE ?))`
+        ).bind(event.id, phone_number, phoneSuffix, `%${phoneSuffix}`).first()
+      : await env.DB.prepare(
+          `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${contactField} = ?`
+        ).bind(event.id, contactValue).first();
+
+    if (existing) {
+      return json({
+        ok: true,
+        message: 'Your RSVP request was received. If an RSVP already exists, use RSVP recovery to receive its private link.',
+      });
+    }
   }
 
   // Golden tier detection — look up customer within this account only.
@@ -12784,15 +12813,23 @@ const handleRSVP: Handler = async (request, env, params) => {
         accessTier = 'golden';
       }
     } catch {}
-  } else {
+  } else if (createsCustomer(contact)) {
+    // A guest who gave no contact makes no customers row.
     customerId = crypto.randomUUID();
     customerNeedsCreation = true;
   }
 
+  // A signed-in guest at a by-link door is tied to their seat, so they can
+  // find it again from their account even when they gave no contact.
+  let seatUserId: string | null = null;
+  if (doorRule === 'link') {
+    const rawToken = isAuthed(request);
+    if (rawToken && await verifyToken(rawToken, env.JWT_SECRET)) seatUserId = parseToken(rawToken)?.sub ?? null;
+  }
+
   // Approval-required requests do not hold capacity. Instant RSVPs reserve the
   // complete party atomically through the canonical seat allocator.
-  const requiresApproval = (event.requires_approval as number) !== 0; // default true for all existing rows
-  const status = requiresApproval ? 'requested' : 'confirmed';
+  const status = seatStatusFor(doorRule, event.requires_approval); // default true for all existing rows
   const magicToken = crypto.randomUUID();
 
   let guestRequestsJson: string | null = null;
@@ -12809,7 +12846,7 @@ const handleRSVP: Handler = async (request, env, params) => {
     guestRequestsJson = JSON.stringify(normalizedGuestRequests);
   }
 
-  const attendeeId = crypto.randomUUID();
+  const attendeeId = keyedSeatId ?? crypto.randomUUID();
   const targetSeatState = status === 'confirmed' ? 'confirmed' : 'requested';
   const seats: PartySeatReservation[] = [
     {
@@ -12827,40 +12864,60 @@ const handleRSVP: Handler = async (request, env, params) => {
       targetState: targetSeatState,
     })),
   ];
-  const reserved = await reservePartySeats(env, {
-    accountId,
-    eventId: event.id as string,
-    participationId: attendeeId,
-    sourceState: 'requested',
-    targetState: status,
-    seats,
-    createParticipation: {
-      columns: [
-        'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
-        'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference', 'bringing_tea',
-        'guest_requests', 'contact_method', 'source', 'show_in_guest_list',
-      ],
-      values: [
-        customerNeedsCreation ? null : customerId,
-        full_name,
-        phone_number || null,
-        email || null,
-        plus_one ? 1 : 0,
-        plus_one_name || null,
-        accessTier,
-        magicToken,
-        photo_consent ? 1 : 0,
-        notes || null,
-        tea_preference || null,
-        bringing_tea || null,
-        guestRequestsJson,
-        contact_method || 'whatsapp',
-        'direct',
-        show_in_guest_list ? 1 : 0,
-      ],
-    },
-  });
-  if (!reserved.ok) return seatReservationError(reserved);
+  let reserved: ReservePartySeatsResult;
+  try {
+    reserved = await reservePartySeats(env, {
+      accountId,
+      eventId: event.id as string,
+      participationId: attendeeId,
+      sourceState: 'requested',
+      targetState: status,
+      seats,
+      createParticipation: {
+        columns: [
+          'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
+          'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference', 'bringing_tea',
+          'guest_requests', 'contact_method', 'source', 'show_in_guest_list', 'user_id',
+        ],
+        values: [
+          customerNeedsCreation ? null : customerId,
+          full_name,
+          phone_number || null,
+          email || null,
+          plus_one ? 1 : 0,
+          plus_one_name || null,
+          accessTier,
+          magicToken,
+          // NULL when the guest said nothing; 0 only for "Please, no photographs of me".
+          photoConsentValue(photo_consent),
+          notes || null,
+          tea_preference || null,
+          bringing_tea || null,
+          guestRequestsJson,
+          contact_method || 'whatsapp',
+          'direct',
+          show_in_guest_list ? 1 : 0,
+          seatUserId,
+        ],
+      },
+    });
+  } catch (error) {
+    // Two taps from one browser at the same moment: the second insert meets
+    // the first seat's id. Answer with that seat.
+    const first = await keyedSeat();
+    if (first) return seatAnswer(first, 200, true);
+    throw error;
+  }
+  if (!reserved.ok) {
+    const first = await keyedSeat();
+    if (first) return seatAnswer(first, 200, true);
+    if (doorRule === 'link' && reserved.code === 'capacity_conflict') {
+      const taken = await seatsTaken(env.DB, { id: String(event.id), account_id: accountId });
+      const full = linkDoorFullAnswer(Number(event.total_capacity) - taken, seats.length);
+      return json({ error: full.error, code: full.code }, full.status);
+    }
+    return seatReservationError(reserved);
+  }
 
   if (customerNeedsCreation && customerId) {
     await env.DB.batch([
@@ -12899,11 +12956,7 @@ const handleRSVP: Handler = async (request, env, params) => {
     }
   }
 
-  return json({
-    magic_token: magicToken,
-    status,
-    redirect_url: `/m/${magicToken}`,
-  }, 201);
+  return seatAnswer({ magic_token: magicToken, status }, 201, false);
 };
 
 const handleGetEventAvailability: Handler = async (_request, env, params) => {
@@ -13522,6 +13575,7 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 
   let lookupField: string;
   let lookupValue: string;
+  let accountUserId: string | null = null;
 
   // Account-based lookup: authenticated request with no body
   const token = isAuthed(request);
@@ -13535,22 +13589,26 @@ const handleFindRSVP: Handler = async (request, env, params) => {
     if (!claims?.email) return json({ error: 'Account email not found' }, 400);
     lookupField = 'email';
     lookupValue = claims.email;
+    // A seat taken signed in by name alone (a by-link door, slice H5) is found by the account.
+    accountUserId = claims.sub ?? null;
   } else {
-    const body = await request.json() as { phone_number?: string; email?: string };
-    if (body.phone_number) {
+    // Blank or digit-less contact is no contact: it must never match a guest who gave none.
+    const given = seatContact(await request.json() as { phone_number?: unknown; email?: unknown });
+    if (given.phone) {
       lookupField = 'phone_number';
-      lookupValue = body.phone_number;
-    } else if (body.email) {
+      lookupValue = given.phone;
+    } else if (given.email) {
       lookupField = 'email';
-      lookupValue = body.email;
+      lookupValue = given.email;
     } else {
       return json({ error: 'phone_number or email is required' }, 400);
     }
   }
 
   let attendee = await env.DB.prepare(
-    `SELECT magic_token, status, email FROM event_attendees WHERE event_id = ? AND ${lookupField} = ?`
-  ).bind(event.id, lookupValue).first();
+    `SELECT magic_token, status, email FROM event_attendees
+      WHERE event_id = ? AND (${lookupField} = ?${accountUserId ? ' OR user_id = ?' : ''})`
+  ).bind(event.id, lookupValue, ...(accountUserId ? [accountUserId] : [])).first();
 
   // Phone fallback: match on last 9 digits to handle "+886 912 345 678" vs "+886912345678" vs "0912 345 678"
   if (!attendee && lookupField === 'phone_number') {
@@ -13853,17 +13911,48 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
+  // A hosted table's door is changed on the table's own page, which keeps the
+  // door and requires_approval together (slice H5, case 4).
+  const door = cols.includes('requires_approval')
+    ? (await env.DB.prepare('SELECT door FROM events WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first<{ door: string | null }>())?.door ?? null
+    : null;
+  if (door) {
+    const asks = Number(body.requires_approval) ? 1 : 0;
+    if (asks !== (door === 'link' ? 0 : 1)) {
+      return json({ error: 'This table has a door. Change it on the table’s own page.', code: 'hosted_table_door' }, 409);
+    }
+  }
+
+  // Seats never go below the seats already taken (slice H5, case 5). The guard
+  // is in the write, so a seat taken at the same moment cannot slip under it.
+  // A capacity that is not lowered is never refused, so an event that is
+  // already over its number can still be edited.
+  const capacity = cols.includes('total_capacity') ? body.total_capacity ?? null : null;
+  const capacityGuard = capacity === null ? ''
+    : ` AND (CAST(? AS INTEGER) >= total_capacity OR CAST(? AS INTEGER) >= ${seatsTakenSql('events')})`;
   const sets = cols.map(c => `${c} = ?`).join(', ');
   const lifecycleCompare = requestedLifecycle !== undefined ? currentLifecycle : undefined;
   const result = await env.DB.prepare(
     `UPDATE events SET ${sets}, updated_at = datetime('now')
-     WHERE id = ? AND account_id = ?${lifecycleCompare !== undefined ? ' AND lifecycle_status = ?' : ''}`
+     WHERE id = ? AND account_id = ?${lifecycleCompare !== undefined ? ' AND lifecycle_status = ?' : ''}${capacityGuard}`
   ).bind(
     ...cols.map(c => body[c] ?? null),
     params.id,
     accountId,
     ...(lifecycleCompare !== undefined ? [lifecycleCompare] : []),
+    ...(capacity === null ? [] : [capacity, capacity]),
   ).run();
+  if (Number(result.meta?.changes || 0) === 0 && capacity !== null) {
+    const taken = await seatsTaken(env.DB, { id: params.id, account_id: accountId });
+    if (Number(capacity) < taken) {
+      return json({
+        error: `${taken} ${taken === 1 ? 'seat is' : 'seats are'} already taken, so the session needs at least ${taken}.`,
+        code: 'capacity_below_held_seats',
+        seats_held: taken,
+      }, 409);
+    }
+  }
   if (Number(result.meta?.changes || 0) === 0 && lifecycleCompare !== undefined) {
     return json({ error: 'Event lifecycle changed; retry the update' }, 409);
   }
@@ -19151,8 +19240,8 @@ const handleConvertInterest: Handler = async (request, env, params) => {
     stmts.push(
       env.DB.prepare(
         `INSERT INTO event_attendees
-           (id, account_id, event_id, full_name, phone_number, email, status, magic_token, source)
-         VALUES (?, ?, ?, ?, ?, ?, 'requested', ?, 'interest_conversion')`
+           (id, account_id, event_id, full_name, phone_number, email, status, magic_token, source, photo_consent)
+         VALUES (?, ?, ?, ?, ?, ?, 'requested', ?, 'interest_conversion', NULL)`
       ).bind(
         attendeeId,
         accountId,
@@ -19460,7 +19549,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
       invitationId: invite.id as string,
     }],
     createParticipation: {
-      columns: ['full_name', 'phone_number', 'email', 'contact_method', 'magic_token', 'source', 'access_tier'],
+      columns: ['full_name', 'phone_number', 'email', 'contact_method', 'magic_token', 'source', 'access_tier', 'photo_consent'],
       values: [
         body.name,
         body.phone || null,
@@ -19469,6 +19558,8 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
         magicToken,
         'guest_invite',
         'standard',
+        // Not asked at this door, so not recorded as a no.
+        null,
       ],
     },
     guestClaim: {
