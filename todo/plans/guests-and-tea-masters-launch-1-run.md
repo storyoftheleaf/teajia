@@ -24,6 +24,20 @@ Adrian set this routing on 2026-11-26. It replaces the tier letters in the build
 
 Shared files only Opus edits: `worker/src/index.ts`, `src/App.tsx`, `src/lib/store.ts`, `src/lib/api.ts`, `src/types.ts`, `src/styles/tokens.css`, `worker/migrations/`, `worker/src/mcpTools/registry.ts`, `CLAUDE.md`, `docs/PILLAR.md`, and the two build files. Workers write new modules and export functions. Opus adds the wiring lines.
 
+## How the Sol and Astra workers are run
+
+Adrian, 2026-11-26: the build decides who gets what and sends the work itself, and he speaks through the project chat. He is not asked to paste anything.
+
+Checked on his Mac the same day: the Codex command-line tool is installed (`codex-cli 0.153.4`) and signed in with his ChatGPT account. Opus reaches it through a Remote Control session in the Teajia folder on his Mac.
+
+- **Models.** Sol is `gpt-6.2-sol`, already Codex's default there. Astra is 6.2 as well; Adrian confirmed it exists. The list saved on the Mac did not show its id, so run `codex debug models` with network once and use the 6.2 Astra id it prints. If none is printed, ask in the project chat before sending Astra's messages. Do not quietly send them to another model.
+- **Never work in his folder.** His checkout is on `main`, 361 commits behind GitHub, with unsaved work. Do not pull, reset, stash or commit there. For each worker: `git fetch origin build/launch-1`, then `git worktree add ../teajia-l1-<slice> -b build/l1-<slice> origin/build/launch-1`, run outside the Codex sandbox.
+- **One run per worker.** Save the worker's message as `prompt.md` in its worktree, then `codex exec -C ../teajia-l1-<slice> -m <model> -s workspace-write -o last.md - < prompt.md`. Always pass `-s workspace-write`: his Codex config defaults to full access with no approvals. Astra's read-only audit (S9) uses `-s read-only`.
+- **Opus pushes and opens the pull request**, not the worker, after reading `last.md` and the diff and running the worker's acceptance check itself. A worker's word is not the check.
+- **Ports.** Only one sandbox can hold 7777 and 8787 on the Mac. Workers that need the browser run one at a time, or Opus runs their sandbox check for them in the cloud.
+- **At the end.** Remove each worktree once its pull request is merged, and close the Remote Control session.
+- **If the Mac is asleep or unreachable**, Opus does that slice itself or waits, and says so in the project chat. It does not hand a Sol or Astra slice to a different model family without Adrian's word.
+
 ## The hard questions, settled
 
 Each has the evidence, the recommendation, and what would prove it wrong.
