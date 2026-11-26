@@ -110,7 +110,7 @@ ALTER TABLE accounts ADD COLUMN host_approved_at TEXT;
 ALTER TABLE accounts ADD COLUMN host_approved_by TEXT REFERENCES users(id);
 
 ALTER TABLE events ADD COLUMN host_user_id TEXT REFERENCES users(id);
-ALTER TABLE events ADD COLUMN door TEXT CHECK (door IN ('request','link'));
+ALTER TABLE events ADD COLUMN door TEXT CHECK (door IN ('request','link','open'));
 
 CREATE TABLE IF NOT EXISTS host_guest_notes (
   id           TEXT PRIMARY KEY,
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS host_guest_notes (
 );
 ```
 
-`door` NULL means an older session, read as today from `requires_approval`. A hosted table always sets `door`, `requires_approval` to match it, `public_visibility = 'unlisted'` and `network_discovery = 0`.
+`door` NULL means an older session, read as today from `requires_approval`. The check allows `'open'` because a check cannot be widened later without rebuilding the table, but every route refuses `'open'` until Launch 3. A hosted table always sets `door`, `requires_approval` to match it, `public_visibility = 'unlisted'` and `network_discovery = 0`.
 
 **Flag.** `src/lib/fewHosts.ts`, `FEW_HOSTS_OPEN = false`, with `fewHostsOpen(env)` in the exact style of `src/lib/firstTable.ts`. Two gates stand together: the flag, and the person's host approval. Every new write route answers 404 unless both hold.
 

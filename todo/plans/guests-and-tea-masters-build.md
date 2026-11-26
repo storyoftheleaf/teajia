@@ -160,6 +160,8 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 ## Launch 3: anyone can host
 
+> **Launch 3 is cut for running in [guests-and-tea-masters-launch-3-run.md](guests-and-tea-masters-launch-3-run.md) (2026-11-26).** Five of its slices can start before Launch 2 is merged. Where it differs from the table below it is the newer one.
+
 **What changes.** "Host a table" opens to everyone. This holds the one large piece of engineering.
 
 | # | Package | Tier | Closes |
