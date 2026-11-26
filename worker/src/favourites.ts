@@ -23,8 +23,12 @@ function privateJson(value: unknown, status = 200) {
 
 const notFound = () => privateJson({ error: 'Not found' }, 404);
 
+const SHOP_FAVOURITE_VISIBLE = `p.is_public = 1 AND p.shown_in_shop = 1 AND p.status IN ('Active', 'Sold Out')
+  AND NOT ${INWARD_ORDERS_PAUSED_SQL}`;
+const OPEN_SHOP = "a.status = 'active' AND a.public_enabled = 1";
+
 /** Every kind a person has marked, in one answer. */
-async function listFavourites(db: D1Database, userId: string) {
+export async function listFavourites(db: D1Database, userId: string) {
   const [articles, shopTeas, chestTeas] = await Promise.all([
     db.prepare(
       `SELECT a.id, a.slug, a.title, a.subtitle, a.cover_image_url, f.is_public, f.created_at AS kept_at
@@ -39,10 +43,9 @@ async function listFavourites(db: D1Database, userId: string) {
               MIN(uf.created_at) AS kept_at
          FROM user_favorites uf
          JOIN products p ON p.id = uf.item_id AND (uf.account_id IS NULL OR uf.account_id = p.account_id)
-         JOIN accounts a ON a.id = p.account_id AND a.status = 'active' AND a.public_enabled = 1
+         JOIN accounts a ON a.id = p.account_id AND ${OPEN_SHOP}
         WHERE uf.user_id = ?
-          AND p.is_public = 1 AND p.shown_in_shop = 1 AND p.status IN ('Active', 'Sold Out')
-          AND NOT ${INWARD_ORDERS_PAUSED_SQL}
+          AND ${SHOP_FAVOURITE_VISIBLE}
         GROUP BY p.id
         ORDER BY kept_at DESC, p.id`
     ).bind(userId).all(),
@@ -81,6 +84,70 @@ async function listFavourites(db: D1Database, userId: string) {
   };
 }
 
+export const FAVOURITE_KINDS = ['article', 'shop_tea', 'chest_tea'] as const;
+export type FavouriteKind = typeof FAVOURITE_KINDS[number];
+
+export async function favouriteTarget(db: D1Database, userId: string, kind: FavouriteKind, id: string, kept: boolean) {
+  switch (kind) {
+    case 'article':
+      return db.prepare("SELECT title FROM articles WHERE id = ? AND status = 'published'")
+        .bind(id).first<{ title: string }>();
+    case 'shop_tea':
+      // A previously saved tea can still be removed after it leaves the shop.
+      if (!kept) {
+        return db.prepare(`SELECT COALESCE(p.product_name, uf.item_id) AS title
+          FROM user_favorites uf
+          LEFT JOIN (
+            SELECT p.id, p.product_name FROM products p JOIN accounts a ON a.id = p.account_id AND ${OPEN_SHOP}
+            WHERE ${SHOP_FAVOURITE_VISIBLE}
+          ) p ON p.id = uf.item_id
+          WHERE uf.user_id = ? AND uf.item_id = ? LIMIT 1`).bind(userId, id).first<{ title: string }>();
+      }
+      return db.prepare(`SELECT p.product_name AS title FROM products p
+        JOIN accounts a ON a.id = p.account_id AND ${OPEN_SHOP}
+        WHERE p.id = ? AND ${SHOP_FAVOURITE_VISIBLE}`).bind(id).first<{ title: string }>();
+    case 'chest_tea':
+      return db.prepare('SELECT name AS title FROM personal_cellar_items WHERE id = ? AND owner_user_id = ?')
+        .bind(id, userId).first<{ title: string }>();
+  }
+}
+
+export async function setFavourite(db: D1Database, userId: string, kind: FavouriteKind, id: string, kept: boolean) {
+  switch (kind) {
+    case 'article': {
+      if (kept) {
+        const row = await db.prepare(`INSERT INTO favourite_articles (user_id, article_id)
+          SELECT ?, id FROM articles WHERE id = ? AND status = 'published'
+          ON CONFLICT(user_id, article_id) DO UPDATE SET article_id = excluded.article_id
+          RETURNING article_id`).bind(userId, id).first();
+        return Boolean(row);
+      }
+      if (!await favouriteTarget(db, userId, kind, id, kept)) return false;
+      await db.prepare('DELETE FROM favourite_articles WHERE user_id = ? AND article_id = ?').bind(userId, id).run();
+      return true;
+    }
+    case 'shop_tea': {
+      if (kept) {
+        const row = await db.prepare(`INSERT INTO user_favorites (user_id, account_id, item_id)
+          SELECT ?, p.account_id, p.id FROM products p
+          JOIN accounts a ON a.id = p.account_id AND ${OPEN_SHOP}
+          WHERE p.id = ? AND ${SHOP_FAVOURITE_VISIBLE}
+          ON CONFLICT(user_id, account_id, item_id) DO UPDATE SET item_id = excluded.item_id
+          RETURNING item_id`).bind(userId, id).first();
+        return Boolean(row);
+      }
+      // The older shop heart stored account-less rows as well as shop-scoped ones.
+      const result = await db.prepare('DELETE FROM user_favorites WHERE user_id = ? AND item_id = ?').bind(userId, id).run();
+      return Boolean(result.meta?.changes);
+    }
+    case 'chest_tea': {
+      const result = await db.prepare('UPDATE personal_cellar_items SET favourite = ? WHERE id = ? AND owner_user_id = ?')
+        .bind(kept ? 1 : 0, id, userId).run();
+      return Boolean(result.meta?.changes);
+    }
+  }
+}
+
 export function favouritesRoutes<E extends FavouritesEnv>(deps: Deps<E>): [string, string, Handler<E>][] {
   const signedIn = async (request: Request, env: E) => {
     if (!favouritesOpen(env)) return { error: notFound() };
@@ -93,27 +160,11 @@ export function favouritesRoutes<E extends FavouritesEnv>(deps: Deps<E>): [strin
     return privateJson(await listFavourites(env.DB, user.userId));
   };
 
-  const keepArticle: Handler<E> = async (request, env, { id }) => {
+  const keepArticle = (kept: boolean): Handler<E> => async (request, env, { id }) => {
     const user = await signedIn(request, env);
     if ('error' in user) return user.error;
-    const article = await env.DB.prepare(`SELECT id FROM articles WHERE id = ? AND status = 'published'`)
-      .bind(id).first<{ id: string }>();
-    if (!article) return notFound();
-    await env.DB.prepare(
-      `INSERT OR IGNORE INTO favourite_articles (user_id, article_id) VALUES (?, ?)`
-    ).bind(user.userId, article.id).run();
-    return privateJson({ kept: true });
-  };
-
-  const unkeepArticle: Handler<E> = async (request, env, { id }) => {
-    const user = await signedIn(request, env);
-    if ('error' in user) return user.error;
-    const article = await env.DB.prepare(`SELECT id FROM articles WHERE id = ? AND status = 'published'`)
-      .bind(id).first<{ id: string }>();
-    if (!article) return notFound();
-    await env.DB.prepare(`DELETE FROM favourite_articles WHERE user_id = ? AND article_id = ?`)
-      .bind(user.userId, article.id).run();
-    return privateJson({ kept: false });
+    if (!await setFavourite(env.DB, user.userId, 'article', id, kept)) return notFound();
+    return privateJson({ kept });
   };
 
   const markChestTea: Handler<E> = async (request, env, { id }) => {
@@ -123,17 +174,14 @@ export function favouritesRoutes<E extends FavouritesEnv>(deps: Deps<E>): [strin
     if (typeof body?.favourite !== 'boolean') {
       return privateJson({ error: 'Say favourite: true or false.' }, 400);
     }
-    const saved = await env.DB.prepare(
-      `UPDATE personal_cellar_items SET favourite = ? WHERE id = ? AND owner_user_id = ?`
-    ).bind(body.favourite ? 1 : 0, id, user.userId).run();
-    if (!saved.meta.changes) return notFound();
+    if (!await setFavourite(env.DB, user.userId, 'chest_tea', id, body.favourite)) return notFound();
     return privateJson({ id, favourite: body.favourite });
   };
 
   return [
     ['GET', '/api/me/favourites', list],
-    ['PUT', '/api/me/favourites/articles/:id', keepArticle],
-    ['DELETE', '/api/me/favourites/articles/:id', unkeepArticle],
+    ['PUT', '/api/me/favourites/articles/:id', keepArticle(true)],
+    ['DELETE', '/api/me/favourites/articles/:id', keepArticle(false)],
     ['PUT', '/api/me/cellar/:id/favourite', markChestTea],
   ];
 }

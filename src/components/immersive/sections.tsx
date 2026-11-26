@@ -4,6 +4,7 @@ import type { ArticleBlock } from '../../types';
 import { ScrollHighlightText } from './ScrollHighlightText';
 import type { TermSegment } from '../../lib/glossaryTerms';
 import { renderSegments } from '../reader/GlossaryTerms';
+import { mediaUrl } from '../../lib/mediaUrl';
 
 // Wraps a child and fades it up (translateY + blur-clear) the first time it
 // enters the viewport. IntersectionObserver, one-shot. Animates only
@@ -792,7 +793,7 @@ export function renderBlock(block: ArticleBlock, index: number, ctx?: RenderBloc
   const terms = (b: { text: string; noTerms?: boolean }) => (ctx?.terms && !b.noTerms ? ctx.terms(b.text) : undefined);
   switch (block.type) {
     case 'cover':
-      return <CoverSection key={index} title={block.title} subtitle={block.subtitle} image={block.image} kicker={block.kicker} variant={block.variant} />;
+      return <CoverSection key={index} title={block.title} subtitle={block.subtitle} image={mediaUrl(block.image)} kicker={block.kicker} variant={block.variant} />;
     case 'intro':
       return <ProseSection key={index} text={block.text} dropcap effect={normalizeEffect(block.textEffect)} segments={terms(block)} />;
     case 'paragraph':
@@ -817,7 +818,7 @@ export function renderBlock(block: ArticleBlock, index: number, ctx?: RenderBloc
 
     // AR.2, image variants map to the visual family.
     case 'image': {
-      const src = block.url ?? block.images?.[0];
+      const src = mediaUrl(block.url ?? block.images?.[0]);
       switch (block.variant) {
         case 'split_vertical':
           return <SplitDiptych key={index} images={block.images ?? (src ? [src] : [])} caption={block.caption ?? block.description} />;

@@ -26,6 +26,7 @@ export function mediaUrl(url: string): string;
 export function mediaUrl(url: string | null | undefined): string | undefined;
 export function mediaUrl(url: string | null | undefined): string | undefined {
   if (!url) return undefined;
+  if (url.startsWith('/api/article-offers/')) return `${API_BASE}${url}`;
   if (url.startsWith(MEDIA_HOST_PREFIX)) {
     // Preserve any `?v=` cache-buster on the tail; the worker parses the key
     // from the path and ignores the query.
