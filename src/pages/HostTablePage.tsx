@@ -10,6 +10,8 @@ import { authPagePath } from '../lib/authNavigation';
 import { fewHostsOpen } from '../lib/fewHosts';
 import { yourTablePlaceOpen } from '../lib/yourTablePlace';
 import { YourTablePlaceSection } from '../components/host/YourTablePlace';
+import { HostCirclesSection } from '../components/host/HostCircles';
+import { circlesOpen } from '../lib/circles';
 
 const textClass = `${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`;
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
@@ -48,6 +50,7 @@ function HostingAccess() {
       <>
         <MakeTable key={user?.email} doors={hosting.data.doors} />
         {yourTablePlaceOpen() && <YourTablePlaceSection />}
+        {circlesOpen() && <HostCirclesSection />}
         <YourRecord />
       </>
     );

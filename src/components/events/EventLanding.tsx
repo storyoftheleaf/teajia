@@ -16,6 +16,7 @@ import type { PublicPerson } from '../../types';
 import EventCountdown from './EventCountdown';
 import { ReportLink } from '../shared/ReportLink';
 import { yourTableLine } from '../../lib/yourTablePlace';
+import { SessionSeriesLine } from './SessionSeriesLine';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
 interface PublicTeaMenuProps {
@@ -550,6 +551,8 @@ const EventLanding: React.FC = () => {
               )}
             </div>
           )}
+
+          <SessionSeriesLine series={ev.series} />
 
           {reading && (
             <a
