@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useStepParam } from '../../hooks/useStepParam';
 import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, Bell, Star, Upload, MoreHorizontal, X, ChevronDown, Save, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -359,11 +360,11 @@ export const EventDetail: React.FC = () => {
     }
   };
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [tabParam, setTabParam] = useStepParam('tab');
   const VALID_TABS: TabKey[] = ['requests', 'attendees', 'tasting-notes', 'briefing', 'tea-menu', 'reminders', 'notifications', 'post-session', 'venue', 'interest'];
-  const rawTab = searchParams.get('tab') as TabKey;
+  const rawTab = tabParam as TabKey;
   const activeTab: TabKey = VALID_TABS.includes(rawTab) ? rawTab : 'requests';
-  const setActiveTab = (key: TabKey) => { if (searchParams.get('tab') !== key) setSearchParams(params => { params.set('tab', key); return params; }); setOverflowOpen(false); };
+  const setActiveTab = (key: TabKey) => { setTabParam(key); setOverflowOpen(false); };
   const [overflowOpen, setOverflowOpen] = useState(false);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -529,7 +530,7 @@ export const EventDetail: React.FC = () => {
   const overflowActive = OVERFLOW_TABS.some(t => t.key === activeTab);
 
   return (
-    <div className="p-6 pb-nav-gap max-w-3xl mx-auto overflow-x-hidden">
+    <div className="min-w-0 p-6 pb-nav-gap max-w-3xl mx-auto">
       {/* Back button */}
       <button
         onClick={() => navigate('/admin/events')}
@@ -540,12 +541,12 @@ export const EventDetail: React.FC = () => {
 
       {/* Hero block, surface card */}
       <div className="bg-tea-surface border border-tea-border rounded-xl p-5 mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex-1 min-w-0 basis-full sm:basis-auto">
             <div className="label-caps text-tea-text-dim mb-1">
               {new Date(event.eventDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
             </div>
-            <h1 className="h2 text-tea-text mb-1">{event.title}</h1>
+            <h1 className="h2 text-tea-text mb-1 break-words">{event.title}</h1>
             {event.subtitle && (
               <p className="font-body italic text-ui-15 text-tea-text-sec mb-2 leading-snug">{event.subtitle}</p>
             )}
@@ -569,7 +570,7 @@ export const EventDetail: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-3 shrink-0">
+          <div className="flex max-w-full flex-wrap items-center gap-3 sm:flex-col sm:items-end">
             <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[statusToVariant(event.status)]}`}>
               {event.status}
             </span>
@@ -646,7 +647,7 @@ export const EventDetail: React.FC = () => {
             </div>
           </div>
           {/* Legend */}
-          <div className="flex items-center gap-4 text-ui-10 text-tea-text-dim font-mono">
+          <div className="flex flex-wrap items-center gap-4 text-ui-10 text-tea-text-dim font-mono">
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-6 h-1.5 rounded-md bg-tea-gold" />
               Confirmed
@@ -692,10 +693,10 @@ export const EventDetail: React.FC = () => {
       <div
         role="tablist"
         aria-label="Event sections"
-        className="flex items-end gap-0.5 border-b border-tea-border mb-6 overflow-x-auto hide-scrollbar"
+        className="flex flex-wrap items-end gap-0.5 border-b border-tea-border mb-6"
       >
         {PRIMARY_TABS.map((tab, index) => (
-          <button
+          <Button variant="plain" type="button"
             key={tab.key}
             ref={el => { tabRefs.current[index] = el; }}
             role="tab"
@@ -705,7 +706,7 @@ export const EventDetail: React.FC = () => {
             tabIndex={activeTab === tab.key ? 0 : -1}
             onClick={() => setActiveTab(tab.key)}
             onKeyDown={e => handleTabKeyDown(e, index)}
-            className={`relative flex-shrink-0 flex items-center gap-1.5 px-3 md:px-4 py-2.5 text-xs md:text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
+            className={`tap-target relative flex-shrink-0 items-center gap-1.5 px-3 md:px-4 py-2.5 text-xs md:text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
               activeTab === tab.key
                 ? 'border-tea-gold text-tea-gold'
                 : 'border-transparent text-tea-text-sec hover:text-tea-text'
@@ -719,7 +720,7 @@ export const EventDetail: React.FC = () => {
                 {tab.badge}
               </span>
             )}
-          </button>
+          </Button>
         ))}
 
         {/* Overflow menu */}
@@ -730,10 +731,10 @@ export const EventDetail: React.FC = () => {
             open={overflowOpen}
             onOpenChange={setOverflowOpen}
             trigger={(props) => (
-              <button
+              <Button variant="plain" type="button"
                 {...props}
                 aria-label="More tabs"
-                className={`flex-shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs transition-colors border-b-2 -mb-px whitespace-nowrap ${
+                className={`tap-target flex-shrink-0 items-center gap-1 px-3 py-2.5 text-xs transition-colors border-b-2 -mb-px whitespace-nowrap ${
                   overflowActive
                     ? 'border-tea-gold text-tea-gold'
                     : 'border-transparent text-tea-text-sec hover:text-tea-text'
@@ -745,17 +746,17 @@ export const EventDetail: React.FC = () => {
                     {OVERFLOW_TABS.find(t => t.key === activeTab)?.label}
                   </span>
                 )}
-              </button>
+              </Button>
             )}
           >
             {(close) => (
               <>
                 {OVERFLOW_TABS.map(tab => (
-                  <button
+                  <Button variant="plain" type="button"
                     key={tab.key}
                     role="menuitem"
                     onClick={() => { setActiveTab(tab.key); close(); }}
-                    className={`w-full text-left px-4 py-2 text-xs transition-colors flex items-center justify-between gap-3 ${
+                    className={`tap-target w-full text-left px-4 py-2 text-xs transition-colors items-center justify-between gap-3 ${
                       activeTab === tab.key
                         ? 'text-tea-gold bg-tea-gold/10'
                         : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
@@ -767,7 +768,7 @@ export const EventDetail: React.FC = () => {
                         {(tab as any).badge}
                       </span>
                     )}
-                  </button>
+                  </Button>
                 ))}
               </>
             )}

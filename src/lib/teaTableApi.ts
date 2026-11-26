@@ -45,11 +45,11 @@ export const teaTableApi = {
 export const TEA_TABLE_MINE_KEY = ['tea-table', 'mine'] as const;
 
 /** The caller's keeps and own pieces, when the Tea Table is open and they are signed in. */
-export function useTeaTableMine() {
+export function useTeaTableMine(enabled = true) {
   return useQuery({
     queryKey: TEA_TABLE_MINE_KEY,
     queryFn: () => teaTableApi.mine(),
-    enabled: teaTableOpen() && hasToken(),
+    enabled: enabled && teaTableOpen() && hasToken(),
     staleTime: 0,
   });
 }
