@@ -36,7 +36,7 @@ import {
   type ExcerptStatus, type ReviewOutcome,
 } from '../tastingExcerptReview';
 import {
-  FAMILY_OWNER_ACTIONS, applyPhotographUse, listOfferedPhotographs, readShopPhotograph, type FamilyOwnerAction,
+  FAMILY_OWNER_ACTIONS, applyPhotographUse, listOfferedPhotographs, photographUseRefusal, readShopPhotograph, type FamilyOwnerAction,
 } from '../familyRoutes';
 
 // Mirrors OWNER_TIERS in mcp.ts, which cannot be imported (mcp.ts imports this folder).
@@ -451,7 +451,8 @@ const setPhotographUse: ToolHandler = async (env, auth, args) => {
 
   const photo = await readShopPhotograph(env.DB, auth.accountId, photographId);
   if (!photo) return { error: 'photograph_not_found' };
-  if (!photo.offered_at) return { error: 'not_offered', message: 'Only a photograph offered to Teajia can be used.' };
+  const refused = photographUseRefusal(photo, action);
+  if (refused) return { error: refused.code, message: refused.error };
 
   if (!confirm) {
     let currentLead: string | null = null;

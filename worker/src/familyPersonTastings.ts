@@ -45,7 +45,7 @@ const MAX_TEAS = 60;
 const MAX_NOTES_PER_TEA = 30;
 const MAX_PHOTOS_PER_TEA = 6;
 
-/** The dated notes of one journal row's `tastings` list. Notes that came from other people are left out. */
+/** The dated notes of one journal row's `tastings` list. Notes that came from other people or from another journal row are left out. */
 export function wordsFromSittings(raw: unknown): FamilyPersonWord[] {
   let sittings: unknown;
   try { sittings = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return []; }
@@ -60,7 +60,8 @@ export function wordsFromSittings(raw: unknown): FamilyPersonWord[] {
       const text = typeof note === 'string' ? note : (note && typeof (note as any).text === 'string' ? (note as any).text : '');
       const clean = text.trim();
       if (!clean || seen.has(clean)) continue;
-      if (note && typeof note === 'object' && (note as any).sourceAuthor) continue;
+      // Words that came from someone else, or that were carried over from another journal row, are not this sitting's.
+      if (note && typeof note === 'object' && ((note as any).sourceAuthor || (note as any).sourceJournalEntryId)) continue;
       seen.add(clean);
       const written = note && typeof note === 'object' && typeof (note as any).capturedAt === 'string' ? (note as any).capturedAt : sat;
       words.push({ date: written && !Number.isNaN(new Date(written).getTime()) ? written : null, text: clean });

@@ -8,6 +8,7 @@ import { buildTastingSyncPayload, deriveMoodFromFeeling } from '../../lib/tastin
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { tastingWithoutScores } from '../../lib/tastingScores';
 
 interface TastingEditorModalProps {
   product: Product;
@@ -86,7 +87,8 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
         item?.id === product.id
           ? {
               ...item,
-              tasting: hasTerms ? tastingData : undefined,
+              // The public copy is read by shoppers and kept in the browser: words only.
+              tasting: hasTerms ? tastingWithoutScores(tastingData) : undefined,
               tastingSource: tastingSource ?? undefined,
             }
           : item;

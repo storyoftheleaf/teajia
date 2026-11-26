@@ -28,14 +28,8 @@ import { LIQUOR_COLORS, resolveTermLabel } from '../../data/tastingTaxonomy';
 
 /* ── helpers ── */
 
-function qualityWord(q: number | undefined): string | null {
-  if (!q) return null;
-  if (q >= 9) return 'Exceptional';
-  if (q >= 7) return 'Impressive';
-  if (q >= 5) return 'Pleasant';
-  if (q >= 3) return 'Rough edges';
-  return 'Didn\'t connect';
-}
+// A share card carries the words of a tasting. The score is the taster's own,
+// so the card never turns it into a word for someone else to read.
 
 function formatCardDate(iso: string): string {
   try {
@@ -70,9 +64,6 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
     .slice(0, 5)
     .map(id => resolveTermLabel(id))
     .filter(Boolean);
-
-  const qualityScore = noteData.quality ?? entry.note.rating ?? null;
-  const word = qualityWord(qualityScore ?? undefined);
 
   const chineseMarkers: string[] = [
     noteData.huiGan ? '回甘' : '',
@@ -189,18 +180,6 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
                   {term}
                 </span>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Quality word */}
-        {word && (
-          <div className="mb-5">
-            <div style={{ fontSize: 9, color: muted, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8, fontFamily: 'Georgia, serif' }}>
-              Quality
-            </div>
-            <div style={{ fontSize: 18, color: gold, fontFamily: "'Georgia', serif", letterSpacing: '0.04em' }}>
-              {word}
             </div>
           </div>
         )}
@@ -401,7 +380,6 @@ const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
   const liquorColorId = entry.note.tasting['liquor-color']?.[0] ?? null;
   const liquorHex = liquorColorId ? (LIQUOR_COLORS[liquorColorId] ?? null) : null;
   const flavorTerms = (entry.note.tasting.flavor ?? []).slice(0, 4).map(resolveTermLabel).filter(Boolean);
-  const word = qualityWord(entry.note.tasting.quality ?? entry.note.rating ?? undefined);
   const chineseMarkers = [
     entry.note.tasting.huiGan ? '回甘' : '',
     entry.note.tasting.yun    ? '韵'   : '',
@@ -437,7 +415,6 @@ const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
             </div>
           </div>
         )}
-        {word && <div className="text-ui-15 mb-3" style={{ color: '#c8a84b', fontFamily: 'Georgia, serif' }}>{word}</div>}
         {chineseMarkers.length > 0 && (
           <div className="flex gap-2 mb-3">
             {chineseMarkers.map((c, i) => (
