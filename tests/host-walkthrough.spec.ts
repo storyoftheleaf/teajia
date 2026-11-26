@@ -268,9 +268,11 @@ test('a confirmed guest steps through the way, and it still opens without signal
   await expect(page.locator('[data-venue-guide]').getByRole('link', { name: 'Open in maps' })).toHaveAttribute('href', 'https://maps.example.test/?q=ubud');
   await stepThrough(page);
   await expect(page.getByRole('link', { name: /If you are lost/ })).toHaveAttribute('href', 'tel:+6281200000009');
-  // Next and Back are large thumb targets.
+  // Next and Back are large thumb targets: the large button (36px), and the
+  // finger floor (--tap-min, 44px on a touch screen) through tap-target.
   const next = await page.locator('[data-way-reader]').getByRole('button', { name: 'Next' }).boundingBox();
-  expect(next!.height).toBeGreaterThanOrEqual(44);
+  const tapMin = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tap-min')));
+  expect(next!.height).toBeGreaterThanOrEqual(Math.max(36, tapMin));
   expect(next!.width).toBeGreaterThanOrEqual(120);
   await noSideScroll(page);
   await expect.poll(() => keptOnPhone(page)).toEqual({ records: ['teajia.way.tok-rui'], caches: ['teajia-way:tok-rui'], photos: 3 });

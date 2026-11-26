@@ -17,6 +17,7 @@ import worker from '../src/index';
 import { eventsToolModule } from '../src/mcpTools/events';
 import { recordOrderSessionSource } from '../src/orderSessionSource';
 import { isWalkthroughMedia, mayShowWalkthrough, SESSION_DEFAULT_HOURS, sessionEndsAt, sessionHasEnded } from '../src/sessionWalkthrough';
+import { signedWayPhotoUrl, WAY_MEDIA_ORIGIN as MEDIA } from '../src/wayMedia';
 import { SqliteD1, seedIdentity, signedToken } from './helpers/sqliteD1';
 
 const SECRET = 'synthetic-doors-secret';
@@ -93,6 +94,8 @@ function table(id: string, accountId: string, options: TableOptions = {}) {
       ADDRESS, MAP, GUIDE, options.venueId ?? null);
 }
 const slugOf = (id: string) => `${id}-k3x9q2m7wz`;
+/** A guide as a guest reads it, with each photograph's signature taken off (wayMedia.ts signs them per answer). */
+const unsigned = (guide: unknown) => typeof guide === 'string' ? guide.replace(/\?exp=\d+&for=[^&"]+&sig=[0-9a-f]{64}/g, '') : guide;
 
 function guest(id: string, eventId: string, accountId: string, status: string) {
   db.sqlite.prepare(`INSERT INTO event_attendees (id, account_id, event_id, full_name, phone_number, status, magic_token)
@@ -268,7 +271,7 @@ describe('H2: an approved host’s table opens by its link', () => {
     const confirmed = JSON.parse((await read(await call(`/api/rsvp/${token}`))).text);
     expect(confirmed.event.address_text).toBe(ADDRESS);
     expect(confirmed.event.map_link).toBe(MAP);
-    expect(confirmed.event.venue_guide).toBe(GUIDE);
+    expect(unsigned(confirmed.event.venue_guide)).toBe(GUIDE);
   });
 
   it('seats a guest at once at a by-link door', async () => {
@@ -370,7 +373,7 @@ describe('H7: the way to the house', () => {
   const way = async (token: string) => {
     const response = await read(await call(`/api/rsvp/${token}`));
     const event = JSON.parse(response.text).event;
-    return { response, shown: event.address_text === ADDRESS && event.map_link === MAP && event.venue_guide === GUIDE };
+    return { response, shown: event.address_text === ADDRESS && event.map_link === MAP && unsigned(event.venue_guide) === GUIDE };
   };
 
   it('is shown to a confirmed seat only, and leaves the moment the seat does', async () => {
@@ -450,8 +453,15 @@ describe('H7: the way to the house', () => {
     };
     const cache = async (key: string) => (await call(`/api/media/${key}`, { env: { MEDIA_BUCKET: bucket } })).headers.get('Cache-Control');
     expect(await cache('accounts/shop/venues/room.jpg')).toBe('private, max-age=300');
-    expect(await cache('accounts/ana-personal/venue-guide/gate.jpg')).toBe('private, max-age=300');
-    expect(await cache('accounts/shop/flyers/old-step.jpg')).toBe('private, max-age=300');
+    // A step photograph is served only by a signed address (wayMedia.ts, A2 F1).
+    expect((await call('/api/media/accounts/ana-personal/venue-guide/gate.jpg', { env: { MEDIA_BUCKET: bucket } })).status).toBe(404);
+    expect((await call('/api/media/accounts/shop/flyers/old-step.jpg', { env: { MEDIA_BUCKET: bucket } })).status).toBe(404);
+    const hostSigned = async (key: string) => {
+      const url = await signedWayPhotoUrl(SECRET, key, 'host', Math.floor(Date.now() / 1000) + 600);
+      return (await call(`/api/media/${url.slice(MEDIA.length)}`, { env: { MEDIA_BUCKET: bucket } })).headers.get('Cache-Control');
+    };
+    expect(await hostSigned('accounts/ana-personal/venue-guide/gate.jpg')).toBe('private, max-age=300');
+    expect(await hostSigned('accounts/shop/flyers/old-step.jpg')).toBe('private, max-age=300');
     expect(await cache('accounts/shop/flyers/poster.jpg')).toBe('public, max-age=31536000, immutable');
     expect(await cache('accounts/shop/products/tea.jpg')).toBe('public, max-age=31536000, immutable');
     expect(await isWalkthroughMedia(db as unknown as D1Database, 'accounts/cy-shop/flyers/old-step.jpg')).toBe(false);

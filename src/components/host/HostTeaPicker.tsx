@@ -111,20 +111,21 @@ export function HostTeaPicker({ tableId, detail }: HostTablePartProps) {
           <ul className="space-y-1" aria-label="Teas to add" data-host-tea-matches>
             {matches.map(match => (
               <li key={`${match.source}-${match.id}`}>
-                <button type="button" className="btn-quiet tap-target flex w-full min-w-0 flex-wrap items-baseline justify-start gap-x-2 text-left"
+                {/* plain: the quiet look, laid out as a row of its own parts. */}
+                <Button type="button" variant="plain" className="btn-quiet tap-target flex w-full min-w-0 flex-wrap items-baseline justify-start gap-x-2 text-left"
                   disabled={busy} data-host-tea-match={match.source}
                   onClick={() => void add({ source: match.source, product_id: match.id, name: match.name })}>
                   <span className="text-tea-text">{match.name}</span>
                   {matchDetail(match) && <span className={hostSmallText}>{matchDetail(match)}</span>}
                   <span className={hostSmallText}>{SOURCE_WORDS[match.source]}</span>
-                </button>
+                </Button>
               </li>
             ))}
             <li>
-              <button type="button" className="btn-quiet tap-target flex w-full min-w-0 justify-start text-left break-words"
+              <Button type="button" variant="plain" className="btn-quiet tap-target flex w-full min-w-0 justify-start text-left break-words"
                 disabled={busy} data-host-tea-match="name" onClick={() => void add({ source: 'name', name: words })}>
                 Add &apos;{words}&apos; as written
-              </button>
+              </Button>
             </li>
           </ul>
         )}
@@ -183,13 +184,13 @@ function TeaRow({ tableId, tea, position, busy, onRemove, onChange }: {
       <div className="flex flex-wrap items-center gap-2">
         <input ref={fileRef} type="file" accept="image/*" className="hidden" data-host-tea-photo-input={tea.id}
           onChange={event => void addPhoto(event.target.files?.[0])} />
-        <button type="button" className="btn-quiet btn-sm tap-target" disabled={busy} onClick={() => fileRef.current?.click()}>
+        <Button type="button" variant="quiet" size="sm" className="tap-target" disabled={busy} onClick={() => fileRef.current?.click()}>
           {tea.photo_url ? 'Change the photograph' : 'Add a photograph'}
-        </button>
+        </Button>
         {tea.photo_url && (
-          <button type="button" className="btn-quiet btn-sm tap-target" disabled={busy} onClick={() => void onChange({ photo_url: null })}>
+          <Button type="button" variant="quiet" size="sm" className="tap-target" disabled={busy} onClick={() => void onChange({ photo_url: null })}>
             Take the photograph off
-          </button>
+          </Button>
         )}
       </div>
       {photoStatus && <p className={hostSmallText} role="status">{photoStatus}</p>}

@@ -13,7 +13,9 @@ import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type Boug
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
 import { hostApproved, hostDoorsFor, personalAccountSql, publicSessionHostSql, setHostApproval } from './hostApproval';
-import { isWalkthroughMedia, mayShowWalkthrough, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
+import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
+import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sessionHost';
+import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
 import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
 import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest } from './hostTableGuests';
@@ -21,7 +23,7 @@ import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValu
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
-import { keepTableWay, readTableWay, readTableWayInput, saveTableWay } from './hostTableWay';
+import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTableWay, signWayForHost } from './hostTableWay';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -12557,17 +12559,20 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const hosts = (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
   const {
     account_id: _accountId, reading_article_id: readingId, host_user_id: hostUserId,
-    private_host: privateHostFlag, ...publicEvent
+    private_host: privateHostFlag, venue_id: _venueId, id: eventId, ...publicEvent
   } = event;
   const privateHost = Number(privateHostFlag) === 1;
   // A reading is shown only while it is still a published article of this shop.
   const reading = readingId ? await readableArticleFor(env.DB, String(event.account_id), String(readingId)) : null;
-  const host = await publicSessionHost(env, hostUserId ? String(hostUserId) : null, hosts);
+  const host = await publicSessionHost(env, hostUserId ? String(hostUserId) : null, event);
   const pouring = hosts
     .filter(person => person.role === 'co_host' || person.role === 'guest_host')
     .map(person => ({ name: person.display_name, path: `/people/${encodeURIComponent(person.slug)}` }));
 
   const answer = {
+    // The session's own id only for a shop's session, where the admin's Edit
+    // link uses it; a private host's session is known by its link alone (A2 F4).
+    ...(privateHost ? {} : { id: eventId }),
     ...publicEvent,
     // A private host's account is not named: no shop name, no country.
     ...(privateHost ? { account_name: host?.name ?? null, account_location_country: null } : {}),
@@ -12592,9 +12597,10 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 
 // "Hosted by": the session's host_user_id first (Launch 2, hard question 6).
 // Their published page when they have one, else their first name as plain
-// words. A session without host_user_id names its lead host, as before.
+// words. A session without host_user_id names its public lead host, by the
+// one rule in sessionHost.ts that the order credit and guest links share.
 async function publicSessionHost(
-  env: Env, hostUserId: string | null, hosts: Array<{ slug: string; display_name: string; role: string }>,
+  env: Env, hostUserId: string | null, event: Record<string, unknown>,
 ): Promise<{ name: string; path: string | null } | null> {
   if (hostUserId) {
     const page = await env.DB.prepare(
@@ -12607,8 +12613,11 @@ async function publicSessionHost(
     const first = String(person?.name ?? '').trim().split(/\s+/)[0];
     return { name: first || 'The host', path: null };
   }
-  const lead = hosts.find(person => person.role === 'lead_host');
-  return lead ? { name: lead.display_name, path: `/people/${encodeURIComponent(lead.slug)}` } : null;
+  const lead = await env.DB.prepare(
+    `SELECT ${publicLeadHostSql('e', 'c.id')} AS id, ${publicLeadHostSql('e', 'c.display_name')} AS display_name
+       FROM events e WHERE e.id = ? AND e.account_id = ?`
+  ).bind(event.id, event.account_id).first<{ id: string | null; display_name: string | null }>();
+  return lead?.id ? { name: String(lead.display_name ?? ''), path: `/people/${encodeURIComponent(String(lead.id))}` } : null;
 }
 
 async function publicEventHosts(env: Env, eventId: string, accountId: string) {
@@ -12779,13 +12788,18 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status, e.door
+    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status, e.door,
+            e.status, e.event_date, e.event_end_date, e.timezone
      FROM events e JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
        AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
+  // Once the session has ended no door takes a seat or a request (A2 F6).
+  if (sessionHasEnded(event)) {
+    return json({ error: 'This session has ended.', code: 'event_not_reservable' }, 409);
+  }
   const accountId = event.account_id as string;
 
   const body = await request.json() as Record<string, any>;
@@ -13062,7 +13076,8 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
             e.timezone, e.status as event_status, e.lifecycle_status, e.session_flow, e.playlist_url, e.slug,
             e.briefing_cards, e.area_hint, e.mood_hints,
             v.photos AS venue_photos,
-            ${privateHostDoorSql(env)} AS door_open
+            ${privateHostDoorSql(env)} AS door_open,
+            (a.public_enabled = 1 AND a.status = 'active') AS account_public
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
      JOIN accounts a ON a.id = e.account_id
@@ -13099,31 +13114,39 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
   // open it (Launch 2, slice H7; the end rule is in sessionWalkthrough.ts).
   // The seat's status is read on every request, so a seat that becomes
   // denied, waitlisted or cancelled loses the way at once.
-  const showWay = mayShowWalkthrough(attendee.status, {
+  const sessionTimes = {
     event_date: attendee.event_date,
     event_end_date: attendee.event_end_date,
     timezone: attendee.timezone,
     lifecycle_status: attendee.lifecycle_status,
     status: attendee.event_status,
-  }, Number(attendee.door_open) === 1);
+  };
+  const showWay = mayShowWalkthrough(attendee.status, sessionTimes, Number(attendee.door_open) === 1);
+  // Its step photographs are signed for this seat, in this answer only, and
+  // stop at the end or when the seat or the host's door does (wayMedia.ts).
+  const venueGuide = showWay && attendee.venue_guide
+    ? await signWayGuide(env.JWT_SECRET, attendee.venue_guide, String(attendee.id), { endsAt: sessionEndsAt(sessionTimes) })
+    : null;
 
   // Get revealed tea menu items
   // A product of the session's own account or a public tea of Teajia's shop
   // (Launch 2, H6); any other product id is read as the menu's plain name.
   const menu = await env.DB.prepare(
-    `SELECT etm.id, etm.event_id, etm.account_id, etm.custom_name, etm.custom_description, etm.reveal_date,
-            etm.brew_order, etm.created_at, etm.photo_url, COALESCE(own.id, shop.id) AS product_id,
+    `SELECT etm.id, etm.event_id, etm.custom_name, etm.custom_description, etm.reveal_date,
+            etm.brew_order, etm.created_at, etm.photo_url,
+            -- A private account's own tea is named, never identified (A2 F4).
+            COALESCE(CASE WHEN ?3 = 1 THEN own.id END, shop.id) AS product_id,
             COALESCE(own.given_name, shop.given_name) AS given_name,
             COALESCE(own.product_name, shop.product_name) AS product_name,
             COALESCE(own.chinese_name, shop.chinese_name) AS chinese_name,
             COALESCE(own.type, shop.type) AS type,
-            COALESCE(etm.photo_url, own.image_url, shop.image_url) AS image_url,
+            COALESCE(etm.photo_url, CASE WHEN ?3 = 1 THEN own.image_url END, shop.image_url) AS image_url,
             COALESCE(own.description, shop.description) AS product_description
      FROM event_tea_menu etm
      ${menuProductJoins('etm', '?1')}
      WHERE etm.event_id = ?2 AND (etm.reveal_date IS NULL OR etm.reveal_date <= datetime('now'))
      ORDER BY etm.brew_order ASC`
-  ).bind(attendee.account_id, attendee.event_id).all();
+  ).bind(attendee.account_id, attendee.event_id, Number(attendee.account_public) === 1 ? 1 : 0).all();
 
   // Get guest invites for this attendee
   const guestInvites = await env.DB.prepare(
@@ -13170,7 +13193,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       map_link: showWay ? attendee.map_link : null,
       area_hint: attendee.area_hint,
       guidelines_text: attendee.guidelines_text,
-      venue_guide: showWay ? attendee.venue_guide : null,
+      venue_guide: venueGuide,
       venue_photos: venuePhotos,
       timezone: attendee.timezone,
       status: attendee.event_status,
@@ -13820,6 +13843,8 @@ const handleGetEvent: Handler = async (request, env, params) => {
   `).bind(params.id, accountId).first();
 
   if (!result) return json({ error: 'Event not found' }, 404);
+  // The host's own read of the guide, its step photographs signed (wayMedia.ts).
+  if (result.venue_guide) result.venue_guide = await signWayGuide(env.JWT_SECRET, result.venue_guide, WAY_HOST);
   return json(result);
 };
 
@@ -13852,6 +13877,9 @@ const handleCreateEvent: Handler = async (request, env) => {
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
   if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
 
+  const guardedGuide = guardGuideWrite(body.venue_guide, accountId, null);
+  if ('refused' in guardedGuide) return restError(guardedGuide.refused.status, guardedGuide.refused.error, guardedGuide.refused.code);
+
   const id = crypto.randomUUID();
 
   await env.DB.prepare(
@@ -13874,7 +13902,7 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.address_text || null,
     body.map_link || null,
     body.guidelines_text || null,
-    body.venue_guide || null,
+    guardedGuide.venue_guide,
     body.total_capacity,
     body.claim_window_minutes || 60,
     body.timezone || 'Asia/Taipei',
@@ -13961,6 +13989,16 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
     body.briefing_cards = JSON.stringify(body.briefing_cards);
   }
   if (body.event_format === undefined) delete body.event_format;
+  if (body.venue_guide !== undefined) {
+    // The same rule as the host's own page (hostTableWay.ts, A2 F3): a step
+    // photograph is this account's own, so a guide never points a guest's
+    // phone at another server.
+    const stored = await env.DB.prepare('SELECT venue_guide FROM events WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first<{ venue_guide: string | null }>();
+    const guarded = guardGuideWrite(body.venue_guide, accountId, stored?.venue_guide ?? null);
+    if ('refused' in guarded) return restError(guarded.refused.status, guarded.refused.error, guarded.refused.code);
+    body.venue_guide = guarded.venue_guide;
+  }
   if (body.reading_article_id !== undefined) {
     // One published article of this shop, or nothing (Launch 1, the first table).
     if (body.reading_article_id === null || body.reading_article_id === '') {
@@ -14739,7 +14777,7 @@ const handleGetTeaMenu: Handler = async (request, env, params) => {
 // opens through the same door as its page (Launch 2, H2).
 const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT e.id, e.account_id
+    `SELECT e.id, e.account_id, (a.public_enabled = 1 AND a.status = 'active') AS account_public
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ?
@@ -14757,7 +14795,9 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
     `SELECT
        etm.id,
        etm.event_id,
-       COALESCE(own.id, shop.id) AS product_id,
+       -- A private account's own tea is named, never identified: no product
+       -- id and no product photograph unless the account is public (A2 F4).
+       COALESCE(CASE WHEN ?3 = 1 THEN own.id END, shop.id) AS product_id,
        etm.custom_name,
        etm.custom_description,
        etm.reveal_date,
@@ -14766,15 +14806,15 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
        COALESCE(own.product_name, shop.product_name) AS product_name,
        COALESCE(own.chinese_name, shop.chinese_name) AS chinese_name,
        COALESCE(own.type, shop.type) AS product_type,
-       COALESCE(etm.photo_url, own.image_url, shop.image_url) AS product_image_url,
+       COALESCE(etm.photo_url, CASE WHEN ?3 = 1 THEN own.image_url END, shop.image_url) AS product_image_url,
        ${shopTeaAddressColumns()}
      FROM event_tea_menu etm
      ${menuProductJoins('etm')}
-     WHERE etm.event_id = ?
-       AND etm.account_id = ?
+     WHERE etm.event_id = ?1
+       AND etm.account_id = ?2
        AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
      ORDER BY etm.brew_order ASC`
-  ).bind(event.id, event.account_id).all<Record<string, unknown>>();
+  ).bind(event.id, event.account_id, Number(event.account_public) === 1 ? 1 : 0).all<Record<string, unknown>>();
 
   return json((result.results || []).map(({ shop_address, shop_store, ...row }) => ({
     ...row,
@@ -14934,7 +14974,11 @@ const handleUploadFlyer: Handler = async (request, env) => {
     httpMetadata: { contentType: file.type },
   });
 
-  const publicUrl = `https://media.teajia.co/${key}`;
+  // A step photograph is shown back to its host by a signed address; the
+  // guide stores it bare (hostTableWay.ts guardGuideWrite).
+  const publicUrl = folder === 'venue-guide' && env.JWT_SECRET
+    ? await signedWayPhotoUrl(env.JWT_SECRET, key, WAY_HOST, Math.floor(Date.now() / 1000) + WAY_SIGNED_SECONDS)
+    : `https://media.teajia.co/${key}`;
 
   return json({ url: publicUrl, key }, 201);
 };
@@ -14947,7 +14991,9 @@ const handleGetSavedLocations: Handler = async (request, env) => {
   const result = await env.DB.prepare(
     'SELECT * FROM saved_locations WHERE account_id = ? ORDER BY name ASC'
   ).bind(accountId).all();
-  return json(result.results);
+  return json(await Promise.all((result.results as Record<string, unknown>[]).map(async place => (
+    place.venue_guide ? { ...place, venue_guide: await signWayGuide(env.JWT_SECRET, place.venue_guide, WAY_HOST) } : place
+  ))));
 };
 
 const handleCreateSavedLocation: Handler = async (request, env) => {
@@ -14956,6 +15002,9 @@ const handleCreateSavedLocation: Handler = async (request, env) => {
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
   if (!body.name || !body.address) return json({ error: 'name and address are required' }, 400);
+  const guarded = guardGuideWrite(body.venue_guide, accountId, null);
+  if ('refused' in guarded) return restError(guarded.refused.status, guarded.refused.error, guarded.refused.code);
+  body.venue_guide = guarded.venue_guide;
   const id = crypto.randomUUID();
   await env.DB.prepare(
     `INSERT INTO saved_locations (id, account_id, name, address, map_link, guidelines, venue_guide)
@@ -14973,6 +15022,13 @@ const handleUpdateSavedLocation: Handler = async (request, env, params) => {
   const LOCATION_ALLOWED_COLS = new Set(['name','address','city','country','notes','type','latitude','longitude','website','phone','map_link','guidelines','venue_guide']);
   const cols = Object.keys(body).filter(k => LOCATION_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  if (body.venue_guide !== undefined) {
+    const stored = await env.DB.prepare('SELECT venue_guide FROM saved_locations WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first<{ venue_guide: string | null }>();
+    const guarded = guardGuideWrite(body.venue_guide, accountId, stored?.venue_guide ?? null);
+    if ('refused' in guarded) return restError(guarded.refused.status, guarded.refused.error, guarded.refused.code);
+    body.venue_guide = guarded.venue_guide;
+  }
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
     `UPDATE saved_locations SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
@@ -17447,11 +17503,11 @@ const handleHostedTableTeaPhoto: Handler = async (request, env, params) => {
 const handleHostedTableWay: Handler = async (request, env, params) => {
   const own = await requireOwnHostedTable(request, env, params.id);
   if ('error' in own) return own.error;
-  if (request.method === 'GET') return hostTableJson(await readTableWay(env.DB, own.table));
+  if (request.method === 'GET') return hostTableJson(await signWayForHost(env.JWT_SECRET, await readTableWay(env.DB, own.table)));
   const input = readTableWayInput(await request.json().catch(() => null) as Record<string, unknown> | null, own.table.account_id);
   if ('refused' in input) return restError(input.refused.status, input.refused.error, input.refused.code);
   await saveTableWay(env.DB, own.table, input);
-  return hostTableJson(await readTableWay(env.DB, own.table));
+  return hostTableJson(await signWayForHost(env.JWT_SECRET, await readTableWay(env.DB, own.table)));
 };
 
 const handleKeepHostedTableWay: Handler = async (request, env, params) => {
@@ -17460,7 +17516,7 @@ const handleKeepHostedTableWay: Handler = async (request, env, params) => {
   const body = await request.json().catch(() => null) as { name?: unknown } | null;
   const kept = await keepTableWay(env.DB, own.table, body?.name);
   if ('refused' in kept) return restError(kept.refused.status, kept.refused.error, kept.refused.code);
-  return hostTableJson(kept);
+  return hostTableJson(await signWayForHost(env.JWT_SECRET, kept));
 };
 
 const handleHostedTableWayPhoto: Handler = async (request, env, params) => {
@@ -17481,7 +17537,10 @@ const handleHostedTableWayPhoto: Handler = async (request, env, params) => {
   // Under venue-guide/, so it is served private and short-lived (sessionWalkthrough.ts).
   const key = `accounts/${own.table.account_id}/venue-guide/${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
   await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
-  return hostTableJson({ url: `https://media.teajia.co/${key}`, key }, 201);
+  const url = env.JWT_SECRET
+    ? await signedWayPhotoUrl(env.JWT_SECRET, key, WAY_HOST, Math.floor(Date.now() / 1000) + WAY_SIGNED_SECONDS)
+    : `https://media.teajia.co/${key}`;
+  return hostTableJson({ url, key }, 201);
 };
 
 const handleGrantShelf: Handler = async (request, env, params) => {
@@ -26619,10 +26678,7 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
 // unpublished Chen Wei and the page stayed up, because Chen Wei is the named
 // author of five published articles. An explicit decision to take a person
 // down must take them down; publishing them again clears unpublished_at.
-const CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL =
-  `(c.is_published = 1 OR (c.unpublished_at IS NULL AND EXISTS (
-      SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
-    ))) AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`;
+// The rule itself is CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL in sessionHost.ts.
 
 function firstSentenceOf(text: unknown): string | null {
   if (typeof text !== 'string') return null;
@@ -33059,7 +33115,13 @@ const requestHandler = {
       if (!env.MEDIA_BUCKET) {
         return cors(new Response('Media bucket not configured', { status: 503 }), corsOrigin);
       }
-      const familyVerdict = env.DB ? await familyMediaVerdict(env.DB, env.JWT_SECRET, key, url.searchParams) : 'not-family'; const obj = familyVerdict === 'refused' ? null : await env.MEDIA_BUCKET.get(key);
+      const familyVerdict = env.DB ? await familyMediaVerdict(env.DB, env.JWT_SECRET, key, url.searchParams) : 'not-family';
+      // A step photograph of the way in is served only by an address signed
+      // for a seat that may still see it, or for its host (wayMedia.ts, A2 F1).
+      const wayVerdict = familyVerdict === 'not-family'
+        ? await wayMediaVerdict(env.DB, env.JWT_SECRET, key, url.searchParams, privateHostDoorSql(env))
+        : 'not-step';
+      const obj = familyVerdict === 'refused' || wayVerdict === 'refused' ? null : await env.MEDIA_BUCKET.get(key);
       if (!obj) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const headers = new Headers();
       obj.writeHttpMetadata(headers);
@@ -33067,9 +33129,12 @@ const requestHandler = {
       // Objects are immutable (UUID/slot-keyed), so cache hard at edge and
       // browser, except the photographs of the way to a session, which are
       // private and short-lived (sessionWalkthrough.ts, Launch 2 H7).
-      const walkthrough = familyVerdict === 'not-family' && await isWalkthroughMedia(env.DB, key);
+      const walkthrough = familyVerdict === 'not-family' && (wayVerdict === 'signed' || await isWalkthroughMedia(env.DB, key));
+      // A host's tea photograph can be taken off the list, or its host
+      // stopped, so it is not kept at the edge for a year either.
+      const shortLived = walkthrough || HOST_TEA_MEDIA_KEY.test(key);
       headers.set('Cache-Control', familyVerdict === 'signed' ? 'private, max-age=3600' : familyVerdict === 'public' ? 'public, max-age=60'
-        : walkthrough ? WALKTHROUGH_MEDIA_CACHE : 'public, max-age=31536000, immutable');
+        : shortLived ? WALKTHROUGH_MEDIA_CACHE : 'public, max-age=31536000, immutable');
       if (walkthrough) headers.set('Referrer-Policy', 'no-referrer');
       const body = request.method === 'HEAD' ? null : obj.body;
       return cors(new Response(body, { headers }), corsOrigin);
