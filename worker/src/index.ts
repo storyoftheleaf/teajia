@@ -17,10 +17,11 @@ import { anyoneMayHost, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachO
 import { isWalkthroughMedia, mayShowWalkthrough, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
-import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest } from './hostTableGuests';
+import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest, type OwnHostedTable } from './hostTableGuests';
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
+import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, recordSeatNotice, releaseSeats, seatNoticesFor } from './waitingList';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { keepTableWay, readTableWay, readTableWayInput, saveTableWay } from './hostTableWay';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
@@ -12437,25 +12438,13 @@ const handleExtractFromImage: Handler = async (request, env) => {
 };
 
 // ── Waitlist Cascade Helper ──
-async function cascadeWaitlist(env: Env, eventId: string, claimWindowMinutes: number): Promise<void> {
-  const next = await env.DB.prepare(
-    `SELECT id FROM event_attendees
-     WHERE event_id = ? AND status = 'waitlist'
-     ORDER BY waitlist_position ASC, created_at ASC LIMIT 1`
-  ).bind(eventId).first();
-
-  if (next) {
-    const expiresAt = new Date(Date.now() + claimWindowMinutes * 60 * 1000).toISOString();
-    await env.DB.prepare(
-      `UPDATE event_attendees SET claim_expires_at = ? WHERE id = ?`
-    ).bind(expiresAt, next.id).run();
-
-    // Create a waitlist_promotion notification
-    await env.DB.prepare(
-      `INSERT INTO event_notifications (id, event_id, attendee_id, type, message_template, status)
-       VALUES (?, ?, ?, 'waitlist_promotion', 'A spot has opened up! Claim it before it expires.', 'pending')`
-    ).bind(crypto.randomUUID(), eventId, next.id).run();
-  }
+// Offer any free seat to the guests waiting longest (slice J9, worker/src/waitingList.ts).
+// The offer is guarded on a free seat in its own write, so calling this when
+// nothing was freed offers nothing.
+async function cascadeWaitlist(env: Env, eventId: string, _claimWindowMinutes?: number): Promise<void> {
+  const event = await env.DB.prepare('SELECT account_id FROM events WHERE id = ?').bind(eventId).first<{ account_id: string }>();
+  if (!event) return;
+  await offerFreedSeats(env.DB, { eventId, accountId: event.account_id });
 }
 
 function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: true }>): Response {
@@ -13267,26 +13256,14 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
     throw error;
   }
 
-  // Handle cancellation
+  // Handle cancellation: the guest gives back every seat their party holds,
+  // guarded on their status, and the freed seats are offered on (J9).
   if (update.action === 'cancel') {
-    if (update.cancellationNote !== undefined) {
-      await env.DB.prepare(
-        `UPDATE event_attendees SET status = 'cancelled', cancellation_note = ? WHERE id = ?`
-      ).bind(update.cancellationNote, attendee.id).run();
-    } else {
-      await env.DB.prepare(
-        `UPDATE event_attendees SET status = 'cancelled' WHERE id = ?`
-      ).bind(attendee.id).run();
-    }
-
-    // Cascade waitlist
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
-
-    return json({
-      success: true,
-      status: 'cancelled',
-      ...(update.cancellationNote !== undefined ? { cancellation_note: update.cancellationNote } : {}),
+    const result = await cancelGuestSeat(env.DB, {
+      accountId: attendee.account_id as string, eventId: attendee.eid as string,
+      attendeeId: attendee.id as string, cancellationNote: update.cancellationNote,
     });
+    return result ? json(result) : restError(409, 'This seat can no longer be changed here.', 'state_conflict');
   }
 
   const plusOneUpdate = body.plus_one === undefined ? null : {
@@ -13359,7 +13336,8 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
 
 const handleClaimSpot: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id
+    `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id,
+            (ea.claim_expires_at IS NOT NULL AND datetime(ea.claim_expires_at) > datetime('now')) AS offer_live
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      JOIN accounts a ON a.id = e.account_id
@@ -13367,22 +13345,21 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found or not on waitlist' }, 404);
+  const scope = { eventId: attendee.eid as string, accountId: attendee.event_account_id as string };
+
+  // The offer ran out: it is cleared (only if still the same expired offer),
+  // and the seat moves on to the next guest, never back to this one (J9).
+  const expired = async () => {
+    await offerFreedSeats(env.DB, scope);
+    return json({ error: 'Claim window has expired', code: 'offer_expired' }, 410);
+  };
 
   if (!attendee.claim_expires_at) {
+    if (attendee.offer_lapsed_at) return json({ error: 'Claim window has expired', code: 'offer_expired' }, 410);
     return json({ error: 'No claim offer pending' }, 400);
   }
-
-  const expiresAt = new Date(attendee.claim_expires_at as string);
-  if (expiresAt <= new Date()) {
-    // Expired — cascade to next
-    await env.DB.prepare(
-      `UPDATE event_attendees SET claim_expires_at = NULL WHERE id = ?`
-    ).bind(attendee.id).run();
-
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
-
-    return json({ error: 'Claim window has expired' }, 410);
-  }
+  // Liveness is decided by SQLite, the same clock the guarded write reads.
+  if (Number(attendee.offer_live) !== 1) return expired();
 
   const primary = await env.DB.prepare(
     `SELECT id, full_name, seat_status FROM event_party_members
@@ -13409,13 +13386,21 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
       targetState: 'confirmed',
     }],
   });
-  if (!reserved.ok) return seatReservationError(reserved);
+  if (!reserved.ok) {
+    // The deadline may have passed between the read and the write.
+    const still = await env.DB.prepare(
+      `SELECT 1 AS live FROM event_attendees WHERE id = ? AND status = 'waitlist' AND claim_expires_at = ?
+         AND datetime(claim_expires_at) > datetime('now')`
+    ).bind(attendee.id, attendee.claim_expires_at).first();
+    if (!still) {
+      const now = await env.DB.prepare('SELECT status FROM event_attendees WHERE id = ?').bind(attendee.id).first<{ status: string }>();
+      if (now?.status === 'waitlist') return expired();
+    }
+    return seatReservationError(reserved);
+  }
 
-  // Create spot_claimed notification
-  await env.DB.prepare(
-    `INSERT INTO event_notifications (id, event_id, attendee_id, type, message_template, status)
-     VALUES (?, ?, ?, 'spot_claimed', 'You have claimed your spot!', 'sent')`
-  ).bind(crypto.randomUUID(), attendee.eid, attendee.id).run();
+  // The host is told on their table page and in Manage. Nothing is sent.
+  await recordSeatNotice(env.DB, { ...scope, attendeeId: attendee.id as string, kind: 'claimed', seats: 1 });
 
   return json({ success: true, status: 'confirmed' });
 };
@@ -13955,7 +13940,11 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = normalizeEventUpdate(await request.json() as Record<string, any>) as Record<string, any>;
+  return updateEvent(env, accountId, params.id, await request.json() as Record<string, unknown>);
+};
+
+async function updateEvent(env: Env, accountId: string, eventId: string, input: Record<string, unknown>, hostId?: string) {
+  const body = normalizeEventUpdate(input) as Record<string, any>;
   delete body.account_id;
 
   if (body.lifecycle_status !== undefined && !isEventLifecycleStatus(body.lifecycle_status)) {
@@ -13967,7 +13956,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
 
   const currentEvent = await env.DB.prepare(
     'SELECT status, lifecycle_status FROM events WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first<{ status: string; lifecycle_status: string }>();
+  ).bind(eventId, accountId).first<{ status: string; lifecycle_status: string }>();
   if (!currentEvent) return json({ error: 'Event not found' }, 404);
 
   let requestedLifecycle: EventLifecycle | undefined;
@@ -14048,7 +14037,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   // door and requires_approval together (slice H5, case 4).
   const door = cols.includes('requires_approval')
     ? (await env.DB.prepare('SELECT door FROM events WHERE id = ? AND account_id = ?')
-      .bind(params.id, accountId).first<{ door: string | null }>())?.door ?? null
+      .bind(eventId, accountId).first<{ door: string | null }>())?.door ?? null
     : null;
   if (door) {
     const asks = Number(body.requires_approval) ? 1 : 0;
@@ -14068,16 +14057,17 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   const lifecycleCompare = requestedLifecycle !== undefined ? currentLifecycle : undefined;
   const result = await env.DB.prepare(
     `UPDATE events SET ${sets}, updated_at = datetime('now')
-     WHERE id = ? AND account_id = ?${lifecycleCompare !== undefined ? ' AND lifecycle_status = ?' : ''}${capacityGuard}`
+     WHERE id = ? AND account_id = ?${lifecycleCompare !== undefined ? ' AND lifecycle_status = ?' : ''}${capacityGuard}${hostId === undefined ? '' : ' AND host_user_id = ?'}`
   ).bind(
     ...cols.map(c => body[c] ?? null),
-    params.id,
+    eventId,
     accountId,
     ...(lifecycleCompare !== undefined ? [lifecycleCompare] : []),
     ...(capacity === null ? [] : [capacity, capacity]),
+    ...(hostId === undefined ? [] : [hostId]),
   ).run();
   if (Number(result.meta?.changes || 0) === 0 && capacity !== null) {
-    const taken = await seatsTaken(env.DB, { id: params.id, account_id: accountId });
+    const taken = await seatsTaken(env.DB, { id: eventId, account_id: accountId });
     if (Number(capacity) < taken) {
       return json({
         error: `${taken} ${taken === 1 ? 'seat is' : 'seats are'} already taken, so the session needs at least ${taken}.`,
@@ -14092,7 +14082,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Event not found' }, 404);
 
   return json({ success: true });
-};
+}
 
 const handleDeleteEvent: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
@@ -14310,19 +14300,41 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
-  const ATTENDEE_ALLOWED_COLS = new Set(['status','notes','checked_in','attended','paid','payment_method','paid_amount','seat_assignment','guest_count','dietary_notes','rsvp_token','customer_id']);
+  // A seat's status changes only through the guarded routes (J9): approve,
+  // deny and waitlist have their own, and cancelled gives back the party's
+  // seats here through releaseSeats. Nothing writes status directly.
+  if ('status' in body && body.status !== attendee.status && body.status !== 'cancelled') {
+    return json({ error: 'Change a seat with approve, deny or waitlist.', code: 'status_needs_its_route' }, 409);
+  }
+  const ATTENDEE_ALLOWED_COLS = new Set(['notes','checked_in','attended','paid','payment_method','paid_amount','seat_assignment','guest_count','dietary_notes','rsvp_token','customer_id']);
   const cols = Object.keys(body).filter(k => ATTENDEE_ALLOWED_COLS.has(k));
-  if (cols.length === 0) return json({ success: true });
-  const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE event_attendees SET ${sets} WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
-  await ensureContactRelationship(env, accountId, body.customer_id, 'event_guest', 'workflow', 'event_attendee', params.id);
+  if (cols.length > 0) {
+    const sets = cols.map(c => `${c} = ?`).join(', ');
+    await env.DB.prepare(`UPDATE event_attendees SET ${sets} WHERE id = ?`)
+      .bind(...cols.map(c => body[c] ?? null), params.id).run();
+    await ensureContactRelationship(env, accountId, body.customer_id, 'event_guest', 'workflow', 'event_attendee', params.id);
+  }
 
   if (body.status === 'cancelled' && attendee.status !== 'cancelled') {
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
+    const released = await releaseSeats(env.DB, {
+      accountId, eventId: attendee.eid as string, attendeeId: params.id,
+      from: ['confirmed', 'requested', 'waitlist'], kind: 'released',
+    });
+    if (!released) return json({ error: 'This seat changed while you were looking. Open it again.', code: 'state_conflict' }, 409);
+    if (released.seats > 0) await offerFreedSeats(env.DB, { eventId: attendee.eid as string, accountId });
   }
 
   return json({ success: true });
+};
+
+// GET /api/admin/events/:id/seat-notices. What happened to the session's
+// seats (J9), for the shop in Manage. An in-app list; nothing is sent.
+const handleGetSeatNotices: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'gather');
+  if ('error' in ctx) return ctx.error;
+  const guard = await assertEventInAccount(env, params.id, ctx.accountId);
+  if (guard) return guard;
+  return json({ notices: await seatNoticesFor(env.DB, { eventId: params.id, accountId: ctx.accountId }) });
 };
 
 const handleGetNotifications: Handler = async (request, env, params) => {
@@ -14689,25 +14701,36 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as { slug: string; event_date: string };
+  return duplicateEvent(env, accountId, params.id, await request.json() as { slug: string; event_date: string });
+};
+
+async function duplicateEvent(env: Env, accountId: string, sourceId: string,
+  body: { slug: string; event_date: string }, host?: { userId: string; preview: boolean },
+) {
   if (!body.slug || !body.event_date) return json({ error: 'slug and event_date are required' }, 400);
 
+  const slugInUse = () => json({ error: 'An event with this slug already exists' }, 409);
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
-  if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
+  if (existingSlug) return slugInUse();
 
-  const source = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).first();
+  if (host && !parseEventDateRepresentation(body.event_date)) {
+    return restError(400, 'Give a valid date and time for the new table.', 'invalid_event_date');
+  }
+  const source = await env.DB.prepare(`SELECT * FROM events WHERE id = ? AND account_id = ?${host ? ' AND host_user_id = ?' : ''}`)
+    .bind(sourceId, accountId, ...(host ? [host.userId] : [])).first();
   if (!source) return json({ error: 'Source event not found' }, 404);
+  if (host?.preview) return json({ ok: true });
 
   const newId = crypto.randomUUID();
   const duplicateEndDate = duplicateEventEndDate(source.event_date, source.event_end_date, body.event_date);
 
-  await env.DB.prepare(
+  const insert = env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery,
+       host_user_id, door, is_tasting)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -14738,30 +14761,36 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.requires_approval !== undefined ? source.requires_approval : 1,
     // A copy is never more visible than the session it was made from.
     source.public_visibility ?? 'public',
-    source.network_discovery ?? 1
-  ).run();
+    source.network_discovery ?? 1,
+    source.host_user_id ?? null,
+    source.door ?? null,
+    source.host_user_id ? (source.is_tasting ?? 0) : 0,
+  );
 
-  // F38: Clone tea menu entries (including all brewing fields)
+  // Keep the draft and its tea menu together if a write fails.
   const menu = await env.DB.prepare(
     'SELECT * FROM event_tea_menu WHERE event_id = ? AND account_id = ?'
-  ).bind(params.id, accountId).all();
-  if (menu.results.length > 0) {
-    const menuStmts = (menu.results as any[]).map(m =>
-      env.DB.prepare(
-        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        crypto.randomUUID(), accountId, newId,
-        m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order
-      )
-    );
-    await env.DB.batch(menuStmts);
+  ).bind(sourceId, accountId).all();
+  const menuStmts = menu.results.map(m =>
+    env.DB.prepare(
+      `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(), accountId, newId,
+      m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order
+    )
+  );
+  try {
+    await env.DB.batch([insert, ...menuStmts]);
+  } catch (error) {
+    if (error instanceof Error && /UNIQUE constraint failed: events\.slug/i.test(error.message)) return slugInUse();
+    throw error;
   }
 
   const created = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
     .bind(newId, accountId).first();
   return json(created || { id: newId, account_id: accountId, slug: body.slug, event_date: body.event_date }, 201);
-};
+}
 
 const handleBatchAttendance: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
@@ -17169,10 +17198,15 @@ async function requireFewHostsHost(request: Request, env: Env): Promise<
   if (!fewHostsOpen(env)) return { error: fewHostsClosed() };
   const ctx = await requireAuthenticatedUser(request, env);
   if ('error' in ctx) return ctx;
-  const standing = await hostStanding(env.DB, ctx.userId);
+  const access = await hostedTableAccess(env, ctx.userId);
+  return access ? { ...access, name: ctx.name } : { error: fewHostsClosed() };
+}
+
+async function hostedTableAccess(env: Env, userId: string) {
+  const standing = await hostStanding(env.DB, userId);
   const doors = hostDoorsFor(standing, fewHostsAnyoneHosts(env));
-  if (!doors && !(standing.stopped && await hostsAnyTable(env.DB, ctx.userId))) return { error: fewHostsClosed() };
-  return { userId: ctx.userId, name: ctx.name, approved: standing.approved, stopped: standing.stopped, doors: doors ?? [] };
+  if (!doors && !(standing.stopped && await hostsAnyTable(env.DB, userId))) return null;
+  return { userId, approved: standing.approved, stopped: standing.stopped, doors: doors ?? [] };
 }
 
 // PUT /api/platform/users/:id/host-approval {approved}. Adrian alone.
@@ -17199,10 +17233,7 @@ const handleHostingStopped: Handler = async (request, env, params) => {
   const body = await request.json().catch(() => null) as { stopped?: unknown } | null;
   if (typeof body?.stopped !== 'boolean') return json({ error: 'Say whether this person’s hosting is stopped.' }, 400);
   const actor = parseToken(isAuthed(request)!);
-  const result = await setHostingStopped(env.DB, params.id, body.stopped, actor?.sub ?? 'unknown');
-  if (!result) return json({ error: 'User not found' }, 404);
-  await logPlatformAction(env, 'host.hosting_stopped_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { stopped: body.stopped });
-  return json({ ok: true, hosting_stopped: body.stopped });
+  return changeHostingStopped(env, params.id, body.stopped, actor?.sub ?? 'unknown', actor?.email ?? '');
 };
 
 // PUT /api/platform/users/:id/host-reach {reach}. Adrian alone (Launch 3,
@@ -17222,6 +17253,13 @@ const handleHostReach: Handler = async (request, env, params) => {
   await logPlatformAction(env, 'host.reach_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { reach: body.reach });
   return json({ ok: true, host_reach: result.reach });
 };
+
+async function changeHostingStopped(env: Env, userId: string, stopped: boolean, actorId: string, email: string) {
+  const result = await setHostingStopped(env.DB, userId, stopped, actorId);
+  if (!result) return json({ error: 'User not found' }, 404);
+  await logPlatformAction(env, 'host.hosting_stopped_changed', actorId, email, 'user', userId, { stopped });
+  return json({ ok: true, hosting_stopped: stopped });
+}
 
 // GET /api/me/hosting. Whether the signed-in person may host, and their
 // personal account when they have one. Makes nothing.
@@ -17372,6 +17410,8 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
   return hostTableJson({
     table: { ...table, seats_taken: taken, link: `${appOrigin(env)}/event/${table.slug}` },
     guests,
+    // What happened to the seats (J9): the host's own notices, shown on this page only.
+    notices: await seatNoticesFor(env.DB, { eventId: scope.id, accountId: scope.account_id }),
     teas,
     doors: host.doors,
   });
@@ -17386,10 +17426,14 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
 async function requireOwnHostedTable(request: Request, env: Env, eventId: string) {
   const host = await requireFewHostsHost(request, env);
   if ('error' in host) return host;
-  const account = await personalInventoryAccount(env.DB, host.userId);
-  const table = account ? await ownHostedTable(env.DB, { hostUserId: host.userId, eventId }) : null;
-  if (!account || !table || table.account_id !== account.id) return { error: json({ error: 'Table not found' }, 404) };
-  return { host, table };
+  const table = await personalHostedTable(env.DB, host.userId, eventId);
+  return table ? { host, table } : { error: json({ error: 'Table not found' }, 404) };
+}
+
+async function personalHostedTable(db: D1Database, userId: string, eventId: string) {
+  const account = await personalInventoryAccount(db, userId);
+  const table = account ? await ownHostedTable(db, { hostUserId: userId, eventId }) : null;
+  return table && table.account_id === account?.id ? table : null;
 }
 
 function hostTableJson(value: unknown, status = 200) {
@@ -17466,6 +17510,37 @@ const handleHostSaysNo: Handler = async (request, env, params) => {
     getUserEmail(request), 'event_attendee', attendee.id, own.table.account_id).run();
   return hostTableJson({ ok: true, status: 'denied' });
 };
+
+// PUT /api/me/tables/:id/guests/:attendeeId/release. The host gives back a
+// confirmed guest's seat (J9). Every seat of the party is given back in one
+// guarded write (worker/src/waitingList.ts releaseSeats), and the freed seats
+// are offered to the guests waiting longest, exactly as when a guest cancels.
+const handleHostReleasesSeat: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  return releaseHostedGuest(env, own.table, params.attendeeId, getUserEmail(request));
+};
+
+async function releaseHostedGuest(env: Env, table: OwnHostedTable,
+  attendeeId: string, email: string | null, preview = false,
+) {
+  if (table.lifecycle_status !== 'published') {
+    return restError(409, 'This table has already happened, so its seats stay as they were.', 'hosted_table_closed');
+  }
+  const attendee = await waitingGuest(env.DB, table, attendeeId);
+  if (!attendee) return json({ error: 'Guest not found' }, 404);
+  if (attendee.status !== 'confirmed') {
+    return restError(409, 'This guest no longer holds a seat. Open the table again.', 'state_conflict');
+  }
+  if (preview) return hostTableJson({ ok: true });
+  const scope = { eventId: table.id, accountId: table.account_id };
+  const released = await releaseSeats(env.DB, { ...scope, attendeeId: attendee.id, from: ['confirmed'], kind: 'released' });
+  if (!released) return restError(409, 'This guest no longer holds a seat. Open the table again.', 'state_conflict');
+  const offered = await offerFreedSeats(env.DB, scope);
+  await buildActivityLog(env, 'attendee_released', `Host released the seat of ${attendee.full_name}`,
+    email, 'event_attendee', attendee.id, table.account_id).run();
+  return hostTableJson({ ok: true, status: 'cancelled', seats_released: released.seats, offered: offered.length });
+}
 
 // PUT /api/me/tables/:id/came {attendee_ids}. Once the table has begun, the
 // host marks who came; the table is then finished, so thank-you links open.
@@ -19302,20 +19377,23 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
   const body = await request.json() as { message?: string };
   const userEmail = getUserEmail(request);
 
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE event_attendees SET status = 'denied', denial_message = ? WHERE id = ?`
-    ).bind(body.message || null, params.id),
-    buildActivityLog(
-      env,
-      'attendee_denied',
-      `Denied ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
-      userEmail, 'event_attendee', params.id, accountId
-    ),
-  ]);
-
-  // F39: Auto-promote first waitlisted attendee when a spot is freed by denial
-  await cascadeWaitlist(env, attendee.event_id as string, (attendee.claim_window_minutes as number) || 60);
+  // No is for a guest who holds no seat: one who asked, or one waiting
+  // without a live offer. A confirmed guest's seat is released, not denied,
+  // so the seat is given back and offered on (J9). Guarded in the write.
+  const denied = await env.DB.prepare(
+    `UPDATE event_attendees SET status = 'denied', denial_message = ?
+      WHERE id = ? AND account_id = ? AND status IN ('requested', 'waitlist')
+        AND (status = 'requested' OR claim_expires_at IS NULL OR datetime(claim_expires_at) <= datetime('now'))`
+  ).bind(body.message || null, params.id, accountId).run();
+  if (!Number(denied.meta?.changes || 0)) {
+    return json({ error: 'This guest holds a seat or an offer of one. Release the seat instead.', code: 'state_conflict' }, 409);
+  }
+  await buildActivityLog(
+    env,
+    'attendee_denied',
+    `Denied ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
+    userEmail, 'event_attendee', params.id, accountId
+  ).run();
 
   return json({ success: true, status: 'denied' });
 };
@@ -19334,25 +19412,31 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
-  const posRow = await env.DB.prepare(
-    `SELECT COALESCE(MAX(waitlist_position), 0) + 1 as next_pos
-     FROM event_attendees WHERE event_id = ? AND status = 'waitlist'`
-  ).bind(attendee.event_id).first();
-
-  const waitlistPosition = (posRow?.next_pos as number) || 1;
+  // The position is taken inside the write itself, so two guests moved at
+  // once cannot share it (J9). Only a guest who holds no seat moves here: one
+  // who asked, one said no to, or one whose offer lapsed, who goes to the end
+  // of the queue and may be offered a seat again. A confirmed seat is
+  // released, never moved, so nobody loses a seat by this route.
   const userEmail = getUserEmail(request);
-
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ? WHERE id = ?`
-    ).bind(waitlistPosition, params.id),
-    buildActivityLog(
-      env,
-      'attendee_waitlisted',
-      `Moved ${attendee.full_name} to waitlist position ${waitlistPosition}`,
-      userEmail, 'event_attendee', params.id, accountId
-    ),
-  ]);
+  const moved = await env.DB.prepare(
+    `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ${NEXT_WAITLIST_POSITION_SQL},
+            claim_expires_at = NULL, offer_lapsed_at = NULL
+      WHERE id = ? AND account_id = ?
+        AND (status IN ('requested', 'denied') OR (status = 'waitlist' AND offer_lapsed_at IS NOT NULL AND claim_expires_at IS NULL))
+      RETURNING waitlist_position`
+  ).bind(params.id, accountId).first<{ waitlist_position: number }>();
+  if (!moved) {
+    return json({ error: 'This guest holds a seat or is already waiting.', code: 'state_conflict' }, 409);
+  }
+  const waitlistPosition = Number(moved.waitlist_position) || 1;
+  await buildActivityLog(
+    env,
+    'attendee_waitlisted',
+    `Moved ${attendee.full_name} to waitlist position ${waitlistPosition}`,
+    userEmail, 'event_attendee', params.id, accountId
+  ).run();
+  // A seat may be free already; the offer is guarded on one being free.
+  await offerFreedSeats(env.DB, { eventId: attendee.event_id as string, accountId });
 
   return json({ success: true, status: 'waitlist', waitlist_position: waitlistPosition });
 };
@@ -32544,6 +32628,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/events/:id', handleUpdateEvent],
   ['DELETE', '/api/admin/events/:id', handleDeleteEvent],
   ['GET', '/api/admin/events/:id/attendees', handleGetAttendees],
+  ['GET', '/api/admin/events/:id/seat-notices', handleGetSeatNotices],
   ['GET', '/api/admin/events/:id/notifications', handleGetNotifications],
   ['POST', '/api/admin/events/:id/notifications', handleCreateNotifications],
   ['POST', '/api/admin/events/:id/article-draft', handleCreateEventArticleDraft],
@@ -32642,6 +32727,7 @@ const routes: [string, string, Handler][] = [
   ['PUT',    '/api/me/tables/:id/came', handleHostMarksWhoCame],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/yes', handleHostSaysYes],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/no', handleHostSaysNo],
+  ['PUT',    '/api/me/tables/:id/guests/:attendeeId/release', handleHostReleasesSeat],
   ['POST',   '/api/me/tables/:id/guests/:attendeeId/thanks-link', handleHostThanksLink],
   ['GET',    '/api/me/tables/:id/notes', handleHostedTableNotes],
   ['GET',    '/api/me/tables/:id/guest-book', handleHostedTableGuestBook],
@@ -32945,10 +33031,13 @@ const familyDeps: FamilyDeps<Env> = {
 // Reports on a session or a person (Launch 3, J5). Anyone may file; only the
 // platform owner reads or resolves, and the reporter is named to nobody else.
 const sessionReportsClosed = () => json({ error: 'Not found' }, 404);
+function limitSessionReport(request: Request, env: Env) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  return enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `session-report:${ip}`);
+}
 const handleFileSessionReport: Handler = async (request, env) => {
   if (!anyoneHostsOpen(env)) return sessionReportsClosed();
-  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `session-report:${ip}`);
+  const limited = await limitSessionReport(request, env);
   if (limited) return limited;
   let body: Record<string, unknown>;
   try { body = await request.json() as Record<string, unknown>; } catch { return json({ error: 'Say what you are reporting.', code: 'validation_failed' }, 400); }
@@ -33301,6 +33390,20 @@ const requestHandler = {
         stockMovements: { apply: (scope, productId, input) => applyStockMovement(env, scope, productId, input) },
         // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).
         hostSeats: { reservationFor: (attendee, guests) => buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, guests) },
+        launch3: {
+          ownTable: async (auth, tableId) => {
+            const access = await hostedTableAccess(env, auth.userId);
+            if (!access) return null;
+            const table = await personalHostedTable(env.DB, auth.userId, tableId);
+            return table && table.account_id === auth.accountId ? { table, stopped: access.stopped } : null;
+          },
+          duplicate: (table, userId, slug, date, preview) =>
+            duplicateEvent(env, table.account_id, table.id, { slug, event_date: date }, { userId, preview }),
+          setTasting: (table, userId, isTasting) => updateEvent(env, table.account_id, table.id, { is_tasting: isTasting }, userId),
+          releaseGuest: (table, attendeeId, email, preview) => releaseHostedGuest(env, table, attendeeId, email, preview),
+          setHostingStopped: (auth, userId, stopped) => changeHostingStopped(env, userId, stopped, auth.userId, auth.userEmail),
+          limitReport: () => limitSessionReport(request, env),
+        },
       });
       return cors(response, corsOrigin);
     }
@@ -33528,6 +33631,15 @@ const requestHandler = {
         failures += 1;
       }
       console.info('Private recording expiry cleanup summary', { examined, deleted, failures });
+    }
+
+    // Offers that ran out move the waiting list on (J9). Nothing is sent:
+    // the next guest sees the offer on their own page, the host on theirs.
+    try {
+      const moved = await advanceWaitingLists(env.DB);
+      if (moved.lapsed) console.info('Waiting list offers lapsed', moved);
+    } catch (error) {
+      console.error('Waiting list advance failed', error instanceof Error ? error.message : String(error));
     }
 
     // Generate checkin reminder notifications for events happening tomorrow

@@ -1,6 +1,16 @@
 import type { CurateFinalizeMovement } from '../curateImports';
 import type { StockMovementInput } from '../inventoryDomain';
 import type { ReservePartySeatsInput } from '../eventDomain';
+import type { OwnHostedTable } from '../hostTableGuests';
+
+export interface Launch3Services {
+  ownTable: (auth: ToolAuth, tableId: string) => Promise<{ table: OwnHostedTable; stopped: boolean } | null>;
+  duplicate: (table: OwnHostedTable, userId: string, slug: string, date: string, preview: boolean) => Promise<Response>;
+  setTasting: (table: OwnHostedTable, userId: string, isTasting: boolean) => Promise<Response>;
+  releaseGuest: (table: OwnHostedTable, attendeeId: string, email: string, preview: boolean) => Promise<Response>;
+  setHostingStopped: (auth: ToolAuth, userId: string, stopped: boolean) => Promise<Response>;
+  limitReport: () => Promise<Response | null>;
+}
 /**
  * Where MCP tools added from here on live.
  *
@@ -77,6 +87,7 @@ export interface ToolEnv {
   /** The site's address, for a table's link. */
   APP_URL?: string;
   hostSeats?: HostSeatService;
+  launch3?: Launch3Services;
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ATLAS_BUCKET?: R2Bucket;
@@ -101,7 +112,9 @@ export interface ToolAuth {
 
 export interface ToolDefinition {
   name: string;
-  scope: ToolScope;
+  /** Personal actions may require sign-in without a shop scope. */
+  scope: ToolScope | 'signed-in';
+  available?: (env: ToolEnv, auth: ToolAuth) => boolean;
   description: string;
   inputSchema: Record<string, unknown>;
   annotations?: Record<string, unknown>;

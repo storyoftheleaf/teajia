@@ -28,8 +28,8 @@ function refuse(status: number, code: string, error: string) {
   return { refused: { status, code, error } };
 }
 
-export async function fileReport(db: D1Database, input: ReportInput) {
-  const { targetKind, targetId, reporterUserId, reporterSeatId } = input;
+function readReport(input: ReportInput) {
+  const { targetKind, targetId } = input;
   if ((targetKind !== 'session' && targetKind !== 'person') || !targetId.trim()) {
     return refuse(400, 'validation_failed', 'Say what you are reporting.');
   }
@@ -39,6 +39,23 @@ export async function fileReport(db: D1Database, input: ReportInput) {
   }
 
   const targetTable = targetKind === 'session' ? 'events' : 'contributors';
+  return { targetTable, reason };
+}
+
+const targetNotFound = () => refuse(404, 'target_not_found', 'That is no longer on Teajia.');
+
+export async function previewReport(db: D1Database, input: ReportInput) {
+  const report = readReport(input);
+  if ('refused' in report) return report;
+  const found = await db.prepare(`SELECT 1 FROM ${report.targetTable} WHERE id = ?`).bind(input.targetId).first();
+  return found ? { ready: true } : targetNotFound();
+}
+
+export async function fileReport(db: D1Database, input: ReportInput) {
+  const report = readReport(input);
+  if ('refused' in report) return report;
+  const { targetKind, targetId, reporterUserId, reporterSeatId } = input;
+  const { targetTable, reason } = report;
   const targetExists = `EXISTS (SELECT 1 FROM ${targetTable} WHERE id = ?2)`;
   const sameOpenReport = `target_kind = ?1 AND target_id = ?2 AND status = 'open'
     AND ((?4 IS NOT NULL AND reporter_user_id = ?4)
@@ -56,7 +73,7 @@ export async function fileReport(db: D1Database, input: ReportInput) {
     `).bind(...values, crypto.randomUUID()),
   ]);
   if (!updated.meta.changes && !inserted.meta.changes) {
-    return refuse(404, 'target_not_found', 'That is no longer on Teajia.');
+    return targetNotFound();
   }
   return { received: true as const };
 }

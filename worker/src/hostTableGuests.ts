@@ -55,6 +55,15 @@ export function reviewHostedTableGuestBook(
 }
 
 /**
+ * A party seat counts only while its guest is still coming. A guest who
+ * cancelled or was said no to before J9 could leave their seat rows held or
+ * confirmed; those never count, so no seat stays lost.
+ */
+export const SEAT_OF_A_GUEST_STILL_COMING = (seat: string) => `NOT EXISTS (SELECT 1 FROM event_attendees gone
+  WHERE gone.id = ${seat}.participation_id AND gone.event_id = ${seat}.event_id AND gone.account_id = ${seat}.account_id
+    AND gone.status IN ('cancelled', 'denied'))`;
+
+/**
  * Seats taken, counted the way the guarded allocator counts them (held and
  * confirmed party seats, and a live offer to someone waiting), plus a
  * confirmed guest from before party seats existed, who has no seat row.
@@ -62,7 +71,8 @@ export function reviewHostedTableGuestBook(
 export function seatsTakenSql(event: string): string {
   return `(
     (SELECT COUNT(*) FROM event_party_members pm
-      WHERE pm.event_id = ${event}.id AND pm.account_id = ${event}.account_id AND pm.seat_status IN ('held', 'confirmed'))
+      WHERE pm.event_id = ${event}.id AND pm.account_id = ${event}.account_id AND pm.seat_status IN ('held', 'confirmed')
+        AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')})
     + (SELECT COUNT(*) FROM event_attendees offer
       WHERE offer.event_id = ${event}.id AND offer.account_id = ${event}.account_id AND offer.status = 'waitlist'
         AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now'))
@@ -92,12 +102,19 @@ export type HostTableGuest = {
   phone: string | null;
   /** The guest asked not to be photographed (photo_consent 0; NULL means they said nothing). */
   no_photographs: boolean;
+  /** A waiting guest offered a freed seat: until when they may take it (J9). Null when no live offer. */
+  offer_until: string | null;
+  /** A waiting guest whose offer of a seat ran out unclaimed (J9). */
+  offer_lapsed: boolean;
 };
 
 /** The guests of one of the host's tables, for the host only. Never the guest's private link. */
 export async function hostTableGuests(db: D1Database, table: Pick<OwnHostedTable, 'id' | 'account_id'>): Promise<HostTableGuest[]> {
   const { results } = await db.prepare(`
-    SELECT id, full_name, status, plus_one, attended, created_at, notes, phone_number, photo_consent
+    SELECT id, full_name, status, plus_one, attended, created_at, notes, phone_number, photo_consent,
+           CASE WHEN status = 'waitlist' AND claim_expires_at IS NOT NULL AND datetime(claim_expires_at) > datetime('now')
+                THEN claim_expires_at END AS offer_until,
+           offer_lapsed_at
       FROM event_attendees WHERE event_id = ? AND account_id = ?
      ORDER BY created_at ASC, id ASC
   `).bind(table.id, table.account_id).all<Record<string, unknown>>();
@@ -115,6 +132,8 @@ export async function hostTableGuests(db: D1Database, table: Pick<OwnHostedTable
     // (seatRequest.photoConsentValue), so only a real no reads as one. Seats
     // taken before H5 kept 0 for silence and were not rewritten.
     no_photographs: row.photo_consent === 0,
+    offer_until: typeof row.offer_until === 'string' ? row.offer_until : null,
+    offer_lapsed: row.status === 'waitlist' && typeof row.offer_lapsed_at === 'string',
   }));
 }
 

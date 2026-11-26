@@ -7,6 +7,8 @@ import type { AttentionItem } from '../../lib/api';
 import type { PayAccessTable } from '../profile/types';
 import { PayAccessRequestRow, soFarLine } from '../profile/PayAccessPanel';
 import { ATLAS_ROOT } from '../../atlas/atlasPaths';
+import { HOST_TABLE_PATH, hostedTablesOpen, useMayHost } from '../../hooks/useMayHost';
+import { Button } from '../shared/Button';
 
 interface LaunchpadTile {
   id: string;
@@ -96,6 +98,26 @@ interface LaunchpadViewProps {
 }
 
 const ICON_PROPS = { size: 18, weight: 'light' as const };
+
+function HostTableTile({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const { mayHost } = useMayHost();
+  if (!mayHost) return null;
+
+  return (
+    <Button
+      type="button"
+      variant="plain"
+      onClick={() => { onClose(); navigate(HOST_TABLE_PATH); }}
+      className="group mb-4 flex min-h-tap w-full items-center border-y border-tea-border py-2 text-left focus-visible:outline-tea-gold"
+    >
+      <span className="min-w-0">
+        <span className="block font-display text-ui-24 text-tea-text group-hover:text-tea-gold">Host a table</span>
+        <span className="mt-1 block font-body text-ui-13 italic text-tea-text-sec">Free to host, and your record is yours.</span>
+      </span>
+    </Button>
+  );
+}
 
 function formatRelativeShort(iso: string | null): string {
   if (!iso) return '—';
@@ -567,6 +589,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       )}
 
       {/* ── Tile grid ─────────────────────────────────────────────────────── */}
+      {hostedTablesOpen() && <HostTableTile onClose={onClose} />}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
         {tiles.map(tile => <Tile key={tile.id} {...tile} />)}
       </div>
