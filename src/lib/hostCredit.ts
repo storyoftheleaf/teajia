@@ -22,13 +22,14 @@ export const HOST_CREDIT_OPEN = false;
  * The two terms of the rule, each an account setting: the share of the tea
  * lines (accounts.host_credit_percent) and the most credit one order may earn
  * or use without Adrian's second look (accounts.host_credit_order_ceiling_usd,
- * in US dollars, the currency invoice lines are priced in). NULL on the
- * account means "follow these"; any number there, zero included, is obeyed.
+ * in US dollars, the currency invoice lines are priced in; the default is no
+ * ceiling). NULL on the account means "follow these"; any number there, zero included, is obeyed.
  * They are read when they are used, never copied into a row. There is no time
  * window and no expiry: the credit is an ongoing balance (Adrian, 2026-11-26).
  */
 export const HOST_CREDIT_DEFAULT_PERCENT = 10;
-export const HOST_CREDIT_DEFAULT_ORDER_CEILING_USD = 10;
+/** No ceiling unless the shop sets one (Adrian, 2026-11-26: "no credit ceiling, I can tell something's off"). Spending still waits for his approval every time. */
+export const HOST_CREDIT_DEFAULT_ORDER_CEILING_USD: number | null = null;
 
 type Env = { HOST_CREDIT_OPEN?: string } | null | undefined;
 

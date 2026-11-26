@@ -279,8 +279,17 @@ describe('tea credit for hosts: earning', () => {
     expect(kinds(db)).toEqual(['earned:inv-tea:2.5', 'pending:inv-tea:2.5']);
   });
 
-  it('above the ceiling an order stays pending until the owner approves it in Manage', async () => {
+  it('with no ceiling set, a large Filled and paid order earns at once', async () => {
     const db = seed();
+    order(db, { invoice: 'big', lines: [['big-tea', 'tea', 400, 0.5]] });
+    await pay(db, 'big', 200);
+    await fill(db, 'big');
+    expect(kinds(db)).toEqual(['earned:big-tea:20', 'pending:big-tea:20']);
+  });
+
+  it('above a ceiling the shop set, an order stays pending until the owner approves it in Manage', async () => {
+    const db = seed();
+    db.sqlite.exec(`UPDATE accounts SET host_credit_order_ceiling_usd = 10 WHERE id = '${SHOP}'`);
     order(db, { invoice: 'big', lines: [['big-tea', 'tea', 400, 0.5]] });
     await pay(db, 'big', 200);
     await fill(db, 'big');
@@ -355,7 +364,7 @@ describe('tea credit for hosts: who reads what', () => {
     expect(owner.status).toBe(200);
     expect(owner.data.hosts.map((h: any) => [h.host_user_id, h.available])).toEqual([[HOST, 2.5], ['host2', 2.5]]);
     expect(owner.data.lines).toHaveLength(2);
-    expect(owner.data.terms).toEqual({ percent: 10, ceilingUsd: 10 });
+    expect(owner.data.terms).toEqual({ percent: 10, ceilingUsd: null });
   });
 
   it('the platform owner reads a shop; a platform admin does not', async () => {
@@ -436,8 +445,9 @@ describe('tea credit for hosts: spending waits for the owner', () => {
     expect(db.sqlite.prepare(`SELECT COUNT(*) AS n FROM host_credit_entries WHERE spend_request_id = ?`).get(hold.id)).toEqual({ n: 0 });
   });
 
-  it('above the ceiling the owner must say so, in words, before it is spent; declining releases the hold', async () => {
+  it('above a ceiling the shop set, the owner must say so, in words, before it is spent; declining releases the hold', async () => {
     const db = seed();
+    db.sqlite.exec(`UPDATE accounts SET host_credit_order_ceiling_usd = 10 WHERE id = '${SHOP}'`);
     await withCredit(db, 10);
     await withCredit(db, 9.5);
     const e = env(db);

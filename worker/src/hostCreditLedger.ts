@@ -48,7 +48,8 @@ const SYSTEM = 'system';
 
 type CreditEnv = { DB: D1Database; HOST_CREDIT_OPEN?: string };
 
-export type HostCreditTerms = { percent: number; ceilingUsd: number };
+/** ceilingUsd null: no ceiling. */
+export type HostCreditTerms = { percent: number; ceilingUsd: number | null };
 
 /**
  * The shop's two terms. NULL follows the default; any number, zero included,
@@ -64,7 +65,7 @@ export async function hostCreditTerms(db: D1Database, accountId: string): Promis
   const ceilingUsd = row.host_credit_order_ceiling_usd == null
     ? HOST_CREDIT_DEFAULT_ORDER_CEILING_USD : Number(row.host_credit_order_ceiling_usd);
   if (!Number.isFinite(percent) || percent < 0 || percent > 100) return null;
-  if (!Number.isFinite(ceilingUsd) || ceilingUsd < 0) return null;
+  if (ceilingUsd !== null && (!Number.isFinite(ceilingUsd) || ceilingUsd < 0)) return null;
   return { percent, ceilingUsd };
 }
 
@@ -254,7 +255,7 @@ async function earnInvoiceCredit(env: CreditEnv, invoice: InvoiceRow, approvedBy
 
   // Above the ceiling, the whole order waits for the owner's approval.
   const orderCredit = roundUsd(lines.reduce((sum, line) => sum + line.credit, 0));
-  if (!approvedBy && orderCredit > terms.ceilingUsd + PAYMENT_EPSILON / 2) {
+  if (!approvedBy && terms.ceilingUsd !== null && orderCredit > terms.ceilingUsd + PAYMENT_EPSILON / 2) {
     return { ...NOTHING, pending, awaiting_approval: true };
   }
 
@@ -544,7 +545,7 @@ export async function approveHostCreditSpend(
   if (request.status !== 'held') return { ok: false, error: 'already_decided', message: 'This request was already declined.' };
   const terms = await hostCreditTerms(env.DB, input.accountId);
   const amount = Number(request.amount);
-  const overCeiling = !terms || amount > terms.ceilingUsd + 0.004;
+  const overCeiling = !terms || (terms.ceilingUsd !== null && amount > terms.ceilingUsd + 0.004);
   if (overCeiling && !input.confirmOverCeiling) {
     return {
       ok: false, error: 'over_ceiling',
