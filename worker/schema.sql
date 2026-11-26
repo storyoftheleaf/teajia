@@ -4034,3 +4034,28 @@ ALTER TABLE member_tasting_shares ADD COLUMN tea_table_sittings TEXT;
 ALTER TABLE events ADD COLUMN tea_table_at TEXT;
 ALTER TABLE events ADD COLUMN tea_table_by TEXT;
 ALTER TABLE events ADD COLUMN tea_table_hidden_at TEXT;
+
+-- 0138_tea_house_portfolio.sql
+CREATE TABLE IF NOT EXISTS tea_house_pages (
+  house_account_id TEXT PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+  account_id       TEXT NOT NULL REFERENCES accounts(id),
+  position         INTEGER NOT NULL DEFAULT 0,
+  is_shown         INTEGER NOT NULL DEFAULT 0 CHECK (is_shown IN (0,1)),
+  created_by       TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_tea_house_pages_order ON tea_house_pages(account_id, position);
+CREATE TABLE IF NOT EXISTS tea_house_contributions (
+  id               TEXT PRIMARY KEY,
+  account_id       TEXT NOT NULL REFERENCES accounts(id),
+  house_account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  part             TEXT NOT NULL CHECK (part IN ('room','teaware','tea_menu','training','opening','sourcing')),
+  words            TEXT NOT NULL,
+  photographs      TEXT NOT NULL DEFAULT '[]',
+  created_by       TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (house_account_id, part)
+);
+CREATE INDEX IF NOT EXISTS idx_tea_house_contributions_house ON tea_house_contributions(house_account_id);

@@ -6,6 +6,8 @@ import type { Account, NetworkNextSession } from '../types';
 import { fetchNetworkStores } from '../lib/storefrontApi';
 import { SectionSkeleton } from '../components/shared/SectionSkeleton';
 import { TYPOGRAPHY_CLASSES as T } from '../designTokens';
+import { useTeaHouseWork } from '../lib/teaHousesApi';
+import { teaHousePagePath } from '../lib/teaHousesContract';
 
 /**
  * Visit: the tea houses a person can sit down at. One list from the network
@@ -13,6 +15,10 @@ import { TYPOGRAPHY_CLASSES as T } from '../designTokens';
  * public account that chose to be shown. Each house opens its own page at
  * /store/:slug. No map, no distance, no "near you": a list of places, in the
  * directory's own order.
+ *
+ * A house Adrian worked on, whose portfolio page he has shown, carries one
+ * more line under it leading to that page (behind TEA_HOUSES_OPEN). A house
+ * he did not work on is here all the same, without it.
  */
 
 function sessionWhen(value: string): string | null {
@@ -32,10 +38,10 @@ function ComingSession({ session }: { session: NetworkNextSession }) {
   );
 }
 
-function HouseRow({ house }: { house: Account }) {
+function HouseRow({ house, hasPortfolio }: { house: Account; hasPortfolio: boolean }) {
   const place = [house.location_city, house.location_country].filter(Boolean).join(', ');
   return (
-    <li>
+    <li className="flex flex-col gap-1">
       <Link
         to={`/store/${encodeURIComponent(house.slug)}`}
         className="group flex flex-col sm:flex-row gap-4 p-4 bg-tea-surface border border-tea-border rounded-xl hover:border-tea-gold focus-visible:border-tea-gold transition-colors"
@@ -55,6 +61,15 @@ function HouseRow({ house }: { house: Account }) {
           {house.next_session && <ComingSession session={house.next_session} />}
         </div>
       </Link>
+      {hasPortfolio && (
+        <Link
+          to={teaHousePagePath(house.slug)}
+          className={`${T.link} tap-target inline-flex items-center self-start px-4`}
+          data-testid="house-portfolio-link"
+        >
+          Adrian's part in this house
+        </Link>
+      )}
     </li>
   );
 }
@@ -65,6 +80,8 @@ export default function TeaHousesVisitPage() {
     queryFn: fetchNetworkStores,
     staleTime: 1000 * 60 * 5,
   });
+  const work = useTeaHouseWork();
+  const withPortfolio = new Set((work.data?.houses ?? []).map(house => house.slug));
 
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-houses-visit">
@@ -103,7 +120,7 @@ export default function TeaHousesVisitPage() {
 
       {houses.length > 0 && (
         <ul className="flex flex-col gap-4" aria-label="Tea houses">
-          {houses.map(house => <HouseRow key={house.id} house={house} />)}
+          {houses.map(house => <HouseRow key={house.id} house={house} hasPortfolio={withPortfolio.has(house.slug)} />)}
         </ul>
       )}
     </div>
