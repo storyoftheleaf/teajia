@@ -3,6 +3,8 @@ export type { CellarItem, CellarPlacementRequest, PublicShelf, PublicShelfItem, 
 import type { ShippingPaymentNotification } from './shippingNotification';
 import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createArticleApi } from './articlesApi';
+import { createHostingApi, createTablesApi } from './hostingApi';
+export type { HostedTableCreated, HostedTableDetail, HostedTableDoor, HostedTableInput, HostedTableSummary, HostingStatus } from './hostingApi';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { VendorProductSale } from './vendorSalesTypes';
@@ -4274,6 +4276,10 @@ export const api = {
     },
   },
 
+  // Launch 2, a few hosts (closed until src/lib/fewHosts.ts opens).
+  hosting: createHostingApi({ apiUrl: API_URL, authedFetch }),
+  tables: createTablesApi({ apiUrl: API_URL, authedFetch }),
+
   platform: {
     listUsers: async (): Promise<{ users: PlatformUser[] }> => {
       return authedFetch(`${API_URL}/api/platform/users`)
@@ -4287,6 +4293,12 @@ export const api = {
     // Stock spine step 5: grant/revoke a user's public shelf and set its slug.
     setMaySell: async (userId: string, approved: boolean): Promise<{ ok: boolean; may_sell: boolean }> => {
       return authedFetch(`${API_URL}/api/platform/users/${userId}/seller-approval`, {
+        method: 'PUT', body: JSON.stringify({ approved }),
+      });
+    },
+    // Launch 2: approve or withdraw a host (closed until src/lib/fewHosts.ts opens).
+    setMayHost: async (userId: string, approved: boolean): Promise<{ ok: boolean; may_host: boolean }> => {
+      return authedFetch(`${API_URL}/api/platform/users/${userId}/host-approval`, {
         method: 'PUT', body: JSON.stringify({ approved }),
       });
     },
