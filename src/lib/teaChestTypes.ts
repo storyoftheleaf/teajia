@@ -22,6 +22,8 @@ export interface CellarItem {
   }) | null;
   /** Where the tea came from (Launch 1). NULL on older teas: never guessed. */
   source?: CellarSource | null;
+  /** Marked by its owner as a favourite (Launch 4). Shown only while favourites are open. */
+  favourite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
