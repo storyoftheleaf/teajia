@@ -526,3 +526,46 @@ test('an unconfirmed movement survives closing and retries its original request 
   expect(originalRequests[1]).toEqual(originalRequests[0]);
   expect(balance).toBe(95);
 });
+
+test('count mode writes one recount per Enter, skips a blank, and retries against the shop balance', async ({ page }) => {
+  await page.locator('tr[data-product-id="tea-1"]').click({ button: 'right', position: { x: 300, y: 12 } });
+  await page.getByRole('menuitem', { name: 'Count from here' }).click();
+  const bar = page.getByTestId('stock-count-bar');
+  const amount = bar.getByRole('textbox');
+  await expect(page.getByTestId('stock-count-name')).toHaveText('Cloud Oolong');
+  await expect(bar).toContainText('On the books: 100 g');
+  await expect(amount).toBeFocused();
+  await expect(page.locator('tr[data-counting]')).toHaveAttribute('data-product-id', 'tea-1');
+
+  // A blank Enter writes nothing and moves on; the arrow comes back.
+  await amount.press('Enter');
+  await expect(page.getByTestId('stock-count-name')).not.toHaveText('Cloud Oolong');
+  expect(movementBodies).toHaveLength(0);
+  await amount.press('ArrowUp');
+  await expect(page.getByTestId('stock-count-name')).toHaveText('Cloud Oolong');
+
+  // Words are refused before anything is sent.
+  await amount.fill('lots');
+  await amount.press('Enter');
+  await expect(bar.getByRole('alert')).toContainText('as a number');
+  expect(movementBodies).toHaveLength(0);
+
+  // The shop has moved on: the count is held, the new balance is shown, Enter saves against it.
+  failNext = true;
+  await amount.fill('70');
+  await amount.press('Enter');
+  await expect(bar.getByRole('alert')).toContainText('95 g');
+  await expect(amount).toHaveValue('70');
+  await amount.press('Enter');
+  await expect(page.getByTestId('stock-count-name')).not.toHaveText('Cloud Oolong');
+  expect(movementBodies).toHaveLength(2);
+  expect(movementBodies[0]).toMatchObject({ movement_type: 'recount', unit: 'g', expected_balance: 100, balance: 70 });
+  expect(movementBodies[1]).toMatchObject({ movement_type: 'recount', unit: 'g', expected_balance: 95, balance: 70 });
+  expect(movementBodies[1].idempotency_key).not.toBe(movementBodies[0].idempotency_key);
+  expect(absoluteStockWrites).toHaveLength(0);
+  await expect(page.locator('tr[data-product-id="tea-1"]')).toContainText('70');
+
+  await amount.press('Escape');
+  await expect(bar).toHaveCount(0);
+  await expect(page.locator('tr[data-counting]')).toHaveCount(0);
+});

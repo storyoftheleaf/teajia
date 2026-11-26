@@ -7831,6 +7831,10 @@ body.cart-panel-open .commerce-dock {
   .stock-room-flag { border-radius:var(--radius-md); cursor:pointer; }
   .stock-room-flag:hover { color:var(--tea-text); }
   .stock-room-flag[aria-pressed="true"] { padding:0 var(--space-1); background:var(--tea-elevated); color:var(--tea-text); }
+  /* Count mode: the tea being counted is raised a tone, and the way in sits under the switch. */
+  .stock-rooms tr[data-counting]>td { background:var(--tea-elevated) !important; }
+  .stock-room-count { display:block; width:100%; padding:var(--space-2) var(--space-3); border-radius:var(--radius-md); text-align:left; }
+  .stock-room-count:hover { background:var(--tea-surface); }
   /* Right-click a group's name or a tea's line: a short menu, where the pointer is. */
   .stock-room-menu { position:fixed; left:var(--menu-x); top:var(--menu-y); display:grid; min-width:11rem; padding:var(--space-1); border-radius:var(--radius-lg); background:var(--tea-elevated); box-shadow:var(--shadow-lg); }
   .stock-room-menu>button { padding:var(--space-2) var(--space-3); border-radius:var(--radius-md); color:var(--tea-text-sec); font-size:var(--fs-ui-13); text-align:left; }
