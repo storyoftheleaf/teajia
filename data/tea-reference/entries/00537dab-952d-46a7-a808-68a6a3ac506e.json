@@ -1,0 +1,92 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:29:25.409Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "00537dab-952d-46a7-a808-68a6a3ac506e",
+    "name": "Da Xue Shan Wild",
+    "chineseName": "大雪山野生茶",
+    "type": "Sheng Puer",
+    "form": "Cake",
+    "year": 2005,
+    "origin": "Da Xue Shan, Yunnan, China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 1.31,
+    "tags": [
+      "wild floral",
+      "green camphor",
+      "bitter-sweet",
+      "muscular body",
+      "long hui gan"
+    ]
+  },
+  "entry": {
+    "productId": "00537dab-952d-46a7-a808-68a6a3ac506e",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A cake of [raw pu’er](sheng:identity) from Da Xue Shan in Yunnan, made in 2005 from wild-picked leaf. The leaf was processed as sheng and then pressed into a cake."
+      },
+      {
+        "layer": "type",
+        "text": "Like all raw pu’er, it was fried in a wok to [kill the green](sheng:making) but never hot-air dried afterwards. That leaves some of the leaf’s own activity alive, and it is why this cake has kept changing since it was made. Cakes were first pressed so tea could travel on pack animals. [Pressing](sheng:pressing) also sets the pace of ageing, because a tight cake changes more slowly than a loose one."
+      },
+      {
+        "layer": "age",
+        "text": "At twenty-one years it is past the ten that some in the trade count as [aged](sheng:ageing), and past the twenty that many wait for. Its [storage](sheng:storage) has shaped how far it has come as much as the years have."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly. Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:making",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:pressing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:storage",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:33.997Z"
+}

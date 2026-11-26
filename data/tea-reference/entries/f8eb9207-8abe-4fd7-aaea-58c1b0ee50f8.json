@@ -1,0 +1,78 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T07:25:55.428Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "f8eb9207-8abe-4fd7-aaea-58c1b0ee50f8",
+    "name": "1970s Small Yellow Mark (Raw)",
+    "chineseName": "70年代小黄印",
+    "type": "Sheng Puer",
+    "form": "Loose",
+    "year": "1970s",
+    "origin": "Yunnan, China",
+    "stockGrams": 150,
+    "pricePerGramUsd": 2.73,
+    "tags": []
+  },
+  "entry": {
+    "productId": "f8eb9207-8abe-4fd7-aaea-58c1b0ee50f8",
+    "paragraphs": [
+      {
+        "layer": "named",
+        "text": "Small Yellow Mark is a label from the late 1960s and 1970s, when China’s large [state factories](sheng:history) pressed pu’er cakes with coloured characters stamped on the wrapper. Collectors call this the mark grade era (Yin Ji Cha), and Yellow Mark is one of the last names from it and one of the widely recognized ones."
+      },
+      {
+        "layer": "lot",
+        "text": "This lot is broken pieces from such cakes, which is how a drinker can try a name usually only read about."
+      },
+      {
+        "layer": "age",
+        "text": "The leaf is Yunnan [raw pu’er](sheng:identity), made in the 1970s. The trade does not agree where [aged](sheng:ageing) begins, some saying ten years and many waiting for twenty, so this tea is well past either line. Sheng is never given shou’s rapid fermentation, so its change has come slowly, year by year, and the [storage](sheng:aging) it passed through is part of its history."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Sheng Pu’er",
+      "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "sheng:history",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:identity",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "sheng:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T07:48:33.092Z"
+}
