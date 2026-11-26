@@ -9,6 +9,7 @@ import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddr
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
+import { enteredTastingFlag, eventTastingSessionId, joinEventTasting } from './sessionTasting';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
@@ -12870,7 +12871,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
     `SELECT ea.*, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide,
             e.timezone, e.status as event_status, e.lifecycle_status, e.session_flow, e.playlist_url, e.slug,
-            e.briefing_cards, e.area_hint, e.mood_hints,
+            e.briefing_cards, e.area_hint, e.mood_hints, e.is_tasting, e.account_id AS event_account_id,
             v.photos AS venue_photos
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
@@ -12904,6 +12905,11 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
 
   // Address gating: only reveal full address + map to confirmed attendees
   const isConfirmed = attendee.status === 'confirmed';
+  // A tasting is told only to a confirmed seat; the session id is null until the first guest opens it.
+  const isTasting = isConfirmed && Number(attendee.is_tasting) === 1;
+  const tastingSessionId = isTasting
+    ? await eventTastingSessionId(env.DB, attendee.event_id as string, attendee.event_account_id as string)
+    : null;
 
   // Get revealed tea menu items
   const menu = await env.DB.prepare(
@@ -12968,10 +12974,20 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       playlist_url: attendee.playlist_url,
       briefing_cards: briefingCards,
       mood_hints: moodHints,
+      is_tasting: isTasting,
+      tasting_session_id: tastingSessionId,
     },
     tea_menu: (menu.results as any[]).map(item => ({ ...item, product_description: reviewedDescription(item.product_id, item.product_description) })),
     guest_invites: guestInvites.results,
   });
+};
+
+// POST /api/rsvp/:token/tasting: a signed-in confirmed guest of a tasting joins its session (J8).
+const handleJoinRsvpTasting: Handler = async (request, env, params) => {
+  const actor = await requireAuthenticatedUser(request, env);
+  if ('error' in actor) return actor.error;
+  const outcome = await joinEventTasting(env.DB, params.token, { userId: actor.userId, name: actor.name });
+  return json(outcome.body, outcome.status);
 };
 
 const handleUpdateRSVP: Handler = async (request, env, params) => {
@@ -13740,6 +13756,11 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
       return json({ error: 'Choose free, by contribution, or a price, or say nothing.' }, 400);
     }
   }
+  if (body.is_tasting !== undefined) {
+    const flag = enteredTastingFlag(body.is_tasting);
+    if (flag === undefined) return json({ error: 'Say whether this is a tasting: true or false.' }, 400);
+    body.is_tasting = flag;
+  }
   if (body.contribution_note !== undefined) {
     const note = typeof body.contribution_note === 'string' ? body.contribution_note.trim() : null;
     if (note && note.length > 140) return json({ error: 'Keep the line to 140 characters.' }, 400);
@@ -13754,7 +13775,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
     }
   }
 
-  const EVENT_ALLOWED_COLS = new Set(['reading_article_id','title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval','contribution_kind','contribution_note']);
+  const EVENT_ALLOWED_COLS = new Set(['reading_article_id','title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval','contribution_kind','contribution_note','is_tasting']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -31610,6 +31631,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/rsvp/:token', handleGetRSVP],
   ['PUT', '/api/rsvp/:token', handleUpdateRSVP],
   ['POST', '/api/rsvp/:token/claim', handleClaimSpot],
+  ['POST', '/api/rsvp/:token/tasting', handleJoinRsvpTasting],
   ['GET', '/api/rsvp/:token/post-session', handleGetPostSession],
   ['GET', '/api/admin/events/:id/guest-book', handleGuestBookReview],
   ['POST', '/api/admin/events/:id/guest-book/:entryId/review', handleGuestBookReview],
