@@ -22,6 +22,11 @@ export interface EditFormProps {
 
 export type EditSection = 'basic' | 'location' | 'venue-guide' | 'session-flow' | 'briefing';
 
+interface ReadingArticleOption {
+  id: string;
+  title: string;
+}
+
 const EMPTY_VENUE_GUIDE: VenueGuide = { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' };
 
 export function initialRequiresApproval(event: Pick<TeaEvent, 'requiresApproval'>): boolean {
@@ -42,6 +47,11 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const [durationHours, setDurationHours] = useState(2);
   const [repeatDates, setRepeatDates] = useState<string[]>([]);
   const [editRequiresApproval, setEditRequiresApproval] = useState(true);
+  const [readingArticleId, setReadingArticleId] = useState('');
+  const [publishedArticles, setPublishedArticles] = useState<ReadingArticleOption[]>([]);
+  const readingChangedRef = useRef(false);
+  // Send the reading only once it is known, so a failed load can never clear a saved one.
+  const readingKnownRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const venueStepFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [venueStepUploading, setVenueStepUploading] = useState<number | null>(null);
@@ -83,6 +93,34 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   useEffect(() => {
     api.savedLocations.list().then(setSavedLocations).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    api.articles.list().then(articles => {
+      if (!active) return;
+      setPublishedArticles(articles
+        .filter(article => article.status === 'published')
+        .map(article => ({ id: article.id, title: article.title })));
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    readingChangedRef.current = false;
+    readingKnownRef.current = false;
+    const initialReading = (initialData as TeaEvent & {
+      readingArticleId?: string | null;
+      reading_article_id?: string | null;
+    }).readingArticleId ?? (initialData as TeaEvent & { reading_article_id?: string | null }).reading_article_id ?? '';
+    setReadingArticleId(initialReading);
+    api.events.getAdmin(initialData.id).then(rawEvent => {
+      if (!active || readingChangedRef.current) return;
+      readingKnownRef.current = true;
+      setReadingArticleId(rawEvent?.reading_article_id ?? '');
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [initialData]);
 
   useEffect(() => {
     setForm({
@@ -380,6 +418,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         venue_id: editVenueId || null,
         active_space_ids: editSpaceIds.length > 0 ? JSON.stringify(editSpaceIds) : null,
         requires_approval: editRequiresApproval ? 1 : 0,
+        ...(readingChangedRef.current || readingKnownRef.current ? { reading_article_id: readingArticleId || null } : {}),
       };
       await api.events.update(initialData.id, payload);
       showToast('Event updated', 'success');
@@ -411,6 +450,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           gatheringType={form.gatheringType}
           flyerImageUrl={form.flyerImageUrl}
           requiresApproval={editRequiresApproval}
+          readingArticleId={readingArticleId}
+          publishedArticles={publishedArticles}
           repeatDates={repeatDates}
           uploading={uploading}
           isOpen={openSections.has('basic')}
@@ -423,6 +464,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           onDurationChange={setDurationHours}
           onRepeatDatesChange={setRepeatDates}
           onRequiresApprovalChange={setEditRequiresApproval}
+          onReadingArticleChange={(value) => {
+            readingChangedRef.current = true;
+            setReadingArticleId(value);
+          }}
           onImageUpload={handleImageUpload}
         />
 
