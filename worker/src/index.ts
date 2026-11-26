@@ -33089,6 +33089,8 @@ const requestHandler = {
           receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
         },
         stockMovements: { apply: (scope, productId, input) => applyStockMovement(env, scope, productId, input) },
+        // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).
+        hostSeats: { reservationFor: (attendee, guests) => buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, guests) },
       });
       return cors(response, corsOrigin);
     }

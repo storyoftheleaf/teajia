@@ -53,7 +53,7 @@ export function crossShopTeaSql(product: string): string {
 }
 
 /** A tea of the table's own account that the host may list: their Tea Chest, never teaware. */
-function chestTeaSql(product: string): string {
+export function chestTeaSql(product: string): string {
   return `(COALESCE(${product}.type, '') NOT IN ('Teaware', 'Misc') AND COALESCE(${product}.status, '') NOT IN ('Archived', 'Deleted'))`;
 }
 

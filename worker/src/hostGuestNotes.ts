@@ -4,7 +4,8 @@
 // One private line per guest, kept by the table's host and read by that host
 // alone. It is never joined into a guest's page, a public or recap answer, an
 // export made for anyone else, the shop owner's screens, staff screens or an
-// agent tool: every read and write of host_guest_notes lives in this module,
+// agent tool of anyone but the host (the host's own tools, set_guest_note and
+// get_guest_notes in mcpTools/fewHosts.ts, call this module): every read and write of host_guest_notes lives in this module,
 // and worker/tests/host-guest-notes.test.ts fails if another worker file names
 // the table. No contact details are kept here.
 
