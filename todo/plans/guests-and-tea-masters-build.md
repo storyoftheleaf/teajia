@@ -139,6 +139,8 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 ## Launch 2: a few hosts
 
+> **Launch 2 is cut for running in [guests-and-tea-masters-launch-2-run.md](guests-and-tea-masters-launch-2-run.md) (2026-11-26).** Where it differs from the table below it is the newer one.
+
 **What changes.** Three to five people Adrian trusts host their own tables with the same thing he used. They are set up by him.
 
 | # | Package | Tier | Closes |
