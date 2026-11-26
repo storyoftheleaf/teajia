@@ -64,6 +64,8 @@ export function addPricingFields(product: any, rates: Map<string, number>, shopD
     return {
       ...product,
       stock_grams: Math.round(product.stock_grams || 0),
+      // The books keep part grams; the Stock page reads this, the shop keeps whole grams.
+      stock_grams_exact: product.stock_grams ?? 0,
       cost_per_gram_usd: null,
       retail_price_per_gram_usd: product.fixed_retail_price_usd ?? null,
     };
@@ -90,6 +92,7 @@ export function addPricingFields(product: any, rates: Map<string, number>, shopD
   return {
     ...product,
     stock_grams: Math.round(product.stock_grams || 0),
+    stock_grams_exact: product.stock_grams ?? 0,
     cost_per_gram_usd: Math.round(costPerUnitUSD * 100) / 100,
     retail_price_per_gram_usd: product.fixed_retail_price_usd ?? Math.round(retailPricePerUnitUSD * 100) / 100,
   };

@@ -108,7 +108,7 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
             onClick={(event) => onStockMovement?.(product, event.currentTarget)}
             className="tap-target w-full rounded-md bg-tea-bg border border-tea-border px-2 py-1 text-ui-13 text-right num text-tea-text hover:border-tea-gold transition-colors"
           >
-            {key === 'quantityUnits' ? Math.round(product.quantityUnits ?? 0) : Math.round(product.stockGrams ?? 0)}{key === 'quantityUnits' ? ' units' : 'g'} · Recount
+            {key === 'quantityUnits' ? Math.round(product.quantityUnits ?? 0) : Number(Number(product.stockGrams ?? 0).toFixed(2))}{key === 'quantityUnits' ? ' units' : 'g'} · Recount
           </button>
         );
       case 'year':
