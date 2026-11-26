@@ -252,7 +252,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
     const eventHits = eventFuse.search(query, { limit: 5 }).map(r => {
       const ev = r.item;
       return {
-        id: `event-${ev.id}`,
+        id: `event-${ev.slug}`,
         type: 'event' as const,
         title: ev.title,
         subtitle: [ev.subtitle, ev.venue_name].filter(Boolean).join(' . ') || ev.description?.slice(0, 80) || '',

@@ -37,7 +37,22 @@ const visiblePhoto = 'g.id, contributor.full_name AS display_name, g.alt_text, g
  */
 const takerFirstName = `CASE WHEN g.show_name = 1 THEN NULLIF(substr(trim(contributor.full_name), 1,
   instr(trim(contributor.full_name) || ' ', ' ') - 1), '') END`;
-const guestVisiblePhoto = `g.id, ${takerFirstName} AS display_name, g.alt_text, g.user_id`;
+const guestVisiblePhoto = `g.id, ${takerFirstName} AS display_name, g.alt_text, g.user_id, g.show_name`;
+
+/**
+ * Other guests' view of the photographs. A photograph carries the taker's
+ * entry key only when they chose to show their name: the key groups it with
+ * their signed note, so without it a photograph the taker kept unnamed is
+ * shown on its own and never beside their name (A3).
+ */
+async function guestVisibleEntries(rows: { user_id: string; show_name: number }[], accountId: string, eventId: string) {
+  const named = await guestBookEntryKeys(rows.filter(row => Number(row.show_name) === 1), accountId, eventId);
+  const keys = new Map(named.map(row => [String((row as { id?: unknown }).id), row.entry_key]));
+  return rows.map(({ user_id: _user, show_name: _shown, ...row }) => {
+    const key = keys.get(String((row as { id?: unknown }).id));
+    return key ? { ...row, entry_key: key } : row;
+  });
+}
 const servedTea = sessionServedTeaName();
 const sourceDescription = `COALESCE(NULLIF(?, ''), 'Photo of ' || ${servedTea}, (
   SELECT 'Photo of ' || substr(trim(json_extract(tea.value, '$.name')), 1, 240)
@@ -86,7 +101,7 @@ export async function serveGuestBookPhotos(
     const [gallery, own] = await Promise.all([
       db.prepare(`SELECT ${guestVisiblePhoto} ${roster}
         AND g.account_id = ? AND g.event_id = ? AND g.status = 'included'
-        ORDER BY g.offered_at DESC, g.id`).bind(...event).all<{ user_id: string }>(),
+        ORDER BY g.offered_at DESC, g.id`).bind(...event).all<{ user_id: string; show_name: number }>(),
       db.prepare(`SELECT p.id, p.tea_id, p.created_at,
           COALESCE(${servedTea}, json_extract(tea.value, '$.name')) AS tea_name,
           g.id AS grant_id, g.status, g.alt_text
@@ -99,7 +114,7 @@ export async function serveGuestBookPhotos(
         WHERE ${ownSource}
         ORDER BY p.created_at DESC, p.id`).bind(...event, scope.userId).all(),
     ]);
-    const entries = await guestBookEntryKeys(gallery.results, seat.account_id, seat.event_id);
+    const entries = await guestVisibleEntries(gallery.results, seat.account_id, seat.event_id);
     return await guestSeat(db, binds) ? json({ gallery: entries, own: own.results }) : ineligible();
   }
   if (action === 'photo-bytes' || action === 'private-photo-preview') {

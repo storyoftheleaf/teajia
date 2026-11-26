@@ -19,7 +19,7 @@ async function setup() {
   const send = async (path: string, method = 'GET', body?: unknown) => worker.fetch(new Request(`https://app.test${path}`, {
     method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Teajia-Account': 'shop' },
     body: body === undefined ? undefined : JSON.stringify(body),
-  }), { DB: db, JWT_SECRET: secret } as never, { waitUntil: () => undefined } as never);
+  }), { DB: db, JWT_SECRET: secret, ANYONE_HOSTS_OPEN: 'true' } as never, { waitUntil: () => undefined } as never);
   return { db, send };
 }
 
