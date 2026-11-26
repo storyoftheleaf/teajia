@@ -1,11 +1,14 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { CORS } from './shared/media-stub';
+import { openTeaHouses } from './helpers/launch4Switches';
 
 // Tea houses as Adrian's portfolio (Launch 4, K5 part two), with mocked
-// routes, on a phone. Closed until Adrian ships Launch 4: with
-// VITE_TEA_HOUSES_OPEN=true on the site these walk a house's page and Work;
-// without it they prove the addresses lead to Visit.
+// routes, on a phone. Closed until Adrian ships Launch 4. Closed, no Tea
+// Houses address is registered, Visit included (A4 review, finding 12), so
+// each one answers as an address nobody made. The open walk serves the switch
+// open (tests/helpers/launch4Switches.ts) unless the site was started with
+// VITE_TEA_HOUSES_OPEN=true, in which case the closed test is skipped.
 test.use({ viewport: { width: 390, height: 844 } });
 
 const open = process.env.VITE_TEA_HOUSES_OPEN === 'true';
@@ -45,17 +48,21 @@ const NOTHING_COUNTED = /\b\d+\s+(houses?|parts?|likes?|views?)\b|curated|master
 test.describe('the tea house portfolio, closed', () => {
   test.skip(open, 'The portfolio is open on this site');
 
-  test('its addresses lead to Visit', async ({ page }) => {
+  test('its addresses, Visit included, answer as addresses nobody made', async ({ page }) => {
     await prepare(page);
-    for (const path of ['/tea-houses', '/tea-houses/work', '/tea-houses/work/ubud-house', '/tea-houses/build']) {
+    for (const path of ['/tea-houses', '/tea-houses/work', '/tea-houses/work/ubud-house', '/tea-houses/build', '/tea-houses/visit']) {
       await page.goto(path);
-      await expect(page).toHaveURL(/\/tea-houses\/visit$/);
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page.getByText('Page not found')).toBeVisible();
+      await expect(page.getByTestId('tea-house-page')).toHaveCount(0);
+      await expect(page.getByTestId('tea-houses-work')).toHaveCount(0);
+      await expect(page.getByTestId('tea-houses-visit')).toHaveCount(0);
     }
   });
 });
 
 test.describe('the tea house portfolio, open', () => {
-  test.skip(!open, 'The portfolio is closed; run with VITE_TEA_HOUSES_OPEN=true');
+  test.beforeEach(async ({ page }) => { if (!open) await openTeaHouses(page); });
 
   test('a house page leads with his parts in his words, with photographs, only the parts he named', async ({ page }) => {
     await prepare(page);
