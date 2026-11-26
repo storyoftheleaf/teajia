@@ -1,9 +1,14 @@
 import { expect, test } from './fixtures';
 import { CORS } from './shared/media-stub';
+import { openTeaHouses } from './helpers/launch4Switches';
 
 // The Visit list: one list from GET /api/network/stores, each house opening
 // its own page. Mocked directory of three houses, and of none, on a phone.
+// Visit opens with the rest of Tea Houses (TEA_HOUSES_OPEN, A4 review, finding
+// 12), so these serve the switch open (tests/helpers/launch4Switches.ts); the
+// closed case is in tests/tea-house-portfolio.spec.ts.
 test.use({ viewport: { width: 390, height: 844 } });
+test.beforeEach(async ({ page }) => { await openTeaHouses(page); });
 
 const ahead = new Date(Date.now() + 5 * 86_400_000).toISOString();
 

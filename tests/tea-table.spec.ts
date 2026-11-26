@@ -1,10 +1,14 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
+import { openTeaTable } from './helpers/launch4Switches';
 
 // The Tea Table (Launch 4, K1 and K2; todo/plans/tea-table.md), with mocked
 // routes, at 390 by 844 and on a desktop. The Tea Table is closed until Adrian
-// ships Launch 4: with VITE_TEA_TABLE_OPEN=true on the site these walk the open
-// page, and without it they prove the address leads home.
+// ships Launch 4. Closed, /tea-table is not registered, so it answers as an
+// address nobody made (A4 review, finding 12), and the old /tea-feed leads
+// home. The open walk serves the switch open (tests/helpers/launch4Switches.ts)
+// unless the site was started with VITE_TEA_TABLE_OPEN=true, in which case the
+// closed test is skipped.
 
 const open = process.env.VITE_TEA_TABLE_OPEN === 'true';
 
@@ -87,17 +91,21 @@ async function expectQuietAndFitting(page: Page) {
 
 test.describe('the Tea Table, closed', () => {
   test.skip(open, 'The Tea Table is open in this run');
-  test('its address, and the old one, lead home', async ({ page }) => {
-    await prepare(page, fresh());
+  test('its address answers as one nobody made, and the old one leads home', async ({ page }) => {
+    const state = fresh();
+    await prepare(page, state);
     await page.goto('/tea-table');
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/tea-table$/);
+    await expect(page.getByText('Page not found')).toBeVisible();
+    await expect(page.getByTestId('tea-table-page')).toHaveCount(0);
+    expect(state.requests).toEqual([]);
     await page.goto('/tea-feed');
     await expect(page).toHaveURL(/\/$/);
   });
 });
 
 test.describe('the Tea Table, open', () => {
-  test.skip(!open, 'The Tea Table is closed; run with VITE_TEA_TABLE_OPEN=true');
+  test.beforeEach(async ({ page }) => { if (!open) await openTeaTable(page); });
 
   test('a signed-out visitor sees what was put on the table, newest first, by day, with nothing counted', async ({ page }) => {
     await prepare(page, fresh());
@@ -112,7 +120,9 @@ test.describe('the Tea Table, open', () => {
     await expect(pieces.nth(1).getByRole('link', { name: /Autumn sit/ })).toHaveAttribute('href', '/event/autumn-sit/recap');
     await expect(page.getByTestId('tea-table-day')).toHaveCount(2);
     await expect(page.getByRole('heading', { name: '25 November 2026' })).toBeVisible();
-    await expect(page.getByTestId('tea-table-next-session')).toContainText('Winter sit');
+    // The table shows what has happened, never what is coming.
+    await expect(page.getByTestId('tea-table-next-session')).toHaveCount(0);
+    await expect(page.getByTestId('tea-table-page')).not.toContainText('Winter sit');
     // The three views: the table, sessions, people.
     const views = page.getByTestId('tea-table-views');
     await expect(views.getByRole('link', { name: 'Sessions' })).toHaveAttribute('href', '/events');
