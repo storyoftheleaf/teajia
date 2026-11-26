@@ -135,7 +135,21 @@ test('the people list says "Pours at tables" only for someone who pours, and no 
   await noHorizontalOverflow(page);
 });
 
+// The granted word in place of the role opens with the Tea Table.
+const teaTableOpen = process.env.VITE_TEA_TABLE_OPEN === 'true';
+
+test('while the Tea Table is closed the cover keeps the role, with no granted word or master line', async ({ page }) => {
+  test.skip(teaTableOpen, 'Runs with the Tea Table closed, as the live site is');
+  await api(page, { '/api/people/mei': profile({ page_tier: 'master', role: 'Tea master' }) });
+  await page.goto('/people/mei');
+  await expect(page.getByTestId('profile-cover')).toContainText('Mei');
+  await expect(page.getByTestId('profile-granted-word')).toHaveCount(0);
+  await expect(page.getByTestId('profile-master-line')).toHaveCount(0);
+  await expect(page.getByTestId('profile-cover')).toContainText('Tea master');
+});
+
 test('the word Adrian granted shows once beneath the name, and only where one exists', async ({ page }) => {
+  test.skip(!teaTableOpen, 'The Tea Table is closed; run with VITE_TEA_TABLE_OPEN=true');
   await api(page, {
     '/api/people/mei': profile({ page_tier: 'master', role: 'Tea master' }),
     '/api/people/jun': profile({ id: 'jun', display_name: 'Jun Wei', page_tier: 'family', role: 'Teajia family' }),
