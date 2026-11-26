@@ -2,8 +2,12 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
 import { GuestBook } from '../components/events/GuestBook';
+import { PlaylistSection } from '../components/events/PlaylistSection';
 import { PrivateKeptSetup } from '../components/events/PrivateKeptSetup';
+import { ThanksTeas } from '../components/events/ThanksTeas';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
+import { currentSignInToken } from '../lib/api';
+import { firstTableOpen } from '../lib/firstTable';
 import { afterSitDeviceKey, getAfterSitCredential, lookupAfterSitRecap, subscribeAfterSitCredential, type AfterSitRecap } from '../lib/afterSitAccess';
 
 type RecapState =
@@ -23,7 +27,7 @@ function AfterSitContent({ credential }: { credential: string }) {
   useEffect(() => {
     if (!credential) return;
     let current = true;
-    void Promise.all([lookupAfterSitRecap(credential), afterSitDeviceKey(credential)]).then(
+    void Promise.all([lookupAfterSitRecap(credential, firstTableOpen() ? currentSignInToken() : null), afterSitDeviceKey(credential)]).then(
       ([recap, deviceKey]) => {
         if (!current) return;
         if (recap) setState({ status: 'ready', recap, deviceKey });
@@ -81,14 +85,14 @@ function SitRecap({ recap, deviceKey, credential }: { recap: AfterSitRecap; devi
         <time dateTime={recap.event.event_date} className={TYPOGRAPHY_CLASSES.bodyLight}>{displayDate}</time>
       </header>
       {recap.host_note && <p className={`${TYPOGRAPHY_CLASSES.body} whitespace-pre-wrap break-words`}>{recap.host_note}</p>}
-      {recap.teas.length > 0 && (
-        <section aria-labelledby="after-sit-teas" className="border-t border-tea-border pt-3">
-          <h2 id="after-sit-teas" className={TYPOGRAPHY_CLASSES.h2}>Teas served</h2>
-          <ul className={`${TYPOGRAPHY_CLASSES.body} mt-2 grid gap-1`}>
-            {recap.teas.map(tea => <li key={tea.id} className="break-words">{tea.name}</li>)}
-          </ul>
-        </section>
+      <ThanksTeas teas={recap.teas} thanksRef={recap.thanks_ref} credential={credential} />
+      {recap.reading && (
+        <p className={TYPOGRAPHY_CLASSES.body}>
+          To read <Link to={`/article/${encodeURIComponent(recap.reading.slug)}`}
+            className={TYPOGRAPHY_CLASSES.link}>{recap.reading.title}</Link>
+        </p>
       )}
+      {recap.playlist_url && <PlaylistSection playlistUrl={recap.playlist_url} />}
       <PrivateKeptSetup token={credential} setupId={recap.event.id} teas={recap.teas}
         afterSit={{ cacheKey: deviceKey, deviceFallback: <DeviceSetup key={deviceKey} recap={recap} deviceKey={deviceKey} /> }} />
       <GuestBook token={credential} afterSitKey={deviceKey} setupId={recap.event.id} teas={recap.teas} />
