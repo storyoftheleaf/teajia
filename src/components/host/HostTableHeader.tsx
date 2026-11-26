@@ -7,7 +7,9 @@ import { Button } from '../shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
 import type { HostedTableDoor } from '../../lib/hostingApi';
-import { DOOR_WORDS, doorOf, doorWords, hostSmallText, hostTableQueryKey, hostText, tableWhen, type HostTablePartProps } from './hostTableParts';
+import {
+  DOOR_WORDS, TABLE_AREA_HINT, doorOf, doorWords, hostSmallText, hostTableQueryKey, hostText, tableWhen, type HostTablePartProps,
+} from './hostTableParts';
 
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
 const labelClass = `${TYPOGRAPHY_CLASSES.label} grid min-w-0 gap-1 text-tea-text-sec`;
@@ -43,7 +45,10 @@ export function HostTableHeader({ tableId, detail }: HostTablePartProps) {
       </div>
       {feedback && <p className={hostSmallText} role="status">{feedback}</p>}
       {table.lifecycle_status === 'published' && (
-        <TableSettings key={`${table.door}-${table.seats}`} tableId={tableId} detail={detail} />
+        <>
+          <TableSettings key={`${table.door}-${table.seats}`} tableId={tableId} detail={detail} />
+          <TableArea key={table.area_hint ?? ''} tableId={tableId} detail={detail} />
+        </>
       )}
     </header>
   );
@@ -95,6 +100,44 @@ function TableSettings({ tableId, detail }: HostTablePartProps) {
           {table.seats_taken} {table.seats_taken === 1 ? 'seat is' : 'seats are'} already taken, so the table needs at least {table.seats_taken}.
         </p>
       )}
+      {change.isError && <p className={`${hostSmallText} w-full`} role="alert">{change.error.message}</p>}
+    </form>
+  );
+}
+
+/**
+ * The area people are told, one short line, never the address (Launch 2,
+ * check run H13, finding 1). The worker refuses a link or the saved address
+ * (worker/src/hostTableArea.ts). Left blank, the public page names no place.
+ */
+function TableArea({ tableId, detail }: HostTablePartProps) {
+  const queryClient = useQueryClient();
+  const saved = detail.table.area_hint ?? '';
+  const [area, setArea] = useState(saved);
+  const change = useMutation({
+    mutationFn: (next: string) => api.tables.change(tableId, { area: next.trim() || null }),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: hostTableQueryKey(tableId) }),
+  });
+  const changed = area.trim() !== saved;
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!changed || change.isPending) return;
+    change.mutate(area);
+  }
+
+  return (
+    <form className="flex flex-wrap items-end gap-3" onSubmit={submit} aria-label="Area">
+      <label className={`${labelClass} flex-1`}>
+        Area
+        <input className={fieldClass} type="text" maxLength={80} value={area} aria-describedby="host-table-area-hint"
+          onChange={event => setArea(event.target.value)} />
+      </label>
+      <Button type="submit" variant="quiet" className="tap-target" disabled={!changed || change.isPending}>
+        {change.isPending ? 'Saving…' : 'Save'}
+      </Button>
+      <p id="host-table-area-hint" className={`${hostSmallText} w-full`}>{TABLE_AREA_HINT}</p>
       {change.isError && <p className={`${hostSmallText} w-full`} role="alert">{change.error.message}</p>}
     </form>
   );

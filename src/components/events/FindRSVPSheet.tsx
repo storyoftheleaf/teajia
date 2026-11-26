@@ -62,6 +62,8 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
       if (method === 'account') {
         const result = await api.rsvp.findByAccount(slug);
         const token = result?.magic_token;
+        // The account has no seat here: said as not found, never as a fault.
+        if (result && result.magic_token === null) throw new Error('RSVP not found');
         if (typeof token !== 'string' || !token.trim()) throw new Error('Missing reservation token');
         return token;
       }

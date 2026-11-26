@@ -16,6 +16,7 @@ import { fewHostsOpen } from '../../src/lib/fewHosts';
 import { anyoneMayHost, hostApproved, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
 import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sessionHost';
+import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from './hostTableArea';
 import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
 import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
@@ -12569,6 +12570,9 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     ...publicEvent,
     // A private host's account is not named: no shop name, no country.
     ...(privateHost ? { account_name: host?.name ?? null, account_location_country: null } : {}),
+    // A person's table, not a shop's session: with no area given the page
+    // names no place at all (H13 finding 1).
+    private_host: privateHost,
     reading: reading ? { slug: reading.slug, title: reading.title } : null,
     hosts,
     host,
@@ -12921,10 +12925,12 @@ const handleRSVP: Handler = async (request, env, params) => {
     customerNeedsCreation = true;
   }
 
-  // A signed-in guest at a by-link door is tied to their seat, so they can
-  // find it again from their account even when they gave no contact.
+  // A signed-in guest at a hosted table's door is tied to their seat, so they
+  // can find it again from their account even when they gave no contact.
+  // At a hosted table's request door too, so a guest who asked can find their
+  // page again from the session's page (H13 finding 3).
   let seatUserId: string | null = null;
-  if (doorRule === 'link') {
+  if (doorRule === 'link' || doorRule === 'request') {
     const rawToken = isAuthed(request);
     if (rawToken && await verifyToken(rawToken, env.JWT_SECRET)) seatUserId = parseToken(rawToken)?.sub ?? null;
   }
@@ -13099,9 +13105,10 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
     `SELECT ea.*, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide,
             e.timezone, e.status as event_status, e.lifecycle_status, e.session_flow, e.playlist_url, e.slug,
-            e.briefing_cards, e.area_hint, e.mood_hints, e.is_tasting, e.account_id AS event_account_id,
+            e.briefing_cards, e.area_hint, e.mood_hints, e.is_tasting, e.account_id AS event_account_id, e.host_user_id,
             v.photos AS venue_photos,
             ${privateHostDoorSql(env)} AS door_open,
+            ${personalAccountSql('a')} AS private_host,
             (a.public_enabled = 1 AND a.status = 'active') AS account_public
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
@@ -13181,6 +13188,13 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
      ORDER BY etm.brew_order ASC`
   ).bind(attendee.account_id, attendee.event_id, Number(attendee.account_public) === 1 ? 1 : 0).all();
 
+  // "Hosted by" at the foot of the guest's page: the same rule as the
+  // session's public page (publicSessionHost, sessionHost.ts). H13 finding 4.
+  const sessionHost = await publicSessionHost(
+    env, attendee.host_user_id ? String(attendee.host_user_id) : null,
+    { id: attendee.event_id, account_id: attendee.account_id },
+  );
+
   // Get guest invites for this attendee
   const guestInvites = await env.DB.prepare(
     `SELECT id, invite_token, name_hint, contact, claimed_by_name, status, created_at, claimed_at
@@ -13237,6 +13251,8 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       mood_hints: moodHints,
       is_tasting: isTasting,
       tasting_session_id: tastingSessionId,
+      host: sessionHost,
+      private_host: Number(attendee.private_host) === 1,
     },
     tea_menu: (menu.results as any[]).map(item => ({ ...item, product_description: reviewedDescription(item.product_id, item.product_description) })),
     guest_invites: guestInvites.results,
@@ -13755,7 +13771,8 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   const isOwnerVerified = Boolean(token) && !hasBody;
 
   if (isOwnerVerified) {
-    if (!attendee) return json({ error: 'RSVP not found' }, 404);
+    // A signed-in person with no seat here is not an error: no seat (H13 finding 2).
+    if (!attendee) return json({ magic_token: null, status: null, redirect_url: null });
     return json({
       magic_token: attendee.magic_token,
       status: attendee.status,
@@ -17392,8 +17409,12 @@ function readHostedTableInput(body: Record<string, unknown> | null, doors: Hoste
 const handleCreateHostedTable: Handler = async (request, env) => {
   const host = await requireFewHostsHost(request, env);
   if ('error' in host) return host.error;
-  const input = readHostedTableInput(await request.json().catch(() => null) as Record<string, unknown> | null, host.doors);
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const input = readHostedTableInput(body, host.doors);
   if ('refusal' in input) return input.refusal;
+  // The area people are told (H13 finding 1): optional, never the address.
+  const area = readTableArea(body);
+  if (isAreaRefusal(area)) return restError(area.refused.status, area.refused.error, area.refused.code);
   // The by-link door is the approved host's (Adrian, 2026-11-26).
   if (host.stopped) return hostingStoppedAnswer('table');
   if (!host.doors.includes(input.door)) {
@@ -17401,8 +17422,12 @@ const handleCreateHostedTable: Handler = async (request, env) => {
   }
   const account = await ensurePersonalInventoryAccount(env.DB, host.userId, host.name);
   if (!account) return json({ error: 'Your account is unavailable.' }, 409);
+  if (area) {
+    const givesAway = await areaGivesAwayTheWay(env.DB, account.id, null, area);
+    if (givesAway) return restError(givesAway.refused.status, givesAway.refused.error, givesAway.refused.code);
+  }
   const table = await createHostedTable(env.DB, {
-    ...input, accountId: account.id, hostUserId: host.userId, hostName: host.name, appOrigin: appOrigin(env),
+    ...input, area: area ?? null, accountId: account.id, hostUserId: host.userId, hostName: host.name, appOrigin: appOrigin(env),
   });
   // The stub (hostTable.ts) returns null until slice H3 builds it.
   if (!table) return json({ error: 'Not built yet' }, 501);
@@ -17448,7 +17473,7 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
   if (!account) return json({ error: 'Table not found' }, 404);
   const table = await env.DB.prepare(`
     SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status,
-           e.requires_approval, e.public_visibility
+           e.requires_approval, e.public_visibility, e.area_hint
       FROM events e
      WHERE e.id = ? AND ${OWN_HOSTED_TABLE_SQL}
   `).bind(params.id, account.id, host.userId).first<Record<string, unknown>>();
@@ -17510,14 +17535,18 @@ function hostedTableGuestBookHandler(kind: 'notes' | 'photos'): Handler {
 const handleHostedTableGuestBook = hostedTableGuestBookHandler('notes');
 const handleHostedTableGuestBookPhotos = hostedTableGuestBookHandler('photos');
 
-// PUT /api/me/tables/:id {door?, seats?}. Change how guests get a seat, or
-// how many seats there are, before the table happens.
+// PUT /api/me/tables/:id {door?, seats?, area?}. Change how guests get a seat,
+// how many seats there are, or the area people are told, before the table happens.
 const handleChangeHostedTable: Handler = async (request, env, params) => {
   const own = await requireOwnHostedTable(request, env, params.id);
   if ('error' in own) return own.error;
   if (own.host.stopped) return hostingStoppedAnswer('change');
   const change = readTableChange(await request.json().catch(() => null) as Record<string, unknown> | null, own.host.doors);
   if ('refused' in change) return restError(change.refused.status, change.refused.error, change.refused.code);
+  if (change.area) {
+    const givesAway = await areaGivesAwayTheWay(env.DB, own.table.account_id, own.table.id, change.area);
+    if (givesAway) return restError(givesAway.refused.status, givesAway.refused.error, givesAway.refused.code);
+  }
   const result = await changeHostedTable(env.DB, own.table, change);
   if ('refused' in result) return restError(result.refused.status, result.refused.error, result.refused.code);
   return hostTableJson({ ok: true });
