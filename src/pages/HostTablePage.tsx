@@ -12,6 +12,8 @@ import { yourTablePlaceOpen } from '../lib/yourTablePlace';
 import { YourTablePlaceSection } from '../components/host/YourTablePlace';
 import { HostCirclesSection } from '../components/host/HostCircles';
 import { circlesOpen } from '../lib/circles';
+import { HostAssistantSection } from '../components/host/HostAssistant';
+import { hostTokensOpen } from '../lib/hostTokens';
 
 const textClass = `${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`;
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
@@ -42,7 +44,13 @@ function HostingAccess() {
     content = <p className={textClass} role="alert">Could not check hosting access. Reload to try again.</p>;
   } else if (hosting.data.stopped) {
     // Launch 3: Teajia paused this person's hosting. Told to them alone, here.
-    content = <p className={textClass}>New tables are paused on your account. Write to Teajia to talk it over.</p>;
+    // Launch 5, M6: a stopped host still sees and may disconnect their assistant keys; none of them works.
+    content = (
+      <>
+        <p className={textClass}>New tables are paused on your account. Write to Teajia to talk it over.</p>
+        {hostTokensOpen() && <HostAssistantSection />}
+      </>
+    );
   } else if (!hosting.data.doors?.length) {
     content = <p className={textClass}>Hosting opens by invitation for now.</p>;
   } else {
@@ -51,6 +59,7 @@ function HostingAccess() {
         <MakeTable key={user?.email} doors={hosting.data.doors} />
         {yourTablePlaceOpen() && <YourTablePlaceSection />}
         {circlesOpen() && <HostCirclesSection />}
+        {hostTokensOpen() && <HostAssistantSection />}
         <YourRecord />
       </>
     );

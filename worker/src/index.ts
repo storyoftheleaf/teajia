@@ -16,6 +16,7 @@ import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers'
 import { favouritesRoutes } from './favourites';
 import { teaTableRoutes } from './teaTable';
 import { circlesRoutes, publicSeries, seriesForCopy } from './circles';
+import { hostTokensRoutes } from './hostTokens';
 import { teaHousesRoutes } from './teaHouses';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
 import { anyoneMayHost, hostApproved, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
@@ -367,6 +368,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   HOST_CREDIT_OPEN?: string;
   /** "true" or "false" opens or closes circles and series (Launch 5, M4); see src/lib/circles.ts. */
   CIRCLES_OPEN?: string;
+  /** "true" or "false" opens or closes a host's own assistant key (Launch 5, M6); see src/lib/hostTokens.ts. */
+  HOST_TOKENS_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -33179,6 +33182,10 @@ const routes: [string, string, Handler][] = [
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),
   ...circlesRoutes<Env>({ requireAuthenticatedUser }),
+  ...hostTokensRoutes<Env>({
+    requireAuthenticatedUser,
+    ensurePersonalAccount: (env, userId, name) => ensurePersonalInventoryAccount(env.DB, userId, name),
+  }),
   ['GET',    '/api/me/cellar', handleListCellar],
   ['POST',   '/api/me/cellar', handleCreateCellarItem],
   ['PUT',    '/api/me/cellar/:id', handleUpdateCellarItem],
