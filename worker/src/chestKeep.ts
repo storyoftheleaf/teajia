@@ -97,13 +97,15 @@ export async function keepSessionTea(
 
   const id = `cellar_${crypto.randomUUID().replace(/-/g, '')}`;
   const origin = [served.origin_region, served.origin_country].filter(Boolean).join(', ') || null;
+  // The chest keeps a year only as four digits, as its own form does.
+  const year = served.year != null && /^\d{4}$/.test(String(served.year).trim()) ? Number(String(served.year).trim()) : null;
   await db.prepare(
     `INSERT INTO personal_cellar_items
        (id, owner_user_id, name, type, year, origin, grams, chest_cost_amount, chest_cost_currency,
         linked_product_id, source_kind, source_event_id, source_tea_ref)
      VALUES (?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, 'session', ?, ?)
      ON CONFLICT DO NOTHING`,
-  ).bind(id, input.userId, served.name, served.type, served.year, origin, served.linked_product_id, seat.id, input.teaId).run();
+  ).bind(id, input.userId, served.name, served.type, year, origin, served.linked_product_id, seat.id, input.teaId).run();
 
   const row = await db.prepare(
     `SELECT c.*, e.title AS source_event_title
