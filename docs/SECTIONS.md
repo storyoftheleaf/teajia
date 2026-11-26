@@ -50,6 +50,8 @@ One rule governs the phone. **The app never asks during a session:** it sends no
 
 A tea master's page is also their shelf: their own tea, sold by them or only shown, and Teajia's tea that they pour without holding stock. Tea a guest buys through a tea master is recorded as theirs from the start, and earns them credit under a rule Adrian will set later (Adrian, 2026-11-26).
 
+A session is built around **six core functions**, each usable without the others (Adrian, 2026-11-26): invitations and arrival, with a walkthrough of the way to the house shown once a guest is confirmed; sharing the tea; sharing the playlist; selling the tea; guests tasting and building their profile; and photographs put together. The first alone is a complete product.
+
 Two more things from the second round, both in the plan: **quiet acknowledgement** (active people are respected only through things one person gives another, never numbers or titles for volume), and **everything by voice or agent** (each screen ships with its tool, so a host need not use the screens at all).
 
 ## Why this shape
@@ -261,9 +263,9 @@ Revised in the second pass. The order follows the loop, so that the first stages
 |---|---|---|
 | 0 | **Repairs.** The tea master invite address, which appears to land on the wrong page, and the profile screen wording | No |
 | 1 | **The words.** Guest, host, tea master, session, table, tea house, used one way everywhere | No |
-| 2 | **Before: invite to a session.** One link per session, a seat without signing up, the host and who else pours, a private table or a tea house, seats | No |
-| 3 | **After: the thank-you.** The host's note, the teas poured, the playlist, and one screen for the guest's answer | No |
-| 4 | **During.** The one-tap camera, and a tasting as the host's choice | No |
+| 2 | **Function 1, invitations and arrival.** One kind of session, one link, a seat without signing up, the host's door, seats, and the arrival walkthrough on the host's yes | No |
+| 3 | **Functions 2 to 4: the tea, the playlist, what is for sale,** and the thank-you that carries them | No |
+| 4 | **Functions 5 and 6: tasting, and photographs put together** | No |
 | 5 | **The Tea Table, first form**, with its consent and withdrawal gates | No |
 | 6 | **Tables (private) and tea houses (public)**, then Build and Work | No |
 | 7 | **Favourites in three kinds, and the Tea Chest's three states** | No |

@@ -62,6 +62,45 @@ The whole site is one circle, and every section is a part of it.
 
 Someone who is only ever online still has steps 3 to 5 in full: read, taste at home, share, keep, find tea. The site should be worth their time without a single session, and should keep quietly showing them step 6.
 
+## The six core functions
+
+Adrian, 2026-11-26: "The goal is to use it at many different levels. One level is just managing who's coming and the directions to the house: event invitation management. So when he says confirm it shows a walkthrough on how to get to the house. That should be a really good looking, sophisticated system. Then one is to share the tea, one is to share the playlist, one is to actually sell the tea, and one is to let the guests interact with tasting the tea and building their profile, and another is to have photos put together. These are the core functions to build it around."
+
+A session is built from six functions. **Each works without the others**, so a host uses as many levels as they want, and the first one alone is a complete, useful thing.
+
+| # | Function | What it is | Works alone? | Built today | Stage |
+|---|---|---|---|---|---|
+| 1 | **Invitations and arrival** | Who is coming, seats, the door, and after a guest is confirmed, a walkthrough of how to get to the house | Yes. This is the level most hosts will start and many will stay at | RSVP, approval, address shown after approval. No group invitation and no walkthrough | 2 |
+| 2 | **Share the tea** | The teas poured, each with its name and, where it has one, its page | Yes | A session can carry teas; the post-event form lists them | 3 |
+| 3 | **Share the playlist** | What was playing, as a link the guests can open | Yes | A playlist appears in the post-event views | 3 |
+| 4 | **Sell the tea** | A poured tea that is for sale says so, with its price, from the shop or from the host's own shelf. What is bought is tracked to the host | Needs function 2 | Shop checkout; the host's storefront; no tracking to a host | 3, then 9b |
+| 5 | **Taste and build a profile** | A guest notes what they thought of each tea. Those notes build their own page and journal over time | Needs function 2 | The tasting screen, the journal, the Share step, family pages | 4 |
+| 6 | **Photos put together** | Everyone's photographs of the session gathered in one place, for the people who were there, and on the Tea Table when shared | Yes | Photographs per tea and per person; Guest Book photos reviewed by the host. No gallery of a session | 4 and 5 |
+
+The thank-you after a session is simply functions 2 to 6 delivered together: the teas, the playlist, what is for sale, the ask for tasting notes, and the ask for photographs. A host who used only function 1 sends a thank-you that is just their own words.
+
+### Function 1 in detail: invitations and the arrival walkthrough
+
+This is the front door of the whole product, and Adrian wants it to be "really good looking" and "sophisticated". It has to be better than a WhatsApp message with a pin, or nobody will switch.
+
+**For the host**
+
+- One screen to make the session (a day and a time), one link to send.
+- A plain list of who is coming: confirmed, asked and waiting for a yes, and seats left. One tap to confirm or decline. One tap to message a guest in WhatsApp.
+- **The walkthrough is made once per table and reused for every session there.** The host walks it once with their phone: a photograph and one line at each point that matters. "Turn at the warung with the blue sign." "Park here." "The gate is the wooden one on the left, it is unlocked." "Shoes off, come straight up." A map pin for the start. Each photograph goes through the one photo editor, as the standing rule requires.
+- Optional notes that travel with it: what to bring, what to wear, when to arrive, whether to eat first, a number to call if lost.
+
+**For the guest**
+
+- Before the host's yes: the day, the area, the host, and seats open. Nothing that locates the house.
+- At the moment of the yes: the page changes. It now shows the walkthrough, step by step, large photographs, one at a time, with the map pin and "open in maps" at the top. It reads well on a phone held in one hand on a scooter stop. It can be saved to the phone and works without signal, because the last part of the way is often where signal ends.
+- One tap adds the session to their calendar. One tap says "running late" or "can't come", which frees the seat and tells the host.
+- After the session, the same page becomes the session's record.
+
+**Privacy.** The walkthrough is the most sensitive thing in this plan: it is photographs of the way into someone's home. It is shown only to confirmed guests, only until the session has ended, and it is never on a public page, never in a recap, never on the Tea Table. If a host removes a guest, that guest's page stops showing it. A link passed to someone else shows nothing, because the walkthrough belongs to the confirmed guest and not to the link.
+
+**Why it sells the rest.** A host who comes only for this, to stop answering "where is your house?" six times, is now one tap from listing a tea, and a guest who opened the walkthrough is already holding the page where the tea list and photographs will appear.
+
 ## A session: before, during, after
 
 This is the heart of the build. One session page carries all three, and it changes with the clock.
@@ -147,6 +186,8 @@ Each gap has a number. The build stages below refer to them.
 | G14 | **There is no thank-you.** Nothing composes the host's note, the teas poured with price and availability, the playlist and the three asks into one message | After-sit link, post-event form, recap, each separate |
 | G15 | **A session has one host in the plan and no way to show others pouring as tea masters**, and a private table does not exist apart from a venue | Host roles on a session, venues in Manage |
 | G16 | **Video.** People take short videos and nothing accepts them | Photographs only, shrunk on the phone before upload |
+| G18 | **No arrival walkthrough.** A confirmed guest gets an address and nothing else. There is no photographed way to the house, nothing reusable per table, and nothing that works without signal | Address revealed after approval |
+| G19 | **No gallery of a session.** Photographs live per tea and per person, so nobody can see a session's pictures together | Guest Book photos, family photographs |
 | G17 | **A sale that came through a tea master is not recorded as theirs, and no credit exists.** A tea master with no stock has no way to offer Teajia's tea as their own shelf | "Selected by" on a tea's page; invoices record seller and stock owner |
 
 ## The phone at the table
@@ -293,9 +334,9 @@ Each stage leaves the site whole and is useful by itself. None changes a bar wor
 |---|---|---|---|
 | 0 | **Repairs.** Confirm G1 on the live site and fix the invite address so account and tea master invites land on a page that accepts them. Correct the profile screen wording | G1, part of G10 | Nothing |
 | 1 | **The words.** Vocabulary applied to copy, the plans, the pillar and the standing rules. No code beyond labels | G10 | Nothing more |
-| 2 | **Before: invite to a session.** First, one kind of session (B5). Hosting needs only a day and a time, on one screen, with teas optional. Then one invitation link and code per session, with the host's choice of door: by request, by link, or open. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. A private sit may invite more than one person | G2, G3, G11, G15 | The safety floor (B1) and the session wording (B2) |
-| 3 | **After: the thank-you.** The host composes one message from the session: their words, the teas poured with links, price and what is for sale, the playlist, and the three asks. The guest answers on one screen: how the teas felt, what it was like, photographs. It reuses the Guest Book, the tasting screen and the photo editor | G6, G14, the tracking half of G17 | Nothing. Orders that start from a thank-you, a session or a tea master's page carry that name from this stage on |
-| 4 | **During.** The one-tap camera for a session, and "this is a tasting" as the host's choice with one screen per tea. Paper notes can be entered afterward | part of G6 | Nothing |
+| 2 | **Function 1, invitations and arrival.** First, one kind of session (B5). Hosting needs only a day and a time, on one screen, with teas optional. Then one invitation link and code per session, with the host's choice of door: by request, by link, or open. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. On the host's yes, the guest's page shows the arrival walkthrough, made once per table | G2, G3, G11, G15, G18 | The safety floor (B1) and the session wording (B2) |
+| 3 | **Functions 2, 3 and 4: the tea, the playlist, what is for sale, and the thank-you that carries them.** The host composes one message from the session: their words, the teas poured with links, price and what is for sale, the playlist, and the three asks. The guest answers on one screen: how the teas felt, what it was like, photographs. It reuses the Guest Book, the tasting screen and the photo editor | G6, G14, the tracking half of G17 | Nothing. Orders that start from a thank-you, a session or a tea master's page carry that name from this stage on |
+| 4 | **Functions 5 and 6: tasting, and photographs put together.** A session's own gallery for the people who were there. The one-tap camera for a session, and "this is a tasting" as the host's choice with one screen per tea. Paper notes can be entered afterward | part of G6, G19 | Nothing |
 | 5 | **The Tea Table, first form.** `/tea-table` with sessions poured, the words people shared and their photographs, as [tea-table.md](tea-table.md) describes, with its consent and withdrawal gates. A "Host a table" door | G5 | The Tea Table rule exception; one real sit |
 | 6 | **Tables and tea houses.** "Add your table" in Your Table, private. Public tea house pages, the Visit list, who has poured there. Then Build and Work from [tea-houses.md](tea-houses.md) | G4 | His facts for the build offering |
 | 7 | **Favourites in three kinds, and the Tea Chest's three states.** Articles, shop teas and chest teas on one favourites page, private until shown | G7 | Nothing |
