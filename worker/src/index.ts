@@ -15056,6 +15056,10 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
  WHERE account_id=? AND (id=? OR source_inquiry_id=?)
  AND EXISTS(SELECT 1 FROM invoices original WHERE original.id=? AND original.account_id=? AND original.fulfillment_claim_token=?)`
  ).bind(customerId,libraryAccount,inquiry.account_id,inquiry.converted_invoice_id,inquiry.id,inquiry.converted_invoice_id,inquiry.account_id,lease.claimToken)]);
+ const { results: linkedOrders } = await env.DB.prepare(
+   'SELECT id FROM invoices WHERE account_id = ? AND (id = ? OR source_inquiry_id = ?)',
+ ).bind(inquiry.account_id, inquiry.converted_invoice_id, inquiry.id).all<{ id: string }>();
+ for (const order of linkedOrders) await settleHostCredit(env, order.id);
  await ensureContactRelationship(env,inquiry.account_id,customerId,'buyer','workflow','invoice',inquiry.converted_invoice_id);
  if(lease.invoice.status==='Filled'){const trail=await shipmentTeaTrail(env,inquiry.account_id,inquiry.converted_invoice_id);if(trail.length)await env.DB.batch(trail);}
  return json({success:true,invoice_id:inquiry.converted_invoice_id,account_id:inquiry.account_id});
@@ -24284,8 +24288,8 @@ async function boughtOrderForChest(
 // ── Tea credit for hosts (Launch 5, M1; worker/src/hostCreditLedger.ts) ──
 // Nothing here reads an amount, a share, a host or an order's credit from the
 // request: every figure is worked out from stored rows. A host reads only
-// their own credit; a guest has nothing to read. Only the shop's owner, or the
-// platform owner, reads every host's credit and approves.
+// their own credit. A shop owner or the platform owner can see the shop ledger.
+// Deciding spend requests requires active owner membership in that shop.
 
 // GET /api/me/tea-credit: the signed-in host's own balance and credited lines.
 const handleGetMyTeaCredit: Handler = async (request, env) => {
@@ -24295,22 +24299,30 @@ const handleGetMyTeaCredit: Handler = async (request, env) => {
   return json(await readOwnHostCredit(env.DB, user.userId));
 };
 
-async function requireHostCreditOwner(request: Request, env: Env): Promise<AccountCtx | { error: Response }> {
+async function requireHostCreditOwner(
+  request: Request, env: Env, options: { allowPlatformOwner?: boolean } = {},
+): Promise<AccountCtx | { error: Response }> {
   const ctx = await getActiveAccount(request, env);
   if ('error' in ctx) return ctx;
   if (ctx.isPlatform) {
-    const role = await resolveDbPlatformRole(env, ctx.userId);
-    if (role === 'platform_owner') return ctx;
+    if (options.allowPlatformOwner) {
+      if (await resolveDbPlatformRole(env, ctx.userId) === 'platform_owner') return ctx;
+    } else {
+      const owner = await env.DB.prepare(
+        "SELECT 1 FROM account_members WHERE account_id = ? AND user_id = ? AND status = 'active' AND role = 'owner'",
+      ).bind(ctx.accountId, ctx.userId).first();
+      if (owner) return ctx;
+    }
   } else if (ctx.role === 'owner') {
     return ctx;
   }
-  return { error: restError(403, 'Only the shop owner can see host credit', 'owner_required') };
+  return { error: restError(403, 'This action requires shop owner access', 'owner_required') };
 }
 
 // GET /api/host-credit: every host's credit in this shop, for Manage.
 const handleListShopHostCredit: Handler = async (request, env) => {
   if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
-  const ctx = await requireHostCreditOwner(request, env);
+  const ctx = await requireHostCreditOwner(request, env, { allowPlatformOwner: true });
   if ('error' in ctx) return ctx.error;
   return json(await readShopHostCredit(env.DB, ctx.accountId));
 };
@@ -24320,7 +24332,7 @@ const handleListShopHostCredit: Handler = async (request, env) => {
 // worked out again from the stored order, never taken from this request.
 const handleApproveHostCreditOrder: Handler = async (request, env, params) => {
   if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
-  const ctx = await requireHostCreditOwner(request, env);
+  const ctx = await requireHostCreditOwner(request, env, { allowPlatformOwner: true });
   if ('error' in ctx) return ctx.error;
   const invoice = await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL')
     .bind(params.id, ctx.accountId).first();

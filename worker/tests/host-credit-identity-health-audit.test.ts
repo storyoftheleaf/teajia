@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import worker from '../src/index';
-import { checkHostCreditIntegrity, readOwnHostCredit, settleHostCredit } from '../src/hostCreditLedger';
+import { checkHostCreditIntegrity, hostCreditTerms, readOwnHostCredit, settleHostCredit } from '../src/hostCreditLedger';
 import { sha256Hex } from '../src/inquiryDomain';
 import { seedIdentity, signedToken, SqliteD1 } from './helpers/sqliteD1';
 
@@ -57,6 +57,7 @@ describe('host credit identity and incident audit', () => {
     expect(db.sqlite.prepare("SELECT customer_id FROM invoices WHERE id = 'sale'").get())
       .toEqual({ customer_id: 'host-customer' });
 
+    expect((await readOwnHostCredit(env().DB, 'host')).balances[0]).toMatchObject({ available: 0, reversed: 2 });
     await settleHostCredit(env(), 'sale');
     const { balances } = await readOwnHostCredit(env().DB, 'host');
     expect(balances.reduce((sum, row) => sum + row.available, 0)).toBe(0);
@@ -69,6 +70,35 @@ describe('host credit identity and incident audit', () => {
     expect(openIncidents().length).toBeGreaterThan(0);
   });
 
+  it('reverses a newly identified self-purchase even while earning is closed', async () => {
+    expect((await settleHostCredit(env(), 'sale')).earned).toBe(1);
+    db.sqlite.exec("UPDATE invoices SET customer_id = 'host-customer' WHERE id = 'sale'");
+    const closed = { ...env(), HOST_CREDIT_OPEN: 'false' };
+    expect((await settleHostCredit(closed, 'sale')).reversed).toBe(1);
+    expect((await settleHostCredit(closed, 'sale')).reversed).toBe(0);
+    expect(db.sqlite.prepare("SELECT reason, amount FROM host_credit_entries WHERE kind = 'reversed'").all())
+      .toEqual([{ reason: 'self_purchase', amount: 2 }]);
+  });
+
+  it('leaves a new self-purchase untouched while earning is closed', async () => {
+    db.sqlite.exec("UPDATE invoices SET customer_id = 'host-customer' WHERE id = 'sale'");
+    await settleHostCredit({ ...env(), HOST_CREDIT_OPEN: 'false' }, 'sale');
+    expect(db.sqlite.prepare('SELECT kind FROM host_credit_entries').all()).toEqual([]);
+    expect(openIncidents()).toEqual([]);
+  });
+
+  it('clears invalid terms only when that shop has usable terms again', async () => {
+    db.sqlite.exec("UPDATE accounts SET host_credit_order_ceiling_usd = 'invalid' WHERE id = 'shop'");
+    expect(await hostCreditTerms(env().DB, 'shop')).toBeNull();
+    const open = () => db.sqlite.prepare("SELECT account_id FROM incident_ledger WHERE status = 'open'").all();
+    expect(open()).toEqual([{ account_id: 'shop' }]);
+    await hostCreditTerms(env().DB, 'host-home');
+    expect(open()).toEqual([{ account_id: 'shop' }]);
+    db.sqlite.exec("UPDATE accounts SET host_credit_order_ceiling_usd = NULL WHERE id = 'shop'");
+    expect(await hostCreditTerms(env().DB, 'shop')).toEqual({ percent: 10, ceilingUsd: null });
+    expect(open()).toEqual([]);
+  });
+
   it('keeps an unresolved integrity incident open when a healthy shop is checked', async () => {
     await settleHostCredit(env(), 'sale');
     db.sqlite.exec("DELETE FROM order_session_sources WHERE inquiry_id = 'inquiry'");
@@ -76,5 +106,9 @@ describe('host credit identity and incident audit', () => {
     expect(openIncidents()).toContain('host_credit_award_without_source');
     expect(await checkHostCreditIntegrity(env().DB, 'host-home')).toEqual([]);
     expect(openIncidents()).toContain('host_credit_award_without_source');
+    db.sqlite.exec(`INSERT INTO order_session_sources (inquiry_id, account_id, event_id, host_user_id)
+      VALUES ('inquiry', 'shop', 'event', 'host')`);
+    expect(await checkHostCreditIntegrity(env().DB, 'shop')).toEqual([]);
+    expect(openIncidents()).toEqual([]);
   });
 });

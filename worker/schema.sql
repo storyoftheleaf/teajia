@@ -4042,6 +4042,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_host_credit_spent_once
 CREATE INDEX IF NOT EXISTS idx_host_credit_host ON host_credit_entries(host_user_id, account_id);
 CREATE INDEX IF NOT EXISTS idx_host_credit_account ON host_credit_entries(account_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_host_credit_invoice ON host_credit_entries(invoice_id);
+
+CREATE TRIGGER IF NOT EXISTS host_credit_entries_immutable_update
+BEFORE UPDATE ON host_credit_entries
+BEGIN
+  SELECT RAISE(ABORT, 'Host credit entries are append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS host_credit_entries_immutable_delete
+BEFORE DELETE ON host_credit_entries
+BEGIN
+  SELECT RAISE(ABORT, 'Host credit entries are append-only');
+END;
 CREATE TABLE IF NOT EXISTS host_credit_spend_requests (
   id                 TEXT PRIMARY KEY,
   account_id         TEXT NOT NULL,
