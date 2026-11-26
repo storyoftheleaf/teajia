@@ -1,5 +1,6 @@
 import type { CurateFinalizeMovement } from '../curateImports';
 import type { StockMovementInput } from '../inventoryDomain';
+import type { ReservePartySeatsInput } from '../eventDomain';
 /**
  * Where MCP tools added from here on live.
  *
@@ -56,8 +57,24 @@ export interface StockMovementService {
   apply: (scope: { accountId:string; userId:string; email?:string|null }, productId:string, input:StockMovementInput) => Promise<{ status:number; value:unknown }>;
 }
 
+/**
+ * The seats a host's yes takes: the admin approval's own reservation,
+ * `buildApprovalReservation` in index.ts, handed in for the same reason as
+ * the stock path. The tool then takes the seats through the guarded
+ * allocator `reservePartySeats`, exactly as PUT /api/me/tables/:id/guests/:id/yes.
+ */
+export interface HostSeatService {
+  reservationFor: (attendee: Record<string, unknown> & { id: string; account_id: string; event_id: string; full_name: string },
+    approvedGuests: number) => Promise<ReservePartySeatsInput | null>;
+}
+
 export interface ToolEnv {
   EDITORIAL_PILOT_ACCOUNT_ID?: string;
+  /** Launch 2's switch (src/lib/fewHosts.ts). The host tools answer "not available" unless it is open. */
+  FEW_HOSTS_OPEN?: string;
+  /** The site's address, for a table's link. */
+  APP_URL?: string;
+  hostSeats?: HostSeatService;
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ATLAS_BUCKET?: R2Bucket;
