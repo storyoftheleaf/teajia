@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { X, Save, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
+import { anyoneHostsOpen } from '../../../lib/anyoneHosts';
+import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { compressImage } from '../../../lib/imageCompressor';
 import { useToast } from '../Toast';
 import { TeaEvent, EventFormData, VenueGuide, VenueGuideStep, SessionFlowItem, SavedLocation } from '../../../types/events';
 import { VenueManager } from '../VenueManager';
 import { useVenues } from '../../hooks/useEventData';
-import { emptyForm, computeEndDate, slugify } from './shared';
+import { emptyForm, computeEndDate, slugify, inputClass } from './shared';
 import BasicInfoSection from './sections/BasicInfoSection';
 import LocationSection from './sections/LocationSection';
 import VenueGuideSection from './sections/VenueGuideSection';
@@ -26,6 +28,10 @@ interface ReadingArticleOption {
   id: string;
   title: string;
 }
+
+type ContributionKind = 'free' | 'contribution' | 'price';
+type Contribution = { kind: ContributionKind | null; note: string };
+const CONTRIBUTION_NOTE_LIMIT = 140;
 
 const EMPTY_VENUE_GUIDE: VenueGuide = { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' };
 
@@ -47,14 +53,18 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const [durationHours, setDurationHours] = useState(2);
   const [repeatDates, setRepeatDates] = useState<string[]>([]);
   const [editRequiresApproval, setEditRequiresApproval] = useState(true);
+  const [isTasting, setIsTasting] = useState(false);
+  // Like the reading: send the choice only once it is known or changed, so a failed load never turns it off.
+  const tastingKnownRef = useRef(false);
   const [readingArticleId, setReadingArticleId] = useState('');
+  const contributionOpen = anyoneHostsOpen();
+  const [contribution, setContribution] = useState<Contribution | null>(null);
+  const contributionChanged = useRef(false);
   const [publishedArticles, setPublishedArticles] = useState<ReadingArticleOption[]>([]);
   const readingChangedRef = useRef(false);
   // Send the reading only once it is known, so a failed load can never clear a saved one.
   const readingKnownRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const venueStepFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  const [venueStepUploading, setVenueStepUploading] = useState<number | null>(null);
 
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
@@ -107,6 +117,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
 
   useEffect(() => {
     let active = true;
+    contributionChanged.current = false;
+    setContribution(null);
     readingChangedRef.current = false;
     readingKnownRef.current = false;
     const initialReading = (initialData as TeaEvent & {
@@ -114,13 +126,26 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       reading_article_id?: string | null;
     }).readingArticleId ?? (initialData as TeaEvent & { reading_article_id?: string | null }).reading_article_id ?? '';
     setReadingArticleId(initialReading);
+    tastingKnownRef.current = initialData.isTasting !== undefined;
+    setIsTasting(initialData.isTasting ?? false);
     api.events.getAdmin(initialData.id).then(rawEvent => {
-      if (!active || readingChangedRef.current) return;
+      if (!active) return;
+      if (contributionOpen && rawEvent) {
+        setContribution({
+          kind: rawEvent.contribution_kind ?? null,
+          note: rawEvent.contribution_note ?? '',
+        });
+      }
+      if (!tastingKnownRef.current && rawEvent && rawEvent.is_tasting != null) {
+        tastingKnownRef.current = true;
+        setIsTasting(Number(rawEvent.is_tasting) === 1);
+      }
+      if (readingChangedRef.current) return;
       readingKnownRef.current = true;
       setReadingArticleId(rawEvent?.reading_article_id ?? '');
     }).catch(() => {});
     return () => { active = false; };
-  }, [initialData]);
+  }, [contributionOpen, initialData]);
 
   useEffect(() => {
     setForm({
@@ -285,33 +310,18 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     });
   }, []);
 
-  const handleVenueStepImageUpload = useCallback(async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const pickedFile = e.target.files?.[0];
-    if (!pickedFile) return;
-    e.target.value = '';
-    const file = await editPhoto(pickedFile, { title: 'Venue photo', freeShape: true });
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('Image must be under 10 MB', 'error');
-      return;
-    }
+  // A step photograph arrives already framed in the shared photo editor
+  // (VenueGuideSection, through WayStepPhoto); this only checks and uploads it.
+  const uploadVenueStepPhoto = useCallback(async (file: File): Promise<string> => {
+    if (file.size > 10 * 1024 * 1024) throw new Error('Image must be under 10 MB');
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowed.includes(file.type)) {
-      showToast('Only JPG, PNG, WebP, or GIF images are supported', 'error');
-      return;
-    }
-    setVenueStepUploading(idx);
-    try {
-      const compressed = await compressImage(file);
-      const result = await api.events.uploadFlyer(compressed);
-      updateVenueStep(idx, 'image_url', result.url || result);
-      showToast('Photo uploaded', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Upload failed', 'error');
-    } finally {
-      setVenueStepUploading(null);
-    }
-  }, [showToast, updateVenueStep]);
+    if (!allowed.includes(file.type)) throw new Error('Only JPG, PNG, WebP, or GIF images are supported');
+    const compressed = await compressImage(file);
+    const result = await api.events.uploadFlyer(compressed, 'venue-guide');
+    showToast('Photo uploaded', 'success');
+    return result.url || result;
+  }, [showToast]);
+  const venueStepPhotoFailed = useCallback((message: string) => showToast(message || 'Upload failed', 'error'), [showToast]);
 
   const sessionFlow = useMemo(() => form.sessionFlow || [], [form.sessionFlow]);
 
@@ -379,6 +389,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (contributionOpen && contribution?.kind && contribution.note.length > CONTRIBUTION_NOTE_LIMIT) {
+      showToast('Keep the contribution note to 140 characters or fewer.', 'error');
+      return;
+    }
     if (!form.title.trim() || !form.eventDate) {
       showToast('Title and event date are required', 'error');
       if (!form.title.trim()) {
@@ -418,7 +432,12 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         venue_id: editVenueId || null,
         active_space_ids: editSpaceIds.length > 0 ? JSON.stringify(editSpaceIds) : null,
         requires_approval: editRequiresApproval ? 1 : 0,
+        ...(tastingKnownRef.current ? { is_tasting: isTasting } : {}),
         ...(readingChangedRef.current || readingKnownRef.current ? { reading_article_id: readingArticleId || null } : {}),
+        ...(contributionOpen && contribution && contributionChanged.current ? {
+          contribution_kind: contribution.kind,
+          contribution_note: contribution.kind ? contribution.note.trim() || null : null,
+        } : {}),
       };
       await api.events.update(initialData.id, payload);
       showToast('Event updated', 'success');
@@ -450,6 +469,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           gatheringType={form.gatheringType}
           flyerImageUrl={form.flyerImageUrl}
           requiresApproval={editRequiresApproval}
+          isTasting={isTasting}
           readingArticleId={readingArticleId}
           publishedArticles={publishedArticles}
           repeatDates={repeatDates}
@@ -464,12 +484,56 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           onDurationChange={setDurationHours}
           onRepeatDatesChange={setRepeatDates}
           onRequiresApprovalChange={setEditRequiresApproval}
+          onIsTastingChange={(value) => {
+            tastingKnownRef.current = true;
+            setIsTasting(value);
+          }}
           onReadingArticleChange={(value) => {
             readingChangedRef.current = true;
             setReadingArticleId(value);
           }}
           onImageUpload={handleImageUpload}
         />
+
+        {contributionOpen && (
+          <fieldset disabled={!contribution} className="min-w-0">
+            <legend className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Contribution</legend>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="max-w-full">
+                <select
+                  aria-label="Contribution"
+                  className={`${inputClass} tap-target`}
+                  value={contribution?.kind ?? ''}
+                  onChange={(e) => {
+                    contributionChanged.current = true;
+                    const kind = (e.target.value || null) as ContributionKind | null;
+                    setContribution(prev => ({ kind, note: kind ? prev?.note ?? '' : '' }));
+                  }}
+                >
+                  <option value="">Say nothing</option>
+                  <option value="free">Free</option>
+                  <option value="contribution">By contribution</option>
+                  <option value="price">Has a price</option>
+                </select>
+              </div>
+              {contribution?.kind && (
+                <label className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec min-w-0 flex-1`}>
+                  Note (optional)
+                  <input
+                    type="text"
+                    className={`${inputClass} tap-target`}
+                    maxLength={CONTRIBUTION_NOTE_LIMIT}
+                    value={contribution.note}
+                    onChange={(e) => {
+                      contributionChanged.current = true;
+                      setContribution({ ...contribution, note: e.target.value });
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          </fieldset>
+        )}
 
         <LocationSection
           areaHint={form.areaHint}
@@ -502,13 +566,12 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         <VenueGuideSection
           venueGuide={venueGuide}
           isOpen={openSections.has('venue-guide')}
-          venueStepUploading={venueStepUploading}
-          venueStepFileRefs={venueStepFileRefs}
           onToggle={onToggleVenueGuide}
           onAddVenueStep={addVenueStep}
           onUpdateVenueStep={updateVenueStep}
           onRemoveVenueStep={removeVenueStep}
-          onVenueStepImageUpload={handleVenueStepImageUpload}
+          uploadVenueStepPhoto={uploadVenueStepPhoto}
+          onVenueStepPhotoFailed={venueStepPhotoFailed}
           onUpdateVenueGuide={updateVenueGuide}
         />
 

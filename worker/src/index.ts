@@ -8,13 +8,30 @@ import {
 import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddress, type OrderNoticeAccount } from './orderNoticeRecipient';
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
-import { afterSitRoutes } from './afterSitAccess';
+import { afterSitRoutes, issueAfterSitLink } from './afterSitAccess';
+import { enteredTastingFlag, eventTastingSessionId, joinEventTasting } from './sessionTasting';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
 import { teaTableRoutes } from './teaTable';
 import { teaHousesRoutes } from './teaHouses';
+import { fewHostsOpen } from '../../src/lib/fewHosts';
+import { anyoneMayHost, hostApproved, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
+import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
+import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sessionHost';
+import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
+import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
+import { createHostedTable, type HostedTableDoor } from './hostTable';
+import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest, type OwnHostedTable } from './hostTableGuests';
+import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
+import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
+import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
+import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, recordSeatNotice, releaseSeats, seatNoticesFor } from './waitingList';
+import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
+import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTableWay, signWayForHost } from './hostTableWay';
+import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
+import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -237,6 +254,8 @@ import { withD1ReadBudget, resolveD1Budget, settleD1Budget } from './d1Budget';
 import { budgetRefusal } from './d1BudgetResponse';
 import { mergePushedJournal, storedJournalsFor } from './tastingJournalPush';
 import { familyRetryTranscription, familyRoutes, familyTranscribe, type FamilyDeps } from './familyRoutes';
+import { fileReport, openReports, resolveReport } from './sessionReports';
+import { anyoneHostsOpen } from '../../src/lib/anyoneHosts';
 import { articleWisdomClaimUseRoutes, moveClaimUsesWithBlocks, publicArticleClaimUses } from './articleWisdomClaimUses';
 import { applyFamilyProfileWrite, familyPageAllowsPay, familyPageRoutes, familyPageTierOf, pageWord } from './familyPages'; import { FAMILY_LAST_ACTIVE_COLUMN, FAMILY_PAGE_NOT_HIDDEN_SQL, QUOTE_TASTING_NOT_HIDDEN, personTastings } from './familyPersonTastings'; import { PEOPLE_LIST_COLUMNS, arrangePeopleList } from './peopleList'; import { familyMediaVerdict } from './familyMedia';
 import { normalizeShelfWhatsApp } from '../../shared/shelfContact';
@@ -336,6 +355,11 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   TEA_TABLE_OPEN?: string;
   /** "true" or "false" opens or closes the tea house portfolio (Launch 4); see src/lib/teaHouses.ts. */
   TEA_HOUSES_OPEN?: string;
+  /** "true" opens Launch 2 in a local sandbox only; see src/lib/fewHosts.ts. Never set on the live worker. */
+  FEW_HOSTS_OPEN?: string;
+  ANYONE_HOSTS_OPEN?: string;
+  /** "true" or "false" opens or closes "Add your table" (Launch 4, K4); see src/lib/yourTablePlace.ts. */
+  YOUR_TABLE_PLACE_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -12454,25 +12478,13 @@ const handleExtractFromImage: Handler = async (request, env) => {
 };
 
 // ── Waitlist Cascade Helper ──
-async function cascadeWaitlist(env: Env, eventId: string, claimWindowMinutes: number): Promise<void> {
-  const next = await env.DB.prepare(
-    `SELECT id FROM event_attendees
-     WHERE event_id = ? AND status = 'waitlist'
-     ORDER BY waitlist_position ASC, created_at ASC LIMIT 1`
-  ).bind(eventId).first();
-
-  if (next) {
-    const expiresAt = new Date(Date.now() + claimWindowMinutes * 60 * 1000).toISOString();
-    await env.DB.prepare(
-      `UPDATE event_attendees SET claim_expires_at = ? WHERE id = ?`
-    ).bind(expiresAt, next.id).run();
-
-    // Create a waitlist_promotion notification
-    await env.DB.prepare(
-      `INSERT INTO event_notifications (id, event_id, attendee_id, type, message_template, status)
-       VALUES (?, ?, ?, 'waitlist_promotion', 'A spot has opened up! Claim it before it expires.', 'pending')`
-    ).bind(crypto.randomUUID(), eventId, next.id).run();
-  }
+// Offer any free seat to the guests waiting longest (slice J9, worker/src/waitingList.ts).
+// The offer is guarded on a free seat in its own write, so calling this when
+// nothing was freed offers nothing.
+async function cascadeWaitlist(env: Env, eventId: string, _claimWindowMinutes?: number): Promise<void> {
+  const event = await env.DB.prepare('SELECT account_id FROM events WHERE id = ?').bind(eventId).first<{ account_id: string }>();
+  if (!event) return;
+  await offerFreedSeats(env.DB, { eventId, accountId: event.account_id });
 }
 
 function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: true }>): Response {
@@ -12491,6 +12503,25 @@ function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: tru
 // discovery choice controls the platform-wide event list. An unlisted event
 // can still be opened and booked by someone holding its direct link.
 const PUBLIC_EVENT_HOST = "a.status = 'active' AND a.public_enabled = 1";
+
+// Launch 2 (slice H2): a direct session read, by its link, also opens a hosted
+// table of an approved host's own private account while the launch is open.
+// Lists, store pages and product reads keep PUBLIC_EVENT_HOST, so such a
+// session is found by nothing but its link. Needs `e` and `a` in the query.
+// Guard: worker/tests/hosted-session-doors.test.ts.
+function sessionLinkHostSql(env: Env): string {
+  return fewHostsOpen(env)
+    ? publicSessionHostSql('a', { anyoneHosts: fewHostsAnyoneHosts(env), event: 'e' })
+    : PUBLIC_EVENT_HOST;
+}
+
+// For reads by a guest's own token or a session's slug that never checked the
+// account (the guest's page, finding a seat again, interest, guest invites):
+// a shop's session behaves as before, and a private account's session opens
+// only while its door does. A stopped host's sessions close.
+function privateHostDoorSql(env: Env): string {
+  return `(NOT ${personalAccountSql('a')} OR ${sessionLinkHostSql(env)})`;
+}
 const PUBLIC_EVENT_DIRECT = "e.public_visibility IN ('public', 'unlisted')";
 const PUBLIC_EVENT_STORE = "e.public_visibility = 'public'";
 const PUBLIC_EVENT_DISCOVERY = "e.public_visibility = 'public' AND e.network_discovery = 1";
@@ -12504,15 +12535,17 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
-            e.requires_approval, e.venue_id, e.reading_article_id,
+            e.requires_approval, ${hostDoorSql('a', 'e', { anyoneHosts: fewHostsAnyoneHosts(env) })} AS door, e.venue_id, e.reading_article_id, e.host_user_id, e.contribution_kind, e.contribution_note,
+            ${yourTableAreaSql(yourTableShown(env))},
             v.photos AS venue_photos,
             a.name AS account_name,
-            a.location_country AS account_location_country
+            a.location_country AS account_location_country,
+            ${personalAccountSql('a')} AS private_host
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
-       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
+       AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -12556,21 +12589,68 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
       ORDER BY CASE ec.role WHEN 'lead_host' THEN 0 WHEN 'co_host' THEN 1 WHEN 'guest_host' THEN 2 ELSE 3 END, ec.display_order ASC`
   ).bind(event.id).all<Record<string, any>>();
   const hosts = (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
-  const { account_id: _accountId, reading_article_id: readingId, ...publicEvent } = event;
+  const {
+    account_id: _accountId, reading_article_id: readingId, host_user_id: hostUserId,
+    private_host: privateHostFlag, venue_id: _venueId, id: eventId, ...publicEvent
+  } = withYourTable(event);
+  const privateHost = Number(privateHostFlag) === 1;
   // A reading is shown only while it is still a published article of this shop.
   const reading = readingId ? await readableArticleFor(env.DB, String(event.account_id), String(readingId)) : null;
+  const host = await publicSessionHost(env, hostUserId ? String(hostUserId) : null, event);
+  const pouring = hosts
+    .filter(person => person.role === 'co_host' || person.role === 'guest_host')
+    .map(person => ({ name: person.display_name, path: `/people/${encodeURIComponent(person.slug)}` }));
 
-  return cachedJson({
+  const answer = {
+    // The session's own id only for a shop's session, where the admin's Edit
+    // link uses it; a private host's session is known by its link alone (A2 F4).
+    ...(privateHost ? {} : { id: eventId }),
     ...publicEvent,
+    // A private host's account is not named: no shop name, no country.
+    ...(privateHost ? { account_name: host?.name ?? null, account_location_country: null } : {}),
     reading: reading ? { slug: reading.slug, title: reading.title } : null,
     hosts,
+    host,
+    pouring,
+    // Photographs of the house or table may be shown (Adrian, 2026-11-26); the
+    // address, map link and the way-in steps stay with a confirmed guest.
     venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
     offered_count: offeredCount,
     confirmed_names: confirmedNames,
     seats_remaining: Math.max(0, (event.total_capacity as number) - confirmedCount - offeredCount),
-  }, 30);
+  };
+  if (!privateHost) return cachedJson(answer, 30);
+  // A private host's session closes at once when the host is stopped, so no copy is kept.
+  const response = json(answer);
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 };
+
+// "Hosted by": the session's host_user_id first (Launch 2, hard question 6).
+// Their published page when they have one, else their first name as plain
+// words. A session without host_user_id names its public lead host, by the
+// one rule in sessionHost.ts that the order credit and guest links share.
+async function publicSessionHost(
+  env: Env, hostUserId: string | null, event: Record<string, unknown>,
+): Promise<{ name: string; path: string | null } | null> {
+  if (hostUserId) {
+    const page = await env.DB.prepare(
+      `SELECT c.id, c.display_name FROM contributors c
+        WHERE c.user_id = ? AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}
+        ORDER BY c.id ASC LIMIT 1`
+    ).bind(hostUserId).first<{ id: string; display_name: string }>();
+    if (page) return { name: String(page.display_name), path: `/people/${encodeURIComponent(String(page.id))}` };
+    const person = await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(hostUserId).first<{ name: string | null }>();
+    const first = String(person?.name ?? '').trim().split(/\s+/)[0];
+    return { name: first || 'The host', path: null };
+  }
+  const lead = await env.DB.prepare(
+    `SELECT ${publicLeadHostSql('e', 'c.id')} AS id, ${publicLeadHostSql('e', 'c.display_name')} AS display_name
+       FROM events e WHERE e.id = ? AND e.account_id = ?`
+  ).bind(event.id, event.account_id).first<{ id: string | null; display_name: string | null }>();
+  return lead?.id ? { name: String(lead.display_name ?? ''), path: `/people/${encodeURIComponent(String(lead.id))}` } : null;
+}
 
 async function publicEventHosts(env: Env, eventId: string, accountId: string) {
   const hostRows = await env.DB.prepare(
@@ -12618,11 +12698,13 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
 
   // Fetch tea menu for the event with product details for shop links
   const menuRows = await env.DB.prepare(
-    `SELECT etm.id, etm.event_id, etm.product_id, etm.custom_name, etm.custom_description,
+    `SELECT etm.id, etm.event_id, COALESCE(own.id, shop.id) AS product_id, etm.custom_name, etm.custom_description,
             etm.brew_order, etm.reveal_date,
-            p.product_name, p.type AS product_type, p.image_url AS product_image_url
+            COALESCE(own.product_name, shop.product_name) AS product_name,
+            COALESCE(own.type, shop.type) AS product_type,
+            COALESCE(etm.photo_url, own.image_url, shop.image_url) AS product_image_url
      FROM event_tea_menu etm
-     LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+     ${menuProductJoins('etm')}
      WHERE etm.event_id = ? AND etm.account_id = ?
        AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
      ORDER BY etm.brew_order ASC NULLS LAST`
@@ -12692,10 +12774,24 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
 
 // GET /api/events — public upcoming events list
 // Scoped to platform-owner accounts so multi-tenant events don't bleed through.
-const handleListPublicEvents: Handler = async (_request, env, _params) => {
+//
+// Launch 3, J10: with ANYONE_HOSTS_OPEN on, the list also carries the open
+// tables of hosts Adrian set to 'listed' (reachListedSessionSql): published,
+// to come, the host not stopped, never their first session. The columns are
+// the same for every row, and none of them is the address or the reach.
+// GET /api/me/sessions is the same list for a signed-in person, who also
+// sees the open tables of hosts set to 'teajia'.
+function listedSessionsSql(env: Env, reaches: Exclude<HostReach, 'invitation'>[]): string {
+  const shop = `(a.is_platform_owner = 1 AND ${PUBLIC_EVENT_DISCOVERY} AND ${PUBLIC_EVENT_HOST})`;
+  if (!fewHostsOpen(env) || !anyoneMayHost(env)) return shop;
+  return `(${shop} OR ${reachListedSessionSql('a', 'e', reaches)})`;
+}
+
+async function upcomingListedSessions(env: Env, reaches: Exclude<HostReach, 'invitation'>[]) {
   const rows = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
             e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status,
+            ${yourTableAreaSql(yourTableShown(env))},
             COALESCE((SELECT COUNT(*) FROM event_party_members pm
               WHERE pm.event_id = e.id AND pm.account_id = e.account_id
                 AND pm.seat_status IN ('held','confirmed')), 0) AS confirmed_count,
@@ -12707,24 +12803,39 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
      JOIN accounts a ON a.id = e.account_id
      WHERE e.status = 'active'
        AND e.event_date >= datetime('now')
-       AND a.is_platform_owner = 1
-       AND ${PUBLIC_EVENT_DISCOVERY} AND ${PUBLIC_EVENT_HOST}
+       AND ${listedSessionsSql(env, reaches)}
+       AND ${listableHostedSessionSql('e')}
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
 
-  const events = (rows.results ?? []).map((ev) => {
+  return (rows.results ?? []).map((ev) => {
     const confirmedCount = (ev.confirmed_count as number) || 0;
     const offeredCount = (ev.offered_count as number) || 0;
     return {
-      ...ev,
+      ...withYourTable(ev),
       confirmed_count: confirmedCount,
       offered_count: offeredCount,
       seats_remaining: Math.max(0, (ev.total_capacity as number) - confirmedCount - offeredCount),
     };
   });
+}
 
-  return swrJson(events, 300, 3600);
+const handleListPublicEvents: Handler = async (_request, env, _params) => {
+  return swrJson(await upcomingListedSessions(env, ['listed']), 300, 3600);
+};
+
+// GET /api/me/sessions. The sessions list for a person signed in to Teajia:
+// everything the public list carries, and the open tables of hosts Adrian
+// set to 'teajia'. Private to the person and never cached between people.
+// Only while Launch 3 is open; otherwise there is no such route.
+const handleListSignedInSessions: Handler = async (request, env) => {
+  if (!fewHostsOpen(env) || !anyoneMayHost(env)) return json({ error: 'Not found' }, 404);
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const response = json(await upcomingListedSessions(env, ['teajia', 'listed']));
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
@@ -12734,44 +12845,81 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status
+    `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status,
+            ${hostDoorSql('a', 'e', { anyoneHosts: fewHostsAnyoneHosts(env) })} AS door, ${hostingStoppedSql('a')} AS host_stopped,
+            e.status, e.event_date, e.event_end_date, e.timezone
      FROM events e JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
-       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
+       AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
+  // Once the session has ended no door takes a seat or a request (A2 F6).
+  if (sessionHasEnded(event)) {
+    return json({ error: 'This session has ended.', code: 'event_not_reservable' }, 409);
+  }
   const accountId = event.account_id as string;
 
   const body = await request.json() as Record<string, any>;
   const {
-    full_name, phone_number, email,
     guest_requests, contact_method,
     plus_one, plus_one_name,
     photo_consent, notes, tea_preference, bringing_tea,
     show_in_guest_list,
   } = body;
 
-  if (!full_name) return json({ error: 'full_name is required' }, 400);
-  if (!phone_number && !email) return json({ error: 'phone_number or email is required' }, 400);
+  // Launch 2, slice H5: a by-link door seats a guest by name alone. The
+  // decisions live in worker/src/seatRequest.ts; an older session (door NULL)
+  // behaves as before. Guard: worker/tests/seat-request.test.ts.
+  // Launch 3 (J2): the by-link door is the approved host's (hostDoorSql),
+  // and a stopped host's table takes no new seat. The guest is told only
+  // that the table is not taking seats, never why.
+  const doorRule = Number(event.host_stopped) === 1 ? 'closed' : seatDoorRule(event.door);
+  const contact = seatContact(body);
+  const refusal = seatRequirement(doorRule, body.full_name, contact);
+  if (refusal) return json({ error: refusal.error, code: refusal.code }, refusal.status);
+  const full_name = String(body.full_name).trim();
+  const phone_number = contact.phone;
+  const email = contact.email;
 
-  const contactField = phone_number ? 'phone_number' : 'email';
-  const contactValue = phone_number || email;
-  const phoneSuffix = phone_number ? phone_number.replace(/\D/g, '').slice(-9) : null;
-  const existing = phoneSuffix
-    ? await env.DB.prepare(
-        `SELECT magic_token, status FROM event_attendees
-         WHERE event_id = ? AND (phone_number = ? OR (length(?) = 9 AND phone_number LIKE ?))`
-      ).bind(event.id, phone_number, phoneSuffix, `%${phoneSuffix}`).first()
-    : await env.DB.prepare(
-        `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${contactField} = ?`
-      ).bind(event.id, contactValue).first();
+  // A second tap from the same browser at a by-link door finds the first seat.
+  const browserKey = seatKey(body.seat_key);
+  const keyedSeatId = usesSeatKey(doorRule, browserKey) ? await seatIdFromKey(String(event.id), browserKey) : null;
+  const seatAnswer = (row: Record<string, unknown>, statusCode: number, repeat: boolean) => json({
+    magic_token: row.magic_token,
+    status: row.status,
+    redirect_url: `/m/${row.magic_token}`,
+    // At a by-link door the guest is handed their own page at once, to keep.
+    ...(doorRule === 'link' ? { link: `${(env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '')}/m/${row.magic_token}` } : {}),
+    ...(repeat ? { repeat: true } : {}),
+  }, statusCode);
+  const keyedSeat = async () => keyedSeatId
+    ? env.DB.prepare('SELECT magic_token, status FROM event_attendees WHERE id = ? AND event_id = ? AND account_id = ?')
+      .bind(keyedSeatId, event.id, accountId).first<Record<string, unknown>>()
+    : null;
+  const earlier = await keyedSeat();
+  if (earlier) return seatAnswer(earlier, 200, true);
 
-  if (existing) {
-    return json({
-      ok: true,
-      message: 'Your RSVP request was received. If an RSVP already exists, use RSVP recovery to receive its private link.',
-    });
+  // With no contact there is nothing to match, so nothing is looked up.
+  if (looksUpByContact(contact)) {
+    const contactField = phone_number ? 'phone_number' : 'email';
+    const contactValue = phone_number || email;
+    const phoneSuffix = phone_number ? phone_number.replace(/\D/g, '').slice(-9) : null;
+    const existing = phoneSuffix
+      ? await env.DB.prepare(
+          `SELECT magic_token, status FROM event_attendees
+           WHERE event_id = ? AND (phone_number = ? OR (length(?) = 9 AND phone_number LIKE ?))`
+        ).bind(event.id, phone_number, phoneSuffix, `%${phoneSuffix}`).first()
+      : await env.DB.prepare(
+          `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${contactField} = ?`
+        ).bind(event.id, contactValue).first();
+
+    if (existing) {
+      return json({
+        ok: true,
+        message: 'Your RSVP request was received. If an RSVP already exists, use RSVP recovery to receive its private link.',
+      });
+    }
   }
 
   // Golden tier detection — look up customer within this account only.
@@ -12803,15 +12951,23 @@ const handleRSVP: Handler = async (request, env, params) => {
         accessTier = 'golden';
       }
     } catch {}
-  } else {
+  } else if (createsCustomer(contact)) {
+    // A guest who gave no contact makes no customers row.
     customerId = crypto.randomUUID();
     customerNeedsCreation = true;
   }
 
+  // A signed-in guest at a by-link door is tied to their seat, so they can
+  // find it again from their account even when they gave no contact.
+  let seatUserId: string | null = null;
+  if (doorRule === 'link') {
+    const rawToken = isAuthed(request);
+    if (rawToken && await verifyToken(rawToken, env.JWT_SECRET)) seatUserId = parseToken(rawToken)?.sub ?? null;
+  }
+
   // Approval-required requests do not hold capacity. Instant RSVPs reserve the
   // complete party atomically through the canonical seat allocator.
-  const requiresApproval = (event.requires_approval as number) !== 0; // default true for all existing rows
-  const status = requiresApproval ? 'requested' : 'confirmed';
+  const status = seatStatusFor(doorRule, event.requires_approval); // default true for all existing rows
   const magicToken = crypto.randomUUID();
 
   let guestRequestsJson: string | null = null;
@@ -12828,7 +12984,7 @@ const handleRSVP: Handler = async (request, env, params) => {
     guestRequestsJson = JSON.stringify(normalizedGuestRequests);
   }
 
-  const attendeeId = crypto.randomUUID();
+  const attendeeId = keyedSeatId ?? crypto.randomUUID();
   const targetSeatState = status === 'confirmed' ? 'confirmed' : 'requested';
   const seats: PartySeatReservation[] = [
     {
@@ -12846,40 +13002,60 @@ const handleRSVP: Handler = async (request, env, params) => {
       targetState: targetSeatState,
     })),
   ];
-  const reserved = await reservePartySeats(env, {
-    accountId,
-    eventId: event.id as string,
-    participationId: attendeeId,
-    sourceState: 'requested',
-    targetState: status,
-    seats,
-    createParticipation: {
-      columns: [
-        'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
-        'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference', 'bringing_tea',
-        'guest_requests', 'contact_method', 'source', 'show_in_guest_list',
-      ],
-      values: [
-        customerNeedsCreation ? null : customerId,
-        full_name,
-        phone_number || null,
-        email || null,
-        plus_one ? 1 : 0,
-        plus_one_name || null,
-        accessTier,
-        magicToken,
-        photo_consent ? 1 : 0,
-        notes || null,
-        tea_preference || null,
-        bringing_tea || null,
-        guestRequestsJson,
-        contact_method || 'whatsapp',
-        'direct',
-        show_in_guest_list ? 1 : 0,
-      ],
-    },
-  });
-  if (!reserved.ok) return seatReservationError(reserved);
+  let reserved: ReservePartySeatsResult;
+  try {
+    reserved = await reservePartySeats(env, {
+      accountId,
+      eventId: event.id as string,
+      participationId: attendeeId,
+      sourceState: 'requested',
+      targetState: status,
+      seats,
+      createParticipation: {
+        columns: [
+          'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
+          'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference', 'bringing_tea',
+          'guest_requests', 'contact_method', 'source', 'show_in_guest_list', 'user_id',
+        ],
+        values: [
+          customerNeedsCreation ? null : customerId,
+          full_name,
+          phone_number || null,
+          email || null,
+          plus_one ? 1 : 0,
+          plus_one_name || null,
+          accessTier,
+          magicToken,
+          // NULL when the guest said nothing; 0 only for "Please, no photographs of me".
+          photoConsentValue(photo_consent),
+          notes || null,
+          tea_preference || null,
+          bringing_tea || null,
+          guestRequestsJson,
+          contact_method || 'whatsapp',
+          'direct',
+          show_in_guest_list ? 1 : 0,
+          seatUserId,
+        ],
+      },
+    });
+  } catch (error) {
+    // Two taps from one browser at the same moment: the second insert meets
+    // the first seat's id. Answer with that seat.
+    const first = await keyedSeat();
+    if (first) return seatAnswer(first, 200, true);
+    throw error;
+  }
+  if (!reserved.ok) {
+    const first = await keyedSeat();
+    if (first) return seatAnswer(first, 200, true);
+    if (doorRule === 'link' && reserved.code === 'capacity_conflict') {
+      const taken = await seatsTaken(env.DB, { id: String(event.id), account_id: accountId });
+      const full = linkDoorFullAnswer(Number(event.total_capacity) - taken, seats.length);
+      return json({ error: full.error, code: full.code }, full.status);
+    }
+    return seatReservationError(reserved);
+  }
 
   if (customerNeedsCreation && customerId) {
     await env.DB.batch([
@@ -12918,11 +13094,7 @@ const handleRSVP: Handler = async (request, env, params) => {
     }
   }
 
-  return json({
-    magic_token: magicToken,
-    status,
-    redirect_url: `/m/${magicToken}`,
-  }, 201);
+  return seatAnswer({ magic_token: magicToken, status }, 201, false);
 };
 
 const handleGetEventAvailability: Handler = async (_request, env, params) => {
@@ -12930,7 +13102,7 @@ const handleGetEventAvailability: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.total_capacity
      FROM events e JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
-       AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
+       AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -12963,15 +13135,18 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
     `SELECT ea.*, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide,
             e.timezone, e.status as event_status, e.lifecycle_status, e.session_flow, e.playlist_url, e.slug,
-            e.briefing_cards, e.area_hint, e.mood_hints,
-            v.photos AS venue_photos
+            e.briefing_cards, e.area_hint, e.mood_hints, e.is_tasting, e.account_id AS event_account_id,
+            v.photos AS venue_photos,
+            ${privateHostDoorSql(env)} AS door_open,
+            (a.public_enabled = 1 AND a.status = 'active') AS account_public
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
+     JOIN accounts a ON a.id = e.account_id
      LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
      WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
-  if (!attendee) return json({ error: 'RSVP not found' }, 404);
+  if (!attendee) return guestPageResponse({ error: 'RSVP not found' }, 404);
 
   // Parse JSON fields
   let sessionFlow = null;
@@ -12995,17 +13170,52 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
     try { venuePhotos = JSON.parse(attendee.venue_photos as string); } catch {}
   }
 
+  // The way to the house (address, map link, venue guide, venue photos) is
+  // for a confirmed seat, until the session ends, while its host may still
+  // open it (Launch 2, slice H7; the end rule is in sessionWalkthrough.ts).
+  // The seat's status is read on every request, so a seat that becomes
+  // denied, waitlisted or cancelled loses the way at once.
+  const sessionTimes = {
+    event_date: attendee.event_date,
+    event_end_date: attendee.event_end_date,
+    timezone: attendee.timezone,
+    lifecycle_status: attendee.lifecycle_status,
+    status: attendee.event_status,
+  };
+  const showWay = mayShowWalkthrough(attendee.status, sessionTimes, Number(attendee.door_open) === 1);
+  // Its step photographs are signed for this seat, in this answer only, and
+  // stop at the end or when the seat or the host's door does (wayMedia.ts).
+  const venueGuide = showWay && attendee.venue_guide
+    ? await signWayGuide(env.JWT_SECRET, attendee.venue_guide, String(attendee.id), { endsAt: sessionEndsAt(sessionTimes) })
+    : null;
+
   // Address gating: only reveal full address + map to confirmed attendees
   const isConfirmed = attendee.status === 'confirmed';
+  // A tasting is told only to a confirmed seat; the session id is null until the first guest opens it.
+  const isTasting = isConfirmed && Number(attendee.is_tasting) === 1;
+  const tastingSessionId = isTasting
+    ? await eventTastingSessionId(env.DB, attendee.event_id as string, attendee.event_account_id as string)
+    : null;
 
   // Get revealed tea menu items
+  // A product of the session's own account or a public tea of Teajia's shop
+  // (Launch 2, H6); any other product id is read as the menu's plain name.
   const menu = await env.DB.prepare(
-    `SELECT etm.*, p.given_name, p.product_name, p.chinese_name, p.type, p.image_url, p.description as product_description
+    `SELECT etm.id, etm.event_id, etm.custom_name, etm.custom_description, etm.reveal_date,
+            etm.brew_order, etm.created_at, etm.photo_url,
+            -- A private account's own tea is named, never identified (A2 F4).
+            COALESCE(CASE WHEN ?3 = 1 THEN own.id END, shop.id) AS product_id,
+            COALESCE(own.given_name, shop.given_name) AS given_name,
+            COALESCE(own.product_name, shop.product_name) AS product_name,
+            COALESCE(own.chinese_name, shop.chinese_name) AS chinese_name,
+            COALESCE(own.type, shop.type) AS type,
+            COALESCE(etm.photo_url, CASE WHEN ?3 = 1 THEN own.image_url END, shop.image_url) AS image_url,
+            COALESCE(own.description, shop.description) AS product_description
      FROM event_tea_menu etm
-     LEFT JOIN products p ON p.id = etm.product_id
-     WHERE etm.event_id = ? AND (etm.reveal_date IS NULL OR etm.reveal_date <= datetime('now'))
+     ${menuProductJoins('etm', '?1')}
+     WHERE etm.event_id = ?2 AND (etm.reveal_date IS NULL OR etm.reveal_date <= datetime('now'))
      ORDER BY etm.brew_order ASC`
-  ).bind(attendee.event_id).all();
+  ).bind(attendee.account_id, attendee.event_id, Number(attendee.account_public) === 1 ? 1 : 0).all();
 
   // Get guest invites for this attendee
   const guestInvites = await env.DB.prepare(
@@ -13013,7 +13223,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
      FROM guest_invites WHERE parent_attendee_id = ?`
   ).bind(attendee.id).all();
 
-  return json({
+  return guestPageResponse({
     attendee: {
       id: attendee.id,
       full_name: attendee.full_name,
@@ -13047,13 +13257,13 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       event_date: attendee.event_date,
       event_end_date: attendee.event_end_date,
       location_name: attendee.location_name,
-      // Full address + map only revealed to confirmed attendees
-      address_text: isConfirmed ? attendee.address_text : null,
-      map_link: isConfirmed ? attendee.map_link : null,
+      // The way to the house, only while showWay holds.
+      address_text: showWay ? attendee.address_text : null,
+      map_link: showWay ? attendee.map_link : null,
       area_hint: attendee.area_hint,
       guidelines_text: attendee.guidelines_text,
-      venue_guide: isConfirmed ? attendee.venue_guide : null,
-      venue_photos: isConfirmed ? venuePhotos : [],
+      venue_guide: venueGuide,
+      venue_photos: venuePhotos,
       timezone: attendee.timezone,
       status: attendee.event_status,
       lifecycle_status: attendee.lifecycle_status,
@@ -13061,11 +13271,30 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       playlist_url: attendee.playlist_url,
       briefing_cards: briefingCards,
       mood_hints: moodHints,
+      is_tasting: isTasting,
+      tasting_session_id: tastingSessionId,
     },
     tea_menu: (menu.results as any[]).map(item => ({ ...item, product_description: reviewedDescription(item.product_id, item.product_description) })),
     guest_invites: guestInvites.results,
   });
 };
+
+// POST /api/rsvp/:token/tasting: a signed-in confirmed guest of a tasting joins its session (J8).
+const handleJoinRsvpTasting: Handler = async (request, env, params) => {
+  const actor = await requireAuthenticatedUser(request, env);
+  if ('error' in actor) return actor.error;
+  const outcome = await joinEventTasting(env.DB, params.token, { userId: actor.userId, name: actor.name });
+  return json(outcome.body, outcome.status);
+};
+
+// The guest's own page is theirs alone and changes with their seat: never kept
+// by a shared cache, and never kept by the browser either.
+function guestPageResponse(data: unknown, status = 200): Response {
+  const response = json(data, status);
+  response.headers.set('Cache-Control', 'private, no-store');
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  return response;
+}
 
 const handleUpdateRSVP: Handler = async (request, env, params) => {
   const attendee = await env.DB.prepare(
@@ -13086,26 +13315,14 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
     throw error;
   }
 
-  // Handle cancellation
+  // Handle cancellation: the guest gives back every seat their party holds,
+  // guarded on their status, and the freed seats are offered on (J9).
   if (update.action === 'cancel') {
-    if (update.cancellationNote !== undefined) {
-      await env.DB.prepare(
-        `UPDATE event_attendees SET status = 'cancelled', cancellation_note = ? WHERE id = ?`
-      ).bind(update.cancellationNote, attendee.id).run();
-    } else {
-      await env.DB.prepare(
-        `UPDATE event_attendees SET status = 'cancelled' WHERE id = ?`
-      ).bind(attendee.id).run();
-    }
-
-    // Cascade waitlist
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
-
-    return json({
-      success: true,
-      status: 'cancelled',
-      ...(update.cancellationNote !== undefined ? { cancellation_note: update.cancellationNote } : {}),
+    const result = await cancelGuestSeat(env.DB, {
+      accountId: attendee.account_id as string, eventId: attendee.eid as string,
+      attendeeId: attendee.id as string, cancellationNote: update.cancellationNote,
     });
+    return result ? json(result) : restError(409, 'This seat can no longer be changed here.', 'state_conflict');
   }
 
   const plusOneUpdate = body.plus_one === undefined ? null : {
@@ -13178,29 +13395,30 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
 
 const handleClaimSpot: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id
+    `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id,
+            (ea.claim_expires_at IS NOT NULL AND datetime(ea.claim_expires_at) > datetime('now')) AS offer_live
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
-     WHERE ea.magic_token = ? AND ea.status = 'waitlist'`
+     JOIN accounts a ON a.id = e.account_id
+     WHERE ea.magic_token = ? AND ea.status = 'waitlist' AND ${privateHostDoorSql(env)} AND NOT ${hostingStoppedSql('a')}`
   ).bind(params.token).first();
 
   if (!attendee) return json({ error: 'RSVP not found or not on waitlist' }, 404);
+  const scope = { eventId: attendee.eid as string, accountId: attendee.event_account_id as string };
+
+  // The offer ran out: it is cleared (only if still the same expired offer),
+  // and the seat moves on to the next guest, never back to this one (J9).
+  const expired = async () => {
+    await offerFreedSeats(env.DB, scope);
+    return json({ error: 'Claim window has expired', code: 'offer_expired' }, 410);
+  };
 
   if (!attendee.claim_expires_at) {
+    if (attendee.offer_lapsed_at) return json({ error: 'Claim window has expired', code: 'offer_expired' }, 410);
     return json({ error: 'No claim offer pending' }, 400);
   }
-
-  const expiresAt = new Date(attendee.claim_expires_at as string);
-  if (expiresAt <= new Date()) {
-    // Expired — cascade to next
-    await env.DB.prepare(
-      `UPDATE event_attendees SET claim_expires_at = NULL WHERE id = ?`
-    ).bind(attendee.id).run();
-
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
-
-    return json({ error: 'Claim window has expired' }, 410);
-  }
+  // Liveness is decided by SQLite, the same clock the guarded write reads.
+  if (Number(attendee.offer_live) !== 1) return expired();
 
   const primary = await env.DB.prepare(
     `SELECT id, full_name, seat_status FROM event_party_members
@@ -13227,13 +13445,21 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
       targetState: 'confirmed',
     }],
   });
-  if (!reserved.ok) return seatReservationError(reserved);
+  if (!reserved.ok) {
+    // The deadline may have passed between the read and the write.
+    const still = await env.DB.prepare(
+      `SELECT 1 AS live FROM event_attendees WHERE id = ? AND status = 'waitlist' AND claim_expires_at = ?
+         AND datetime(claim_expires_at) > datetime('now')`
+    ).bind(attendee.id, attendee.claim_expires_at).first();
+    if (!still) {
+      const now = await env.DB.prepare('SELECT status FROM event_attendees WHERE id = ?').bind(attendee.id).first<{ status: string }>();
+      if (now?.status === 'waitlist') return expired();
+    }
+    return seatReservationError(reserved);
+  }
 
-  // Create spot_claimed notification
-  await env.DB.prepare(
-    `INSERT INTO event_notifications (id, event_id, attendee_id, type, message_template, status)
-     VALUES (?, ?, ?, 'spot_claimed', 'You have claimed your spot!', 'sent')`
-  ).bind(crypto.randomUUID(), attendee.eid, attendee.id).run();
+  // The host is told on their table page and in Manage. Nothing is sent.
+  await recordSeatNotice(env.DB, { ...scope, attendeeId: attendee.id as string, kind: 'claimed', seats: 1 });
 
   return json({ success: true, status: 'confirmed' });
 };
@@ -13496,7 +13722,8 @@ const handleSubmitTastingNotes: Handler = async (request, env, params) => {
 
 const handleFindRSVP: Handler = async (request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id FROM events WHERE slug = ?`
+    `SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND ${privateHostDoorSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -13509,6 +13736,7 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 
   let lookupField: string;
   let lookupValue: string;
+  let accountUserId: string | null = null;
 
   // Account-based lookup: authenticated request with no body
   const token = isAuthed(request);
@@ -13522,22 +13750,26 @@ const handleFindRSVP: Handler = async (request, env, params) => {
     if (!claims?.email) return json({ error: 'Account email not found' }, 400);
     lookupField = 'email';
     lookupValue = claims.email;
+    // A seat taken signed in by name alone (a by-link door, slice H5) is found by the account.
+    accountUserId = claims.sub ?? null;
   } else {
-    const body = await request.json() as { phone_number?: string; email?: string };
-    if (body.phone_number) {
+    // Blank or digit-less contact is no contact: it must never match a guest who gave none.
+    const given = seatContact(await request.json() as { phone_number?: unknown; email?: unknown });
+    if (given.phone) {
       lookupField = 'phone_number';
-      lookupValue = body.phone_number;
-    } else if (body.email) {
+      lookupValue = given.phone;
+    } else if (given.email) {
       lookupField = 'email';
-      lookupValue = body.email;
+      lookupValue = given.email;
     } else {
       return json({ error: 'phone_number or email is required' }, 400);
     }
   }
 
   let attendee = await env.DB.prepare(
-    `SELECT magic_token, status, email FROM event_attendees WHERE event_id = ? AND ${lookupField} = ?`
-  ).bind(event.id, lookupValue).first();
+    `SELECT magic_token, status, email FROM event_attendees
+      WHERE event_id = ? AND (${lookupField} = ?${accountUserId ? ' OR user_id = ?' : ''})`
+  ).bind(event.id, lookupValue, ...(accountUserId ? [accountUserId] : [])).first();
 
   // Phone fallback: match on last 9 digits to handle "+886 912 345 678" vs "+886912345678" vs "0912 345 678"
   if (!attendee && lookupField === 'phone_number') {
@@ -13686,6 +13918,8 @@ const handleGetEvent: Handler = async (request, env, params) => {
   `).bind(params.id, accountId).first();
 
   if (!result) return json({ error: 'Event not found' }, 404);
+  // The host's own read of the guide, its step photographs signed (wayMedia.ts).
+  if (result.venue_guide) result.venue_guide = await signWayGuide(env.JWT_SECRET, result.venue_guide, WAY_HOST);
   return json(result);
 };
 
@@ -13718,6 +13952,9 @@ const handleCreateEvent: Handler = async (request, env) => {
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
   if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
 
+  const guardedGuide = guardGuideWrite(body.venue_guide, accountId, null);
+  if ('refused' in guardedGuide) return restError(guardedGuide.refused.status, guardedGuide.refused.error, guardedGuide.refused.code);
+
   const id = crypto.randomUUID();
 
   await env.DB.prepare(
@@ -13740,7 +13977,7 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.address_text || null,
     body.map_link || null,
     body.guidelines_text || null,
-    body.venue_guide || null,
+    guardedGuide.venue_guide,
     body.total_capacity,
     body.claim_window_minutes || 60,
     body.timezone || 'Asia/Taipei',
@@ -13767,7 +14004,11 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = normalizeEventUpdate(await request.json() as Record<string, any>) as Record<string, any>;
+  return updateEvent(env, accountId, params.id, await request.json() as Record<string, unknown>);
+};
+
+async function updateEvent(env: Env, accountId: string, eventId: string, input: Record<string, unknown>, hostId?: string) {
+  const body = normalizeEventUpdate(input) as Record<string, any>;
   delete body.account_id;
 
   if (body.lifecycle_status !== undefined && !isEventLifecycleStatus(body.lifecycle_status)) {
@@ -13779,7 +14020,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
 
   const currentEvent = await env.DB.prepare(
     'SELECT status, lifecycle_status FROM events WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first<{ status: string; lifecycle_status: string }>();
+  ).bind(eventId, accountId).first<{ status: string; lifecycle_status: string }>();
   if (!currentEvent) return json({ error: 'Event not found' }, 404);
 
   let requestedLifecycle: EventLifecycle | undefined;
@@ -13827,6 +14068,32 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
     body.briefing_cards = JSON.stringify(body.briefing_cards);
   }
   if (body.event_format === undefined) delete body.event_format;
+  if (body.contribution_kind !== undefined) {
+    if (body.contribution_kind === '' ) body.contribution_kind = null;
+    if (body.contribution_kind !== null && !['free', 'contribution', 'price'].includes(body.contribution_kind)) {
+      return json({ error: 'Choose free, by contribution, or a price, or say nothing.' }, 400);
+    }
+  }
+  if (body.is_tasting !== undefined) {
+    const flag = enteredTastingFlag(body.is_tasting);
+    if (flag === undefined) return json({ error: 'Say whether this is a tasting: true or false.' }, 400);
+    body.is_tasting = flag;
+  }
+  if (body.contribution_note !== undefined) {
+    const note = typeof body.contribution_note === 'string' ? body.contribution_note.trim() : null;
+    if (note && note.length > 140) return json({ error: 'Keep the line to 140 characters.' }, 400);
+    body.contribution_note = note || null;
+  }
+  if (body.venue_guide !== undefined) {
+    // The same rule as the host's own page (hostTableWay.ts, A2 F3): a step
+    // photograph is this account's own, so a guide never points a guest's
+    // phone at another server.
+    const stored = await env.DB.prepare('SELECT venue_guide FROM events WHERE id = ? AND account_id = ?')
+      .bind(eventId, accountId).first<{ venue_guide: string | null }>();
+    const guarded = guardGuideWrite(body.venue_guide, accountId, stored?.venue_guide ?? null);
+    if ('refused' in guarded) return restError(guarded.refused.status, guarded.refused.error, guarded.refused.code);
+    body.venue_guide = guarded.venue_guide;
+  }
   if (body.reading_article_id !== undefined) {
     // One published article of this shop, or nothing (Launch 1, the first table).
     if (body.reading_article_id === null || body.reading_article_id === '') {
@@ -13836,28 +14103,60 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
     }
   }
 
-  const EVENT_ALLOWED_COLS = new Set(['reading_article_id','title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
+  const EVENT_ALLOWED_COLS = new Set(['reading_article_id','title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval','contribution_kind','contribution_note','is_tasting']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
+  // A hosted table's door is changed on the table's own page, which keeps the
+  // door and requires_approval together (slice H5, case 4).
+  const door = cols.includes('requires_approval')
+    ? (await env.DB.prepare('SELECT door FROM events WHERE id = ? AND account_id = ?')
+      .bind(eventId, accountId).first<{ door: string | null }>())?.door ?? null
+    : null;
+  if (door) {
+    const asks = Number(body.requires_approval) ? 1 : 0;
+    if (asks !== (door === 'link' ? 0 : 1)) {
+      return json({ error: 'This table has a door. Change it on the table’s own page.', code: 'hosted_table_door' }, 409);
+    }
+  }
+
+  // Seats never go below the seats already taken (slice H5, case 5). The guard
+  // is in the write, so a seat taken at the same moment cannot slip under it.
+  // A capacity that is not lowered is never refused, so an event that is
+  // already over its number can still be edited.
+  const capacity = cols.includes('total_capacity') ? body.total_capacity ?? null : null;
+  const capacityGuard = capacity === null ? ''
+    : ` AND (CAST(? AS INTEGER) >= total_capacity OR CAST(? AS INTEGER) >= ${seatsTakenSql('events')})`;
   const sets = cols.map(c => `${c} = ?`).join(', ');
   const lifecycleCompare = requestedLifecycle !== undefined ? currentLifecycle : undefined;
   const result = await env.DB.prepare(
     `UPDATE events SET ${sets}, updated_at = datetime('now')
-     WHERE id = ? AND account_id = ?${lifecycleCompare !== undefined ? ' AND lifecycle_status = ?' : ''}`
+     WHERE id = ? AND account_id = ?${lifecycleCompare !== undefined ? ' AND lifecycle_status = ?' : ''}${capacityGuard}${hostId === undefined ? '' : ' AND host_user_id = ?'}`
   ).bind(
     ...cols.map(c => body[c] ?? null),
-    params.id,
+    eventId,
     accountId,
     ...(lifecycleCompare !== undefined ? [lifecycleCompare] : []),
+    ...(capacity === null ? [] : [capacity, capacity]),
+    ...(hostId === undefined ? [] : [hostId]),
   ).run();
+  if (Number(result.meta?.changes || 0) === 0 && capacity !== null) {
+    const taken = await seatsTaken(env.DB, { id: eventId, account_id: accountId });
+    if (Number(capacity) < taken) {
+      return json({
+        error: `${taken} ${taken === 1 ? 'seat is' : 'seats are'} already taken, so the session needs at least ${taken}.`,
+        code: 'capacity_below_held_seats',
+        seats_held: taken,
+      }, 409);
+    }
+  }
   if (Number(result.meta?.changes || 0) === 0 && lifecycleCompare !== undefined) {
     return json({ error: 'Event lifecycle changed; retry the update' }, 409);
   }
   if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Event not found' }, 404);
 
   return json({ success: true });
-};
+}
 
 const handleDeleteEvent: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
@@ -13938,8 +14237,14 @@ const handleGetAttendees: Handler = async (request, env, params) => {
     };
   });
 
-  return json(attendeesWithJourney);
+  // A guest's own page link goes to the owner and the session's host only.
+  return json(await withoutForeignGuestLinks(env.DB, guestLinkCaller(ctx), attendeesWithJourney));
 };
+
+/** The caller as guestLinkHolders.ts reads them: the owner tier holds every guest link. */
+function guestLinkCaller(ctx: AccountCtx) {
+  return { userId: ctx.userId, accountId: ctx.accountId, isOwner: ctx.role === 'owner' };
+}
 
 // GET /api/admin/pending-attendees — cross-event pending RSVPs
 const handleGetPendingAttendees: Handler = async (request, env) => {
@@ -14038,7 +14343,7 @@ const handleGetPendingAttendees: Handler = async (request, env) => {
     };
   });
 
-  return json(enriched);
+  return json(await withoutForeignGuestLinks(env.DB, guestLinkCaller(ctx), enriched));
 };
 
 // Helper: verify event belongs to the caller's account. Returns a 404-style
@@ -14069,19 +14374,41 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
-  const ATTENDEE_ALLOWED_COLS = new Set(['status','notes','checked_in','attended','paid','payment_method','paid_amount','seat_assignment','guest_count','dietary_notes','rsvp_token','customer_id']);
+  // A seat's status changes only through the guarded routes (J9): approve,
+  // deny and waitlist have their own, and cancelled gives back the party's
+  // seats here through releaseSeats. Nothing writes status directly.
+  if ('status' in body && body.status !== attendee.status && body.status !== 'cancelled') {
+    return json({ error: 'Change a seat with approve, deny or waitlist.', code: 'status_needs_its_route' }, 409);
+  }
+  const ATTENDEE_ALLOWED_COLS = new Set(['notes','checked_in','attended','paid','payment_method','paid_amount','seat_assignment','guest_count','dietary_notes','rsvp_token','customer_id']);
   const cols = Object.keys(body).filter(k => ATTENDEE_ALLOWED_COLS.has(k));
-  if (cols.length === 0) return json({ success: true });
-  const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE event_attendees SET ${sets} WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
-  await ensureContactRelationship(env, accountId, body.customer_id, 'event_guest', 'workflow', 'event_attendee', params.id);
+  if (cols.length > 0) {
+    const sets = cols.map(c => `${c} = ?`).join(', ');
+    await env.DB.prepare(`UPDATE event_attendees SET ${sets} WHERE id = ?`)
+      .bind(...cols.map(c => body[c] ?? null), params.id).run();
+    await ensureContactRelationship(env, accountId, body.customer_id, 'event_guest', 'workflow', 'event_attendee', params.id);
+  }
 
   if (body.status === 'cancelled' && attendee.status !== 'cancelled') {
-    await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
+    const released = await releaseSeats(env.DB, {
+      accountId, eventId: attendee.eid as string, attendeeId: params.id,
+      from: ['confirmed', 'requested', 'waitlist'], kind: 'released',
+    });
+    if (!released) return json({ error: 'This seat changed while you were looking. Open it again.', code: 'state_conflict' }, 409);
+    if (released.seats > 0) await offerFreedSeats(env.DB, { eventId: attendee.eid as string, accountId });
   }
 
   return json({ success: true });
+};
+
+// GET /api/admin/events/:id/seat-notices. What happened to the session's
+// seats (J9), for the shop in Manage. An in-app list; nothing is sent.
+const handleGetSeatNotices: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'gather');
+  if ('error' in ctx) return ctx.error;
+  const guard = await assertEventInAccount(env, params.id, ctx.accountId);
+  if (guard) return guard;
+  return json({ notices: await seatNoticesFor(env.DB, { eventId: params.id, accountId: ctx.accountId }) });
 };
 
 const handleGetNotifications: Handler = async (request, env, params) => {
@@ -14448,25 +14775,36 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const body = await request.json() as { slug: string; event_date: string };
+  return duplicateEvent(env, accountId, params.id, await request.json() as { slug: string; event_date: string });
+};
+
+async function duplicateEvent(env: Env, accountId: string, sourceId: string,
+  body: { slug: string; event_date: string }, host?: { userId: string; preview: boolean },
+) {
   if (!body.slug || !body.event_date) return json({ error: 'slug and event_date are required' }, 400);
 
+  const slugInUse = () => json({ error: 'An event with this slug already exists' }, 409);
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
-  if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
+  if (existingSlug) return slugInUse();
 
-  const source = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).first();
+  if (host && !parseEventDateRepresentation(body.event_date)) {
+    return restError(400, 'Give a valid date and time for the new table.', 'invalid_event_date');
+  }
+  const source = await env.DB.prepare(`SELECT * FROM events WHERE id = ? AND account_id = ?${host ? ' AND host_user_id = ?' : ''}`)
+    .bind(sourceId, accountId, ...(host ? [host.userId] : [])).first();
   if (!source) return json({ error: 'Source event not found' }, 404);
+  if (host?.preview) return json({ ok: true });
 
   const newId = crypto.randomUUID();
   const duplicateEndDate = duplicateEventEndDate(source.event_date, source.event_end_date, body.event_date);
 
-  await env.DB.prepare(
+  const insert = env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery,
+       host_user_id, door, is_tasting)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -14497,30 +14835,36 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.requires_approval !== undefined ? source.requires_approval : 1,
     // A copy is never more visible than the session it was made from.
     source.public_visibility ?? 'public',
-    source.network_discovery ?? 1
-  ).run();
+    source.network_discovery ?? 1,
+    source.host_user_id ?? null,
+    source.door ?? null,
+    source.host_user_id ? (source.is_tasting ?? 0) : 0,
+  );
 
-  // F38: Clone tea menu entries (including all brewing fields)
+  // Keep the draft and its tea menu together if a write fails.
   const menu = await env.DB.prepare(
     'SELECT * FROM event_tea_menu WHERE event_id = ? AND account_id = ?'
-  ).bind(params.id, accountId).all();
-  if (menu.results.length > 0) {
-    const menuStmts = (menu.results as any[]).map(m =>
-      env.DB.prepare(
-        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        crypto.randomUUID(), accountId, newId,
-        m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order
-      )
-    );
-    await env.DB.batch(menuStmts);
+  ).bind(sourceId, accountId).all();
+  const menuStmts = menu.results.map(m =>
+    env.DB.prepare(
+      `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(), accountId, newId,
+      m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order
+    )
+  );
+  try {
+    await env.DB.batch([insert, ...menuStmts]);
+  } catch (error) {
+    if (error instanceof Error && /UNIQUE constraint failed: events\.slug/i.test(error.message)) return slugInUse();
+    throw error;
   }
 
   const created = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
     .bind(newId, accountId).first();
   return json(created || { id: newId, account_id: accountId, slug: body.slug, event_date: body.event_date }, 201);
-};
+}
 
 const handleBatchAttendance: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
@@ -14563,44 +14907,54 @@ const handleGetTeaMenu: Handler = async (request, env, params) => {
   return json(result.results);
 };
 
+// A shop's tea list shows for a public session only, as before. An approved
+// host's table is always unlisted and lives by its link, so its tea list
+// opens through the same door as its page (Launch 2, H2).
 const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT e.id, e.account_id
+    `SELECT e.id, e.account_id, (a.public_enabled = 1 AND a.status = 'active') AS account_public
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ?
        AND e.status = 'active'
        AND e.lifecycle_status = 'published'
-       AND e.public_visibility = 'public'
-       AND a.status = 'active'
-       AND a.public_enabled = 1`
+       AND ((e.public_visibility = 'public' AND ${PUBLIC_EVENT_HOST})
+         OR (${PUBLIC_EVENT_DIRECT} AND ${personalAccountSql('a')} AND ${sessionLinkHostSql(env)}))`
   ).bind(params.slug).first();
   if (!event) return json({ error: 'Event not found' }, 404);
 
+  // A tea of the session's own account, as before, or a public tea of
+  // Teajia's shop, which also carries its shop page (Launch 2, H6). Any other
+  // product id is read as the menu's plain name: no product fields, no id.
   const result = await env.DB.prepare(
     `SELECT
        etm.id,
        etm.event_id,
-       etm.product_id,
+       -- A private account's own tea is named, never identified: no product
+       -- id and no product photograph unless the account is public (A2 F4).
+       COALESCE(CASE WHEN ?3 = 1 THEN own.id END, shop.id) AS product_id,
        etm.custom_name,
        etm.custom_description,
        etm.reveal_date,
        etm.brew_order,
-       p.given_name,
-       p.product_name,
-       p.chinese_name,
-       p.type AS product_type,
-       p.image_url AS product_image_url
+       COALESCE(own.given_name, shop.given_name) AS given_name,
+       COALESCE(own.product_name, shop.product_name) AS product_name,
+       COALESCE(own.chinese_name, shop.chinese_name) AS chinese_name,
+       COALESCE(own.type, shop.type) AS product_type,
+       COALESCE(etm.photo_url, CASE WHEN ?3 = 1 THEN own.image_url END, shop.image_url) AS product_image_url,
+       ${shopTeaAddressColumns()}
      FROM event_tea_menu etm
-     LEFT JOIN products p
-       ON p.id = etm.product_id AND p.account_id = etm.account_id
-     WHERE etm.event_id = ?
-       AND etm.account_id = ?
+     ${menuProductJoins('etm')}
+     WHERE etm.event_id = ?1
+       AND etm.account_id = ?2
        AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
      ORDER BY etm.brew_order ASC`
-  ).bind(event.id, event.account_id).all();
+  ).bind(event.id, event.account_id, Number(event.account_public) === 1 ? 1 : 0).all<Record<string, unknown>>();
 
-  return json(result.results || []);
+  return json((result.results || []).map(({ shop_address, shop_store, ...row }) => ({
+    ...row,
+    shop_path: shop_address ? shopTeaPath(String(shop_address), shop_store ? String(shop_store) : null) : null,
+  })));
 };
 
 const handleUpsertTeaMenu: Handler = async (request, env, params) => {
@@ -14746,13 +15100,20 @@ const handleUploadFlyer: Handler = async (request, env) => {
   if (fileError) return fileError;
 
   const ext = safeUploadExtension(file.type);
-  const key = `accounts/${accountId}/flyers/${crypto.randomUUID()}.${ext}`;
+  // A step photograph of the way in is kept apart from flyers, so it is served
+  // private and short-lived (sessionWalkthrough.ts).
+  const folder = formData.get('purpose') === 'venue-guide' ? 'venue-guide' : 'flyers';
+  const key = `accounts/${accountId}/${folder}/${crypto.randomUUID()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
     httpMetadata: { contentType: file.type },
   });
 
-  const publicUrl = `https://media.teajia.co/${key}`;
+  // A step photograph is shown back to its host by a signed address; the
+  // guide stores it bare (hostTableWay.ts guardGuideWrite).
+  const publicUrl = folder === 'venue-guide' && env.JWT_SECRET
+    ? await signedWayPhotoUrl(env.JWT_SECRET, key, WAY_HOST, Math.floor(Date.now() / 1000) + WAY_SIGNED_SECONDS)
+    : `https://media.teajia.co/${key}`;
 
   return json({ url: publicUrl, key }, 201);
 };
@@ -14765,7 +15126,9 @@ const handleGetSavedLocations: Handler = async (request, env) => {
   const result = await env.DB.prepare(
     'SELECT * FROM saved_locations WHERE account_id = ? ORDER BY name ASC'
   ).bind(accountId).all();
-  return json(result.results);
+  return json(await Promise.all((result.results as Record<string, unknown>[]).map(async place => (
+    place.venue_guide ? { ...place, venue_guide: await signWayGuide(env.JWT_SECRET, place.venue_guide, WAY_HOST) } : place
+  ))));
 };
 
 const handleCreateSavedLocation: Handler = async (request, env) => {
@@ -14774,6 +15137,9 @@ const handleCreateSavedLocation: Handler = async (request, env) => {
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
   if (!body.name || !body.address) return json({ error: 'name and address are required' }, 400);
+  const guarded = guardGuideWrite(body.venue_guide, accountId, null);
+  if ('refused' in guarded) return restError(guarded.refused.status, guarded.refused.error, guarded.refused.code);
+  body.venue_guide = guarded.venue_guide;
   const id = crypto.randomUUID();
   await env.DB.prepare(
     `INSERT INTO saved_locations (id, account_id, name, address, map_link, guidelines, venue_guide)
@@ -14791,6 +15157,13 @@ const handleUpdateSavedLocation: Handler = async (request, env, params) => {
   const LOCATION_ALLOWED_COLS = new Set(['name','address','city','country','notes','type','latitude','longitude','website','phone','map_link','guidelines','venue_guide']);
   const cols = Object.keys(body).filter(k => LOCATION_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  if (body.venue_guide !== undefined) {
+    const stored = await env.DB.prepare('SELECT venue_guide FROM saved_locations WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first<{ venue_guide: string | null }>();
+    const guarded = guardGuideWrite(body.venue_guide, accountId, stored?.venue_guide ?? null);
+    if ('refused' in guarded) return restError(guarded.refused.status, guarded.refused.error, guarded.refused.code);
+    body.venue_guide = guarded.venue_guide;
+  }
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
     `UPDATE saved_locations SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
@@ -16470,32 +16843,41 @@ const handlePersonalInventoryAccount: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const existing = await personalInventoryAccount(env.DB, ctx.userId);
   if (request.method === 'GET' || existing) return json({ account: existing });
+  const account = await ensurePersonalInventoryAccount(env.DB, ctx.userId, ctx.name);
+  return account ? json({ account }) : json({ error: 'Your Tea Chest account is unavailable.' }, 409);
+};
 
+// The one person's own small private account, made on demand. Used by the
+// Tea Chest and by hosting a table (Launch 2), so both open the same account.
+async function ensurePersonalInventoryAccount(db: D1Database, userId: string, name: string | undefined) {
+  const existing = await personalInventoryAccount(db, userId);
+  if (existing) return existing;
   const id = newId('acc');
-  const displayName = ctx.name?.trim();
+  const displayName = name?.trim();
   const stem = normalizeShelfSlug(displayName || '').slice(0, 24);
   const suffix = crypto.randomUUID().slice(0, 12);
   const slug = `${stem || 'tea-chest'}-${suffix}`;
-  const name = displayName ? `${displayName}’s Tea Chest` : 'Tea Chest';
+  const accountName = displayName ? `${displayName}’s Tea Chest` : 'Tea Chest';
   // Both statements commit together. The unique person link makes concurrent
   // requests use the same account and never adds an owner to a different shop.
-  await env.DB.batch([
-    env.DB.prepare(`
+  // Seller and host approval are kept on the person and copied on here.
+  await db.batch([
+    db.prepare(`
       INSERT INTO accounts (id, slug, name, kind, status, public_enabled, owner_user_id,
                             personal_inventory_user_id, invoice_prefix, contact_email,
-                            personal_seller_approved_at, personal_seller_approved_by)
+                            personal_seller_approved_at, personal_seller_approved_by,
+                            host_approved_at, host_approved_by)
       SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA', NULLIF(trim(email), ''),
-             seller_approved_at, seller_approved_by FROM users WHERE id = ?
+             seller_approved_at, seller_approved_by, host_approved_at, host_approved_by FROM users WHERE id = ?
       ON CONFLICT(personal_inventory_user_id) DO NOTHING
-    `).bind(id, slug, name, ctx.userId),
-    env.DB.prepare(`
+    `).bind(id, slug, accountName, userId),
+    db.prepare(`
       INSERT INTO account_members (account_id, user_id, role, status)
       SELECT id, owner_user_id, 'owner', 'active' FROM accounts WHERE id = ? AND personal_inventory_user_id = ?
-    `).bind(id, ctx.userId),
+    `).bind(id, userId),
   ]);
-  const account = await personalInventoryAccount(env.DB, ctx.userId);
-  return account ? json({ account }) : json({ error: 'Your Tea Chest account is unavailable.' }, 409);
-};
+  return personalInventoryAccount(db, userId);
+}
 
 type PersonalStockOffer = {
   product_id: string;
@@ -16863,6 +17245,580 @@ const handleSellerApproval: Handler = async (request, env, params) => {
   if (!result) return json({ error: 'User not found' }, 404);
   await logPlatformAction(env, 'seller.approval_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { approved: body.approved });
   return json({ ok: true, may_sell: body.approved });
+};
+
+// ── Launch 2, a few hosts (todo/plans/guests-and-tea-masters-launch-2-run.md, slice H1) ──
+// Two gates stand together: the switch (src/lib/fewHosts.ts) and the person's
+// host approval (hostApproval.ts). While the switch is closed every route here
+// answers 404, as if it did not exist. A signed-in person who may not host
+// also gets 404 from the host routes.
+//
+// Adrian, 2026-11-26: anyone may make their own table; his approval is a
+// second level that adds the by-link door. Launch 2 lets approved hosts only.
+// Launch 3 lifts the gate by passing its switch into fewHostsAnyoneHosts
+// below; nothing else changes shape.
+
+const fewHostsClosed = () => json({ error: 'Not found' }, 404);
+
+// Launch 3 (slice J2): anyone signed in may host by request once
+// ANYONE_HOSTS_OPEN is on (hostApproval.ts, the J1 contract). Off, this is
+// false and everything is exactly Launch 2.
+function fewHostsAnyoneHosts(env: Env): boolean {
+  return anyoneMayHost(env);
+}
+
+const hostingStoppedAnswer = (what: 'table' | 'seat' | 'change') => restError(403, {
+  table: 'New tables are paused on your account. Write to Teajia to talk it over.',
+  seat: 'New seats are paused on your account. Guests already confirmed keep their seats.',
+  change: 'Your tables are paused, so their door and seats stay as they are.',
+}[what], 'hosting_stopped');
+
+// Whether this account is the private account of a host Adrian stopped. The
+// shop's own Sessions room seats a guest through the same allocator as the
+// host's page, so its yes is refused the same way.
+async function accountHostingStopped(env: Env, accountId: string): Promise<boolean> {
+  const row = await env.DB.prepare(`SELECT ${hostingStoppedSql('a')} AS stopped FROM accounts a WHERE a.id = ?`)
+    .bind(accountId).first<{ stopped: number }>();
+  return Number(row?.stopped) === 1;
+}
+
+// A stopped host (Launch 3, J2) still opens the tables they already host, to
+// see who is coming and to mark who came, with no door to give. Every write
+// that would seat someone new refuses them through hostingStoppedAnswer.
+async function requireFewHostsHost(request: Request, env: Env): Promise<
+  { userId: string; name: string; approved: boolean; stopped: boolean; doors: HostedTableDoor[] } | { error: Response }
+> {
+  if (!fewHostsOpen(env)) return { error: fewHostsClosed() };
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx;
+  const access = await hostedTableAccess(env, ctx.userId);
+  return access ? { ...access, name: ctx.name } : { error: fewHostsClosed() };
+}
+
+async function hostedTableAccess(env: Env, userId: string) {
+  const standing = await hostStanding(env.DB, userId);
+  const doors = hostDoorsFor(standing, fewHostsAnyoneHosts(env));
+  if (!doors && !(standing.stopped && await hostsAnyTable(env.DB, userId))) return null;
+  return { userId, approved: standing.approved, stopped: standing.stopped, doors: doors ?? [] };
+}
+
+// PUT /api/platform/users/:id/host-approval {approved}. Adrian alone.
+const handleHostApproval: Handler = async (request, env, params) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { approved?: unknown } | null;
+  if (typeof body?.approved !== 'boolean') return json({ error: 'Say whether this person may host.' }, 400);
+  const actor = parseToken(isAuthed(request)!);
+  const result = await setHostApproval(env.DB, params.id, body.approved, actor?.sub ?? 'unknown');
+  if (!result) return json({ error: 'User not found' }, 404);
+  await logPlatformAction(env, 'host.approval_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { approved: body.approved });
+  return json({ ok: true, may_host: body.approved });
+};
+
+// PUT /api/platform/users/:id/hosting-stopped {stopped}. Adrian alone (Launch
+// 3, J2): no new table and no new seat for this person, or hosting again.
+// Their sessions, guests and approval stay as they were.
+const handleHostingStopped: Handler = async (request, env, params) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { stopped?: unknown } | null;
+  if (typeof body?.stopped !== 'boolean') return json({ error: 'Say whether this person’s hosting is stopped.' }, 400);
+  const actor = parseToken(isAuthed(request)!);
+  return changeHostingStopped(env, params.id, body.stopped, actor?.sub ?? 'unknown', actor?.email ?? '');
+};
+
+// PUT /api/platform/users/:id/host-reach {reach}. Adrian alone (Launch 3,
+// J10): how far this host's open tables are shown. 'invitation' (by their
+// link only), 'teajia' (to people signed in), 'listed' (the public sessions
+// list). Only while Launch 3 is open. Read by the server only; the answer
+// goes to his Manage and nowhere else.
+const handleHostReach: Handler = async (request, env, params) => {
+  if (!fewHostsOpen(env) || !anyoneMayHost(env)) return fewHostsClosed();
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { reach?: unknown } | null;
+  if (!isHostReach(body?.reach)) return json({ error: 'Say how far this host’s tables are shown: invitation, teajia or listed.' }, 400);
+  const actor = parseToken(isAuthed(request)!);
+  const result = await setHostReach(env.DB, params.id, body.reach);
+  if (!result) return json({ error: 'User not found' }, 404);
+  await logPlatformAction(env, 'host.reach_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { reach: body.reach });
+  return json({ ok: true, host_reach: result.reach });
+};
+
+async function changeHostingStopped(env: Env, userId: string, stopped: boolean, actorId: string, email: string) {
+  const result = await setHostingStopped(env.DB, userId, stopped, actorId);
+  if (!result) return json({ error: 'User not found' }, 404);
+  await logPlatformAction(env, 'host.hosting_stopped_changed', actorId, email, 'user', userId, { stopped });
+  return json({ ok: true, hosting_stopped: stopped });
+}
+
+// GET /api/me/hosting. Whether the signed-in person may host, and their
+// personal account when they have one. Makes nothing.
+const handleGetHosting: Handler = async (request, env) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const [standing, account] = await Promise.all([
+    hostStanding(env.DB, ctx.userId),
+    personalInventoryAccount(env.DB, ctx.userId),
+  ]);
+  // doors: what this person may give a table, or null when they may not host yet.
+  // stopped is told to the person themself only, and only when true.
+  return json({
+    approved: standing.approved, account_id: account?.id ?? null,
+    doors: hostDoorsFor(standing, fewHostsAnyoneHosts(env)),
+    ...(standing.stopped ? { stopped: true } : {}),
+  });
+};
+
+const HOSTED_TABLE_DEFAULT_SEATS = 6;
+const HOSTED_TABLE_MAX_SEATS = 40;
+const HOSTED_TABLE_NAME_MAX = 120;
+
+function validTimeZone(zone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readHostedTableInput(body: Record<string, unknown> | null, doors: HostedTableDoor[]):
+  | { date: string; time: string; timezone: string; seats: number; door: HostedTableDoor; name: string | null }
+  | { refusal: Response } {
+  const refuse = (message: string, code: string) => ({ refusal: restError(400, message, code) });
+  if (!body) return refuse('Give a day and a time for the table.', 'hosted_table_invalid');
+  const date = typeof body.date === 'string' ? body.date.trim() : '';
+  const time = typeof body.time === 'string' ? body.time.trim() : '';
+  const timezone = typeof body.timezone === 'string' ? body.timezone.trim() : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))
+    || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date) {
+    return refuse('Give the day as a date.', 'hosted_table_date');
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return refuse('Give the time as hours and minutes.', 'hosted_table_time');
+  if (!timezone || !validTimeZone(timezone)) return refuse('Give the time zone the table is in.', 'hosted_table_timezone');
+  let seats = HOSTED_TABLE_DEFAULT_SEATS;
+  if (body.seats !== undefined && body.seats !== null) {
+    if (typeof body.seats !== 'number' || !Number.isInteger(body.seats) || body.seats < 1 || body.seats > HOSTED_TABLE_MAX_SEATS) {
+      return refuse(`Seats are a whole number from 1 to ${HOSTED_TABLE_MAX_SEATS}.`, 'hosted_table_seats');
+    }
+    seats = body.seats;
+  }
+  const doorInput = body.door ?? 'request';
+  // 'open' (Launch 3, J10) is read only for a host hostDoorsFor offers it to;
+  // anyone else is refused it exactly as before, with nothing naming reach.
+  if (doorInput !== 'request' && doorInput !== 'link' && !(doorInput === 'open' && doors.includes('open'))) {
+    return refuse('A table opens by request or by link.', 'hosted_table_door');
+  }
+  let name: string | null = null;
+  if (body.name !== undefined && body.name !== null) {
+    if (typeof body.name !== 'string') return refuse('Give the table’s name as words.', 'hosted_table_name');
+    name = body.name.trim() || null;
+    if (name && name.length > HOSTED_TABLE_NAME_MAX) {
+      return refuse(`Keep the table’s name under ${HOSTED_TABLE_NAME_MAX} characters.`, 'hosted_table_name');
+    }
+  }
+  return { date, time, timezone, seats, door: doorInput, name };
+}
+
+// POST /api/me/tables {date, time, timezone, seats?, door?, name?}. An
+// approved host makes one table in their personal account.
+const handleCreateHostedTable: Handler = async (request, env) => {
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const input = readHostedTableInput(await request.json().catch(() => null) as Record<string, unknown> | null, host.doors);
+  if ('refusal' in input) return input.refusal;
+  // The by-link door is the approved host's (Adrian, 2026-11-26).
+  if (host.stopped) return hostingStoppedAnswer('table');
+  if (!host.doors.includes(input.door)) {
+    return restError(403, 'A table by link opens once Teajia has approved you as a host. A table by request is yours now.', 'hosted_table_door_needs_approval');
+  }
+  const account = await ensurePersonalInventoryAccount(env.DB, host.userId, host.name);
+  if (!account) return json({ error: 'Your account is unavailable.' }, 409);
+  const table = await createHostedTable(env.DB, {
+    ...input, accountId: account.id, hostUserId: host.userId, hostName: host.name, appOrigin: appOrigin(env),
+  });
+  // The stub (hostTable.ts) returns null until slice H3 builds it.
+  if (!table) return json({ error: 'Not built yet' }, 501);
+  // A refusal from the table writer (a day already past, for one) is the
+  // caller's to fix, never a server fault.
+  if ('refused' in table) return restError(400, table.refused.error, table.refused.code);
+  return json(table, 201);
+};
+
+// The caller's own hosted tables: their personal account, and they are its host.
+const OWN_HOSTED_TABLE_SQL = 'e.account_id = ? AND e.host_user_id = ?';
+
+// GET /api/me/tables. The host's own tables, newest first.
+const handleListHostedTables: Handler = async (request, env) => {
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  if (!account) return json({ tables: [] });
+  const { results } = await env.DB.prepare(`
+    SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status,
+           (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'confirmed') AS confirmed,
+           (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'requested') AS requested,
+           (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'waitlist') AS waitlist
+      FROM events e
+     WHERE ${OWN_HOSTED_TABLE_SQL}
+     ORDER BY e.event_date DESC, e.created_at DESC
+  `).bind(account.id, host.userId).all<Record<string, unknown>>();
+  const origin = appOrigin(env);
+  return json({
+    tables: results.map(({ confirmed, requested, waitlist, ...row }) => ({
+      ...row,
+      guests: { confirmed, requested, waitlist },
+      link: `${origin}/event/${row.slug}`,
+    })),
+  });
+};
+
+// GET /api/me/tables/:id. One of the host's own tables, with its guests and teas.
+const handleGetHostedTable: Handler = async (request, env, params) => {
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  if (!account) return json({ error: 'Table not found' }, 404);
+  const table = await env.DB.prepare(`
+    SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status,
+           e.requires_approval, e.public_visibility
+      FROM events e
+     WHERE e.id = ? AND ${OWN_HOSTED_TABLE_SQL}
+  `).bind(params.id, account.id, host.userId).first<Record<string, unknown>>();
+  if (!table) return json({ error: 'Table not found' }, 404);
+  const scope = { id: String(table.id), account_id: account.id };
+  const [guests, teas, taken] = await Promise.all([
+    // The host's own view of each guest (H4): what they wrote, a phone for
+    // the host's WhatsApp, and whether they asked not to be photographed.
+    hostTableGuests(env.DB, scope),
+    // The teas on this table (H6): a Teajia shop tea, a tea of the host's own
+    // chest, or a plain name. No price, stock or cost.
+    hostTableTeas(env.DB, scope),
+    seatsTaken(env.DB, scope),
+  ]);
+  return hostTableJson({
+    table: { ...table, seats_taken: taken, link: `${appOrigin(env)}/event/${table.slug}` },
+    guests,
+    // What happened to the seats (J9): the host's own notices, shown on this page only.
+    notices: await seatNoticesFor(env.DB, { eventId: scope.id, accountId: scope.account_id }),
+    teas,
+    doors: host.doors,
+  });
+};
+
+// ── The host's page for one table (Launch 2, H4) and their private guest
+// book (H9). Every route below starts from requireOwnHostedTable: the caller
+// is an approved host, the session sits in their own personal account and
+// names them as its host. Anyone else, another host and the shop owner
+// included, gets the same 404.
+
+async function requireOwnHostedTable(request: Request, env: Env, eventId: string) {
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host;
+  const table = await personalHostedTable(env.DB, host.userId, eventId);
+  return table ? { host, table } : { error: json({ error: 'Table not found' }, 404) };
+}
+
+async function personalHostedTable(db: D1Database, userId: string, eventId: string) {
+  const account = await personalInventoryAccount(db, userId);
+  const table = account ? await ownHostedTable(db, { hostUserId: userId, eventId }) : null;
+  return table && table.account_id === account?.id ? table : null;
+}
+
+function hostTableJson(value: unknown, status = 200) {
+  const response = json(value, status);
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
+}
+
+function hostedTableGuestBookHandler(kind: 'notes' | 'photos'): Handler {
+  return async (request, env, params) => {
+    if (!anyoneHostsOpen(env)) return hostTableJson({ error: 'Table not found' }, 404);
+    const own = await requireOwnHostedTable(request, env, params.id);
+    if ('error' in own) return own.error;
+    return reviewHostedTableGuestBook(request, env.DB, env.ATLAS_BUCKET, own.table, kind, params.contributionId);
+  };
+}
+
+const handleHostedTableGuestBook = hostedTableGuestBookHandler('notes');
+const handleHostedTableGuestBookPhotos = hostedTableGuestBookHandler('photos');
+
+// PUT /api/me/tables/:id {door?, seats?}. Change how guests get a seat, or
+// how many seats there are, before the table happens.
+const handleChangeHostedTable: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  if (own.host.stopped) return hostingStoppedAnswer('change');
+  const change = readTableChange(await request.json().catch(() => null) as Record<string, unknown> | null, own.host.doors);
+  if ('refused' in change) return restError(change.refused.status, change.refused.error, change.refused.code);
+  const result = await changeHostedTable(env.DB, own.table, change);
+  if ('refused' in result) return restError(result.refused.status, result.refused.error, result.refused.code);
+  return hostTableJson({ ok: true });
+};
+
+// PUT /api/me/tables/:id/guests/:attendeeId/yes. The host says yes to a guest
+// who asked. The admin approval's own reservation and guarded allocator take
+// the seat, with the guest's requested party, or refuse when the table is full.
+const handleHostSaysYes: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const attendee = await waitingGuest(env.DB, own.table, params.attendeeId);
+  if (!attendee) return json({ error: 'Guest not found' }, 404);
+  if (attendee.status !== 'requested') {
+    return restError(409, 'This guest is no longer waiting for your yes.', 'state_conflict');
+  }
+  if (own.host.stopped) return hostingStoppedAnswer('seat');
+  const reservation = await buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, Number(attendee.requested_guests) || 0);
+  if (!reservation) return restError(409, 'This guest’s request is incomplete. Ask them to take a seat again.', 'state_conflict');
+  const reserved = await reservePartySeats(env, reservation);
+  if (!reserved.ok) {
+    if (reserved.code === 'capacity_conflict') {
+      return restError(409, 'The table is full. Add a seat first, or say no.', 'capacity_conflict');
+    }
+    if (reserved.code === 'event_not_reservable') {
+      return restError(409, 'This table is no longer taking guests.', 'event_not_reservable');
+    }
+    return restError(409, 'This guest’s seat changed while you were looking. Open the table again.', 'state_conflict');
+  }
+  await buildActivityLog(env, 'attendee_approved', `Host said yes to ${attendee.full_name}`,
+    getUserEmail(request), 'event_attendee', attendee.id, own.table.account_id).run();
+  return hostTableJson({ ok: true, status: 'confirmed' });
+};
+
+// PUT /api/me/tables/:id/guests/:attendeeId/no. The host says no to a guest
+// who is still waiting. A waiting guest holds no seat, so nothing is freed.
+const handleHostSaysNo: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const attendee = await waitingGuest(env.DB, own.table, params.attendeeId);
+  if (!attendee) return json({ error: 'Guest not found' }, 404);
+  if (!(await sayNoToGuest(env.DB, own.table, attendee.id))) {
+    return restError(409, 'This guest is no longer waiting for your answer.', 'state_conflict');
+  }
+  await buildActivityLog(env, 'attendee_denied', `Host said no to ${attendee.full_name}`,
+    getUserEmail(request), 'event_attendee', attendee.id, own.table.account_id).run();
+  return hostTableJson({ ok: true, status: 'denied' });
+};
+
+// PUT /api/me/tables/:id/guests/:attendeeId/release. The host gives back a
+// confirmed guest's seat (J9). Every seat of the party is given back in one
+// guarded write (worker/src/waitingList.ts releaseSeats), and the freed seats
+// are offered to the guests waiting longest, exactly as when a guest cancels.
+const handleHostReleasesSeat: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  return releaseHostedGuest(env, own.table, params.attendeeId, getUserEmail(request));
+};
+
+async function releaseHostedGuest(env: Env, table: OwnHostedTable,
+  attendeeId: string, email: string | null, preview = false,
+) {
+  if (table.lifecycle_status !== 'published') {
+    return restError(409, 'This table has already happened, so its seats stay as they were.', 'hosted_table_closed');
+  }
+  const attendee = await waitingGuest(env.DB, table, attendeeId);
+  if (!attendee) return json({ error: 'Guest not found' }, 404);
+  if (attendee.status !== 'confirmed') {
+    return restError(409, 'This guest no longer holds a seat. Open the table again.', 'state_conflict');
+  }
+  if (preview) return hostTableJson({ ok: true });
+  const scope = { eventId: table.id, accountId: table.account_id };
+  const released = await releaseSeats(env.DB, { ...scope, attendeeId: attendee.id, from: ['confirmed'], kind: 'released' });
+  if (!released) return restError(409, 'This guest no longer holds a seat. Open the table again.', 'state_conflict');
+  const offered = await offerFreedSeats(env.DB, scope);
+  await buildActivityLog(env, 'attendee_released', `Host released the seat of ${attendee.full_name}`,
+    email, 'event_attendee', attendee.id, table.account_id).run();
+  return hostTableJson({ ok: true, status: 'cancelled', seats_released: released.seats, offered: offered.length });
+}
+
+// PUT /api/me/tables/:id/came {attendee_ids}. Once the table has begun, the
+// host marks who came; the table is then finished, so thank-you links open.
+const handleHostMarksWhoCame: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const body = await request.json().catch(() => null) as { attendee_ids?: unknown } | null;
+  const ids = body?.attendee_ids;
+  if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string')) {
+    return restError(400, 'Say who came.', 'hosted_table_came');
+  }
+  const result = await markWhoCame(env.DB, own.table, ids as string[]);
+  if ('refused' in result) return restError(result.refused.status, result.refused.error, result.refused.code);
+  return hostTableJson({ ok: true });
+};
+
+// POST /api/me/tables/:id/guests/:attendeeId/thanks-link. The same after-sit
+// link the shop's Sessions room copies, for a guest who came.
+const handleHostThanksLink: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const limited = await enforceDurableLimit(env.AFTER_SIT_LIMITER, 'AFTER_SIT_LIMITER', `after-sit:host:${own.table.account_id}`);
+  if (limited) return limited;
+  const issued = await issueAfterSitLink(env.DB, { attendeeId: params.attendeeId, eventId: own.table.id, accountId: own.table.account_id });
+  if (!issued) return json({ error: 'This guest’s thank-you link is unavailable.' }, 404);
+  const response = hostTableJson(issued);
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  return response;
+};
+
+// GET /api/me/tables/:id/notes and PUT /api/me/tables/:id/guests/:attendeeId/note {note}.
+// The host's private guest book (H9): read and written by the table's host
+// alone, through worker/src/hostGuestNotes.ts only.
+const handleHostedTableNotes: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const scope = { hostUserId: own.host.userId, accountId: own.table.account_id, eventId: own.table.id };
+  if (request.method === 'GET') {
+    const notes = await guestNotesFor(env.DB, scope);
+    return 'notFound' in notes ? json({ error: 'Table not found' }, 404) : hostTableJson(notes);
+  }
+  const body = await request.json().catch(() => null) as { note?: unknown } | null;
+  if (!body || !('note' in body)) return restError(400, 'Write the note as words.', 'guest_note_invalid');
+  const saved = await saveGuestNote(env.DB, { ...scope, attendeeId: params.attendeeId, note: body.note });
+  if ('notFound' in saved) return json({ error: 'Guest not found' }, 404);
+  if ('refused' in saved) return restError(400, saved.refused.error, saved.refused.code);
+  return hostTableJson({ note: saved.note });
+};
+
+// GET /api/me/record. The host's record, theirs to take away (H11; Adrian,
+// 2026-11-26: "Free to host, and your record is yours."). One JSON file of
+// their own tables only, built by hostRecord.ts: no guest contacts, no
+// addresses. Behind the Launch 2 switch. A host Adrian stopped still takes
+// the record of the tables they hosted; a person with no tables who may not
+// host gets the same 404 as every other host route.
+const handleHostRecord: Handler = async (request, env) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const standing = await hostStanding(env.DB, ctx.userId);
+  if (!hostDoorsFor(standing, fewHostsAnyoneHosts(env)) && !(await hostsAnyTable(env.DB, ctx.userId))) {
+    return fewHostsClosed();
+  }
+  const now = new Date();
+  const record = await hostRecord(env.DB, { userId: ctx.userId, name: ctx.name }, { appOrigin: appOrigin(env), now });
+  const response = hostTableJson(record);
+  response.headers.set('Content-Disposition', `attachment; filename="${hostRecordFileName(now)}"`);
+  return response;
+};
+
+// ── A tea for the table (Launch 2, H6). The host's own table only, through
+// requireOwnHostedTable. No price, stock or cost in any answer.
+
+// GET /api/me/tables/:id/tea-search?q=. Up to five teas: Teajia's shop first
+// (public, active, shown teas only), then the host's own chest.
+const handleHostedTableTeaSearch: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const query = new URL(request.url).searchParams.get('q') ?? '';
+  return hostTableJson({ matches: await searchTableTeas(env.DB, own.table, query) });
+};
+
+// PUT /api/me/tables/:id/teas {teas: [{id?, source, product_id?, name, from?, photo_url?}]}.
+// The whole list, in pouring order.
+const handleSaveHostedTableTeas: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const teas = readTableTeas(own.table, await request.json().catch(() => null));
+  if ('refused' in teas) return restError(teas.refused.status, teas.refused.error, teas.refused.code);
+  const saved = await saveTableTeas(env.DB, own.table, teas);
+  if ('refused' in saved) return restError(saved.refused.status, saved.refused.error, saved.refused.code);
+  return hostTableJson(saved);
+};
+
+// POST /api/me/tables/:id/teas/photo (multipart, one framed photograph). The
+// page opens every photograph in the shared photo editor first; this keeps it
+// under the table's own folder, the only place a saved tea may point at.
+const handleHostedTableTeaPhoto: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${own.host.userId}:host-tea-photo`);
+  if (limited) return limited;
+  if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  const key = `${tableTeaPhotoPrefix(own.table)}${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'image/jpeg' } });
+  return hostTableJson({ url: `https://media.teajia.co/${key}` }, 201);
+};
+
+// "Add your table" (Launch 4, K4): GET, PUT {place_id, area_hint} and DELETE
+// /api/me/your-table. One of the host's saved places, in their own personal
+// account, named as their table. Closed (404) unless K4 and Launch 2 are open.
+// Guard: worker/tests/your-table-place.test.ts.
+function yourTableShown(env: Env): boolean {
+  return yourTablePlaceOpen(env) && fewHostsOpen(env);
+}
+
+const handleYourTable: Handler = async (request, env) => {
+  if (!yourTableShown(env)) return fewHostsClosed();
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  if (!account) return hostTableJson({ places: [] });
+  if (request.method === 'GET') return hostTableJson(await readYourTable(env.DB, account.id));
+  if (request.method === 'DELETE') return hostTableJson(await undoYourTable(env.DB, account.id));
+  const chosen = await chooseYourTable(env.DB, account.id, await request.json().catch(() => null) as Record<string, unknown> | null);
+  if ('refused' in chosen) return restError(chosen.refused.status, chosen.refused.error, chosen.refused.code);
+  return hostTableJson(chosen);
+};
+
+// The way to the house, from the host's side (H8): GET and PUT
+// /api/me/tables/:id/way, POST /api/me/tables/:id/way/keep {name}, and
+// POST /api/me/tables/:id/way/photos (multipart, one photograph already
+// framed in the shared photo editor). The table's host alone; a guest
+// receives the way only through the guest page's own gate (H7).
+const handleHostedTableWay: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  if (request.method === 'GET') return hostTableJson(await signWayForHost(env.JWT_SECRET, await readTableWay(env.DB, own.table)));
+  const input = readTableWayInput(await request.json().catch(() => null) as Record<string, unknown> | null, own.table.account_id);
+  if ('refused' in input) return restError(input.refused.status, input.refused.error, input.refused.code);
+  await saveTableWay(env.DB, own.table, input);
+  return hostTableJson(await signWayForHost(env.JWT_SECRET, await readTableWay(env.DB, own.table)));
+};
+
+const handleKeepHostedTableWay: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const body = await request.json().catch(() => null) as { name?: unknown } | null;
+  const kept = await keepTableWay(env.DB, own.table, body?.name);
+  if ('refused' in kept) return restError(kept.refused.status, kept.refused.error, kept.refused.code);
+  return hostTableJson(await signWayForHost(env.JWT_SECRET, kept));
+};
+
+const handleHostedTableWayPhoto: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${own.table.account_id}:${own.host.userId}:upload-flyer`);
+  if (limited) return limited;
+  if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
+  const file = (await request.formData()).get('file') as File | null;
+  if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  // Under venue-guide/, so it is served private and short-lived (sessionWalkthrough.ts).
+  const key = `accounts/${own.table.account_id}/venue-guide/${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
+  const url = env.JWT_SECRET
+    ? await signedWayPhotoUrl(env.JWT_SECRET, key, WAY_HOST, Math.floor(Date.now() / 1000) + WAY_SIGNED_SECONDS)
+    : `https://media.teajia.co/${key}`;
+  return hostTableJson({ url, key }, 201);
 };
 
 const handleGrantShelf: Handler = async (request, env, params) => {
@@ -18434,6 +19390,7 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).first() as ApprovalAttendeeRow | null;
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
+  if (await accountHostingStopped(env, accountId)) return hostingStoppedAnswer('seat');
 
   const body = await request.json() as { approved_guests?: number; message?: string };
   const approvedGuests = body.approved_guests ?? 0;
@@ -18503,12 +19460,16 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   }
 
   const att = attendee as any;
-  const ticketUrl = `${att.magic_token ? `/m/${att.magic_token}` : ''}`;
+  // The guest's own page link travels only to the owner and the session's host.
+  const holdsLink = (await guestLinkSessions(env.DB, guestLinkCaller(ctx), [String(att.event_id)])).has(String(att.event_id));
+  const ticketUrl = holdsLink && att.magic_token ? `/m/${att.magic_token}` : '';
   const phone = att.phone_number as string | null;
   const whatsappNotifyUrl = phone
     ? (() => {
         const digits = phone.replace(/\D/g, '');
-        const msg = `Your seat at ${att.event_title} is confirmed! View your ticket: ${ticketUrl}`;
+        const msg = ticketUrl
+          ? `Your seat at ${att.event_title} is confirmed! View your ticket: ${ticketUrl}`
+          : `Your seat at ${att.event_title} is confirmed!`;
         return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
       })()
     : null;
@@ -18533,20 +19494,23 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
   const body = await request.json() as { message?: string };
   const userEmail = getUserEmail(request);
 
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE event_attendees SET status = 'denied', denial_message = ? WHERE id = ?`
-    ).bind(body.message || null, params.id),
-    buildActivityLog(
-      env,
-      'attendee_denied',
-      `Denied ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
-      userEmail, 'event_attendee', params.id, accountId
-    ),
-  ]);
-
-  // F39: Auto-promote first waitlisted attendee when a spot is freed by denial
-  await cascadeWaitlist(env, attendee.event_id as string, (attendee.claim_window_minutes as number) || 60);
+  // No is for a guest who holds no seat: one who asked, or one waiting
+  // without a live offer. A confirmed guest's seat is released, not denied,
+  // so the seat is given back and offered on (J9). Guarded in the write.
+  const denied = await env.DB.prepare(
+    `UPDATE event_attendees SET status = 'denied', denial_message = ?
+      WHERE id = ? AND account_id = ? AND status IN ('requested', 'waitlist')
+        AND (status = 'requested' OR claim_expires_at IS NULL OR datetime(claim_expires_at) <= datetime('now'))`
+  ).bind(body.message || null, params.id, accountId).run();
+  if (!Number(denied.meta?.changes || 0)) {
+    return json({ error: 'This guest holds a seat or an offer of one. Release the seat instead.', code: 'state_conflict' }, 409);
+  }
+  await buildActivityLog(
+    env,
+    'attendee_denied',
+    `Denied ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
+    userEmail, 'event_attendee', params.id, accountId
+  ).run();
 
   return json({ success: true, status: 'denied' });
 };
@@ -18565,25 +19529,31 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
-  const posRow = await env.DB.prepare(
-    `SELECT COALESCE(MAX(waitlist_position), 0) + 1 as next_pos
-     FROM event_attendees WHERE event_id = ? AND status = 'waitlist'`
-  ).bind(attendee.event_id).first();
-
-  const waitlistPosition = (posRow?.next_pos as number) || 1;
+  // The position is taken inside the write itself, so two guests moved at
+  // once cannot share it (J9). Only a guest who holds no seat moves here: one
+  // who asked, one said no to, or one whose offer lapsed, who goes to the end
+  // of the queue and may be offered a seat again. A confirmed seat is
+  // released, never moved, so nobody loses a seat by this route.
   const userEmail = getUserEmail(request);
-
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ? WHERE id = ?`
-    ).bind(waitlistPosition, params.id),
-    buildActivityLog(
-      env,
-      'attendee_waitlisted',
-      `Moved ${attendee.full_name} to waitlist position ${waitlistPosition}`,
-      userEmail, 'event_attendee', params.id, accountId
-    ),
-  ]);
+  const moved = await env.DB.prepare(
+    `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ${NEXT_WAITLIST_POSITION_SQL},
+            claim_expires_at = NULL, offer_lapsed_at = NULL
+      WHERE id = ? AND account_id = ?
+        AND (status IN ('requested', 'denied') OR (status = 'waitlist' AND offer_lapsed_at IS NOT NULL AND claim_expires_at IS NULL))
+      RETURNING waitlist_position`
+  ).bind(params.id, accountId).first<{ waitlist_position: number }>();
+  if (!moved) {
+    return json({ error: 'This guest holds a seat or is already waiting.', code: 'state_conflict' }, 409);
+  }
+  const waitlistPosition = Number(moved.waitlist_position) || 1;
+  await buildActivityLog(
+    env,
+    'attendee_waitlisted',
+    `Moved ${attendee.full_name} to waitlist position ${waitlistPosition}`,
+    userEmail, 'event_attendee', params.id, accountId
+  ).run();
+  // A seat may be free already; the offer is guarded on one being free.
+  await offerFreedSeats(env.DB, { eventId: attendee.event_id as string, accountId });
 
   return json({ success: true, status: 'waitlist', waitlist_position: waitlistPosition });
 };
@@ -18599,8 +19569,9 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   // Get tea menu — if empty, skip invoice creation
   const menuRows = await env.DB.prepare(
     `SELECT etm.product_id, etm.brew_order FROM event_tea_menu etm
-     WHERE etm.event_id = ? AND etm.product_id IS NOT NULL`
-  ).bind(params.id).all();
+     WHERE etm.event_id = ? AND etm.product_id IS NOT NULL
+       AND EXISTS (SELECT 1 FROM products p WHERE p.id = etm.product_id AND p.account_id = ?)`
+  ).bind(params.id, accountId).all();
 
   if (menuRows.results.length === 0) {
     await env.DB.prepare(
@@ -18767,8 +19738,8 @@ const handleConvertInterest: Handler = async (request, env, params) => {
     stmts.push(
       env.DB.prepare(
         `INSERT INTO event_attendees
-           (id, account_id, event_id, full_name, phone_number, email, status, magic_token, source)
-         VALUES (?, ?, ?, ?, ?, ?, 'requested', ?, 'interest_conversion')`
+           (id, account_id, event_id, full_name, phone_number, email, status, magic_token, source, photo_consent)
+         VALUES (?, ?, ?, ?, ?, ?, 'requested', ?, 'interest_conversion', NULL)`
       ).bind(
         attendeeId,
         accountId,
@@ -18886,6 +19857,7 @@ const handleApproveBatch: Handler = async (request, env, params) => {
   const { accountId } = ctx;
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
+  if (await accountHostingStopped(env, accountId)) return hostingStoppedAnswer('seat');
 
   const body = await request.json() as {
     attendee_ids: string[];
@@ -19032,7 +20004,8 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
     `SELECT gi.*, e.id as event_id, e.account_id as account_id, e.title as event_title, e.event_date
      FROM guest_invites gi
      JOIN events e ON e.id = gi.event_id AND e.account_id = gi.account_id
-     WHERE gi.invite_token = ?`
+     JOIN accounts a ON a.id = e.account_id
+     WHERE gi.invite_token = ? AND ${privateHostDoorSql(env)} AND NOT ${hostingStoppedSql('a')}`
   ).bind(params.token).first();
 
   if (!invite) return json({ error: 'Invite not found' }, 404);
@@ -19075,7 +20048,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
       invitationId: invite.id as string,
     }],
     createParticipation: {
-      columns: ['full_name', 'phone_number', 'email', 'contact_method', 'magic_token', 'source', 'access_tier'],
+      columns: ['full_name', 'phone_number', 'email', 'contact_method', 'magic_token', 'source', 'access_tier', 'photo_consent'],
       values: [
         body.name,
         body.phone || null,
@@ -19084,6 +20057,8 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
         magicToken,
         'guest_invite',
         'standard',
+        // Not asked at this door, so not recorded as a no.
+        null,
       ],
     },
     guestClaim: {
@@ -19152,7 +20127,8 @@ const handleGetGuestInvite: Handler = async (_request, env, params) => {
             e.title as event_title, e.event_date, e.area_hint, e.flyer_image_url, e.slug as event_slug
      FROM guest_invites gi
      JOIN events e ON e.id = gi.event_id
-     WHERE gi.invite_token = ?`
+     JOIN accounts a ON a.id = e.account_id
+     WHERE gi.invite_token = ? AND ${privateHostDoorSql(env)}`
   ).bind(params.token).first();
 
   if (!invite) return json({ error: 'Invite not found' }, 404);
@@ -19163,7 +20139,8 @@ const handleGetGuestInvite: Handler = async (_request, env, params) => {
 // POST /api/events/:slug/interest
 const handleEventInterest: Handler = async (request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id, account_id FROM events WHERE slug = ?`
+    `SELECT e.id, e.account_id FROM events e JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND ${privateHostDoorSql(env)}`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -22518,6 +23495,9 @@ function effectiveFeatures(
 const handlePlatformListUsers: Handler = async (request, env) => {
   const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
+  // Reach (Launch 3, J10) goes to the platform owner's Manage alone.
+  const reachVisible = fewHostsOpen(env) && anyoneMayHost(env)
+    && await resolveDbPlatformRole(env, parseToken(isAuthed(request)!)?.sub ?? '') === 'platform_owner';
 
   const { results } = await env.DB.prepare(
     `SELECT u.id, u.email, u.name, u.username, u.platform_role, u.created_at,
@@ -22525,6 +23505,9 @@ const handlePlatformListUsers: Handler = async (request, env) => {
             (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id LIMIT 1) AS seller_state,
             (u.seller_approved_at IS NOT NULL OR EXISTS (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id
               AND pa.personal_seller_approved_at IS NOT NULL)) AS seller_approved,
+            u.host_approved_at,
+            u.hosting_stopped_at,
+            u.host_reach,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -22548,6 +23531,13 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     shelf_slug: u.shelf_slug ?? null,
     has_tea_chest: u.seller_state != null,
     may_sell: u.seller_approved === 1,
+    // Launch 2: whether Adrian lets this person open tables by link. Shown on this screen only.
+    ...(fewHostsOpen(env) ? { may_host: u.host_approved_at != null, host_approved_at: u.host_approved_at ?? null } : {}),
+    // Launch 3: whether Adrian stopped this person's hosting. Shown on this screen only.
+    ...(fewHostsOpen(env) ? { hosting_stopped_at: u.hosting_stopped_at ?? null } : {}),
+    // Launch 3, J10: how far this host's open tables are shown. To the
+    // platform owner alone (Adrian's Manage), never to a platform admin.
+    ...(reachVisible ? { host_reach: hostReachOf(u.host_reach) } : {}),
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
@@ -26022,10 +27012,7 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
 // unpublished Chen Wei and the page stayed up, because Chen Wei is the named
 // author of five published articles. An explicit decision to take a person
 // down must take them down; publishing them again clears unpublished_at.
-const CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL =
-  `(c.is_published = 1 OR (c.unpublished_at IS NULL AND EXISTS (
-      SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
-    ))) AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`;
+// The rule itself is CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL in sessionHost.ts.
 
 type TopTeaProfile = { id: string; account_id: string; user_id: string | null };
 
@@ -31543,6 +32530,9 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/platform/users/:id/platform-role', handlePlatformSetUserRole],
   ['PUT',  '/api/platform/users/:id/shelf', handleGrantShelf],
   ['PUT',  '/api/platform/users/:id/seller-approval', handleSellerApproval],
+  ['PUT',  '/api/platform/users/:id/host-approval', handleHostApproval],
+  ['PUT',  '/api/platform/users/:id/hosting-stopped', handleHostingStopped],
+  ['PUT',  '/api/platform/users/:id/host-reach', handleHostReach],
   ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
   ['GET',  '/api/platform/all-stock', handlePlatformAllStock],
@@ -31871,6 +32861,7 @@ const routes: [string, string, Handler][] = [
 
   // Events — Public
   ['GET', '/api/events', handleListPublicEvents],
+  ['GET', '/api/me/sessions', handleListSignedInSessions],
   ['GET', '/api/events/:slug/public', handleGetEventBySlug],
   ['GET', '/api/events/:slug/tea-menu', handleGetPublicTeaMenu],
   ['GET', '/api/events/:slug/recap', handleGetPublicEventRecap],
@@ -31899,6 +32890,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/rsvp/:token', handleGetRSVP],
   ['PUT', '/api/rsvp/:token', handleUpdateRSVP],
   ['POST', '/api/rsvp/:token/claim', handleClaimSpot],
+  ['POST', '/api/rsvp/:token/tasting', handleJoinRsvpTasting],
   ['GET', '/api/rsvp/:token/post-session', handleGetPostSession],
   ['GET', '/api/admin/events/:id/guest-book', handleGuestBookReview],
   ['POST', '/api/admin/events/:id/guest-book/:entryId/review', handleGuestBookReview],
@@ -31969,6 +32961,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/events/:id', handleUpdateEvent],
   ['DELETE', '/api/admin/events/:id', handleDeleteEvent],
   ['GET', '/api/admin/events/:id/attendees', handleGetAttendees],
+  ['GET', '/api/admin/events/:id/seat-notices', handleGetSeatNotices],
   ['GET', '/api/admin/events/:id/notifications', handleGetNotifications],
   ['POST', '/api/admin/events/:id/notifications', handleCreateNotifications],
   ['POST', '/api/admin/events/:id/article-draft', handleCreateEventArticleDraft],
@@ -32063,6 +33056,36 @@ const routes: [string, string, Handler][] = [
   // Standalone public shelf (stock spine step 5).
   ['GET',    '/api/me/tea-chest/account', handlePersonalInventoryAccount],
   ['POST',   '/api/me/tea-chest/account', handlePersonalInventoryAccount],
+  // Launch 2, a few hosts: closed (404) until src/lib/fewHosts.ts opens.
+  ['GET',    '/api/me/hosting', handleGetHosting],
+  ['GET',    '/api/me/record', handleHostRecord],
+  ['GET',    '/api/me/tables', handleListHostedTables],
+  ['POST',   '/api/me/tables', handleCreateHostedTable],
+  ['GET',    '/api/me/tables/:id', handleGetHostedTable],
+  ['PUT',    '/api/me/tables/:id', handleChangeHostedTable],
+  ['PUT',    '/api/me/tables/:id/came', handleHostMarksWhoCame],
+  ['PUT',    '/api/me/tables/:id/guests/:attendeeId/yes', handleHostSaysYes],
+  ['PUT',    '/api/me/tables/:id/guests/:attendeeId/no', handleHostSaysNo],
+  ['PUT',    '/api/me/tables/:id/guests/:attendeeId/release', handleHostReleasesSeat],
+  ['POST',   '/api/me/tables/:id/guests/:attendeeId/thanks-link', handleHostThanksLink],
+  ['GET',    '/api/me/tables/:id/notes', handleHostedTableNotes],
+  ['GET',    '/api/me/tables/:id/guest-book', handleHostedTableGuestBook],
+  ['POST',   '/api/me/tables/:id/guest-book/:contributionId/review', handleHostedTableGuestBook],
+  ['GET',    '/api/me/tables/:id/guest-book/photos', handleHostedTableGuestBookPhotos],
+  ['GET',    '/api/me/tables/:id/guest-book/photos/:contributionId', handleHostedTableGuestBookPhotos],
+  ['PUT',    '/api/me/tables/:id/guest-book/photos/:contributionId', handleHostedTableGuestBookPhotos],
+  ['PUT',    '/api/me/tables/:id/guests/:attendeeId/note', handleHostedTableNotes],
+  ['GET',    '/api/me/tables/:id/tea-search', handleHostedTableTeaSearch],
+  ['PUT',    '/api/me/tables/:id/teas', handleSaveHostedTableTeas],
+  ['POST',   '/api/me/tables/:id/teas/photo', handleHostedTableTeaPhoto],
+  ['GET',    '/api/me/tables/:id/way', handleHostedTableWay],
+  ['PUT',    '/api/me/tables/:id/way', handleHostedTableWay],
+  ['POST',   '/api/me/tables/:id/way/keep', handleKeepHostedTableWay],
+  ['POST',   '/api/me/tables/:id/way/photos', handleHostedTableWayPhoto],
+  // Launch 4, K4: closed (404) until src/lib/yourTablePlace.ts opens.
+  ['GET',    '/api/me/your-table', handleYourTable],
+  ['PUT',    '/api/me/your-table', handleYourTable],
+  ['DELETE', '/api/me/your-table', handleYourTable],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],
@@ -32355,6 +33378,53 @@ const familyDeps: FamilyDeps<Env> = {
   publicAccountId: BALI_ACCOUNT_ID,
   requireAuthenticatedUser, optionalAuthenticatedUser, requireBundle, enforceDurableLimit, validateUpload, safeUploadExtension,
 };
+// Reports on a session or a person (Launch 3, J5). Anyone may file; only the
+// platform owner reads or resolves, and the reporter is named to nobody else.
+const sessionReportsClosed = () => json({ error: 'Not found' }, 404);
+function limitSessionReport(request: Request, env: Env) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  return enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `session-report:${ip}`);
+}
+const handleFileSessionReport: Handler = async (request, env) => {
+  if (!anyoneHostsOpen(env)) return sessionReportsClosed();
+  const limited = await limitSessionReport(request, env);
+  if (limited) return limited;
+  let body: Record<string, unknown>;
+  try { body = await request.json() as Record<string, unknown>; } catch { return json({ error: 'Say what you are reporting.', code: 'validation_failed' }, 400); }
+  if (!body || typeof body.target_id !== 'string' || (body.target_kind !== 'session' && body.target_kind !== 'person')) {
+    return json({ error: 'Say what you are reporting.', code: 'validation_failed' }, 400);
+  }
+  const reporter = await optionalAuthenticatedUser(request, env);
+  const outcome = await fileReport(env.DB, {
+    targetKind: body.target_kind, targetId: body.target_id,
+    reason: typeof body.reason === 'string' ? body.reason : null,
+    reporterUserId: reporter?.userId ?? null, reporterSeatId: null,
+  });
+  if ('refused' in outcome) return json({ error: outcome.refused.error, code: outcome.refused.code }, outcome.refused.status);
+  return json(outcome, 201);
+};
+const handleListSessionReports: Handler = async (request, env) => {
+  if (!anyoneHostsOpen(env)) return sessionReportsClosed();
+  const denied = await requirePlatformOwner(request, env);
+  if (denied) return denied;
+  return json({ reports: await openReports(env.DB) });
+};
+const handleResolveSessionReport: Handler = async (request, env, params) => {
+  if (!anyoneHostsOpen(env)) return sessionReportsClosed();
+  const denied = await requirePlatformOwner(request, env);
+  if (denied) return denied;
+  const claims = parseToken(isAuthed(request) || '');
+  let body: Record<string, unknown> = {};
+  try { body = await request.json() as Record<string, unknown>; } catch { /* refused below */ }
+  const outcome = await resolveReport(env.DB, { id: params.id, status: body.status as 'acted' | 'dismissed', actorId: claims?.sub ?? 'unknown' });
+  if ('refused' in outcome) return json({ error: outcome.refused.error, code: outcome.refused.code }, outcome.refused.status);
+  return json(outcome);
+};
+routes.unshift(
+  ['POST', '/api/session-reports', handleFileSessionReport],
+  ['GET', '/api/admin/session-reports', handleListSessionReports],
+  ['POST', '/api/admin/session-reports/:id/resolve', handleResolveSessionReport],
+);
 routes.unshift(
   ['POST', '/api/transcribe', familyTranscribe(familyDeps, handleTranscribe)],
   ['POST', '/api/transcriptions/:id/retry', familyRetryTranscription(familyDeps, handleRetryTranscription)],
@@ -32638,14 +33708,29 @@ const requestHandler = {
       if (!env.MEDIA_BUCKET) {
         return cors(new Response('Media bucket not configured', { status: 503 }), corsOrigin);
       }
-      const familyVerdict = env.DB ? await familyMediaVerdict(env.DB, env.JWT_SECRET, key, url.searchParams) : 'not-family'; const obj = familyVerdict === 'refused' ? null : await env.MEDIA_BUCKET.get(key);
+      const familyVerdict = env.DB ? await familyMediaVerdict(env.DB, env.JWT_SECRET, key, url.searchParams) : 'not-family';
+      // A step photograph of the way in is served only by an address signed
+      // for a seat that may still see it, or for its host (wayMedia.ts, A2 F1).
+      const wayVerdict = familyVerdict === 'not-family'
+        ? await wayMediaVerdict(env.DB, env.JWT_SECRET, key, url.searchParams, privateHostDoorSql(env))
+        : 'not-step';
+      const obj = familyVerdict === 'refused' || wayVerdict === 'refused' ? null : await env.MEDIA_BUCKET.get(key);
       if (!obj) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const headers = new Headers();
       obj.writeHttpMetadata(headers);
       headers.set('etag', obj.httpEtag);
-      // Objects are immutable (UUID/slot-keyed) — cache hard at edge + browser.
-      // A family photograph can be withdrawn at any moment, so every use asks again (A4 review, finding 4).
-      headers.set('Cache-Control', familyVerdict === 'signed' || familyVerdict === 'public' ? 'private, no-cache' : 'public, max-age=31536000, immutable');
+      // Objects are immutable (UUID/slot-keyed), so cache hard at edge and
+      // browser, except the photographs of the way to a session, which are
+      // private and short-lived (sessionWalkthrough.ts, Launch 2 H7), and a
+      // family photograph, which can be withdrawn at any moment, so every use
+      // asks again (A4 review, finding 4).
+      const walkthrough = familyVerdict === 'not-family' && (wayVerdict === 'signed' || await isWalkthroughMedia(env.DB, key));
+      // A host's tea photograph can be taken off the list, or its host
+      // stopped, so it is not kept at the edge for a year either.
+      const shortLived = walkthrough || HOST_TEA_MEDIA_KEY.test(key);
+      headers.set('Cache-Control', familyVerdict === 'signed' || familyVerdict === 'public' ? 'private, no-cache'
+        : shortLived ? WALKTHROUGH_MEDIA_CACHE : 'public, max-age=31536000, immutable');
+      if (walkthrough) headers.set('Referrer-Policy', 'no-referrer');
       const body = request.method === 'HEAD' ? null : obj.body;
       return cors(new Response(body, { headers }), corsOrigin);
     }
@@ -32664,6 +33749,22 @@ const requestHandler = {
           receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
         },
         stockMovements: { apply: (scope, productId, input) => applyStockMovement(env, scope, productId, input) },
+        // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).
+        hostSeats: { reservationFor: (attendee, guests) => buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, guests) },
+        launch3: {
+          ownTable: async (auth, tableId) => {
+            const access = await hostedTableAccess(env, auth.userId);
+            if (!access) return null;
+            const table = await personalHostedTable(env.DB, auth.userId, tableId);
+            return table && table.account_id === auth.accountId ? { table, stopped: access.stopped } : null;
+          },
+          duplicate: (table, userId, slug, date, preview) =>
+            duplicateEvent(env, table.account_id, table.id, { slug, event_date: date }, { userId, preview }),
+          setTasting: (table, userId, isTasting) => updateEvent(env, table.account_id, table.id, { is_tasting: isTasting }, userId),
+          releaseGuest: (table, attendeeId, email, preview) => releaseHostedGuest(env, table, attendeeId, email, preview),
+          setHostingStopped: (auth, userId, stopped) => changeHostingStopped(env, userId, stopped, auth.userId, auth.userEmail),
+          limitReport: () => limitSessionReport(request, env),
+        },
       });
       return cors(response, corsOrigin);
     }
@@ -32891,6 +33992,15 @@ const requestHandler = {
         failures += 1;
       }
       console.info('Private recording expiry cleanup summary', { examined, deleted, failures });
+    }
+
+    // Offers that ran out move the waiting list on (J9). Nothing is sent:
+    // the next guest sees the offer on their own page, the host on theirs.
+    try {
+      const moved = await advanceWaitingLists(env.DB);
+      if (moved.lapsed) console.info('Waiting list offers lapsed', moved);
+    } catch (error) {
+      console.error('Waiting list advance failed', error instanceof Error ? error.message : String(error));
     }
 
     // Generate checkin reminder notifications for events happening tomorrow

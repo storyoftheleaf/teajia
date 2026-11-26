@@ -95,18 +95,44 @@ async function updateRsvp(db: EventContractDb, body: Record<string, unknown>) {
   return { response, body: await response.json() as Record<string, unknown> };
 }
 
-describe('public RSVP update contract', () => {
-  it('persists canonical cancellation status and note', async () => {
-    const db = new EventContractDb();
+// Cancelling gives back the party's seats in one guarded batch (J9,
+// worker/src/waitingList.ts), so it is asserted against a real database.
+function cancellingDb() {
+  const db = new SqliteD1('migrations');
+  seedIdentity(db, { userId: 'owner', accountId: 'shop' });
+  db.sqlite.prepare(`INSERT INTO events (id, account_id, slug, title, event_date, total_capacity, timezone, status, lifecycle_status)
+    VALUES ('event-1', 'shop', 'event-1', 'Event', '2099-01-01T10:00', 12, 'UTC', 'active', 'published')`).run();
+  db.sqlite.prepare(`INSERT INTO event_attendees (id, account_id, event_id, full_name, status, magic_token, show_in_guest_list)
+    VALUES ('attendee-1', 'shop', 'event-1', 'Guest', 'confirmed', 'manage-token', 1)`).run();
+  db.sqlite.prepare(`INSERT INTO event_party_members (id, account_id, event_id, participation_id, full_name, is_primary, seat_status)
+    VALUES ('seat-1', 'shop', 'event-1', 'attendee-1', 'Guest', 1, 'confirmed')`).run();
+  return db;
+}
 
-    const result = await updateRsvp(db, {
+async function cancelRsvp(body: Record<string, unknown>) {
+  const db = cancellingDb();
+  const response = await worker.fetch(new Request('https://test.dev/api/rsvp/manage-token', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  }), { DB: db } as any);
+  const attendee = db.sqlite.prepare(`SELECT status, cancellation_note, show_in_guest_list FROM event_attendees WHERE id = 'attendee-1'`).get();
+  const seat = db.sqlite.prepare(`SELECT seat_status FROM event_party_members WHERE id = 'seat-1'`).get();
+  db.close();
+  return { response, body: await response.json() as Record<string, unknown>, attendee, seat };
+}
+
+describe('public RSVP update contract', () => {
+  it('persists canonical cancellation status and note, and gives back the seat', async () => {
+    const result = await cancelRsvp({
       status: 'cancelled',
       cancellation_note: 'Travel',
     });
 
     expect(result.response.status).toBe(200);
     expect(result.body).toMatchObject({ success: true, status: 'cancelled', cancellation_note: 'Travel' });
-    expect(db.attendee).toMatchObject({ status: 'cancelled', cancellation_note: 'Travel' });
+    expect(result.attendee).toMatchObject({ status: 'cancelled', cancellation_note: 'Travel' });
+    expect(result.seat).toEqual({ seat_status: 'cancelled' });
   });
 
   it('persists attendee notes and first-visit briefing state', async () => {
@@ -180,18 +206,14 @@ describe('public RSVP update contract', () => {
   });
 
   it('keeps legacy cancel requests working', async () => {
-    const db = new EventContractDb();
-
-    const result = await updateRsvp(db, { cancel: true });
+    const result = await cancelRsvp({ cancel: true });
 
     expect(result.body).toMatchObject({ success: true, status: 'cancelled' });
-    expect(db.attendee.status).toBe('cancelled');
+    expect(result.attendee).toMatchObject({ status: 'cancelled' });
   });
 
   it('cancels before validating unrelated stale update flags', async () => {
-    const db = new EventContractDb();
-
-    const result = await updateRsvp(db, {
+    const result = await cancelRsvp({
       status: 'cancelled',
       cancellation_note: 'Travel',
       show_in_guest_list: 'false',
@@ -199,7 +221,7 @@ describe('public RSVP update contract', () => {
 
     expect(result.response.status).toBe(200);
     expect(result.body).toMatchObject({ success: true, status: 'cancelled', cancellation_note: 'Travel' });
-    expect(db.attendee).toMatchObject({
+    expect(result.attendee).toMatchObject({
       status: 'cancelled',
       cancellation_note: 'Travel',
       show_in_guest_list: 1,
@@ -1479,6 +1501,8 @@ describe('Events Release 1 persisted route contracts', () => {
           chinese_name: '肉桂',
           product_type: 'oolong',
           product_image_url: 'https://media.test/tea.jpg',
+          // A tea of the session's own shop is not a cross-shop link (Launch 2, H6).
+          shop_path: null,
         },
         {
           id: 'menu-revealed',
@@ -1493,6 +1517,8 @@ describe('Events Release 1 persisted route contracts', () => {
           chinese_name: '肉桂',
           product_type: 'oolong',
           product_image_url: 'https://media.test/tea.jpg',
+          // A tea of the session's own shop is not a cross-shop link (Launch 2, H6).
+          shop_path: null,
         },
       ]);
     } finally {

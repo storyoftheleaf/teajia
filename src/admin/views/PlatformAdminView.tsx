@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import {
   Shield, ShieldCheck, Store, Users, Check, Loader2,
   ChevronDown, ChevronUp, Plus, Copy,
-  AlertTriangle, RefreshCw, ClipboardList, X, Boxes,
+  AlertTriangle, RefreshCw, ClipboardList, X, Boxes, Coffee,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import type { PlatformUser, PlatformAccount, AuditLogEntry } from '../../lib/api';
+import type { PlatformUser, PlatformAccount, AuditLogEntry, HostReach } from '../../lib/api';
 import { useAppStore } from '../store';
 import { useToast } from '../components/Toast';
 import { Button } from '../../components/shared/Button';
 import type { PlatformRole } from '../../types';
 import { useStepParam } from '../../hooks/useStepParam';
+import { fewHostsOpen } from '../../lib/fewHosts';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -19,6 +21,14 @@ const KNOWN_FEATURES: { id: string; label: string; description: string; planDefa
   { id: 'compass',             label: 'Curate',               description: 'Tea sourcing, tasting & tracking tool',          planDefault: ['verified', 'partner', 'platform'] },
   { id: 'catalog_sharing',     label: 'Catalog Access',       description: 'Source teas from the Teajia catalog',            planDefault: ['partner', 'platform'] },
   { id: 'ai_wisdom_generation',label: 'AI Wisdom Generation', description: 'Generate lore, terroir & experience copy via Claude', planDefault: ['platform'] },
+];
+
+// Launch 3 (J10): how far a host's open tables are shown. Set here only;
+// the host, their guests and every other screen never see it.
+const HOST_REACH_CHOICES: { value: HostReach; label: string; says: string }[] = [
+  { value: 'invitation', label: 'By their link only', says: 'Their tables are found only by the link they give.' },
+  { value: 'teajia', label: 'Signed-in people on Teajia', says: 'Their open tables are shown to people signed in to Teajia.' },
+  { value: 'listed', label: 'The public sessions list', says: 'Their open tables are on the public sessions list.' },
 ];
 
 const TRUST_TIERS: { value: 'basic' | 'verified' | 'partner'; label: string; description: string }[] = [
@@ -185,6 +195,53 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     } finally { setBusy(null); }
   };
 
+  // Launch 2: Adrian lets a person host by link, stops them, or lets them
+  // again. Anyone may host; this is a second level, never named on the site.
+  // The open person is a step in the address (CLAUDE.md, "Back and forward").
+  const hostingOpen = isPlatformOwner && fewHostsOpen();
+  const [hostParam, stepHost] = useStepParam('host');
+  const hostUser = hostingOpen && hostParam ? users.find(u => u.id === hostParam) ?? null : null;
+  const handleSetMayHost = async (user: PlatformUser, approved: boolean) => {
+    setBusy(`host-${user.id}`);
+    try {
+      const res = await api.platform.setMayHost(user.id, approved);
+      const at = res.may_host ? (user.host_approved_at ?? new Date().toISOString()) : null;
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, may_host: res.may_host, host_approved_at: at } : u));
+      showToast(res.may_host ? `${user.name || user.email} may host by link` : `${user.name || user.email} no longer hosts by link`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to change hosting', 'error');
+    } finally { setBusy(null); }
+  };
+
+  // Launch 3: anyone signed in may host by request. Adrian can stop one
+  // host: no new table and no new seat; guests already confirmed keep theirs.
+  const stoppingOpen = hostingOpen && anyoneHostsOpen();
+  const handleSetHostingStopped = async (user: PlatformUser, stopped: boolean) => {
+    setBusy(`stop-${user.id}`);
+    try {
+      const res = await api.platform.setHostingStopped(user.id, stopped);
+      const at = res.hosting_stopped ? (user.hosting_stopped_at ?? new Date().toISOString()) : null;
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, hosting_stopped_at: at } : u));
+      showToast(res.hosting_stopped ? `${user.name || user.email} hosts no new tables` : `${user.name || user.email} may host again`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to change hosting', 'error');
+    } finally { setBusy(null); }
+  };
+
+  // Launch 3 (J10): reach, one of three, sent to this screen only.
+  const handleSetHostReach = async (user: PlatformUser, reach: HostReach) => {
+    if (user.host_reach === reach) return;
+    setBusy(`reach-${user.id}`);
+    try {
+      const res = await api.platform.setHostReach(user.id, reach);
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, host_reach: res.host_reach } : u));
+      const label = HOST_REACH_CHOICES.find(choice => choice.value === res.host_reach)?.label ?? res.host_reach;
+      showToast(`${user.name || user.email}: ${label}`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to change reach', 'error');
+    } finally { setBusy(null); }
+  };
+
   const handleResendInvite = async (user: PlatformUser) => {
     setBusy(`invite-${user.id}`);
     try {
@@ -210,6 +267,82 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
 
   return (
     <div className="space-y-2">
+      {hostUser && (
+        <div className="inset-panel p-3 space-y-2" data-testid="hosting-panel" role="region" aria-label="Hosting">
+          <div className="flex items-start gap-2">
+            <button type="button" onClick={() => stepHost(null)} aria-label="Close hosting"
+              className="tap-target text-tea-text-sec hover:text-tea-text transition-colors"><X size={14} /></button>
+            <div className="min-w-0 flex-1">
+              <p className="text-tea-text text-sm font-medium truncate">{hostUser.name || hostUser.email}</p>
+              <p className="text-ui-12 text-tea-text-sec">
+                {hostUser.may_host
+                  ? `Hosts by link${hostUser.host_approved_at ? ` since ${new Date(hostUser.host_approved_at).toLocaleDateString()}` : ''}. Their tables open to anyone holding the link.`
+                  : 'Does not host by link. Their table links stay closed until you let them.'}
+              </p>
+              <p className="text-ui-11 text-tea-text-dim">Seen here only. Nothing on the site says it.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {hostUser.may_host ? (
+              <ConfirmButton
+                onConfirm={() => void handleSetMayHost(hostUser, false)}
+                busy={busy === `host-${hostUser.id}`}
+                idleLabel={<>Stop hosting by link</>}
+                confirmLabel={<>Stop? Their links close now</>}
+                title="Their tables stop opening by link at once; sessions, guests and notes stay"
+              />
+            ) : (
+              <Button type="button" size="sm" loading={busy === `host-${hostUser.id}`}
+                onClick={() => void handleSetMayHost(hostUser, true)} data-testid="host-approve">
+                Let them host by link
+              </Button>
+            )}
+          </div>
+          {stoppingOpen && (
+            <div className="flex flex-wrap items-center justify-between gap-1.5 border-t border-tea-border pt-2" data-testid="hosting-stop">
+              <p className="text-ui-12 text-tea-text-sec min-w-0">
+                {hostUser.hosting_stopped_at
+                  ? `Hosting stopped ${new Date(hostUser.hosting_stopped_at).toLocaleDateString()}. No new table, no new seat. Confirmed guests keep theirs.`
+                  : 'May host by request, like anyone signed in.'}
+              </p>
+              {hostUser.hosting_stopped_at ? (
+                <Button type="button" size="sm" variant="secondary" loading={busy === `stop-${hostUser.id}`}
+                  onClick={() => void handleSetHostingStopped(hostUser, false)}>
+                  Let them host again
+                </Button>
+              ) : (
+                <ConfirmButton
+                  onConfirm={() => void handleSetHostingStopped(hostUser, true)}
+                  busy={busy === `stop-${hostUser.id}`}
+                  idleLabel={<>Stop all hosting</>}
+                  confirmLabel={<>Stop? No new tables or seats</>}
+                  title="No new table and no new seat; guests already confirmed keep theirs, and nobody is told why"
+                />
+              )}
+            </div>
+          )}
+          {stoppingOpen && hostUser.host_reach !== undefined && (
+            <div className="space-y-1.5 border-t border-tea-border pt-2" data-testid="hosting-reach" role="group" aria-label="Who can find their open tables">
+              <p className="text-ui-12 text-tea-text-sec">Who can find their open tables</p>
+              <div className="flex flex-wrap gap-1.5">
+                {HOST_REACH_CHOICES.map(choice => (
+                  <Button key={choice.value} type="button" size="sm" variant="chip" className="tap-target"
+                    aria-pressed={hostUser.host_reach === choice.value}
+                    disabled={busy === `reach-${hostUser.id}`}
+                    onClick={() => void handleSetHostReach(hostUser, choice.value)}
+                    data-testid={`host-reach-${choice.value}`}>
+                    {choice.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-ui-11 text-tea-text-dim">
+                {HOST_REACH_CHOICES.find(choice => choice.value === hostUser.host_reach)?.says}
+                {' '}A host's first table is never shown, and a seat always needs their yes.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
       {inviteResult && (
         <div className="inset-panel p-3 space-y-2">
           <p className="text-ui-12 text-tea-text-sec">Invite link. Email not configured, copy manually:</p>
@@ -283,6 +416,14 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                     onChange={() => void handleToggleMaySell(user)} data-testid="may-sell-switch" />
                   May sell on Teajia{!user.has_tea_chest && <span className="text-ui-11 text-tea-text-dim">· no Tea Chest yet</span>}
                 </label>
+              )}
+              {hostingOpen && (
+                <button type="button" onClick={() => stepHost(user.id)} data-testid="hosting-open"
+                  className={`${user.may_host ? 'pill pill-active' : 'pill'} flex items-center gap-1`}
+                  title={user.may_host ? 'Hosts by link' : 'Does not host by link'}>
+                  <Coffee size={10} />
+                  Hosting
+                </button>
               )}
               <button type="button" onClick={() => handleResendInvite(user)} disabled={busy === `invite-${user.id}`}
                 className="pill flex items-center gap-1" title="Resend invite">

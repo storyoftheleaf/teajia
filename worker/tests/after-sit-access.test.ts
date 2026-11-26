@@ -50,7 +50,7 @@ const save = (credential: string, userId?: string, action = 'save', selectedShop
   }, { credential, action });
 
 beforeEach(() => {
-  db = new SqliteD1('migrations', '0128');
+  db = new SqliteD1('migrations', '0130'); // 0130 adds events.is_tasting, which the recap reads
   seedIdentity(db, { userId: 'guest', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'different', accountId: 'shop-b' });
   seedIdentity(db, { userId: 'duplicate', accountId: 'shop-a' });
@@ -98,6 +98,8 @@ describe('after-sit access', () => {
       // Launch 1 additions: nothing set, nothing shown; no thanks_ref or kept while the flag is off.
       playlist_url: null,
       reading: null,
+      // Launch 3 (J8): not a tasting, so no paper-notes line.
+      is_tasting: false,
     });
     expect(db.sqlite.prepare('SELECT * FROM after_sit_access').get()).toEqual(before);
     expect(db.sqlite.prepare("SELECT user_id FROM event_attendees WHERE id = 'attendee'").get()).toEqual({ user_id: null });

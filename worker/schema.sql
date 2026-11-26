@@ -4002,6 +4002,45 @@ CREATE TABLE IF NOT EXISTS order_session_sources (
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 0129_few_hosts.sql
+ALTER TABLE users    ADD COLUMN host_approved_at TEXT;
+ALTER TABLE users    ADD COLUMN host_approved_by TEXT REFERENCES users(id);
+ALTER TABLE accounts ADD COLUMN host_approved_at TEXT;
+ALTER TABLE accounts ADD COLUMN host_approved_by TEXT REFERENCES users(id);
+ALTER TABLE events ADD COLUMN host_user_id TEXT REFERENCES users(id);
+ALTER TABLE events ADD COLUMN door TEXT CHECK (door IN ('request','link','open'));
+CREATE TABLE IF NOT EXISTS host_guest_notes (
+  id           TEXT PRIMARY KEY,
+  account_id   TEXT NOT NULL,
+  host_user_id TEXT NOT NULL,
+  event_id     TEXT NOT NULL,
+  attendee_id  TEXT NOT NULL,
+  note         TEXT NOT NULL CHECK (length(note) BETWEEN 1 AND 500),
+  updated_at   TEXT NOT NULL,
+  UNIQUE (host_user_id, event_id, attendee_id)
+);
+
+-- 0130_session_reports_contribution.sql
+ALTER TABLE events ADD COLUMN contribution_kind TEXT CHECK (contribution_kind IN ('free','contribution','price'));
+ALTER TABLE events ADD COLUMN contribution_note TEXT CHECK (contribution_note IS NULL OR length(contribution_note) <= 140);
+ALTER TABLE events ADD COLUMN is_tasting INTEGER NOT NULL DEFAULT 0 CHECK (is_tasting IN (0,1));
+
+CREATE TABLE IF NOT EXISTS session_reports (
+  id               TEXT PRIMARY KEY,
+  target_kind      TEXT NOT NULL CHECK (target_kind IN ('session','person')),
+  target_id        TEXT NOT NULL,
+  reason           TEXT CHECK (reason IS NULL OR length(reason) <= 1000),
+  reporter_user_id TEXT REFERENCES users(id),
+  reporter_seat_id TEXT,
+  status           TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','acted','dismissed')),
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_at      TEXT,
+  resolved_by      TEXT REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_session_reports_open ON session_reports(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_session_reports_target ON session_reports(target_kind, target_id);
+ALTER TABLE session_guest_book_photos ADD COLUMN show_name INTEGER NOT NULL DEFAULT 0 CHECK (show_name IN (0, 1));
+
 -- 0131_favourites.sql
 CREATE TABLE IF NOT EXISTS favourite_articles (
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -4034,6 +4073,23 @@ ALTER TABLE member_tasting_shares ADD COLUMN tea_table_sittings TEXT;
 ALTER TABLE events ADD COLUMN tea_table_at TEXT;
 ALTER TABLE events ADD COLUMN tea_table_by TEXT;
 ALTER TABLE events ADD COLUMN tea_table_hidden_at TEXT;
+
+-- 0134_waiting_list_offers.sql
+ALTER TABLE event_attendees ADD COLUMN offer_lapsed_at TEXT;
+
+CREATE TABLE IF NOT EXISTS event_seat_notices (
+  id          TEXT PRIMARY KEY,
+  account_id  TEXT NOT NULL,
+  event_id    TEXT NOT NULL,
+  attendee_id TEXT,
+  kind        TEXT NOT NULL CHECK (kind IN ('cancelled','released','offered','offer_lapsed','claimed')),
+  seats       INTEGER NOT NULL DEFAULT 0 CHECK (seats >= 0),
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_event_seat_notices_event ON event_seat_notices(event_id, account_id, created_at);
+
+-- 0136_host_table_tea_photos.sql
+ALTER TABLE event_tea_menu ADD COLUMN photo_url TEXT;
 
 -- 0138_tea_house_portfolio.sql
 CREATE TABLE IF NOT EXISTS tea_house_pages (
@@ -4073,6 +4129,17 @@ CREATE TABLE IF NOT EXISTS contributor_top_teas (
   product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
   PRIMARY KEY (contributor_id, slot)
 );
+
+-- 0141_anyone_hosts.sql
+ALTER TABLE users ADD COLUMN hosting_stopped_at TEXT;
+ALTER TABLE users ADD COLUMN hosting_stopped_by TEXT REFERENCES users(id);
+ALTER TABLE users ADD COLUMN host_reach TEXT CHECK (host_reach IN ('invitation','teajia','listed'));
+
+-- 0144_your_table_place.sql
+ALTER TABLE saved_locations ADD COLUMN is_host_table INTEGER NOT NULL DEFAULT 0 CHECK (is_host_table IN (0,1));
+ALTER TABLE saved_locations ADD COLUMN area_hint TEXT CHECK (area_hint IS NULL OR length(area_hint) <= 80);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_locations_one_host_table
+  ON saved_locations(account_id) WHERE is_host_table = 1;
 
 -- 0145_tea_table_page_alone.sql
 ALTER TABLE member_tasting_shares ADD COLUMN page_alone_at TEXT;

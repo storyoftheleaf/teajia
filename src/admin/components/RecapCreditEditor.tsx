@@ -58,7 +58,7 @@ function CreditForm({ eventId, scope }: { eventId: string; scope: Scope }) {
           <Button variant="quiet" size="sm" onClick={() => void query.refetch()}>Try again</Button>
         </div>
       )}
-      {!!query.data?.credits.length && (
+      {!!query.data?.credits?.length && (
         <ul className="divide-y divide-tea-border">
           {query.data.credits.map(credit => (
             <li key={credit.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
@@ -71,7 +71,7 @@ function CreditForm({ eventId, scope }: { eventId: string; scope: Scope }) {
           ))}
         </ul>
       )}
-      {query.data && (query.data.people.length === 0 ? (
+      {query.data && ((query.data.people ?? []).length === 0 ? (
         <p className="text-ui-13 text-tea-text-sec">There are no published People profiles connected to this shop.</p>
       ) : (
         <form className="flex flex-wrap items-end gap-2" onSubmit={event => {
@@ -83,7 +83,7 @@ function CreditForm({ eventId, scope }: { eventId: string; scope: Scope }) {
             <select className="btn-field max-w-full" value={contributor}
               onChange={event => { setContributor(event.target.value); setConfirmed(false); }}>
               <option value="">Choose a person</option>
-              {query.data.people.map(person => <option key={person.id} value={person.id}>{person.display_name}</option>)}
+              {(query.data.people ?? []).map(person => <option key={person.id} value={person.id}>{person.display_name}</option>)}
             </select>
           </label>
           <label className="flex min-w-0 flex-col gap-1 text-ui-13 text-tea-text-sec">
