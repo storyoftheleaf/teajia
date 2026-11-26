@@ -1,6 +1,8 @@
 import { ProfileSessions } from '../components/sessions/ProfileSessions';
 import { SaleTeaRow } from '../components/sessions/SessionTeaRow';
 import { ProfileSitRecaps } from '../components/people/ProfileSitRecaps';
+import { TopTeasSection } from '../components/people/TopTeasSection';
+import { topTeasOpen } from '../lib/topTeas';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -282,12 +284,10 @@ export default function ContributorProfilePage() {
   // Stored as the canonical media host; rendered through the same-origin path (src/lib/mediaUrl.ts).
   const portrait = mediaUrl(data.portrait_url || data.avatar_url || null) ?? null;
   const portraitFocus = data.portrait_url ? data.portrait_focus : data.avatar_focus;
-  // The word Adrian granted by hand (familyPages.ts: page_tier creator or
-  // master), shown once beneath the name exactly as the tier's word reads. When
-  // it is shown there, the kicker above keeps only the place, so it is never
-  // said twice. A family page, or a page from before the family, has no granted word.
-  const grantedWord = data.page_tier === 'creator' || data.page_tier === 'master' ? FAMILY_PAGE_WORDS[data.page_tier] : null;
-  const kicker = coverKicker(grantedWord ? null : data.role, data.location_line);
+  const showTopTeas = topTeasOpen() && data.page_tier === 'master';
+  const grantedWord = !showTopTeas && (data.page_tier === 'creator' || data.page_tier === 'master')
+    ? FAMILY_PAGE_WORDS[data.page_tier] : null;
+  const kicker = coverKicker(showTopTeas || grantedWord ? null : data.role, data.location_line);
   const coverLine = ownLine(data);
 
   // In my words: one passage in their own voice, with the sentence the cover
@@ -468,6 +468,7 @@ export default function ContributorProfilePage() {
           </Section>
         )}
 
+        {showTopTeas && <TopTeasSection key={data.id} slug={data.id} />}
         {!showOffers && teasSection}
 
         {/* ── Tastings ───────────────────────────────────────────────────── */}
