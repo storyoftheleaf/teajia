@@ -25,7 +25,8 @@ async function call(method: string, path: string, headers: Record<string, string
   const route = routes.find(([verb, pattern]) => verb === method && pattern === path);
   if (!route) return new Response(null, { status: 404 });
   const request = new Request(`https://teajia.test${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-  return route[2](request, { DB: db as unknown as D1Database }, params);
+  // The Launch 1 additions are checked in first-table-contract.test.ts; this file keeps the closed shape.
+  return route[2](request, { DB: db as unknown as D1Database, FIRST_TABLE_OPEN: 'false' } as never, params);
 }
 
 async function issue(attendeeId = 'attendee', accountId = 'shop-a', eventId = 'event-a') {

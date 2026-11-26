@@ -150,7 +150,7 @@ describe('keeping a served tea in a guest Tea Chest', () => {
     const credential = await issue();
     const body = { credential, teaId: 'tea-public' };
     const headers = { 'Test-User': 'guest-a' };
-    expect((await call('/api/after-sit/keep-tea', body, headers)).status).toBe(404);
+    expect((await call('/api/after-sit/keep-tea', body, headers, { FIRST_TABLE_OPEN: 'false' })).status).toBe(404);
     const open = await call('/api/after-sit/keep-tea', body, headers, { FIRST_TABLE_OPEN: 'true' });
     expect(open.status).toBe(200);
     expect(await open.json()).toMatchObject({ item: { name: 'Session white', source: { kind: 'session', eventId: 'event-a' } } });

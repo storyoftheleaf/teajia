@@ -70,7 +70,7 @@ afterEach(() => db.close());
 
 describe('the after-sit recap, Launch 1 additions', () => {
   it('gives a path only to a tea with a public page, and the session playlist', async () => {
-    const body = await (await call('/api/after-sit/recap', { credential: await credential() })).json() as Record<string, any>;
+    const body = await (await call('/api/after-sit/recap', { credential: await credential() }, {}, { FIRST_TABLE_OPEN: 'false' })).json() as Record<string, any>;
     expect(body.teas).toEqual([
       { id: 'menu-public', name: 'Old tree white', path: '/shop/product/old-tree-white?store=shop-a' },
       { id: 'menu-private', name: 'Private red', path: null },
@@ -106,7 +106,7 @@ describe('the after-sit recap, Launch 1 additions', () => {
   });
 
   it('keeps the keep-tea door shut while the flag is off', async () => {
-    const response = await call('/api/after-sit/keep-tea', { credential: await credential(), teaId: 'menu-public' }, { 'Test-User': 'guest' });
+    const response = await call('/api/after-sit/keep-tea', { credential: await credential(), teaId: 'menu-public' }, { 'Test-User': 'guest' }, { FIRST_TABLE_OPEN: 'false' });
     expect(response.status).toBe(404);
   });
 });
