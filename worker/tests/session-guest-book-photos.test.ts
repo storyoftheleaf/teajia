@@ -99,7 +99,8 @@ describe('formal attendee Guest Book photos', () => {
 
     const list = await gallery();
     expect(list.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(await list.json()).toEqual({ gallery: [{ id: grantId, alt_text: description, display_name: null, entry_key: expect.stringMatching(/^[a-f0-9]{64}$/) }], own: [] });
+    // Unnamed by its taker, the photograph carries no entry key, so it is never grouped under their signed note (A3).
+    expect(await list.json()).toEqual({ gallery: [{ id: grantId, alt_text: description, display_name: null }], own: [] });
     const image = await bytes();
     expect(image.headers.get('Content-Type')).toBe('image/jpeg');
     expect(image.headers.get('Cache-Control')).toBe('private, no-store');
@@ -142,7 +143,12 @@ describe('formal attendee Guest Book photos', () => {
     const attendeeNotes = (await (await book('viewer', viewer, 'read')).json()).entries;
     const attendeePhotos = (await (await gallery()).json()).gallery;
     expect(attendeeNotes).toEqual([{ id: firstEntry.id, display_name: 'Photo Guest', note, entry_key: key }]);
-    expect(attendeePhotos).toEqual([{ id: grantId, display_name: null, alt_text: description, entry_key: key }]);
+    // The taker kept the photograph unnamed, so nothing ties it to their signed note (A3).
+    expect(attendeePhotos).toEqual([{ id: grantId, display_name: null, alt_text: description }]);
+    // Named by its taker, it sits with their note as before.
+    db.sqlite.prepare('UPDATE session_guest_book_photos SET show_name = 1 WHERE id = ?').run(grantId);
+    expect((await (await gallery()).json()).gallery).toEqual([{ id: grantId, display_name: 'Photo', alt_text: description, entry_key: key }]);
+    db.sqlite.prepare('UPDATE session_guest_book_photos SET show_name = 0 WHERE id = ?').run(grantId);
     expect((await save({ note, photo })).status).toBe(200);
     expect(entry()).toMatchObject({ revision: 1, status: 'included' });
 

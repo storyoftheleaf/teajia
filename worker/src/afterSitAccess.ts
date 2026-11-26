@@ -11,10 +11,11 @@ import { servedTeasOf } from './publicSessions';
 import type { PublicProductReader } from './sessionTeas';
 import { readableArticleFor } from './eventDomain';
 import { firstTableOpen } from '../../src/lib/firstTable';
+import { anyoneHostsOpen } from '../../src/lib/anyoneHosts';
 import { keptSessionTeaIds, keepSessionTea } from './chestKeep';
 import { journalTeasOf } from './sessionTasting';
 
-type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket; FIRST_TABLE_OPEN?: string };
+type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket; FIRST_TABLE_OPEN?: string; ANYONE_HOSTS_OPEN?: string };
 type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown; photo?: unknown; teaId?: unknown; publicRecap?: unknown };
 const guestBookPhotoActions = new Set<unknown>(['photos-read', 'photo-bytes', 'private-photo-preview', 'photo-offer', 'photo-withdraw']);
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
@@ -184,7 +185,8 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
       reading: reading ? { slug: reading.slug, title: reading.title } : null,
     };
     // J8: a tasting's recap offers to add notes written on paper, one journal link per tea that has a record.
-    body.is_tasting = Number(extra?.is_tasting) === 1;
+    // Launch 3 only (A3): with its switch off no recap is a tasting.
+    body.is_tasting = anyoneHostsOpen(env) && Number(extra?.is_tasting) === 1;
     if (body.is_tasting) body.journal_teas = await journalTeasOf(env.DB, account_id, id);
     if (firstTableOpen(env)) {
       body.thanks_ref = await thanksRefFor(env.DB, id, account_id);
@@ -271,7 +273,7 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
   // POST /api/after-sit/gallery { credential, action: 'read' | 'bytes', grantId? }:
   // the photographs from the table, for a signed-in person holding a seat link
   // for this session, the booking's own or a personal party link (as keeps).
-  const gallery = withLink(async (request, env, hash, body) => {
+  const galleryLink = withLink(async (request, env, hash, body) => {
     const actor = await deps.requireUser(request, env);
     if ('error' in actor) return privateResponse(actor.error);
     const resolveSeat = async () => {
@@ -282,6 +284,10 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
       request, env.DB, env.ATLAS_BUCKET, actor.userId, hash, resolveSeat, body,
     ));
   });
+  // The gallery is Launch 3's (J7): closed with its switch (A3).
+  const gallery: Handler<E> = (request, env, params) => anyoneHostsOpen(env)
+    ? galleryLink(request, env, params)
+    : Promise.resolve(json({ error: 'Not found' }, 404));
 
   const photoReview: Handler<E> = async (request, env, { eventId, grantId }) => {
     const host = await deps.requireHost(request, env);
