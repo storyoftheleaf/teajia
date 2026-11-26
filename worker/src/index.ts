@@ -11,6 +11,9 @@ import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
+import { fewHostsOpen } from '../../src/lib/fewHosts';
+import { hostApproved, hostDoorsFor, setHostApproval } from './hostApproval';
+import { createHostedTable, type HostedTableDoor } from './hostTable';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -314,6 +317,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   AFTER_SIT_LIMITER?: RateLimit;
   /** "true" opens Launch 1 in a local sandbox only; see src/lib/firstTable.ts. Never set on the live worker. */
   FIRST_TABLE_OPEN?: string;
+  /** "true" opens Launch 2 in a local sandbox only; see src/lib/fewHosts.ts. Never set on the live worker. */
+  FEW_HOSTS_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -16369,32 +16374,41 @@ const handlePersonalInventoryAccount: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const existing = await personalInventoryAccount(env.DB, ctx.userId);
   if (request.method === 'GET' || existing) return json({ account: existing });
+  const account = await ensurePersonalInventoryAccount(env.DB, ctx.userId, ctx.name);
+  return account ? json({ account }) : json({ error: 'Your Tea Chest account is unavailable.' }, 409);
+};
 
+// The one person's own small private account, made on demand. Used by the
+// Tea Chest and by hosting a table (Launch 2), so both open the same account.
+async function ensurePersonalInventoryAccount(db: D1Database, userId: string, name: string | undefined) {
+  const existing = await personalInventoryAccount(db, userId);
+  if (existing) return existing;
   const id = newId('acc');
-  const displayName = ctx.name?.trim();
+  const displayName = name?.trim();
   const stem = normalizeShelfSlug(displayName || '').slice(0, 24);
   const suffix = crypto.randomUUID().slice(0, 12);
   const slug = `${stem || 'tea-chest'}-${suffix}`;
-  const name = displayName ? `${displayName}’s Tea Chest` : 'Tea Chest';
+  const accountName = displayName ? `${displayName}’s Tea Chest` : 'Tea Chest';
   // Both statements commit together. The unique person link makes concurrent
   // requests use the same account and never adds an owner to a different shop.
-  await env.DB.batch([
-    env.DB.prepare(`
+  // Seller and host approval are kept on the person and copied on here.
+  await db.batch([
+    db.prepare(`
       INSERT INTO accounts (id, slug, name, kind, status, public_enabled, owner_user_id,
                             personal_inventory_user_id, invoice_prefix, contact_email,
-                            personal_seller_approved_at, personal_seller_approved_by)
+                            personal_seller_approved_at, personal_seller_approved_by,
+                            host_approved_at, host_approved_by)
       SELECT ?, ?, ?, 'master', 'active', 0, id, id, 'TEA', NULLIF(trim(email), ''),
-             seller_approved_at, seller_approved_by FROM users WHERE id = ?
+             seller_approved_at, seller_approved_by, host_approved_at, host_approved_by FROM users WHERE id = ?
       ON CONFLICT(personal_inventory_user_id) DO NOTHING
-    `).bind(id, slug, name, ctx.userId),
-    env.DB.prepare(`
+    `).bind(id, slug, accountName, userId),
+    db.prepare(`
       INSERT INTO account_members (account_id, user_id, role, status)
       SELECT id, owner_user_id, 'owner', 'active' FROM accounts WHERE id = ? AND personal_inventory_user_id = ?
-    `).bind(id, ctx.userId),
+    `).bind(id, userId),
   ]);
-  const account = await personalInventoryAccount(env.DB, ctx.userId);
-  return account ? json({ account }) : json({ error: 'Your Tea Chest account is unavailable.' }, 409);
-};
+  return personalInventoryAccount(db, userId);
+}
 
 type PersonalStockOffer = {
   product_id: string;
@@ -16762,6 +16776,206 @@ const handleSellerApproval: Handler = async (request, env, params) => {
   if (!result) return json({ error: 'User not found' }, 404);
   await logPlatformAction(env, 'seller.approval_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { approved: body.approved });
   return json({ ok: true, may_sell: body.approved });
+};
+
+// ── Launch 2, a few hosts (todo/plans/guests-and-tea-masters-launch-2-run.md, slice H1) ──
+// Two gates stand together: the switch (src/lib/fewHosts.ts) and the person's
+// host approval (hostApproval.ts). While the switch is closed every route here
+// answers 404, as if it did not exist. A signed-in person who may not host
+// also gets 404 from the host routes.
+//
+// Adrian, 2026-11-26: anyone may make their own table; his approval is a
+// second level that adds the by-link door. Launch 2 lets approved hosts only.
+// Launch 3 lifts the gate by passing its switch into fewHostsAnyoneHosts
+// below; nothing else changes shape.
+
+const fewHostsClosed = () => json({ error: 'Not found' }, 404);
+
+// Launch 3 returns anyoneHostsOpen(env) here (src/lib/anyoneHosts.ts on build/launch-3).
+function fewHostsAnyoneHosts(_env: Env): boolean {
+  return false;
+}
+
+async function requireFewHostsHost(request: Request, env: Env): Promise<
+  { userId: string; name: string; approved: boolean; doors: HostedTableDoor[] } | { error: Response }
+> {
+  if (!fewHostsOpen(env)) return { error: fewHostsClosed() };
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx;
+  const approved = await hostApproved(env.DB, ctx.userId);
+  const doors = hostDoorsFor(approved, fewHostsAnyoneHosts(env));
+  if (!doors) return { error: fewHostsClosed() };
+  return { userId: ctx.userId, name: ctx.name, approved, doors };
+}
+
+// PUT /api/platform/users/:id/host-approval {approved}. Adrian alone.
+const handleHostApproval: Handler = async (request, env, params) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { approved?: unknown } | null;
+  if (typeof body?.approved !== 'boolean') return json({ error: 'Say whether this person may host.' }, 400);
+  const actor = parseToken(isAuthed(request)!);
+  const result = await setHostApproval(env.DB, params.id, body.approved, actor?.sub ?? 'unknown');
+  if (!result) return json({ error: 'User not found' }, 404);
+  await logPlatformAction(env, 'host.approval_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { approved: body.approved });
+  return json({ ok: true, may_host: body.approved });
+};
+
+// GET /api/me/hosting. Whether the signed-in person may host, and their
+// personal account when they have one. Makes nothing.
+const handleGetHosting: Handler = async (request, env) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const [approved, account] = await Promise.all([
+    hostApproved(env.DB, ctx.userId),
+    personalInventoryAccount(env.DB, ctx.userId),
+  ]);
+  // doors: what this person may give a table, or null when they may not host yet.
+  return json({ approved, account_id: account?.id ?? null, doors: hostDoorsFor(approved, fewHostsAnyoneHosts(env)) });
+};
+
+const HOSTED_TABLE_DEFAULT_SEATS = 6;
+const HOSTED_TABLE_MAX_SEATS = 100;
+const HOSTED_TABLE_NAME_MAX = 120;
+
+function validTimeZone(zone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readHostedTableInput(body: Record<string, unknown> | null):
+  | { date: string; time: string; timezone: string; seats: number; door: HostedTableDoor; name: string | null }
+  | { refusal: Response } {
+  const refuse = (message: string, code: string) => ({ refusal: restError(400, message, code) });
+  if (!body) return refuse('Give a day and a time for the table.', 'hosted_table_invalid');
+  const date = typeof body.date === 'string' ? body.date.trim() : '';
+  const time = typeof body.time === 'string' ? body.time.trim() : '';
+  const timezone = typeof body.timezone === 'string' ? body.timezone.trim() : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))
+    || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date) {
+    return refuse('Give the day as a date.', 'hosted_table_date');
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return refuse('Give the time as hours and minutes.', 'hosted_table_time');
+  if (!timezone || !validTimeZone(timezone)) return refuse('Give the time zone the table is in.', 'hosted_table_timezone');
+  let seats = HOSTED_TABLE_DEFAULT_SEATS;
+  if (body.seats !== undefined && body.seats !== null) {
+    if (typeof body.seats !== 'number' || !Number.isInteger(body.seats) || body.seats < 1 || body.seats > HOSTED_TABLE_MAX_SEATS) {
+      return refuse(`Seats are a whole number from 1 to ${HOSTED_TABLE_MAX_SEATS}.`, 'hosted_table_seats');
+    }
+    seats = body.seats;
+  }
+  const doorInput = body.door ?? 'request';
+  // 'open' is allowed by the table's check but refused until Launch 3.
+  if (doorInput !== 'request' && doorInput !== 'link') {
+    return refuse('A table opens by request or by link.', 'hosted_table_door');
+  }
+  let name: string | null = null;
+  if (body.name !== undefined && body.name !== null) {
+    if (typeof body.name !== 'string') return refuse('Give the table’s name as words.', 'hosted_table_name');
+    name = body.name.trim() || null;
+    if (name && name.length > HOSTED_TABLE_NAME_MAX) {
+      return refuse(`Keep the table’s name under ${HOSTED_TABLE_NAME_MAX} characters.`, 'hosted_table_name');
+    }
+  }
+  return { date, time, timezone, seats, door: doorInput, name };
+}
+
+// POST /api/me/tables {date, time, timezone, seats?, door?, name?}. An
+// approved host makes one table in their personal account.
+const handleCreateHostedTable: Handler = async (request, env) => {
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const input = readHostedTableInput(await request.json().catch(() => null) as Record<string, unknown> | null);
+  if ('refusal' in input) return input.refusal;
+  // The by-link door is the approved host's (Adrian, 2026-11-26).
+  if (!host.doors.includes(input.door)) {
+    return restError(403, 'A table by link opens once Teajia has approved you as a host. A table by request is yours now.', 'hosted_table_door_needs_approval');
+  }
+  const account = await ensurePersonalInventoryAccount(env.DB, host.userId, host.name);
+  if (!account) return json({ error: 'Your account is unavailable.' }, 409);
+  const table = await createHostedTable(env.DB, {
+    ...input, accountId: account.id, hostUserId: host.userId, hostName: host.name, appOrigin: appOrigin(env),
+  });
+  // The stub (hostTable.ts) returns null until slice H3 builds it.
+  if (!table) return json({ error: 'Not built yet' }, 501);
+  return json(table, 201);
+};
+
+// The caller's own hosted tables: their personal account, and they are its host.
+const OWN_HOSTED_TABLE_SQL = 'e.account_id = ? AND e.host_user_id = ?';
+
+// GET /api/me/tables. The host's own tables, newest first.
+const handleListHostedTables: Handler = async (request, env) => {
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  if (!account) return json({ tables: [] });
+  const { results } = await env.DB.prepare(`
+    SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status,
+           (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'confirmed') AS confirmed,
+           (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'requested') AS requested,
+           (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.account_id = e.account_id AND ea.status = 'waitlist') AS waitlist
+      FROM events e
+     WHERE ${OWN_HOSTED_TABLE_SQL}
+     ORDER BY e.event_date DESC, e.created_at DESC
+  `).bind(account.id, host.userId).all<Record<string, unknown>>();
+  const origin = appOrigin(env);
+  return json({
+    tables: results.map(({ confirmed, requested, waitlist, ...row }) => ({
+      ...row,
+      guests: { confirmed, requested, waitlist },
+      link: `${origin}/event/${row.slug}`,
+    })),
+  });
+};
+
+// GET /api/me/tables/:id. One of the host's own tables, with its guests and teas.
+const handleGetHostedTable: Handler = async (request, env, params) => {
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  if (!account) return json({ error: 'Table not found' }, 404);
+  const table = await env.DB.prepare(`
+    SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status,
+           e.requires_approval, e.public_visibility
+      FROM events e
+     WHERE e.id = ? AND ${OWN_HOSTED_TABLE_SQL}
+  `).bind(params.id, account.id, host.userId).first<Record<string, unknown>>();
+  if (!table) return json({ error: 'Table not found' }, 404);
+  const [guests, teas] = await Promise.all([
+    env.DB.prepare(`
+      SELECT id, full_name, status, plus_one, attended, created_at
+        FROM event_attendees WHERE event_id = ? AND account_id = ?
+       ORDER BY created_at ASC, id ASC
+    `).bind(table.id, account.id).all<Record<string, unknown>>(),
+    // A tea on this table's menu, named from this account's own record only.
+    env.DB.prepare(`
+      SELECT m.id, COALESCE(NULLIF(trim(m.custom_name), ''), p.product_name) AS name, m.product_id, m.brew_order
+        FROM event_tea_menu m
+        LEFT JOIN products p ON p.id = m.product_id AND p.account_id = m.account_id
+       WHERE m.event_id = ? AND m.account_id = ?
+       ORDER BY m.brew_order IS NULL, m.brew_order, m.id
+    `).bind(table.id, account.id).all<Record<string, unknown>>(),
+  ]);
+  return json({
+    table: { ...table, link: `${appOrigin(env)}/event/${table.slug}` },
+    guests: guests.results,
+    teas: teas.results,
+  });
+};
+
+// PUT /api/me/tables/:id/guests/:attendeeId/note and GET /api/me/tables/:id/notes.
+// The host's private guest book; slice H9 builds it.
+const handleHostedTableNotes: Handler = async (request, env) => {
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  return json({ error: 'Not built yet' }, 501);
 };
 
 const handleGrantShelf: Handler = async (request, env, params) => {
@@ -31242,6 +31456,7 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/platform/users/:id/platform-role', handlePlatformSetUserRole],
   ['PUT',  '/api/platform/users/:id/shelf', handleGrantShelf],
   ['PUT',  '/api/platform/users/:id/seller-approval', handleSellerApproval],
+  ['PUT',  '/api/platform/users/:id/host-approval', handleHostApproval],
   ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
   ['GET',  '/api/platform/all-stock', handlePlatformAllStock],
@@ -31756,6 +31971,13 @@ const routes: [string, string, Handler][] = [
   // Standalone public shelf (stock spine step 5).
   ['GET',    '/api/me/tea-chest/account', handlePersonalInventoryAccount],
   ['POST',   '/api/me/tea-chest/account', handlePersonalInventoryAccount],
+  // Launch 2, a few hosts: closed (404) until src/lib/fewHosts.ts opens.
+  ['GET',    '/api/me/hosting', handleGetHosting],
+  ['GET',    '/api/me/tables', handleListHostedTables],
+  ['POST',   '/api/me/tables', handleCreateHostedTable],
+  ['GET',    '/api/me/tables/:id', handleGetHostedTable],
+  ['GET',    '/api/me/tables/:id/notes', handleHostedTableNotes],
+  ['PUT',    '/api/me/tables/:id/guests/:attendeeId/note', handleHostedTableNotes],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],
