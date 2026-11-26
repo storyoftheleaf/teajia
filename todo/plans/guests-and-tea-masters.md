@@ -81,6 +81,27 @@ This is the heart of the build. One session page carries all three, and it chang
 
 **What is already built for this:** RSVP and approval, the after-sit link, the Guest Book entry, the post-event form with the session's teas, the tasting screen, a host's recap, and a structured tasting the host opts into. A playlist appears in the post-event views. What is missing is one invitation for a group, more than one tea master on a session, the thank-you as a single composed message, and one screen for the guest's answer.
 
+### Hosting has to be really easy
+
+Adrian, 2026-11-26: "I want it really easy to host the event. Maybe some people won't show their tea in it. Maybe some people will."
+
+**The whole of what a host must give is a day and a time.** That makes a session and its invitation link, ready to paste into WhatsApp. Everything else is optional and can be added before, afterward, or never:
+
+| Optional | If left out |
+|---|---|
+| A name for the session | It is called by its day and its host: "Saturday at Mei's table" |
+| The teas | The session has none listed. The thank-you simply has no tea list, and nothing nags the host to add one |
+| Seats | No limit is shown |
+| The place | The host's own table if they have one, otherwise "ask the host" |
+| The door | By request at a private table, by link otherwise |
+| Others pouring, a photograph, a few words | Not shown |
+
+The test for the build: from tapping "Host a table" to holding a link takes one screen and under a minute, and a host who never touches the session again still has guests who could take a seat and a record of the day in their Journey.
+
+Teas are worth adding because of what they unlock, not because the screen demands them: the guests' tea list in the thank-you, links to the teas, and credit when one is bought. A host adds a tea by typing a few letters. A Teajia tea is found first, a tea from their own Tea Chest second, and any other tea is just a name they type, with no page behind it. A host who would rather not show their teas shows none.
+
+By voice it is one sentence: "Saturday at four at my table."
+
 ## How the sections serve the loop
 
 | Section | For a guest | For a tea master |
@@ -272,7 +293,7 @@ Each stage leaves the site whole and is useful by itself. None changes a bar wor
 |---|---|---|---|
 | 0 | **Repairs.** Confirm G1 on the live site and fix the invite address so account and tea master invites land on a page that accepts them. Correct the profile screen wording | G1, part of G10 | Nothing |
 | 1 | **The words.** Vocabulary applied to copy, the plans, the pillar and the standing rules. No code beyond labels | G10 | Nothing more |
-| 2 | **Before: invite to a session.** First, one kind of session (B5). Then one invitation link and code per session, with the host's choice of door: by request, by link, or open. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. A private sit may invite more than one person | G2, G3, G11, G15 | The safety floor (B1) and the session wording (B2) |
+| 2 | **Before: invite to a session.** First, one kind of session (B5). Hosting needs only a day and a time, on one screen, with teas optional. Then one invitation link and code per session, with the host's choice of door: by request, by link, or open. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. A private sit may invite more than one person | G2, G3, G11, G15 | The safety floor (B1) and the session wording (B2) |
 | 3 | **After: the thank-you.** The host composes one message from the session: their words, the teas poured with links, price and what is for sale, the playlist, and the three asks. The guest answers on one screen: how the teas felt, what it was like, photographs. It reuses the Guest Book, the tasting screen and the photo editor | G6, G14, the tracking half of G17 | Nothing. Orders that start from a thank-you, a session or a tea master's page carry that name from this stage on |
 | 4 | **During.** The one-tap camera for a session, and "this is a tasting" as the host's choice with one screen per tea. Paper notes can be entered afterward | part of G6 | Nothing |
 | 5 | **The Tea Table, first form.** `/tea-table` with sessions poured, the words people shared and their photographs, as [tea-table.md](tea-table.md) describes, with its consent and withdrawal gates. A "Host a table" door | G5 | The Tea Table rule exception; one real sit |
