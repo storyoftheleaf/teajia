@@ -111,6 +111,10 @@ Flags, one per part so each can be switched on alone: `TEA_TABLE_OPEN` (replacin
 | K13 | Truth-up: the pillar's "no feed" and "not a social network" lines, `docs/SITE_MAP`, the rule wording in the files SECTIONS.md lists | Opus | Same commit as K1 and K7 ship | |
 | K14 | Scores are personal, words are shared: an audit of every place a score, star count or average of a tea is shown to anyone but its giver, then those are taken off public pages; chosen words on a tea's page, placed by hand with the writer's yes (the existing tasting excerpts path); a tea master's top teas on their page, shape to be picked by Adrian | Astra audits read-only **today**; Sol builds after | Audit today | The shape of top teas |
 
+### A person's page says their practice, not a title (Adrian, 2026-11-26)
+
+Part of K6 and K8. No "tea master" title is taken or granted. A person's page carries three optional things, each answered in one tap or one line, asked in place and never as a form: "With tea since" a year (no named levels), what draws them to tea (one short line, typed or spoken through the existing transcription), and what they do (tapped from a short fixed list). No "studied with" line. The contract is three nullable columns on the person's profile and the list of things-you-do as a fixed set in one module; nothing is computed, ranked or counted from them. The granted word in the quiet acknowledgement rule is not "tea master".
+
 ### Tea Houses as a portfolio (Adrian, 2026-11-26)
 
 "They are not just like tea house facts. They are portfolio in what I contributed in them." This reshapes K5's Overview, Build and Work.

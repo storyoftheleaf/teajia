@@ -85,6 +85,17 @@ Adrian shared what the site and Instagram say today. Home opens with the core li
 - **Recommendation for Home:** keep the core line as the headline and the house line as it is. Do not add a new sentence. Make the four tags the four doors, each with a few plain words under it and each leading to a bar word: Discover to read, Deepen to tea table, Create to tea house, Source to shop. The two doors "Come to a table" and "Host a table" follow.
 - **"Tea master" against "no tea masters here":** raised with him. Recommendation: "host" is the everyday word for anyone who opens a table ("hosted by", "pouring"); "tea master" is never a rank or a title anyone claims, and where it stays it is explained once as the person pouring at that table, a student like everyone else. His choice.
 
+### The word "tea master" and what a person's page shows (Adrian, 2026-11-26, in the build thread)
+
+His words: taking the title "is a bit cringe in the west" though in the east it is "something people look up to"; "who am I to give someone the title of a tea master?"; yet "there is a difference between someone who has committed to drinking tea every day and studying it versus someone who is just getting into it". On what to show: "Maybe it's an experience level, yes, as well as what drives you. Amount of years potentially. What you do, yes. The studied with feels a bit like collecting lineage titles. I don't like that. But the other ones are good. Also this needs to be easy to interact with and simple. Not make a massive complex long form."
+
+- **No title.** Nobody takes "tea master" and Adrian does not hand it out. Everyone who opens a table is a host; pages say "hosted by" and "pouring". The difference between a newcomer and a committed person is shown by describing their practice, not by ranking them.
+- **Three small things on a person's page, each optional, each one tap or one line:** how long they have been with tea, shown as "With tea since 2011" (a year they pick, never a named level such as beginner or advanced); what draws them to tea, one short line in their own words, typed or spoken; what they do, tapped from a short list (host tables, source tea, write, make teaware, keep a tea house, drink and learn).
+- **Not shown:** "studied with" or any lineage line.
+- **Still there:** what they have done on Teajia (tables hosted, articles, teas chosen) and what others gave them (guests' words, "poured with").
+- **Simple by rule:** no form page. The three things are asked one at a time where the page shows them, can each be skipped, and are changed in place.
+- **Open:** whether the Manage room and older pages that say "Tea Masters" are renamed. No navigation or label changes without his explicit yes.
+
 ## How the build is run
 
 ### The people and the agents
