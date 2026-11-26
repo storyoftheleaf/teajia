@@ -1,0 +1,76 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:43:35.609Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "00ae378f-9474-4b71-8091-e7f41b75b4c0",
+    "name": "Buddha Palm",
+    "chineseName": "佛手乌龙",
+    "type": "Oolong",
+    "form": "Rolled",
+    "year": null,
+    "origin": "Taiwan",
+    "stockGrams": 0,
+    "pricePerGramUsd": 1.01,
+    "tags": [
+      "warm citrus",
+      "toasted grain",
+      "light honey",
+      "subtle bergamot"
+    ]
+  },
+  "entry": {
+    "productId": "00ae378f-9474-4b71-8091-e7f41b75b4c0",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A rolled [oolong](oolong:definition) from Taiwan, made medium oxidised and given a moderate roast. That sets it near the middle of the type. Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way."
+      },
+      {
+        "layer": "type",
+        "text": "Like the rest of [Taiwan oolong](taiwan-oolong:definition), its plants and craft came over from Fujian, and the leaves are rolled tight, as most of the island's oolong is. [Oolong reached Taiwan](taiwan-oolong:history) with settlers from Fujian, and from the 1860s it was sold abroad as Formosa Oolong."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Taiwan oolong",
+      "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:history",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:24.304Z"
+}

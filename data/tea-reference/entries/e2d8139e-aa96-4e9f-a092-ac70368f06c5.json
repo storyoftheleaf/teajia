@@ -1,0 +1,73 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:42:07.842Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "e2d8139e-aa96-4e9f-a092-ac70368f06c5",
+    "name": "Orange Master Box",
+    "chineseName": null,
+    "type": "Oolong",
+    "form": "Loose",
+    "year": null,
+    "origin": "China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 6.63,
+    "tags": [
+      "unknown until tasted"
+    ]
+  },
+  "entry": {
+    "productId": "e2d8139e-aa96-4e9f-a092-ac70368f06c5",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "The record knows this tea only as the Orange Master Box. It names no village, no cultivar and no maker, and China is the only origin it gives."
+      },
+      {
+        "layer": "type",
+        "text": "What can be said is the kind of tea it is. It is an [oolong](oolong:definition), a partly oxidised tea that sits between green tea and red. The leaf is [tossed in rounds](oolong:making) so its edges bruise and slowly change, then heated to stop that change where the maker chooses. How far this leaf was oxidised, and whether it was [roasted](oolong:oxidation-and-roast), are two separate choices, and neither is recorded for this box."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "oolong",
+      "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:making",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:oxidation-and-roast",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:24.899Z"
+}

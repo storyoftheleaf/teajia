@@ -1,0 +1,68 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:44:18.859Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "b0edf4a1-b7c1-48be-aced-3911a8f0a35d",
+    "name": "Aged Sour Citrus Tea",
+    "chineseName": "老酸柑仔茶",
+    "type": "Dark",
+    "form": "Other",
+    "year": 1983,
+    "origin": "Taiwan",
+    "stockGrams": 54,
+    "pricePerGramUsd": 1.56,
+    "tags": [
+      "aged citrus peel",
+      "dark sweetness",
+      "herbal bitterness",
+      "dried tangerine",
+      "warm medicinal"
+    ]
+  },
+  "entry": {
+    "productId": "b0edf4a1-b7c1-48be-aced-3911a8f0a35d",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A sour citrus tea, suan gan zi cha, made in Taiwan in 1983 as a traditional Hakka preparation. Tea leaves were packed into a hollowed sour citrus, then steamed and dried in the sun, cycle after cycle, until the whole piece was rock hard and stable enough to keep. The Hakka made it at home and kept it as a household remedy."
+      },
+      {
+        "layer": "age",
+        "text": "Forty-three years have passed since it was made. Like other [dark tea](dark:ageing), it was made to be kept, and the trade values it more with age. How far it changes over that time depends on how it is stored, as much as on the years."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "dark tea",
+      "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "dark:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:22.349Z"
+}

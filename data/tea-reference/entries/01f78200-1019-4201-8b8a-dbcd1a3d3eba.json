@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:43:23.365Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "01f78200-1019-4201-8b8a-dbcd1a3d3eba",
+    "name": "Yabukita Green",
+    "chineseName": "日本藪北綠茶",
+    "type": "Green",
+    "form": "Loose",
+    "year": 1938,
+    "origin": "Japan",
+    "stockGrams": 49,
+    "pricePerGramUsd": 3.68,
+    "tags": [
+      "aged umami",
+      "toasted rice",
+      "dried seaweed",
+      "dark honey",
+      "mineral"
+    ]
+  },
+  "entry": {
+    "productId": "01f78200-1019-4201-8b8a-dbcd1a3d3eba",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [green tea](green:definition) made in Japan in 1938. The part of Japan that grew the leaf is not recorded. It was [fixed with steam](green:styles), the usual Japanese way of [killing the green](green:making): heat applied soon after picking stops the leaf’s own enzymes, so it never oxidises and keeps its colour."
+      },
+      {
+        "layer": "age",
+        "text": "Green tea is made to be drunk within a year or two, and there is no tradition of [keeping it for decades](green:ageing). At eighty-eight years this one sits far outside what the type promises. What it has become depends on how it was kept over those years, and the record does not say."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Green tea takes water well below the boil, about 80°C, a little cooler for the youngest leaf and a little warmer for older, larger leaf. Boiling water draws out bitterness and dries the cup. A common start is about 2 grams of leaf to 100 ml, in a glass or a small gaiwan, with short steeps of half a minute to two minutes, and the same leaf can be brewed a few times."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "green tea",
+      "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "green:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "green:styles",
+      "rev": 1
+    },
+    {
+      "claimId": "green:making",
+      "rev": 1
+    },
+    {
+      "claimId": "green:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:22.199Z"
+}

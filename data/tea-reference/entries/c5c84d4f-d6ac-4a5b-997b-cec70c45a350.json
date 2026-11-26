@@ -1,0 +1,76 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:43:47.064Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "c5c84d4f-d6ac-4a5b-997b-cec70c45a350",
+    "name": "Huakang Oolong",
+    "chineseName": "华康乌龙",
+    "type": "Oolong",
+    "form": "Loose",
+    "year": null,
+    "origin": "Taiwan",
+    "stockGrams": 0,
+    "pricePerGramUsd": 1.37,
+    "tags": [
+      "toasted grain",
+      "light floral",
+      "smooth sweetness",
+      "mild mineral"
+    ]
+  },
+  "entry": {
+    "productId": "c5c84d4f-d6ac-4a5b-997b-cec70c45a350",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Huakang is a loose [Taiwan oolong](taiwan-oolong:definition), from the island whose tea plants and craft first came over from Fujian. Most oolong made there is lightly to moderately oxidised and rolled into balls, and Qingxin and Jinxuan are the two cultivars grown most often. Which cultivar this leaf is, and where on the island it grew, has not been recorded."
+      },
+      {
+        "layer": "type",
+        "text": "[Oolong](oolong:definition) is the partly oxidised tea. It sits between green tea, which is not oxidised at all, and red tea, which is oxidised all the way, and the range within it is wide. In Taiwan it became a crop grown for sale in the nineteenth century. From the 1860s it was sold abroad as [Formosa Oolong](taiwan-oolong:history), and late in the twentieth century the island began drinking more of its own tea than it sent overseas."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Taiwan oolong",
+      "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "taiwan-oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:history",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:23.853Z"
+}

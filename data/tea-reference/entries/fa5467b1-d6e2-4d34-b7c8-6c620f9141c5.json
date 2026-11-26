@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:43:21.136Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "fa5467b1-d6e2-4d34-b7c8-6c620f9141c5",
+    "name": "Taiwan Aged Green",
+    "chineseName": "台湾陈年绿茶",
+    "type": "Green",
+    "form": "Loose",
+    "year": 1950,
+    "origin": "Taiwan",
+    "stockGrams": 0,
+    "pricePerGramUsd": 6.63,
+    "tags": [
+      "aged sweetness",
+      "dried grain",
+      "subtle floral",
+      "warm mineral"
+    ]
+  },
+  "entry": {
+    "productId": "fa5467b1-d6e2-4d34-b7c8-6c620f9141c5",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "A loose [green tea](green:definition) from Taiwan. The record does not say which part of the island the leaf came from."
+      },
+      {
+        "layer": "age",
+        "text": "It is listed as an aged green tea, which is unusual for its type. Green tea is meant for its first year or two, and no tradition of [ageing green tea](green:ageing) is known; it does not mature the way pu’er or white tea can. So what this tea has become rests on how it was kept, more than on the type. Like any green tea, it began with [fixing](green:making): the leaf was heated soon after picking to stop the enzymes that would turn it brown."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Green tea takes water well below the boil, about 80°C, a little cooler for the youngest leaf and a little warmer for older, larger leaf. Boiling water draws out bitterness and dries the cup. A common start is about 2 grams of leaf to 100 ml, in a glass or a small gaiwan, with short steeps of half a minute to two minutes, and the same leaf can be brewed a few times."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "green tea",
+      "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "green:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "green:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:making",
+      "rev": 1
+    },
+    {
+      "claimId": "green:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:22.956Z"
+}

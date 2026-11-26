@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:42:51.066Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "44832b7a-c7a5-4573-848a-3a8b031f5406",
+    "name": "Yabukita Green",
+    "chineseName": "日本藪北綠茶",
+    "type": "Green",
+    "form": "Loose",
+    "year": 1930,
+    "origin": "Japan",
+    "stockGrams": 169,
+    "pricePerGramUsd": 3.68,
+    "tags": [
+      "aged umami",
+      "dried seaweed",
+      "toasted grain",
+      "dark sweetness",
+      "faint marine"
+    ]
+  },
+  "entry": {
+    "productId": "44832b7a-c7a5-4573-848a-3a8b031f5406",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A green tea made in Japan in 1930, ninety-six years ago. The record names the country but not the prefecture where the leaf was grown."
+      },
+      {
+        "layer": "age",
+        "text": "Green tea is meant to be drunk within about a year of picking, or kept sealed for a year or two. No tradition of [ageing green tea](green:ageing) is recorded, and it does not mature the way pu’er or white tea can. A green tea this old was not made to last this long, so its keeping shaped it more than its making did, and how it was kept is not on record."
+      },
+      {
+        "layer": "type",
+        "text": "As a [green tea](green:definition), the leaf was heated soon after picking so that it never oxidised. In Japan that heat has usually come from [steam](green:styles) rather than a pan."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Green tea takes water well below the boil, about 80°C, a little cooler for the youngest leaf and a little warmer for older, larger leaf. Boiling water draws out bitterness and dries the cup. A common start is about 2 grams of leaf to 100 ml, in a glass or a small gaiwan, with short steeps of half a minute to two minutes, and the same leaf can be brewed a few times."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "green tea",
+      "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "green:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "green:styles",
+      "rev": 1
+    },
+    {
+      "claimId": "green:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "green:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:22.036Z"
+}

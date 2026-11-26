@@ -1,0 +1,83 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:42:42.949Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "0382d7c6-d084-4940-af85-f336d6911131",
+    "name": "Qing Mao Hong Cha",
+    "chineseName": "青毛红茶",
+    "type": "Red",
+    "form": "Loose",
+    "year": 2018,
+    "origin": "Yunnan, China",
+    "stockGrams": 150,
+    "pricePerGramUsd": null,
+    "tags": [
+      "wild honey",
+      "herbal sweetness",
+      "light fruit",
+      "clean mineral"
+    ]
+  },
+  "entry": {
+    "productId": "0382d7c6-d084-4940-af85-f336d6911131",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "Qing Mao Hong Cha is a loose [red tea](red:definition) from Yunnan, from the 2018 harvest."
+      },
+      {
+        "layer": "age",
+        "text": "The trade keeps Yunnan red [for freshness rather than for age](dian-hong:ageing), and looks to its first one to three years. At eight years this leaf is well past that window."
+      },
+      {
+        "layer": "type",
+        "text": "It belongs to the style sold as [Dian Hong](dian-hong:definition), made from the province's large-leaf trees. The leaf is [withered, rolled and left to oxidise](dian-hong:making) until it turns from green to reddish brown, then dried with heat to fix it."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Dian Hong",
+      "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:making",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:21.590Z"
+}

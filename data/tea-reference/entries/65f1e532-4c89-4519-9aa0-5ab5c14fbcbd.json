@@ -1,0 +1,79 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:42:49.691Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "65f1e532-4c89-4519-9aa0-5ab5c14fbcbd",
+    "name": "Gaoshan Red",
+    "chineseName": "高山红茶",
+    "type": "Red",
+    "form": "Loose",
+    "year": 2023,
+    "origin": "Taiwan",
+    "stockGrams": 150,
+    "pricePerGramUsd": 0.77,
+    "tags": [
+      "honey",
+      "sweet potato",
+      "light muscatel",
+      "floral undertone"
+    ]
+  },
+  "entry": {
+    "productId": "65f1e532-4c89-4519-9aa0-5ab5c14fbcbd",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A [red tea](red:definition) from Taiwan, made in 2023. It is the fully oxidised style English calls black tea: the leaf is withered, rolled so its juices and enzymes meet, then left to [oxidise](red:making) until it turns from green to reddish brown, and dried to stop the change. The island’s own red tea dates from the [Japanese period](red:history), at Yuchi near Sun Moon Lake."
+      },
+      {
+        "layer": "age",
+        "text": "Red tea has no tradition of [ageing](red:ageing). Sealed, it keeps its quality for about a year and a half to three years, so at three years this one sits at the far end of that span. It is a tea to drink now, not to set aside."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "red tea",
+      "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "red:making",
+      "rev": 1
+    },
+    {
+      "claimId": "red:history",
+      "rev": 1
+    },
+    {
+      "claimId": "red:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "red:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "red:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:22.818Z"
+}

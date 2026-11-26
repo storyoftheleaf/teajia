@@ -1,0 +1,72 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:42:35.373Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "f76dc835-bd7c-4193-a274-a9ac35e38c24",
+    "name": "Shenhua Native Red",
+    "chineseName": "神华原生红茶",
+    "type": "Red",
+    "form": "Loose",
+    "year": null,
+    "origin": "China",
+    "stockGrams": 0,
+    "pricePerGramUsd": 4.53,
+    "tags": [
+      "dark honey",
+      "ripe fruit",
+      "warm spice",
+      "smooth body"
+    ]
+  },
+  "entry": {
+    "productId": "f76dc835-bd7c-4193-a274-a9ac35e38c24",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "Shenhua Native Red is a loose [red tea](red:definition) from China, the tea English calls black. The Chinese name follows the colour of the brewed cup, while the English one follows the dark dry leaf."
+      },
+      {
+        "layer": "type",
+        "text": "It is made in four steps, each with a reason. The fresh leaf is [withered](red:making) until it goes soft enough to work, then rolled and bruised so its juices meet its own enzymes. It is left in warm, damp air while it turns from green to reddish brown, the change the Chinese trade calls fermentation. Drying with hot air ends that change and keeps the leaf stable."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Red tea takes water near the boil, about 90 to 100°C; hotter water draws out its aroma and flavour more fully, but its bitterness faster too. In a pot or mug, use about a rounded spoon of leaf for each cup and steep three to five minutes, less for broken leaf and a little less, and a little cooler, for a light, delicate tea. Left too long, it turns bitter and drying, because time and heat pull more tannins from the leaf."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "red tea",
+      "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "red:making",
+      "rev": 1
+    },
+    {
+      "claimId": "red:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "red:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:25.039Z"
+}

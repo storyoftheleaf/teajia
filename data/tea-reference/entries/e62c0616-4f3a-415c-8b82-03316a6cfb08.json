@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:44:19.013Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "e62c0616-4f3a-415c-8b82-03316a6cfb08",
+    "name": "Qing Mao Hong Cha",
+    "chineseName": "青毛红茶",
+    "type": "Red",
+    "form": "Loose",
+    "year": 2016,
+    "origin": "Yunnan, China",
+    "stockGrams": 150,
+    "pricePerGramUsd": null,
+    "tags": [
+      "dark honey",
+      "wild herbs",
+      "ripe fruit",
+      "woody depth"
+    ]
+  },
+  "entry": {
+    "productId": "e62c0616-4f3a-415c-8b82-03316a6cfb08",
+    "paragraphs": [
+      {
+        "layer": "type",
+        "text": "A loose leaf [red tea](red:definition) from Yunnan, made in 2016. It is the fully oxidised tea that English calls black: once the leaf is broken, its own enzymes turn it from green to reddish brown. Red tea from this province is known as [Dian Hong](dian-hong:definition), made from Yunnan's large-leaf trees. The style dates from the war years: China was cut off from its eastern tea regions and needed a new red tea to sell abroad, so Feng Shaoqiu made a trial batch in Shunning, now Fengqing, in late 1938."
+      },
+      {
+        "layer": "age",
+        "text": "At ten years old, this lot sits well outside the usual window. The trade drinks Yunnan red within its first one to three years and [keeps it for freshness](dian-hong:ageing) rather than for age, so a decade is well past what the style is kept for."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "Dian Hong",
+      "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "red:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "dian-hong:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:21.433Z"
+}

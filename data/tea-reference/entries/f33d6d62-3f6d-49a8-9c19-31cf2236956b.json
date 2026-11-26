@@ -1,0 +1,75 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:44:08.102Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "f33d6d62-3f6d-49a8-9c19-31cf2236956b",
+    "name": "Aged Oolong",
+    "chineseName": "陈年乌龙",
+    "type": "Oolong",
+    "form": "Rolled",
+    "year": 1980,
+    "origin": "Taiwan",
+    "stockGrams": 0,
+    "pricePerGramUsd": 1.54,
+    "tags": [
+      "dark roast",
+      "dried fruit",
+      "aged honey",
+      "warm mineral"
+    ]
+  },
+  "entry": {
+    "productId": "f33d6d62-3f6d-49a8-9c19-31cf2236956b",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1980, a [partly oxidised](oolong:definition) tea. No record of its cultivar or its garden came down with it, so what can be said of it now is its age."
+      },
+      {
+        "layer": "age",
+        "text": "Taiwan has long kept oolong for years as [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts well roasted and dry, and because it slowly takes in moisture over the years, keepers roast it again at low heat from time to time to drive that moisture out. Between roastings it is held cool, dry, dark and sealed. No standard says when an oolong becomes old; those who give a figure put it between ten and thirty years. At forty-six years, this tea is well past either."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged Taiwan oolong",
+      "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "taiwan-oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan-oolong:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:24.447Z"
+}

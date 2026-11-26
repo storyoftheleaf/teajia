@@ -1,0 +1,80 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-26T04:44:50.841Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "77175e22-e6a2-445a-9f1d-c1bad425e0c9",
+    "name": "EU GABA Oolong",
+    "chineseName": "欧盟认证GABA乌龙",
+    "type": "Oolong",
+    "form": "Rolled",
+    "year": null,
+    "origin": "Taiwan",
+    "stockGrams": 300,
+    "pricePerGramUsd": 0.65,
+    "tags": [
+      "ripe stone fruit",
+      "honey",
+      "warm grain",
+      "mellow sweetness"
+    ]
+  },
+  "entry": {
+    "productId": "77175e22-e6a2-445a-9f1d-c1bad425e0c9",
+    "paragraphs": [
+      {
+        "layer": "lot",
+        "text": "A [GABA oolong](gaba:definition) from Taiwan, made to meet the European Union's organic and safety standards. That certification asks for records of how the leaf was grown and processed, and for residue testing along the way. The leaf was held in a nitrogen chamber, then finished with a light roast."
+      },
+      {
+        "layer": "type",
+        "text": "The method [began in Japan](gaba:history), where the finding is dated to 1987. The island's tea research station later adapted it to oolong, and Taiwan is now a main source of GABA tea sold abroad. [Kept without oxygen](gaba:making), the fresh leaf turns its glutamic acid into GABA and cannot break it down again, so the amino acid builds up. The leaf is then made in the usual way for [Taiwan oolong](taiwan-oolong:definition)."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "gABA oolong",
+      "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness."
+    },
+    "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
+      "The year it was made: unlocks the age paragraph",
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "gaba:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "gaba:history",
+      "rev": 1
+    },
+    {
+      "claimId": "gaba:making",
+      "rev": 2
+    },
+    {
+      "claimId": "taiwan-oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "gaba:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "gaba:common-impressions",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:22.496Z"
+}
