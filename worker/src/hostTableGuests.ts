@@ -109,6 +109,8 @@ export type HostTableGuest = {
   offer_lapsed: boolean;
 };
 
+const PHONE_KEPT_FOR = new Set(['confirmed', 'requested', 'waitlist']);
+
 /** The guests of one of the host's tables, for the host only. Never the guest's private link. */
 export async function hostTableGuests(db: D1Database, table: Pick<OwnHostedTable, 'id' | 'account_id'>): Promise<HostTableGuest[]> {
   const { results } = await db.prepare(`
@@ -127,7 +129,10 @@ export async function hostTableGuests(db: D1Database, table: Pick<OwnHostedTable
     attended: row.attended as number | null,
     created_at: row.created_at as string | null,
     note: typeof row.notes === 'string' && row.notes.trim() ? row.notes.trim() : null,
-    phone: typeof row.phone_number === 'string' && row.phone_number.trim() ? row.phone_number.trim() : null,
+    // A host keeps a guest's phone only while that guest is coming or still
+    // asking. Once the host said no or the seat was given back, it goes (A3).
+    phone: PHONE_KEPT_FOR.has(String(row.status)) && typeof row.phone_number === 'string' && row.phone_number.trim()
+      ? row.phone_number.trim() : null,
     // The seat form's "Please, no photographs of me" (H10) sends photo_consent
     // false, stored as 0; a guest who said nothing is stored NULL since H5
     // (seatRequest.photoConsentValue), so only a real no reads as one. Seats

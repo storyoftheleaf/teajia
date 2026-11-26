@@ -30,6 +30,11 @@ async function installAdminApi(page: Page) {
       memberships: [{ account_id: 'shop-1', account_name: 'Fixture shop', role: 'owner', bundles: ['gather', 'publish'] }],
     } }));
   }, adminToken);
+  // The tasting tick is Launch 3's (A3): the editor shows it only while its switch is on.
+  await page.route(/\/src\/lib\/anyoneHosts\.ts(?:\?|$)/, route => route.fulfill({
+    contentType: 'application/javascript',
+    body: 'export const ANYONE_HOSTS_OPEN = true; export const anyoneHostsOpen = () => true;',
+  }));
   await page.route('**/api/**', route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;

@@ -432,7 +432,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         venue_id: editVenueId || null,
         active_space_ids: editSpaceIds.length > 0 ? JSON.stringify(editSpaceIds) : null,
         requires_approval: editRequiresApproval ? 1 : 0,
-        ...(tastingKnownRef.current ? { is_tasting: isTasting } : {}),
+        // A tasting is Launch 3's (J8): sent only while its switch is on (A3).
+        ...(contributionOpen && tastingKnownRef.current ? { is_tasting: isTasting } : {}),
         ...(readingChangedRef.current || readingKnownRef.current ? { reading_article_id: readingArticleId || null } : {}),
         ...(contributionOpen && contribution && contributionChanged.current ? {
           contribution_kind: contribution.kind,
@@ -484,10 +485,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           onDurationChange={setDurationHours}
           onRepeatDatesChange={setRepeatDates}
           onRequiresApprovalChange={setEditRequiresApproval}
-          onIsTastingChange={(value) => {
+          onIsTastingChange={contributionOpen ? (value) => {
             tastingKnownRef.current = true;
             setIsTasting(value);
-          }}
+          } : undefined}
           onReadingArticleChange={(value) => {
             readingChangedRef.current = true;
             setReadingArticleId(value);
