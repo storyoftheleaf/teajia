@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PrintCardButton } from '../../components/events/PrintCardButton';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStepParam } from '../../hooks/useStepParam';
 import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, Bell, Star, Upload, MoreHorizontal, X, ChevronDown, Save, ExternalLink } from 'lucide-react';
@@ -589,6 +590,9 @@ export const EventDetail: React.FC = () => {
               >
                 <Share2 size={12} /> Share
               </button>
+              {event.slug && event.publicVisibility === 'public' && event.status === 'active' && (
+                <PrintCardButton slug={event.slug} />
+              )}
               <button
                 onClick={() => setIsEditOpen(true)}
                 className="tap-target flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"

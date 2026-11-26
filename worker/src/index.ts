@@ -14942,6 +14942,10 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
        COALESCE(own.chinese_name, shop.chinese_name) AS chinese_name,
        COALESCE(own.type, shop.type) AS product_type,
        COALESCE(etm.photo_url, CASE WHEN ?3 = 1 THEN own.image_url END, shop.image_url) AS product_image_url,
+       -- The card for the table (Launch 5, M3) names each tea's year and place.
+       COALESCE(own.year, shop.year) AS product_year,
+       COALESCE(own.origin_region, shop.origin_region) AS product_origin_region,
+       COALESCE(own.origin_country, shop.origin_country) AS product_origin_country,
        ${shopTeaAddressColumns()}
      FROM event_tea_menu etm
      ${menuProductJoins('etm')}
