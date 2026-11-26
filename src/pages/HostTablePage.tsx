@@ -8,6 +8,8 @@ import { useStepParam } from '../hooks/useStepParam';
 import { api, hasToken, type HostedTableDoor } from '../lib/api';
 import { authPagePath } from '../lib/authNavigation';
 import { fewHostsOpen } from '../lib/fewHosts';
+import { yourTablePlaceOpen } from '../lib/yourTablePlace';
+import { YourTablePlaceSection } from '../components/host/YourTablePlace';
 
 const textClass = `${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`;
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
@@ -45,6 +47,7 @@ function HostingAccess() {
     content = (
       <>
         <MakeTable key={user?.email} doors={hosting.data.doors} />
+        {yourTablePlaceOpen() && <YourTablePlaceSection />}
         <YourRecord />
       </>
     );

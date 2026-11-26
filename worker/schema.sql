@@ -4120,3 +4120,9 @@ CREATE TABLE IF NOT EXISTS contributor_top_teas (
 ALTER TABLE users ADD COLUMN hosting_stopped_at TEXT;
 ALTER TABLE users ADD COLUMN hosting_stopped_by TEXT REFERENCES users(id);
 ALTER TABLE users ADD COLUMN host_reach TEXT CHECK (host_reach IN ('invitation','teajia','listed'));
+
+-- 0144_your_table_place.sql
+ALTER TABLE saved_locations ADD COLUMN is_host_table INTEGER NOT NULL DEFAULT 0 CHECK (is_host_table IN (0,1));
+ALTER TABLE saved_locations ADD COLUMN area_hint TEXT CHECK (area_hint IS NULL OR length(area_hint) <= 80);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_locations_one_host_table
+  ON saved_locations(account_id) WHERE is_host_table = 1;

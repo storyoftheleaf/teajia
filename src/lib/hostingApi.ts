@@ -106,6 +106,9 @@ export interface HostedTableWay {
 export interface HostedWayPlace { id: string; name: string; address: string | null; map_link: string | null; venue_guide: VenueGuide | null }
 export interface HostedTableWayAnswer { way: HostedTableWay; places: HostedWayPlace[] }
 export type HostedTableWayInput = Pick<HostedTableWay, 'address' | 'map_link' | 'venue_guide'>;
+/** One of the host's saved places, by name, and whether it is their table (Launch 4, K4). */
+export interface YourTablePlace { id: string; name: string; area_hint: string | null; is_table: boolean }
+export interface YourTableAnswer { places: YourTablePlace[] }
 /** The host's private line about one guest (slice H9). Never shown to the guest. */
 export interface HostGuestNote { attendee_id: string; note: string; updated_at: string }
 
@@ -119,6 +122,11 @@ export function createHostingApi({ apiUrl, authedFetch }: HostingApiDependencies
     get: (): Promise<HostingStatus> => authedFetch(`${apiUrl}/api/me/hosting`),
     // The host's own record (slice H11), saved by the page as one JSON file. Never a zip.
     record: (): Promise<HostRecordFile> => authedFetch(`${apiUrl}/api/me/record`),
+    // "Add your table" (Launch 4, K4): name one saved place as the host's table, or undo it.
+    yourTable: (): Promise<YourTableAnswer> => authedFetch(`${apiUrl}/api/me/your-table`),
+    chooseYourTable: (choice: { place_id: string; area_hint: string }): Promise<YourTableAnswer> =>
+      authedFetch(`${apiUrl}/api/me/your-table`, { method: 'PUT', body: JSON.stringify(choice) }),
+    undoYourTable: (): Promise<YourTableAnswer> => authedFetch(`${apiUrl}/api/me/your-table`, { method: 'DELETE' }),
   };
 }
 

@@ -15,6 +15,7 @@ import { GroupHead, IndexRow, SplitName } from '../people/immersive';
 import type { PublicPerson } from '../../types';
 import EventCountdown from './EventCountdown';
 import { ReportLink } from '../shared/ReportLink';
+import { yourTableLine } from '../../lib/yourTablePlace';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
 interface PublicTeaMenuProps {
@@ -355,7 +356,9 @@ const EventLanding: React.FC = () => {
   const eventDate: string = ev.eventDate ?? ev.event_date;
   const flyerImageUrl: string | undefined = ev.flyerImageUrl ?? ev.flyer_image_url;
   const locationName: string | undefined = ev.locationName ?? ev.location_name;
-  const areaHint: string | undefined = ev.areaHint ?? ev.area_hint;
+  // Launch 4, K4: a session at the host's own table is described by its area only.
+  const tableLine = yourTableLine(ev.your_table, ev.host?.name);
+  const areaHint: string | undefined = tableLine ?? ev.areaHint ?? ev.area_hint;
   const confirmedCount: number = (ev.confirmedCount ?? ev.confirmed_count) as number ?? 0;
   const seatsRemaining: number = (ev.seatsRemaining ?? ev.seats_remaining) as number ?? 0;
   const guidelinesText: string | undefined = ev.guidelinesText ?? ev.guidelines_text;

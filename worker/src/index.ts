@@ -27,6 +27,8 @@ import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { keepTableWay, readTableWay, readTableWayInput, saveTableWay } from './hostTableWay';
+import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
+import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -353,6 +355,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   /** "true" opens Launch 2 in a local sandbox only; see src/lib/fewHosts.ts. Never set on the live worker. */
   FEW_HOSTS_OPEN?: string;
   ANYONE_HOSTS_OPEN?: string;
+  /** "true" or "false" opens or closes "Add your table" (Launch 4, K4); see src/lib/yourTablePlace.ts. */
+  YOUR_TABLE_PLACE_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -12534,6 +12538,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
             e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
             e.requires_approval, ${hostDoorSql('a', 'e')} AS door, e.venue_id, e.reading_article_id, e.host_user_id, e.contribution_kind, e.contribution_note,
+            ${yourTableAreaSql(yourTableShown(env))},
             v.photos AS venue_photos,
             a.name AS account_name,
             a.location_country AS account_location_country,
@@ -12589,7 +12594,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const {
     account_id: _accountId, reading_article_id: readingId, host_user_id: hostUserId,
     private_host: privateHostFlag, ...publicEvent
-  } = event;
+  } = withYourTable(event);
   const privateHost = Number(privateHostFlag) === 1;
   // A reading is shown only while it is still a published article of this shop.
   const reading = readingId ? await readableArticleFor(env.DB, String(event.account_id), String(readingId)) : null;
@@ -12772,6 +12777,7 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
   const rows = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
             e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status,
+            ${yourTableAreaSql(yourTableShown(env))},
             COALESCE((SELECT COUNT(*) FROM event_party_members pm
               WHERE pm.event_id = e.id AND pm.account_id = e.account_id
                 AND pm.seat_status IN ('held','confirmed')), 0) AS confirmed_count,
@@ -12794,7 +12800,7 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
     const confirmedCount = (ev.confirmed_count as number) || 0;
     const offeredCount = (ev.offered_count as number) || 0;
     return {
-      ...ev,
+      ...withYourTable(ev),
       confirmed_count: confirmedCount,
       offered_count: offeredCount,
       seats_remaining: Math.max(0, (ev.total_capacity as number) - confirmedCount - offeredCount),
@@ -17564,6 +17570,27 @@ const handleHostedTableTeaPhoto: Handler = async (request, env, params) => {
   const key = `${tableTeaPhotoPrefix(own.table)}${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
   await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'image/jpeg' } });
   return hostTableJson({ url: `https://media.teajia.co/${key}` }, 201);
+};
+
+// "Add your table" (Launch 4, K4): GET, PUT {place_id, area_hint} and DELETE
+// /api/me/your-table. One of the host's saved places, in their own personal
+// account, named as their table. Closed (404) unless K4 and Launch 2 are open.
+// Guard: worker/tests/your-table-place.test.ts.
+function yourTableShown(env: Env): boolean {
+  return yourTablePlaceOpen(env) && fewHostsOpen(env);
+}
+
+const handleYourTable: Handler = async (request, env) => {
+  if (!yourTableShown(env)) return fewHostsClosed();
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  if (!account) return hostTableJson({ places: [] });
+  if (request.method === 'GET') return hostTableJson(await readYourTable(env.DB, account.id));
+  if (request.method === 'DELETE') return hostTableJson(await undoYourTable(env.DB, account.id));
+  const chosen = await chooseYourTable(env.DB, account.id, await request.json().catch(() => null) as Record<string, unknown> | null);
+  if ('refused' in chosen) return restError(chosen.refused.status, chosen.refused.error, chosen.refused.code);
+  return hostTableJson(chosen);
 };
 
 // The way to the house, from the host's side (H8): GET and PUT
@@ -32854,6 +32881,10 @@ const routes: [string, string, Handler][] = [
   ['PUT',    '/api/me/tables/:id/way', handleHostedTableWay],
   ['POST',   '/api/me/tables/:id/way/keep', handleKeepHostedTableWay],
   ['POST',   '/api/me/tables/:id/way/photos', handleHostedTableWayPhoto],
+  // Launch 4, K4: closed (404) until src/lib/yourTablePlace.ts opens.
+  ['GET',    '/api/me/your-table', handleYourTable],
+  ['PUT',    '/api/me/your-table', handleYourTable],
+  ['DELETE', '/api/me/your-table', handleYourTable],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],
