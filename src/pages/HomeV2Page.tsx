@@ -17,6 +17,8 @@ import { StoryEditProvider, type PhotoVal } from './read/storyEdit';
 import EditablePhoto from './read/EditablePhoto';
 import StoryEditorBar from './read/StoryEditorBar';
 import type { PublicProduct } from '../types';
+import { homeBarOpen } from '../lib/homeBar';
+import { ComeToATable, FromTheTeaTable, HOME_LINES_TODAY, TeaHousesStrip, consultPlatePath, homeLinesLaunchFour } from './home/HomeLaunchFour';
 
 /**
  * The home page. Cover C from the 2026-09-20 round, built beside the old page
@@ -133,6 +135,9 @@ const HomeV2Page: React.FC = () => {
     refetchOnWindowFocus: true,
     retry: false,
   });
+  // Launch 4's Home (HOME_BAR_OPEN): new opening lines, "Come to a table",
+  // and the two strips. Closed, the page is exactly as it was.
+  const launchFour = homeBarOpen();
   const tea = useMemo(() => pickTea(Array.isArray(products) ? products : []), [products]);
   // The same quote the shop row and the product page read for 50 g, handling
   // fee and whole-unit rounding included. Multiplying the price per gram by 50
@@ -194,12 +199,7 @@ const HomeV2Page: React.FC = () => {
           </h1>
           {/* No tap-target here: it sets a 44px floor per line, which read as a blank line between each. The 26px line box clears the 24px AA target size on its own. */}
           <nav aria-label="Homepage destinations" className="mt-8 flex flex-col items-start gap-0">
-            {[
-              { accent: 'Source', rest: ' your tea.', to: '/shop' },
-              { accent: 'Discover', rest: ' the stories.', to: '/read' },
-              { accent: 'Deepen', rest: ' your practice.', to: '/craft' },
-              { accent: 'Create', rest: ' the spaces to share.', to: '/advise' },
-            ].map(item => (
+            {(launchFour ? homeLinesLaunchFour() : HOME_LINES_TODAY).map(item => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -227,7 +227,10 @@ const HomeV2Page: React.FC = () => {
         </div>
       </section>
 
+      {launchFour && <ComeToATable edge={EDGE} />}
       <HostTablePlate />
+      {launchFour && <FromTheTeaTable edge={EDGE} />}
+      {launchFour && <TeaHousesStrip edge={EDGE} />}
 
       {/* The table: three plates of equal width. */}
       <section
@@ -250,7 +253,7 @@ const HomeV2Page: React.FC = () => {
           src={tea?.imageUrl || TEMPLATE.tea}
         />
         <Plate
-          to="/advise"
+          to={launchFour ? consultPlatePath() : '/advise'}
           title="Twenty years in tea culture."
           body="Taiwan, China, Japan, Bali, and beyond. Tea for your practice, your collection, your space."
           meta="The consult"

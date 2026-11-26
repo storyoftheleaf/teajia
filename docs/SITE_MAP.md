@@ -6,6 +6,8 @@
 
 **Launch 4 routes updated:** 2026-11-26, from the build branch. See [SECTIONS.md](SECTIONS.md) for the separate navigation proposal.
 
+**The new bar (K7, K10), built behind `HOME_BAR_OPEN`, off.** `VITE_HOME_BAR_OPEN=true` changes the four words on the phone bar and the desktop rail to the ones in `src/components/navSections.ts` (`BAR_WORDS`), keys 1 to 5 to follow them, the phone menu and the rail foot to their short form, Home's opening lines, its "Come to a table" door and its two strips, and adds a row of three shelf names to `/read`, `/craft` and `/wisdom`. No route is added or removed. "Tea table" opens `/tea-table` when `TEA_TABLE_OPEN` is on and `/events` otherwise; "Tea house" opens `/tea-houses` when `TEA_HOUSES_OPEN` is on and `/tea-houses/visit` otherwise.
+
 ---
 
 ## The Manage column

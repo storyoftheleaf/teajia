@@ -205,6 +205,7 @@ import { useTeaDiscoverySync } from './hooks/useTeaDiscoverySync';
 import { useCompassSync } from './hooks/useCompassSync';
 import { useNotesSync } from './hooks/useNotesSync';
 import { pathToSection, sectionToPath } from './lib/routes';
+import { useSectionKeys } from './hooks/useSectionKeys';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
@@ -554,22 +555,8 @@ const AppContent = () => {
     return () => window.removeEventListener('keydown', handleSearchShortcut);
   }, []);
 
-  // Desktop keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
-      const sections: Section[] = ['HOME', 'MAGAZINE', 'LEARN', 'OFFERINGS', 'SHOP'];
-      if (e.key >= '1' && e.key <= '5') {
-        e.preventDefault();
-        setActiveSection(sections[parseInt(e.key) - 1]);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveSection]);
+  // Desktop keyboard shortcuts, keys 1 to 5 (src/hooks/useSectionKeys.ts).
+  useSectionKeys(setActiveSection);
 
   // Separate Inventory into Tea and Ware
   const teaInventory = useMemo(() => inventory.filter(i => i.category === 'tea'), [inventory]);
