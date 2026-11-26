@@ -1,3 +1,13 @@
+## 2026-11-26: Launch 5 ready to ship (behind its flags)
+
+Finished on `build/l5-finish`, every part off until Adrian says "ship".
+
+- **Tea credit for hosts** (`HOST_CREDIT_OPEN`, migrations 0135 and 0143). A host may now ask to use their credit on one of their own open orders (`POST /api/me/tea-credit/orders/:id/use`); the shop works out the amount from the order and the host's credit, never from the request, and holds it until the owner approves. `GET /api/me/tea-credit` lists the host's requests and the orders credit can go on. Fixed: a hold could be placed on someone else's order, and several holds could together pass an order's tea. The host's and the owner's screens are a separate build.
+- **A host's own assistant key** (`HOST_TOKENS_OPEN`). Fixed: a host whose approval was withdrawn could not see or disconnect their keys, and keys made at the same moment could pass the limit of ten.
+- **The card for the table** now has its own switch, `TABLE_CARD_OPEN` (`src/lib/tableCard.ts`), so it does not ship with the merge.
+- **The journey** `tests/launch-5.spec.ts` walks credit through the worker routes, circles and series with a guest asked back, a key made, shown once, disconnected and refused at `/mcp`, the card, and every part closed, at phone and desktop size. The offline sandbox gained Launch 5's fixtures (`worker/sandbox/launch-5-fixture.mjs`), its three worker switches and its own ports (`SANDBOX_PORT`, `SANDBOX_INSPECTOR_PORT`).
+- Review: `/mnt/project-files/guests-build/a5-launch-5-review.md`.
+
 ## 2026-11-26: Add your table (Launch 4, K4, behind its flag)
 
 Built on `build/l4-k4-table`, off until shipped (`YOUR_TABLE_PLACE_OPEN` in `src/lib/yourTablePlace.ts`, `VITE_YOUR_TABLE_PLACE_OPEN` on the site; it also needs Launch 2's `FEW_HOSTS_OPEN`). On their own page, `/account/host`, a host names one of the places they kept the way in to as their table and writes the area people see, or undoes it. The chooser is a step in the address (`?your-table=choose`). A session at that table is described on its public page, and in a list if it is ever listed, as "Ana's table, Ubud, near the market": the area only, never the address, the map link, the way in or the place's id. A table is a saved place in the host's own account, never an account, so it is never a tea house and never in Visit. Migration `0144_your_table_place.sql` adds `saved_locations.is_host_table` (one per account) and `saved_locations.area_hint`, columns and an index only. Routes: `GET`, `PUT`, `DELETE /api/me/your-table`. Guard: `worker/tests/your-table-place.test.ts`; browser check `tests/your-table-place.spec.ts` at 390x844.

@@ -299,6 +299,33 @@ describe('a stopped host', () => {
   });
 });
 
+describe('a host whose approval Teajia withdrew', () => {
+  it('still sees and disconnects their keys, which do not work, and makes none', async () => {
+    flags.ANYONE_HOSTS_OPEN = 'false';
+    const { token, id } = await mint('ana');
+    db.sqlite.prepare("UPDATE users SET host_approved_at = NULL WHERE id = 'ana'").run();
+    expect((await rpc(token, 'tools/list')).status).toBe(401);
+    const list = await route('ana', '/api/me/assistant-tokens');
+    expect(list.status).toBe(200);
+    expect(list.body).toMatchObject({ may_connect: false });
+    expect(list.body.tokens.map((t: { id: string }) => t.id)).toEqual([id]);
+    expect((await route('ana', '/api/me/assistant-tokens', 'POST', { label: 'Another' })).status).toBe(404);
+    expect((await route('ana', `/api/me/assistant-tokens/${id}`, 'DELETE')).status).toBe(200);
+    // With no key left, the page is closed to them again.
+    expect((await route('ana', '/api/me/assistant-tokens')).status).toBe(404);
+  });
+});
+
+describe('how many keys', () => {
+  it('holds the limit in the write: keys made at once never pass it', async () => {
+    for (let i = 0; i < 9; i++) await mint('ana', `Key ${i}`);
+    const answers = await Promise.all([1, 2, 3].map(n => route('ana', '/api/me/assistant-tokens', 'POST', { label: `At once ${n}` })));
+    expect(answers.filter(answer => answer.status === 201)).toHaveLength(1);
+    expect(answers.filter(answer => answer.status === 409).map(answer => answer.body.code)).toEqual(['too_many_keys', 'too_many_keys']);
+    expect(count("SELECT COUNT(*) AS n FROM mcp_tokens WHERE user_id = 'ana' AND revoked_at IS NULL")).toBe(10);
+  });
+});
+
 describe('with a switch closed', () => {
   for (const closed of ['HOST_TOKENS_OPEN', 'FEW_HOSTS_OPEN'] as const) {
     it(`${closed} off: the routes answer 404 and no host key works`, async () => {
