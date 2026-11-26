@@ -109,6 +109,8 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 ## Launch 1: the first table
 
+> **Launch 1 is cut for running in [guests-and-tea-masters-launch-1-run.md](guests-and-tea-masters-launch-1-run.md) (2026-11-26):** twelve slices with one owner each (Opus 5.5, GPT-6.2 Sol, GPT-6.2 Astra), the contract, the worker messages, and the journey that proves it. Where it differs from the table below it is the newer one; the differences are listed there.
+
 **What a person can do when it launches.** A guest gets one link to one of Adrian's sessions, with the teas and one thing to read. Afterward they get one thank-you link with the teas, the playlist, the reading and the photographs. They can keep a tea in their own Tea Chest, a tea they buy lands there, a gift can be added, and any tea in their chest can be tasted. Home says what this is.
 
 **Hosts in this launch:** Adrian only, using the sessions that already work in Manage.
@@ -228,4 +230,4 @@ The orchestrator keeps this current.
 
 | Package | Branch | State | Built by | Reviewed by |
 |---|---|---|---|---|
-| (none started) | | | | |
+| Launch 1 run sheet | `claude/project-thread-nks12x` | Written 2026-11-26, nothing built | Fable | |
