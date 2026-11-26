@@ -12403,10 +12403,14 @@ const PUBLIC_EVENT_DIRECT = "e.public_visibility IN ('public', 'unlisted')";
 const PUBLIC_EVENT_STORE = "e.public_visibility = 'public'";
 const PUBLIC_EVENT_DISCOVERY = "e.public_visibility = 'public' AND e.network_discovery = 1";
 
+// The public answer names the place (location_name, area_hint) and never the
+// way to it: the address, the map link and the photographed way in are read
+// only by a confirmed guest, on their own page (handleGetRSVP's
+// projection). Guard: worker/tests/public-session-no-address.test.ts.
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
-            e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
+            e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
             e.requires_approval, e.venue_id, e.reading_article_id,
             v.photos AS venue_photos,
@@ -12414,7 +12418,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
             a.location_country AS account_location_country
      FROM events e
      JOIN accounts a ON a.id = e.account_id
-     LEFT JOIN venues v ON v.id = e.venue_id
+     LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
        AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
   ).bind(params.slug).first();
@@ -12873,7 +12877,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
             v.photos AS venue_photos
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     LEFT JOIN venues v ON v.id = e.venue_id
+     LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
      WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
@@ -14371,8 +14375,8 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -14400,7 +14404,10 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.area_hint || null,
     source.mood_hints || null,
     source.briefing_cards || null,
-    source.requires_approval !== undefined ? source.requires_approval : 1
+    source.requires_approval !== undefined ? source.requires_approval : 1,
+    // A copy is never more visible than the session it was made from.
+    source.public_visibility ?? 'public',
+    source.network_discovery ?? 1
   ).run();
 
   // F38: Clone tea menu entries (including all brewing fields)
@@ -14493,7 +14500,11 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
        p.product_name,
        p.chinese_name,
        p.type AS product_type,
-       p.image_url AS product_image_url
+       p.image_url AS product_image_url,
+       -- The card for the table (Launch 5, M3) names each tea's year and place.
+       p.year AS product_year,
+       p.origin_region AS product_origin_region,
+       p.origin_country AS product_origin_country
      FROM event_tea_menu etm
      LEFT JOIN products p
        ON p.id = etm.product_id AND p.account_id = etm.account_id
@@ -18703,8 +18714,8 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format, location_id,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -18733,7 +18744,10 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
     source.area_hint || null,
     source.mood_hints || null,
     source.briefing_cards || null,
-    source.requires_approval !== undefined ? source.requires_approval : 1
+    source.requires_approval !== undefined ? source.requires_approval : 1,
+    // A copy is never more visible than the session it was made from.
+    source.public_visibility ?? 'public',
+    source.network_discovery ?? 1
   );
 
   // Clone tea menu (same as F38/duplicate pattern)
