@@ -16,10 +16,10 @@ Everything else waits on an answer from Adrian or on Launch 3.
 
 | His answer | Package | What he is asked, with a starting proposal to react to |
 |---|---|---|
-| **Q8, the credit rule** | M1 | How much, on which teas, for how long. Proposal, his to change entirely: credit in tea worth 10 percent of the tea lines of an order, only for orders that began from that host's thank-you or page, counted when the order is Filled and removed if it is made Void, earned for 30 days after the session, spent only on tea from the shop, never paid out, never shown to guests |
+| **Q8, the credit rule** | M1 | **Answered 2026-11-26: tea credit first, cash later.** The rule M1 builds: credit in tea worth 10 percent of the tea lines of an order, on all teas, only for orders that began from that host's thank-you or page, counted when the order is Filled and removed if it is made Void, earned for 30 days after the session (the 30 days is Fable's figure, his to change), spent only on tea from the shop, never paid out, never shown to guests. Every "after Q8" below now means "free to start" |
 | **Q9, the wrapper reader for hosts** | M2 | May a host photograph a tea and be told what it is. It runs on paid analysis, so it needs a limit. Proposal: approved hosts only, ten readings a month each |
 | **Q10, the host's box** | M7 | Whether a small box for hosts comes before the tasting box. This is a shop product and a session to go with it, more than software. Nothing is built until he describes the box |
-| **Q6, the Tea Table rule** | M8 | The same yes that unlocks Launch 4's Tea Table |
+| **Q6, the Tea Table rule** | M8 | Answered yes on 2026-11-26 |
 | **Q12, new: a tea for the table** | M5 | See hard question 3 |
 
 ## The hard questions

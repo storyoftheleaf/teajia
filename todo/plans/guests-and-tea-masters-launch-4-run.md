@@ -10,7 +10,7 @@
 
 | His yes | Unlocks | Until then |
 |---|---|---|
-| **Q6, the Tea Table rule's wording** | K1, K2, and Launch 5's "does anyone know this tea?" | **Nothing is built.** `CLAUDE.md` says of the Tea Table: "Build nothing under it until he says yes." His "build everything in the plan" does not lift a rule he wrote about one page, so ask him for the one word. Astra's read-only audit K0 is preparation, not building, and starts today |
+| **Q6, the Tea Table rule** | K1, K2, and Launch 5's "does anyone know this tea?" | **Answered yes on 2026-11-26.** The Tea Table is in force (see `CLAUDE.md`, "The Tea Table"), so every "after Q6" below now means "free to start". Further social parts (appreciation, replies, following a host) are not in these slices and wait for him to name them |
 | **Q7, the four bar words** (read, table, houses, shop) | K7, and "table" and "houses" as words anywhere in navigation | Built on a branch only. No navigation component changes on `main` without his explicit yes |
 | **Your Table as a page** (decision 1 in your-table.md) | K8 reaching people | Built on the branch behind its flag; his yes at the gate |
 | **His facts about the tea house offering** (seven items in tea-houses.md, "What only Adrian can supply") | The Build and Work pages in K5 | Nothing is written for him. Visit is built; Build and Work wait |

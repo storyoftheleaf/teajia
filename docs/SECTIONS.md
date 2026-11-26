@@ -224,7 +224,7 @@ The rules against feeds are written in several places. This is exactly what chan
 
 **The proposed line for CLAUDE.md**, already added there and marked as proposed:
 
-> **Second exception, the Tea Table (proposed by Adrian, 2026-11-25; not in force until he confirms the wording).** One public page may show, newest first, what people have chosen to put on the tea table: shared tastings with their words and photographs, and published session recaps. Time order is the whole of it: no likes, comments, follows, follower or view counts, scores, streaks, ranking, recommendations or notifications, and it is never called a feed on the site. A person can take their own item off and the owner can hide any item. The plan is `todo/plans/tea-table.md`; the section map is `docs/SECTIONS.md`. Build nothing under it until he says yes.
+> **The Tea Table (Adrian, 2026-11-26; in force).** One public page shows, newest first, what people have chosen to put on the tea table: shared tastings with their words and photographs, and published session recaps. It is a curated, classy social page, not a Facebook-style network, and it is secondary to bringing people together over tea. A piece is held at the top only by hand; nothing rises by itself. A person can take their own item off and the owner can hide any item. Further social parts are added only as Adrian names them. The rule in full is in `CLAUDE.md`; the plan is `todo/plans/tea-table.md`.
 
 **Where the old wording lives, to be brought into line once Adrian says yes:**
 

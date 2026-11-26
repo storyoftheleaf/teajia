@@ -32,9 +32,9 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 | Q3 | Which coming session to run by hand | L1-00 |
 | Q4 | Any tea from anyone, shown properly. **Answered yes, 2026-11-26** | Nothing now |
 | Q5 | Free to host and a host can take their record away, said on the site | L2-01 copy |
-| Q6 | The Tea Table exception wording in CLAUDE.md | All of Launch 4's Tea Table work |
+| Q6 | Answered yes, 2026-11-26. The Tea Table is in force; further social parts wait for him to name them | Nothing |
 | Q7 | The four bar words: read, table, houses, shop | L4-05 only. No navigation label changes without his explicit yes |
-| Q8 | The credit rule: how much, on which teas, for how long | L5-01 (tracking itself is not blocked) |
+| Q8 | Answered 2026-11-26: tea credit first, 10 percent, all teas; cash later. The 30 days is his to change | Nothing |
 | Q9 | The wrapper reader opened to hosts | L5-02 |
 | Q10 | A small host's box brought forward | L5-07 |
 | Q11 | May hosts offer articles | L4-07 |
@@ -44,7 +44,10 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 - **Q4, yes.** "Yes, this is correct." A host may put any tea on a session, from anywhere, with no price, and a host's session may link Adrian's teas to his shop. Launch 2's H6 is unblocked. He added: distribution and shipping go on the to-do list for a later date. It is in `TODO.md`.
 - **Old private sits.** "This has not been used yet." So there is nothing to carry over. Launch 3's J3 stands as written: the old sits are left where they are and the private sit door makes a hosted table from now on. No migration.
 - **Hosting.** "Anyone can make their own tea table. Maybe there is an extra thing when I get to know them and I approve them. So the curated tables versus just people hosting." Read as: hosting is open to everyone, and his approval is a second level on top, not the entry ticket. This is the model in the Launch 3 sheet (anyone hosts by request; a host he approves gains the by-link door and reach). It changes Launch 2 in one way: its approval gate is a rollout step for the first few hosts, not the lasting rule, and the words "Hosting opens by invitation for now" are temporary. Whether "curated" is ever shown as a word on a table is not decided; until he says so, it shows only as where a table can be found, never as a label.
-- **Still open, explained to him the same day:** Q6 (the Tea Table rule), Q7 (the bar words; he keeps shop and read, likes table and houses, and asks whether a newcomer will understand them; five directions were sent), Q8 (the credit rule).
+- **Q6, yes, and wider than asked (project chat, later the same day).** "It can have a little bit of a social feed. I would like to go back on that and remove where it says. I just want it to be a classy social feed, like curated, not like facebook... We don't want to make this a traditional social network but some of the aspects that work can be integrated... That's not the main feature. The main feature is more bringing people together over tea." The Tea Table is in force and the hard stop is lifted: Launch 4's K1 and K2 and Launch 5's M8 may be built as their sheets describe. `CLAUDE.md` and `docs/PILLAR.md` are rewritten to match. What is not yet decided is which further social parts he wants (a way to show appreciation, replies, following a host). None of those is built until he names it.
+- **Q8, tea credit first.** "Let's start with full tea credit. Later on we can work on a cash system." The starting rule, from the example put to him: a host earns 10 percent of a Filled order that came through their session, as credit spendable only on tea from Adrian, on all teas, for orders within 30 days of the session, reversed if the order is voided. The 10 percent and all teas were in the example he answered; the 30 days is Fable's figure and his to change. No cash moves; a cash system is later work. Launch 5's M1 is unblocked.
+- **Q7, the bar words.** He agreed to be shown options. Five directions are with him; no label changes until he picks.
+- **A visible "curated" word on approved tables.** He asked for pros and cons, with adoption and fairness in mind: "Don't want to create an unfair advantage, but it does make sense to curate." Not decided; until then approval shows only as where a table can be found.
 
 ## How the build is run
 
@@ -191,7 +194,7 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 > **Launch 4 is cut for running in [guests-and-tea-masters-launch-4-run.md](guests-and-tea-masters-launch-4-run.md) (2026-11-26).** Most of it waits on Adrian's answers; five slices can start today. Where it differs from the table below it is the newer one.
 
-**Needs first:** Q6 for the Tea Table, Q7 for the bar words.
+**Needs first:** Q7 for the bar words. Q6 was answered yes on 2026-11-26.
 
 | # | Package | Tier | Closes |
 |---|---|---|---|
@@ -251,13 +254,13 @@ Adrian, 2026-11-26: "I want to do all the build out... Better to run multiple si
 | Q5, "free, and your record is yours" | L2 H11's wording and export |
 | Where "Host a table" is found | The door in L2, and L3 J4 |
 | Old private sits stay where they are | L3 J3 |
-| Q6, the Tea Table rule | L4 K1, K2; L5 M8. Nothing under the Tea Table is built before it |
+| Q6, the Tea Table rule | Answered yes. K1, K2 and M8 are free to start |
 | Q7, the four bar words | L4 K7, K10 |
 | Your Table as a page | L4 K8 reaching people |
 | His seven facts about building a tea house | L4 K5's Build and Work pages |
 | Q11, hosts may offer articles | L4 K9 |
 | Three people for the first articles | L4 K6's articles |
-| Q8, the credit rule | L5 M1 |
+| Q8, the credit rule | Answered. M1 is free to start |
 | Q9, the wrapper reader for hosts | L5 M2 |
 | Q10, the host's box | L5 M7 |
 | Q12, a tea for the table | L5 M5 |

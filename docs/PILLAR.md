@@ -6,7 +6,7 @@
 
 ## What it is, in three sentences
 
-Teajia is a home for fine tea: a place to source it, study it, and share it with the people who gather around the cup. It is one person's twenty years of sourcing relationships, turned into a shop, a magazine, a reference library, a calendar of sessions, and a set of professional tools that other tea people can run their own practice on. It is not a wellness app, not a social network, not a SaaS dashboard, and it never sits at the tea table.
+Teajia is a home for fine tea: a place to source it, study it, and share it with the people who gather around the cup. It is one person's twenty years of sourcing relationships, turned into a shop, a magazine, a reference library, a calendar of sessions, and a set of professional tools that other tea people can run their own practice on. It is not a wellness app, not a traditional social network, not a SaaS dashboard, and it never sits at the tea table.
 
 ## The four words a visitor is given
 
@@ -103,7 +103,7 @@ Read and Craft contents have no numbered left column; titles use the available w
 
 ## The boundaries, so nobody rebuilds them
 
-No streaks, gamification, engagement notifications, algorithmic recommendations, social feeds, likes, followers, auto-replenish. Ordinary tea sessions offer notes after the event. Hosts can opt into a structured tasting under Sessions and Tastings, where guests rate each tea and the host sees live results for that tasting. Live PayPal activation requires sandbox acceptance and explicit owner authorization; both were provided on 19 November 2026. Curation is by hand. Journal, Favourites, Cellar, Curate stay separate. Nav labels and routes change only with explicit confirmation.
+No streaks, gamification, engagement notifications, algorithmic recommendations, auto-replenish, or anything that reads as a Facebook-style social network. The one social page is the Tea Table: curated, newest first, held at the top only by hand (Adrian, 2026-11-26; further social parts only as he names them). Ordinary tea sessions offer notes after the event. Hosts can opt into a structured tasting under Sessions and Tastings, where guests rate each tea and the host sees live results for that tasting. Live PayPal activation requires sandbox acceptance and explicit owner authorization; both were provided on 19 November 2026. Curation is by hand. Journal, Favourites, Cellar, Curate stay separate. Nav labels and routes change only with explicit confirmation.
 
 ## Where the detail lives
 
