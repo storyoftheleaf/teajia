@@ -76,7 +76,15 @@ describe('RSVP origin and private tasting notes', () => {
       expect(JSON.stringify(await own.json())).toContain('Private sensory note');
       const peer = await request(db, '/api/sessions/flight', 'peer');
       expect(JSON.stringify(await peer.json())).not.toContain('Private');
-      for (const [url, actor] of [['/api/sessions/flight/verdicts', 'peer'], ['/api/sessions/flight/host-live', 'host']]) {
+      // A peer learns only that a result was given: the score and verdict are the giver's.
+      const peerVerdicts = await request(db, '/api/sessions/flight/verdicts', 'peer');
+      expect(peerVerdicts.status).toBe(200);
+      const peerResult = await peerVerdicts.json() as any;
+      expect(peerResult.verdicts).toEqual([expect.objectContaining({ user_id: 'guest', session_tea_id: 'tea' })]);
+      expect(peerResult.verdicts[0]).not.toHaveProperty('verdict');
+      expect(peerResult.verdicts[0]).not.toHaveProperty('tasting_data');
+      // The giver and the host's own live screen still read it.
+      for (const [url, actor] of [['/api/sessions/flight/verdicts', 'guest'], ['/api/sessions/flight/host-live', 'host']]) {
         const response = await request(db, url, actor);
         expect(response.status).toBe(200);
         const result = await response.json() as any;

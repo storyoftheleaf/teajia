@@ -11,8 +11,9 @@ type Choice = 'private' | 'page' | 'offered';
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * After Save: where this tasting goes. Keep private is the default and the
- * way out. The score never travels with a share; words and photographs only.
+ * After Save: where this tasting goes. Keep private is the default, and Done
+ * writes it; Not now leaves things as they were. The score never travels with
+ * a share; words and photographs only.
  */
 export function TastingShareStep({ productId, photographCount, onClose }: {
   productId: string;
@@ -30,7 +31,8 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
   ];
 
   async function share() {
-    if (choice === 'private') { onClose(); return; }
+    // Keep private is a choice, not a way out: it is written, so a later
+    // sitting of a tea already on the page goes back to private with it.
     setState('sharing');
     setMessage('');
     try {
@@ -41,6 +43,7 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
           await familyApi.shareTasting(productId, choice as FamilyShareState);
+          if (choice === 'private') { onClose(); return; }
           setState('shared');
           return;
         } catch (err) {
@@ -56,8 +59,9 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
       const code = err instanceof ApiError ? (err.data?.code as string | undefined) : undefined;
       setState('error');
       setMessage(code === 'tasting_not_saved'
-        ? 'Your tasting is still reaching Teajia. Try Share again in a moment.'
-        : err instanceof ApiError && err.message && !err.message.startsWith('Request failed') ? err.message : 'Could not share. Please try again.');
+        ? `Your tasting is still reaching Teajia. Try ${choice === 'private' ? 'Done' : 'Share'} again in a moment.`
+        : err instanceof ApiError && err.message && !err.message.startsWith('Request failed') ? err.message
+          : choice === 'private' ? 'Could not keep it private. Please try again.' : 'Could not share. Please try again.');
     }
   }
 
@@ -76,7 +80,7 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
         : <>
             <Button variant="plain" type="button" className="tap-target" onClick={onClose} disabled={state === 'sharing'}>Not now</Button>
             <Button variant="plain" type="button" className="tap-target tasting-share-primary" onClick={() => { void share(); }} disabled={state === 'sharing'}>
-              {state === 'sharing' ? 'Sharing…' : choice === 'private' ? 'Done' : 'Share'}
+              {state === 'sharing' ? (choice === 'private' ? 'Saving…' : 'Sharing…') : choice === 'private' ? 'Done' : 'Share'}
             </Button>
           </>}
     </div>

@@ -143,8 +143,19 @@ export function listenForOtherTabJournal(store: JournalStore, key: string): () =
     if (event.key !== key) return;
     const other = readStoredJournal(event.newValue);
     const state = store.getState();
-    if (!other || !sameJournalScope(state, other)) return;
     const prior = readStoredJournal(event.oldValue);
+    // Another tab signed out or changed who is signed in. This tab still holds
+    // the person who left, so it lets go of their journal (and its scores)
+    // rather than keep it open on a shared screen.
+    if (other && !sameJournalScope(state, other) && prior && sameJournalScope(state, prior)) {
+      if (state.tastingJournal.length === 0) return;
+      store.setState({ tastingJournal: [] });
+      if (typeof event.newValue === 'string') {
+        try { window.localStorage.setItem(key, event.newValue); } catch { /* storage blocked: the journal is still cleared in memory */ }
+      }
+      return;
+    }
+    if (!other || !sameJournalScope(state, other)) return;
     const lastSeen = prior && sameJournalScope(state, prior) ? prior.tastingJournal : null;
     const local = state.tastingJournal;
     const joined = joinOtherTabJournal(local, other.tastingJournal, lastSeen);

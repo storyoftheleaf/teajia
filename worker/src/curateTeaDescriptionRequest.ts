@@ -1,4 +1,5 @@
 import { BridgeError, listTeaArLinks, readTeaArExcerpt } from './curateArBridge';
+import { tastingWithoutScores } from './publicScores';
 import { proposeTeaDescription, TeaDescriptionError, type TeaDescriptionEnvironment, type TeaDescriptionSource } from './curateTeaDescription';
 
 function jsonArray(value: unknown): any[] {
@@ -72,6 +73,8 @@ export async function descriptionForTeaRecord(env: TeaDescriptionEnvironment & {
   }
   const facts = { ...entry };
   if (typeof facts.tasting === 'string') { try { facts.tasting = JSON.parse(facts.tasting); } catch { delete facts.tasting; } }
+  // A description is read by shoppers; the score is the taster's own and never goes to the writer.
+  if (facts.tasting) facts.tasting = tastingWithoutScores(facts.tasting);
   const draft = await proposeTeaDescription(env, { facts, sources: selected });
   return { ...draft, baseDescription: entry.description ?? null };
 }

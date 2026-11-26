@@ -74,6 +74,7 @@ export async function handleCurateWorkspace(request:Request,env:ToolEnv,auth:Too
         samplesOnly:url.searchParams.get('samples_only')==='true',
         limit:url.searchParams.get('limit')?Number(url.searchParams.get('limit')):undefined,
         cursor:url.searchParams.get('cursor'),
+        viewerUserId:auth.userId,
       };
       if(url.searchParams.get('paged')==='1')return Response.json(await readCurateHoldingsPage(env.DB,auth.accountId,{...options,limit:options.limit??MAX_CURATE_HOLDINGS_PAGE}));
       return Response.json(await readCurateHoldings(env.DB,auth.accountId,options));

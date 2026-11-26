@@ -76,7 +76,8 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
     for (const note of unpublished) {
       try {
         const teaKey = note.teaName!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
-        await api.teaReviews.create({ tea_key: teaKey, visibility: 'account', rating: note.rating, notes: note.impression, status: 'submitted' });
+        // The guest's words travel; their score is their own.
+        await api.teaReviews.create({ tea_key: teaKey, visibility: 'account', notes: note.impression, status: 'submitted' });
         setPromoted(prev => new Set(prev).add(note.id));
         successCount++;
       } catch {
@@ -104,7 +105,6 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
       await api.teaReviews.create({
         tea_key: teaKey,
         visibility,
-        rating: note.rating,
         notes: note.impression,
         status: 'submitted',
       });
@@ -150,18 +150,6 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                 <span className="text-xs font-medium text-tea-text">{note.attendeeName || 'Guest'}</span>
                 {note.teaName && (
                   <span className="text-ui-10 text-tea-text-dim">· {note.teaName}</span>
-                )}
-                {note.rating != null && (
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <Star
-                        key={i}
-                        size={11}
-                        className={i < note.rating! ? 'text-tea-gold' : 'text-tea-text-dim/30'}
-                        fill={i < note.rating! ? 'currentColor' : 'none'}
-                      />
-                    ))}
-                  </div>
                 )}
                 {note.isFavorite && (
                   <span className="text-ui-9 text-tea-gold/70 uppercase tracking-[0.1em]">Favorite</span>
