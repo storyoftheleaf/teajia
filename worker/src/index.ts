@@ -206,7 +206,12 @@ import {
   listTeaReferenceIssues,
   resolveTeaReferenceIssues,
 } from './teaReferenceIssues';
-import { isTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { isTeaType, normalizeTeaType, TEA_TYPES } from '../../src/wisdom/vocabulary';
+import { buildPublicProductHref } from '../../src/lib/publicProductNavigation';
+import {
+  isTopTeaSlot, TOP_TEA_SLOTS, TOP_TEA_NAME_LIMIT, TOP_TEA_NOTE_LIMIT, topTeasOpen,
+  type TopTeaPick, type TopTeaShopOption,
+} from '../../src/lib/topTeas';
 import {
   inquiryEmail, inquiryPhone, inquiryPacking, inquiryPackingLabel, quoteInquiryLine,
   catalogProductIds, INQUIRY_MAX_CONTACT, INQUIRY_MAX_INTEREST_LABEL, INQUIRY_MAX_INTERESTS,
@@ -323,6 +328,7 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   HOST_ARTICLES_OPEN?: string;
   /** "true" or "false" opens or closes favourites (Launch 4); see src/lib/favouritesOpen.ts. */
   FAVOURITES_OPEN?: string;
+  TOP_TEAS_OPEN?: string;
   /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
   YOUR_TABLE_PAGE_OPEN?: string;
   /** "true" or "false" opens or closes the Tea Table (Launch 4); see src/lib/teaTable.ts. */
@@ -723,14 +729,22 @@ async function getPublicAccountIdBySlug(env: Env, slug: string): Promise<string 
   return (await getPublicStoreIdentity(env, slug))?.id ?? null;
 }
 
+function publicStoreIdentitySql(alias: string): string {
+  return `${alias}.status = 'active' AND ${alias}.public_enabled = 1 AND ${personalSellerApprovedSql(alias)}
+    AND (${alias}.personal_inventory_user_id IS NULL OR (${alias}.owner_user_id = ${alias}.personal_inventory_user_id
+      AND EXISTS (SELECT 1 FROM account_members m WHERE m.account_id = ${alias}.id AND m.user_id = ${alias}.owner_user_id
+                   AND m.role = 'owner' AND m.status = 'active')))`;
+}
+
+const PUBLIC_PRODUCT_BASE_SQL =
+  'p.is_public = 1 AND p.shown_in_shop = 1 AND p.personal_offer_withdrawn_at IS NULL';
+const PUBLIC_PRODUCT_DETAIL_STATUS_SQL = "p.status IN ('Active', 'Sold Out')";
+
 async function getPublicStoreIdentity(env: Env, slug: string) {
   try {
     return await env.DB.prepare(`
       SELECT a.id, a.personal_inventory_user_id FROM accounts a
-      WHERE a.slug = ? AND a.status = 'active' AND a.public_enabled = 1 AND ${personalSellerApprovedSql('a')}
-        AND (a.personal_inventory_user_id IS NULL OR (a.owner_user_id = a.personal_inventory_user_id
-          AND EXISTS (SELECT 1 FROM account_members m WHERE m.account_id = a.id AND m.user_id = a.owner_user_id
-                       AND m.role = 'owner' AND m.status = 'active')))
+      WHERE a.slug = ? AND ${publicStoreIdentitySql('a')}
     `).bind(slug).first<{ id: string; personal_inventory_user_id: string | null }>();
   } catch {
     return null;
@@ -23477,7 +23491,7 @@ async function fetchPublicProductsForAccount(
   // Sold-out records still resolve by address. The browse endpoint returns only
   // active products with stock, including pieces rather than grams for ware.
   const visibilityFilter = productId
-    ? "p.status IN ('Active', 'Sold Out')"
+    ? PUBLIC_PRODUCT_DETAIL_STATUS_SQL
     : `p.status = 'Active' AND (${INWARD_ORDERS_PAUSED_SQL}
         OR CASE WHEN p.type = 'Teaware' THEN COALESCE(p.quantity_units, p.stock_grams, 0) ELSE COALESCE(p.stock_grams, 0) END > 0)`;
   const [ratesResult, result] = await env.DB.batch([
@@ -23521,8 +23535,7 @@ async function fetchPublicProductsForAccount(
        JOIN accounts account ON account.id = p.account_id AND account.status = 'active' AND account.public_enabled = 1
          AND ${personalSellerApprovedSql('account')}
        LEFT JOIN tea_profiles tp ON tp.id = 'prof_' || p.id
-       WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND ${visibilityFilter} AND p.account_id = ?1${productFilter}
-         AND p.personal_offer_withdrawn_at IS NULL
+       WHERE ${PUBLIC_PRODUCT_BASE_SQL} AND ${visibilityFilter} AND p.account_id = ?1${productFilter}
        ORDER BY p.created_at DESC`
     ).bind(...(productId ? [accountId, productId] : [accountId])),
   ]);
@@ -26007,6 +26020,181 @@ const CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL =
   `(c.is_published = 1 OR (c.unpublished_at IS NULL AND EXISTS (
       SELECT 1 FROM articles ar WHERE ar.author_id = c.id AND ar.status = 'published'
     ))) AND ${FAMILY_PAGE_NOT_HIDDEN_SQL}`;
+
+type TopTeaProfile = { id: string; account_id: string; user_id: string | null };
+
+function topTeaProfile(env: Env, slug: string) {
+  return env.DB.prepare(
+    `SELECT c.id, c.account_id, c.user_id FROM contributors c
+      WHERE c.id = ? AND c.page_tier = 'master' AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}`
+  ).bind(slug).first<TopTeaProfile>();
+}
+
+async function requireOwnTopTeaProfile(request: Request, env: Env, slug: string) {
+  const user = await requireAuthenticatedUser(request, env);
+  if ('error' in user) return user.error;
+  const profile = await topTeaProfile(env, slug);
+  return profile?.user_id === user.userId ? profile : json({ error: 'Profile not found' }, 404);
+}
+
+const TOP_TEA_SHOP_JOIN_SQL = `JOIN accounts a ON a.id = p.account_id AND ${publicStoreIdentitySql('a')}`;
+const TOP_TEA_SHOP_PUBLIC_SQL = `${PUBLIC_PRODUCT_BASE_SQL} AND ${PUBLIC_PRODUCT_DETAIL_STATUS_SQL}`;
+const TOP_TEA_SHOP_NAME_SQL = 'COALESCE(NULLIF(TRIM(p.given_name), \'\'), p.product_name)';
+
+const handleGetTopTeas: Handler = async (request, env, params) => {
+  if (!topTeasOpen(env)) return json({ error: 'Not found' }, 404);
+  const profile = await topTeaProfile(env, params.slug);
+  if (!profile) return json({ error: 'Profile not found' }, 404);
+  const [user, { results }] = await Promise.all([
+    optionalAuthenticatedUser(request, env),
+    env.DB.prepare(
+      `SELECT t.slot, t.name, t.note, t.photo_id, t.product_id, public_tea.slug, public_tea.store_slug
+         FROM contributor_top_teas t
+         LEFT JOIN (
+           SELECT p.id, COALESCE(p.slug, p.id) AS slug, a.slug AS store_slug
+             FROM products p ${TOP_TEA_SHOP_JOIN_SQL}
+            WHERE ${TOP_TEA_SHOP_PUBLIC_SQL}
+         ) public_tea ON public_tea.id = t.product_id
+        WHERE t.contributor_id = ?`
+    ).bind(profile.id).all<Omit<TopTeaPick, 'photo_path' | 'shop_path'> & { photo_id: string; product_id: string | null; slug: string | null; store_slug: string | null }>(),
+  ]);
+  const picks = TOP_TEA_SLOTS.flatMap(slot => {
+    const row = results.find(pick => pick.slot === slot);
+    if (!row) return [];
+    return [{
+      slot, name: row.name, note: row.note,
+      photo_path: `/api/public/people/${encodeURIComponent(profile.id)}/top-teas/photos/${row.photo_id}`,
+      shop_path: row.slug && row.store_slug ? buildPublicProductHref(row) : null,
+    }];
+  });
+  const canEdit = Boolean(user && user.userId === profile.user_id);
+  const shopLinkSlots = canEdit ? results.filter(row => row.product_id).map(row => row.slot) : [];
+  return Response.json({
+    can_edit: canEdit, picks, ...(shopLinkSlots.length ? { shop_link_slots: shopLinkSlots } : {}),
+  }, { headers: { 'Cache-Control': 'private, no-store', Vary: 'Authorization' } });
+};
+
+const handleSearchTopTeaShop: Handler = async (request, env, params) => {
+  if (!topTeasOpen(env)) return json({ error: 'Not found' }, 404);
+  const profile = await requireOwnTopTeaProfile(request, env, params.slug);
+  if (profile instanceof Response) return profile;
+  const query = new URL(request.url).searchParams.get('q')?.trim().toLowerCase().slice(0, TOP_TEA_NAME_LIMIT) ?? '';
+  if (query.length < 2) return json({ teas: [] });
+  const { results } = await env.DB.prepare(
+    `SELECT p.id, ${TOP_TEA_SHOP_NAME_SQL} AS name, p.type, a.name AS store_name
+       FROM products p ${TOP_TEA_SHOP_JOIN_SQL}
+      WHERE ${TOP_TEA_SHOP_PUBLIC_SQL}
+        AND (instr(lower(p.product_name), ?1) OR instr(lower(p.given_name), ?1) OR instr(lower(p.chinese_name), ?1))
+      ORDER BY name COLLATE NOCASE, a.name, p.id LIMIT 60`
+  ).bind(query).all<Omit<TopTeaShopOption, 'category'> & { type: string }>();
+  const teas = results.flatMap(({ type, ...row }) => {
+    const category = normalizeTeaType(type);
+    return category ? [{ ...row, category }] : [];
+  });
+  return Response.json({ teas }, { headers: { 'Cache-Control': 'private, no-store' } });
+};
+
+function topTeaPhotoKey(photoId: string) {
+  return `top-teas/${photoId}`;
+}
+
+const handlePutTopTea: Handler = async (request, env, params) => {
+  if (!topTeasOpen(env) || !isTopTeaSlot(params.slot)) return json({ error: 'Not found' }, 404);
+  const profile = await requireOwnTopTeaProfile(request, env, params.slug);
+  if (profile instanceof Response) return profile;
+  const lengthError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (lengthError) return lengthError;
+  const form = await request.formData().catch(() => null);
+  if (!form) return json({ error: 'Could not read this pick' }, 400);
+
+  const photo = form.get('photo') as File | string | null;
+  const nameField = form.get('name');
+  const noteField = form.get('note');
+  const productField = form.get('product_id');
+  if (typeof nameField !== 'string' || typeof photo === 'string' ||
+      (noteField !== null && typeof noteField !== 'string') ||
+      (productField !== null && typeof productField !== 'string')) {
+    return json({ error: 'Could not read this pick' }, 400);
+  }
+  const note = noteField?.trim() || null;
+  let name = nameField.trim();
+  const current = await env.DB.prepare(
+    'SELECT name, photo_id, product_id FROM contributor_top_teas WHERE contributor_id = ? AND slot = ?'
+  ).bind(profile.id, params.slot).first<{ name: string; photo_id: string; product_id: string | null }>();
+  if (!photo && !current) return json({ error: 'Add a photo of this tea' }, 400);
+  if (note && note.length > TOP_TEA_NOTE_LIMIT) return json({ error: 'Your words are too long' }, 400);
+
+  let productId = current?.product_id ?? null;
+  if (current?.product_id && productField === null) name = current.name;
+  if (productField !== null) {
+    productId = productField || null;
+    if (productId) {
+      const product = await env.DB.prepare(
+        `SELECT ${TOP_TEA_SHOP_NAME_SQL} AS name, p.type
+           FROM products p ${TOP_TEA_SHOP_JOIN_SQL}
+          WHERE p.id = ? AND ${TOP_TEA_SHOP_PUBLIC_SQL}`
+      ).bind(productId).first<{ name: string; type: string }>();
+      const category = normalizeTeaType(product?.type);
+      if (!product || !category) return json({ error: 'This tea is no longer available to link' }, 400);
+      if (isTeaType(params.slot) && category !== params.slot) {
+        return json({ error: 'Choose a tea in this category' }, 400);
+      }
+      name = product.name.trim();
+    }
+  }
+  if (!name || name.length > TOP_TEA_NAME_LIMIT) return json({ error: 'Enter a tea name of up to 160 characters' }, 400);
+
+  let photoId = current?.photo_id ?? '';
+  if (photo) {
+    const limit = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${profile.user_id}:top-tea-photo`);
+    if (limit) return limit;
+    if (!env.ATLAS_BUCKET) return json({ error: 'Photo storage is unavailable' }, 503);
+    const photoError = await validateUpload(photo, 'image', MAX_IMAGE_BYTES);
+    if (photoError) return photoError;
+    photoId = crypto.randomUUID();
+    await env.ATLAS_BUCKET.put(topTeaPhotoKey(photoId), photo.stream(), { httpMetadata: { contentType: photo.type } });
+  }
+
+  const saved = await (current
+    ? env.DB.prepare(
+      `UPDATE contributor_top_teas SET account_id = ?, name = ?, note = ?, photo_id = ?, product_id = ?
+        WHERE contributor_id = ? AND slot = ? AND photo_id = ?`
+    ).bind(profile.account_id, name, note, photoId, productId, profile.id, params.slot, current.photo_id)
+    : env.DB.prepare(
+      `INSERT INTO contributor_top_teas (contributor_id, account_id, slot, name, note, photo_id, product_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(contributor_id, slot) DO NOTHING`
+    ).bind(profile.id, profile.account_id, params.slot, name, note, photoId, productId)
+  ).run();
+  if (!saved.meta.changes) {
+    if (photo) await env.ATLAS_BUCKET?.delete(topTeaPhotoKey(photoId)).catch(() => {});
+    return json({ error: 'This pick changed. Reopen it and try again.' }, 409);
+  }
+  if (photo && current) await env.ATLAS_BUCKET?.delete(topTeaPhotoKey(current.photo_id)).catch(() => {});
+  return json({ ok: true });
+};
+
+const handleDeleteTopTea: Handler = async (request, env, params) => {
+  if (!topTeasOpen(env) || !isTopTeaSlot(params.slot)) return json({ error: 'Not found' }, 404);
+  const profile = await requireOwnTopTeaProfile(request, env, params.slug);
+  if (profile instanceof Response) return profile;
+  const removed = await env.DB.prepare(
+    'DELETE FROM contributor_top_teas WHERE contributor_id = ? AND slot = ? RETURNING photo_id'
+  ).bind(profile.id, params.slot).first<{ photo_id: string }>();
+  if (removed) await env.ATLAS_BUCKET?.delete(topTeaPhotoKey(removed.photo_id)).catch(() => {});
+  return json({ ok: true });
+};
+
+const handleGetTopTeaPhoto: Handler = async (_request, env, params) => {
+  if (!topTeasOpen(env)) return json({ error: 'Not found' }, 404);
+  const headers = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' };
+  const row = await env.DB.prepare(
+    `SELECT t.photo_id FROM contributor_top_teas t JOIN contributors c ON c.id = t.contributor_id
+      WHERE c.id = ? AND t.photo_id = ? AND c.page_tier = 'master' AND ${CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL}`
+  ).bind(params.slug, params.photoId).first<{ photo_id: string }>();
+  const photo = row && await env.ATLAS_BUCKET?.get(topTeaPhotoKey(row.photo_id));
+  return photo ? new Response(photo.body, { headers: { ...headers, 'Content-Type': photo.httpMetadata?.contentType ?? 'image/jpeg' } })
+    : new Response(null, { status: 404, headers });
+};
 
 function firstSentenceOf(text: unknown): string | null {
   if (typeof text !== 'string') return null;
@@ -32118,6 +32306,11 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/people',         handleListPublicContributors],
   ['GET', '/api/people/:slug',   handleGetPublicContributor],
   ['GET', '/api/public/people/:slug/favorites', handleGetPublicProfileFavorites],
+  ['GET', '/api/public/people/:slug/top-teas', handleGetTopTeas],
+  ['GET', '/api/public/people/:slug/top-teas/shop', handleSearchTopTeaShop],
+  ['GET', '/api/public/people/:slug/top-teas/photos/:photoId', handleGetTopTeaPhoto],
+  ['PUT', '/api/public/people/:slug/top-teas/:slot', handlePutTopTea],
+  ['DELETE', '/api/public/people/:slug/top-teas/:slot', handleDeleteTopTea],
   ['GET', '/api/public/people/:slug/payment-methods', handleGetPublicPaymentMethods],
   ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],

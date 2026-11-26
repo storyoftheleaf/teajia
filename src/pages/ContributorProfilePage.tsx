@@ -1,6 +1,8 @@
 import { ProfileSessions } from '../components/sessions/ProfileSessions';
 import { SaleTeaRow } from '../components/sessions/SessionTeaRow';
 import { ProfileSitRecaps } from '../components/people/ProfileSitRecaps';
+import { TopTeasSection } from '../components/people/TopTeasSection';
+import { topTeasOpen } from '../lib/topTeas';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -282,12 +284,10 @@ export default function ContributorProfilePage() {
   // Stored as the canonical media host; rendered through the same-origin path (src/lib/mediaUrl.ts).
   const portrait = mediaUrl(data.portrait_url || data.avatar_url || null) ?? null;
   const portraitFocus = data.portrait_url ? data.portrait_focus : data.avatar_focus;
-  // The word Adrian granted by hand (familyPages.ts: page_tier creator or
-  // master), shown once beneath the name exactly as the tier's word reads. When
-  // it is shown there, the kicker above keeps only the place, so it is never
-  // said twice. A family page, or a page from before the family, has no granted word.
-  const grantedWord = data.page_tier === 'creator' || data.page_tier === 'master' ? FAMILY_PAGE_WORDS[data.page_tier] : null;
-  const kicker = coverKicker(grantedWord ? null : data.role, data.location_line);
+  const showTopTeas = topTeasOpen() && data.page_tier === 'master';
+  const grantedWord = (data.page_tier === 'creator' || data.page_tier === 'master')
+    ? FAMILY_PAGE_WORDS[data.page_tier] : null;
+  const kicker = coverKicker(showTopTeas || grantedWord ? null : data.role, data.location_line);
   const coverLine = ownLine(data);
 
   // In my words: one passage in their own voice, with the sentence the cover
@@ -380,6 +380,8 @@ export default function ContributorProfilePage() {
             {kicker && <Kicker className="mb-3">{kicker}</Kicker>}
             <h1 className="font-display text-ui-40 leading-[0.98] text-tea-text"><SplitName name={data.display_name} /></h1>
             {grantedWord && <p className="mt-2 font-sans text-ui-13 text-tea-text-sec" data-testid="profile-granted-word">{grantedWord}</p>}
+            {/* Adrian, 2026-11-26: the word stays, with his line beside it. */}
+            {data.page_tier === 'master' && <p className="mt-1 font-sans text-ui-13 text-tea-text-dim" data-testid="profile-master-line">The true master is one who is forever learning.</p>}
             {data.chinese_name && <p className="mt-2 text-ui-22 leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>
@@ -468,6 +470,7 @@ export default function ContributorProfilePage() {
           </Section>
         )}
 
+        {showTopTeas && <TopTeasSection key={data.id} slug={data.id} />}
         {!showOffers && teasSection}
 
         {/* ── Tastings ───────────────────────────────────────────────────── */}
