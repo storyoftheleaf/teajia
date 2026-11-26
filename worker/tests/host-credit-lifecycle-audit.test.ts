@@ -17,11 +17,12 @@ beforeEach(() => {
       quantity_purchased, stock_grams) VALUES ('tea', 'shop', 'Red', 'Red tea', 'Loose', 20, 'USD', 300, 1000);
     INSERT INTO events (id, account_id, slug, title, event_date, lifecycle_status, thanks_ref)
       VALUES ('event', 'shop', 'sit', 'Tea', '2026-01-10', 'completed', '${via}');
-    INSERT INTO contributors (id, account_id, display_name, user_id)
-      VALUES ('contributor', 'shop', 'Host', 'host');
+    -- The lead host the public page names (Launch 2, sessionHost.ts): shown and published.
+    INSERT INTO contributors (id, account_id, display_name, user_id, is_published)
+      VALUES ('contributor', 'shop', 'Host', 'host', 1);
     INSERT INTO contributor_accounts (contributor_id, account_id) VALUES ('contributor', 'shop');
-    INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role)
-      VALUES ('lead', 'shop', 'event', 'contributor', 'lead_host');
+    INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role, is_public)
+      VALUES ('lead', 'shop', 'event', 'contributor', 'lead_host', 1);
   `);
 });
 afterEach(() => db.close());
