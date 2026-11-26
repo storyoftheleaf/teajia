@@ -54,6 +54,8 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 - **A tea master's top teas (same message, an idea, not yet a decision).** "Maybe every tea master can pick a top tea from every category into their profile as well, or a top two: one from themselves and one from someone else." Folded into the favourites work as K14's second half; the exact shape (one per category, or two) is his to pick.
 - **The bar words fit (measured 2026-11-26).** In the real bottom bar at 320, 375, 390 and 430 wide, every candidate set fits on one line at the present letter size with no side scroll, "read, tea table, tea house, shop" included. At 320 that set leaves about 4 pixels each side of the two long words, so it is the tightest. Pictures are in the project files under `bar-words/`. He is weighing "tea table" and "tea house"; no pick yet, no label changes.
 
+- **The two icons on the bar (asked 2026-11-26, not decided).** He asked whether the three lines (the site panel: search, sessions, people, places, tea wisdom, cart, Manage) and Your Table could go, or Your Table sit in the centre, to give the words room. Measured with "read, tea table, tea house, shop": air each side of the long words is about 4 to 6 pixels at 320 wide and 9 to 11 at 360 and 375 as the bar is; removing the three lines adds about 2, removing both about 4, Your Table in the centre with empty ends about 6. Fable's recommendation: keep the bar as it is, and let the letters step down one size below 340 wide. Pictures in the project files, `bar-words/bar-icons-*.png`. No change until he says.
+
 ## How the build is run
 
 ### The people and the agents
