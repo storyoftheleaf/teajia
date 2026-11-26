@@ -13,6 +13,7 @@
  * placeholder cards), gated by real login, never a demo toggle.
  */
 import React, { useState } from 'react';
+import { ReadShelves } from '../../components/shared/ReadShelves';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
@@ -340,6 +341,8 @@ const ReadIndex: React.FC = () => {
       </nav>
 
       <article style={{ position: 'relative', zIndex: 1 }}>
+
+        <ReadShelves here="stories" />
 
         {/* MASTHEAD */}
         <header style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: 'clamp(54px,9vw,118px) clamp(24px,5vw,56px) clamp(34px,5vw,56px)', overflow: 'hidden' }}>

@@ -1,6 +1,6 @@
 # Teajia sections: the proposed overhaul
 
-> **Launch 4 branch status (2026-11-26).** The feature sections below describe what is in this checkout. The section diagram, new bar words, Home and the full Tea Houses offering are proposals. The current bar reads **read, craft, advise, shop**. See [SITE_MAP.md](SITE_MAP.md) for routes and flag states.
+> **Launch 4 branch status (2026-11-26).** The feature sections below describe what is in this checkout. The section diagram, new bar words, Home and the full Tea Houses offering are proposals. The current bar reads **read, craft, advise, shop**. See [SITE_MAP.md](SITE_MAP.md) for routes and flag states. The bar change, Home in full and Read's row of three shelves are built behind `HOME_BAR_OPEN` (`src/lib/homeBar.ts`, off). Adrian's words of 2026-11-26 are "Read", "Tea table", "Tea house" and "Shop", one line in `src/components/navSections.ts`, and he has said he doubts the middle two.
 
 > **Second pass, 2026-11-25.** Adrian answered five questions the same day, and the answers put two roles at the centre: guests and tea masters. The section called "The centre" below is new, and Home, Tea Table, Tea Houses, the decisions and the build order were revised to fit it. The full reasoning, the gaps found in the code, and the stages are in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md).
 
