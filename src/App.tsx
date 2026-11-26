@@ -124,7 +124,6 @@ const ShelfPage = lazyWithRetry(() => import('./pages/ShelfPage'));
 const EventsPage = lazyWithRetry(() => import('./pages/EventsPage'));
 const ForYourSpacePage = lazyWithRetry(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazyWithRetry(() => import('./pages/SpacesPage'));
-const TeaHousesVisitPage = lazyWithRetry(() => import('./pages/TeaHousesVisitPage'));
 const StartHerePage = lazyWithRetry(() => import('./pages/StartHerePage'));
 const DiscoverPage = lazyWithRetry(() => import('./pages/DiscoverPage'));
 const ArticlePage = lazyWithRetry(() => import('./pages/ArticlePage'));
@@ -232,6 +231,7 @@ import HomeV2Page from './pages/HomeV2Page';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { EmblemLoader } from './components/shared/EmblemLoader';
+import { teaHouseRoutes } from './pages/teaHouses/teaHouseRoutes';
 import { WisdomFallback } from './pages/wisdom/frame';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
@@ -1335,7 +1335,7 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                <Route path="/tea-houses/visit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaHousesVisitPage /></Suspense></ErrorBoundary>} />
+                {teaHouseRoutes()}
                 {/* Legacy community URL now points to the network directory. */}
                 <Route path="/community" element={<Navigate to="/find-a-table" replace />} />
                 <Route path="/store/:slug" element={

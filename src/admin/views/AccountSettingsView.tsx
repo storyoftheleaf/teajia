@@ -13,6 +13,7 @@ import { storeOpeningRefusal, type StoreOpeningRefusal } from '../../components/
 import type { PersonReadinessInput } from '../../components/readiness/teaMasterReadiness';
 import type { Account, AccountMember, AccountRole } from '../../types';
 import { ShippingRoutesSection } from '../components/settings/ShippingRoutesSection';
+import { TeaHousePortfolioSection } from '../components/settings/TeaHousePortfolioSection';
 
 function useCurrentRole(): AccountRole | null {
   const { memberships, activeAccountId } = useAppStore();
@@ -441,6 +442,9 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
 
       {/* How bought tea travels home; saved row by row, outside the form above. */}
       <ShippingRoutesSection canEdit={canEdit} />
+
+      {/* Tea houses, Adrian's part in each (Launch 4, K5 part two). Platform owner only. */}
+      <TeaHousePortfolioSection />
 
       {/* Integrations, per-account third-party API keys (BYOK) */}
       {canEdit && (

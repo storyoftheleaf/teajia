@@ -14,6 +14,7 @@ import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
 import { teaTableRoutes } from './teaTable';
+import { teaHousesRoutes } from './teaHouses';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -333,6 +334,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   YOUR_TABLE_PAGE_OPEN?: string;
   /** "true" or "false" opens or closes the Tea Table (Launch 4); see src/lib/teaTable.ts. */
   TEA_TABLE_OPEN?: string;
+  /** "true" or "false" opens or closes the tea house portfolio (Launch 4); see src/lib/teaHouses.ts. */
+  TEA_HOUSES_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -32041,6 +32044,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
+  ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),
   ['GET',    '/api/me/cellar', handleListCellar],
   ['POST',   '/api/me/cellar', handleCreateCellarItem],
   ['PUT',    '/api/me/cellar/:id', handleUpdateCellarItem],
