@@ -158,6 +158,16 @@ function hostRoleWord(role: string): string {
   }
 }
 
+/** The person's own seat here, said plainly. */
+function mySeatWords(status: string): string {
+  switch (status) {
+    case 'confirmed': return 'You have a seat at this table.';
+    case 'waitlist': return 'You are on the waiting list.';
+    case 'requested': return 'You asked for a seat. The host has not answered yet.';
+    default: return 'You have asked for a seat.';
+  }
+}
+
 function formatEventDate(dateStr: string): { date: string; time: string; day: string } {
   const d = new Date(dateStr);
   const day = d.toLocaleDateString('en-US', { weekday: 'long' });
@@ -259,9 +269,13 @@ const EventLanding: React.FC = () => {
       el.setAttribute('content', content);
     };
 
+    // A person's table with no area given names no place (H13 finding 1).
+    const rawEvent = event as PublicEvent & Record<string, any>;
+    const place: string | undefined = rawEvent.areaHint ?? rawEvent.area_hint ?? rawEvent.locationName ?? rawEvent.location_name
+      ?? (rawEvent.private_host === true ? undefined : 'Taipei');
     const description = event.description
       ? event.description.slice(0, 140)
-      : `${date} · ${event.areaHint ?? event.locationName ?? 'Taipei'}`;
+      : place ? `${date} · ${place}` : date;
 
     setMeta('description', description);
     setMeta('og:title', event.title, true);
@@ -283,34 +297,45 @@ const EventLanding: React.FC = () => {
     };
   }, [event]);
 
+  // The signed-in person's own seat here, or (signed out) one this browser asked for: their
+  // state and a way back to their page instead of the form (H13 finding 3).
+  // Asked again when the seat sheet closes, so a request just sent shows at once.
+  const [seatLookups, setSeatLookups] = useState(0);
   useEffect(() => {
     if (!slug || !event) return;
-    if (hasToken()) {
-      api.rsvp.findByAccount(slug).then((data: any) => {
-        const token = data?.magic_token || data?.magicToken;
-        const status = data?.status;
-        if (token && status && status !== 'cancelled' && status !== 'denied') {
-          setMyAttendee(data);
-        }
-      }).catch(() => {});
-      return;
-    }
-    // Unauthenticated returning visitor: check localStorage for a magic token
-    // saved from a prior RSVP on this device.
-    let storedToken: string | null = null;
-    try { storedToken = localStorage.getItem(`teajia_rsvp_${slug}`); } catch { /* private mode */ }
-    if (!storedToken) return;
-    api.rsvp.get(storedToken).then((data: any) => {
+    let live = true;
+    const keep = (data: any) => {
+      const token = data?.magic_token || data?.magicToken;
       const status = data?.status;
-      if (status && status !== 'cancelled' && status !== 'denied') {
-        setMyAttendee(data);
-      } else {
-        try { localStorage.removeItem(`teajia_rsvp_${slug}`); } catch { /* ignore */ }
+      if (!live) return true;
+      if (token && status && status !== 'cancelled' && status !== 'denied') {
+        setMyAttendee({ ...data, magic_token: token });
+        return true;
       }
-    }).catch(() => {
-      try { localStorage.removeItem(`teajia_rsvp_${slug}`); } catch { /* ignore */ }
-    });
-  }, [slug, event]);
+      return false;
+    };
+    // A token saved from a seat taken on this device.
+    const fromThisDevice = () => {
+      let storedToken: string | null = null;
+      try { storedToken = localStorage.getItem(`teajia_rsvp_${slug}`); } catch { /* private mode */ }
+      if (!storedToken) return;
+      api.rsvp.get(storedToken).then((data: any) => {
+        const seat = data?.attendee ?? data;
+        if (!keep(seat)) {
+          try { localStorage.removeItem(`teajia_rsvp_${slug}`); } catch { /* ignore */ }
+        }
+      }).catch(() => {
+        try { localStorage.removeItem(`teajia_rsvp_${slug}`); } catch { /* ignore */ }
+      });
+    };
+    if (hasToken()) {
+      // Signed in, the account answers; no seat is an answer, not an error (magic_token null).
+      api.rsvp.findByAccount(slug).then(keep).catch(() => {});
+    } else {
+      fromThisDevice();
+    }
+    return () => { live = false; };
+  }, [slug, event, seatLookups]);
 
   if (isLoading) {
     return (
@@ -365,7 +390,10 @@ const EventLanding: React.FC = () => {
   const guidelinesText: string | undefined = ev.guidelinesText ?? ev.guidelines_text;
   const venueGuide: any = ev.venueGuide ?? (ev.venue_guide ? (typeof ev.venue_guide === 'string' ? JSON.parse(ev.venue_guide) : ev.venue_guide) : undefined);
   const moodHints: string[] | undefined = ev.moodHints ?? (ev.mood_hints ? (typeof ev.mood_hints === 'string' ? JSON.parse(ev.mood_hints) : ev.mood_hints) : undefined);
-  const eventFormat: import('../../types/events').EventFormat | undefined = ev.format ?? ev.event_format ?? undefined;
+  // A person's table carries the default format; its label follows whether the host made it a tasting (J13 finding 4).
+  const eventFormat: import('../../types/events').EventFormat | undefined = ev.private_host === true
+    ? (ev.is_tasting === true ? 'public_tasting' : undefined)
+    : ev.format ?? ev.event_format ?? undefined;
   const gatheringType: import('../../types/events').GatheringType | undefined = ev.gatheringType ?? ev.gathering_type ?? undefined;
   const reading = ev.reading;
   const contribution = contributionLine(event);
@@ -377,6 +405,8 @@ const EventLanding: React.FC = () => {
   // "Hosted by" and "Pouring", from the public answer: a name, linked only when it has a page.
   const sessionHost: SessionPerson | null = isSessionPerson(ev.host) ? ev.host : null;
   const pouring: SessionPerson[] = Array.isArray(ev.pouring) ? ev.pouring.filter(isSessionPerson) : [];
+  // A person's own table rather than a shop's session (the public answer's private_host).
+  const privateHost = ev.private_host === true;
 
   const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(eventDate);
   const isCompleted = event.status === 'closed';
@@ -519,13 +549,17 @@ const EventLanding: React.FC = () => {
             {formattedTime}
           </p>
 
-          {/* Area hint (not full address) or location name, .label-caps */}
-          <div className="flex items-center justify-center gap-1.5 mb-5">
-            <MapPin className="w-[11px] h-[11px] shrink-0 text-tea-text-dim" />
-            <span className="label-caps text-tea-text-sec">
-              {areaHint ?? locationName ?? 'Location shared after RSVP'}
-            </span>
-          </div>
+          {/* Area hint (not full address) or location name, .label-caps.
+              A person's table with no area given shows no place line at all;
+              a shop's session keeps its own words (H13 finding 1). */}
+          {(areaHint || locationName || !privateHost) && (
+            <div className="flex items-center justify-center gap-1.5 mb-5" data-testid="session-area">
+              <MapPin className="w-[11px] h-[11px] shrink-0 text-tea-text-dim" />
+              <span className="label-caps text-tea-text-sec">
+                {areaHint || locationName || 'Location shared after RSVP'}
+              </span>
+            </div>
+          )}
 
           {contribution && (
             <p data-testid="session-contribution" className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec break-words mb-5`}>
@@ -595,91 +629,89 @@ const EventLanding: React.FC = () => {
             <EventCountdown eventDate={eventDate} className="mb-8" />
           )}
 
-          {/* CTA block */}
-          {canRSVP && (
-            myAttendee ? (
-              // Already registered, show attendee actions
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <UserCheck size={14} className="text-tea-gold" />
-                  <p className="text-ui-12 text-tea-text-sec">
-                    You're {myAttendee.status === 'confirmed' ? 'confirmed' : myAttendee.status === 'waitlist' ? 'on the waitlist' : 'registered'} for this session
-                  </p>
-                </div>
-                <div className={`grid gap-2 ${myAttendee.status === 'confirmed' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                  {myAttendee.status === 'confirmed' && (
-                    <button
-                      onClick={() => navigate(`/m/${myAttendee.magic_token || myAttendee.magicToken}`)}
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
-                    >
-                      Invite a Friend
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowCancelConfirm(true)}
-                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-error hover:bg-tea-error/10 transition-colors"
-                  >
-                    Cancel {myAttendee.status === 'confirmed' ? 'My Seat' : 'Registration'}
-                  </button>
-                </div>
-                {showCancelConfirm && (
-                  <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
-                    <p className="text-ui-15 text-tea-text text-center" style={{ fontFamily: 'var(--font-display)' }}>Cancel your spot?</p>
-                    <p className="text-ui-12 text-tea-text-sec text-center">This can't be undone. We'll let the host know.</p>
-                    {cancelFeedback && <p role="alert" className="text-ui-12 text-tea-error text-center">{cancelFeedback}</p>}
-                    <div className="flex justify-between items-center gap-2 pt-1">
-                      <button
-                        onClick={() => { setShowCancelConfirm(false); setCancelFeedback(''); }}
-                        disabled={cancelling}
-                        className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
-                      >
-                        Keep my seat
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const token = myAttendee.magic_token || myAttendee.magicToken;
-                          setCancelling(true);
-                          try {
-                            await api.rsvp.cancel(token);
-                            // A new request from this browser is a new seat.
-                            if (slug) forgetSeatKey(slug);
-                            setMyAttendee(null);
-                            setShowCancelConfirm(false);
-                          } catch {
-                            setCancelFeedback('Could not cancel. Please contact us directly.');
-                          } finally {
-                            setCancelling(false);
-                          }
-                        }}
-                        disabled={cancelling}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40"
-                      >
-                        {cancelling ? 'Cancelling…' : 'Yes, cancel'}
-                      </button>
-                    </div>
-                  </div>
-                )}
+          {/* Your own seat: its state and your page, instead of the form (H13 finding 3). */}
+          {myAttendee && !isCompleted && !isCancelled && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <UserCheck size={14} className="text-tea-gold" />
+                <p className="text-ui-12 text-tea-text-sec" data-testid="my-seat">
+                  {mySeatWords(myAttendee.status)}
+                </p>
               </div>
-            ) : (
-              // Default CTA, canonical primary button
-              <div className="space-y-2.5">
-                <button
-                  onClick={() => setShowRSVP(true)}
-                  className="btn-primary btn-primary-lg w-full"
+              <div className="grid gap-2 grid-cols-2">
+                <Link
+                  to={`/m/${encodeURIComponent(myAttendee.magic_token || myAttendee.magicToken)}`}
+                  className="btn-secondary tap-target"
                 >
-                  {isInstantConfirm ? 'Reserve my seat' : 'Request your seat'}
+                  Open your page
+                </Link>
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-error hover:bg-tea-error/10 transition-colors"
+                >
+                  Cancel {myAttendee.status === 'confirmed' ? 'My Seat' : 'Registration'}
                 </button>
-                {isInstantConfirm && (
-                  <p className="text-center text-ui-11 text-tea-text-dim">
-                    Confirmed instantly · subject to capacity
-                  </p>
-                )}
               </div>
-            )
+              {showCancelConfirm && (
+                <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
+                  <p className="text-ui-15 text-tea-text text-center" style={{ fontFamily: 'var(--font-display)' }}>Cancel your spot?</p>
+                  <p className="text-ui-12 text-tea-text-sec text-center">This can't be undone. We'll let the host know.</p>
+                  {cancelFeedback && <p role="alert" className="text-ui-12 text-tea-error text-center">{cancelFeedback}</p>}
+                  <div className="flex justify-between items-center gap-2 pt-1">
+                    <button
+                      onClick={() => { setShowCancelConfirm(false); setCancelFeedback(''); }}
+                      disabled={cancelling}
+                      className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+                    >
+                      Keep my seat
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const token = myAttendee.magic_token || myAttendee.magicToken;
+                        setCancelling(true);
+                        try {
+                          await api.rsvp.cancel(token);
+                          // A new request from this browser is a new seat.
+                          if (slug) forgetSeatKey(slug);
+                          setMyAttendee(null);
+                          setShowCancelConfirm(false);
+                        } catch {
+                          setCancelFeedback('Could not cancel. Please contact us directly.');
+                        } finally {
+                          setCancelling(false);
+                        }
+                      }}
+                      disabled={cancelling}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40"
+                    >
+                      {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CTA block */}
+          {canRSVP && !myAttendee && (
+            // Default CTA, canonical primary button
+            <div className="space-y-2.5">
+              <button
+                onClick={() => setShowRSVP(true)}
+                className="btn-primary btn-primary-lg w-full"
+              >
+                {isInstantConfirm ? 'Reserve my seat' : 'Request your seat'}
+              </button>
+              {isInstantConfirm && (
+                <p className="text-center text-ui-11 text-tea-text-dim">
+                  Confirmed instantly · subject to capacity
+                </p>
+              )}
+            </div>
           )}
 
           {/* Full / waitlist state */}
-          {showWaitlist && (
+          {showWaitlist && !myAttendee && (
             <div className="space-y-4">
               <p className="subtitle">
                 This session is fully gathered.
@@ -844,14 +876,14 @@ const EventLanding: React.FC = () => {
               Hosted by {ev.account_name ?? ev.accountName ?? 'Teajia'}
             </p>
           )}
-          <ReportLink targetKind="session" targetId={event.id} />
+          {slug && <ReportLink targetKind="session" targetSlug={slug} />}
         </div>
       </div>
 
       {/* RSVP Form Sheet */}
       {showRSVP && slug && (
         <Suspense fallback={null}>
-          <RSVPFormSheet slug={slug} onClose={() => setShowRSVP(false)} accountLocationCountry={(event as any).account_location_country} requiresApproval={!isInstantConfirm} door={door} />
+          <RSVPFormSheet slug={slug} onClose={() => { setShowRSVP(false); setSeatLookups(n => n + 1); }} accountLocationCountry={(event as any).account_location_country} requiresApproval={!isInstantConfirm} door={door} />
         </Suspense>
       )}
 

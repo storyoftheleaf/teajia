@@ -19,6 +19,14 @@
 //     (event fh-event-next), by request, 4 seats, with two guests waiting
 //     for her yes: "Mei Asks" (fh-seat-mei, a phone number, a note, asked not
 //     to be photographed) and "Tao Asks" (fh-seat-tao, no contact).
+//   - One tea in her own Tea Chest (slice H13, check run): "Ana's chest oolong,
+//     test" (product fh-chest-tea, in her private account, not for sale). The
+//     Tea Chest page of a person who has a stock account offers only "Open
+//     Stock", so a check of "a tea from their chest" starts from this row.
+//   - The sandbox's Bali shop is marked the platform owner's (accounts.is_platform_owner),
+//     because "a tea from the shop" means a public tea of that account
+//     (crossShopTeaSql in worker/src/hostTableTeas.ts); without the mark no
+//     table can list a shop tea here.
 // The Launch 2 routes stay closed unless the sandbox starts with
 // FEW_HOSTS_OPEN=true (src/lib/fewHosts.ts).
 import { createHash } from 'node:crypto';
@@ -33,6 +41,7 @@ export const fewHosts = {
   eventSlug: 'fh-ana-table-test',
   guest: { attendeeId: 'fh-seat-rui', magicToken: 'fh-magic-rui', name: 'Rui Guest' },
   teas: ['fh-menu-1', 'fh-menu-2'],
+  chestTea: { id: 'fh-chest-tea', name: 'Ana’s chest oolong, test' },
   next: {
     eventId: 'fh-event-next',
     eventSlug: 'fh-ana-table-next',
@@ -46,6 +55,8 @@ export const fewHosts = {
 const f = fewHosts;
 
 export const fewHostsStatements = [
+  // Teajia's own shop, for "a tea from the shop" (see the header).
+  `UPDATE accounts SET is_platform_owner = 1 WHERE id = 'acc_teajia_bali'`,
   // The host, approved by the sandbox operator (the platform owner).
   `INSERT INTO users (id, email, name, password_hash, role, username, session_version, email_verified_at, created_at,
      host_approved_at, host_approved_by)
@@ -69,6 +80,11 @@ export const fewHostsStatements = [
      ('${f.teas[1]}', '${f.accountId}', '${f.eventId}', NULL, 'Aged oolong, the last of the tin', 2)`,
   `INSERT INTO event_attendees (id, account_id, event_id, full_name, email, phone_number, magic_token, status, attended) VALUES
      ('${f.guest.attendeeId}', '${f.accountId}', '${f.eventId}', '${f.guest.name}', NULL, NULL, '${f.guest.magicToken}', 'confirmed', 1)`,
+  // A tea of her own, in her Tea Chest. Money columns named: cost in yuan.
+  `INSERT INTO products (id, account_id, slug, type, product_name, year, status, is_public, shown_in_shop, catalog_visible,
+     stock_grams, quantity_units, cost_amount, cost_currency, fixed_retail_price_usd)
+   VALUES ('${f.chestTea.id}', '${f.accountId}', 'fh-ana-chest-oolong', 'Oolong', '${f.chestTea.name}', '2020', 'Active', 0, 0, 0,
+     40, NULL, 60, 'Yuan', NULL)`,
   // The next table, by request, with two guests waiting for her yes. Each
   // has the primary party seat a request makes, so a yes goes through the
   // guarded allocator exactly as a real request would.
