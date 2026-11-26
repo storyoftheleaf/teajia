@@ -21,6 +21,7 @@ import { syncNotes } from '../../lib/notesSync';
 import { useAppStore } from '../../lib/store';
 import type { Note, NoteVisibility } from '../../lib/notesStore';
 import type { TastingData, CustomerTasting } from '../../types';
+import { tastingWithoutScores } from '../../lib/tastingScores';
 import type { RecorderState } from '../../hooks/useVoiceRecorder';
 
 // ── Audio recording helpers ──────────────────────────────────────────────────
@@ -591,8 +592,8 @@ export function injectTastingNote({
   visibility?: NoteVisibility;
 }) {
   // Build a concise text summary for fallback rendering / search
+  // No score in the copy: a score stays in the giver's own tasting.
   const parts: string[] = [];
-  if (tastingData.quality != null) parts.push(`${tastingData.quality}/10`);
   if (tastingData.body?.length) parts.push(tastingData.body.join(', '));
   if (tastingData.flavor?.length) parts.push(tastingData.flavor.slice(0, 3).join(', '));
   if (tastingData.huiGan) parts.push('hui gan');
@@ -605,7 +606,7 @@ export function injectTastingNote({
     text,
     sourceType: 'tasting',
     tastingId,
-    tastingSnapshot: tastingData as unknown as Record<string, unknown>,
+    tastingSnapshot: tastingWithoutScores(tastingData) as unknown as Record<string, unknown>,
     authorId,
     authorName,
     visibility,

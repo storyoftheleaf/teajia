@@ -61,10 +61,8 @@ export async function familyMediaVerdict(
       WHERE lot.is_public = 1 AND lot.shown_in_shop = 1 AND lot.status IN ('Active', 'Sold Out')
         AND a.status = 'active' AND a.public_enabled = 1
         AND (p.full_key = ?1 OR p.small_key = ?1)
-        AND (
-          (p.removed_by_member_at IS NULL AND p.share_state IN ('page', 'offered'))
-          OR (p.offered_at IS NOT NULL AND p.shop_use IN ('placed', 'lead'))
-        )
+        AND p.removed_by_member_at IS NULL
+        AND (p.share_state IN ('page', 'offered') OR (p.offered_at IS NOT NULL AND p.shop_use IN ('placed', 'lead')))
         AND NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'photograph' AND h.target_id = p.id)
         AND NOT EXISTS (SELECT 1 FROM family_hides h WHERE h.account_id = p.account_id AND h.target_kind = 'tasting' AND h.target_id = p.journal_entry_id)
         AND NOT EXISTS (SELECT 1 FROM family_hides h JOIN contributors hc ON hc.id = h.target_id

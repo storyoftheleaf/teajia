@@ -548,10 +548,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Feature: Product Events & Tasting Aggregation
   const [productEvents, setProductEvents] = useState<any[]>([]);
   const [productEventsLoading, setProductEventsLoading] = useState(false);
+  // Guests' words only: a guest's score or pick is their own, never averaged or counted.
   const [productTastingAgg, setProductTastingAgg] = useState<{
-    avgRating: number;
     totalNotes: number;
-    favoriteCount: number;
     impressions: string[];
   } | null>(null);
 
@@ -577,11 +576,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         } catch { /* skip failed event */ }
       }
       if (allNotes.length > 0) {
-        const ratings = allNotes.filter((n) => n.rating).map((n) => n.rating as number);
         setProductTastingAgg({
-          avgRating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
           totalNotes: allNotes.length,
-          favoriteCount: allNotes.filter((n) => n.isFavorite || n.is_favorite).length,
           impressions: allNotes
             .filter((n) => n.impression)
             .map((n) => n.impression as string)

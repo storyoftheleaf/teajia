@@ -314,11 +314,12 @@ export const ProductStoryView: React.FC = () => {
   });
   const allTastingNotes: TastingNote[] = useMemo(() => {
     const raw = Array.isArray(tastingNotesRaw) ? tastingNotesRaw : [];
-    // Keep notes where teaName matches product name (rough filter)
-    if (!product) return raw;
+    // Keep only notes named for this tea: a note with no tea name could be any tea's.
+    if (!product) return [];
     const name = (product.givenName || product.productName || '').toLowerCase();
+    if (!name) return [];
     return raw.filter((n: TastingNote) =>
-      !n.teaName || n.teaName.toLowerCase().includes(name) || name.includes(n.teaName?.toLowerCase() ?? '')
+      !!n.teaName && (n.teaName.toLowerCase().includes(name) || name.includes(n.teaName.toLowerCase()))
     );
   }, [tastingNotesRaw, product]);
 
@@ -598,18 +599,6 @@ export const ProductStoryView: React.FC = () => {
                     <div className="flex items-center gap-3">
                       {note.attendeeName && (
                         <p className="text-ui-12 text-tea-text-dim">{note.attendeeName}</p>
-                      )}
-                      {note.rating !== undefined && note.rating !== null && (
-                        <div className="flex gap-0.5">
-                          {Array.from({ length: 5 }).map((_, j) => (
-                            <span
-                              key={j}
-                              className={`text-ui-10 ${j < note.rating! ? 'text-tea-gold' : 'text-tea-border'}`}
-                            >
-                              ●
-                            </span>
-                          ))}
-                        </div>
                       )}
                     </div>
                   </motion.div>

@@ -10,6 +10,8 @@ import { refreshedCurrencyName } from './exchangeRateFeed';
 import { validateCompassQuoteLink } from './curateQuotes';
 import { issueTicket, consumeTicket, previewEnvelope, INVALID_TICKET } from './mcpTools/tickets';
 import { teaMergeProductLink } from './curateMergeLink';
+import { curateSnapshotForViewer, curateSnapshotJsonForViewer } from './compassScores';
+import { isShopOwner } from './publicScores';
 
 export type CurateEntity = 'tea' | 'vendor' | 'note' | 'todo' | 'sample' | 'transcript' | 'attachment';
 export type CurateRecordedEntity = CurateEntity | 'vendor_profile' | 'quote' | 'quote_line' | 'attachment' | 'asset' | 'sample_set' | 'arrival' | 'product' | 'product_listing';
@@ -329,7 +331,10 @@ export async function previewCurateMutation(env:ToolEnv,auth:ToolAuth,command:Cu
 }
 async function issuePreview(env:ToolEnv,auth:ToolAuth,ticket:CurateMutationTicket) {
  const token=await issueTicket(env,ticket,auth.tokenId);
- return previewEnvelope({...ticket.previewDetails,action:ticket.commandType,changes:ticket.changes.map(c=>({entity:c.entity,id:c.id,before:c.before,after:c.after})),undo_of:ticket.undoOf,physical_holdings_preserved:ticket.commandType!=='sample:taste_sample',inventory_preserved:!ticket.promotionProductToRemove,removes_pristine_draft_product:ticket.promotionProductToRemove?.id??null},token);
+ // The ticket keeps every snapshot whole; what the preview shows carries no one else's score.
+ const viewer={userId:auth.userId,userEmail:auth.userEmail,isOwner:await isShopOwner(env.DB,auth.accountId,auth.userId)};
+ const shown=(entity:string,row:unknown)=>curateSnapshotForViewer(entity,row,viewer);
+ return previewEnvelope({...ticket.previewDetails,action:ticket.commandType,changes:ticket.changes.map(c=>({entity:c.entity,id:c.id,before:shown(c.entity,c.before),after:shown(c.entity,c.after)})),undo_of:ticket.undoOf,physical_holdings_preserved:ticket.commandType!=='sample:taste_sample',inventory_preserved:!ticket.promotionProductToRemove,removes_pristine_draft_product:ticket.promotionProductToRemove?.id??null},token);
 }
 export async function confirmCurateMutation(env:ToolEnv,auth:ToolAuth,token:string) {
  await requireCurateManager(env.DB,auth);
@@ -460,8 +465,14 @@ export async function readCurateHistory(env:ToolEnv,auth:ToolAuth,options:{entit
   FROM curate_mutation_records WHERE account_id=? AND mutation_id IN (${mutations.map(()=>'?').join(',')}) ORDER BY rowid`)
   .bind(auth.accountId,...mutations.map(m=>m.id)).all<Row>();
  const byMutation=new Map<string,Row[]>();
+ // History keeps what was; a reader sees no one else's score in it.
+ // Ownership is read only when a shop product's snapshot is in the answer.
+ const hasProduct=(records.results??[]).some(r=>r.entity_type==='product');
+ const viewer={userId:auth.userId,userEmail:auth.userEmail,isOwner:hasProduct?await isShopOwner(env.DB,auth.accountId,auth.userId):false};
  for(const {mutation_id,...record} of records.results??[]) {
-  const list=byMutation.get(mutation_id)??[];list.push(record);byMutation.set(mutation_id,list);
+  const list=byMutation.get(mutation_id)??[];
+  list.push({...record,before_json:curateSnapshotJsonForViewer(record.entity_type,record.before_json,viewer),after_json:curateSnapshotJsonForViewer(record.entity_type,record.after_json,viewer)});
+  byMutation.set(mutation_id,list);
  }
  return {history:mutations.map(m=>({...m,records:byMutation.get(m.id)??[]}))};
 }

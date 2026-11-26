@@ -462,19 +462,16 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           const tastedCount = setEntries.filter(entryHasBeenTasted).length;
           const allTasted = tastedCount === setEntries.length;
 
-          // Decision summary counts, use sampleVerdict if set, else quality fallback
+          // Decision summary counts: only verdicts someone chose. A score is
+          // never turned into a verdict to be counted (Adrian, 2026-11-26).
           const verdictCounts = allTasted ? setEntries.reduce((acc, e) => {
-            const v = e.sampleVerdict ?? (
-              e.tasting?.quality != null
-                ? e.tasting.quality >= 8 ? 'love' : e.tasting.quality >= 6 ? 'like' : e.tasting.quality >= 4 ? 'neutral' : 'pass'
-                : null
-            );
+            const v = e.verdict ?? e.sampleVerdict ?? null;
             if (v) acc[v] = (acc[v] || 0) + 1;
             return acc;
           }, {} as Record<string, number>) : null;
 
           const loveList = allTasted ? setEntries.filter((e) => {
-            const v = e.sampleVerdict ?? (e.tasting?.quality != null ? (e.tasting.quality >= 8 ? 'love' : e.tasting.quality >= 6 ? 'like' : 'pass') : null);
+            const v = e.verdict ?? e.sampleVerdict ?? null;
             return v === 'love' || v === 'like';
           }) : [];
 
