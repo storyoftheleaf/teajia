@@ -79,7 +79,7 @@ export const firstTableStatements = [
   `INSERT INTO customers (id, account_id, name, email, user_id)
    VALUES ('ft-customer-mei', '${BALI}', 'Mei Guest', '${t.guestUser.email}', '${t.guestUser.id}')`,
   `INSERT INTO invoices (id, account_id, invoice_number, customer_id, status, payment_status, payment_date, display_currency, shipping_cost_usd, created_at)
-   VALUES ('${t.invoiceId}', '${BALI}', 'FT-0001', 'ft-customer-mei', 'Paid', 'paid', datetime('now', '-1 day'), 'USD', 0, datetime('now', '-1 day'))`,
+   VALUES ('${t.invoiceId}', '${BALI}', 'FT-0001', 'ft-customer-mei', 'Pending', 'paid', datetime('now', '-1 day'), 'USD', 0, datetime('now', '-1 day'))`,
   `INSERT INTO invoice_line_items (id, invoice_id, account_id, product_id, quantity, quantity_unit, price_at_sale) VALUES
      ('${t.lines.tea}', '${t.invoiceId}', '${BALI}', '${t.products.forSale}', 50, 'g', 0.5),
      ('${t.lines.teapot}', '${t.invoiceId}', '${BALI}', '${t.products.teapot}', 1, 'unit', 60)`,

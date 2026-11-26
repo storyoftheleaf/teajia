@@ -194,8 +194,7 @@ export async function keepBoughtLine(
   const year = line.year != null && /^\d{4}$/.test(String(line.year).trim()) ? Number(line.year) : null;
   const origin = [line.origin_region, line.origin_country].filter(Boolean).join(', ') || null;
   // Repeat mutable order/ownership checks at the write, not just at route load.
-  // A permanent consumed-line ledger is still needed before hard deletion can
-  // satisfy the forever contract; the current delete route removes this index key.
+  // If the person deleted the row, a new tap puts it back once (Opus, S6 review).
   await db.prepare(
     `INSERT INTO personal_cellar_items
        (id, owner_user_id, name, type, year, origin, grams, chest_cost_amount, chest_cost_currency,

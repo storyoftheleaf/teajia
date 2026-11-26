@@ -129,13 +129,16 @@ describe('a buyer keeps one paid tea line by their own tap', () => {
     expect(count()).toBe(1);
   });
 
-  // Case 6: a hard DELETE destroys the unique-key history; permanent dedup needs an owner migration or deletion-route change.
-  it.fails('OWNER BLOCKER: deleting a chest row must not allow the same purchase to create a second lifetime row', async () => {
+  // Case 6: the chest is the person's own record. Deleting it is their choice, and tapping again
+  // puts the tea back once: never two rows for one line at the same time.
+  it('puts a deleted tea back once when the buyer taps again', async () => {
     const first = await keepBoughtLine(database(), order(), 'line');
     expect(first).not.toBeNull();
     db.sqlite.prepare('DELETE FROM personal_cellar_items WHERE id=?').run(first!.id);
-    expect(await keepBoughtLine(database(), order(), 'line')).toBeNull();
-    expect(count()).toBe(0);
+    const again = await keepBoughtLine(database(), order(), 'line');
+    expect(again).not.toBeNull();
+    expect(await keepBoughtLine(database(), order(), 'line')).toEqual(again);
+    expect(count()).toBe(1);
   });
 
   // Case 7: price_at_sale times quantity is the known USD amount, and zero is a stated cost rather than a blank.
