@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
+import { anyoneHostsOpen } from '../../../lib/anyoneHosts';
+import { API_URL, authedFetch } from '../../../lib/api';
 import { familyApi } from '../../../lib/familyApi';
 import type { FamilyReport, FamilyRestockRequest } from '../../../lib/familyContract';
 import { mediaUrl } from '../../../lib/mediaUrl';
+import { useAppStore } from '../../../lib/store';
 import { Chip, SectionHeading, TextAction, dayLabel, errorSentence } from './parts';
 import { OFFERED_KEY } from './OfferedPhotographs';
 import { FEEDBACK_KEY } from './FeedbackList';
@@ -14,7 +18,17 @@ import { FEEDBACK_KEY } from './FeedbackList';
  * neither heading.
  */
 const REPORTS_KEY = ['family-reports', 'open'] as const;
+const SESSION_REPORTS_KEY = ['session-reports', 'open'] as const;
 const RESTOCK_KEY = ['family-restock-requests', 'open'] as const;
+const SESSION_REPORTS_URL = `${API_URL}/api/admin/session-reports`;
+
+type SessionReport = Pick<FamilyReport, 'id' | 'target_id' | 'reason' | 'created_at' | 'label'> & {
+  target_kind: 'session' | 'person';
+};
+
+function isSessionReport(report: FamilyReport | SessionReport): report is SessionReport {
+  return report.target_kind === 'session' || report.target_kind === 'person';
+}
 
 function ReportRow({ report }: { report: FamilyReport }) {
   const qc = useQueryClient();
@@ -57,6 +71,42 @@ function ReportRow({ report }: { report: FamilyReport }) {
   );
 }
 
+function SessionReportRow({ report }: { report: SessionReport }) {
+  const qc = useQueryClient();
+  const resolve = useMutation({
+    mutationFn: (status: 'acted' | 'dismissed') => authedFetch(
+      `${SESSION_REPORTS_URL}/${encodeURIComponent(report.id)}/resolve`,
+      { method: 'POST', body: JSON.stringify({ status }) },
+    ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: SESSION_REPORTS_KEY }),
+  });
+
+  return (
+    <li className="border-b border-tea-border py-4 last:border-b-0">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="min-w-0 break-words text-ui-12 font-medium text-tea-text">{
+          `${report.target_kind === 'session' ? 'Session' : 'Person'}: ${report.label ?? report.target_id}`
+        }</span>
+        <span className="text-ui-10 uppercase text-tea-text-dim">{dayLabel(report.created_at)}</span>
+      </div>
+      {report.reason && (
+        <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-1 break-words whitespace-pre-wrap text-tea-text-sec`}>
+          {report.reason}
+        </p>
+      )}
+      <div className="mt-1 flex flex-wrap items-center gap-x-4">
+        <TextAction onClick={() => resolve.mutate('acted')} disabled={resolve.isPending}>Acted</TextAction>
+        <TextAction tone="quiet" onClick={() => resolve.mutate('dismissed')} disabled={resolve.isPending}>Dismiss</TextAction>
+      </div>
+      {resolve.isError && (
+        <p role="alert" className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>
+          {errorSentence(resolve.error, 'Could not resolve that report.')}
+        </p>
+      )}
+    </li>
+  );
+}
+
 function RestockRow({ request }: { request: FamilyRestockRequest }) {
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
@@ -83,20 +133,43 @@ function RestockRow({ request }: { request: FamilyRestockRequest }) {
 }
 
 export function ReportsAndRequests() {
+  const isPlatformOwner = useAppStore(state => state.platformRole === 'platform_owner');
+  const showSessionReports = isPlatformOwner && anyoneHostsOpen();
   const reports = useQuery({ queryKey: REPORTS_KEY, queryFn: () => familyApi.shop.reports('open') });
+  const sessionReports = useQuery({
+    queryKey: SESSION_REPORTS_KEY,
+    queryFn: (): Promise<{ reports: SessionReport[] }> => authedFetch(SESSION_REPORTS_URL),
+    enabled: showSessionReports,
+  });
   const requests = useQuery({ queryKey: RESTOCK_KEY, queryFn: () => familyApi.shop.restockRequests('open') });
-  const reportList = reports.data?.reports ?? [];
+  const familyReports = reports.data?.reports ?? [];
+  const reportList = [...familyReports, ...(showSessionReports ? sessionReports.data?.reports ?? [] : [])]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const requestList = requests.data?.requests ?? [];
 
   return (
     <>
-      {reportList.length > 0 && (
+      {(reportList.length > 0 || (showSessionReports && sessionReports.isError)) && (
         <section aria-label="Reports" className="mt-8">
           <SectionHeading>Reports</SectionHeading>
-          <p className="mt-1 text-ui-12 text-tea-text-sec">
-            {`${reportList.length} report${reportList.length === 1 ? '' : 's'} waiting. Hiding takes it off every page at once.`}
-          </p>
-          <ul className="mt-2">{reportList.map(report => <ReportRow key={report.id} report={report} />)}</ul>
+          {((isPlatformOwner && reportList.length > 0) || familyReports.length > 0) && (
+            <p className="mt-1 text-ui-12 text-tea-text-sec">
+              {isPlatformOwner && `${reportList.length} report${reportList.length === 1 ? '' : 's'} waiting. `}
+              {familyReports.length > 0 && 'Hiding takes it off every page at once.'}
+            </p>
+          )}
+          {showSessionReports && sessionReports.isError && (
+            <p role="alert" className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>
+              Could not load session and person reports.
+            </p>
+          )}
+          {reportList.length > 0 && (
+            <ul className="mt-2">
+              {reportList.map(report => isSessionReport(report)
+                ? <SessionReportRow key={`${report.target_kind}:${report.id}`} report={report} />
+                : <ReportRow key={`${report.target_kind}:${report.id}`} report={report} />)}
+            </ul>
+          )}
         </section>
       )}
       {requestList.length > 0 && (
