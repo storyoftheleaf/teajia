@@ -57,6 +57,10 @@ export const firstTableStatements = [
   `INSERT INTO events (id, account_id, slug, title, event_date, status, lifecycle_status, total_capacity, timezone, playlist_url)
    VALUES ('${t.eventId}', '${BALI}', '${t.eventSlug}', 'First table, a test sit', date('now', '-2 days'),
      'closed', 'completed', 8, 'Asia/Makassar', 'https://music.sandbox.test/first-table')`,
+  // Its lead host is the sandbox operator, so an order from the thank-you names a host.
+  `INSERT INTO contributors (id, account_id, display_name, user_id) VALUES ('ft-host', '${BALI}', 'Sandbox host', 'sandbox-operator')`,
+  `INSERT INTO contributor_accounts (contributor_id, account_id) VALUES ('ft-host', '${BALI}')`,
+  `INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role) VALUES ('ft-host-lead', '${BALI}', '${t.eventId}', 'ft-host', 'lead_host')`,
   `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, brew_order) VALUES
      ('${t.teas.forSale}', '${BALI}', '${t.eventId}', '${t.products.forSale}', NULL, 1),
      ('${t.teas.notForSale}', '${BALI}', '${t.eventId}', '${t.products.notForSale}', NULL, 2),
