@@ -28,16 +28,16 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 | # | Question | Blocks |
 |---|---|---|
 | Q1 | Is Launch 1 the right first version (his own tables only)? | Launch 1 as a whole. Treated as the working assumption until he says otherwise |
-| Q2 | The one sentence for Home | L1-08 |
+| Q2 | Yes to a draft, 2026-11-26. Drafts are with him | The final pick |
 | Q3 | Which coming session to run by hand | L1-00 |
 | Q4 | Any tea from anyone, shown properly. **Answered yes, 2026-11-26** | Nothing now |
-| Q5 | Free to host and a host can take their record away, said on the site | L2-01 copy |
+| Q5 | Answered yes, 2026-11-26 | Nothing |
 | Q6 | Answered yes, 2026-11-26. The Tea Table is in force; further social parts wait for him to name them | Nothing |
 | Q7 | Answered 2026-11-26: read, tea table, tea house, shop; the bar keeps its shape | Nothing. The switch waits only for the pages behind the words |
 | Q8 | Answered 2026-11-26: tea credit first, 10 percent, all teas; cash later, no time window, held securely | Nothing |
-| Q9 | The wrapper reader opened to hosts | L5-02 |
-| Q10 | A small host's box brought forward | L5-07 |
-| Q11 | May hosts offer articles | L4-07 |
+| Q9 | Answered 2026-11-26: not yet, once hosts are active | L5-02 waits |
+| Q10 | Answered 2026-11-26: wait until the first hosts are running | L5-07 waits |
+| Q11 | Answered yes, 2026-11-26, with Adrian editing first | Nothing |
 
 ## Adrian's answers, 2026-11-26, in the build thread
 
@@ -58,6 +58,25 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 
 - **Q7 answered: read, tea table, tea house, shop (project chat, 2026-11-26).** Shown the bar with those words and Fable's advice to keep its shape, he said: "Okay, let's go with your suggestion." So the bar keeps the three lines, the teajia word and Your Table where they are, the four words are read, tea table, tea house, shop, and below 340 wide the bar letters step down one size. The switch itself is still one change in Launch 4 (K7, K10), made when the Tea Table and Tea Houses pages exist, with where everything under craft and advise lands shown to him first.
 - **The map and the to-do list.** He asked for one page showing where everything goes and the state of every build item. It is a living document kept by the Fable thread: https://claude.ai/artifact/RsfqjYxTojAvELcbh9DsHd
+
+### The fourteen waiting points, answered 2026-11-26 (project chat)
+
+His words: "One, yes, two, yes. Three, yes. Four, yes. Five. Yes, but they are not just like tea house facts. They are portfolio in what I contributed in them. Six these are being created in AR Create. Seven. Yes. Eight Yes, one per category and one inside of theirs and one inside of someone else's. Nine, no credit ceiling. I can tell something's off. 10. You can have venue photos. It's a house. Or a tea table. Address is hidden. Eleven yes to all. Twelve, go with your suggestion. Thirteen. Same. Fourteen Skip for now."
+
+1. **The sharing and score fixes: ship.** The build thread carries the release.
+2. **Home's sentence (Q2): yes to a draft.** Drafts are with him; the sentence is not final until he picks one.
+3. **"Host a table" sits in both places:** one line on Home, and in Sessions in Your Table.
+4. **Q5, yes.** "Free to host, and your record is yours" is said on the site, with the export.
+5. **Tea Houses is a portfolio.** Each house is shown by what Adrian contributed to it, not as a list of facts about the place. See the Launch 4 sheet, "Tea Houses as a portfolio". The content is still his to give, house by house.
+6. **The first people articles are being made in AR Create.** Nothing is written here. Launch 4 only needs the place they appear.
+7. **Q11, yes.** A host may offer an article; Adrian edits and decides before anything is published.
+8. **A tea master's top teas.** Read as: per category, up to two picks, one of their own teas and one from someone else. To be confirmed in the first mock-up, since the sentence can also be read as one per category plus two overall.
+9. **No credit ceiling.** "I can tell something's off." Rule 6 of "Credit is held securely" is removed. Every spend still needs his approval by hand, which is the safeguard he chose.
+10. **Venue photos may be shown** for a tea house or a tea table. The address stays hidden until the host's yes. This reverses the tighter setting made in H2 and H7 for photographs of the place; the step-by-step way-in photographs stay with confirmed guests, because they show how to get in.
+11. **Tea Table details, yes to all three:** a write-up goes on the table only on its host's tap; order is by when a piece was put on the table; a hold lasts 1 to 14 days.
+12. **Q9, not yet.** The wrapper reader opens to hosts once hosts are active.
+13. **Q10, wait.** The host's box waits until the first hosts are running.
+14. **Q12, skipped for now.** A tea for the table is not built.
 
 ## How the build is run
 

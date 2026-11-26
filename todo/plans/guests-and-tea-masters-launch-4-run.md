@@ -111,6 +111,17 @@ Flags, one per part so each can be switched on alone: `TEA_TABLE_OPEN` (replacin
 | K13 | Truth-up: the pillar's "no feed" and "not a social network" lines, `docs/SITE_MAP`, the rule wording in the files SECTIONS.md lists | Opus | Same commit as K1 and K7 ship | |
 | K14 | Scores are personal, words are shared: an audit of every place a score, star count or average of a tea is shown to anyone but its giver, then those are taken off public pages; chosen words on a tea's page, placed by hand with the writer's yes (the existing tasting excerpts path); a tea master's top teas on their page, shape to be picked by Adrian | Astra audits read-only **today**; Sol builds after | Audit today | The shape of top teas |
 
+### Tea Houses as a portfolio (Adrian, 2026-11-26)
+
+"They are not just like tea house facts. They are portfolio in what I contributed in them." This reshapes K5's Overview, Build and Work.
+
+- **A house's page leads with Adrian's part in it,** not with the place's particulars: what he did there (the room and its layout, the teaware, the tea menu, training the people who pour, the opening sessions, the sourcing since), in his words, with photographs. Each part is shown only where it is true for that house.
+- **Work is the portfolio:** the houses in the order he chooses by hand, each opening to that page. No counts, no ranking.
+- **Build is the same list of parts turned into an offer:** "this is what I can do for your room", each part pointing at a house where he did it.
+- **Visit stays practical** (where you can sit down and who pours there) and links to the portfolio page when a house has one. A house he did not work on can be in Visit without a portfolio page.
+- **Content:** nothing is invented. Per house the builder needs from him: which parts he did, one or two sentences on each, and photographs. A simple form in Manage, Settings or Publish, lets him say it by voice or type it, house by house. Until a house has his words it shows only in Visit.
+- **Contract:** one table of contributions per house (house, kind of part, his words, photographs, order), owned by the account that is Adrian's, readable publicly only when he marks the house's page shown.
+
 ## The messages to send
 
 Each ends with the standing rules block from the Launch 2 run sheet; paste it in full. Each worker branches from `build/launch-4` and opens its pull request into `build/launch-4`, never `main`. For every slice not written out here, Opus writes the message from this sheet and the named plan in the same seven-part shape, once its "Needs" is met.

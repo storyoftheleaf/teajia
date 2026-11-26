@@ -31,7 +31,7 @@ His words: "Make sure this is security held so no one can hack an order and anyt
 3. **Spending waits for a hand too.** A host asking to use credit makes a `spend_requested` entry that holds the amount; it leaves the balance only when Adrian approves it on that order in Manage. There is no path that spends credit without his approval, and none through `/mcp` without the usual preview and confirm.
 4. **The balance is a sum, never a stored number.** It is the total of the ledger rows, entries are only ever added (a correction is a new row), and each row carries who, when and which order. One order can earn once: a unique key on order and kind.
 5. **It cannot go below zero or be spent twice.** The approval is one guarded statement that fails if earned minus spent minus held is less than the amount, so two requests at once cannot both pass.
-6. **A ceiling by hand.** One setting on the account, the most credit a single order may use without a second look, default low. Above it the approval page says so in words.
+6. **No ceiling.** Adrian, 2026-11-26: "No credit ceiling. I can tell something's off." Rule 3 is the safeguard: nothing is spent without his approval.
 7. **Oddities go to the builder.** A host earning from their own order, many orders from one device, or credit earned and requested the same day are recorded with `recordHealthProblem`, shown on `/account/fixes`, never on a page.
 8. **Hosts never earn on their own orders.**
 
