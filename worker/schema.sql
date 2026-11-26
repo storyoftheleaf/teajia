@@ -4001,3 +4001,6 @@ CREATE TABLE IF NOT EXISTS order_session_sources (
   host_user_id TEXT,
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- 0132_quiet_acknowledgement.sql
+ALTER TABLE member_photographs ADD COLUMN credit_name_shown INTEGER NOT NULL DEFAULT 0 CHECK (credit_name_shown IN (0, 1));

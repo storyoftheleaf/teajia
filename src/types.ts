@@ -328,6 +328,11 @@ export interface ContributorListItem {
   family_last_active?: string | null;
   /** Where the people list puts them: This season, Founding members or The family. */
   list_group?: 'season' | 'founding' | 'family' | null;
+  /**
+   * Has poured at a table: publicly credited as host, co-host or guest host on
+   * at least one completed session. A yes or no only, never a count.
+   */
+  pours?: boolean;
 }
 
 export interface ContributorPullQuote {

@@ -107,6 +107,8 @@ export interface FamilyPhotograph {
   share_state: FamilyShareState;
   shape: FamilyPhotographShape;
   frame?: FamilyPhotographFrame | null;
+  /** The photographer's own yes to "photograph by <first name>". Starts at no. */
+  credit_name_shown?: boolean;
   created_at: string;
 }
 
@@ -140,6 +142,11 @@ export interface FamilySharedPhotograph {
   shape: FamilyPhotographShape;
   frame?: FamilyPhotographFrame | null;
   author: FamilyAuthor;
+  /**
+   * "Photograph by <first name>": the photographer's first name, only when they
+   * allowed it (credit_name_shown). Null when they did not, so nothing is shown.
+   */
+  photograph_by?: string | null;
 }
 
 /** What a public tea page shows from the family. */

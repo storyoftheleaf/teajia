@@ -10,14 +10,15 @@ import { personPath, type TeaRowPhotograph } from './useTeaFamily';
 
 // What sits under the tea's plaque: one quiet row of photographs, the way the
 // work hangs beside its label. Nothing is written on the row. Tapping a
-// photograph opens it, and the zoom is the one place that says who took it and,
-// on the reader's own, offers "Use as my cover" and "Remove from my page".
+// photograph opens it, and the zoom is the one place that says who took it (by
+// first name, and only when the photographer allowed it) and, on the reader's
+// own, offers "Use as my cover", the name choice and "Remove from my page".
 
 /** How many show before the row offers the rest. A row, never a wall. */
 const ROW_LIMIT = 8;
 
 export function TeaPhotographRow({
-  photographs, teaName, onChooseCover, onRemove, onShape, onShare, addPhoto, inline = false,
+  photographs, teaName, onChooseCover, onRemove, onShape, onShare, onCredit, addPhoto, inline = false,
 }: {
   photographs: TeaRowPhotograph[];
   addPhoto?: ReactNode;
@@ -26,6 +27,8 @@ export function TeaPhotographRow({
   teaName: string;
   onChooseCover: (photographId: string | null) => void;
   onShare?: (photographId: string, choice: 'page' | 'private') => Promise<void>;
+  /** The reader's own yes or no to "photograph by <first name>". */
+  onCredit?: (photographId: string, shown: boolean) => Promise<void>;
   onRemove: (photographId: string) => Promise<void>;
   onShape: (photographId: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null) => Promise<void> | void;
 }) {
@@ -34,6 +37,8 @@ export function TeaPhotographRow({
   const [removeFailed, setRemoveFailed] = useState(false);
   const [shareFailed, setShareFailed] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [crediting, setCrediting] = useState(false);
+  const [creditFailed, setCreditFailed] = useState(false);
   if (photographs.length === 0) return null;
 
   const toZoom = (p: TeaRowPhotograph): ZoomPhotograph => ({
@@ -44,13 +49,13 @@ export function TeaPhotographRow({
     height: p.height,
     shape: p.shape,
     frame: p.frame,
-    alt: p.mine ? `Your photograph of ${teaName}` : `${teaName}, photographed by ${p.author?.name ?? 'the family'}`,
+    alt: p.mine ? `Your photograph of ${teaName}` : p.photographBy ? `${teaName}, photographed by ${p.photographBy}` : `${teaName}, from the family`,
   });
   const shown = showAll ? photographs : photographs.slice(0, ROW_LIMIT);
   const more = photographs.length - shown.length;
   const open = photographs.find(p => p.id === openId) ?? null;
   const href = open?.author ? personPath(open.author.page_id) : null;
-  const close = () => { setOpenId(null); setRemoveFailed(false); setShareFailed(false); };
+  const close = () => { setOpenId(null); setRemoveFailed(false); setShareFailed(false); setCreditFailed(false); };
 
   return (
     <div className={inline ? 'contents' : 'mx-5 mt-3 lg:mx-6'} data-testid="tea-photographs">
@@ -69,10 +74,10 @@ export function TeaPhotographRow({
       </ul>
 
       <PhotographZoom photo={open ? toZoom(open) : null} onClose={close}>
-        {open && !open.mine && open.author && (
+        {open && !open.mine && open.photographBy && (
           <p className="photo-zoom__credit" data-testid="photograph-credit">
             Photograph by{' '}
-            {href ? <Link to={href} onClick={close}>{open.author.name}</Link> : open.author.name}
+            {href ? <Link to={href} onClick={close}>{open.photographBy}</Link> : open.photographBy}
           </p>
         )}
         {open?.mine && (
@@ -90,6 +95,18 @@ export function TeaPhotographRow({
                     finally { setSharing(false); }
                   }}>
                   {open.shareState === 'page' ? 'Make private' : 'Share on my page and this listing'}
+                </Button>
+              )}
+              {onCredit && (
+                <Button variant="plain" type="button" className={PHOTO_QUIET} disabled={crediting} data-testid="photograph-credit-choice"
+                  onClick={async () => {
+                    setCreditFailed(false);
+                    setCrediting(true);
+                    try { await onCredit(open.id, !open.creditNameShown); }
+                    catch { setCreditFailed(true); }
+                    finally { setCrediting(false); }
+                  }}>
+                  {open.creditNameShown ? 'Stop showing my first name with it' : 'Show my first name with it'}
                 </Button>
               )}
               {open.isCover ? (
@@ -111,6 +128,7 @@ export function TeaPhotographRow({
               </Button>
             </div>
             {shareFailed && <p role="alert" className="photo-zoom__note">Sharing could not be updated. Try again.</p>}
+            {creditFailed && <p role="alert" className="photo-zoom__note">Your name choice could not be saved. Try again.</p>}
             {removeFailed && <p role="alert" className="photo-zoom__note">That did not go through. Try again.</p>}
           </>
         )}
