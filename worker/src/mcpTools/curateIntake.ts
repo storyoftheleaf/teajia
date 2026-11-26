@@ -611,12 +611,16 @@ function readTeaWrite(args: any, label: string, vendor: VendorPlan | null, curre
   return { write, lines };
 }
 
+const SCORE_IS_THE_WRITERS = 'A score belongs to the person who gave it. This Curate tea was written by someone else, so its score is theirs to record; send the tasting terms without a score.';
+
 async function commitTeaWrite(env: ToolEnv, auth: ToolAuth, entryId: string, w: TeaWrite, isNew: boolean) {
   if (w.note || w.vendorNote) throw new Error('Agent notes are disabled; preview structured fields instead');
   await requireCurateManager(env.DB, auth);
   const vendor = await resolveVendorAtCommit(env, auth, w.vendor, w.agent);
   const current = isNew ? null : await entryById(env, auth, entryId);
   if (!isNew && !current) throw new Error('That tea is no longer active in Curate.');
+  // A Curate tea's score is its writer's; it is never filed under them by someone else.
+  if (w.score != null && current && current.user_id !== auth.userId) throw new Error(SCORE_IS_THE_WRITERS);
   const values: Record<string, unknown> = { ...w.values };
   if (vendor) Object.assign(values, { vendor_id: vendor.id, vendor_name: vendor.name });
   for (const field of w.clear) {
@@ -931,6 +935,7 @@ const toolUpdateTea: ToolHandler = async (env, auth, args) => {
   if (!current) return { error: 'not_found' };
   const vendor = await planVendor(env, auth, str(args?.vendor_id, 80), str(args?.vendor_name, 200));
   const { write, lines } = readTeaWrite(args, current.name ?? 'this tea', vendor, current);
+  if (write.score != null && current.user_id !== auth.userId) throw new Error(SCORE_IS_THE_WRITERS);
   // readTeaFields leaves the name out of the lines because on an add the read_back
   // already says it. On an update a rename is a change like any other: without a
   // line it was refused as nothing to change, and riding with another field it

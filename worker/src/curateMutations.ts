@@ -265,6 +265,9 @@ export async function previewCurateMutation(env:ToolEnv,auth:ToolAuth,command:Cu
     }
     if(command.score!==undefined) {
      if(!Number.isInteger(command.score)||command.score<1||command.score>10) throw new Error('Score must be a whole number from 1 to 10');
+     // A score is its giver's. The tea's score reads as its writer's own, so
+     // only the writer may set it; anyone else's would be filed under them.
+     if(tea.user_id!==auth.userId) throw new Error('A score belongs to the person who gave it. This Curate tea was written by someone else, so its score is theirs to record; record the tasting terms without a score.');
      const tasted=JSON.parse(next.tasting||'{}');tasted.quality=command.score;next.tasting=JSON.stringify(tasted);
     }
     if(Object.hasOwn(next,'updated_at')) next.updated_at=now;
