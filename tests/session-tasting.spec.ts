@@ -21,6 +21,18 @@ const adminEvent = {
   created_at: '2026-11-01T00:00:00.000Z', updated_at: '2026-11-01T00:00:00.000Z',
 };
 
+/**
+ * Every tasting surface is Launch 3's (A3): the editor's tick, the guest's door
+ * and the paper-notes line show only while its switch is on. The switch is
+ * served open here, so the walk does not depend on how the site was started.
+ */
+async function openLaunch3(page: Page) {
+  await page.route(/\/src\/lib\/anyoneHosts\.ts(?:\?|$)/, route => route.fulfill({
+    contentType: 'application/javascript',
+    body: 'export const ANYONE_HOSTS_OPEN = true; export const anyoneHostsOpen = () => true;',
+  }));
+}
+
 async function installAdminApi(page: Page) {
   const writes: Record<string, unknown>[] = [];
   await page.addInitScript(token => {
@@ -30,11 +42,7 @@ async function installAdminApi(page: Page) {
       memberships: [{ account_id: 'shop-1', account_name: 'Fixture shop', role: 'owner', bundles: ['gather', 'publish'] }],
     } }));
   }, adminToken);
-  // The tasting tick is Launch 3's (A3): the editor shows it only while its switch is on.
-  await page.route(/\/src\/lib\/anyoneHosts\.ts(?:\?|$)/, route => route.fulfill({
-    contentType: 'application/javascript',
-    body: 'export const ANYONE_HOSTS_OPEN = true; export const anyoneHostsOpen = () => true;',
-  }));
+  await openLaunch3(page);
   await page.route('**/api/**', route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -81,6 +89,7 @@ function taipeiToday() {
 
 async function openSeat(page: Page, seat: { status: string; isTasting: boolean; signedIn: boolean; day?: string }) {
   const opened: string[] = [];
+  await openLaunch3(page);
   if (seat.signedIn) await page.addInitScript(token => localStorage.setItem('teajia_token', token), guestToken);
   await page.route('**/api/**', route => {
     const request = route.request();
@@ -140,6 +149,7 @@ const credential = '8'.repeat(64);
 
 async function openRecap(page: Page, extra: Record<string, unknown>) {
   await page.setViewportSize({ width: 390, height: 844 });
+  await openLaunch3(page);
   await page.route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/after-sit/recap') return route.fulfill({ json: {
