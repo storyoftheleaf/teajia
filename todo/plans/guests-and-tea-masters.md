@@ -335,6 +335,40 @@ A person who pours every week already has a system: a WhatsApp group, a notes ap
 
 Everything else in the six functions (invitations, the walkthrough, the playlist, the thank-you) is convenience. Convenience gets a host to try it once. These five are why they stay.
 
+### Not only the hosts: what each person gets
+
+Adrian, 2026-11-26, straight after: "It's not only the hosts... maybe the guest also wants to use it to learn and be educated. Some of the hosts may not sell tea or not be able to tell people what their tea is, or maybe everyone will ask him what the playlist was. I want it to be something that everyone would be happy to use and feel like it is adding something valuable into their life, integrating this into their flow. Because if it's too hard or it's not adding something valuable or making it easier, people won't use it. At the end of the day, if people are buying tea from me, it works as my tea storage management. However, I do want this to be valuable in the way it's valuable to me, to other people."
+
+**The test for every feature.** It must replace something the person already does with something shorter, or answer a question they are already being asked. If it adds a step to their evening, it is cut. Three examples of the test passing:
+
+- Everyone asks the host what the playlist was. Today the host answers six messages. Here the host pastes one link once and it is on the session for good.
+- Everyone asks "what was that third tea?" Today the host types it out from memory. Here it is on the session, with the wrapper photograph.
+- Everyone asks "where is your house?" Here the walkthrough answers it on confirm.
+
+**What a guest gets, with no host needed.** A guest may use it for years without hosting, and that has to be a full use, not a waiting room.
+
+| A guest wants to | What answers it | Exists today |
+|---|---|---|
+| Remember what they drank | Every session they sat at, and every tea, kept on Your Table without them doing anything | Partly: sessions and tastings exist, not gathered per guest |
+| Learn what it was | Each tea opens onto its type, region and maker in Tea Wisdom, in plain words first | Yes for Teajia's teas; thin for others |
+| Learn to taste | The tasting, which builds their own profile of what they like over time (function 5) | Yes |
+| Learn to brew it at home | Craft: the course and the brewing guides | Course yes, guides waiting to be written |
+| Find that tea, or one like it | The shop, or the host's note on where it came from | Shop yes |
+| Keep their own tea in order | Their own Tea Chest: what they have, what is left, what they thought of it | Yes |
+| Be invited again | Their name on the host's list (the host's guest book) | No |
+
+The last line of the middle rows is the important one. Adrian uses this to know what tea he has, where it came from, what it cost and what is left. A guest with twelve teas in a cupboard has the same need at a smaller size, and the Tea Chest already gives it to them. That is the plain meaning of "valuable to other people in the way it is valuable to me": everyone gets a small version of Adrian's own shelf, and a session is where two shelves meet.
+
+**A host who does not sell tea.** Nothing asks them to. Their teas show with no price and no buy link, and where it came from is theirs to say or not. They lose nothing in the tool.
+
+**A host who cannot say what their tea is.** This is common: a gift, a cake with a wrapper they cannot read, a bag from a market. Three answers, lightest first.
+
+1. "A tea from my shelf" is a complete entry. A photograph and a nickname is enough. Nothing refuses it.
+2. One photograph of the wrapper. The reader that already reads tea packages for Adrian's own intake (it runs on the server and reads Chinese wrappers) suggests what it is: factory, year, type, region. The host accepts, corrects or ignores it. Today that reader is owner-only; opening it to hosts is a cost decision for Adrian because each read costs a little.
+3. "Does anyone know this tea?" The host may put the wrapper on the Tea Table with that question, and Adrian or another host may answer. It is a real service to the community and exactly the kind of exchange he described as people learning from each other. It needs the Tea Table to allow a reply from a known person, which today it does not, so it is a later step and his to decide.
+
+**Where it has to meet people's flow.** The invitation and the thank-you travel as one link inside the host's own WhatsApp, because that is where every table already lives. No guest needs an account to accept, to see the walkthrough, to open the thank-you or to read about a tea. An account is asked for only when they want to keep something. A host makes a session in under a minute, or by saying it aloud (idea I9).
+
 ### What follows from "of service to the greater tea community"
 
 These are the choices that separate a service to the community from a shop with a party attached. Each needs Adrian's yes.
@@ -400,6 +434,8 @@ The same one sentence belongs at the top of Home ("What this is", item 1 there) 
 2. Free to host, and a host can take their whole record away: may both be said plainly on the site?
 3. Which of the ten aspects to switch on first? The recommendation is the private guest book, the cellar that knows what was poured, and the card for the table.
 4. May experienced hosts offer articles, edited and decided by Adrian?
+5. May the wrapper reader be opened to hosts, so a host who does not know their tea can photograph it and be told?
+6. "Does anyone know this tea?" on the Tea Table, answered by Adrian or a known host: wanted, later, or not at all?
 
 ## Later, and worth preparing for
 
