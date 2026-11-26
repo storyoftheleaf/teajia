@@ -29,4 +29,21 @@ describe('the public session answer', () => {
     for (const key of ['address_text', 'map_link', 'venue_guide']) expect(body).not.toHaveProperty(key);
     for (const secret of ['Jalan Rahasia', 'maps.example', 'Blue gate', 'gate.jpg', 'bakery']) expect(text).not.toContain(secret);
   });
+
+  it("never shows another shop's venue photos, even if the venue id points there", async () => {
+    const db = new SqliteD1('migrations'); databases.push(db);
+    seedIdentity(db, { userId: 'host', accountId: 'shop' });
+    seedIdentity(db, { userId: 'other', accountId: 'other-shop' });
+    db.sqlite.exec(`
+      UPDATE accounts SET public_enabled = 1, status = 'active' WHERE id = 'shop';
+      INSERT INTO venues (id, account_id, name, address, photos)
+      VALUES ('their-room', 'other-shop', 'Their room', 'Elsewhere 1', '["https://img.example/their-door.jpg"]');
+      INSERT INTO events (id, account_id, slug, title, event_date, status, public_visibility, total_capacity, venue_id)
+      VALUES ('sit', 'shop', 'courtyard', 'Tea in the courtyard', '2026-12-01T18:00', 'active', 'public', 8, 'their-room');
+    `);
+    const response = await worker.fetch(new Request('https://app.test/api/events/courtyard/public'),
+      { DB: db } as never, { waitUntil: () => undefined } as never);
+    expect(response.status).toBe(200);
+    expect(await response.text()).not.toContain('their-door');
+  });
 });

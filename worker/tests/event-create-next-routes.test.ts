@@ -67,6 +67,8 @@ for (const schema of ['schema', 'migrations'] as const) describe(`create-next re
     expect(result.slug).toBe('next');
     expect(result.id).not.toBe('source');
     const event = db.sqlite.prepare('SELECT * FROM events WHERE id = ?').get(result.id);
+    // A copy is never more visible than the session it was made from (Launch 2, H0).
+    expect(event).toMatchObject({ public_visibility: 'private', network_discovery: 0 });
     expect(event).toMatchObject({ ...copied, id: result.id, account_id: 'account-a', slug: 'next',
       event_date: '2099-02-01', event_end_date: null, status: 'draft', lifecycle_status: 'draft', recap_status: 'draft' });
     expect(count(db, 'events')).toBe(2);
