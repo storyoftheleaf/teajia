@@ -356,7 +356,7 @@ describe('tea credit for hosts: who reads what', () => {
     expect(JSON.stringify(mine.data)).not.toContain('Mei');
 
     const guest = await call(db, '/api/me/tea-credit', { as: 'staff' });
-    expect(guest.data).toEqual({ balances: [], lines: [] });
+    expect(guest.data).toEqual({ balances: [], lines: [], spend_requests: [] });
 
     expect((await call(db, '/api/host-credit', { as: 'staff' })).status).toBe(403);
     expect((await call(db, '/api/host-credit', { as: HOST, account: SHOP })).status).toBe(403);

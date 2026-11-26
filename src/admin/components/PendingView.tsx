@@ -5,6 +5,7 @@ import { Loader2, ArrowRight, CalendarDays, ClipboardList, ExternalLink } from '
 import { usePendingAttendees, PendingAttendee } from '../hooks/useEventData';
 import { usePendingInvoicesSummary } from '../hooks/usePrivateQueryScope';
 import { ApprovalCard } from './ApprovalCard';
+import { TeaCreditSection } from './TeaCreditSection';
 
 function formatEventDate(dateStr: string): string {
   try {
@@ -51,6 +52,9 @@ export const PendingView: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-8 px-3 md:px-6 py-4 pb-nav-gap">
+
+      {/* Tea credit for hosts (Launch 5): owner only, and only while it is open. */}
+      <TeaCreditSection />
 
       {/* Pending Orders */}
       <section>

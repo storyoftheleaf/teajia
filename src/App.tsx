@@ -100,6 +100,7 @@ const SignInPage = lazyWithRetry(() => import('./pages/SignInPage'));
 const SignUpPage = lazyWithRetry(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazyWithRetry(() => import('./pages/AccountSettingsPage'));
 const OrderHistoryPage = lazyWithRetry(() => import('./pages/OrderHistoryPage'));
+const TeaCreditPage = lazyWithRetry(() => import('./pages/TeaCreditPage'));
 const OrderDetailPage = lazyWithRetry(() => import('./pages/OrderDetailPage'));
 const SampleHistoryPage = lazyWithRetry(() => import('./pages/SampleHistoryPage'));
 // Tea Wisdom listing pilot: fixtures and stubbed API calls, development only.
@@ -250,6 +251,7 @@ import { SiteNotFound } from './components/SiteNotFound';
 import AtlasGate from './atlas/AtlasGate';
 import OldAtlasRedirect from './atlas/OldAtlasRedirect';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
+import { hostCreditOpen } from './lib/hostCredit';
 
 // View Transitions API feature detection (#46)
 const supportsViewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document;
@@ -1295,6 +1297,7 @@ const AppContent = () => {
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/profile" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountProfilePage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
+                {hostCreditOpen() && <Route path="/account/tea-credit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaCreditPage /></Suspense></ErrorBoundary>} />}
                 <Route path="/account/orders/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderDetailPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />

@@ -36,7 +36,7 @@ import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTab
 import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
 import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
-import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnHostCredit, readShopHostCredit, settleHostCredit } from './hostCreditLedger';
+import { approveHostCreditSpend, declineHostCreditSpend, holdHostCreditForOrder, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnAvailableInShop, readOwnHostCredit, readShopHostCredit, settleHostCredit } from './hostCreditLedger';
 import { hostCreditOpen } from '../../src/lib/hostCredit';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -15598,6 +15598,9 @@ const handleCreateInquiry: Handler = async (request, env, params, ctx) => {
   const via = firstTableOpen(env) && !validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES, 0)
     ? readVia((await request.clone().json().catch(() => null) as { via?: unknown } | null)?.via)
     : null;
+  // The host's one plain choice at checkout; nothing else about credit is read.
+  const useTeaCredit = hostCreditOpen(env) && !validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES, 0)
+    && (await request.clone().json().catch(() => null) as { use_tea_credit?: unknown } | null)?.use_tea_credit === true;
   const response = await createInquiry(request, env, params, ctx);
   if (via && response.status === 201) {
     const saved = await response.clone().json().catch(() => null) as { id?: unknown; idempotent?: unknown } | null;
@@ -15610,8 +15613,22 @@ const handleCreateInquiry: Handler = async (request, env, params, ctx) => {
       for (const order of orders) await settleHostCredit(env, order.id);
     }
   }
+  if (useTeaCredit && response.status === 201) return withTeaCreditAsk(request, env, response);
   return response;
 };
+
+// A signed-in host chose, at checkout, to use their tea credit on this order.
+// Only the choice comes from the browser: who they are, which order, and how
+// much are all read from stored rows. The answer is a held request that waits
+// for the owner's approval in Manage (hostCreditLedger.ts, holdHostCreditForOrder).
+async function withTeaCreditAsk(request: Request, env: Env, response: Response): Promise<Response> {
+  const saved = await response.clone().json().catch(() => null) as Record<string, unknown> | null;
+  if (!saved || saved.idempotent === true || typeof saved.invoice_id !== 'string') return response;
+  const user = await optionalAuthenticatedUser(request, env);
+  if (!user) return response;
+  const tea_credit = await holdHostCreditForOrder(env, { userId: user.userId, invoiceId: saved.invoice_id });
+  return json({ ...saved, tea_credit }, 201);
+}
 
 const createInquiry: Handler = async (request, env, _params, ctx) => {
   const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -25433,7 +25450,13 @@ const handleGetMyTeaCredit: Handler = async (request, env) => {
   if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
   const user = await optionalAuthenticatedUser(request, env);
   if (!user) return json({ error: 'Sign in to see your tea credit' }, 401);
-  return json(await readOwnHostCredit(env.DB, user.userId));
+  const own = await readOwnHostCredit(env.DB, user.userId);
+  // ?store=<slug>: what checkout in that shop may offer, worked out here.
+  const slug = new URL(request.url).searchParams.get('store');
+  if (!slug) return json(own);
+  const store = await getPublicStoreIdentity(env, slug.slice(0, 120));
+  const store_available = store ? await readOwnAvailableInShop(env.DB, user.userId, store.id) : 0;
+  return json({ ...own, store_available });
 };
 
 async function requireHostCreditOwner(

@@ -467,8 +467,13 @@ function lineView(row: Record<string, any>): HostCreditLineView {
  * A host's own credit, in every shop: balances per shop and currency, and each
  * credited line. Reads only rows whose host is this user. No buyer is named.
  */
+export type OwnSpendRequest = {
+  id: string; account_id: string; shop_name: string | null; invoice_id: string; invoice_number: string | null;
+  amount: number; currency: string; status: 'held' | 'approved' | 'declined'; requested_at: string; decided_at: string | null;
+};
+
 export async function readOwnHostCredit(db: D1Database, userId: string): Promise<{
-  balances: Array<Omit<HostCreditBalance, 'host_user_id'>>; lines: HostCreditLineView[];
+  balances: Array<Omit<HostCreditBalance, 'host_user_id'>>; lines: HostCreditLineView[]; spend_requests: OwnSpendRequest[];
 }> {
   const { results } = await db.prepare(
     `${LINE_SELECT}
@@ -477,7 +482,33 @@ export async function readOwnHostCredit(db: D1Database, userId: string): Promise
   ).bind(userId).all<Record<string, any>>();
   const balances = (await readBalances(db, 'host_user_id = ?', [userId]))
     .map(({ host_user_id: _host, ...rest }) => rest);
-  return { balances, lines: results.map(lineView) };
+  // The host's own asks to use credit: their own orders, so the number is theirs to see.
+  const { results: requests } = await db.prepare(
+    `SELECT r.id, r.account_id, a.name AS shop_name, r.invoice_id, i.invoice_number, r.amount, r.currency,
+            r.status, r.requested_at, r.decided_at
+       FROM host_credit_spend_requests r
+       LEFT JOIN accounts a ON a.id = r.account_id
+       LEFT JOIN invoices i ON i.id = r.invoice_id AND i.account_id = r.account_id
+      WHERE r.host_user_id = ?
+      ORDER BY r.requested_at DESC LIMIT 200`,
+  ).bind(userId).all<Record<string, any>>();
+  return {
+    balances,
+    lines: results.map(lineView),
+    spend_requests: requests.map(row => ({
+      id: String(row.id), account_id: String(row.account_id), shop_name: row.shop_name ?? null,
+      invoice_id: String(row.invoice_id), invoice_number: row.invoice_number ?? null,
+      amount: Number(row.amount), currency: String(row.currency), status: String(row.status) as 'held' | 'approved' | 'declined',
+      requested_at: String(row.requested_at), decided_at: row.decided_at ?? null,
+    })),
+  };
+}
+
+/** What this host may use in one shop now, after every open hold. */
+export async function readOwnAvailableInShop(db: D1Database, userId: string, accountId: string): Promise<number> {
+  const [balance] = await readBalances(db, 'host_user_id = ? AND account_id = ? AND currency = ?',
+    [userId, accountId, HOST_CREDIT_CURRENCY]);
+  return balance?.available ?? 0;
 }
 
 /** Everything in one shop, for its owner in Manage: hosts, every line, every spend request. */
@@ -509,7 +540,9 @@ export async function readShopHostCredit(db: D1Database, accountId: string) {
       ...lineView(row),
       host_user_id: row.host_user_id, host_name: names.get(row.host_user_id) ?? null,
       invoice_id: row.invoice_id, invoice_number: row.invoice_number ?? null, source_inquiry_id: row.source_inquiry_id,
+      invoice_status: row.invoice_status ?? null,
     })),
+    second_look: await readOrdersAwaitingApproval(db, accountId, terms, names),
     spend_requests: requests.map(row => ({
       ...row, amount: Number(row.amount), over_ceiling: Number(row.over_ceiling) === 1,
       host_name: names.get(row.host_user_id) ?? null,
@@ -517,12 +550,41 @@ export async function readShopHostCredit(db: D1Database, accountId: string) {
   };
 }
 
+/**
+ * Orders Filled by hand whose credit is still pending because it is over the
+ * shop's ceiling: they wait for the owner's second look. Payment is checked
+ * again when the owner approves (POST /api/host-credit/invoices/:id/approve).
+ */
+async function readOrdersAwaitingApproval(
+  db: D1Database, accountId: string, terms: HostCreditTerms | null, names: Map<string, string | null>,
+) {
+  if (!terms || terms.ceilingUsd === null) return [];
+  const { results } = await db.prepare(
+    `SELECT p.invoice_id, i.invoice_number, p.host_user_id, ev.title AS event_title, SUM(p.amount) AS credit_amount
+       FROM host_credit_entries p
+       JOIN invoices i ON i.id = p.invoice_id AND i.account_id = p.account_id
+       LEFT JOIN events ev ON ev.id = p.event_id AND ev.account_id = p.account_id
+      WHERE p.account_id = ? AND p.kind = 'pending' AND p.currency = ?
+        AND i.status = 'Filled' AND i.deleted_at IS NULL AND i.cancelled_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM host_credit_entries e WHERE e.kind = 'earned' AND e.invoice_id = p.invoice_id)
+      GROUP BY p.invoice_id, i.invoice_number, p.host_user_id, ev.title
+      HAVING SUM(p.amount) > ? + 0.004
+      ORDER BY p.invoice_id LIMIT 200`,
+  ).bind(accountId, HOST_CREDIT_CURRENCY, terms.ceilingUsd).all<Record<string, any>>();
+  return results.map(row => ({
+    invoice_id: String(row.invoice_id), invoice_number: row.invoice_number ?? null,
+    host_user_id: String(row.host_user_id), host_name: names.get(String(row.host_user_id)) ?? null,
+    event_title: row.event_title ?? null, credit_amount: roundUsd(Number(row.credit_amount)),
+    currency: HOST_CREDIT_CURRENCY, ceiling_usd: terms.ceilingUsd,
+  }));
+}
+
 // ── Spending: a held request, approved by hand ───────────────────────────────
 
 /**
- * Hold credit against an order to the shop. Not reachable from any route yet:
- * spending at checkout is later work, which must work out `amount` on the
- * server from the order, never from the browser. The hold is one guarded
+ * Hold credit against an order to the shop. Reached from checkout only through
+ * holdHostCreditForOrder, which works out `amount` on the server from the
+ * order, never from the browser. The hold is one guarded
  * statement: it is written only while the host's available credit covers it,
  * and only up to the tea lines of that order.
  */
@@ -633,4 +695,43 @@ export async function declineHostCreditSpend(
   if (!row) return { ok: false, error: 'not_found', message: 'No such request in this shop.' };
   if (row.status === 'declined') return { ok: true, status: 'declined', idempotent: true };
   return { ok: false, error: 'already_decided', message: 'This request was already approved.' };
+}
+
+/**
+ * Checkout's one door to spending: the signed-in host asked to use their tea
+ * credit on an order they just placed. Everything is worked out here: the
+ * order must be this user's own, still Draft or Pending; the amount is the
+ * smaller of their available credit in that shop and the order's tea lines.
+ * The result is a held request, which only the owner's approval spends. One
+ * request per order: asking again returns the one already held.
+ */
+export async function holdHostCreditForOrder(
+  env: CreditEnv,
+  input: { userId: string; invoiceId: string },
+): Promise<{ status: 'held'; id: string; amount: number; currency: string } | { status: 'not_held'; reason: string }> {
+  if (!hostCreditOpen(env)) return { status: 'not_held', reason: 'closed' };
+  const order = await env.DB.prepare(
+    `SELECT i.id, i.account_id FROM invoices i
+       JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id
+      WHERE i.id = ? AND c.user_id = ? AND i.status IN ('Draft','Pending') AND i.deleted_at IS NULL`,
+  ).bind(input.invoiceId, input.userId).first<{ id: string; account_id: string }>();
+  if (!order) return { status: 'not_held', reason: 'order_unavailable' };
+  const existing = await env.DB.prepare(
+    `SELECT id, amount, currency FROM host_credit_spend_requests
+      WHERE invoice_id = ? AND account_id = ? AND host_user_id = ? AND status = 'held' LIMIT 1`,
+  ).bind(order.id, order.account_id, input.userId).first<{ id: string; amount: number; currency: string }>();
+  if (existing) return { status: 'held', id: existing.id, amount: Number(existing.amount), currency: existing.currency };
+  const types = TEA_TYPES as readonly string[];
+  const tea = await env.DB.prepare(
+    `SELECT COALESCE(SUM(li.quantity * li.price_at_sale), 0) AS total FROM invoice_line_items li
+       JOIN products p ON p.id = li.product_id AND p.account_id = ?
+      WHERE li.invoice_id = ? AND li.quantity > 0 AND li.price_at_sale > 0
+        AND p.type IN (${types.map(() => '?').join(', ')})`,
+  ).bind(order.account_id, order.id, ...types).first<{ total: number }>();
+  const available = await readOwnAvailableInShop(env.DB, input.userId, order.account_id);
+  const amount = roundUsd(Math.min(available, Math.floor(Number(tea?.total || 0) * 100) / 100));
+  if (!(amount > 0)) return { status: 'not_held', reason: 'nothing_to_use' };
+  const held = await holdHostCreditSpend(env, { accountId: order.account_id, hostUserId: input.userId, invoiceId: order.id, amount });
+  if ('error' in held) return { status: 'not_held', reason: held.error };
+  return { status: 'held', id: held.id, amount, currency: HOST_CREDIT_CURRENCY };
 }
