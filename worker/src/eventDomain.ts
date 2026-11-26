@@ -1,3 +1,4 @@
+import { sessionHasEnded, type SessionTimes } from '../../shared/sessionEnd';
 export type EventLifecycle =
   | 'draft'
   | 'published'
@@ -169,7 +170,7 @@ type SeatEnv = { DB: SeatDatabase };
 const CREATE_PARTICIPATION_COLUMNS = new Set([
   'customer_id', 'full_name', 'phone_number', 'email', 'plus_one', 'plus_one_name',
   'access_tier', 'magic_token', 'photo_consent', 'notes', 'tea_preference',
-  'bringing_tea', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list',
+  'bringing_tea', 'guest_requests', 'contact_method', 'source', 'show_in_guest_list', 'user_id',
 ]);
 
 function sqlPlaceholders(values: readonly unknown[]): string {
@@ -274,9 +275,11 @@ export async function reservePartySeats(
   }
 
   const event = await env.DB.prepare(
-    `SELECT total_capacity, lifecycle_status FROM events WHERE id = ? AND account_id = ?`
-  ).bind(eventId, accountId).first<{ total_capacity: number; lifecycle_status: string }>();
-  if (!event || event.lifecycle_status !== 'published') {
+    `SELECT total_capacity, lifecycle_status, status, event_date, event_end_date, timezone FROM events WHERE id = ? AND account_id = ?`
+  ).bind(eventId, accountId).first<{ total_capacity: number; lifecycle_status: string } & SessionTimes>();
+  // No door seats anyone once the session has ended (audit A2 F6), by the
+  // one end rule in shared/sessionEnd.ts.
+  if (!event || event.lifecycle_status !== 'published' || sessionHasEnded(event)) {
     return { ok: false, code: 'event_not_reservable' };
   }
 

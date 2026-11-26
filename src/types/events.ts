@@ -65,6 +65,8 @@ export interface VenueGuide {
   parking_notes?: string;
   transit_notes?: string;
   arrival_notes?: string;
+  /** A number a guest can call if they are lost on the way (Launch 2, H8). */
+  lost_phone?: string;
 }
 
 // ============================================================
@@ -136,6 +138,10 @@ export interface TeaEvent {
   accountLocationCountry?: string;
   accountName?: string;
   account_name?: string;
+  /** Who hosts the session, by the rule of worker/src/sessionHost.ts; null when the session names nobody. */
+  host?: { name: string; path: string | null } | null;
+  /** A person's own table rather than a shop's session. */
+  privateHost?: boolean;
 }
 
 export interface EventAvailability {
@@ -366,7 +372,14 @@ export interface RSVPResponse {
   magicToken: string;
   status: AttendeeStatus;
   redirectUrl: string;
+  /** At a by-link door: the guest's own page, handed back at once to keep. */
+  link?: string;
+  /** The same browser asked again; this is the seat it already has. */
+  repeat?: boolean;
 }
+
+/** How a guest takes a seat at a hosted table (Launch 2). NULL is an older session. */
+export type SessionDoor = 'request' | 'link' | 'open' | null;
 
 export interface GuestManagementData {
   event: TeaEvent;
@@ -389,6 +402,10 @@ export interface RSVPFormData {
   notes?: string;
   /** Opt-in: show first name on the public guest list (capped at 20 names). */
   show_in_guest_list?: boolean;
+  /** "Please, no photographs of me": sent as photo_consent false. Unticked sends nothing. */
+  noPhotographs?: boolean;
+  /** A random key kept by this browser per session, so a second tap finds the first seat. */
+  seatKey?: string;
 }
 
 export interface EventFormData {

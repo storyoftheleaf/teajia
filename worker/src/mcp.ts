@@ -40,6 +40,7 @@ import { transferToolModule } from './mcpTools/transfer';
 import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { firstTableToolModule } from './mcpTools/firstTable';
+import { fewHostsToolModule } from './mcpTools/fewHosts';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -61,7 +62,7 @@ import { stockCountTools } from './mcpTools/stockCount';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
-import type { CurateReceiptService, InventoryReceiptService, StockMovementService } from './mcpTools/registry';
+import type { CurateReceiptService, HostSeatService, InventoryReceiptService, StockMovementService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { isShopOwner, tastingWithoutScores } from './publicScores';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -120,6 +121,7 @@ type Env = {
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  hostSeats?: HostSeatService;
   JWT_SECRET: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
@@ -7134,6 +7136,7 @@ const TOOL_MODULES: ToolModule[] = [
   curationTools,
   eventsToolModule,
   firstTableToolModule,
+  fewHostsToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,

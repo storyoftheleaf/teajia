@@ -4001,3 +4001,24 @@ CREATE TABLE IF NOT EXISTS order_session_sources (
   host_user_id TEXT,
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- 0129_few_hosts.sql
+ALTER TABLE users    ADD COLUMN host_approved_at TEXT;
+ALTER TABLE users    ADD COLUMN host_approved_by TEXT REFERENCES users(id);
+ALTER TABLE accounts ADD COLUMN host_approved_at TEXT;
+ALTER TABLE accounts ADD COLUMN host_approved_by TEXT REFERENCES users(id);
+ALTER TABLE events ADD COLUMN host_user_id TEXT REFERENCES users(id);
+ALTER TABLE events ADD COLUMN door TEXT CHECK (door IN ('request','link','open'));
+CREATE TABLE IF NOT EXISTS host_guest_notes (
+  id           TEXT PRIMARY KEY,
+  account_id   TEXT NOT NULL,
+  host_user_id TEXT NOT NULL,
+  event_id     TEXT NOT NULL,
+  attendee_id  TEXT NOT NULL,
+  note         TEXT NOT NULL CHECK (length(note) BETWEEN 1 AND 500),
+  updated_at   TEXT NOT NULL,
+  UNIQUE (host_user_id, event_id, attendee_id)
+);
+
+-- 0136_host_table_tea_photos.sql
+ALTER TABLE event_tea_menu ADD COLUMN photo_url TEXT;

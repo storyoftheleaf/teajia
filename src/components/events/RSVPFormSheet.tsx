@@ -7,16 +7,23 @@ import { authPagePath } from '../../lib/authNavigation';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
-import type { RSVPFormData, ContactMethod, RSVPResponse } from '../../types/events';
+import type { RSVPFormData, ContactMethod, RSVPResponse, SessionDoor } from '../../types/events';
+import { seatKeyFor } from '../../lib/seatKey';
+import { Button } from '../shared/Button';
 
 interface RSVPFormSheetProps {
   slug: string;
   onClose: () => void;
   accountLocationCountry?: string;
   requiresApproval?: boolean;
+  /** A hosted table's door. At 'link' a name is enough and the seat is the guest's at once. */
+  door?: SessionDoor;
 }
 
-const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLocationCountry, requiresApproval = true }) => {
+const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLocationCountry, requiresApproval = true, door = null }) => {
+  const byLink = door === 'link';
+  const [seatKey] = useState(() => seatKeyFor(slug));
+  const [copied, setCopied] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -156,7 +163,21 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
       invalid?.focus();
       return;
     }
-    submitMutation.mutate(formData);
+    submitMutation.mutate(byLink ? { ...formData, seatKey } : formData);
+  };
+
+  // At a by-link door the answer carries the guest's own page, to keep.
+  const answer = submitMutation.data as (RSVPResponse & { magic_token?: string }) | undefined;
+  const ownLink = answer?.link
+    ?? (byLink && (answer?.magicToken ?? answer?.magic_token)
+      ? `${window.location.origin}/m/${answer?.magicToken ?? answer?.magic_token}`
+      : undefined);
+  const copyOwnLink = async () => {
+    if (!ownLink) return;
+    try {
+      await navigator.clipboard.writeText(ownLink);
+      setCopied(true);
+    } catch { /* the link stays on screen to copy by hand */ }
   };
 
   const updateField = <K extends keyof RSVPFormData>(field: K, value: RSVPFormData[K]) => {
@@ -204,8 +225,10 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
       ? formData.phoneNumber ?? ''
       : formData.email ?? '';
 
+  // At a by-link door a name is enough; everywhere else the host needs a way to answer.
+  const contactRequired = !byLink;
   const isValid =
-    formData.fullName.trim().length > 0 && contactValue.trim().length > 0;
+    formData.fullName.trim().length > 0 && (!contactRequired || contactValue.trim().length > 0);
 
   const sheetTitle = requiresApproval === false ? 'Reserve your seat' : 'Request your seat';
   const inputClass =
@@ -262,7 +285,26 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   茶
                 </span>
               </div>
-              {requiresApproval === false ? (
+              {byLink ? (
+                <div className="w-full max-w-xs flex flex-col items-center" data-testid="seat-by-link-done">
+                  <h3 className="h2 mb-3 text-center">
+                    {answer?.repeat ? 'You already have a seat.' : 'You have a seat.'}
+                  </h3>
+                  <p className="body-light text-center mb-4">
+                    Keep this link. It is your own page for this table, and the way back to your seat.
+                  </p>
+                  {ownLink && (
+                    <>
+                      <p className="w-full text-ui-12 text-tea-text break-all text-center px-3 py-2.5 bg-tea-bg border border-tea-border rounded-md mb-3">
+                        {ownLink}
+                      </p>
+                      <Button type="button" variant="primary" fullWidth onClick={copyOwnLink} className="mb-2">
+                        {copied ? 'Copied' : 'Copy my link'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ) : requiresApproval === false ? (
                 <>
                   <h3 className="h2 mb-3 text-center">You're confirmed.</h3>
                   <p className="body-light text-center max-w-xs mb-2">
@@ -281,10 +323,18 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   </p>
                 </>
               )}
-              <p className="body-light text-center mb-6">See you at this event.</p>
-              <p className="text-ui-12 text-tea-text-dim text-center max-w-xs leading-relaxed mb-8 px-2">
-                If your plans change, please let us know in advance. You can manage or cancel your RSVP at any time using the link in your confirmation message.
-              </p>
+              {byLink ? (
+                <p className="text-ui-12 text-tea-text-dim text-center max-w-xs leading-relaxed mb-8 px-2">
+                  If your plans change, open your link and give up the seat, so someone else can have it.
+                </p>
+              ) : (
+                <>
+                  <p className="body-light text-center mb-6">See you at this event.</p>
+                  <p className="text-ui-12 text-tea-text-dim text-center max-w-xs leading-relaxed mb-8 px-2">
+                    If your plans change, please let us know in advance. You can manage or cancel your RSVP at any time using the link in your confirmation message.
+                  </p>
+                </>
+              )}
               <button
                 onClick={() => {
                   queryClient.invalidateQueries({ queryKey: ['event-public', slug] });
@@ -357,11 +407,18 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 </div>
               ) : (
                 <div>
-                  <label className="label-caps block mb-2">
-                    How should we reach you?
-                    <span aria-hidden="true" className="text-tea-gold"> *</span>
-                    <span className="sr-only"> (required)</span>
-                  </label>
+                  {contactRequired ? (
+                    <label className="label-caps block mb-2">
+                      How should we reach you?
+                      <span aria-hidden="true" className="text-tea-gold"> *</span>
+                      <span className="sr-only"> (required)</span>
+                    </label>
+                  ) : (
+                    <label className="label-caps block mb-2">
+                      A way for the host to reach you{' '}
+                      <span className="normal-case tracking-normal text-tea-text-dim">(optional)</span>
+                    </label>
+                  )}
                   {/* Method toggle, underline tabs */}
                   <div className="flex gap-6 border-b border-tea-border mb-3">
                     {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
@@ -411,9 +468,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, ''))}
                           placeholder="912 345 678"
                           autoComplete="tel-national"
-                          required
-                          aria-required="true"
-                          aria-invalid={contactValue.trim().length === 0}
+                          required={contactRequired}
+                          aria-required={contactRequired}
+                          aria-invalid={contactRequired && contactValue.trim().length === 0}
                           aria-label="WhatsApp number"
                           className="flex-1 min-w-0 px-3 py-2.5 bg-tea-bg text-tea-text text-ui-14 placeholder:text-tea-text-dim focus:outline-none"
                         />
@@ -435,9 +492,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                       onChange={(e) => updateField('email', e.target.value)}
                       placeholder="your@email.com"
                       autoComplete="email"
-                      required
-                      aria-required="true"
-                      aria-invalid={contactValue.trim().length === 0}
+                      required={contactRequired}
+                      aria-required={contactRequired}
+                      aria-invalid={contactRequired && contactValue.trim().length === 0}
                       aria-label="Email address"
                       className={inputClass}
                     />
@@ -532,6 +589,19 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 <span className="text-ui-12 text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
                   Show my first name to other confirmed guests
                   <span className="block text-ui-10 text-tea-text-dim mt-0.5">So people can see who's coming</span>
+                </span>
+              </label>
+
+              {/* The guest's own wish about photographs. Unticked sends nothing. */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={!!formData.noPhotographs}
+                  onChange={(e) => updateField('noPhotographs', e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded-md border border-tea-border bg-tea-bg accent-tea-gold cursor-pointer"
+                />
+                <span className="text-ui-12 text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
+                  Please, no photographs of me
                 </span>
               </label>
 

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { seedFromMigrations } from '../tests/helpers/migratedSqlite.ts';
 import { sandboxAccountIds, sandboxOperatorStatements, sandboxUserId } from './operator-fixture.mjs';
 import { firstTableStatements } from './first-table-fixture.mjs';
+import { fewHostsStatements } from './few-hosts-fixture.mjs';
 
 const worker = fileURLToPath(new URL('../', import.meta.url));
 const config = join(worker, 'wrangler.offline-fixtures.toml');
@@ -71,6 +72,8 @@ async function prepare() {
       ...sandboxOperatorStatements,
       // Launch 1's test table: one finished session, two guests, one paid order.
       ...firstTableStatements,
+      // Launch 2's test host: ana / ana, approved, with one finished table in her private account.
+      ...fewHostsStatements,
     ];
     const dump = join(temporary, 'fixtures.sql');
     writeFileSync(dump, schema.replace(/COMMIT;\s*$/, `${fixtures.join(';\n')};\nCOMMIT;\n`));
@@ -86,7 +89,11 @@ try {
   await prepare();
   if (!process.argv.includes('--prepare-only')) {
     // FIRST_TABLE_OPEN=true opens Launch 1 in this local shop only (src/lib/firstTable.ts).
-    const flags = process.env.FIRST_TABLE_OPEN === 'true' ? ['--var', 'FIRST_TABLE_OPEN:true'] : [];
+    // FEW_HOSTS_OPEN=true opens Launch 2 the same way (src/lib/fewHosts.ts).
+    const flags = [
+      ...(process.env.FIRST_TABLE_OPEN === 'true' ? ['--var', 'FIRST_TABLE_OPEN:true'] : []),
+      ...(process.env.FEW_HOSTS_OPEN === 'true' ? ['--var', 'FEW_HOSTS_OPEN:true'] : []),
+    ];
     const server = spawn(wrangler, ['dev', ...localOptions, ...flags], { cwd: worker, env, stdio: 'inherit' });
     server.on('error', error => { console.error(error.message); process.exitCode = 1; });
     server.on('exit', code => { process.exitCode = code ?? 1; });
