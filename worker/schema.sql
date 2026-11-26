@@ -4213,3 +4213,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_locations_one_host_table
 
 -- 0145_tea_table_page_alone.sql
 ALTER TABLE member_tasting_shares ADD COLUMN page_alone_at TEXT;
+
+-- 0146_session_series.sql
+CREATE TABLE IF NOT EXISTS session_series (
+  id TEXT PRIMARY KEY, account_id TEXT NOT NULL, host_user_id TEXT NOT NULL,
+  name TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('circle','series')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_session_series_host ON session_series(host_user_id, account_id);
+ALTER TABLE events ADD COLUMN series_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_events_series ON events(series_id) WHERE series_id IS NOT NULL;

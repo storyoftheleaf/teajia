@@ -43,6 +43,7 @@ import { firstTableToolModule } from './mcpTools/firstTable';
 import { launch4ToolModule } from './mcpTools/launch4';
 import { fewHostsToolModule } from './mcpTools/fewHosts';
 import { launch3ToolModule } from './mcpTools/launch3';
+import { circlesToolModule } from './mcpTools/circles';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -131,6 +132,8 @@ type Env = {
   TEA_TABLE_OPEN?: string;
   /** See src/lib/hostCredit.ts. */
   HOST_CREDIT_OPEN?: string;
+  /** See src/lib/circles.ts. */
+  CIRCLES_OPEN?: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // Edge rate limiter for the public prepare_order tool, which unlike the
@@ -7150,6 +7153,7 @@ const TOOL_MODULES: ToolModule[] = [
   launch4ToolModule,
   fewHostsToolModule,
   launch3ToolModule,
+  circlesToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,

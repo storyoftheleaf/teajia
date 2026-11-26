@@ -15,6 +15,7 @@ import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
 import { teaTableRoutes } from './teaTable';
+import { circlesRoutes, publicSeries, seriesForCopy } from './circles';
 import { teaHousesRoutes } from './teaHouses';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
 import { anyoneMayHost, hostApproved, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
@@ -364,6 +365,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   YOUR_TABLE_PLACE_OPEN?: string;
   /** "true" opens tea credit for hosts (Launch 5, M1); see src/lib/hostCredit.ts. */
   HOST_CREDIT_OPEN?: string;
+  /** "true" or "false" opens or closes circles and series (Launch 5, M4); see src/lib/circles.ts. */
+  CIRCLES_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -12629,6 +12632,9 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     // Photographs of the house or table may be shown (Adrian, 2026-11-26); the
     // address, map link and the way-in steps stay with a confirmed guest.
     venue_photos: venuePhotos,
+    // Its circle or series by name, and a series' other sessions anyone may find (Launch 5, M4).
+    // Only while circles are open; never an address, never a count.
+    ...(await seriesAnswer(env, event)),
     confirmed_count: confirmedCount,
     offered_count: offeredCount,
     confirmed_names: confirmedNames,
@@ -12640,6 +12646,15 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   response.headers.set('Cache-Control', 'private, no-store');
   return response;
 };
+
+// A series' other sessions are linked only when anyone may find them: a shop's
+// public session, or an open table of a host Teajia lists publicly (Launch 3, J10).
+async function seriesAnswer(env: Env, event: Record<string, unknown>): Promise<{ series?: Awaited<ReturnType<typeof publicSeries>> }> {
+  const listed = `((${PUBLIC_EVENT_STORE} AND ${PUBLIC_EVENT_HOST})
+    OR ${reachListedSessionSql('a', 'e', ['listed'])}) AND ${listableHostedSessionSql('e')} AND ${sessionLinkHostSql(env)}`;
+  const series = await publicSeries(env, event as { id: unknown; account_id: unknown }, listed);
+  return series ? { series } : {};
+}
 
 // "Hosted by": the session's host_user_id first (Launch 2, hard question 6).
 // Their published page when they have one, else their first name as plain
@@ -14817,8 +14832,8 @@ async function duplicateEvent(env: Env, accountId: string, sourceId: string,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format,
        venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery,
-       host_user_id, door, is_tasting)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       host_user_id, door, is_tasting, series_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -14853,6 +14868,8 @@ async function duplicateEvent(env: Env, accountId: string, sourceId: string,
     source.host_user_id ?? null,
     source.door ?? null,
     source.host_user_id ? (source.is_tasting ?? 0) : 0,
+    // Same table again in a circle or series stays in it (Launch 5, M4); NULL while circles are closed.
+    seriesForCopy(env, source),
   );
 
   // Keep the draft and its tea menu together if a write fails.
@@ -33161,6 +33178,7 @@ const routes: [string, string, Handler][] = [
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),
+  ...circlesRoutes<Env>({ requireAuthenticatedUser }),
   ['GET',    '/api/me/cellar', handleListCellar],
   ['POST',   '/api/me/cellar', handleCreateCellarItem],
   ['PUT',    '/api/me/cellar/:id', handleUpdateCellarItem],

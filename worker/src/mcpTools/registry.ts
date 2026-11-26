@@ -86,6 +86,8 @@ export interface ToolEnv {
   FEW_HOSTS_OPEN?: string;
   /** Launch 3's switch (src/lib/anyoneHosts.ts): anyone signed in may host by request. */
   ANYONE_HOSTS_OPEN?: string;
+  /** Launch 5 M4's switch (src/lib/circles.ts): circles and series, with FEW_HOSTS_OPEN. */
+  CIRCLES_OPEN?: string;
   /** The site's address, for a table's link. */
   APP_URL?: string;
   hostSeats?: HostSeatService;
