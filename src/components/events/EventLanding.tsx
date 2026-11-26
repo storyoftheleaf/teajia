@@ -11,6 +11,7 @@ import AvailabilityBadge from './AvailabilityBadge';
 import { GroupHead, IndexRow, SplitName } from '../people/immersive';
 import type { PublicPerson } from '../../types';
 import EventCountdown from './EventCountdown';
+import { ReportLink } from '../shared/ReportLink';
 
 // ── Public Tea Menu Preview ───────────────────────────────────────────────
 interface PublicTeaMenuProps {
@@ -752,6 +753,7 @@ const EventLanding: React.FC = () => {
           <p className="label-caps text-tea-text-dim">
             Hosted by {ev.account_name ?? ev.accountName ?? 'Teajia'}
           </p>
+          <ReportLink targetKind="session" targetId={event.id} />
         </div>
       </div>
 
