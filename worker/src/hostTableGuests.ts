@@ -13,7 +13,7 @@ import { sessionInstant } from './sessionWalkthrough';
 import { serveGuestBookReview } from './sessionGuestBook';
 import { reviewGuestBookPhotos } from './sessionGuestBookPhotos';
 
-export type HostedTableDoor = 'request' | 'link';
+export type HostedTableDoor = 'request' | 'link' | 'open';
 
 export type OwnHostedTable = {
   id: string;
@@ -157,16 +157,22 @@ export type TableChangeResult =
 const refuse = (status: number, code: string, error: string) => ({ refused: { status, code, error } });
 export const HOST_TABLE_MAX_SEATS = 40;
 
-/** Read a change of door or seats from a request body. 'open' is refused until Launch 3. */
+/**
+ * Read a change of door or seats from a request body. `doors` is what
+ * hostDoorsFor gives this host now: 'open' only with the Launch 3 switch on
+ * and reach above invitation (J10). A host not offered 'open' is refused it
+ * exactly as before, with nothing that names reach.
+ */
 export function readTableChange(body: Record<string, unknown> | null, doors: HostedTableDoor[]): TableChange | Extract<TableChangeResult, { refused: unknown }> {
   if (!body) return refuse(400, 'hosted_table_change', 'Say what to change.');
   const change: TableChange = {};
   if (body.door !== undefined) {
-    if (body.door !== 'request' && body.door !== 'link') return refuse(400, 'hosted_table_door', 'A table opens by request or by link.');
-    if (!doors.includes(body.door)) {
+    const offered = body.door === 'request' || body.door === 'link' || (body.door === 'open' && doors.includes('open'));
+    if (!offered) return refuse(400, 'hosted_table_door', 'A table opens by request or by link.');
+    if (!doors.includes(body.door as HostedTableDoor)) {
       return refuse(403, 'hosted_table_door_needs_approval', 'A table by link opens once Teajia has approved you as a host.');
     }
-    change.door = body.door;
+    change.door = body.door as HostedTableDoor;
   }
   if (body.seats !== undefined) {
     if (typeof body.seats !== 'number' || !Number.isInteger(body.seats) || body.seats < 1 || body.seats > HOST_TABLE_MAX_SEATS) {
@@ -191,7 +197,8 @@ export async function changeHostedTable(db: D1Database, table: OwnHostedTable, c
   const values: unknown[] = [];
   if (change.door) {
     sets.push('door = ?', 'requires_approval = ?');
-    values.push(change.door, change.door === 'request' ? 1 : 0);
+    // Only the by-link door seats a guest without the host's yes.
+    values.push(change.door, change.door === 'link' ? 0 : 1);
   }
   if (change.seats !== undefined) {
     sets.push('total_capacity = ?');

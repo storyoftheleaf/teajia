@@ -6,7 +6,7 @@ import {
   AlertTriangle, RefreshCw, ClipboardList, X, Boxes, Coffee,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import type { PlatformUser, PlatformAccount, AuditLogEntry } from '../../lib/api';
+import type { PlatformUser, PlatformAccount, AuditLogEntry, HostReach } from '../../lib/api';
 import { useAppStore } from '../store';
 import { useToast } from '../components/Toast';
 import { Button } from '../../components/shared/Button';
@@ -21,6 +21,14 @@ const KNOWN_FEATURES: { id: string; label: string; description: string; planDefa
   { id: 'compass',             label: 'Curate',               description: 'Tea sourcing, tasting & tracking tool',          planDefault: ['verified', 'partner', 'platform'] },
   { id: 'catalog_sharing',     label: 'Catalog Access',       description: 'Source teas from the Teajia catalog',            planDefault: ['partner', 'platform'] },
   { id: 'ai_wisdom_generation',label: 'AI Wisdom Generation', description: 'Generate lore, terroir & experience copy via Claude', planDefault: ['platform'] },
+];
+
+// Launch 3 (J10): how far a host's open tables are shown. Set here only;
+// the host, their guests and every other screen never see it.
+const HOST_REACH_CHOICES: { value: HostReach; label: string; says: string }[] = [
+  { value: 'invitation', label: 'By their link only', says: 'Their tables are found only by the link they give.' },
+  { value: 'teajia', label: 'Signed-in people on Teajia', says: 'Their open tables are shown to people signed in to Teajia.' },
+  { value: 'listed', label: 'The public sessions list', says: 'Their open tables are on the public sessions list.' },
 ];
 
 const TRUST_TIERS: { value: 'basic' | 'verified' | 'partner'; label: string; description: string }[] = [
@@ -220,6 +228,20 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     } finally { setBusy(null); }
   };
 
+  // Launch 3 (J10): reach, one of three, sent to this screen only.
+  const handleSetHostReach = async (user: PlatformUser, reach: HostReach) => {
+    if (user.host_reach === reach) return;
+    setBusy(`reach-${user.id}`);
+    try {
+      const res = await api.platform.setHostReach(user.id, reach);
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, host_reach: res.host_reach } : u));
+      const label = HOST_REACH_CHOICES.find(choice => choice.value === res.host_reach)?.label ?? res.host_reach;
+      showToast(`${user.name || user.email}: ${label}`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to change reach', 'error');
+    } finally { setBusy(null); }
+  };
+
   const handleResendInvite = async (user: PlatformUser) => {
     setBusy(`invite-${user.id}`);
     try {
@@ -297,6 +319,26 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                   title="No new table and no new seat; guests already confirmed keep theirs, and nobody is told why"
                 />
               )}
+            </div>
+          )}
+          {stoppingOpen && hostUser.host_reach !== undefined && (
+            <div className="space-y-1.5 border-t border-tea-border pt-2" data-testid="hosting-reach" role="group" aria-label="Who can find their open tables">
+              <p className="text-ui-12 text-tea-text-sec">Who can find their open tables</p>
+              <div className="flex flex-wrap gap-1.5">
+                {HOST_REACH_CHOICES.map(choice => (
+                  <Button key={choice.value} type="button" size="sm" variant="chip" className="tap-target"
+                    aria-pressed={hostUser.host_reach === choice.value}
+                    disabled={busy === `reach-${hostUser.id}`}
+                    onClick={() => void handleSetHostReach(hostUser, choice.value)}
+                    data-testid={`host-reach-${choice.value}`}>
+                    {choice.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-ui-11 text-tea-text-dim">
+                {HOST_REACH_CHOICES.find(choice => choice.value === hostUser.host_reach)?.says}
+                {' '}A host's first table is never shown, and a seat always needs their yes.
+              </p>
             </div>
           )}
         </div>

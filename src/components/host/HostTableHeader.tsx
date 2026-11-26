@@ -7,7 +7,7 @@ import { Button } from '../shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
 import type { HostedTableDoor } from '../../lib/hostingApi';
-import { DOOR_WORDS, doorWords, hostSmallText, hostTableQueryKey, hostText, tableWhen, type HostTablePartProps } from './hostTableParts';
+import { DOOR_WORDS, doorOf, doorWords, hostSmallText, hostTableQueryKey, hostText, tableWhen, type HostTablePartProps } from './hostTableParts';
 
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
 const labelClass = `${TYPOGRAPHY_CLASSES.label} grid min-w-0 gap-1 text-tea-text-sec`;
@@ -52,7 +52,7 @@ export function HostTableHeader({ tableId, detail }: HostTablePartProps) {
 function TableSettings({ tableId, detail }: HostTablePartProps) {
   const queryClient = useQueryClient();
   const { table, doors } = detail;
-  const [door, setDoor] = useState<HostedTableDoor>(table.door === 'link' ? 'link' : 'request');
+  const [door, setDoor] = useState<HostedTableDoor>(doorOf(table.door));
   const [seats, setSeats] = useState(String(table.seats));
   const change = useMutation({
     mutationFn: (next: { door?: HostedTableDoor; seats?: number }) => api.tables.change(tableId, next),
@@ -60,14 +60,14 @@ function TableSettings({ tableId, detail }: HostTablePartProps) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: hostTableQueryKey(tableId) }),
   });
   const seatsNumber = Number(seats);
-  const changed = door !== (table.door === 'link' ? 'link' : 'request') || seatsNumber !== table.seats;
+  const changed = door !== doorOf(table.door) || seatsNumber !== table.seats;
   const tooFew = Number.isInteger(seatsNumber) && seatsNumber < table.seats_taken;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!changed || tooFew) return;
     const next: { door?: HostedTableDoor; seats?: number } = {};
-    if (door !== (table.door === 'link' ? 'link' : 'request')) next.door = door;
+    if (door !== doorOf(table.door)) next.door = door;
     if (seatsNumber !== table.seats) next.seats = seatsNumber;
     change.mutate(next);
   }
@@ -77,7 +77,7 @@ function TableSettings({ tableId, detail }: HostTablePartProps) {
       <label className={`${labelClass} flex-1`}>
         How guests get a seat
         <select className={fieldClass} value={door} onChange={event => setDoor(event.target.value as HostedTableDoor)}>
-          {(['request', 'link'] as const).filter(option => doors.includes(option) || option === door).map(option => (
+          {(['request', 'link', 'open'] as const).filter(option => doors.includes(option) || option === doorOf(table.door)).map(option => (
             <option key={option} value={option}>{DOOR_WORDS[option]}</option>
           ))}
         </select>
