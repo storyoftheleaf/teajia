@@ -14500,7 +14500,11 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
        p.product_name,
        p.chinese_name,
        p.type AS product_type,
-       p.image_url AS product_image_url
+       p.image_url AS product_image_url,
+       -- The card for the table (Launch 5, M3) names each tea's year and place.
+       p.year AS product_year,
+       p.origin_region AS product_origin_region,
+       p.origin_country AS product_origin_country
      FROM event_tea_menu etm
      LEFT JOIN products p
        ON p.id = etm.product_id AND p.account_id = etm.account_id

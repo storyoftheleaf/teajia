@@ -1448,9 +1448,9 @@ describe('Events Release 1 persisted route contracts', () => {
     const db = seedEventContractDb();
     try {
       db.sqlite.prepare(`INSERT INTO products
-        (id, account_id, type, product_name, given_name, chinese_name, image_url, cost_amount, vendor, stock_grams)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run('product-a', 'account-a', 'oolong', 'Public Tea', 'Rou Gui', '肉桂', 'https://media.test/tea.jpg', 77, 'Secret vendor', 900);
+        (id, account_id, type, product_name, given_name, chinese_name, image_url, cost_amount, vendor, stock_grams, year, origin_region, origin_country)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .run('product-a', 'account-a', 'oolong', 'Public Tea', 'Rou Gui', '肉桂', 'https://media.test/tea.jpg', 77, 'Secret vendor', 900, '2021', 'Wuyi', 'China');
       db.sqlite.prepare(`INSERT INTO event_tea_menu
         (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?),
@@ -1479,6 +1479,9 @@ describe('Events Release 1 persisted route contracts', () => {
           chinese_name: '肉桂',
           product_type: 'oolong',
           product_image_url: 'https://media.test/tea.jpg',
+          product_year: 2021,
+          product_origin_region: 'Wuyi',
+          product_origin_country: 'China',
         },
         {
           id: 'menu-revealed',
@@ -1493,6 +1496,9 @@ describe('Events Release 1 persisted route contracts', () => {
           chinese_name: '肉桂',
           product_type: 'oolong',
           product_image_url: 'https://media.test/tea.jpg',
+          product_year: 2021,
+          product_origin_region: 'Wuyi',
+          product_origin_country: 'China',
         },
       ]);
     } finally {
