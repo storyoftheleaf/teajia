@@ -33,7 +33,7 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 | Q4 | Any tea from anyone, shown properly. **Answered yes, 2026-11-26** | Nothing now |
 | Q5 | Free to host and a host can take their record away, said on the site | L2-01 copy |
 | Q6 | Answered yes, 2026-11-26. The Tea Table is in force; further social parts wait for him to name them | Nothing |
-| Q7 | The four bar words: read, table, houses, shop | L4-05 only. No navigation label changes without his explicit yes |
+| Q7 | Answered 2026-11-26: read, tea table, tea house, shop; the bar keeps its shape | Nothing. The switch waits only for the pages behind the words |
 | Q8 | Answered 2026-11-26: tea credit first, 10 percent, all teas; cash later, no time window, held securely | Nothing |
 | Q9 | The wrapper reader opened to hosts | L5-02 |
 | Q10 | A small host's box brought forward | L5-07 |
@@ -55,6 +55,9 @@ Adrian, 2026-11-26: "Let's break this into the totality of the plan. Update all 
 - **The bar words fit (measured 2026-11-26).** In the real bottom bar at 320, 375, 390 and 430 wide, every candidate set fits on one line at the present letter size with no side scroll, "read, tea table, tea house, shop" included. At 320 that set leaves about 4 pixels each side of the two long words, so it is the tightest. Pictures are in the project files under `bar-words/`. He is weighing "tea table" and "tea house"; no pick yet, no label changes.
 
 - **The two icons on the bar (asked 2026-11-26, not decided).** He asked whether the three lines (the site panel: search, sessions, people, places, tea wisdom, cart, Manage) and Your Table could go, or Your Table sit in the centre, to give the words room. Measured with "read, tea table, tea house, shop": air each side of the long words is about 4 to 6 pixels at 320 wide and 9 to 11 at 360 and 375 as the bar is; removing the three lines adds about 2, removing both about 4, Your Table in the centre with empty ends about 6. Fable's recommendation: keep the bar as it is, and let the letters step down one size below 340 wide. Pictures in the project files, `bar-words/bar-icons-*.png`. No change until he says.
+
+- **Q7 answered: read, tea table, tea house, shop (project chat, 2026-11-26).** Shown the bar with those words and Fable's advice to keep its shape, he said: "Okay, let's go with your suggestion." So the bar keeps the three lines, the teajia word and Your Table where they are, the four words are read, tea table, tea house, shop, and below 340 wide the bar letters step down one size. The switch itself is still one change in Launch 4 (K7, K10), made when the Tea Table and Tea Houses pages exist, with where everything under craft and advise lands shown to him first.
+- **The map and the to-do list.** He asked for one page showing where everything goes and the state of every build item. It is a living document kept by the Fable thread: https://claude.ai/artifact/RsfqjYxTojAvELcbh9DsHd
 
 ## How the build is run
 
