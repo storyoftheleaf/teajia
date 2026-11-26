@@ -967,6 +967,12 @@ export type UtilitySection = Extract<Section, 'YOUR_TABLE'>;
 // A Teajia "account" is a tea house / store. Users belong to one or more
 // accounts via memberships with per-account roles.
 
+export interface NetworkNextSession {
+  slug: string;
+  title: string;
+  event_date: string;
+}
+
 export interface Account {
   id: string;
   slug: string;
@@ -1001,6 +1007,12 @@ export interface Account {
    * the public store payload. Each speaks in their own first line.
    */
   people?: PublicPerson[];
+  /**
+   * The house's next coming session, served only on the network directory
+   * (GET /api/network/stores). Only a session the house lists publicly, and
+   * only its slug, title and date: never an address. Null when none is ahead.
+   */
+  next_session?: NetworkNextSession | null;
   is_platform_owner?: boolean;
   invoice_prefix?: string;
   // BYOK presence flags (the encrypted secret itself is never sent to the client).

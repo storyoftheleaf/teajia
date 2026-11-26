@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { DbArticle } from '../types';
 import { SharePanel, type SharePage } from '../components/article/SharePanel';
+import { KeepArticle } from '../components/article/KeepArticle';
 import { useArticleWisdomReferences } from './wisdom/ArticleWisdomLinks';
 import { buildPublicProductHref } from '../lib/publicProductNavigation';
 
@@ -2798,6 +2799,8 @@ export default function ArticlePage() {
           >
             Teajia
           </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <KeepArticle articleId={article.id} />
           <button
             onClick={() => setShowShare(true)}
             aria-label="Share"
@@ -2816,6 +2819,7 @@ export default function ArticlePage() {
               <path d="M4 8a2 2 0 100-4 2 2 0 000 4zm8-4a2 2 0 100-4 2 2 0 000 4zm0 12a2 2 0 100-4 2 2 0 000 4zM5.6 7.2L10.4 4M5.6 8.8L10.4 12" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
             </svg>
           </button>
+          </div>
         </header>
 
         {showShare && (

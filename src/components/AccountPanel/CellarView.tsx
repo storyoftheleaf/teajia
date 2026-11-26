@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink, Pencil, Check } from 'lucide-react';
+import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink, Pencil, Check, Star } from 'lucide-react';
 import { api, type CellarItem, type ChestSourceInput, type ShelfOfferInput } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { firstTableOpen } from '../../lib/firstTable';
+import { favouritesOpen } from '../../lib/favouritesOpen';
+import { MY_FAVOURITES_KEY } from '../../lib/favouritesTypes';
 import { CellarOfferEditor } from './CellarOfferEditor';
 import { TeaChestStockLinks, useTeaChestStockAccount } from './TeaChestStockLinks';
 import { Button } from '../shared/Button';
@@ -78,10 +80,35 @@ const PLACEMENT_LABEL: Record<CellarItem['placementStatus'], string> = {
   placed: 'Placed at a location',
 };
 
+// Launch 4: a chest tea's states in plain words. Kept is private, the default;
+// Offered is a shelf offer, open only to a person approved to sell, as before.
+// Only the words change; every control does what it did.
+const KEPT_WORD = 'Kept';
+
+/** One quiet mark: this chest tea is a favourite. Listed privately at /account/favourites. */
+function FavouriteMark({ item, onChange, pending }: { item: CellarItem; onChange: (favourite: boolean) => void; pending: boolean }) {
+  const on = !!item.favourite;
+  return (
+    <Button
+      variant="plain"
+      type="button"
+      onClick={() => onChange(!on)}
+      disabled={pending}
+      aria-pressed={on}
+      aria-label={on ? `${item.name} is a favourite` : `Mark ${item.name} as a favourite`}
+      className="tap-target inline-flex items-center gap-1 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-60"
+    >
+      <Star size={12} className={on ? 'fill-current text-tea-gold' : ''} aria-hidden="true" />
+      {on ? 'A favourite' : 'Favourite'}
+    </Button>
+  );
+}
+
 export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const tableOpen = firstTableOpen();
+  const favOpen = favouritesOpen();
   const stockAccount = useTeaChestStockAccount();
   const memberships = useAppStore(s => s.memberships);
   const activeAccount = useAppStore(s => s.activeAccount);
@@ -178,6 +205,22 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
     mutationFn: (id: string) => api.cellar.cancelPlacement(id),
     onSuccess: invalidate,
   });
+  const favouriteMut = useMutation({
+    mutationFn: ({ id, favourite }: { id: string; favourite: boolean }) => api.favourites.markChestTea(id, favourite),
+    onSuccess: (_result, { id, favourite }) => {
+      qc.setQueryData<{ items: CellarItem[] }>(['cellar'], current => current && ({
+        items: current.items.map(item => item.id === id ? { ...item, favourite } : item),
+      }));
+      qc.invalidateQueries({ queryKey: MY_FAVOURITES_KEY });
+    },
+  });
+  const favouriteMark = (item: CellarItem) => favOpen && (
+    <FavouriteMark
+      item={item}
+      pending={favouriteMut.isPending && favouriteMut.variables?.id === item.id}
+      onChange={favourite => favouriteMut.mutate({ id: item.id, favourite })}
+    />
+  );
 
   const submitAdd = () => {
     const trimmed = name.trim();
@@ -247,6 +290,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                   </div>
                   <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                     <span className="shrink-0 text-ui-13 text-tea-text-sec">{tableOpen ? gramsLine(item) : `${item.grams} g`}</span>
+                    {favouriteMark(item)}
                     {tableOpen && <button
                       type="button"
                       onClick={() => navigate(`/account/journal?chest=${encodeURIComponent(item.id)}`)}
@@ -280,7 +324,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
     );
   }
 
-  const actionError = withdrawOffer.error ?? requestMut.error ?? cancelMut.error ?? updateMut.error ?? createMut.error ?? removeMut.error;
+  const actionError = favouriteMut.error ?? withdrawOffer.error ?? requestMut.error ?? cancelMut.error ?? updateMut.error ?? createMut.error ?? removeMut.error;
 
   return (
     <div className={layout}>
@@ -517,9 +561,10 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                 >
                   Taste this
                 </button>}
+                {favouriteMark(item)}
                 {!item.shelfPublished && (
                   <span className="text-ui-12 text-tea-text-sec">
-                    {PLACEMENT_LABEL[item.placementStatus]}
+                    {favOpen && item.placementStatus === 'private' ? KEPT_WORD : PLACEMENT_LABEL[item.placementStatus]}
                     {item.placementStatus !== 'private' && item.placementAccountId
                       ? ` · ${accountName(item.placementAccountId)}`
                       : ''}
@@ -572,7 +617,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                   <>
                     {item.shelfPublished && item.shelfOffer && (
                       <span className="text-ui-12 text-tea-text-sec">
-                        {orderable ? `${item.shelfOffer.grams} g for sale` : 'Offer hidden'}
+                        {orderable ? (favOpen ? `Offered, ${item.shelfOffer.grams} g` : `${item.shelfOffer.grams} g for sale`) : 'Offer hidden'}
                       </span>
                     )}
                     {item.shelfNeedsReview && (!orderable || !item.grams) && (

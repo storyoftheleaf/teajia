@@ -4002,5 +4002,14 @@ CREATE TABLE IF NOT EXISTS order_session_sources (
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 0131_favourites.sql
+CREATE TABLE IF NOT EXISTS favourite_articles (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  article_id TEXT NOT NULL,
+  is_public  INTEGER NOT NULL DEFAULT 0 CHECK (is_public IN (0,1)),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, article_id)
+);
+ALTER TABLE personal_cellar_items ADD COLUMN favourite INTEGER NOT NULL DEFAULT 0 CHECK (favourite IN (0,1));
 -- 0132_quiet_acknowledgement.sql
 ALTER TABLE member_photographs ADD COLUMN credit_name_shown INTEGER NOT NULL DEFAULT 0 CHECK (credit_name_shown IN (0, 1));
