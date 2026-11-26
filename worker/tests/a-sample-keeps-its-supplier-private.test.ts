@@ -84,8 +84,10 @@ describe('public sample label readers', () => {
     const sample = await read(db, label, viewer);
     expect(sample).toMatchObject({
       id: 's-1', name: 'Yiwu Gushu', origin_region: 'Yunnan', photos: [],
-      tastings: [{ id: 't-1', rating: 9, verdict: 'love' }],
+      tastings: [{ id: 't-1', verdict: 'love' }],
     });
+    // The taster's score stays with the people who can see the source.
+    expect(sample.tastings[0]).not.toHaveProperty('rating');
     const batch = await read(db, setLabel, viewer);
     expect(batch.set.name).toBe('Tea samples');
     expect(batch.samples.map((row: any) => row.id).sort()).toEqual(['s-1', 's-shop', 's-unsafe-label']);
@@ -110,7 +112,7 @@ describe('public sample label readers', () => {
     const sample = await read(db, label, viewer);
     expect(sample).toMatchObject({
       source_id: 'supplier-1', source_name: 'Wang Laoshi', source_contact: { wechat: 'wang_tea' },
-      notes: 'paid 380', photos: privatePhotos, tastings: [{ personal_note: 'supplier tasting note' }],
+      notes: 'paid 380', photos: privatePhotos, tastings: [{ personal_note: 'supplier tasting note', rating: 9 }],
     });
     const batch = await read(db, setLabel, viewer);
     expect(batch.set).toMatchObject({ source_name: 'Wang Laoshi', notes: 'private set notes' });
