@@ -275,6 +275,25 @@ describe('sharing a tasting', () => {
     expect(((await (await call(env, null, '/api/family/teas/tea-a/photographs')).json()) as any).family).toEqual([]);
     expect((await call(env, null, '/api/family/teas/tea-hidden/photographs')).status).toBe(404);
   });
+
+  it('reads the share line of every own tasting in one call, behind the Your Table page switch', async () => {
+    const { env } = setup();
+    // Closed (the default): the read does not exist.
+    expect((await call(env, MEMBER, '/api/family/tasting-shares')).status).toBe(404);
+    const open = { ...env, YOUR_TABLE_PAGE_OPEN: 'true' };
+    expect((await call(open, null, '/api/family/tasting-shares')).status).toBe(401);
+    // Saved but never shared: no row, which the site reads as private.
+    expect(await (await call(open, MEMBER, '/api/family/tasting-shares')).json()).toEqual({ shares: [] });
+    await call(open, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
+    const read = await call(open, MEMBER, '/api/family/tasting-shares');
+    const text = await read.text();
+    expect(JSON.parse(text)).toEqual({ shares: [{ product_id: 'tea-a', share_state: 'page' }] });
+    expect(text).not.toMatch(/rating|verdict|love|secret words/);
+    // Somebody else never sees another person's choices.
+    expect(await (await call(open, MEMBER_TWO, '/api/family/tasting-shares')).json()).toEqual({ shares: [] });
+    await call(open, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'private' } });
+    expect(await (await call(open, MEMBER, '/api/family/tasting-shares')).json()).toEqual({ shares: [{ product_id: 'tea-a', share_state: 'private' }] });
+  });
 });
 
 describe('the shop\'s side', () => {

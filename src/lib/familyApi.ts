@@ -46,6 +46,9 @@ export const familyApi = {
   /** "Remove from my page". The shop keeps what was offered to it. */
   removePhotograph: (photographId: string): Promise<{ id: string; removed: true }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/remove`, { method: 'POST' }),
+  /** Every own tasting that has a share choice on the server; absent means private. Your Table's share lines. */
+  tastingShares: (): Promise<{ shares: Array<{ product_id: string; share_state: FamilyShareState }> }> =>
+    authedFetch(`${API_URL}/api/family/tasting-shares`),
   /** The Share step after Save: the tasting and its photographs together. Save the tasting first. */
   shareTasting: (productId: string, shareState: FamilyShareState): Promise<{ product_id: string; journal_entry_id: string; share_state: FamilyShareState; photographs_updated: number; page_id: string | null; page_path: string | null; page_created: boolean }> =>
     authedFetch(`${API_URL}/api/family/teas/${encodeURIComponent(productId)}/share`, { method: 'PUT', body: JSON.stringify({ share_state: shareState }) }),

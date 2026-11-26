@@ -17,6 +17,10 @@ import { JournalSectionVoiceNote } from './JournalSectionVoiceNote';
 import { api } from '../../lib/api';
 import { persistTastingJournalEntry } from '../../lib/tastingJournalSync';
 import { journalEntryMatchesId, journalEntryTime } from '../../lib/tastingJournalRead';
+import { yourTablePageOpen } from '../../lib/yourTablePage';
+import { useAuth } from '../../hooks/useAuth';
+import { useStepParam } from '../../hooks/useStepParam';
+import { JournalShareLine, JournalShareSheet, canShareFromJournal, useTastingShares } from './JournalShareLine';
 
 interface TastingJournalProps {
   onBack: () => void;
@@ -65,6 +69,14 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   const [starredSections, setStarredSections] = useState<Record<string, boolean>>({});
   const [pendingSections, setPendingSections] = useState<Record<string, boolean>>({});
   const [sectionErrors, setSectionErrors] = useState<Record<string, string | null>>({});
+
+  // Your Table's share lines (YOUR_TABLE_PAGE_OPEN): where each tasting is,
+  // read once for the whole journal. The open Share step is a step in the
+  // address, so back closes it.
+  const { isAuthenticated } = useAuth();
+  const shareLinesOn = yourTablePageOpen() && isAuthenticated;
+  const tastingShares = useTastingShares(shareLinesOn);
+  const [shareStepProductId, setShareStepProductId] = useStepParam('share');
 
   const handleShare = (entry: CustomerTasting) => {
     setShareCardEntry(entry);
@@ -493,6 +505,14 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                         </div>
                       </button>
 
+                      {shareLinesOn && canShareFromJournal(entry.productId) && (
+                        <JournalShareLine
+                          productName={entry.productName}
+                          state={tastingShares.isSuccess ? (tastingShares.data.get(entry.productId) ?? 'private') : null}
+                          onOpen={() => setShareStepProductId(entry.productId)}
+                        />
+                      )}
+
                       {/* Expanded detail */}
                       <AnimatePresence>
                         {isExpanded && (
@@ -655,6 +675,9 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         )}
       </div>
     </div>
+      {shareLinesOn && canShareFromJournal(shareStepProductId) && (
+        <JournalShareSheet productId={shareStepProductId} onClose={() => setShareStepProductId(null)} />
+      )}
       {editingRecord && editingEntry && (
         <JournalTastingEditor entry={editingEntry} record={editingRecord} onClose={() => {
           setDismissedInitialRecord(true);

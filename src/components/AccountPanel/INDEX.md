@@ -13,6 +13,14 @@
 - `primitives.tsx`: `NeedsAttention`, `ListShell` and `daysWord`, the pieces the views still share.
 - `types.ts`: panel-local view types.
 
+## Your Table as a page (behind `YOUR_TABLE_PAGE_OPEN`)
+
+- `src/lib/yourTablePage.ts` is the switch (off; `VITE_YOUR_TABLE_PAGE_OPEN` on the site, `YOUR_TABLE_PAGE_OPEN` in the worker). Plan: `todo/plans/your-table.md`, build stages 1 to 3.
+- Open, `index.tsx` renders with `asPage` at `/account`, `/account/sessions` and `/account/tea-houses`: the view is the address, the session tabs are `?when=`, the switcher's search is `?q=`, and the journal and Tea Chest tiles go to their own pages instead of the panel's copies. `useYourTablePage.ts` is how the app shell sends the glyph and "open Your Table" there.
+- `LaunchpadView` takes `grouped` for the page: the same tiles, each keeping its word, under the plan's quiet headings (`TILE_GROUPS`).
+- Each journal tasting carries one share line (`src/components/tasting/JournalShareLine.tsx`), read in one call from `GET /api/family/tasting-shares`, and opens the one Share step.
+- Closed, none of this runs and the overlay below is unchanged.
+
 ## Current surface model
 
 - Signed out: `ReaderView`.

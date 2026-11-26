@@ -36,6 +36,7 @@ import { inspectJpeg } from './familyJpeg';
 import { ensureFamilyPage } from './familyPages';
 import { describeReports, familyFeedbackRoutes } from './familyFeedback';
 import { signPhotograph } from './familyMedia';
+import { yourTablePageOpen } from '../../src/lib/yourTablePage';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError, type TeaVoiceEnvironment } from './curateVoiceTranscription';
 
 interface RateLimiter { limit: (opts: { key: string }) => Promise<{ success: boolean }> }
@@ -45,6 +46,8 @@ export interface FamilyEnv extends TeaVoiceEnvironment {
   MEDIA_BUCKET?: R2Bucket;
   PROVIDER_LIMITER?: RateLimiter;
   JWT_SECRET?: string;
+  /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
+  YOUR_TABLE_PAGE_OPEN?: string;
 }
 
 type Person = { userId: string; email: string; name: string };
@@ -451,6 +454,27 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     });
   };
 
+  // GET /api/family/tasting-shares: the share state of every tasting of the
+  // member's that has ever been shared, in one read, for the share line on
+  // each journal tasting (Your Table, K8). A saved tasting with no row here is
+  // private. Their own rows only; nothing about the words or the score.
+  const tastingShares: FamilyHandler<E> = async (request, env) => {
+    if (!yourTablePageOpen(env)) return refuse(404, 'Not found', 'not_found');
+    const person = await deps.requireAuthenticatedUser(request, env);
+    if ('error' in person) return person.error;
+    const rows = await env.DB.prepare(
+      `SELECT j.product_id, s.share_state FROM customer_tasting_journal j
+         JOIN member_tasting_shares s ON s.journal_entry_id = j.id AND s.author_user_id = ?
+        WHERE j.user_id = ?
+        ORDER BY j.product_id`,
+    ).bind(person.userId, person.email).all<{ product_id: string; share_state: FamilyShareState }>();
+    return json({
+      shares: (rows.results ?? [])
+        .filter(row => isShareState(row.share_state))
+        .map(row => ({ product_id: row.product_id, share_state: row.share_state })),
+    });
+  };
+
   // PUT /api/family/teas/:productId/cover { photograph_id | null }: only the member sees it.
   const setCover: FamilyHandler<E> = async (request, env, params) => {
     const person = await deps.requireAuthenticatedUser(request, env);
@@ -786,6 +810,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     ['PUT', '/api/family/photographs/:id/credit', creditPhoto],
     ['POST', '/api/family/photographs/:id/remove', removePhoto],
     ['GET', '/api/family/teas/:productId/mine', myTea],
+    ['GET', '/api/family/tasting-shares', tastingShares],
     ['PUT', '/api/family/teas/:productId/cover', setCover],
     ['PUT', '/api/family/teas/:productId/share', shareTasting],
     ['GET', '/api/family/teas/:productId/photographs', teaPhotographs],

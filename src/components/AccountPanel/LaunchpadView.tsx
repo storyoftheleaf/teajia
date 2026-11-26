@@ -93,6 +93,40 @@ interface LaunchpadViewProps {
   onOpenCellar: () => void;
   onOpenLocationSwitcher: () => void;
   onSignOut: () => void;
+  /**
+   * Your Table as a page (YOUR_TABLE_PAGE_OPEN): the same tiles, each keeping
+   * its word, under the quiet headings of todo/plans/your-table.md decision 3.
+   * Off, the one flat grid as before.
+   */
+  grouped?: boolean;
+}
+
+/**
+ * The page's groups, in order (todo/plans/your-table.md, decision 3). A tile
+ * appears only when the person has it; an empty group is not shown. The last
+ * group carries no heading: tea atlas, library and fixes, for the few who
+ * have them.
+ */
+export const TILE_GROUPS: ReadonlyArray<{ id: string; heading: string | null; tiles: readonly string[] }> = [
+  { id: 'table', heading: 'On your table', tiles: ['steep'] },
+  { id: 'tea', heading: 'Your tea', tiles: ['cellar', 'remember', 'orders'] },
+  { id: 'path', heading: 'Your path', tiles: ['sessions', 'journey', 'discover'] },
+  { id: 'page', heading: 'Your page', tiles: ['profile'] },
+  { id: 'houses', heading: 'Your tea houses', tiles: ['switch', 'manage'] },
+  { id: 'more', heading: null, tiles: ['atlas', 'docs', 'fixes'] },
+];
+
+/** The tiles in their groups, in group order; a tile no group names is kept in the last group. */
+export function groupTiles<T extends { id: string }>(tiles: T[]): Array<{ id: string; heading: string | null; tiles: T[] }> {
+  const named = new Set(TILE_GROUPS.flatMap(group => group.tiles));
+  const out = TILE_GROUPS.map(group => ({
+    id: group.id,
+    heading: group.heading,
+    tiles: group.tiles.map(id => tiles.find(tile => tile.id === id)).filter((tile): tile is T => !!tile),
+  }));
+  const loose = tiles.filter(tile => !named.has(tile.id));
+  out[out.length - 1].tiles.push(...loose);
+  return out.filter(group => group.tiles.length > 0);
 }
 
 const ICON_PROPS = { size: 18, weight: 'light' as const };
@@ -257,6 +291,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   onOpenCellar,
   onOpenLocationSwitcher,
   onSignOut,
+  grouped = false,
 }) => {
   const navigate = useNavigate();
 
@@ -567,9 +602,26 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       )}
 
       {/* ── Tile grid ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
-        {tiles.map(tile => <Tile key={tile.id} {...tile} />)}
-      </div>
+      {grouped ? (
+        <div className="space-y-8">
+          {groupTiles(tiles).map(group => (
+            <section key={group.id} aria-label={group.heading ?? undefined} data-testid={`table-group-${group.id}`}>
+              {group.heading && (
+                <h2 className="font-sans text-ui-11 text-tea-text-dim uppercase tracking-[0.18em] mb-2 font-normal">
+                  {group.heading}
+                </h2>
+              )}
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
+                {group.tiles.map(tile => <Tile key={tile.id} {...tile} />)}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
+          {tiles.map(tile => <Tile key={tile.id} {...tile} />)}
+        </div>
+      )}
 
       {/* ── Footer: sign out (only thing not a tile, it's an exit) ───────── */}
       <div className="flex justify-center mt-10">

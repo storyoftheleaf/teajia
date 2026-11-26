@@ -214,6 +214,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ImagePreloaderProvider } from './context/ImagePreloaderContext';
 import { AccountPanel } from './components/AccountPanel';
 import type { PanelView } from './components/AccountPanel/types';
+import { useYourTablePage, YOUR_TABLE_PATHS } from './components/AccountPanel/useYourTablePage';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
@@ -799,14 +800,17 @@ const AppContent = () => {
     setIsCartOpen(true);
   }, []);
 
+  const tablePage = useYourTablePage(); // Your Table as a page (YOUR_TABLE_PAGE_OPEN); closed, nothing below changes
   const handleOpenAccount = (view?: PanelView) => {
     window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
     setShowGlobalSearch(false);
+    if (tablePage.open) return tablePage.openPage(view);
     setAccountInitialView(view);
     setShowAccountModal(true);
   };
 
   const handleToggleAccount = () => {
+    if (tablePage.open) { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowGlobalSearch(false); return tablePage.toggle(); }
     setShowAccountModal(prev => {
       if (!prev) {
         window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
@@ -833,6 +837,7 @@ const AppContent = () => {
     const handler = (event: Event) => {
       window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
       const view = (event as CustomEvent<{ view?: PanelView } | null>).detail?.view;
+      if (tablePage.ref.current.open) return tablePage.ref.current.openPage(view);
       setAccountInitialView(view);
       setShowAccountModal(true);
     };
@@ -851,11 +856,13 @@ const AppContent = () => {
       const oauthToken = new URLSearchParams(hash.slice(1)).get('oauth_token');
       if (oauthToken) {
         completeSignIn(oauthToken);
-        if (params.get('account') === '1') setShowAccountModal(true);
+        const backToTable = params.get('account') === '1';
+        if (backToTable && !tablePage.ref.current.open) setShowAccountModal(true);
         // Strip the token from the URL so it isn't left in history/shareable.
         params.delete('account');
         const search = params.toString();
         window.history.replaceState(null, '', window.location.pathname + (search ? `?${search}` : ''));
+        if (backToTable && tablePage.ref.current.open) navigate('/account', { replace: true });
         return;
       }
     }
@@ -887,6 +894,7 @@ const AppContent = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('account') !== '1') return;
+    if (tablePage.ref.current.open) return void navigate('/account', { replace: true }); // the page is its address now
     setAccountInitialView(undefined);
     setShowAccountModal(true);
     params.delete('account');
@@ -901,7 +909,7 @@ const AppContent = () => {
   const handleCloseAccount = () => {
     setShowAccountModal(false);
     setAccountInitialView(undefined);
-    if (location.pathname === '/account') {
+    if (location.pathname === '/account' && !tablePage.open) {
       navigate('/', { replace: true });
     }
   };
@@ -1265,7 +1273,9 @@ const AppContent = () => {
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass, public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
-                <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
+                {tablePage.open
+                  ? YOUR_TABLE_PATHS.map(path => <Route key={path} path={path} element={<ErrorBoundary><AccountPanel asPage onClose={tablePage.leave} /></ErrorBoundary>} />)
+                  : <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />}
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/cellar" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CellarPage /></Suspense></ErrorBoundary>} />
@@ -1425,7 +1435,7 @@ const AppContent = () => {
       <GlobalSearch isOpen={showGlobalSearch} onClose={() => setShowGlobalSearch(false)} />
 
       {/* --- YOUR TABLE MODAL --- */}
-      {showAccountModal && (
+      {showAccountModal && !tablePage.open && (
         <AccountPanel onClose={handleCloseAccount} initialView={accountInitialView} />
       )}
 
@@ -1509,7 +1519,7 @@ const AppContent = () => {
           px-0 layout still keys off isImmersiveRead); their bottom-right accent
           swatches sit above the bar's height so they don't collide. */}
       {!isFocusedShareRoute && (
-        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={() => { setShowSiteMenu(false); handleToggleAccount(); }} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onMenuClick={() => { if (showSiteMenu) { setShowSiteMenu(false); return; } window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(false); setShowSiteMenu(true); }} onMenuClose={() => setShowSiteMenu(false)} isMenuOpen={showSiteMenu} isAdminRoute={isAdminRoute} />
+        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={() => { setShowSiteMenu(false); handleToggleAccount(); }} onAccountClose={handleCloseAccount} isAccountOpen={tablePage.open ? tablePage.onPage : showAccountModal} onMenuClick={() => { if (showSiteMenu) { setShowSiteMenu(false); return; } window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(false); setShowSiteMenu(true); }} onMenuClose={() => setShowSiteMenu(false)} isMenuOpen={showSiteMenu} isAdminRoute={isAdminRoute} />
       )}
       {!isFocusedShareRoute && (
         <SiteMenu
