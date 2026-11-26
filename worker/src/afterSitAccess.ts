@@ -7,8 +7,13 @@ import { afterSitCredentialFormat, createAfterSitCredential, hashAfterSitCredent
 import { getKeptSetup, namedSetupTeas, saveKeptSetup } from './privateKeptSetups';
 import { eraseKeptSetup } from './privateKeptSetupPhotos';
 import { findPartyLink, findPartyRecap, issuePartyLink, revokePartyLinks, servePartyGuestBook } from './afterSitPartyLinks';
+import { servedTeasOf } from './publicSessions';
+import type { PublicProductReader } from './sessionTeas';
+import { readableArticleFor } from './eventDomain';
+import { firstTableOpen } from '../../src/lib/firstTable';
+import { keptSessionTeaIds, keepSessionTea } from './chestKeep';
 
-type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
+type AfterSitEnv = { DB: D1Database; ATLAS_BUCKET?: R2Bucket; FIRST_TABLE_OPEN?: string };
 type LinkInput = GuestBookPhotoInput & { credential?: unknown; note?: unknown; photo?: unknown; teaId?: unknown; publicRecap?: unknown };
 const guestBookPhotoActions = new Set<unknown>(['photos-read', 'photo-bytes', 'private-photo-preview', 'photo-offer', 'photo-withdraw']);
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
@@ -18,7 +23,27 @@ type Deps<E> = {
   requireHost: Authorization<E, { accountId: string }>;
   requireUser: Authorization<E, { userId: string }>;
   limit: (request: Request, env: E, key: string) => Promise<Response | null>;
+  /** The shop's public product reader, for each poured tea's page (Launch 1). */
+  readPublic?: (env: E) => PublicProductReader;
+  /** The signed-in caller when the request carries a valid sign-in, else null. Never refuses. */
+  optionalUser?: (request: Request, env: E) => Promise<string | null>;
 };
+
+type RecapTea = { id: string; name: string; path?: string | null; kept?: boolean };
+
+/** A short random reference for a session's thank-you links. Never a guest's secret. */
+function newThanksRef() {
+  const bytes = crypto.getRandomValues(new Uint8Array(9));
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function thanksRefFor(db: D1Database, eventId: string, accountId: string) {
+  await db.prepare(`UPDATE events SET thanks_ref = ? WHERE id = ? AND account_id = ? AND thanks_ref IS NULL`)
+    .bind(newThanksRef(), eventId, accountId).run();
+  const row = await db.prepare(`SELECT thanks_ref FROM events WHERE id = ? AND account_id = ?`)
+    .bind(eventId, accountId).first<{ thanks_ref: string | null }>();
+  return row?.thanks_ref ?? null;
+}
 
 const LINK_LIFETIME_SECONDS = 14 * 24 * 60 * 60;
 const guestSeat = `
@@ -38,7 +63,7 @@ function privateResponse(response: Response) {
 const json = (value: unknown, status = 200) => privateResponse(Response.json(value, { status }));
 const unavailable = () => json({ error: 'This after-sit link is unavailable.' }, 404);
 
-function findEligibleSeat(db: D1Database, credentialHash: string) {
+export function findEligibleSeat(db: D1Database, credentialHash: string) {
   return db.prepare(
     `SELECT e.id, e.title, e.event_date, a.account_id, s.session_notes AS host_note,
         (SELECT json_group_array(json_object('id', tea.id, 'name', tea.name))
@@ -119,11 +144,50 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     return privateResponse(await issuePartyLink(env.DB, host.accountId, eventId, attendeeId, body));
   };
 
-  const recap = withLink(async (_request, env, hash) => {
+  const recap = withLink(async (request, env, hash) => {
     const seat = await findEligibleSeat(env.DB, hash) ?? await findPartyRecap(env.DB, hash);
     if (!seat) return unavailable();
-    const { id, title, event_date, host_note, teas_json } = seat;
-    return json({ event: { id, title, event_date }, host_note, teas: JSON.parse(teas_json) });
+    const { id, title, event_date, account_id, host_note, teas_json } = seat;
+    const teas = JSON.parse(teas_json) as RecapTea[];
+
+    // Launch 1 additions. Each is something this guest could already open:
+    // a tea's own public page, the session's playlist and its published reading.
+    const [extra, resolved] = await Promise.all([
+      env.DB.prepare(
+        `SELECT e.reading_article_id, COALESCE(NULLIF(trim(ps.playlist_url), ''), NULLIF(trim(e.playlist_url), '')) AS playlist_url
+         FROM events e LEFT JOIN event_post_session ps ON ps.event_id = e.id AND ps.account_id = e.account_id
+         WHERE e.id = ? AND e.account_id = ?`,
+      ).bind(id, account_id).first<{ reading_article_id: string | null; playlist_url: string | null }>(),
+      deps.readPublic ? servedTeasOf(env.DB, deps.readPublic(env), { id, account_id }) : Promise.resolve([]),
+    ]);
+    const paths = new Map(resolved.map(tea => [tea.id, 'href' in tea ? tea.href ?? null : null]));
+    for (const tea of teas) tea.path = paths.get(tea.id) ?? null;
+    const reading = extra?.reading_article_id ? await readableArticleFor(env.DB, account_id, extra.reading_article_id) : null;
+    const body: Record<string, unknown> = {
+      event: { id, title, event_date }, host_note, teas,
+      playlist_url: extra?.playlist_url ?? null,
+      reading: reading ? { slug: reading.slug, title: reading.title } : null,
+    };
+    if (firstTableOpen(env)) {
+      body.thanks_ref = await thanksRefFor(env.DB, id, account_id);
+      const userId = deps.optionalUser ? await deps.optionalUser(request, env) : null;
+      if (userId) {
+        const kept = await keptSessionTeaIds(env.DB, userId, id);
+        for (const tea of teas) tea.kept = kept.has(tea.id);
+      }
+    }
+    return json(body);
+  });
+
+  // POST /api/after-sit/keep-tea { credential, teaId }: a signed-in guest keeps
+  // one poured tea in their own Tea Chest. The seat link decides eligibility.
+  const keepTea = withLink(async (request, env, credentialHash, body) => {
+    if (!firstTableOpen(env)) return json({ error: 'Not found' }, 404);
+    const actor = await deps.requireUser(request, env);
+    if ('error' in actor) return privateResponse(actor.error);
+    if (typeof body.teaId !== 'string' || !body.teaId) return unavailable();
+    const item = await keepSessionTea(env.DB, { userId: actor.userId, credentialHash, teaId: body.teaId });
+    return item ? json({ item }) : unavailable();
   });
 
   const setup = withLink(async (request, env, credentialHash, { action }) => {
@@ -201,6 +265,7 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
     ['DELETE', '/api/admin/events/:eventId/after-sit/:attendeeId', manage],
     ['POST', '/api/admin/events/:eventId/after-sit/:attendeeId/party', partyLink],
     ['POST', '/api/after-sit/recap', recap],
+    ['POST', '/api/after-sit/keep-tea', keepTea],
     ['POST', '/api/after-sit/setup', setup],
     ['POST', '/api/after-sit/guest-book', guestBook],
     ['GET', '/api/admin/events/:eventId/guest-book/photos', photoReview],

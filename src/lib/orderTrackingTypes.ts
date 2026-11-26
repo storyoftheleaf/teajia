@@ -62,6 +62,9 @@ export interface CustomerOrderDetail {
     quantity_unit?: 'g' | 'unit';
     unit_price_usd: number;
     line_total_usd: number;
+    /** Launch 1, only while it is open: the Tea Chest row this line became, and whether one tap may add it. */
+    chest_item_id?: string | null;
+    can_keep?: boolean;
   }>;
   subtotal_amount_usd: number;
   shipping_amount_usd: number;

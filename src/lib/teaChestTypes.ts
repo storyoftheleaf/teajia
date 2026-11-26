@@ -20,8 +20,21 @@ export interface CellarItem {
     price_amount: number | null;
     price_currency: string | null;
   }) | null;
+  /** Where the tea came from (Launch 1). NULL on older teas: never guessed. */
+  source?: CellarSource | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** 'bought' and 'session' are set by the site; 'gift' and 'own' are chosen by hand. */
+export type CellarSourceKind = 'bought' | 'gift' | 'session' | 'own';
+
+export interface CellarSource {
+  kind: CellarSourceKind;
+  fromName?: string | null;
+  eventId?: string | null;
+  eventTitle?: string | null;
+  invoiceId?: string | null;
 }
 
 export interface CellarPlacementRequest extends CellarItem {

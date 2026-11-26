@@ -599,6 +599,9 @@ export interface PurchaseOrderItem {
   received_quantity?: number;
 }
 
+/** Where a tea came from, as a person sets it by hand on their Tea Chest (Launch 1). */
+export type ChestSourceInput = { source_kind?: 'gift' | 'own' | null; source_from_name?: string | null };
+
 import { useAppStore } from './store';
 import { classifyIncident } from './incidents';
 import { notifyCommerceChanged } from './refreshCommerce';
@@ -3360,6 +3363,8 @@ export const api = {
       total_estimate_usd: number;
       currency: string;
       source: 'whatsapp' | 'email' | 'copy' | 'website';
+      /** Launch 1: the session thank-you this order began from (src/lib/orderVia.ts). */
+      via?: string;
     }): Promise<{ id: string; ref_number: string; tracking_token: string; source: string; success: true; invoice_id?: string; invoice_number?: string; idempotent?: true; email_sent?: boolean; shipping_quote_requested?: boolean; shipping_quote?: { packed_grams: number; shipping_usd: number }; checkout_payment_deadline?: string; pickup_payment_deadline?: string; shipping_checkout?: { packed_grams: number; shipping_usd: number; payment_deadline: string }; invoice_items?: import('./orderTrackingDomain').AgreedOrderItem[]; total_estimate_usd?: number }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
         method: 'POST',
@@ -4609,6 +4614,15 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/me/orders/${encodeURIComponent(id)}`, { headers: authHeaders() });
       return handleResponse(res);
     },
+    /** Launch 1: put one tea line of this paid order into the buyer's Tea Chest. Same row on a repeat. */
+    keepOrderLineInChest: async (id: string, lineId: string): Promise<{ item: CellarItem }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/orders/${encodeURIComponent(id)}/keep-in-chest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ lineId }),
+      });
+      return handleResponse(res);
+    },
     // The signed-in twin of inquiries.reportPayment. Same boundary: a report,
     // never a settlement.
     reportOrderPayment: async (id: string, input: PaymentClaimInput = {}): Promise<PaymentClaimResult> => {
@@ -4638,10 +4652,11 @@ export const api = {
     list: async (): Promise<{ items: CellarItem[] }> => {
       return authedFetch(`${API_URL}/api/me/cellar`);
     },
-    create: async (data: Partial<CellarItem> & { name: string; costAmount: number; costCurrency: string }): Promise<{ item: CellarItem }> => {
+    // `source_kind` is 'gift' or 'own' by hand, or null for none; `source_from_name` is who gave a gift (Launch 1).
+    create: async (data: Partial<CellarItem> & { name: string; costAmount: number; costCurrency: string } & ChestSourceInput): Promise<{ item: CellarItem }> => {
       return authedFetch(`${API_URL}/api/me/cellar`, { method: 'POST', body: JSON.stringify(data) });
     },
-    update: async (id: string, data: Partial<CellarItem>): Promise<{ item: CellarItem }> => {
+    update: async (id: string, data: Partial<CellarItem> & ChestSourceInput): Promise<{ item: CellarItem }> => {
       return authedFetch(`${API_URL}/api/me/cellar/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     },
     remove: async (id: string): Promise<{ ok: boolean }> => {

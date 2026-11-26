@@ -289,3 +289,9 @@ The orchestrator keeps this current.
 | Package | Branch | State | Built by | Reviewed by |
 |---|---|---|---|---|
 | Launch 1 run sheet | `claude/project-thread-nks12x` | Written 2026-11-26, nothing built | Fable | |
+| Launch 1 integration | `build/launch-1` | Open, from `main` on 2026-11-26 | Opus 5.5 | |
+| S1 the contract | `build/launch-1` | Done 2026-11-26: migration 0128, flag, types, routes, test table, three checks | Opus 5.5 | S9 (Astra) |
+| S2 invite repair | `build/l1-s2-invite` | Started | Opus 5.5 | |
+| S3 to S7, S9 | `build/l1-s<n>-*` | Waiting on the Mac (Codex) | Sol, Astra | Sonnet first read |
+| S10, S11 | `build/l1-s10-tools`, `build/l1-s11-checks` | After S4, S5 / S3 to S8 | Sonnet 5.5 | Opus |
+| S8 order source | `build/launch-1` | Server and site side written with S1; the thank-you link half lands with S3 | Opus 5.5 | S9 (Astra) |

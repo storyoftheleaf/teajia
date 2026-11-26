@@ -9,6 +9,9 @@ import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddr
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
+import { boughtLineChestState, keepBoughtLine, type BoughtOrder } from './chestKeep';
+import { firstTableOpen } from '../../src/lib/firstTable';
+import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
 import { eraseKeptSetup, queueKeptPhotoCleanupForUser, retryKeptPhotoCleanup, serveKeptSetupPhotos } from './privateKeptSetupPhotos';
@@ -149,6 +152,7 @@ import {
   type PartySeatReservation,
   type ReservePartySeatsInput,
   type ReservePartySeatsResult,
+  readableArticleFor,
 } from './eventDomain';
 import { candidateToApi, impressionToApi, journalContainsExcerpt, parseCandidateInput, parseExcerptOffer } from './tastingNoteCuration';
 import {
@@ -308,6 +312,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   VERIFY_LIMITER?: RateLimiterBinding;
   JOIN_CODE_LIMITER?: RateLimiterBinding;
   AFTER_SIT_LIMITER?: RateLimit;
+  /** "true" opens Launch 1 in a local sandbox only; see src/lib/firstTable.ts. Never set on the live worker. */
+  FIRST_TABLE_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -12402,7 +12408,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
-            e.requires_approval, e.venue_id,
+            e.requires_approval, e.venue_id, e.reading_article_id,
             v.photos AS venue_photos,
             a.name AS account_name,
             a.location_country AS account_location_country
@@ -12454,10 +12460,13 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
       ORDER BY CASE ec.role WHEN 'lead_host' THEN 0 WHEN 'co_host' THEN 1 WHEN 'guest_host' THEN 2 ELSE 3 END, ec.display_order ASC`
   ).bind(event.id).all<Record<string, any>>();
   const hosts = (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
-  const { account_id: _accountId, ...publicEvent } = event;
+  const { account_id: _accountId, reading_article_id: readingId, ...publicEvent } = event;
+  // A reading is shown only while it is still a published article of this shop.
+  const reading = readingId ? await readableArticleFor(env.DB, String(event.account_id), String(readingId)) : null;
 
   return cachedJson({
     ...publicEvent,
+    reading: reading ? { slug: reading.slug, title: reading.title } : null,
     hosts,
     venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
@@ -13724,8 +13733,16 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
     body.briefing_cards = JSON.stringify(body.briefing_cards);
   }
   if (body.event_format === undefined) delete body.event_format;
+  if (body.reading_article_id !== undefined) {
+    // One published article of this shop, or nothing (Launch 1, the first table).
+    if (body.reading_article_id === null || body.reading_article_id === '') {
+      body.reading_article_id = null;
+    } else if (!await readableArticleFor(env.DB, accountId, body.reading_article_id)) {
+      return json({ error: 'Choose a published article from this shop.' }, 400);
+    }
+  }
 
-  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
+  const EVENT_ALLOWED_COLS = new Set(['reading_article_id','title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -15024,7 +15041,22 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
   });
 }
 
-const handleCreateInquiry: Handler = async (request, env, _params, ctx) => {
+// POST /api/inquiries. An order request that began from a session's thank-you
+// carries `via`; once the request is saved, one row records where it began
+// (Launch 1). The request itself is never affected by `via`.
+const handleCreateInquiry: Handler = async (request, env, params, ctx) => {
+  const via = firstTableOpen(env) && !validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES, 0)
+    ? readVia((await request.clone().json().catch(() => null) as { via?: unknown } | null)?.via)
+    : null;
+  const response = await createInquiry(request, env, params, ctx);
+  if (via && response.ok) {
+    const saved = await response.clone().json().catch(() => null) as { id?: unknown } | null;
+    if (typeof saved?.id === 'string') await recordOrderSessionSource(env.DB, saved.id, via);
+  }
+  return response;
+};
+
+const createInquiry: Handler = async (request, env, _params, ctx) => {
   const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
   const limited = await enforceDurableLimit(env.INQUIRY_LIMITER, 'INQUIRY_LIMITER', `inquiry:${inquiryIp}`);
   if (limited) return limited;
@@ -15922,6 +15954,27 @@ function privateChestLabel(value: string): string | null {
   return value.trim().slice(0, 60) || null;
 }
 
+// Where an owned chest tea came from (Launch 1). Older teas have none and none is guessed.
+function cellarSourceToApi(row: any) {
+  if (!row.source_kind) return null;
+  return {
+    kind: row.source_kind,
+    fromName: row.source_from_name ?? null,
+    eventId: row.source_event_id ?? null,
+    eventTitle: row.source_event_title ?? null,
+    invoiceId: row.source_invoice_id ?? null,
+  };
+}
+
+// 'gift' and 'own' are the only sources a person sets by hand.
+function handChestSource(body: Record<string, any>): { kind: string | null; fromName: string | null } | { error: string } {
+  const kind = body.source_kind == null || body.source_kind === '' ? null : body.source_kind;
+  if (kind !== null && kind !== 'gift' && kind !== 'own') return { error: 'Choose where the tea came from.' };
+  if (body.source_from_name != null && typeof body.source_from_name !== 'string') return { error: 'Invalid giver name' };
+  const fromName = kind === 'gift' ? String(body.source_from_name ?? '').trim().slice(0, 80) || null : null;
+  return { kind, fromName };
+}
+
 // Map a DB row to the API shape (camelCase, booleans).
 function cellarItemToApi(row: any) {
   return {
@@ -15951,6 +16004,7 @@ function ownedCellarItemToApi(row: any) {
     costAmount: row.chest_cost_amount ?? null,
     costCurrency: row.chest_cost_currency ?? null,
     shelfNeedsReview: !!row.shelf_published && (row.shelf_offer_name == null || row.shelf_offer_price_amount == null),
+    source: cellarSourceToApi(row),
     shelfOffer: row.shelf_offer_name == null ? null : {
       name: row.shelf_offer_name,
       price_amount: row.shelf_offer_price_amount ?? null,
@@ -15977,7 +16031,9 @@ const handleListCellar: Handler = async (request, env) => {
   const userId = authedUserId(request);
   if (!userId) return json({ error: 'Invalid token' }, 401);
   const { results } = await env.DB.prepare(
-    'SELECT * FROM personal_cellar_items WHERE owner_user_id = ? ORDER BY created_at DESC'
+    `SELECT c.*, e.title AS source_event_title FROM personal_cellar_items c
+     LEFT JOIN events e ON e.id = c.source_event_id
+     WHERE c.owner_user_id = ? ORDER BY c.created_at DESC`
   ).bind(userId).all();
   return json({ items: (results as any[]).map(ownedCellarItemToApi) });
 };
@@ -15998,13 +16054,15 @@ const handleCreateCellarItem: Handler = async (request, env) => {
   if (body.label != null && typeof body.label !== 'string') return json({ error: 'Invalid Chest label' }, 400);
   const cost = readPersonalTeaMoney(body.costAmount, body.costCurrency);
   if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
+  const source = handChestSource(body);
+  if ('error' in source) return json({ error: source.error }, 400);
   if (await personalInventoryAccount(env.DB, userId)) {
     return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
   }
   const id = newId('cellar');
   const inserted = await env.DB.prepare(
-    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url, chest_label, chest_cost_amount, chest_cost_currency)
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url, chest_label, chest_cost_amount, chest_cost_currency, source_kind, source_from_name)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
      WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE personal_inventory_user_id = ?)`
   ).bind(
     id, userId, name,
@@ -16015,7 +16073,7 @@ const handleCreateCellarItem: Handler = async (request, env) => {
     Number.isFinite(grams) ? grams : 0,
     body.image_url ?? null,
     privateChestLabel(body.label ?? ''),
-    cost.amount, cost.currency, userId,
+    cost.amount, cost.currency, source.kind, source.fromName, userId,
   ).run();
   if (!inserted.meta.changes) return json({ error: 'Add new tea in your Tea Chest Stock account.' }, 409);
   const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(id).first();
@@ -16066,6 +16124,15 @@ const handleUpdateCellarItem: Handler = async (request, env, params) => {
     if (!cost) return json({ error: 'Enter what you paid for the tea and select its currency.' }, 400);
     sets.push('chest_cost_amount = ?', 'chest_cost_currency = ?');
     binds.push(cost.amount, cost.currency);
+  }
+  if (body.source_kind !== undefined || body.source_from_name !== undefined) {
+    const source = handChestSource({ source_kind: body.source_kind, source_from_name: body.source_from_name });
+    if ('error' in source) return json({ error: source.error }, 400);
+    // A source the site set ('bought', 'session') is a record, not a choice: only
+    // a tea with no source or a hand-set one can be changed here.
+    sets.push(`source_kind = CASE WHEN source_kind IN ('bought', 'session') THEN source_kind ELSE ? END`,
+      `source_from_name = CASE WHEN source_kind IN ('bought', 'session') THEN source_from_name ELSE ? END`);
+    binds.push(source.kind, source.fromName);
   }
   if (sets.length === 0) return json({ ok: true });
   sets.push("updated_at = datetime('now')");
@@ -24028,7 +24095,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
 
   const lineResult = await env.DB.prepare(
     `SELECT ili.id, ili.product_id, ili.custom_name, ili.quantity, ili.price_at_sale,ili.quantity_unit,
-            p.product_name,p.type
+            p.product_name,p.type,p.piece_weight_g,p.year,p.origin_country,p.origin_region
      FROM invoice_line_items ili
      LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ili.account_id
      WHERE ili.invoice_id = ? AND ili.account_id = ?
@@ -24042,7 +24109,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
     quantity_unit:line.quantity_unit??(line.type==='Teaware'?'unit':'g'),
     unit_price_usd: Number(line.price_at_sale),
     line_total_usd: Number(line.quantity) * Number(line.price_at_sale),
-  }));
+  })) as Array<Record<string, any> & { id: string }>;
   const subtotal = items.reduce((sum, item) => sum + item.line_total_usd, 0);
   const shipping = Number(invoice.shipping_cost_usd || 0);
   const [account, payment] = await Promise.all([
@@ -24072,6 +24139,16 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
     shipping_quote_status: invoice.shipping_quote_status,
   }], new Map([[invoice.id as string, payment]]));
 
+  if (firstTableOpen(env)) {
+    // Launch 1: each line says whether it is in the buyer's Tea Chest, or may be put there.
+    const chest = await boughtLineChestState(env.DB, await boughtOrderForChest(env, userId, invoice, lineResult.results as Record<string, any>[], payment));
+    for (const item of items) {
+      const state = chest.get(item.id);
+      item.chest_item_id = state?.chest_item_id ?? null;
+      item.can_keep = state?.can_keep ?? false;
+    }
+  }
+
   return json({
     id: invoice.id,account_id:accountId,
     invoice_number: invoice.invoice_number,
@@ -24094,6 +24171,54 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
       email: account?.contact_email || null,
     },
   });
+};
+
+// The facts the Tea Chest needs about one order the caller owns (Launch 1).
+// `linkedToUser` is the strongest ownership match: the order's customer row is
+// linked to this user. Email and phone matches are weaker; chestKeep decides.
+async function boughtOrderForChest(
+  env: Env, userId: string, invoice: Record<string, any>, lines: Record<string, any>[], payment: unknown,
+): Promise<BoughtOrder> {
+  const linked = await env.DB.prepare(
+    `SELECT 1 FROM invoices i WHERE i.id = ? AND i.customer_id IN (SELECT id FROM customers WHERE user_id = ? AND account_id = i.account_id)`,
+  ).bind(invoice.id, userId).first();
+  return { userId, invoice, lines, payment, linkedToUser: Boolean(linked) };
+}
+
+// POST /api/me/orders/:id/keep-in-chest { lineId }: the buyer's one tap.
+const handleKeepOrderLineInChest: Handler = async (request, env, params) => {
+  if (!firstTableOpen(env)) return json({ error: 'Not found' }, 404);
+  const ctx = await customerOrderContext(request, env);
+  if (!ctx) return json({ error: 'Sign in to view your orders' }, 401);
+  const body = await request.json().catch(() => null) as { lineId?: unknown } | null;
+  if (typeof body?.lineId !== 'string' || !body.lineId) return json({ error: 'Order not found' }, 404);
+  const ownership = await loadMyOrderOwnership(env, ctx.userId, ctx.accountId);
+  const invoice = await env.DB.prepare(
+    `SELECT i.id, i.account_id, i.invoice_number, i.status, i.created_at, i.payment_date, i.display_currency,
+            i.shipping_cost_usd, i.payment_status, i.payment_recipient_user_id, i.sold_by_user_id,
+            i.refund_required, i.cancelled_at, i.deleted_at
+     FROM invoices i WHERE i.id = ? AND i.deleted_at IS NULL AND ${ownership.predicate} LIMIT 1`,
+  ).bind(params.id, ...ownership.bindings).first() as Record<string, any> | null;
+  if (!invoice) return json({ error: 'Order not found' }, 404);
+  const accountId = String(invoice.account_id);
+  const { results: lines } = await env.DB.prepare(
+    `SELECT ili.id, ili.product_id, ili.custom_name, ili.quantity, ili.price_at_sale, ili.quantity_unit,
+            p.product_name, p.type, p.piece_weight_g, p.year, p.origin_country, p.origin_region
+     FROM invoice_line_items ili
+     LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ili.account_id
+     WHERE ili.invoice_id = ? AND ili.account_id = ? ORDER BY ili.id`,
+  ).bind(params.id, accountId).all<Record<string, any>>();
+  const subtotal = lines.reduce((sum, line) => sum + Number(line.quantity) * Number(line.price_at_sale), 0);
+  const payment = await resolveInvoicePayment(env, {
+    id: invoice.id as string, account_id: accountId, invoice_number: invoice.invoice_number as string | null,
+    status: invoice.status as string | null, payment_status: invoice.payment_status as string | null,
+    display_currency: invoice.display_currency as string | null,
+    payment_recipient_user_id: invoice.payment_recipient_user_id as string | null,
+    sold_by_user_id: invoice.sold_by_user_id as string | null,
+    total_usd: subtotal, shipping_cost_usd: Number(invoice.shipping_cost_usd || 0),
+  });
+  const item = await keepBoughtLine(env.DB, await boughtOrderForChest(env, ctx.userId, invoice, lines, payment), body.lineId);
+  return item ? json({ item }) : json({ error: 'This tea cannot be added to your Tea Chest.' }, 409);
 };
 
 // GET /api/me/samples — tea samples whose tasting trail belongs to the authed user.
@@ -31493,6 +31618,12 @@ const routes: [string, string, Handler][] = [
     requireHost: (request, env) => requireBundle(request, env, 'gather'),
     requireUser: requireAuthenticatedUser,
     limit: (_request, env, key) => enforceDurableLimit(env.AFTER_SIT_LIMITER, 'AFTER_SIT_LIMITER', 'after-sit:' + key),
+    readPublic: sessionTeaReader,
+    optionalUser: async (request, env) => {
+      if (!isAuthed(request)) return null;
+      const actor = await requireAuthenticatedUser(request, env);
+      return 'error' in actor ? null : actor.userId;
+    },
   }),
   ['GET', '/api/me/kept-setups/:id/photos/:photoId/public-permission', handleOwnerSitPhotoPermission],
   ['PUT', '/api/me/kept-setups/:id/photos/:photoId/public-permission', handleOwnerSitPhotoPermission],
@@ -31826,6 +31957,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/journey', handleGetMyJourney],
   ['GET', '/api/me/orders', handleGetMyOrders],
   ['GET', '/api/me/orders/:id', handleGetMyOrderDetail],
+  ['POST', '/api/me/orders/:id/keep-in-chest', handleKeepOrderLineInChest],
   ['POST', '/api/me/orders/:id/payment-claim', handleCreateMyOrderPaymentClaim],
   ['GET', '/api/me/samples', handleGetMySamples],
   ['GET', '/api/members/search', handleMemberSearch],

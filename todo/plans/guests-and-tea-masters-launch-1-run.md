@@ -11,6 +11,17 @@ Launches 2 to 5 are not cut here on purpose. Each is cut the same way once the o
 3. **Run the three small checks** under "Checks that could change the build". Each takes minutes and two of them can change a slice.
 4. **Write slice S1** (the contract) and merge it into `build/launch-1`. Then start S2 yourself and send the messages marked "can start after S1".
 
+## What S1 settled (Opus, 2026-11-26)
+
+The contract is on `build/launch-1`. Where it differs from the text below, this list wins, and the worker messages were sent with these names.
+
+- **The three checks.** (1) The invite link fails as expected: a member added in Settings gets `/invite/<token>` and `/api/guest-invite/<token>` answers "Invite not found". S2 goes ahead. (2) A zero-gram chest tea is shown, as a plain "0 g", so S5 can ship before S7; S7 still adds "Tasted, none held". (3) The ids match: the recap's tea ids and `resolveSessionTeas` share one source, and the fixture session's recap returns a path for both public teas and none for the plain name.
+- **The flag** is `FIRST_TABLE_OPEN` in `src/lib/firstTable.ts`, read through `firstTableOpen(env)`. A local sandbox opens it without a code change: `VITE_FIRST_TABLE_OPEN=true` for the site and `FIRST_TABLE_OPEN=true` when starting `npm run sandbox:offline:fixtures` for the worker. Neither is set live.
+- **The test table** is `worker/sandbox/first-table-fixture.mjs`, loaded by `npm run sandbox:offline:fixtures` on a fresh state folder. It prints its ids and the two after-sit links at the top of the file. The guest with an account signs in as `mei` / `mei`.
+- **Already written in S1, so workers do not write them:** `readableArticleFor` in `worker/src/eventDomain.ts` and the event update's check (S4 keeps the editor, the public line and the test); the recap's `path`, `playlist_url`, `reading`, `thanks_ref` and `kept`; the `keep-tea` route (it calls `keepSessionTea`, a stub S5 fills); the order routes (they call `boughtLineChestState` and `keepBoughtLine`, stubs S6 fills); the chest's `source` on read and `source_kind` / `source_from_name` on create and update; `api.cellar` types, `api.me.keepOrderLineInChest`, `keepAfterSitTea` in `src/lib/afterSitAccess.ts`.
+- **S8 moved mostly into S1.** `worker/src/orderSessionSource.ts` and one wrapper around `handleCreateInquiry`. The site side is a small module, `src/lib/orderVia.ts`, not `src/lib/store.ts`: `rememberOrderVia`, `withOrderVia`, `currentOrderVia`, `forgetOrderVia`. The thank-you's tea links use `withOrderVia(path, thanks_ref)` and call `rememberOrderVia` on tap (S3).
+- **A product's piece weight** is `products.piece_weight_g`, not `pack_size_grams` (that column is on Curate entries).
+
 ## Who does what
 
 Adrian set the routing for Opus, Sol, Astra and Fable on 2026-11-26, then asked Fable to pick the model for every job, the smaller Claude models included. It replaces the tier letters in the build file for Launch 1.

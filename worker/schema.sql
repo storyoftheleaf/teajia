@@ -3979,3 +3979,25 @@ BEGIN
   DELETE FROM after_sit_party_links
     WHERE attendee_id = OLD.id AND event_id = OLD.event_id AND account_id = OLD.account_id;
 END;
+
+-- 0128_first_table.sql
+ALTER TABLE events ADD COLUMN reading_article_id TEXT;
+ALTER TABLE events ADD COLUMN thanks_ref TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_events_thanks_ref ON events(thanks_ref) WHERE thanks_ref IS NOT NULL;
+ALTER TABLE personal_cellar_items ADD COLUMN source_kind TEXT CHECK (source_kind IN ('bought','gift','session','own'));
+ALTER TABLE personal_cellar_items ADD COLUMN source_from_name TEXT;
+ALTER TABLE personal_cellar_items ADD COLUMN source_event_id TEXT;
+ALTER TABLE personal_cellar_items ADD COLUMN source_tea_ref TEXT;
+ALTER TABLE personal_cellar_items ADD COLUMN source_invoice_id TEXT;
+ALTER TABLE personal_cellar_items ADD COLUMN source_invoice_line_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cellar_bought_once
+  ON personal_cellar_items(owner_user_id, source_invoice_line_id) WHERE source_invoice_line_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cellar_session_once
+  ON personal_cellar_items(owner_user_id, source_event_id, source_tea_ref) WHERE source_kind = 'session';
+CREATE TABLE IF NOT EXISTS order_session_sources (
+  inquiry_id   TEXT PRIMARY KEY,
+  account_id   TEXT NOT NULL,
+  event_id     TEXT NOT NULL,
+  host_user_id TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);

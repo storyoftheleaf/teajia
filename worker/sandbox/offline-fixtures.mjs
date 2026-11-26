@@ -7,6 +7,7 @@ import { backup } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { seedFromMigrations } from '../tests/helpers/migratedSqlite.ts';
 import { sandboxAccountIds, sandboxOperatorStatements, sandboxUserId } from './operator-fixture.mjs';
+import { firstTableStatements } from './first-table-fixture.mjs';
 
 const worker = fileURLToPath(new URL('../', import.meta.url));
 const config = join(worker, 'wrangler.offline-fixtures.toml');
@@ -24,7 +25,9 @@ const env = {
 const runD1 = (...args) => execFileSync(wrangler, [
   'd1', 'execute', 'teajia-offline-fixtures', ...localOptions, '--json', ...args,
 ], { cwd: worker, env, encoding: 'utf8', stdio: 'pipe' });
-const query = (sql) => JSON.parse(runD1('--command', sql)).flatMap(({ results }) => results);
+// wrangler can print a proxy notice before its JSON; read from the JSON itself.
+const parseD1 = (out) => JSON.parse(out.slice(out.indexOf('[')));
+const query = (sql) => parseD1(runD1('--command', sql)).flatMap(({ results }) => results);
 
 async function prepare() {
   mkdirSync(persistence, { recursive: true });
@@ -66,6 +69,8 @@ async function prepare() {
       `INSERT INTO exchange_rates (currency, rate_to_usd, last_updated)
         VALUES ('USD', 1, datetime('now')), ('Yuan', 7.1, datetime('now'))`,
       ...sandboxOperatorStatements,
+      // Launch 1's test table: one finished session, two guests, one paid order.
+      ...firstTableStatements,
     ];
     const dump = join(temporary, 'fixtures.sql');
     writeFileSync(dump, schema.replace(/COMMIT;\s*$/, `${fixtures.join(';\n')};\nCOMMIT;\n`));
@@ -80,7 +85,9 @@ async function prepare() {
 try {
   await prepare();
   if (!process.argv.includes('--prepare-only')) {
-    const server = spawn(wrangler, ['dev', ...localOptions], { cwd: worker, env, stdio: 'inherit' });
+    // FIRST_TABLE_OPEN=true opens Launch 1 in this local shop only (src/lib/firstTable.ts).
+    const flags = process.env.FIRST_TABLE_OPEN === 'true' ? ['--var', 'FIRST_TABLE_OPEN:true'] : [];
+    const server = spawn(wrangler, ['dev', ...localOptions, ...flags], { cwd: worker, env, stdio: 'inherit' });
     server.on('error', error => { console.error(error.message); process.exitCode = 1; });
     server.on('exit', code => { process.exitCode = code ?? 1; });
   }

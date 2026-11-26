@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { currentOrderVia, forgetOrderVia } from '../../lib/orderVia';
 import type { CartItem as PublicCartItem } from '../../types';
 import type { Currency } from '../../admin/types';
 import { lineKeyOf, useAppStore } from '../../lib/store';
@@ -194,7 +195,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
       pendingIdentity.current = identity;
       try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, update_email: channel === 'whatsapp' ? updateEmailForRequest(whatsappConsent, updateEmail) : undefined, customer_location: location, delivery_address: deliveryAddress || undefined, delivery_city: isBaliStore && isUsDelivery(details) ? details.location.trim() : undefined, delivery_state: isBaliStore && isUsDelivery(details) ? details.state.trim().toUpperCase() : undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website' });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, update_email: channel === 'whatsapp' ? updateEmailForRequest(whatsappConsent, updateEmail) : undefined, customer_location: location, delivery_address: deliveryAddress || undefined, delivery_city: isBaliStore && isUsDelivery(details) ? details.location.trim() : undefined, delivery_state: isBaliStore && isUsDelivery(details) ? details.state.trim().toUpperCase() : undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website', via: currentOrderVia() });
+      forgetOrderVia();
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
         const original = cart.find(item => item.id === line.product_id && item.quantityGrams === line.quantity);

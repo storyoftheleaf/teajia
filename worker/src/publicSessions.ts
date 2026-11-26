@@ -106,6 +106,11 @@ async function teasOf(db: D1Database, readPublic: PublicProductReader, event: Ev
     (owners.results as { user_id: string }[]).map(row => row.user_id), refs);
 }
 
+/** The served teas of one sit, resolved to their pages and offers. Ids match `sessionServedTeas`. */
+export function servedTeasOf(db: D1Database, readPublic: PublicProductReader, event: { id: string; account_id: string }) {
+  return teasOf(db, readPublic, event as EventRow);
+}
+
 /** Guest photographs the host included and the guest agreed to show on the public recap. */
 async function publicGuestPhotos(db: D1Database, event: EventRow) {
   const { results } = await db.prepare(

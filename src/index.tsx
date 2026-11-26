@@ -13,6 +13,7 @@ import { AUTH_TOKEN_CHANGED_EVENT } from './lib/api';
 import { captureAfterSitCredential } from './lib/afterSitAccess';
 import { shouldPersistQueryKey } from './lib/queryPersistence';
 import { COMMERCE_CHANGED_EVENT, refreshCommerceQueries, type CommerceChange } from './lib/refreshCommerce';
+import { captureOrderViaFromLocation } from './lib/orderVia';
 import './styles/tailwind.css';
 import './styles/card-utilities.css';
 
@@ -58,6 +59,9 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
+
+// Launch 1: a thank-you tea link opened in a new tab carries ?via= (src/lib/orderVia.ts).
+captureOrderViaFromLocation();
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(

@@ -49,7 +49,7 @@ const save = (credential: string, userId?: string, action = 'save', selectedShop
   }, { credential, action });
 
 beforeEach(() => {
-  db = new SqliteD1('migrations', '0127');
+  db = new SqliteD1('migrations', '0128');
   seedIdentity(db, { userId: 'guest', accountId: 'shop-a' });
   seedIdentity(db, { userId: 'different', accountId: 'shop-b' });
   seedIdentity(db, { userId: 'duplicate', accountId: 'shop-a' });
@@ -93,7 +93,10 @@ describe('after-sit access', () => {
     expect(await response.json()).toEqual({
       event: { id: 'event-a', title: 'Tea evening', event_date: '2026-11-22' },
       host_note: 'A quiet evening with two teas.',
-      teas: [{ id: 'first-tea', name: 'White tea' }, { id: 'second-tea', name: 'Red tea' }],
+      teas: [{ id: 'first-tea', name: 'White tea', path: null }, { id: 'second-tea', name: 'Red tea', path: null }],
+      // Launch 1 additions: nothing set, nothing shown; no thanks_ref or kept while the flag is off.
+      playlist_url: null,
+      reading: null,
     });
     expect(db.sqlite.prepare('SELECT * FROM after_sit_access').get()).toEqual(before);
     expect(db.sqlite.prepare("SELECT user_id FROM event_attendees WHERE id = 'attendee'").get()).toEqual({ user_id: null });

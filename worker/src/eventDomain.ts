@@ -478,3 +478,19 @@ export async function reservePartySeats(
     throw error;
   }
 }
+
+/** The one article a session offers its guests to read (Launch 1). */
+export type SessionReading = { id: string; slug: string; title: string };
+
+/**
+ * An article a host may set as a session's reading: it exists, is published,
+ * and belongs to the session's own account. Anything else is null, and the
+ * event update refuses it. The same check decides whether a reading picked
+ * earlier is still shown, so an article unpublished later stops appearing.
+ */
+export async function readableArticleFor(db: D1Database, accountId: string, articleId: string): Promise<SessionReading | null> {
+  if (typeof articleId !== 'string' || !articleId.trim()) return null;
+  return await db.prepare(
+    `SELECT id, slug, title FROM articles WHERE id = ? AND account_id = ? AND status = 'published'`,
+  ).bind(articleId.trim(), accountId).first<SessionReading>() ?? null;
+}
