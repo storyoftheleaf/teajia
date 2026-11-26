@@ -12502,7 +12502,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
             v.photos AS venue_photos,
             a.name AS account_name,
             a.location_country AS account_location_country,
-            ${personalAccountSql('a')} AS private_host
+            ${personalAccountSql('a')} AS private_host, e.is_tasting
      FROM events e
      JOIN accounts a ON a.id = e.account_id
      LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
@@ -12553,7 +12553,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const hosts = (hostRows.results ?? []).map(row => ({ ...projectPublicPerson(row), role: String(row.role) }));
   const {
     account_id: _accountId, reading_article_id: readingId, host_user_id: hostUserId,
-    private_host: privateHostFlag, venue_id: _venueId, id: eventId, ...publicEvent
+    private_host: privateHostFlag, venue_id: _venueId, id: eventId, is_tasting: tastingFlag, ...publicEvent
   } = event;
   const privateHost = Number(privateHostFlag) === 1;
   // A reading is shown only while it is still a published article of this shop.
@@ -12573,6 +12573,9 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     // A person's table, not a shop's session: with no area given the page
     // names no place at all (H13 finding 1).
     private_host: privateHost,
+    // A person's table is a tasting only when its host made it one; its
+    // format is always the default, so the page reads this instead (J13 finding 4).
+    ...(privateHost ? { is_tasting: Number(tastingFlag) === 1 } : {}),
     reading: reading ? { slug: reading.slug, title: reading.title } : null,
     hosts,
     host,
@@ -13041,7 +13044,22 @@ const handleRSVP: Handler = async (request, env, params) => {
     ]);
   }
 
-  await buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId).run();
+  // A full table where every seat needs the host's yes (J13 finding 1): the
+  // guest who asks goes on its waiting list, and goes back to asking when a
+  // seat frees (worker/src/waitingList.ts returnWaitingToAsking).
+  let answeredStatus: string = status;
+  if (doorRule === 'request' && status === 'requested') {
+    const taken = await seatsTaken(env.DB, { id: String(event.id), account_id: accountId });
+    if (Number(event.total_capacity) - taken < seats.length) {
+      const queued = await env.DB.prepare(
+        `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ${NEXT_WAITLIST_POSITION_SQL}
+          WHERE id = ? AND event_id = ? AND account_id = ? AND status = 'requested'`
+      ).bind(attendeeId, event.id, accountId).run();
+      if (Number(queued.meta?.changes || 0)) answeredStatus = 'waitlist';
+    }
+  }
+
+  await buildActivityLog(env, 'rsvp_requested', `${full_name} ${answeredStatus === 'waitlist' ? 'asked to wait for a seat' : 'requested a seat'}`, null, 'event_attendee', attendeeId, accountId).run();
 
   // If the user is authenticated and submitted a phone number they don't have
   // saved yet, persist it to their profile so future RSVPs pre-fill correctly.
@@ -13064,7 +13082,7 @@ const handleRSVP: Handler = async (request, env, params) => {
     }
   }
 
-  return seatAnswer({ magic_token: magicToken, status }, 201, false);
+  return seatAnswer({ magic_token: magicToken, status: answeredStatus }, 201, false);
 };
 
 const handleGetEventAvailability: Handler = async (_request, env, params) => {
@@ -17473,11 +17491,14 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
   if (!account) return json({ error: 'Table not found' }, 404);
   const table = await env.DB.prepare(`
     SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status,
-           e.requires_approval, e.public_visibility, e.area_hint
+           e.requires_approval, e.public_visibility, e.area_hint, e.is_tasting
       FROM events e
      WHERE e.id = ? AND ${OWN_HOSTED_TABLE_SQL}
   `).bind(params.id, account.id, host.userId).first<Record<string, unknown>>();
   if (!table) return json({ error: 'Table not found' }, 404);
+  // Whether the table is a tasting is the host's to set only while Launch 3 is open (J13 finding 4).
+  if (anyoneHostsOpen(env)) table.is_tasting = Number(table.is_tasting) === 1;
+  else delete table.is_tasting;
   const scope = { id: String(table.id), account_id: account.id };
   const [guests, teas, taken] = await Promise.all([
     // The host's own view of each guest (H4): what they wrote, a phone for
@@ -17549,7 +17570,24 @@ const handleChangeHostedTable: Handler = async (request, env, params) => {
   }
   const result = await changeHostedTable(env.DB, own.table, change);
   if ('refused' in result) return restError(result.refused.status, result.refused.error, result.refused.code);
+  // More seats, or a new door, may free a seat for a guest waiting.
+  await offerFreedSeats(env.DB, { eventId: own.table.id, accountId: own.table.account_id });
   return hostTableJson({ ok: true });
+};
+
+// PUT /api/me/tables/:id/tasting {is_tasting}. The host makes their own table
+// a tasting, or clears it, from their own page (J13 finding 4): the same
+// write as the set_session_tasting agent tool (Launch3Services.setTasting).
+const handleSetHostedTableTasting: Handler = async (request, env, params) => {
+  if (!anyoneHostsOpen(env)) return hostTableJson({ error: 'Table not found' }, 404);
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const flag = enteredTastingFlag(body?.is_tasting);
+  if (flag === undefined) return restError(400, 'Say whether this is a tasting.', 'invalid_tasting_flag');
+  const saved = await updateEvent(env, own.table.account_id, own.table.id, { is_tasting: flag === 1 }, own.host.userId);
+  if (!saved.ok) return saved;
+  return hostTableJson({ ok: true, is_tasting: flag === 1 });
 };
 
 // PUT /api/me/tables/:id/guests/:attendeeId/yes. The host says yes to a guest
@@ -17593,6 +17631,8 @@ const handleHostSaysNo: Handler = async (request, env, params) => {
   }
   await buildActivityLog(env, 'attendee_denied', `Host said no to ${attendee.full_name}`,
     getUserEmail(request), 'event_attendee', attendee.id, own.table.account_id).run();
+  // A free seat nobody is asking for now goes to the next guest waiting (J13 finding 1).
+  await offerFreedSeats(env.DB, { eventId: own.table.id, accountId: own.table.account_id });
   return hostTableJson({ ok: true, status: 'denied' });
 };
 
@@ -32809,6 +32849,7 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/me/tables', handleCreateHostedTable],
   ['GET',    '/api/me/tables/:id', handleGetHostedTable],
   ['PUT',    '/api/me/tables/:id', handleChangeHostedTable],
+  ['PUT',    '/api/me/tables/:id/tasting', handleSetHostedTableTasting],
   ['PUT',    '/api/me/tables/:id/came', handleHostMarksWhoCame],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/yes', handleHostSaysYes],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/no', handleHostSaysNo],
@@ -33126,12 +33167,24 @@ const handleFileSessionReport: Handler = async (request, env) => {
   if (limited) return limited;
   let body: Record<string, unknown>;
   try { body = await request.json() as Record<string, unknown>; } catch { return json({ error: 'Say what you are reporting.', code: 'validation_failed' }, 400); }
-  if (!body || typeof body.target_id !== 'string' || (body.target_kind !== 'session' && body.target_kind !== 'person')) {
+  // A session's public page names it by its slug only: a person's table has
+  // no id in its public answer (A2), so the slug is resolved here, on the
+  // same rule that page is served by, and the id is never sent back (J13 finding 2).
+  let targetId = typeof body?.target_id === 'string' ? body.target_id : null;
+  if (!targetId && body?.target_kind === 'session' && typeof body.target_slug === 'string' && body.target_slug.trim()) {
+    const session = await env.DB.prepare(
+      `SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id
+        WHERE e.slug = ? AND e.status = 'active' AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
+    ).bind(body.target_slug.trim()).first<{ id: string }>();
+    if (!session) return json({ error: 'That is no longer on Teajia.', code: 'target_not_found' }, 404);
+    targetId = session.id;
+  }
+  if (!body || !targetId || (body.target_kind !== 'session' && body.target_kind !== 'person')) {
     return json({ error: 'Say what you are reporting.', code: 'validation_failed' }, 400);
   }
   const reporter = await optionalAuthenticatedUser(request, env);
   const outcome = await fileReport(env.DB, {
-    targetKind: body.target_kind, targetId: body.target_id,
+    targetKind: body.target_kind, targetId,
     reason: typeof body.reason === 'string' ? body.reason : null,
     reporterUserId: reporter?.userId ?? null, reporterSeatId: null,
   });

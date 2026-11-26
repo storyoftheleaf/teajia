@@ -304,6 +304,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     </>
                   )}
                 </div>
+              ) : answer?.status === 'waitlist' ? (
+                // A full table where the host says yes to each guest (J13 finding 1).
+                <div className="w-full max-w-xs flex flex-col items-center" data-testid="seat-request-waiting">
+                  <h3 className="h2 mb-3 text-center">You're on the waiting list.</h3>
+                  <p className="body-light text-center max-w-xs mb-6">
+                    The table is full. If a seat opens, the host will answer you.
+                  </p>
+                </div>
               ) : requiresApproval === false ? (
                 <>
                   <h3 className="h2 mb-3 text-center">You're confirmed.</h3>
@@ -323,7 +331,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   </p>
                 </>
               )}
-              {byLink ? (
+              {answer?.status === 'waitlist' ? null : byLink ? (
                 <p className="text-ui-12 text-tea-text-dim text-center max-w-xs leading-relaxed mb-8 px-2">
                   If your plans change, open your link and give up the seat, so someone else can have it.
                 </p>
@@ -630,7 +638,15 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 >
                   {submitMutation.isPending ? (
                     <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
-                  ) : requiresApproval === false ? (
+                  ) : answer?.status === 'waitlist' ? (
+                // A full table where the host says yes to each guest (J13 finding 1).
+                <div className="w-full max-w-xs flex flex-col items-center" data-testid="seat-request-waiting">
+                  <h3 className="h2 mb-3 text-center">You're on the waiting list.</h3>
+                  <p className="body-light text-center max-w-xs mb-6">
+                    The table is full. If a seat opens, the host will answer you.
+                  </p>
+                </div>
+              ) : requiresApproval === false ? (
                     'Reserve my seat'
                   ) : (
                     'Request my seat'

@@ -386,7 +386,10 @@ const EventLanding: React.FC = () => {
   const guidelinesText: string | undefined = ev.guidelinesText ?? ev.guidelines_text;
   const venueGuide: any = ev.venueGuide ?? (ev.venue_guide ? (typeof ev.venue_guide === 'string' ? JSON.parse(ev.venue_guide) : ev.venue_guide) : undefined);
   const moodHints: string[] | undefined = ev.moodHints ?? (ev.mood_hints ? (typeof ev.mood_hints === 'string' ? JSON.parse(ev.mood_hints) : ev.mood_hints) : undefined);
-  const eventFormat: import('../../types/events').EventFormat | undefined = ev.format ?? ev.event_format ?? undefined;
+  // A person's table carries the default format; its label follows whether the host made it a tasting (J13 finding 4).
+  const eventFormat: import('../../types/events').EventFormat | undefined = ev.private_host === true
+    ? (ev.is_tasting === true ? 'public_tasting' : undefined)
+    : ev.format ?? ev.event_format ?? undefined;
   const gatheringType: import('../../types/events').GatheringType | undefined = ev.gatheringType ?? ev.gathering_type ?? undefined;
   const reading = ev.reading;
   const contribution = contributionLine(event);
@@ -867,7 +870,7 @@ const EventLanding: React.FC = () => {
               Hosted by {ev.account_name ?? ev.accountName ?? 'Teajia'}
             </p>
           )}
-          <ReportLink targetKind="session" targetId={event.id} />
+          {slug && <ReportLink targetKind="session" targetSlug={slug} />}
         </div>
       </div>
 

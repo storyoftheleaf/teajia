@@ -240,22 +240,16 @@ async function askForSeat(
 
 /**
  * Opens one person's Hosting panel in Manage the way the owner would: the Hosting button on their
- * card. A new person is last in the list, and on the phone the bottom bar can cover that button;
- * when it cannot be pressed that is recorded, and the panel is opened by its address instead.
+ * card. A new person is last in the list, and on the phone that button must still clear the
+ * bottom bar (J13 finding 3), so a plain click must reach it.
  */
-async function openHostingPanel(owner: Person, who: { email: string; userId: string }, tag: string) {
+async function openHostingPanel(owner: Person, who: { email: string; userId: string }) {
   await owner.page.goto('/admin/platform?tab=users');
   const card = owner.page.getByText(who.email, { exact: true }).locator('xpath=ancestor::div[.//*[@data-testid="hosting-open"]][1]');
   const button = card.getByTestId('hosting-open');
-  await button.evaluate(node => node.scrollIntoView({ block: 'center' }));
-  try {
-    await button.click({ timeout: 4000 });
-  } catch (error) {
-    const line = String((error as Error).message).split('\n').filter(Boolean).slice(-2).join(' / ').slice(0, 220);
-    expect.soft(line, 'CHECK FAILED: the Hosting button on the newest person can be pressed').toBe('pressed');
-    await shoot(owner, `hosting-button-covered-${tag}`);
-    await owner.page.goto(`/admin/platform?tab=users&host=${who.userId}`);
-  }
+  await button.scrollIntoViewIfNeeded();
+  await button.click({ timeout: 4000 });
+  await expect(owner.page).toHaveURL(new RegExp(`[?&]host=${who.userId}`));
 }
 
 async function hostAnswers(page: Page, tableId: string, guestName: string, yes: boolean) {
@@ -366,6 +360,8 @@ for (const size of SIZES) {
             await expectNoWay(stranger0.page);
             await expect(stranger0.page.getByRole('button', { name: 'Request your seat' })).toBeVisible();
             await expect(stranger0.page.getByTestId('session-host')).toHaveText(/Hosted by Joss/);
+            // Not a tasting, so the page does not call it one (J13 finding 4).
+            await expect(stranger0.page.getByText(/private tasting/i)).toHaveCount(0);
             await assertNoOverflow(stranger0.page, 'public page');
           });
           await assertClean(stranger0);
@@ -411,7 +407,7 @@ for (const size of SIZES) {
       } finally { await host.context.close(); await guest?.context.close(); }
     });
 
-    test('3. a second guest is told they are waiting; the first cannot come; the second takes the seat', async ({ browser }) => {
+    test('3. a second guest is told they are waiting; the first cannot come; the second asks again and the host says yes', async ({ browser }) => {
       test.setTimeout(180_000);
       const { t1, a, stranger } = readShared(w);
       const host = await newPerson(browser, size);
@@ -431,6 +427,7 @@ for (const size of SIZES) {
           updateShared(w, { b: { name: nameB, token: asked.token } });
           expect.soft(asked.response.status(), `the request answered: ${asked.text}`).toBe(201);
           expect.soft(asked.status, 'a full table puts the guest on its waiting list').toBe('waitlist');
+          await expect(asked.sheet.getByRole('heading', { name: 'You\'re on the waiting list.' })).toBeVisible();
           await asked.sheet.getByRole('button', { name: 'Done' }).click();
         });
         await check(guestB, 'the second guest is told they are waiting', `3-${tag}`, async () => {
@@ -450,32 +447,39 @@ for (const size of SIZES) {
         await check(guestA, 'the first guest cannot come', `3-${tag}`, async () => {
           await guestA.page.goto(`/m/${a!.token}`);
           await expect(guestA.page.getByRole('heading', { name: 'The way in' })).toBeVisible();
-          await guestA.page.getByRole('button', { name: /can.t come|Cancel my reservation/i }).click();
+          // At a person's table the guest says "I can't come" (J13 finding 6).
+          await expect(guestA.page.getByRole('button', { name: /Cancel my reservation/i })).toHaveCount(0);
+          await guestA.page.getByRole('button', { name: 'I can\'t come', exact: true }).click();
           const modal = guestA.page.getByRole('dialog');
-          await modal.getByRole('button', { name: /Cancel reservation|can.t come/i }).click();
+          await modal.getByRole('button', { name: 'I can\'t come', exact: true }).click();
           await expect(guestA.page.getByText('Reservation cancelled')).toBeVisible();
           await expect(guestA.page.getByRole('heading', { name: 'The way in' })).toHaveCount(0);
         });
-        await check(guestB, 'the second guest is offered the seat', `3-${tag}`, async () => {
+        // Every seat at a by-request table needs the host's yes, so the freed seat is not offered:
+        // the guest waiting longest goes back to asking, and the host answers (J13 finding 1).
+        await check(guestB!, 'the second guest is asking again, and holds no seat', `3-${tag}`, async () => {
           await guestB!.page.goto(`/m/${asked.token}`);
-          await expect(guestB!.page.getByText('A seat just became available!')).toBeVisible();
-          expect((await seatsTaken()).seats_taken, 'the seat is not taken before it is claimed').toBeLessThanOrEqual(1);
-          await expect(guestB!.page.getByRole('heading', { name: 'The way in' })).toHaveCount(0);
-          await guestB!.page.getByRole('button', { name: 'Claim my seat' }).click();
+          await expect(guestB!.page.getByText('Your request has been received.')).toBeVisible();
+          await expect(guestB!.page.getByText('A seat just became available!')).toHaveCount(0);
+          await expect(guestB!.page.getByRole('button', { name: 'Claim my seat' })).toHaveCount(0);
+          await expectNoWay(guestB!.page);
+          expect((await seatsTaken()).seats_taken, 'no seat is taken before the host says yes').toBe(0);
+        });
+        await check(host, 'the host sees it in their notices and says yes', `3-${tag}`, async () => {
+          await host.page.goto(`/account/host/${t1!.id}`);
+          await expect(host.page.locator('[data-seat-notice="returned"]').getByText(new RegExp(`${nameB}, who was waiting, is asking for it`))).toBeVisible();
+          await expect(host.page.locator('[data-host-group="waiting"]').getByText(nameB)).toBeVisible();
+          await host.page.getByRole('button', { name: `Yes to ${nameB}` }).click();
+          await expect(host.page.locator('[data-host-group="coming"]').getByText(nameB)).toBeVisible();
+        });
+        await check(guestB!, 'the second guest now has the seat and the way in', `3-${tag}`, async () => {
+          await guestB!.page.goto(`/m/${asked.token}`);
           await expect(guestB!.page.getByRole('heading', { name: 'The way in' })).toBeVisible();
           await expect(guestB!.page.getByText(ADDRESS)).toBeVisible();
         });
-        // Carry on from where the shop left them: if no seat was offered, the host's own yes gives it.
-        await guestB!.page.goto(`/m/${asked.token}`);
-        if (await guestB!.page.getByRole('heading', { name: 'The way in' }).count() === 0) {
-          await check(host, 'fallback: the host says yes to the second guest', `3-${tag}`, async () => {
-            await hostAnswers(host.page, t1!.id, nameB, true);
-            await expect(host.page.locator('[data-host-group="coming"]').getByText(nameB)).toBeVisible();
-          });
-        }
         await check(host, 'the seat count never passes the seats', `3-${tag}`, async () => {
           const table = await seatsTaken();
-          expect(table.seats_taken, 'seats taken after the claim').toBe(1);
+          expect(table.seats_taken, 'seats taken after the yes').toBe(1);
           expect(table.seats_taken).toBeLessThanOrEqual(table.seats);
           await host.page.goto(`/account/host/${t1!.id}`);
           await expect(host.page.getByText(/1 of 1 seats? taken/)).toBeVisible();
@@ -525,18 +529,26 @@ for (const size of SIZES) {
           }
         });
 
-        // The host makes the first one a tasting. The host's own table page has no such switch;
-        // the one a person can reach is the Edit form of their table in Manage.
-        await check(host, 'the host page itself offers the tasting switch', `4-${tag}`, async () => {
+        // The host makes the first one a tasting, from their own table page (J13 finding 4).
+        await check(host, 'make it a tasting from the host page itself', `4-${tag}`, async () => {
           await host.page.goto(`/account/host/${tasting!.id}`);
-          await expect(host.page.getByText(/tasting/i).first()).toBeVisible({ timeout: 3000 });
+          const tastingSwitch = host.page.getByRole('switch', { name: 'This is a tasting' });
+          await expect(tastingSwitch).not.toBeChecked();
+          await tastingSwitch.check();
+          await expect(tastingSwitch).toBeChecked();
+          await assertNoOverflow(host.page, 'tasting switch');
+          await host.page.reload();
+          await expect(host.page.getByRole('switch', { name: 'This is a tasting' })).toBeChecked();
+          await host.page.goto(`/account/host/${plain!.id}`);
+          await expect(host.page.getByRole('switch', { name: 'This is a tasting' })).not.toBeChecked();
         });
-        await check(host, 'make it a tasting from Edit in Manage', `4-${tag}`, async () => {
-          await host.page.goto(`/admin/events/${tasting!.id}`);
-          await host.page.getByRole('button', { name: 'Edit', exact: true }).click();
-          await host.page.getByLabel(/This is a tasting/).check();
-          await host.page.getByRole('button', { name: 'Update Event' }).click();
-          await expect(host.page.getByRole('button', { name: 'Update Event' })).toHaveCount(0);
+        await check(host, 'the public pages call only the tasting a tasting', `4-${tag}`, async () => {
+          await host.page.goto(tasting!.path);
+          await expect(host.page.locator('.label-caps', { hasText: /^Tasting$/i })).toHaveCount(1);
+          await expect(host.page.getByText(/private tasting/i)).toHaveCount(0);
+          await host.page.goto(plain!.path);
+          await expect(host.page.getByTestId('session-host')).toBeVisible();
+          await expect(host.page.locator('.label-caps', { hasText: /tasting/i })).toHaveCount(0);
         });
 
         await check(askedC.guest, 'the tasting guest sees the door on the day and it opens the tasting', `4-${tag}`, async () => {
@@ -637,29 +649,14 @@ for (const size of SIZES) {
           await ana.page.goto(path(links[d!.name]));
           await expect(tiles(ana)).toHaveCount(2);
         });
-        await check(mei, 'one takes theirs out', `5-${tag}`, async () => {
-          const count = await tiles(mei).count();
-          let withdrawn = false;
-          for (let i = 0; i < count && !withdrawn; i += 1) {
-            await tiles(mei).nth(i).getByRole('button').click();
-            const withdraw = mei.page.getByRole('button', { name: 'Withdraw my photograph' });
-            await withdraw.waitFor({ timeout: 1500 }).catch(() => undefined);
-            if (await withdraw.count()) {
-              await withdraw.click();
-              withdrawn = true;
-            } else {
-              await mei.page.getByRole('dialog', { name: 'Photograph from the table' }).getByRole('button', { name: /close/i }).first().click();
-            }
-          }
-          if (!withdrawn) {
-            // Neither tile offered to withdraw. Her own entry lower on the page does.
-            expect.soft(withdrawn, 'a photograph in the gallery offers its own taker "Withdraw my photograph"').toBe(true);
-            await mei.page.getByRole('button', { name: 'Withdraw entry' }).first().click();
-            const confirm = mei.page.getByRole('dialog').getByRole('button', { name: /Withdraw/ });
-            if (await confirm.count()) await confirm.last().click();
-            await mei.page.goto(path(links[c!.name]));
-          }
+        await check(mei, 'one takes theirs out from her own tile', `5-${tag}`, async () => {
+          // Her own tile carries the control, and only hers (J13 finding 5).
+          const withdraw = mei.page.getByRole('button', { name: 'Withdraw my photograph' });
+          const own = tiles(mei).filter({ has: withdraw });
+          await expect(own).toHaveCount(1);
+          await own.getByRole('button', { name: 'Withdraw my photograph' }).click();
           await expect(tiles(mei)).toHaveCount(1);
+          await expect(tiles(mei).filter({ has: withdraw })).toHaveCount(0);
         });
         await check(ana, 'it is gone for the other guest', `5-${tag}`, async () => {
           await ana.page.goto(path(links[d!.name])); // a reload drops the credential from the page, so the link is opened again
@@ -676,30 +673,25 @@ for (const size of SIZES) {
       const guest = await newPerson(browser, size);
       const owner = await newPerson(browser, size);
       const host = await newPerson(browser, size, [/\/api\/admin\/session-reports/]);
+      // Each size files its own report, so the owner's list holds one line for each.
+      const reason = `${REPORT_REASON} (${tag})`;
       try {
-        let reported = false;
         await check(guest, 'the guest reports the session', `6-${tag}`, async () => {
           await guest.page.goto(plain!.path);
           await guest.page.getByRole('button', { name: 'Report', exact: true }).click();
           const dialog = guest.page.getByRole('dialog', { name: 'Report' });
-          await dialog.getByLabel(/What happened/).fill(REPORT_REASON);
+          await dialog.getByLabel(/What happened/).fill(reason);
           await assertNoOverflow(guest.page, 'report form');
           await dialog.getByRole('button', { name: 'Send' }).click();
           await expect(dialog.getByText('Thank you. Adrian will look at this.')).toBeVisible();
-          reported = true;
+          // The page named the session by its slug; its id is still in no public answer (J13 finding 2).
+          expect(guest.seen.filter(line => line.startsWith('GET /api/events/')).join('\n')).not.toContain(plain!.id);
         });
-        // Carry on from where the shop left them: if the page could not send it, the same report goes in directly.
-        if (!reported) {
-          await check(guest, 'fallback: the same report sent directly', `6-${tag}`, async () => {
-            const filed = await api(guest.page, '/api/session-reports', { method: 'POST', data: { target_kind: 'session', target_id: plain!.id, reason: REPORT_REASON } });
-            expect(filed.status, filed.text).toBeLessThan(300);
-          });
-        }
         await signIn(owner.page, 'sandbox', 'sandbox');
         await check(owner, 'the platform owner sees it in the review list', `6-${tag}`, async () => {
           await owner.page.goto('/admin/tasting-notes');
           const reports = owner.page.getByRole('region', { name: 'Reports' });
-          await expect(reports.getByText(REPORT_REASON)).toBeVisible();
+          await expect(reports.getByText(reason, { exact: true })).toBeVisible();
           await assertNoOverflow(owner.page, 'review list');
         });
         await signIn(host.page, stranger!.email, PASSWORD);
@@ -736,7 +728,7 @@ for (const size of SIZES) {
         await signIn(host.page, stranger!.email, PASSWORD);
         await signIn(owner.page, 'sandbox', 'sandbox');
         await check(owner, 'stop the host in the Hosting panel', `7-${tag}`, async () => {
-          await openHostingPanel(owner, stranger!, tag);
+          await openHostingPanel(owner, stranger!);
           const panel = owner.page.getByRole('region', { name: 'Hosting' });
           await expect(panel).toBeVisible();
           await assertNoOverflow(owner.page, 'Hosting panel');
@@ -784,7 +776,7 @@ for (const size of SIZES) {
           try {
             await guest.page.goto(`/m/${e!.token}`);
             await expect(guest.page.getByText(e!.name)).toBeVisible();
-            await expect(guest.page.getByRole('button', { name: /Cancel my reservation/ })).toBeVisible();
+            await expect(guest.page.getByRole('button', { name: 'I can\'t come', exact: true })).toBeVisible();
           } finally { await guest.context.close(); }
         });
         await assertClean(owner, host);
@@ -802,7 +794,7 @@ for (const size of SIZES) {
         await signIn(host.page, stranger!.email, PASSWORD);
         await signIn(owner.page, 'sandbox', 'sandbox');
         await check(owner, 'let them host again and set reach to the public sessions list', `8-${tag}`, async () => {
-          await openHostingPanel(owner, stranger!, tag);
+          await openHostingPanel(owner, stranger!);
           const panel = owner.page.getByRole('region', { name: 'Hosting' });
           await panel.getByRole('button', { name: 'Let them host again' }).click();
           await expect(panel.getByText(/May host by request/)).toBeVisible();

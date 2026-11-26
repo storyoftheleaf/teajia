@@ -7,17 +7,24 @@ import { API_URL, authedFetch } from '../../lib/api';
 import { Button } from './Button';
 import { Modal } from './Modal';
 
-interface ReportLinkProps {
-  targetKind: 'session' | 'person';
-  targetId: string;
-}
+/**
+ * A session is named by its slug: a person's table has no id in its public
+ * answer, and the shop finds the session from the slug (J13 finding 2).
+ */
+type ReportLinkProps =
+  | { targetKind: 'session'; targetSlug: string }
+  | { targetKind: 'person'; targetId: string };
 
-function ReportForm({ targetKind, targetId }: ReportLinkProps) {
+const targetOf = (props: ReportLinkProps) => props.targetKind === 'session'
+  ? { target_kind: 'session', target_slug: props.targetSlug }
+  : { target_kind: 'person', target_id: props.targetId };
+
+function ReportForm(props: ReportLinkProps) {
   const [reason, setReason] = useState('');
   const send = useMutation({
     mutationFn: () => authedFetch(`${API_URL}/api/session-reports`, {
       method: 'POST',
-      body: JSON.stringify({ target_kind: targetKind, target_id: targetId, reason }),
+      body: JSON.stringify({ ...targetOf(props), reason }),
     }),
   });
 
@@ -53,7 +60,7 @@ function ReportForm({ targetKind, targetId }: ReportLinkProps) {
 }
 
 function EnabledReportLink(props: ReportLinkProps) {
-  const target = `${props.targetKind}:${props.targetId}`;
+  const target = `${props.targetKind}:${props.targetKind === 'session' ? props.targetSlug : props.targetId}`;
   const [report, setReport] = useStepParam('report');
   const isOpen = report === target;
 

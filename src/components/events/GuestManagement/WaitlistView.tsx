@@ -111,10 +111,13 @@ const WaitlistView: React.FC<WaitlistViewProps> = ({
             Your Status
           </p>
           <h2 className="font-serif text-xl text-tea-text-sec mb-2">
-            You're on the list.
+            {event.privateHost ? "You're on the waiting list." : "You're on the list."}
           </h2>
           <p className="text-sm text-tea-text-sec leading-relaxed">
-            {attendee.waitlistPosition
+            {event.privateHost
+              // A person's table: a freed seat sends the guest back to asking, and the host answers (J13 finding 1).
+              ? 'The table is full. If a seat opens, the host will answer you.'
+              : attendee.waitlistPosition
               ? `You're ${attendee.waitlistPosition === 1 ? 'first' : `#${attendee.waitlistPosition}`} in line.`
               : "We'll let you know the moment a seat opens."}
           </p>
