@@ -37,7 +37,8 @@ async function call(path: string, options: { actor?: Actor; method?: string; bod
 const approve = (userId: string, approved: boolean, actor = adrian) =>
   call(`/api/platform/users/${userId}/host-approval`, { actor, method: 'PUT', body: { approved } });
 
-const table = { date: '2026-12-12', time: '16:00', timezone: 'Asia/Makassar' };
+// Always a day ahead, so the table writer's past-day refusal never trips this file.
+const table = { date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), time: '16:00', timezone: 'Asia/Makassar' };
 
 /** A personal account the way ensurePersonalInventoryAccount makes one. */
 function personalAccount(userId: string, approved: boolean) {
@@ -188,19 +189,19 @@ describe('the host routes', () => {
     expect((await call('/api/me/tables')).status).toBe(401);
   });
 
-  it('let an approved host make their private account and reach the table maker, which is not built yet', async () => {
+  it('let an approved host make their private account and make a table', async () => {
     expect((await approve('ana', true)).status).toBe(200);
     expect(await (await call('/api/me/hosting', { actor: ana })).json()).toEqual({ approved: true, account_id: null, doors: ['request', 'link'] });
 
     const made = await call('/api/me/tables', { actor: ana, method: 'POST', body: { ...table, seats: 4, door: 'link', name: 'Winter tea' } });
-    expect(made.status).toBe(501);
-    expect(await made.json()).toEqual({ error: 'Not built yet' });
+    expect(made.status).toBe(201);
+    expect(await made.json()).toMatchObject({ id: expect.any(String), slug: expect.any(String), link: expect.any(String) });
     const account = db.sqlite.prepare(`SELECT id, kind, public_enabled, host_approved_at IS NOT NULL AS approved
       FROM accounts WHERE personal_inventory_user_id = 'ana'`).get() as Record<string, unknown>;
     expect(account).toMatchObject({ kind: 'master', public_enabled: 0, approved: 1 });
     expect(await (await call('/api/me/hosting', { actor: ana })).json()).toEqual({ approved: true, account_id: account.id, doors: ['request', 'link'] });
     // Asking again uses the same account.
-    expect((await call('/api/me/tables', { actor: ana, method: 'POST', body: table })).status).toBe(501);
+    expect((await call('/api/me/tables', { actor: ana, method: 'POST', body: table })).status).toBe(201);
     expect(db.sqlite.prepare(`SELECT count(*) AS n FROM accounts WHERE personal_inventory_user_id = 'ana'`).get()).toEqual({ n: 1 });
 
     expect((await call('/api/me/tables/anything/notes', { actor: ana })).status).toBe(501);
