@@ -3,6 +3,8 @@
 Status: proposal, 2026-11-25. Nothing built. It waits on Adrian's yes in [docs/SECTIONS.md](../../docs/SECTIONS.md), decision 6.
 
 > **Revised 2026-11-25, second pass.** Your Table also gains two doors from [guests-and-tea-masters.md](guests-and-tea-masters.md): "Host a table" and "add your table" (private, area only), and favourites in three kinds (articles, shop teas, Tea Chest teas).
+>
+> **Build order, 2026-11-26.** This plan is built in Launch 3 for "Host a table" (L3-02) and Launch 4 for the page itself (L4-04, L4-08) of [guests-and-tea-masters-build.md](guests-and-tea-masters-build.md). Nothing here starts before the launches ahead of it have been used by real people.
 
 ## What it is
 

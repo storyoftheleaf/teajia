@@ -1,5 +1,7 @@
 # Guests and tea masters: the two roles everything hangs on
 
+> **The build is in its own file (2026-11-26):** [guests-and-tea-masters-build.md](guests-and-tea-masters-build.md) cuts this plan into five launches and numbered work packages, with the rules for running it across several agents. This file is the why; that file is the how and the order. The whiteboard shows both: https://claude.ai/artifact/VmvoJCULgNWbmerUqiVY5i
+
 Status: proposal, 2026-11-25, revised 2026-11-26 from Adrian's second round of answers. Nothing here is built under these words. It is the second pass of the section overhaul in [docs/SECTIONS.md](../../docs/SECTIONS.md), written from Adrian's answers to five questions on 2026-11-25 and from a full read of the documents and the code that day. The first pass drew the sections. This one says what they are for.
 
 ## Adrian's words (2026-11-25)
@@ -519,6 +521,8 @@ The Tea Table opens, because by now it has real things to show (B9). Then tea ho
 
 A tea master's shelf and credit, with tracking switched on from the first thank-you in step 1 so nothing is lost. The wrapper reader for hosts. The card for the table. Circles and series. A shared tea for the table. Every action as a voice or agent tool. The host's box and the tasting box. Short video. The app.
 
+Each step is a launch in [guests-and-tea-masters-build.md](guests-and-tea-masters-build.md), where it is cut into numbered work packages (L1-01 and so on) with a tier and a "done when" for each.
+
 ### How the steps map to the stages below
 
 | Step | Stages |
@@ -681,6 +685,8 @@ Adrian asked for one more pass over the whole thing: the holes, and what he had 
 - An application form to become a tea master. The word on the page stays Adrian's to give.
 
 ## Related files
+
+- The build: [guests-and-tea-masters-build.md](guests-and-tea-masters-build.md), launches 1 to 5 and their work packages.
 
 - The sections: [docs/SECTIONS.md](../../docs/SECTIONS.md). The other three plans of the overhaul: [tea-table.md](tea-table.md), [tea-houses.md](tea-houses.md), [your-table.md](your-table.md).
 - People: [teajia-family.md](teajia-family.md), [tea-master-onboarding.md](tea-master-onboarding.md), [creator-profiles.md](creator-profiles.md), `worker/src/familyPages.ts`, `worker/src/peopleList.ts`, `src/pages/ContributorProfilePage.tsx`.

@@ -25,6 +25,8 @@ It records the locally verified Releases 1 to 3. It is an implementation record,
 
 | Plan | Section |
 |---|---|
+| [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md) | The centre of the overhaul: guests, hosts, the loop, six functions, what each person gets |
+| [guests-and-tea-masters-build.md](../todo/plans/guests-and-tea-masters-build.md) | The build: five launches, work packages, tiers, gates, and how a multi-agent build is run |
 | [tea-table.md](../todo/plans/tea-table.md) | The Tea Table: what people put on the table, with Sessions and People |
 | [your-table.md](../todo/plans/your-table.md) | Your Table: the person's own table as a real page |
 | [tea-houses.md](../todo/plans/tea-houses.md) | Tea Houses: building them as an offering, the houses built, the houses to visit |

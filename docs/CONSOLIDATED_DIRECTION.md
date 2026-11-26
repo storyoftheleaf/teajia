@@ -36,6 +36,7 @@ The section overhaul sits beside that work and does not jump the queue. Its firs
 |---|---|---|
 | [SECTIONS.md](SECTIONS.md) | Proposed 2026-11-25, revised the same day around guests and tea masters | Adrian answers the open decisions |
 | [todo/plans/guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md) | Proposed 2026-11-25. The two roles, the loop, twelve gaps found in the code, and the build stages | Stage 0 repairs need nothing from Adrian. Then his five decisions |
+| [todo/plans/guests-and-tea-masters-build.md](../todo/plans/guests-and-tea-masters-build.md) | Written 2026-11-26. The build of the plan above in five launches (the first table, a few hosts, anyone can host, the Tea Table, the wider service), cut into work packages with tiers and gates | Launch 1 starts on Adrian's yes to its scope; package L1-02 (the invite repair) needs nothing |
 | [PILLAR.md](PILLAR.md) | Live | Reword in the commit that ships each stage |
 | [SITE_MAP.md](SITE_MAP.md) | Partly stale, marked | Regenerate the Manage and navigation parts from code |
 | [VISION.md](VISION.md), [brief/PERSONAS.md](brief/PERSONAS.md) | Live as philosophy, April detail, marked | No rewrite needed for the overhaul |

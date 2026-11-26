@@ -4,7 +4,7 @@
 
 > **Second pass, 2026-11-25.** Adrian answered five questions the same day, and the answers put two roles at the centre: guests and tea masters. The section called "The centre" below is new, and Home, Tea Table, Tea Houses, the decisions and the build order were revised to fit it. The full reasoning, the gaps found in the code, and the stages are in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md).
 
-Plans that hang off this file: [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), [tea-table.md](../todo/plans/tea-table.md), [your-table.md](../todo/plans/your-table.md), [tea-houses.md](../todo/plans/tea-houses.md). Where every other plan sits: [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md).
+**The order to build in is [guests-and-tea-masters-build.md](../todo/plans/guests-and-tea-masters-build.md)**: five launches, numbered work packages, and the rules for a build run across several agents. Plans that hang off this file: [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), [tea-table.md](../todo/plans/tea-table.md), [your-table.md](../todo/plans/your-table.md), [tea-houses.md](../todo/plans/tea-houses.md). Where every other plan sits: [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md).
 
 ## The whole thing on one screen
 
