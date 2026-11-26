@@ -182,6 +182,8 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 ## Launch 4: what happened becomes visible
 
+> **Launch 4 is cut for running in [guests-and-tea-masters-launch-4-run.md](guests-and-tea-masters-launch-4-run.md) (2026-11-26).** Most of it waits on Adrian's answers; five slices can start today. Where it differs from the table below it is the newer one.
+
 **Needs first:** Q6 for the Tea Table, Q7 for the bar words.
 
 | # | Package | Tier | Closes |
@@ -200,6 +202,8 @@ It keeps a short ledger at the bottom of this file: each package, its branch, it
 
 ## Launch 5: the wider service
 
+> **Launch 5 is cut for running in [guests-and-tea-masters-launch-5-run.md](guests-and-tea-masters-launch-5-run.md) (2026-11-26).** Each package ships alone; three can start today. Where it differs from the table below it is the newer one.
+
 Each of these stands alone and can ship when ready. The order is by value.
 
 | # | Package | Tier | Needs |
@@ -213,6 +217,45 @@ Each of these stands alone and can ship when ready. The order is by value.
 | L5-07 | The host's box, then the tasting box | A | Q10 |
 | L5-08 | "Does anyone know this tea?" on the Tea Table | B | Q6 |
 | L5-09 | Short video. The app | Later | G16 |
+
+## Everything at once: what can run today, and what waits
+
+Adrian, 2026-11-26: "I want to do all the build out... Better to run multiple simultaneously." This is the one map across all five launches. Each row's detail and its worker message are in that launch's run sheet.
+
+**Running today, side by side, with no answer needed from Adrian.** Three lanes, so the Mac is never asked for more than four GPT workers at once.
+
+| Lane | Work | Who |
+|---|---|---|
+| Repair, ships alone | L2 H0: the public session answer stops carrying the address | Opus |
+| Launch 2 spine | L2 H1 contract, then H2 beside H3, then H4, then H8, H9, H10, H6 | Opus, Sol |
+| Read-only audits on `main` | L2 A1 (address doors), L3 J9 (waiting list), L4 K0 (sharing and taking back), L5 M1 audit (credit history) | Astra, one after another |
+| Independent builds | L3 J5 reports, J7 gallery, J8 tasting, J11 contribution line; L4 K3 favourites, K5 Visit, K6 acknowledgement; L5 M3 the card | Sol, and a second Opus builder for overflow |
+| Opus's own, independent | L4 K8, Your Table as a page | A second Opus builder |
+| Cloud helpers | L5 M6 inventory of actions without tools; first reads of every GPT pull request | Haiku, Sonnet |
+
+**Waits on an earlier launch's contract, not on Adrian.** L3 J1, J2, J3, J6, J10, J12 wait for Launch 2's H1 and H2. L4 K4 and K9 wait for Launch 2. L5 M4 and the host's token in M6 wait for Launch 3. Each integration branch is brought up to date from the launch before it, not from `main`, until that launch ships.
+
+**Waits on Adrian.** One answer each; none of them stops the lanes above.
+
+| His answer | Unlocks |
+|---|---|
+| "ship" for the address repair | L2 H0 reaching the live site |
+| Q4, any tea from anyone, and his teas linked from a host's session | L2 H6 |
+| Q5, "free, and your record is yours" | L2 H11's wording and export |
+| Where "Host a table" is found | The door in L2, and L3 J4 |
+| Old private sits stay where they are | L3 J3 |
+| Q6, the Tea Table rule | L4 K1, K2; L5 M8. Nothing under the Tea Table is built before it |
+| Q7, the four bar words | L4 K7, K10 |
+| Your Table as a page | L4 K8 reaching people |
+| His seven facts about building a tea house | L4 K5's Build and Work pages |
+| Q11, hosts may offer articles | L4 K9 |
+| Three people for the first articles | L4 K6's articles |
+| Q8, the credit rule | L5 M1 |
+| Q9, the wrapper reader for hosts | L5 M2 |
+| Q10, the host's box | L5 M7 |
+| Q12, a tea for the table | L5 M5 |
+
+**Three rules for running many at once.** One owner per file: a shared file is edited only by the launch's Opus owner, and two launches never edit the same shared file in the same hour without one rebasing on the other. One migration number per launch, taken in launch order (0129 Launch 2, 0130 Launch 3, 0131 Launch 4, then one per Launch 5 package), so numbers never collide. And a launch is switched on only in order: a later launch's code may be merged behind its flag early, but its flag turns on after the launch before it has shipped.
 
 ## Who builds what
 
