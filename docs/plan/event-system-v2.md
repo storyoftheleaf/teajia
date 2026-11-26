@@ -1,5 +1,7 @@
 # Event System V2 — Redesigned Flow
 
+> **Marked 2026-11-25: partly superseded** by [the events platform rebuild spec](../superpowers/specs/2026-08-10-events-platform-rebuild-design.md). Kept for its design tone. Sessions sit under the Tea Table in the proposed [SECTIONS.md](../SECTIONS.md).
+
 ## Design Philosophy
 Every touchpoint feels like a handcrafted invitation, not a tech platform. Restraint, warmth, materiality. The flyer IS the event. The UI is the frame, the photo is the art.
 

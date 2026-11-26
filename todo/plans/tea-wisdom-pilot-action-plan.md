@@ -1,5 +1,7 @@
 # Tea Wisdom pilot — action plan
 
+> **Marked 2026-11-25: mostly superseded** by [tea-wisdom-composed-entry.md](tea-wisdom-composed-entry.md), which replaces the pilot's listing format. Read that first.
+
 Revised 2026-11-23. Merges our draft with an independent plan Fable wrote without seeing it, and Fable's review of the draft. Checked against origin/main `3eecf1d5`. Since the build plan (`bbd1fed2`), only a family voice-note change has landed, which is unrelated. Companion to [tea-wisdom-publishing.md](tea-wisdom-publishing.md). Stops at sandbox review: no production writes, no deploy, no push to main.
 
 ## Catalog manager handoff · November 23
