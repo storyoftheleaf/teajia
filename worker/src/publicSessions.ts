@@ -4,6 +4,9 @@
 // Everything here is public, so the rules live in one place:
 // - a sit shows only once its recap is published (`publishedSitRecap`);
 // - people are the sit's public credits whose profiles are published;
+// - "poured with" names every public co-host and guest host, published or
+//   not: a published person by their page name with a link to their page, an
+//   unpublished one by first name only and with no link;
 // - poured teas resolve through `resolveSessionTeas`, which carries a price
 //   only for a tea its owner marked for sale;
 // - a guest's note or photograph appears only when the host marked it
@@ -73,6 +76,38 @@ async function peopleOf(db: D1Database, events: EventRow[]) {
     map.set(event_id, list);
   }
   return map;
+}
+
+export type PouredWith = { name: string; slug: string | null };
+
+/**
+ * "Poured with": the sit's public co-hosts and guest hosts, beside the lead
+ * host. The credit is the host's to give (`is_public`), so it does not wait
+ * for the person's own page to be published. Only a published page is linked,
+ * and an unpublished person is named by first name only. Never the lead host.
+ */
+export async function pouredWithOf(db: D1Database, event: { id: string; account_id: string }): Promise<PouredWith[]> {
+  const { results } = await db.prepare(
+    `SELECT c.id, c.display_name, (${publicSitProfile}) AS published
+     FROM event_contributors ec JOIN contributors c ON c.id = ec.contributor_id
+     WHERE ec.event_id = ? AND ec.account_id = ? AND ec.is_public = 1
+       AND ec.role IN ('co_host', 'guest_host')
+       AND NOT EXISTS (SELECT 1 FROM event_contributors lh
+         WHERE lh.event_id = ec.event_id AND lh.account_id = ec.account_id
+           AND lh.contributor_id = ec.contributor_id AND lh.role = 'lead_host' AND lh.is_public = 1)
+     ORDER BY ${roleOrder}, ec.display_order, c.display_name, c.id`,
+  ).bind(event.id, event.account_id).all<{ id: string; display_name: string | null; published: number }>();
+  const seen = new Set<string>();
+  const list: PouredWith[] = [];
+  for (const row of results) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    const published = Number(row.published) === 1;
+    const name = published ? (row.display_name ?? '').trim() : (row.display_name ?? '').trim().split(/\s+/)[0];
+    if (!name) continue;
+    list.push({ name, slug: published ? row.id : null });
+  }
+  return list;
 }
 
 type ServedRow = { id?: unknown; name?: unknown; source?: unknown; source_id?: unknown; product_id?: unknown };
@@ -233,8 +268,8 @@ export async function formalSessionRecap(db: D1Database, readPublic: PublicProdu
   const event = await readEventBySlug(db, slug);
   if (!event) return null;
   const people = (await peopleOf(db, [event])).get(event.id) ?? [];
-  const [teas, photos, notes] = await Promise.all([
-    teasOf(db, readPublic, event), publicGuestPhotos(db, event), publicGuestNotes(db, event),
+  const [teas, photos, notes, pouredWith] = await Promise.all([
+    teasOf(db, readPublic, event), publicGuestPhotos(db, event), publicGuestNotes(db, event), pouredWithOf(db, event),
   ]);
   const host = hostSignature(people);
   const placed = placeGuestItems(teas, photos, notes);
@@ -242,6 +277,7 @@ export async function formalSessionRecap(db: D1Database, readPublic: PublicProdu
   const writing = event.notes?.trim() ?? '';
   return {
     slug: event.slug, title: event.title, event_date: event.event_date, people,
+    poured_with: pouredWith,
     note: writing ? { text: writing, by: host } : null,
     galleryPhoto: images[0] ?? null,
     teas: placed.teas,

@@ -50,6 +50,7 @@ import type {
   ContributorTeaSelectionRef,
 } from '../types';
 import { mediaUrl } from '../lib/mediaUrl';
+import { FAMILY_PAGE_WORDS } from '../lib/familyContract';
 import { isReadPathPublic, type ReadPublishOverrides } from './read/articleLive';
 import { useKnownReadOverrides } from './read/publishGate';
 import storyPeople from './read/storyPeople.generated.json';
@@ -281,7 +282,12 @@ export default function ContributorProfilePage() {
   // Stored as the canonical media host; rendered through the same-origin path (src/lib/mediaUrl.ts).
   const portrait = mediaUrl(data.portrait_url || data.avatar_url || null) ?? null;
   const portraitFocus = data.portrait_url ? data.portrait_focus : data.avatar_focus;
-  const kicker = coverKicker(data.role, data.location_line);
+  // The word Adrian granted by hand (familyPages.ts: page_tier creator or
+  // master), shown once beneath the name exactly as the tier's word reads. When
+  // it is shown there, the kicker above keeps only the place, so it is never
+  // said twice. A family page, or a page from before the family, has no granted word.
+  const grantedWord = data.page_tier === 'creator' || data.page_tier === 'master' ? FAMILY_PAGE_WORDS[data.page_tier] : null;
+  const kicker = coverKicker(grantedWord ? null : data.role, data.location_line);
   const coverLine = ownLine(data);
 
   // In my words: one passage in their own voice, with the sentence the cover
@@ -373,6 +379,7 @@ export default function ContributorProfilePage() {
           >
             {kicker && <Kicker className="mb-3">{kicker}</Kicker>}
             <h1 className="font-display text-ui-40 leading-[0.98] text-tea-text"><SplitName name={data.display_name} /></h1>
+            {grantedWord && <p className="mt-2 font-sans text-ui-13 text-tea-text-sec" data-testid="profile-granted-word">{grantedWord}</p>}
             {data.chinese_name && <p className="mt-2 text-ui-22 leading-none tracking-[0.08em] text-tea-readgold" style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive" }}>{data.chinese_name}</p>}
             {coverLine && <Dek className="mt-3 max-w-[30ch] text-ui-14">{coverLine}</Dek>}
           </Cover>

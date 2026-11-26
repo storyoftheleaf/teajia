@@ -96,7 +96,7 @@ export function ProductDetailLayout({
   // tile last (Adrian, 2026-11-24). With no shop photo they make the row alone.
   const memberRow = (inline: boolean) => (
     <TeaPhotographRow photographs={photos.row} teaName={item.name} onChooseCover={photos.chooseCover}
-      onRemove={photos.removeOwn} onShape={photos.reshapeOwn} onShare={photos.shareOwn}
+      onRemove={photos.removeOwn} onShape={photos.reshapeOwn} onShare={photos.shareOwn} onCredit={photos.creditOwn}
       inline={inline} addPhoto={inline || hasShopPhotos ? undefined : addPhoto} />
   );
   const visibleFacts = facts.filter(fact => fact.value?.trim() || fact.content);

@@ -264,7 +264,9 @@ describe('sharing a tasting', () => {
     const publicText = await publicView.text();
     const publicBody = JSON.parse(publicText);
     expect(publicBody.family).toHaveLength(1);
-    expect(publicBody.family[0].author).toEqual({ name: 'Mei', page_id: null });
+    // The member never allowed their name, so the public answer carries no author (quiet acknowledgement).
+    expect(publicBody.family[0].author).toBeNull();
+    expect(publicBody.family[0].photograph_by).toBeNull();
     for (const text of [sharedText, publicText, await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).text()]) {
       expect(text).not.toMatch(/rating|verdict|love|secret words/);
     }
@@ -272,6 +274,25 @@ describe('sharing a tasting', () => {
     await call(env, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'private' } });
     expect(((await (await call(env, null, '/api/family/teas/tea-a/photographs')).json()) as any).family).toEqual([]);
     expect((await call(env, null, '/api/family/teas/tea-hidden/photographs')).status).toBe(404);
+  });
+
+  it('reads the share line of every own tasting in one call, behind the Your Table page switch', async () => {
+    const { env } = setup();
+    // Closed (the default): the read does not exist.
+    expect((await call(env, MEMBER, '/api/family/tasting-shares')).status).toBe(404);
+    const open = { ...env, YOUR_TABLE_PAGE_OPEN: 'true' };
+    expect((await call(open, null, '/api/family/tasting-shares')).status).toBe(401);
+    // Saved but never shared: no row, which the site reads as private.
+    expect(await (await call(open, MEMBER, '/api/family/tasting-shares')).json()).toEqual({ shares: [] });
+    await call(open, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'page' } });
+    const read = await call(open, MEMBER, '/api/family/tasting-shares');
+    const text = await read.text();
+    expect(JSON.parse(text)).toEqual({ shares: [{ product_id: 'tea-a', share_state: 'page' }] });
+    expect(text).not.toMatch(/rating|verdict|love|secret words/);
+    // Somebody else never sees another person's choices.
+    expect(await (await call(open, MEMBER_TWO, '/api/family/tasting-shares')).json()).toEqual({ shares: [] });
+    await call(open, MEMBER, '/api/family/teas/tea-a/share', { method: 'PUT', body: { share_state: 'private' } });
+    expect(await (await call(open, MEMBER, '/api/family/tasting-shares')).json()).toEqual({ shares: [{ product_id: 'tea-a', share_state: 'private' }] });
   });
 });
 
@@ -316,7 +337,7 @@ describe('the shop\'s side', () => {
     }
     expect((await call(env, OWNER, `/api/admin/family/photographs/${third}/lead`, { method: 'POST' })).status).toBe(200);
     tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
-    expect(tea.lead).toMatchObject({ id: third, author: { name: 'Mei Lin', page_id: 'mei-page' } });
+    expect(tea.lead).toMatchObject({ id: third, author: null, photograph_by: null });
 
     // A placed photograph made lead, then a new lead: the old lead steps back to what it was.
     await call(env, OWNER, `/api/admin/family/photographs/${second}/place`, { method: 'POST' });

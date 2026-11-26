@@ -38,6 +38,7 @@ import { teaTableOpen } from '../../src/lib/teaTable';
 import { ensureFamilyPage } from './familyPages';
 import { describeReports, familyFeedbackRoutes } from './familyFeedback';
 import { signPhotograph } from './familyMedia';
+import { yourTablePageOpen } from '../../src/lib/yourTablePage';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError, type TeaVoiceEnvironment } from './curateVoiceTranscription';
 
 interface RateLimiter { limit: (opts: { key: string }) => Promise<{ success: boolean }> }
@@ -47,6 +48,8 @@ export interface FamilyEnv extends TeaVoiceEnvironment {
   MEDIA_BUCKET?: R2Bucket;
   PROVIDER_LIMITER?: RateLimiter;
   JWT_SECRET?: string;
+  /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
+  YOUR_TABLE_PAGE_OPEN?: string;
   /** See src/lib/teaTable.ts. */
   TEA_TABLE_OPEN?: string;
 }
@@ -125,8 +128,17 @@ type PhotoRow = {
   page: FamilyPhotoPage | null; full_key: string; small_key: string; full_width: number; full_height: number;
   small_width: number; small_height: number; share_state: FamilyShareState; offered_at: string | null;
   shop_use: FamilyOfferedPhotograph['shop_use']; removed_by_member_at: string | null; created_at: string;
-  shape?: string | null; frame?: string | null;
+  shape?: string | null; frame?: string | null; credit_name_shown?: number | null;
 };
+
+/** The photographer said yes to "photograph by <first name>". Absent or anything else is no. */
+const nameShown = (row: { credit_name_shown?: number | null }) => Number(row.credit_name_shown) === 1;
+
+/** A first name only, and only when the photographer allowed it. */
+export function photographBy(row: { credit_name_shown?: number | null }, authorName: string | null | undefined): string | null {
+  if (!nameShown(row)) return null;
+  return (authorName ?? '').trim().split(/\s+/)[0] || null;
+}
 
 /** A row written before the column existed, or holding anything unexpected, reads as square. */
 /** The stored frame, or null when there is none or it does not read as one. */
@@ -142,16 +154,38 @@ function ownPhoto(row: PhotoRow): FamilyPhotograph {
     full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
     small_width: Number(row.small_width), small_height: Number(row.small_height),
-    share_state: row.share_state, shape: shapeOf(row), frame: frameOf(row), created_at: row.created_at,
+    share_state: row.share_state, shape: shapeOf(row), frame: frameOf(row), credit_name_shown: nameShown(row), created_at: row.created_at,
   };
 }
 
-function sharedPhoto(row: PhotoRow & { author_name: string | null; page_id: string | null }): FamilySharedPhotograph {
-  const author: FamilyAuthor = { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null };
+type AuthoredRow = PhotoRow & { author_name: string | null; page_id: string | null };
+
+function photoParts(row: AuthoredRow) {
   return {
     id: row.id, full_url: mediaUrl(row.full_key), small_url: mediaUrl(row.small_key),
     full_width: Number(row.full_width), full_height: Number(row.full_height),
-    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), frame: frameOf(row), author,
+    small_width: Number(row.small_width), small_height: Number(row.small_height), shape: shapeOf(row), frame: frameOf(row),
+  };
+}
+
+/** The shop's own view of an offered photograph: it knows who sent it. Never served in public. */
+function shopPhoto(row: AuthoredRow): FamilySharedPhotograph & { author: FamilyAuthor } {
+  const author: FamilyAuthor = { name: row.author_name || 'A member of the Teajia family', page_id: row.page_id ?? null };
+  return { ...photoParts(row), author, photograph_by: photographBy(row, row.author_name) };
+}
+
+/**
+ * A photograph as any visitor sees it. The photographer's name leaves the
+ * worker only when they allowed it, and then as a first name; their page is
+ * linked only then too, and only when it is published (AUTHOR_COLUMNS). When
+ * they did not allow it there is no author at all: no name, no page, no slug.
+ */
+function publicPhoto(row: AuthoredRow): FamilySharedPhotograph {
+  const firstName = photographBy(row, row.author_name);
+  return {
+    ...photoParts(row),
+    author: firstName ? { name: firstName, page_id: row.page_id ?? null } : null,
+    photograph_by: firstName,
   };
 }
 
@@ -246,7 +280,7 @@ export async function listOfferedPhotographs(db: D1Database, accountId: string, 
       LIMIT 200`,
   ).bind(accountId).all<PhotoRow & { author_name: string | null; page_id: string | null; product_name: string | null; hidden: number }>();
   return Promise.all((results ?? []).map(async row => ({
-    ...(await signPhotograph(secret, sharedPhoto(row))),
+    ...(await signPhotograph(secret, shopPhoto(row))),
     product_id: row.product_id,
     product_name: row.product_name,
     share_state: row.share_state,
@@ -450,6 +484,27 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     });
   };
 
+  // GET /api/family/tasting-shares: the share state of every tasting of the
+  // member's that has ever been shared, in one read, for the share line on
+  // each journal tasting (Your Table, K8). A saved tasting with no row here is
+  // private. Their own rows only; nothing about the words or the score.
+  const tastingShares: FamilyHandler<E> = async (request, env) => {
+    if (!yourTablePageOpen(env)) return refuse(404, 'Not found', 'not_found');
+    const person = await deps.requireAuthenticatedUser(request, env);
+    if ('error' in person) return person.error;
+    const rows = await env.DB.prepare(
+      `SELECT j.product_id, s.share_state FROM customer_tasting_journal j
+         JOIN member_tasting_shares s ON s.journal_entry_id = j.id AND s.author_user_id = ?
+        WHERE j.user_id = ?
+        ORDER BY j.product_id`,
+    ).bind(person.userId, person.email).all<{ product_id: string; share_state: FamilyShareState }>();
+    return json({
+      shares: (rows.results ?? [])
+        .filter(row => isShareState(row.share_state))
+        .map(row => ({ product_id: row.product_id, share_state: row.share_state })),
+    });
+  };
+
   // PUT /api/family/teas/:productId/cover { photograph_id | null }: only the member sees it.
   const setCover: FamilyHandler<E> = async (request, env, params) => {
     const person = await deps.requireAuthenticatedUser(request, env);
@@ -510,6 +565,25 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
       `UPDATE member_photographs SET shape = ?1, frame = ?4, updated_at = datetime('now')
         WHERE id = ?2 AND author_user_id = ?3 AND removed_by_member_at IS NULL`,
     ).bind(body.shape, params.id, person.userId, frame ? JSON.stringify(frame) : null).run();
+    if (!Number(result.meta?.changes ?? 0)) return refuse(404, 'That photograph is not one of yours.', 'photograph_not_found');
+    const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(params.id).first<PhotoRow>();
+    return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)) });
+  };
+
+  // PUT /api/family/photographs/:id/credit { credit_name_shown }: the photographer's own
+  // yes or no to "photograph by <first name>" wherever the picture is shown large.
+  // Starts at no. Only the author can change it; it changes nothing else.
+  const creditPhoto: FamilyHandler<E> = async (request, env, params) => {
+    const person = await deps.requireAuthenticatedUser(request, env);
+    if ('error' in person) return person.error;
+    const body = await readBody(request);
+    if (!body || typeof body.credit_name_shown !== 'boolean') {
+      return refuse(400, 'Say whether your first name goes with this photograph.', 'validation_failed');
+    }
+    const result = await env.DB.prepare(
+      `UPDATE member_photographs SET credit_name_shown = ?1, updated_at = datetime('now')
+        WHERE id = ?2 AND author_user_id = ?3 AND removed_by_member_at IS NULL`,
+    ).bind(body.credit_name_shown ? 1 : 0, params.id, person.userId).run();
     if (!Number(result.meta?.changes ?? 0)) return refuse(404, 'That photograph is not one of yours.', 'photograph_not_found');
     const row = await env.DB.prepare('SELECT * FROM member_photographs WHERE id = ?').bind(params.id).first<PhotoRow>();
     return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)) });
@@ -623,10 +697,10 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     const lead = rows.find(row => row.shop_use === 'lead');
     const body: FamilyTeaPhotographs = {
       product_id: product.id,
-      lead: lead ? sharedPhoto(lead) : null,
-      placed: rows.filter(row => row.shop_use === 'placed').map(sharedPhoto),
+      lead: lead ? publicPhoto(lead) : null,
+      placed: rows.filter(row => row.shop_use === 'placed').map(publicPhoto),
       family: rows.filter(row => row.shop_use !== 'placed' && row.shop_use !== 'lead'
-        && row.removed_by_member_at === null && row.share_state !== 'private').map(sharedPhoto),
+        && row.removed_by_member_at === null && row.share_state !== 'private').map(publicPhoto),
     };
     return json(body);
   };
@@ -793,8 +867,10 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     ['POST', '/api/family/photographs', upload],
     ['PUT', '/api/family/photographs/:id/share', sharePhoto],
     ['PUT', '/api/family/photographs/:id/shape', shapePhoto],
+    ['PUT', '/api/family/photographs/:id/credit', creditPhoto],
     ['POST', '/api/family/photographs/:id/remove', removePhoto],
     ['GET', '/api/family/teas/:productId/mine', myTea],
+    ['GET', '/api/family/tasting-shares', tastingShares],
     ['PUT', '/api/family/teas/:productId/cover', setCover],
     ['PUT', '/api/family/teas/:productId/share', shareTasting],
     ['GET', '/api/family/teas/:productId/photographs', teaPhotographs],

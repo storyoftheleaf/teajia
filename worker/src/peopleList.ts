@@ -15,6 +15,12 @@
  * 4. The owner's hand stays on it: a pin puts a person at the top of their
  *    group; the one-tap hide (family_hides) takes a page away altogether.
  *
+ * 5. Who pours (quiet acknowledgement, todo/plans/guests-and-tea-masters.md):
+ *    a plain yes when the person is publicly credited as a host, co-host or
+ *    guest host on at least one session that has been completed. It is a yes
+ *    or a no and nothing more: never a count, never a weight in the order,
+ *    and a session still ahead does not make it yes.
+ *
  * The order is worked out inside the one query the list already runs, from
  * two indexed counts per person, so no page load pays for it but the list's own.
  */
@@ -30,6 +36,20 @@ import type { PeopleListGroup } from '../../src/lib/familyContract';
 
 const MEDIA_PREFIX = 'https://media.teajia.co/';
 const WINDOW = `datetime('now', '-${PEOPLE_LIST_WINDOW_DAYS} days')`;
+
+/**
+ * Whether the person has poured at a table: publicly credited as host,
+ * co-host or guest host on a session that is over (completed, or completed and
+ * since archived) and whose date has passed. An EXISTS, so it stops at the
+ * first one and nothing is counted. Needs the contributors row aliased `c`.
+ */
+export const PEOPLE_LIST_POURS_COLUMN =
+  `EXISTS (SELECT 1 FROM event_contributors pec
+     JOIN events pe ON pe.id = pec.event_id AND pe.account_id = pec.account_id
+    WHERE pec.contributor_id = c.id AND pec.is_public = 1
+      AND pec.role IN ('lead_host', 'co_host', 'guest_host')
+      AND pe.lifecycle_status IN ('completed', 'archived')
+      AND pe.event_date <= datetime('now'))`;
 
 /**
  * The columns the order needs. Needs the contributors row aliased `c`.
@@ -48,7 +68,8 @@ export const PEOPLE_LIST_COLUMNS =
    (SELECT p.small_key FROM member_photographs p
      WHERE p.author_user_id = c.user_id AND p.share_state IN ('page', 'offered')
        AND p.removed_by_member_at IS NULL AND ${PHOTO_NOT_HIDDEN}
-     ORDER BY p.created_at DESC, p.id DESC LIMIT 1) AS list_tasting_photo_key`;
+     ORDER BY p.created_at DESC, p.id DESC LIMIT 1) AS list_tasting_photo_key,
+   ${PEOPLE_LIST_POURS_COLUMN} AS list_pours`;
 
 type Listed = {
   display_name: string;
@@ -61,6 +82,7 @@ type Listed = {
   list_days_shared?: unknown;
   list_shop_picks?: unknown;
   list_tasting_photo_key?: unknown;
+  list_pours?: unknown;
 };
 
 const GROUP_ORDER: Record<PeopleListGroup, number> = { season: 0, founding: 1, family: 2 };
@@ -89,7 +111,7 @@ const quietScore = (person: Listed) =>
  * The list as the page shows it: only people with a photograph, grouped and
  * ordered, each carrying its group and nothing that says why it sits where it does.
  */
-export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 'founding_member' | 'list_pinned_at' | 'list_days_shared' | 'list_shop_picks' | 'list_tasting_photo_key'> & { list_group: PeopleListGroup }> {
+export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 'founding_member' | 'list_pinned_at' | 'list_days_shared' | 'list_shop_picks' | 'list_tasting_photo_key' | 'list_pours'> & { list_group: PeopleListGroup; pours: boolean }> {
   return people
     // A photograph on their page stands first; without one, the newest they shared from a tasting.
     .map(person => (person.card_image_url || person.avatar_url || typeof person.list_tasting_photo_key !== 'string' || !person.list_tasting_photo_key
@@ -106,8 +128,8 @@ export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 
         : 0)
       || byName(a.person, b.person))
     .map(({ person, group }) => {
-      const { founding_member: _f, list_pinned_at: _p, list_days_shared: _d, list_shop_picks: _s, list_tasting_photo_key: _k, ...shown } = person;
-      return { ...shown, list_group: group };
+      const { founding_member: _f, list_pinned_at: _p, list_days_shared: _d, list_shop_picks: _s, list_tasting_photo_key: _k, list_pours: pours, ...shown } = person;
+      return { ...shown, list_group: group, pours: Number(pours) === 1 || pours === true };
     });
 }
 

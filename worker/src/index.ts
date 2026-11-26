@@ -320,6 +320,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   FIRST_TABLE_OPEN?: string;
   /** "true" or "false" opens or closes favourites (Launch 4); see src/lib/favouritesOpen.ts. */
   FAVOURITES_OPEN?: string;
+  /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
+  YOUR_TABLE_PAGE_OPEN?: string;
   /** "true" or "false" opens or closes the Tea Table (Launch 4); see src/lib/teaTable.ts. */
   TEA_TABLE_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
@@ -23339,18 +23341,42 @@ const handlePlatformUpgradeToLocation: Handler = async (request, env, params) =>
 // GET /api/network/stores — PUBLIC list of accounts with public_enabled = 1
 // that have at least one public, active product. A store flipped public with an
 // empty catalog must not advertise an empty shell in the directory.
+//
+// Each house also carries its photograph (the same cover_image_url its own page
+// serves) and its next coming session, for the Visit list. The session is only
+// one the house lists publicly (public_visibility 'public', never unlisted or
+// private), active, published (or with registration closed), and still ahead. Only its slug, title and
+// date are read: never an address, a map link or a venue guide.
 const handleGetNetworkStores: Handler = async (_request, env) => {
   const { results } = await env.DB.prepare(
-    `SELECT id, slug, name, tagline, logo_url, location_city, location_country
+    `SELECT a.id, a.slug, a.name, a.tagline, a.logo_url, a.cover_image_url,
+            a.location_city, a.location_country,
+            ne.slug AS next_session_slug, ne.title AS next_session_title,
+            ne.event_date AS next_session_date
      FROM accounts a
+     LEFT JOIN events ne ON ne.id = (
+       SELECT e.id FROM events e
+        WHERE e.account_id = a.id AND e.status = 'active'
+          AND ${PUBLIC_EVENT_STORE}
+          AND e.lifecycle_status IN ('published', 'registration_closed')
+          AND e.event_date >= datetime('now')
+        ORDER BY e.event_date ASC
+        LIMIT 1
+     )
      WHERE a.public_enabled = 1 AND a.status = 'active'
        AND EXISTS (
          SELECT 1 FROM products p
           WHERE p.account_id = a.id AND p.status = 'Active' AND p.is_public = 1
        )
      ORDER BY a.is_platform_owner DESC, a.name ASC`
-  ).all();
-  return cachedJson(results, 300);
+  ).all<Record<string, unknown>>();
+  const stores = (results ?? []).map(({ next_session_slug, next_session_title, next_session_date, ...store }) => ({
+    ...store,
+    next_session: next_session_slug
+      ? { slug: next_session_slug, title: next_session_title, event_date: next_session_date }
+      : null,
+  }));
+  return cachedJson(stores, 300);
 };
 
 // GET /api/s/:slug — PUBLIC account profile
@@ -26001,7 +26027,7 @@ const handleListPublicContributors: Handler = async (request, env) => {
     // The directory's two filters. A host runs a room or is about to: a hosted
     // account, or a public lead/co-host role on any event. A writer has at
     // least one published article of their own.
-    is_host: Number(row.is_host) === 1, family_last_active: row.family_last_active ?? null, page_tier: familyPageTierOf(row.page_tier), founding_member: row.founding_member, list_pinned_at: row.list_pinned_at, list_days_shared: row.list_days_shared, list_shop_picks: row.list_shop_picks, list_tasting_photo_key: row.list_tasting_photo_key,
+    is_host: Number(row.is_host) === 1, family_last_active: row.family_last_active ?? null, page_tier: familyPageTierOf(row.page_tier), founding_member: row.founding_member, list_pinned_at: row.list_pinned_at, list_days_shared: row.list_days_shared, list_shop_picks: row.list_shop_picks, list_tasting_photo_key: row.list_tasting_photo_key, list_pours: row.list_pours,
     article_count: Number(row.article_count || 0),
   }));
 

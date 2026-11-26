@@ -40,9 +40,15 @@ export const familyApi = {
   /** How the author wants one photograph shown: square, upright (2:3) or across (3:2). */
   setPhotographShape: (photographId: string, shape: FamilyPhotographShape, frame: FamilyPhotographFrame | null = null): Promise<{ photograph: FamilyPhotograph }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/shape`, { method: 'PUT', body: JSON.stringify({ shape, frame }) }),
+  /** The photographer's own yes or no to "photograph by <first name>". Starts at no. */
+  setPhotographCredit: (photographId: string, creditNameShown: boolean): Promise<{ photograph: FamilyPhotograph }> =>
+    authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/credit`, { method: 'PUT', body: JSON.stringify({ credit_name_shown: creditNameShown }) }),
   /** "Remove from my page". The shop keeps what was offered to it. */
   removePhotograph: (photographId: string): Promise<{ id: string; removed: true }> =>
     authedFetch(`${API_URL}/api/family/photographs/${encodeURIComponent(photographId)}/remove`, { method: 'POST' }),
+  /** Every own tasting that has a share choice on the server; absent means private. Your Table's share lines. */
+  tastingShares: (): Promise<{ shares: Array<{ product_id: string; share_state: FamilyShareState }> }> =>
+    authedFetch(`${API_URL}/api/family/tasting-shares`),
   /** The Share step after Save: the tasting and its photographs together. Save the tasting first. `teaTable` says the person chose the Tea Table wording (src/lib/teaTable.ts); the worker records it only then. */
   shareTasting: (productId: string, shareState: FamilyShareState, teaTable = false): Promise<{ product_id: string; journal_entry_id: string; share_state: FamilyShareState; photographs_updated: number; page_id: string | null; page_path: string | null; page_created: boolean; on_tea_table?: boolean }> =>
     authedFetch(`${API_URL}/api/family/teas/${encodeURIComponent(productId)}/share`, { method: 'PUT', body: JSON.stringify(teaTable ? { share_state: shareState, tea_table: true } : { share_state: shareState }) }),

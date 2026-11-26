@@ -23,6 +23,10 @@ export interface TeaRowPhotograph {
   mine: boolean;
   /** Who to credit in the zoom. Null on the reader's own. */
   author: FamilyAuthor | null;
+  /** "Photograph by <first name>", only when the photographer allowed it. Null otherwise. */
+  photographBy: string | null;
+  /** On the reader's own: whether they let their first name go with it. */
+  creditNameShown?: boolean;
   /** The reader's own cover for this tea: first in their row, seen only by them. */
   shareState?: FamilyPhotograph['share_state'];
   isCover: boolean;
@@ -70,11 +74,13 @@ export function buildTeaRow(
 ): TeaRowPhotograph[] {
   const mine = (p: FamilyPhotograph): TeaRowPhotograph => ({
     id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height, shape: p.shape ?? 'square', frame: p.frame ?? null,
-    mine: true, shareState: p.share_state, author: null, isCover: p.id === coverId, isLead: shared.lead?.id === p.id,
+    mine: true, shareState: p.share_state, author: null, photographBy: null, creditNameShown: p.credit_name_shown === true,
+    isCover: p.id === coverId, isLead: shared.lead?.id === p.id,
   });
   const theirs = (p: FamilySharedPhotograph): TeaRowPhotograph => ({
     id: p.id, small_url: p.small_url, full_url: p.full_url, width: p.small_width, height: p.small_height, shape: p.shape ?? 'square', frame: p.frame ?? null,
-    mine: false, author: p.author, isCover: false, isLead: shared.lead?.id === p.id,
+    mine: false, author: p.author ?? null, isCover: false, isLead: shared.lead?.id === p.id,
+    photographBy: typeof p.photograph_by === 'string' && p.photograph_by.trim() ? p.photograph_by.trim() : null,
   });
   const ownIds = new Set(own.map(p => p.id));
   const cover = own.find(p => p.id === coverId);
@@ -169,5 +175,14 @@ export function useTeaFamily(productId: string | undefined) {
     ]);
   }
 
-  return { row, coverId, chooseCover, removeOwn, reshapeOwn, shareOwn };
+  /** The reader's own yes or no to their first name going with one photograph. */
+  async function creditOwn(photoId: string, shown: boolean) {
+    await familyApi.setPhotographCredit(photoId, shown);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: mineKey }),
+      queryClient.invalidateQueries({ queryKey: ['family', 'tea-photographs', productId] }),
+    ]);
+  }
+
+  return { row, coverId, chooseCover, removeOwn, reshapeOwn, shareOwn, creditOwn };
 }
