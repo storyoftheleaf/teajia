@@ -10,7 +10,7 @@ const photos = new Map<string, { bytes: ArrayBuffer; type: string }>();
 
 beforeEach(() => {
   db = new SqliteD1('migrations', '0140');
-  db.exec(readFileSync(new URL('../migrations/0148_freight_method.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0148_freight_service.sql', import.meta.url), 'utf8'));
   photos.clear();
   seedIdentity(db, { userId: 'mei-user' });
   seedIdentity(db, { userId: 'other-user' });

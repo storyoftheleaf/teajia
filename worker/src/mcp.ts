@@ -66,7 +66,7 @@ import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
 import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService } from './mcpTools/registry';
-import { freightDefaultFor, shippingPerGramUsd } from './shippingRate';
+import { freightFor, shippingPerGramUsd } from './shippingRate';
 import { accountFreightDefaults } from './productPricing';
 import { isShopOwner, tastingWithoutScores } from './publicScores';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -2415,7 +2415,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     : undefined;
 
   const product = await env.DB.prepare(
-    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, freight_method, status FROM products WHERE id = ? AND account_id = ?'
+    'SELECT id, type, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd, quantity_purchased, shipping_rate_per_kg, freight_service_id, form, status FROM products WHERE id = ? AND account_id = ?'
   ).bind(productId, auth.accountId).first() as Record<string, any> | null;
   if (!product) return { error: 'not_found' };
   /* An amount needs a unit. The row's own currency counts, since most calls
@@ -2480,13 +2480,13 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
       const rateToUsd = newCostCurrency === 'USD' ? 1 : rates.get(newCostCurrency!);
       // No rate row → skip the warning rather than emit a false one.
       if (rateToUsd) {
-        // The shop rate, or the route of the tea's freight method: worker/src/shippingRate.ts.
+        // The shop rate, or the tea's logistics service: src/lib/freightSource.ts.
         const freightDefaults = await accountFreightDefaults(env, auth.accountId, rates);
         const freight = shippingPerGramUsd({
           storedRatePerKg: newShippingRatePerKg,
           rateToUsd,
           isTeaware: product.type === 'Teaware',
-          shopDefaultPerKgUsd: freightDefaultFor(product.freight_method, freightDefaults),
+          shopDefaultPerKgUsd: freightFor(product, freightDefaults).perKgUsd,
         });
         if (freight !== null && Number.isFinite(rateToUsd) && rateToUsd > 0) {
           costUsd = (newCostAmount / newQuantity) / rateToUsd + freight;

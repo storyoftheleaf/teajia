@@ -862,7 +862,7 @@ const PRODUCT_STOCK_UPDATE_FIELDS = new Set([
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_FIELDS = new Set([
-  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'freight_method',
+  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'freight_service_id',
   'quantity_purchased', 'markup_multiplier', 'fixed_retail_price_usd',
   'price_per_gram_usd', 'wholesale_price', 'vendor', 'vendor_id', 'vendor_url',
   'can_reorder',

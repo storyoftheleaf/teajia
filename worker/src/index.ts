@@ -105,7 +105,7 @@ import { receiptProductDetails } from './curateReceiptProduct';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
-import { isFreightMethod, resolveShopFreightDefault } from './shippingRate';
+import { resolveShopFreightDefault } from './shippingRate';
 import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
@@ -3476,7 +3476,7 @@ const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_COLUMNS = new Set([
-  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'freight_method',
+  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'freight_service_id',
   'quantity_purchased', 'markup_multiplier', 'fixed_retail_price_usd',
   'price_per_gram_usd', 'wholesale_price', 'vendor', 'vendor_id', 'vendor_url',
   'can_reorder',
@@ -3658,11 +3658,15 @@ async function applyProductUpdate(
     const costRefusal = costMissingItsCurrency(body, existingCost?.cost_currency);
     if (costRefusal) return costRefusal;
   }
-  // How the tea travels home: Suitcase, Airmail, Boat, or nothing said (worker/src/shippingRate.ts).
-  if (body.freight_method !== undefined) {
-    if (body.freight_method === '' ) body.freight_method = null;
-    if (body.freight_method !== null && !isFreightMethod(body.freight_method)) {
-      return json({ error: 'freight_method must be suitcase, air, sea, or empty.', code: 'validation_failed' }, 400);
+  // How the tea travels home: one of this shop's active logistics services, or
+  // nothing said (src/lib/freightSource.ts). The rate stays on the service.
+  if (body.freight_service_id !== undefined) {
+    if (body.freight_service_id === '') body.freight_service_id = null;
+    if (body.freight_service_id !== null) {
+      const service = typeof body.freight_service_id === 'string'
+        ? await env.DB.prepare('SELECT id FROM logistics_services WHERE id = ? AND account_id = ? AND active = 1').bind(body.freight_service_id, accountId).first()
+        : null;
+      if (!service) return json({ error: 'Choose one of this shop\'s logistics services, or none.', code: 'validation_failed' }, 400);
     }
   }
   if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
@@ -10833,7 +10837,7 @@ const handleGetVendorProducts: Handler = async (request, env, params) => {
   const result = await env.DB.prepare(`
     SELECT id, product_name, given_name, chinese_name, type, image_url,
       origin_country, origin_region, stock_grams, status, cost_amount, cost_currency,
-      cost_currency_source, quantity_purchased, quantity_units, shipping_rate_per_kg, freight_method
+      cost_currency_source, quantity_purchased, quantity_units, shipping_rate_per_kg, freight_service_id, form
     FROM products
     WHERE vendor_id = ? AND account_id = ?
     ORDER BY product_name ASC
@@ -11187,6 +11191,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
     const accountPredicate = sourceTable ? 'p.account_id = source.account_id' : 'p.account_id = ?';
     const productStatement = env.DB.prepare(
       `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
+              COALESCE(tp.form, p.form) AS form,
               public_account.slug AS account_slug,
               public_account.default_shipping_rate_per_kg AS account_freight_per_kg,
               public_account.default_shipping_rate_currency AS account_freight_currency,
@@ -11203,7 +11208,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
               COALESCE(tp.mood, p.mood) AS mood,
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
-              p.shipping_rate_per_kg, p.freight_method, p.fixed_retail_price_usd,
+              p.shipping_rate_per_kg, p.freight_service_id, p.fixed_retail_price_usd,
               p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.piece_weight_g,
               p.tasting, p.tasting_source,
               (SELECT COUNT(*) > 0 FROM collection_items ci2
@@ -11254,7 +11259,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
           { default_shipping_rate_per_kg: p.account_freight_per_kg, default_shipping_rate_currency: p.account_freight_currency },
           c => lookupRateToUsd(rates, c),
         ).perKgUsd,
-        methodPerKgUsd: {},
+        services: {}, shipments: {},
       });
       const safe: Record<string, unknown> = {};
       for (const key of PUBLIC_FIELDS) {
@@ -24772,7 +24777,7 @@ async function fetchPublicProductsForAccount(
               COALESCE(tp.mood, p.mood) AS mood,
               COALESCE(tp.experience, p.experience) AS experience,
               p.cost_amount, p.cost_currency, p.quantity_purchased,
-              p.shipping_rate_per_kg, p.freight_method, p.fixed_retail_price_usd,
+              p.shipping_rate_per_kg, p.freight_service_id, p.fixed_retail_price_usd,
               p.material, p.capacity_ml, p.teaware_category, p.teaware_details, p.quantity_units, p.piece_weight_g, p.sold_in_whole_units,
               p.personal_offer_pack_price_usd AS exact_pack_price_usd,
               p.tasting, p.tasting_source,

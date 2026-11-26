@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS products (
     cost_currency TEXT DEFAULT 'USD',
     cost_currency_source TEXT, -- migration 0014: NULL = nobody ever stated the currency, so the DEFAULT above may be a guess
     shipping_rate_per_kg REAL, -- migration 0018: no default. NULL = unentered, takes the shop rate; 0 = Adrian said free
-    freight_method TEXT CHECK (freight_method IS NULL OR freight_method IN ('suitcase', 'air', 'sea')), -- migration 0148: NULL = shop rate; a method reads its shipping route
+    freight_service_id TEXT REFERENCES logistics_services(id), -- migration 0148: NULL = shop rate; a service prices freight from its shipments or quote
     quantity_purchased INTEGER,
     session_reserve_grams INTEGER,
     low_stock_threshold INTEGER DEFAULT 100,
@@ -3074,7 +3074,7 @@ CREATE INDEX IF NOT EXISTS idx_curate_drive_photo_history ON curate_drive_photo_
 CREATE TABLE IF NOT EXISTS shipping_routes (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
-  mode TEXT NOT NULL CHECK (mode IN ('air', 'sea', 'suitcase')),
+  mode TEXT NOT NULL CHECK (mode IN ('air', 'sea')),
   carrier TEXT,
   destination TEXT,
   rate_per_kg REAL CHECK (rate_per_kg IS NULL OR rate_per_kg >= 0),

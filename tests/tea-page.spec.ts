@@ -45,9 +45,10 @@ async function install(page: Page) {
     await page.route(`**/api/${endpoint}**`, r => r.fulfill({ json: [] }));
   }
   await page.route('**/api/compass/entries**', r => r.fulfill({ json: { entries: [] } }));
-  await page.route('**/api/shipping-routes', r => r.fulfill({ json: [
-    { id: 'boat', mode: 'sea', carrier: 'Forwarder', destination: null, rate_per_kg: 2, rate_currency: 'USD', packing_percent: null, billing_step_kg: null, minimum_kg: null, learned: null },
-  ] }));
+  // Freight rates live with the logistics companies' services, not on the tea.
+  await page.route('**/api/logistics', r => r.fulfill({ json: { orders: [], shipments: [], addresses: [], services: [
+    { id: 'air', logistics_company_id: 'co', logistics_company_name: 'Guangzhou', name: 'Airmail', mode: 'air', basis: 'kg', rate: 2, currency: 'USD', active: true },
+  ] } }));
 }
 
 test.beforeEach(async ({ isMobile }) => {
@@ -74,15 +75,18 @@ test('the tea page reads in editing order and Next keeps the part you are on', a
   await page.waitForTimeout(400);
   await page.screenshot({ path: testInfo.outputPath('tea-page-top.png') });
 
-  // Freight is Shop rate, Suitcase, Airmail or Boat, and each says the price it gives
-  // before it is picked: Liu Bao costs 0.50 a gram, so Boat at 2 dollars a kilo sells at 1.51.
-  const freight = tea.getByRole('combobox', { name: 'Freight' });
-  await expect(freight).toHaveValue('shop');
-  await expect(freight.locator('option')).toHaveText(['Shop rate', 'Suitcase', 'Airmail', 'Boat, $1.51 a gram', 'Own rate']);
+  // The tea only names the service it travels by; each says the price it gives before it is
+  // picked: Liu Bao costs 0.50 a gram, so Airmail at 2 dollars a kilo sells at 1.51. Nothing
+  // on the tea edits a freight price: the rates are set in Logistics.
+  const freight = tea.getByRole('combobox', { name: 'Travels by' });
+  await expect(freight).toHaveValue('');
+  await expect(freight.locator('option')).toHaveText(['Shop rate', 'Guangzhou · Airmail, $1.51 a gram']);
+  await expect(tea.getByRole('spinbutton', { name: /freight/i })).toHaveCount(0);
+  await expect(tea.getByRole('button', { name: 'Rates are set in Logistics' })).toBeVisible();
   const saved = page.waitForRequest(r => r.url().includes('/api/products/liu-bao/commercial') && r.method() === 'PUT');
   await page.route('**/api/products/liu-bao/commercial', r => r.fulfill({ json: { success: true } }));
-  await freight.selectOption('sea');
-  expect((await saved).postDataJSON()).toEqual({ freight_method: 'sea' });
+  await freight.selectOption('air');
+  expect((await saved).postDataJSON()).toEqual({ freight_service_id: 'air' });
 
   await page.getByRole('navigation', { name: 'Parts of this tea' }).getByRole('button', { name: 'Price' }).click();
   await expect(page.getByTestId('tea-page-next-at')).toHaveText('Next opens at Price');

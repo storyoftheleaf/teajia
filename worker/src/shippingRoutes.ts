@@ -9,8 +9,7 @@
  */
 import { canonicalCurrency } from '../../src/lib/currency';
 
-/** 'suitcase' is carried home in luggage (migration 0148); it has no freight bills to learn from. */
-export type RouteMode = 'air' | 'sea' | 'suitcase';
+export type RouteMode = 'air' | 'sea';
 
 export interface ShippingRouteRow {
   id: string;
@@ -44,7 +43,7 @@ export class RouteRefusal extends Error {}
 export function routeFields(body: Record<string, unknown>, partial: boolean): Partial<Omit<ShippingRouteRow, 'id'>> {
   const out: Partial<Omit<ShippingRouteRow, 'id'>> = {};
   if ('mode' in body || !partial) {
-    if (body.mode !== 'air' && body.mode !== 'sea' && body.mode !== 'suitcase') throw new RouteRefusal('mode must be air, sea or suitcase.');
+    if (body.mode !== 'air' && body.mode !== 'sea') throw new RouteRefusal('mode must be air or sea.');
     out.mode = body.mode;
   }
   for (const f of TEXT_FIELDS) if (f in body || !partial) out[f] = typeof body[f] === 'string' && (body[f] as string).trim() ? (body[f] as string).trim().slice(0, 200) : null;
@@ -65,7 +64,7 @@ export async function listRoutes(db: D1Database, accountId: string): Promise<Arr
 }
 
 /** The last three freight bills on this mode, in the money of the newest. Per kilo of what was billed. */
-export async function learnFromBills(db: D1Database, accountId: string, mode: 'air' | 'sea'): Promise<LearnedFromBills | null> {
+export async function learnFromBills(db: D1Database, accountId: string, mode: RouteMode): Promise<LearnedFromBills | null> {
   const { results } = await db.prepare(
     `SELECT total_amount, currency, weight_kg FROM curate_freight_costs
       WHERE account_id = ? AND mode = ? ORDER BY observed_on DESC, created_at DESC LIMIT 3`,

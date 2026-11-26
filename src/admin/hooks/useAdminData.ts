@@ -4,8 +4,6 @@ import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { ExchangeRate, Customer } from '../types';
 import { shopFreightDefaultFrom, type ShopFreightDefault } from '../../lib/shippingRate';
-import { methodRatesFromRoutes, type FreightDefaults } from '../../lib/freightMethod';
-import { useShippingRoutes } from '../../components/shared/useShippingRoutes';
 import { rateToUsd } from '../../lib/currency';
 import { loadLastKnownRates, saveLastKnownRates } from '../lastKnownRates';
 import { mapAdminProduct } from '../productAdapter';
@@ -166,19 +164,12 @@ export const useShopFreightDefault = (): ShopFreightDefault => {
 };
 
 /**
- * The shop rate and each freight method's route rate, in USD a kilo: what a tea
- * with no rate of its own falls back to. Pick a tea's figure with
- * freightDefaultFor(product.freightMethod, defaults), the rule the worker prices by.
+ * The freight a tea takes when it has no rate of its own, USD a kilo: what the
+ * server priced it at (its logistics service's shipments or quote, else the
+ * shop rate), or the shop rate before the server has said.
  */
-export const useFreightDefaults = (): FreightDefaults => {
-  const shop = useShopFreightDefault();
-  const { data: rates } = useRates();
-  const { data: routes } = useShippingRoutes();
-  return useMemo(() => ({
-    shopPerKgUsd: shop.perKgUsd,
-    methodPerKgUsd: methodRatesFromRoutes(routes ?? [], currency => rateToUsd(rates, currency)),
-  }), [shop.perKgUsd, routes, rates]);
-};
+export const teaFallbackFreightUsd = (product: { freightFallbackPerKgUsd?: number | null }, shopPerKgUsd: number | null): number | null =>
+  product.freightFallbackPerKgUsd !== undefined ? product.freightFallbackPerKgUsd : shopPerKgUsd;
 
 // Fetch Customers
 export const useCustomers = (options?: { enabled?: boolean }) => {

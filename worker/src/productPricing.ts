@@ -1,6 +1,6 @@
 import { canonicalCurrency, isUnrecordedCurrency } from '../../src/lib/currency';
 import { SHOP_MARKUP_MULTIPLIER } from './markup';
-import { shippingPerGramUsd, resolveShopFreightDefault, freightDefaultFor, methodRatesFromRoutes, type FreightDefaults, type RouteRateRow } from './shippingRate';
+import { shippingPerGramUsd, resolveShopFreightDefault, freightFor, serviceRatesFromRows, shipmentFreightFromRows, type FreightDefaults, type ServiceRow, type ShipmentLineRow } from './shippingRate';
 
 /**
  * Case-insensitive rate lookup with alias normalization, so 'CNY' resolves to
@@ -23,18 +23,19 @@ export function lookupRateToUsd(rates: Map<string, number>, rawCurrency: string 
 }
 
 /**
- * The shop's own freight rate and each freight method's route rate, converted
- * to USD at today's rate.
+ * The shop's own freight rate, the logistics services' rates, and the last
+ * confirmed shipment freight of each tea, converted to USD at today's rate.
+ * A tea picks its own figure with freightFor (src/lib/freightSource.ts).
  *
- * Read per request rather than cached: two indexed reads, and a rate that kept
- * serving the old number after Adrian changed it in Settings would be the same
- * class of bug this whole area exists to stop.
+ * Read per request rather than cached: a rate that kept serving the old number
+ * after Adrian changed it in Settings or Logistics would be the same class of
+ * bug this whole area exists to stop.
  */
 export async function accountFreightDefaults(env: { DB: D1Database }, accountId: string, rates: Map<string, number>): Promise<FreightDefaults> {
   return (await freightDefaultsByAccount(env, [accountId], rates)).get(accountId)!;
 }
 
-/** The same, for every shop a response carries teas from, in two reads however many shops. */
+/** The same, for every shop a response carries teas from, in three reads however many shops. */
 export async function freightDefaultsByAccount(env: { DB: D1Database }, accountIds: readonly string[], rates: Map<string, number>): Promise<Map<string, FreightDefaults>> {
   const ids = [...new Set(accountIds.filter(Boolean))];
   const out = new Map<string, FreightDefaults>();
@@ -43,17 +44,30 @@ export async function freightDefaultsByAccount(env: { DB: D1Database }, accountI
   const accounts = await env.DB.prepare(
     `SELECT id, default_shipping_rate_per_kg, default_shipping_rate_currency FROM accounts WHERE id IN (${marks})`,
   ).bind(...ids).all<{ id: string; default_shipping_rate_per_kg?: number | null; default_shipping_rate_currency?: string | null }>();
-  const routes = await env.DB.prepare(
-    `SELECT account_id, mode, rate_per_kg, rate_currency FROM shipping_routes
-      WHERE account_id IN (${marks}) AND archived_at IS NULL AND rate_per_kg IS NOT NULL ORDER BY created_at, id`,
-  ).bind(...ids).all<RouteRateRow & { account_id: string }>();
+  const services = await env.DB.prepare(
+    `SELECT id, account_id, basis, rate, currency, active, name, logistics_company_name FROM logistics_services WHERE account_id IN (${marks})`,
+  ).bind(...ids).all<ServiceRow & { account_id: string }>();
+  const lines = await env.DB.prepare(
+    `SELECT s.id AS shipment_id, s.account_id, s.service_id, COALESCE(s.dispatched_at, s.created_at) AS dated, s.freight_json,
+            l.id AS line_id, r.product_id, r.unit, l.quantity, l.weight_kg, l.volume_m3, l.weight_estimated, l.volume_estimated
+       FROM logistics_shipments s
+       JOIN logistics_shipment_lines l ON l.shipment_id = s.id AND l.account_id = s.account_id
+       JOIN inventory_receipt_lines r ON r.id = l.receipt_line_id AND r.account_id = l.account_id
+      WHERE s.account_id IN (${marks}) AND s.state <> 'cancelled' AND s.service_id IS NOT NULL AND s.freight_json IS NOT NULL`,
+  ).bind(...ids).all<Record<string, any>>();
   const lookup = (c: string) => lookupRateToUsd(rates, c);
-  const accountRows = accounts.results ?? [];
-  const routeRows = routes.results ?? [];
+  const parse = (json: unknown) => { try { return typeof json === 'string' ? JSON.parse(json) : null; } catch { return null; } };
+  const lineRows: Array<ShipmentLineRow & { account_id: string }> = (lines.results ?? []).map(r => ({
+    shipment_id: r.shipment_id, account_id: r.account_id, service_id: r.service_id, dated: String(r.dated ?? ''), freight: parse(r.freight_json),
+    line_id: r.line_id, product_id: r.product_id, unit: r.unit, quantity: Number(r.quantity),
+    weight_kg: r.weight_kg == null ? null : Number(r.weight_kg), volume_m3: r.volume_m3 == null ? null : Number(r.volume_m3),
+    weight_estimated: !!r.weight_estimated, volume_estimated: !!r.volume_estimated,
+  }));
   for (const id of ids) {
     out.set(id, {
-      shopPerKgUsd: resolveShopFreightDefault(accountRows.find(a => a.id === id) ?? null, lookup).perKgUsd,
-      methodPerKgUsd: methodRatesFromRoutes(routeRows.filter(r => r.account_id === id), lookup),
+      shopPerKgUsd: resolveShopFreightDefault((accounts.results ?? []).find(a => a.id === id) ?? null, lookup).perKgUsd,
+      services: serviceRatesFromRows((services.results ?? []).filter(r => r.account_id === id), lookup),
+      shipments: shipmentFreightFromRows(lineRows.filter(r => r.account_id === id), lookup),
     });
   }
   return out;
@@ -77,16 +91,20 @@ export function addPricingFields(product: any, rates: Map<string, number>, freig
   // gets two homes.
   const rate = isUnrecordedCurrency(declared) ? 1 : lookupRateToUsd(rates, declared);
   const isTeaware = product.type === 'Teaware';
+  const fallback = freightFor(product, freightDefaults);
+  // What the admin shows beside the price: the freight a tea with no rate of its own takes, and from where.
+  const freightFields = { freight_fallback_per_kg_usd: fallback.perKgUsd, freight_source: fallback.source, freight_fell_back: fallback.fellBack ?? null, freight_dated: fallback.dated ?? null };
   const freight = shippingPerGramUsd({
     storedRatePerKg: product.shipping_rate_per_kg,
     rateToUsd: rate,
     isTeaware,
-    // The tea's own rate, else its method's route, else the shop's: worker/src/shippingRate.ts.
-    shopDefaultPerKgUsd: freightDefaultFor(product.freight_method, freightDefaults),
+    // The tea's own rate, else its service's shipments or quote, else the shop's: src/lib/freightSource.ts.
+    shopDefaultPerKgUsd: fallback.perKgUsd,
   });
   if (!rate || !Number.isFinite(rate) || rate <= 0 || freight === null || product.cost_amount == null || !(Number(product.quantity_purchased) > 0)) {
     return {
       ...product,
+      ...freightFields,
       stock_grams: Math.round(product.stock_grams || 0),
       // The books keep part grams; the Stock page reads this, the shop keeps whole grams.
       stock_grams_exact: product.stock_grams ?? 0,
@@ -115,6 +133,7 @@ export function addPricingFields(product: any, rates: Map<string, number>, freig
 
   return {
     ...product,
+    ...freightFields,
     stock_grams: Math.round(product.stock_grams || 0),
     stock_grams_exact: product.stock_grams ?? 0,
     cost_per_gram_usd: Math.round(costPerUnitUSD * 100) / 100,

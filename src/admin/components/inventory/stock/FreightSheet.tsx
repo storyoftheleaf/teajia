@@ -1,8 +1,7 @@
 import { useRef, useState } from 'react';
 import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
-import { useFreightDefaults, useRates, useShopFreightDefault } from '../../../hooks/useAdminData';
-import { FREIGHT_METHOD_WORD, freightDefaultFor } from '../../../../lib/freightMethod';
+import { useRates, useShopFreightDefault, teaFallbackFreightUsd } from '../../../hooks/useAdminData';
 import type { Product } from '../../../types';
 import { calculatePricing } from '../../../utils';
 import { isUnrecordedCurrency, rateToUsd } from '../../../../lib/currency';
@@ -20,9 +19,9 @@ const usd = (value: number | null) => value === null ? '—' : `$${value.toFixed
 export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
   const { data: rates = [] } = useRates();
   const shop = useShopFreightDefault();
-  // What the tea follows with no rate of its own: its freight method's route, else the shop rate.
-  const fallbackUsd = freightDefaultFor(product.freightMethod, useFreightDefaults());
-  const methodWord = product.freightMethod ? FREIGHT_METHOD_WORD[product.freightMethod] : null;
+  // What the tea follows with no rate of its own: its logistics service, else the shop rate.
+  const fallbackUsd = teaFallbackFreightUsd(product, shop.perKgUsd);
+  const methodWord = product.freightSource && product.freightSource !== 'shop' ? 'its logistics service' : null;
   const conversion = isUnrecordedCurrency(product.costCurrency) ? 1 : rateToUsd(rates, product.costCurrency);
   const initialUsd = shippingRateUsdFor(product.shippingRatePerKg, conversion, fallbackUsd);
   const [mode, setMode] = useState<'shop' | 'custom'>(product.shippingRatePerKg == null ? 'shop' : 'custom');
@@ -57,7 +56,7 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
           <legend className={`${T.label} mb-2 text-tea-text-dim`}>Rate for this tea</legend>
           <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-tea-border bg-tea-surface px-3 py-3">
             <input type="radio" name="freight-rate" checked={mode === 'shop'} onChange={() => choose('shop')} className="h-4 w-4 accent-tea-gold" />
-            <span className="min-w-0 flex-1"><span className={`${T.bodyLight} block`}>{methodWord ? `Follow the ${methodWord} route` : 'Follow shop rate'}</span><span className={`${T.link} text-tea-text-sec`}>{methodWord ? `${usd(fallbackUsd)}/kg` : `${shop.perKg} ${shop.currency}/kg · ${usd(shop.perKgUsd)}/kg`}</span></span>
+            <span className="min-w-0 flex-1"><span className={`${T.bodyLight} block`}>{methodWord ? `Follow ${methodWord}` : 'Follow shop rate'}</span><span className={`${T.link} text-tea-text-sec`}>{methodWord ? `${usd(fallbackUsd)}/kg` : `${shop.perKg} ${shop.currency}/kg · ${usd(shop.perKgUsd)}/kg`}</span></span>
           </label>
           <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-tea-border bg-tea-surface px-3 py-3">
             <input type="radio" name="freight-rate" checked={mode === 'custom'} onChange={() => choose('custom')} className="h-4 w-4 accent-tea-gold" />

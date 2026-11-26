@@ -3,8 +3,7 @@ import { BottomSheet } from '../../../../components/shared/BottomSheet';
 import { TYPOGRAPHY_CLASSES as T } from '../../../../designTokens';
 import { TEA_FORMS, INVENTORY_TEA_TYPES, NON_TEA_TYPES, inventoryTeaType } from '../../../../wisdom/vocabulary';
 import { SHOP_MARKUP_MULTIPLIER } from '../../../../lib/markup';
-import { useRates, useFreightDefaults } from '../../../hooks/useAdminData';
-import { freightDefaultFor } from '../../../../lib/freightMethod';
+import { useRates, useShopFreightDefault, teaFallbackFreightUsd } from '../../../hooks/useAdminData';
 import { enteredNumber } from '../../../productUpdatePayload';
 import type { Product } from '../../../types';
 import { formPricingPreview } from './formPricingModel';
@@ -16,7 +15,7 @@ const formLabel = (value: string) => value === 'Loose' || value === 'Loose Leaf'
 
 export function FormPricingSheet({ product, onSave, onClose }: { product: Product; onSave: SaveFormPricing; onClose: () => void }) {
   const { data: rates = [] } = useRates();
-  const freight = useFreightDefaults();
+  const freight = useShopFreightDefault();
   const rawForm = String(product.form || '');
   const initialForm = rawForm === 'Loose Leaf' ? 'Loose' : rawForm;
   const [type, setType] = useState(inventoryTeaType(product.type) as Product['type']);
@@ -33,7 +32,7 @@ export function FormPricingSheet({ product, onSave, onClose }: { product: Produc
   const basisGrams = enteredNumber(purchaseGrams);
   const paid = enteredNumber(cost);
   const draft = { ...product, type, form: form as Product['form'], soldInWholeUnits: wholeOnly, pieceWeightG: pieceWeight, costAmount: paid, quantityPurchased: basisGrams };
-  const preview = formPricingPreview(draft, rates, freightDefaultFor(product.freightMethod, freight));
+  const preview = formPricingPreview(draft, rates, teaFallbackFreightUsd(product, freight.perKgUsd));
   async function save() {
     if (savingRef.current) return;
     setError('');

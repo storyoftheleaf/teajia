@@ -75,9 +75,9 @@ function liveShapedDatabase() {
   // product defaults that make this test sensitive to omitted money columns.
   db.exec(read('../migrations/0085_personal_inventory_account.sql'));
   db.exec(read('../migrations/0120_personal_seller_approval.sql'));
-  // Freight methods read the shop's routes as well as its rate.
-  db.exec(read('../migrations/0042_shipping_routes.sql'));
-  db.exec(read('../migrations/0148_freight_method.sql'));
+  // A tea can name the logistics service it travels by (0148), which pricing reads.
+  db.exec(read('../migrations/0052_logistics_shipments.sql'));
+  db.exec(read('../migrations/0148_freight_service.sql'));
   seedIdentity(db, { userId: OWNER, accountId: ACCOUNT, role: 'owner', bundles: ['catalog', 'stock', 'publish', 'sell'] });
   db.sqlite.prepare(
     "INSERT OR IGNORE INTO exchange_rates (currency, rate_to_usd, last_updated) VALUES ('Yuan', 7.12, datetime('now'))",

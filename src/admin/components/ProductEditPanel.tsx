@@ -40,8 +40,7 @@ import { addTeaToDraftOrder } from '../../components/CurateV2/orderBuy';
 import { buildProductUpdatePayload } from '../productUpdatePayload';
 import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
 import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
-import { useFreightDefaults } from '../hooks/useAdminData';
-import { freightDefaultFor } from '../../lib/freightMethod';
+import { useShopFreightDefault, teaFallbackFreightUsd } from '../hooks/useAdminData';
 import { TeaFreight } from './inventory/stock/TeaFreight';
 import { getThemeColor } from '../themeUtils';
 import { INVENTORY_TEA_TYPES } from '../../wisdom';
@@ -1088,9 +1087,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   /* The shop's own freight rate, for teas that have not entered one. Read from
      the hook rather than passed down, because it is one cached row and every
      surface that shows this field needs the same answer. */
-  const freightDefaults = useFreightDefaults();
-  // The tea's fallback rate: its method's route when it has one, else the shop's.
-  const freightFallbackUsd = freightDefaultFor(product?.freightMethod, freightDefaults);
+  const shopFreight = useShopFreightDefault();
+  // The tea's fallback rate: what the server priced from its logistics service, else the shop's.
+  const freightFallbackUsd = product ? teaFallbackFreightUsd(product, shopFreight.perKgUsd) : shopFreight.perKgUsd;
 
   // Stock spine step 2: only the location owner curates what shows in the shop.
   const isOwnerTier = useAppStore(selectIsOwnerTier);
@@ -1556,9 +1555,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   <GhostInput ariaLabel="Batch grams" align="right" value={product.quantityPurchased || 0} onSave={(val) => persistField(product.id, 'quantityPurchased', val)} type="number" className="tabular-nums" />
                   <span className="text-ui-12 text-admin-text-dim">g</span>
                 </TeaLine>
-                <TeaFreight product={product} defaults={freightDefaults} rates={rates} costRateToUsd={costRateToUsd}
-                  onSave={(field, value) => persistField(product.id, field, value)}
-                  onOpenRoutes={() => navigate('/admin/settings')} />
+                <TeaFreight product={product} shopPerKgUsd={shopFreight.perKgUsd} rates={rates} costRateToUsd={costRateToUsd}
+                  onChoose={(serviceId) => persistField(product.id, 'freightServiceId', serviceId)}
+                  onOpenLogistics={() => navigate('/admin/purchase-orders')} />
                 {(() => {
                   const calc = pricingCalc && pricingCalc.suggestedRetailUSD > 0 ? pricingCalc : null;
                   const hasOverride = product.fixedRetailPriceUSD != null;
