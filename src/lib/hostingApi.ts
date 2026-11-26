@@ -214,3 +214,24 @@ export function createTablesApi({ apiUrl, authedFetch }: HostingApiDependencies)
     },
   };
 }
+
+/** Launch 3 (J10): by their link only, to people signed in to Teajia, or on the public sessions list. */
+export type HostReach = 'invitation' | 'teajia' | 'listed';
+
+/** Launch 3: the platform owner's hosting controls, spread into api.platform. */
+export function createPlatformHostingApi({ apiUrl, authedFetch }: { apiUrl: string; authedFetch: (url: string, init?: RequestInit) => Promise<any> }) {
+  return {
+    // Launch 3: stop one host (no new table, no new seat), or let them host again.
+    setHostingStopped: async (userId: string, stopped: boolean): Promise<{ ok: boolean; hosting_stopped: boolean }> => {
+      return authedFetch(`${apiUrl}/api/platform/users/${userId}/hosting-stopped`, {
+        method: 'PUT', body: JSON.stringify({ stopped }),
+      });
+    },
+    // Launch 3 (J10): how far this host's open tables are shown. Platform owner only.
+    setHostReach: async (userId: string, reach: HostReach): Promise<{ ok: boolean; host_reach: HostReach }> => {
+      return authedFetch(`${apiUrl}/api/platform/users/${userId}/host-reach`, {
+        method: 'PUT', body: JSON.stringify({ reach }),
+      });
+    },
+  };
+}

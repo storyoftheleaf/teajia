@@ -1,16 +1,16 @@
 import type { CellarItem, CellarPlacementRequest, PublicShelf, ShelfOfferInput, ShelfSettings } from './teaChestTypes';
 export type { CellarItem, CellarPlacementRequest, PublicShelf, PublicShelfItem, ShelfOfferInput, ShelfSettings, TeaChestAccount } from './teaChestTypes';
 import type { ShippingPaymentNotification } from './shippingNotification';
-import type { MyFavourites } from './favouritesTypes';
 export type { FavouriteArticle, FavouriteChestTea, FavouriteShopTea, MyFavourites } from './favouritesTypes';
 import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createArticleApi } from './articlesApi';
-import { createHostingApi, createTablesApi } from './hostingApi';
+import { createHostingApi, createPlatformHostingApi, createTablesApi, type HostReach } from './hostingApi';
+import { createFavouritesApi } from './favouritesApi';
 import { createCirclesApi } from './circlesApi';
 import { createHostTokensApi } from './hostTokensApi';
 import { fewHostsOpen } from './fewHosts';
 import { anyoneHostsOpen } from './anyoneHosts';
-export type { HostedTableCreated, HostedTableDetail, HostedTableDoor, HostedTableInput, HostedTableSummary, HostingStatus } from './hostingApi';
+export type { HostedTableCreated, HostedTableDetail, HostedTableDoor, HostedTableInput, HostedTableSummary, HostingStatus, HostReach } from './hostingApi';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
 import type { VendorProductSale } from './vendorSalesTypes';
@@ -492,9 +492,6 @@ export interface PlatformUser {
   host_reach?: HostReach;
   memberships: { account_id: string; role: string }[];
 }
-
-/** Launch 3 (J10): by their link only, to people signed in to Teajia, or on the public sessions list. */
-export type HostReach = 'invitation' | 'teajia' | 'listed';
 
 export interface PlatformAccount {
   id: string;
@@ -2815,9 +2812,7 @@ export const api = {
     },
     // Public endpoints
     listPublic: async () => {
-      // Launch 3 (J10): a signed-in person's list also carries the open tables
-      // of hosts Teajia shows to people on Teajia. The page cache is cleared
-      // whenever the sign-in changes (src/index.tsx).
+      // Launch 3 (J10): signed in, the list also carries tables shown to people on Teajia (cache cleared on sign-in change, src/index.tsx).
       if (fewHostsOpen() && anyoneHostsOpen() && getToken()) {
         try {
           return await authedFetch(`${API_URL}/api/me/sessions`);
@@ -4321,9 +4316,8 @@ export const api = {
   // Launch 2, a few hosts (closed until src/lib/fewHosts.ts opens).
   hosting: createHostingApi({ apiUrl: API_URL, authedFetch }),
   tables: createTablesApi({ apiUrl: API_URL, authedFetch }),
-  // Launch 5, M4: circles and series (closed until src/lib/circles.ts opens).
+  // Launch 5: circles and series (M4, src/lib/circles.ts) and a host's own assistant key (M6, src/lib/hostTokens.ts), closed until they open.
   circles: createCirclesApi({ apiUrl: API_URL, authedFetch }),
-  // Launch 5, M6: a host's own assistant key (closed until src/lib/hostTokens.ts opens).
   hostTokens: createHostTokensApi({ apiUrl: API_URL, authedFetch }),
 
   platform: {
@@ -4348,18 +4342,8 @@ export const api = {
         method: 'PUT', body: JSON.stringify({ approved }),
       });
     },
-    // Launch 3: stop one host (no new table, no new seat), or let them host again.
-    setHostingStopped: async (userId: string, stopped: boolean): Promise<{ ok: boolean; hosting_stopped: boolean }> => {
-      return authedFetch(`${API_URL}/api/platform/users/${userId}/hosting-stopped`, {
-        method: 'PUT', body: JSON.stringify({ stopped }),
-      });
-    },
-    // Launch 3 (J10): how far this host's open tables are shown. Platform owner only.
-    setHostReach: async (userId: string, reach: HostReach): Promise<{ ok: boolean; host_reach: HostReach }> => {
-      return authedFetch(`${API_URL}/api/platform/users/${userId}/host-reach`, {
-        method: 'PUT', body: JSON.stringify({ reach }),
-      });
-    },
+    // Launch 3: stop a host, and how far their open tables are shown (src/lib/hostingApi.ts).
+    ...createPlatformHostingApi({ apiUrl: API_URL, authedFetch }),
     grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {
       return authedFetch(`${API_URL}/api/platform/users/${userId}/shelf`, {
         method: 'PUT',
@@ -4770,23 +4754,8 @@ export const api = {
     },
   },
 
-  // Launch 4: favourites in three kinds, the caller's own only. No counts in any answer.
-  favourites: {
-    list: async (): Promise<MyFavourites> => {
-      return authedFetch(`${API_URL}/api/me/favourites`);
-    },
-    keepArticle: async (id: string): Promise<{ kept: boolean }> => {
-      return authedFetch(`${API_URL}/api/me/favourites/articles/${encodeURIComponent(id)}`, { method: 'PUT' });
-    },
-    unkeepArticle: async (id: string): Promise<{ kept: boolean }> => {
-      return authedFetch(`${API_URL}/api/me/favourites/articles/${encodeURIComponent(id)}`, { method: 'DELETE' });
-    },
-    markChestTea: async (id: string, favourite: boolean): Promise<{ id: string; favourite: boolean }> => {
-      return authedFetch(`${API_URL}/api/me/cellar/${encodeURIComponent(id)}/favourite`, {
-        method: 'PUT', body: JSON.stringify({ favourite }),
-      });
-    },
-  },
+  // Launch 4: favourites in three kinds, the caller's own only (src/lib/favouritesApi.ts).
+  favourites: createFavouritesApi({ apiUrl: API_URL, authedFetch }),
 
   // Stock spine step 5: PUBLIC standalone shelf (no auth).
   shelf: {
