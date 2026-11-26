@@ -11,6 +11,7 @@
 // carries no price field at all, and a name-only tea carries its name only.
 
 import type { PublicSessionTea, SessionTeaOffer } from '../../shared/sessionTea';
+import { crossShopTeaSql } from './hostTableTeas';
 
 /** One served tea: its id on the sit, and what it points at (a product, or a holding in someone's Tea Chest list). */
 export type SessionTeaRef = { menuId: string | null; productId: string | null; name: string; chestId?: string | null };
@@ -53,9 +54,12 @@ function place(row: Pick<TeaRow, 'origin_country' | 'origin_region'>) {
  *
  * `accountId` is the shop that hosted the sit. `ownerUserIds` are the people
  * whose own Tea Chest may hold a poured tea (the credited hosts and pourers, or
- * the member who hosted a casual sit). A product id that belongs to anyone
- * else is treated as a plain name, so a menu can never reach into an
- * unrelated account.
+ * the member who hosted a casual sit). One door crosses accounts: a tea of
+ * Teajia's own shop (the platform owner's) that is public, active and shown
+ * in the shop, so a host who pours Adrian's tea can lead a guest to it
+ * (Launch 2, hard question 7; `crossShopTeaSql`). A product id that belongs
+ * to anyone else, or a shop tea that is a draft, hidden or archived, is
+ * treated as a plain name, so a menu can never reach into an unrelated account.
  */
 export async function resolveSessionTeas(
   db: D1Database, readPublic: PublicProductReader,
@@ -75,7 +79,8 @@ export async function resolveSessionTeas(
          (p.personal_offer_source_id IS NOT NULL AND p.personal_offer_withdrawn_at IS NULL) AS is_offer
        FROM products p JOIN accounts a ON a.id = p.account_id
        WHERE p.id IN (${ids.map(() => '?').join(',')}) AND COALESCE(p.type, '') NOT IN ('Teaware', 'Misc')
-         AND (p.account_id = ? OR a.personal_inventory_user_id IN (${owners.map(() => '?').join(',')}))`,
+         AND (p.account_id = ? OR a.personal_inventory_user_id IN (${owners.map(() => '?').join(',')})
+           OR ${crossShopTeaSql('p')})`,
     ).bind(...ids, accountId ?? '', ...owners).all<TeaRow>();
     for (const row of results) rows.set(row.id, row);
   }

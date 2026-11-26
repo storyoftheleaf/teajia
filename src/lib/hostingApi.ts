@@ -48,7 +48,32 @@ export interface HostedTableGuest {
   /** The guest asked not to be photographed. */
   no_photographs: boolean;
 }
-export interface HostedTableTea { id: string; name: string | null; product_id: string | null; brew_order: number | null }
+/** Where a tea on a table comes from (slice H6): Teajia's shop, the host's own Tea Chest, or the words they typed. */
+export type HostedTableTeaSource = 'shop' | 'chest' | 'name';
+/** A tea on one of the host's tables. No price, stock or cost, ever. */
+export interface HostedTableTea {
+  id: string;
+  name: string | null;
+  /** Older answers may leave it out; read it as 'name'. */
+  source?: HostedTableTeaSource;
+  product_id: string | null;
+  brew_order: number | null;
+  /** "Where it is from", in the host's words. */
+  from?: string | null;
+  /** The host's own photograph of the tea. */
+  photo_url?: string | null;
+}
+/** A tea the host may add: Teajia's shop first, then their own chest. */
+export interface HostedTableTeaMatch { source: 'shop' | 'chest'; id: string; name: string; type: string | null; year: string | null }
+/** One tea of the list the host saves, in pouring order. A tea without an id is new. */
+export interface HostedTableTeaInput {
+  id?: string | null;
+  source: HostedTableTeaSource;
+  product_id?: string | null;
+  name: string;
+  from?: string | null;
+  photo_url?: string | null;
+}
 export interface HostedTableDetail {
   table: Omit<HostedTableSummary, 'guests'> & { requires_approval: number; public_visibility: string; seats_taken: number };
   guests: HostedTableGuest[];
@@ -90,6 +115,17 @@ export function createTablesApi({ apiUrl, authedFetch }: HostingApiDependencies)
       authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/came`, { method: 'PUT', body: JSON.stringify({ attendee_ids: attendeeIds }) }),
     thanksLink: (id: string, guestId: string): Promise<{ credential: string; expires_at: string }> =>
       authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/thanks-link`, { method: 'POST', body: '{}' }),
+    // A tea for the table (slice H6). Teajia's shop first, the host's chest second.
+    teaSearch: (id: string, query: string): Promise<{ matches: HostedTableTeaMatch[] }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/tea-search?q=${encodeURIComponent(query)}`),
+    saveTeas: (id: string, teas: HostedTableTeaInput[]): Promise<{ teas: HostedTableTea[] }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/teas`, { method: 'PUT', body: JSON.stringify({ teas }) }),
+    /** A photograph already framed in the shared photo editor. */
+    uploadTeaPhoto: async (id: string, photo: File): Promise<{ url: string }> => {
+      const form = new FormData();
+      form.append('file', photo, photo.name || 'tea.jpg');
+      return authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/teas/photo`, { method: 'POST', body: form });
+    },
     // The host's private guest book (slice H9).
     notes: (id: string): Promise<{ notes: HostGuestNote[] }> => authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/notes`),
     saveNote: (id: string, guestId: string, note: string): Promise<{ note: HostGuestNote | null }> =>

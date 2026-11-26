@@ -4019,3 +4019,6 @@ CREATE TABLE IF NOT EXISTS host_guest_notes (
   updated_at   TEXT NOT NULL,
   UNIQUE (host_user_id, event_id, attendee_id)
 );
+
+-- 0136_host_table_tea_photos.sql
+ALTER TABLE event_tea_menu ADD COLUMN photo_url TEXT;
