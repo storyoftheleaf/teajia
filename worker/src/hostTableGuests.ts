@@ -10,6 +10,8 @@
 // same transaction as the seat is taken.
 
 import { sessionInstant } from './sessionWalkthrough';
+import { serveGuestBookReview } from './sessionGuestBook';
+import { reviewGuestBookPhotos } from './sessionGuestBookPhotos';
 
 export type HostedTableDoor = 'request' | 'link';
 
@@ -40,6 +42,16 @@ export async function ownHostedTable(db: D1Database, { hostUserId, eventId }: { 
        AND a.personal_inventory_user_id = ? AND a.owner_user_id = a.personal_inventory_user_id
        AND a.status = 'active'
   `).bind(eventId, hostUserId, hostUserId).first<OwnHostedTable>();
+}
+
+/** Review a contribution using the session and account resolved by the ownership guard. */
+export function reviewHostedTableGuestBook(
+  request: Request, db: D1Database, bucket: R2Bucket | undefined, table: OwnHostedTable,
+  kind: 'notes' | 'photos', contributionId?: string,
+) {
+  return kind === 'photos'
+    ? reviewGuestBookPhotos(request, db, bucket, table.account_id, table.id, contributionId, 'host')
+    : serveGuestBookReview(request, db, table.account_id, table.id, contributionId);
 }
 
 /**

@@ -17,7 +17,7 @@ import { hostApproved, hostDoorsFor, personalAccountSql, publicSessionHostSql, s
 import { isWalkthroughMedia, mayShowWalkthrough, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
-import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest } from './hostTableGuests';
+import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest } from './hostTableGuests';
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
@@ -17305,6 +17305,18 @@ function hostTableJson(value: unknown, status = 200) {
   return response;
 }
 
+function hostedTableGuestBookHandler(kind: 'notes' | 'photos'): Handler {
+  return async (request, env, params) => {
+    if (!anyoneHostsOpen(env)) return hostTableJson({ error: 'Table not found' }, 404);
+    const own = await requireOwnHostedTable(request, env, params.id);
+    if ('error' in own) return own.error;
+    return reviewHostedTableGuestBook(request, env.DB, env.ATLAS_BUCKET, own.table, kind, params.contributionId);
+  };
+}
+
+const handleHostedTableGuestBook = hostedTableGuestBookHandler('notes');
+const handleHostedTableGuestBookPhotos = hostedTableGuestBookHandler('photos');
+
 // PUT /api/me/tables/:id {door?, seats?}. Change how guests get a seat, or
 // how many seats there are, before the table happens.
 const handleChangeHostedTable: Handler = async (request, env, params) => {
@@ -32522,6 +32534,11 @@ const routes: [string, string, Handler][] = [
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/no', handleHostSaysNo],
   ['POST',   '/api/me/tables/:id/guests/:attendeeId/thanks-link', handleHostThanksLink],
   ['GET',    '/api/me/tables/:id/notes', handleHostedTableNotes],
+  ['GET',    '/api/me/tables/:id/guest-book', handleHostedTableGuestBook],
+  ['POST',   '/api/me/tables/:id/guest-book/:contributionId/review', handleHostedTableGuestBook],
+  ['GET',    '/api/me/tables/:id/guest-book/photos', handleHostedTableGuestBookPhotos],
+  ['GET',    '/api/me/tables/:id/guest-book/photos/:contributionId', handleHostedTableGuestBookPhotos],
+  ['PUT',    '/api/me/tables/:id/guest-book/photos/:contributionId', handleHostedTableGuestBookPhotos],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/note', handleHostedTableNotes],
   ['GET',    '/api/me/tables/:id/tea-search', handleHostedTableTeaSearch],
   ['PUT',    '/api/me/tables/:id/teas', handleSaveHostedTableTeas],
