@@ -6,10 +6,8 @@ import {
   type MemberSit, type MemberSitScope, type SitTea,
 } from '../../lib/memberPrivateSits';
 import { Button } from '../shared/Button';
-import { useMayHost } from '../../hooks/useMayHost';
+import { HOST_TABLE_PATH, hostedTablesOpen, useMayHost } from '../../hooks/useMayHost';
 import { api, type HostedTableSummary } from '../../lib/api';
-import { anyoneHostsOpen } from '../../lib/anyoneHosts';
-import { fewHostsOpen } from '../../lib/fewHosts';
 
 // Launch 3, slice J3 (todo/plans/guests-and-tea-masters-launch-3-run.md, hard
 // question 1). While anyone may host (both switches open), the door that made
@@ -18,9 +16,7 @@ import { fewHostsOpen } from '../../lib/fewHosts';
 // seat or more. Old private sits are left exactly as they are, readable at
 // their own addresses, and Journey lists them beside the person's hosted
 // tables, read together at the moment of reading. Nothing old is rewritten.
-const hostedTablesOpen = () => fewHostsOpen() && anyoneHostsOpen();
-const hostTablePath = '/account/host';
-const hostedTablePath = (id: string) => `${hostTablePath}/${encodeURIComponent(id)}`;
+const hostedTablePath = (id: string) => `${HOST_TABLE_PATH}/${encodeURIComponent(id)}`;
 
 /** The table's day in its own time zone, written the way a sit's date is. */
 function tableDay(table: Pick<HostedTableSummary, 'event_date' | 'timezone'>): string {
@@ -48,9 +44,9 @@ function journeyEntries(sits: MemberSit[], tables: HostedTableSummary[]): Journe
 
 /** The door, once anyone may host: "Host a table" for a person who may host, nothing for anyone else. */
 function HostTableDoor() {
-  const mayHost = useMayHost();
+  const { mayHost } = useMayHost();
   if (!mayHost) return null;
-  return <Link to={hostTablePath} className="btn-primary btn-sm">Host a table</Link>;
+  return <Link to={HOST_TABLE_PATH} className="btn-primary btn-sm">Host a table</Link>;
 }
 
 function localDate(): string {
