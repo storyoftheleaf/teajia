@@ -39,6 +39,7 @@ import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
 import { transferToolModule } from './mcpTools/transfer';
 import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
+import { firstTableToolModule } from './mcpTools/firstTable';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -7127,6 +7128,7 @@ const TOOL_MODULES: ToolModule[] = [
   transferToolModule,
   curationTools,
   eventsToolModule,
+  firstTableToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,
