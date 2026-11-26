@@ -1,6 +1,8 @@
 import type { CellarItem, CellarPlacementRequest, PublicShelf, ShelfOfferInput, ShelfSettings } from './teaChestTypes';
 export type { CellarItem, CellarPlacementRequest, PublicShelf, PublicShelfItem, ShelfOfferInput, ShelfSettings, TeaChestAccount } from './teaChestTypes';
 import type { ShippingPaymentNotification } from './shippingNotification';
+import type { MyFavourites } from './favouritesTypes';
+export type { FavouriteArticle, FavouriteChestTea, FavouriteShopTea, MyFavourites } from './favouritesTypes';
 import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createArticleApi } from './articlesApi';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
@@ -4697,6 +4699,24 @@ export const api = {
     },
     unpublishFromShelf: async (id: string): Promise<{ ok: boolean }> => {
       return authedFetch(`${API_URL}/api/me/cellar/${id}/unpublish-shelf`, { method: 'POST' });
+    },
+  },
+
+  // Launch 4: favourites in three kinds, the caller's own only. No counts in any answer.
+  favourites: {
+    list: async (): Promise<MyFavourites> => {
+      return authedFetch(`${API_URL}/api/me/favourites`);
+    },
+    keepArticle: async (id: string): Promise<{ kept: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/favourites/articles/${encodeURIComponent(id)}`, { method: 'PUT' });
+    },
+    unkeepArticle: async (id: string): Promise<{ kept: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/favourites/articles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
+    markChestTea: async (id: string, favourite: boolean): Promise<{ id: string; favourite: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${encodeURIComponent(id)}/favourite`, {
+        method: 'PUT', body: JSON.stringify({ favourite }),
+      });
     },
   },
 

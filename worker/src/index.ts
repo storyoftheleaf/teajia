@@ -11,6 +11,7 @@ import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
+import { favouritesRoutes } from './favourites';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -314,6 +315,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   AFTER_SIT_LIMITER?: RateLimit;
   /** "true" opens Launch 1 in a local sandbox only; see src/lib/firstTable.ts. Never set on the live worker. */
   FIRST_TABLE_OPEN?: string;
+  /** "true" or "false" opens or closes favourites (Launch 4); see src/lib/favouritesOpen.ts. */
+  FAVOURITES_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -16006,6 +16009,7 @@ function ownedCellarItemToApi(row: any) {
     costCurrency: row.chest_cost_currency ?? null,
     shelfNeedsReview: !!row.shelf_published && (row.shelf_offer_name == null || row.shelf_offer_price_amount == null),
     source: cellarSourceToApi(row),
+    favourite: row.favourite === 1,
     shelfOffer: row.shelf_offer_name == null ? null : {
       name: row.shelf_offer_name,
       price_amount: row.shelf_offer_price_amount ?? null,
@@ -31742,6 +31746,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
   ['DELETE', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
+  ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ['GET',    '/api/me/cellar', handleListCellar],
   ['POST',   '/api/me/cellar', handleCreateCellarItem],
   ['PUT',    '/api/me/cellar/:id', handleUpdateCellarItem],

@@ -94,6 +94,7 @@ const DesignSystemShowcase = lazyWithRetry(() => import('./pages/DesignSystemSho
 const JournalPage = lazyWithRetry(() => import('./pages/JournalPage'));
 const CollectionPage = lazyWithRetry(() => import('./pages/CollectionPage'));
 const CellarPage = lazyWithRetry(() => import('./pages/CellarPage'));
+const FavouritesPage = lazyWithRetry(() => import('./pages/FavouritesPage'));
 const SharedCollectionsPage = lazyWithRetry(() => import('./pages/SharedCollectionsPage'));
 const SignInPage = lazyWithRetry(() => import('./pages/SignInPage'));
 const SignUpPage = lazyWithRetry(() => import('./pages/SignUpPage'));
@@ -1267,6 +1268,7 @@ const AppContent = () => {
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/cellar" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CellarPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/favourites" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><FavouritesPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey/sits/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}>
                   <MemberSitPage renderPhotos={sit => <PrivateSubjectPhotos subject="member-sit" subjectId={sit.id} />} />
