@@ -50,6 +50,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const [readingArticleId, setReadingArticleId] = useState('');
   const [publishedArticles, setPublishedArticles] = useState<ReadingArticleOption[]>([]);
   const readingChangedRef = useRef(false);
+  // Send the reading only once it is known, so a failed load can never clear a saved one.
+  const readingKnownRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const venueStepFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [venueStepUploading, setVenueStepUploading] = useState<number | null>(null);
@@ -106,6 +108,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   useEffect(() => {
     let active = true;
     readingChangedRef.current = false;
+    readingKnownRef.current = false;
     const initialReading = (initialData as TeaEvent & {
       readingArticleId?: string | null;
       reading_article_id?: string | null;
@@ -113,6 +116,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     setReadingArticleId(initialReading);
     api.events.getAdmin(initialData.id).then(rawEvent => {
       if (!active || readingChangedRef.current) return;
+      readingKnownRef.current = true;
       setReadingArticleId(rawEvent?.reading_article_id ?? '');
     }).catch(() => {});
     return () => { active = false; };
@@ -414,7 +418,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         venue_id: editVenueId || null,
         active_space_ids: editSpaceIds.length > 0 ? JSON.stringify(editSpaceIds) : null,
         requires_approval: editRequiresApproval ? 1 : 0,
-        reading_article_id: readingArticleId || null,
+        ...(readingChangedRef.current || readingKnownRef.current ? { reading_article_id: readingArticleId || null } : {}),
       };
       await api.events.update(initialData.id, payload);
       showToast('Event updated', 'success');

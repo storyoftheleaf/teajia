@@ -479,8 +479,8 @@ const EventLanding: React.FC = () => {
 
           {reading && (
             <a
-              href={`/article/${reading.slug}`}
-              className="inline-flex items-center justify-center gap-1.5 mb-6 text-ui-12 text-tea-gold hover:text-tea-gold-lt transition-colors"
+              href={`/article/${encodeURIComponent(reading.slug)}`}
+              className="tap-target inline-flex items-center justify-center gap-1.5 mb-6 text-ui-12 text-tea-gold hover:text-tea-gold-lt transition-colors"
             >
               <BookOpen className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               <span>To read before you come</span>
