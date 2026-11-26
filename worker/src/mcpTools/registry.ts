@@ -58,6 +58,8 @@ export interface StockMovementService {
 
 export interface ToolEnv {
   EDITORIAL_PILOT_ACCOUNT_ID?: string;
+  FAVOURITES_OPEN?: string;
+  TEA_TABLE_OPEN?: string;
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ATLAS_BUCKET?: R2Bucket;
@@ -86,6 +88,8 @@ export interface ToolDefinition {
   description: string;
   inputSchema: Record<string, unknown>;
   annotations?: Record<string, unknown>;
+  /** Return a refusal code when a feature or authority gate is closed. */
+  unavailable?: (env: ToolEnv, auth: ToolAuth) => string | undefined;
 }
 
 export type ToolHandler = (env: ToolEnv, auth: ToolAuth, args: any) => Promise<unknown>;
