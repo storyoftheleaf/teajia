@@ -6,6 +6,7 @@ import { quoteGrams, sellUnitOf, wholePieceOf } from '../../../lib/teaPricing';
 import { ORDERS_PAUSED_MESSAGE } from '../../../lib/shopPurchase';
 import { useAppStore } from '../../../lib/store';
 import { AmountCellList, buildTeaAmountCells, TeaAmountList, type TeaAmountCell } from './TeaAmountList';
+import { Button } from '../../shared/Button';
 
 interface StockStatus {
   label: string;
@@ -410,7 +411,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             </div>
           )}
           {!dockedSoldOut && <div className="alcove-dock-decision" role="group" aria-label="Choose and add a tea amount">
-            {fixedPack ? <span className="font-display text-ui-17 tabular-nums text-tea-text">{grams} g</span> : <button
+            {fixedPack ? <span className="font-display text-ui-17 tabular-nums text-tea-text">{grams} g</span> : <Button variant="plain"
               type="button"
               onClick={() => setAmountsOpen(open => !open)}
               aria-expanded={amountsOpen}
@@ -422,11 +423,11 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               <span aria-hidden="true" className="ml-auto shrink-0 font-sans text-ui-9 text-tea-text-dim">
                 {amountsOpen ? '▴' : '▾'}
               </span>
-            </button>}
+            </Button>}
             <span className="alcove-dock-cta-total shrink-0 tabular-nums" data-testid="buyer-selected-total">
               <span className="sr-only">Total </span>{resolvedTotal(addTotalUsd)}
             </span>
-            <button
+            <Button variant="plain"
               type="button"
               onClick={() => {
                 if (navigator.vibrate) navigator.vibrate(8);
@@ -439,7 +440,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
               data-state={justAdded ? 'added' : 'default'}
             >
               {justAdded ? 'Added' : 'Add to order'}
-            </button>
+            </Button>
           </div>}
           {!(dockedSoldOut && isTea) && <div className="flex shrink-0 items-center">
             <button

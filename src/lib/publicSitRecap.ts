@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PublicSessionTea, SessionGuestItem, SessionPerson, SessionPhotograph, SessionSignature } from '../../shared/sessionTea';
 import { API_URL, authedFetch, fetchWithTimeout } from './api';
+import { REVOCABLE_QUERY } from './revocableQuery';
 import { useAppStore } from './store';
 
 export type PublicRecapTea = PublicSessionTea & { items: SessionGuestItem[] };
@@ -40,7 +41,8 @@ export function usePublicSitRecap(slug: string) {
       if (!response.ok) throw new Error('Could not open this recap.');
       return (await response.json()).recap as PublicSitRecap;
     },
-    staleTime: 0,
+    // A recap can be taken down or hidden.
+    ...REVOCABLE_QUERY,
     retry: false,
   });
 }

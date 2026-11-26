@@ -76,7 +76,11 @@ function KeepControl({ item, kept }: { item: TeaTableItem; kept: boolean }) {
   );
 }
 
-/** The author's own way off the table. Their page keeps the tasting. */
+/**
+ * The author's own way off the table. Their page keeps the tasting only when
+ * they had put it on their page by itself before; when the table was the only
+ * reason it was public, it goes private everywhere (worker/src/teaTable.ts).
+ */
 function TakeOffControl({ item }: { item: TeaTableTasting }) {
   const client = useQueryClient();
   const takeOff = useMutation({
@@ -84,6 +88,8 @@ function TakeOffControl({ item }: { item: TeaTableTasting }) {
     onSuccess: () => Promise.all([
       client.invalidateQueries({ queryKey: ['tea-table', 'page'] }),
       client.invalidateQueries({ queryKey: TEA_TABLE_MINE_KEY }),
+      client.invalidateQueries({ queryKey: ['contributor'] }),
+      client.invalidateQueries({ queryKey: ['family'] }),
     ]),
   });
   return (

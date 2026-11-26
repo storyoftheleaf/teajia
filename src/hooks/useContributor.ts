@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { familyPageTierOf, type FamilyPersonTasting } from '../lib/familyContract';
+import { REVOCABLE_QUERY } from '../lib/revocableQuery';
 import type {
   ContributorProfile,
   ContributorListItem,
@@ -86,7 +87,8 @@ export const useContributor = (slug: string | undefined) => {
         tastings: arrayOf<FamilyPersonTasting>(data.tastings),
       };
     },
-    staleTime: 1000 * 60 * 5,
+    // The page carries tastings and photographs a person can take back.
+    ...REVOCABLE_QUERY,
   });
 };
 

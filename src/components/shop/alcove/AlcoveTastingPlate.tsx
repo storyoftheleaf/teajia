@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { CustomerTasting } from '../../../types';
 import { resolveTermLabel } from '../../../data/tastingTaxonomy';
 import { normalizeNotes } from '../../../lib/noteEntries';
+import { Button } from '../../shared/Button';
 
 interface AlcoveTastingPlateProps {
   /** This reader's entry for this tea, or null when they have not written one. */
@@ -21,14 +22,8 @@ interface AlcoveTastingPlateProps {
   variant?: 'inline' | 'standalone';
 }
 
-/**
- * The two words in the plate's corner. Deliberately not tap-target: it sets a
- * 44px min-height on the element, which turned a two-word label into a 44px row
- * and made the plate a third taller than it needed to be. The pressable area is
- * grown with a pseudo-element instead, so the header keeps its own line box.
- */
 const CORNER_LINK =
-  "relative font-sans text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec underline decoration-tea-gold/40 underline-offset-[3px] transition-colors after:absolute after:-inset-x-2 after:-top-4 after:-bottom-4 after:content-[''] hover:text-tea-text hover:decoration-tea-gold";
+  'tap-target font-sans text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec underline decoration-tea-gold/40 underline-offset-[3px] transition-colors hover:text-tea-text hover:decoration-tea-gold';
 
 /** The leaf that marks the plate. Drawn, so it scales and takes the accent. */
 const LeafMark: React.FC = () => (
@@ -231,7 +226,7 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
               </p>
             )}
             <div className="mt-3.5 flex gap-4">
-              <button
+              <Button variant="plain"
                 type="button"
                 onClick={e => {
                   e.stopPropagation();
@@ -240,8 +235,8 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
                 className={CORNER_LINK}
               >
                 Note
-              </button>
-              <button
+              </Button>
+              <Button variant="plain"
                 type="button"
                 onClick={e => {
                   e.stopPropagation();
@@ -250,7 +245,7 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
                 className={CORNER_LINK}
               >
                 Edit
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -295,12 +290,12 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
 
   return (
     <div className="bg-tea-gold/8 px-4 pb-3.5 pt-3">
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3">
         <span className="font-sans text-ui-10 font-medium uppercase tracking-[0.2em] text-tea-text-dim">
           Your tasting
         </span>
-        <span className="flex shrink-0 items-baseline gap-3">
-          <button
+        <span className="flex items-center gap-3">
+          <Button variant="plain"
             type="button"
             onClick={e => {
               e.stopPropagation();
@@ -309,9 +304,9 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
             className={CORNER_LINK}
           >
             Note
-          </button>
+          </Button>
           <span aria-hidden="true" className="h-[11px] w-px self-center bg-tea-border" />
-          <button
+          <Button variant="plain"
             type="button"
             onClick={e => {
               e.stopPropagation();
@@ -320,7 +315,7 @@ export const AlcoveTastingPlate: React.FC<AlcoveTastingPlateProps> = ({ entry, o
             className={CORNER_LINK}
           >
             Edit
-          </button>
+          </Button>
         </span>
       </div>
 

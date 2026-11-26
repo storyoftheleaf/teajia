@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_URL, authedFetch, fetchWithTimeout, handleResponse, hasToken } from './api';
 import { teaTableOpen, type TeaTableKind } from './teaTable';
+import { REVOCABLE_QUERY } from './revocableQuery';
 import type { TeaTableManageItem, TeaTableMine, TeaTablePage, TeaTableRecapState, TeaTableShow } from './teaTableContract';
 
 const path = (kind: TeaTableKind, id: string) => `${encodeURIComponent(kind)}/${encodeURIComponent(id)}`;
@@ -22,8 +23,12 @@ export const teaTableApi = {
   mine: (): Promise<TeaTableMine> => authedFetch(`${API_URL}/api/tea-table/me`),
   keep: (kind: TeaTableKind, id: string, kept: boolean): Promise<{ kind: TeaTableKind; id: string; kept: boolean }> =>
     authedFetch(`${API_URL}/api/tea-table/keeps/${path(kind, id)}`, { method: kept ? 'PUT' : 'DELETE' }),
-  /** The author takes their own tasting off the table. It stays on their page. */
-  takeOff: (id: string): Promise<{ kind: 'tasting'; id: string; on_table: false }> =>
+  /**
+   * The author takes their own tasting off the table. It stays on their page
+   * (`on_page`) only when they had chosen their page by itself; otherwise it
+   * goes private everywhere.
+   */
+  takeOff: (id: string): Promise<{ kind: 'tasting'; id: string; on_table: false; on_page: boolean }> =>
     authedFetch(`${API_URL}/api/tea-table/mine/tasting/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   hold: (kind: TeaTableKind, id: string, days: number | null): Promise<{ held_until: string | null }> =>
     authedFetch(`${API_URL}/api/tea-table/holds/${path(kind, id)}`, days === null
@@ -45,11 +50,12 @@ export const teaTableApi = {
 export const TEA_TABLE_MINE_KEY = ['tea-table', 'mine'] as const;
 
 /** The caller's keeps and own pieces, when the Tea Table is open and they are signed in. */
-export function useTeaTableMine() {
+export function useTeaTableMine(enabled = true) {
   return useQuery({
     queryKey: TEA_TABLE_MINE_KEY,
     queryFn: () => teaTableApi.mine(),
-    enabled: teaTableOpen() && hasToken(),
-    staleTime: 0,
+    enabled: enabled && teaTableOpen() && hasToken(),
+    // A kept piece can be withdrawn or hidden at any moment.
+    ...REVOCABLE_QUERY,
   });
 }

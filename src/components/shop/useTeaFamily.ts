@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { familyApi } from '../../lib/familyApi';
+import { REVOCABLE_QUERY } from '../../lib/revocableQuery';
 import type { FamilyAuthor, FamilyMyTea, FamilyPhotograph, FamilyPhotographFrame, FamilyPhotographShape, FamilySharedPhotograph, FamilyTeaPhotographs } from '../../lib/familyContract';
 
 /**
@@ -109,7 +110,8 @@ export function useTeaFamily(productId: string | undefined) {
     queryKey: ['family', 'tea-photographs', productId],
     queryFn: async () => readPublic(await familyApi.teaPhotographs(productId!)),
     enabled: Boolean(productId),
-    staleTime: 1000 * 60 * 5,
+    // A family photograph can be taken back or hidden at any moment.
+    ...REVOCABLE_QUERY,
     retry: false,
   });
   const mineKey = ['family', 'my-tea', productId, user?.email] as const;

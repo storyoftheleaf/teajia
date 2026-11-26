@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '../../lib/api';
 import { familyApi } from '../../lib/familyApi';
 import type { FamilyShareState } from '../../lib/familyContract';
@@ -6,6 +7,7 @@ import { syncTastingJournal } from '../../lib/tastingJournalSync';
 import { Button } from '../shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { teaTableOpen } from '../../lib/teaTable';
+import { TEA_TABLE_MINE_KEY } from '../../lib/teaTableApi';
 
 type Choice = 'private' | 'page' | 'offered';
 
@@ -21,6 +23,7 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
   photographCount: number;
   onClose: () => void;
 }) {
+  const queryClient = useQueryClient();
   const [choice, setChoice] = useState<Choice>('private');
   const [state, setState] = useState<'idle' | 'sharing' | 'shared' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -48,6 +51,7 @@ export function TastingShareStep({ productId, photographCount, onClose }: {
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
           await familyApi.shareTasting(productId, choice as FamilyShareState, table);
+          void queryClient.invalidateQueries({ queryKey: TEA_TABLE_MINE_KEY });
           if (choice === 'private') { onClose(); return; }
           setState('shared');
           return;

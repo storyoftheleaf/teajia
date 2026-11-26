@@ -4126,3 +4126,6 @@ ALTER TABLE saved_locations ADD COLUMN is_host_table INTEGER NOT NULL DEFAULT 0 
 ALTER TABLE saved_locations ADD COLUMN area_hint TEXT CHECK (area_hint IS NULL OR length(area_hint) <= 80);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_locations_one_host_table
   ON saved_locations(account_id) WHERE is_host_table = 1;
+
+-- 0145_tea_table_page_alone.sql
+ALTER TABLE member_tasting_shares ADD COLUMN page_alone_at TEXT;

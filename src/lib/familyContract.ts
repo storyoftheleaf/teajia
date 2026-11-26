@@ -290,6 +290,8 @@ export interface FamilyPersonPhotograph {
   full_url: string;
   shape: FamilyPhotographShape;
   frame?: FamilyPhotographFrame | null;
+  /** A consent-projected first name, when the photographer allowed it. */
+  photograph_by?: string | null;
 }
 
 /**

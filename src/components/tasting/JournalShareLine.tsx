@@ -16,10 +16,10 @@ import { Button } from '../shared/Button';
 export const TASTING_SHARES_QUERY_KEY = ['family', 'tasting-shares'] as const;
 
 /** The line, in the words the Share step itself uses. */
-export function shareLineWords(state: FamilyShareState): string {
-  if (state === 'offered') return 'On your page, photographs offered to Teajia';
-  if (state === 'page') return 'On your page';
-  return 'Private';
+export function shareLineWords(state: FamilyShareState, onTeaTable = false): string {
+  if (state === 'private') return 'Private';
+  const audience = onTeaTable ? 'On your page and the Tea Table' : 'On your page';
+  return state === 'offered' ? `${audience}, photographs offered to Teajia` : audience;
 }
 
 /** Only a shop tea can be shared; a tea from the person's own chest cannot yet. */
@@ -39,13 +39,15 @@ export function useTastingShares(enabled: boolean) {
   });
 }
 
-export function JournalShareLine({ productName, state, onOpen }: {
+export function JournalShareLine({ productName, state, onTeaTable, onOpen }: {
   productName: string;
   /** null while the read has not answered: the line says nothing rather than guess. */
   state: FamilyShareState | null;
+  onTeaTable: boolean;
   onOpen: () => void;
 }) {
   if (state == null) return null;
+  const words = shareLineWords(state, onTeaTable);
   return (
     <div className="px-3.5 pb-2 -mt-1">
       <Button
@@ -53,10 +55,10 @@ export function JournalShareLine({ productName, state, onOpen }: {
         type="button"
         onClick={onOpen}
         data-testid="journal-share-line"
-        aria-label={`${productName}: ${shareLineWords(state)}. Change where this tasting goes`}
+        aria-label={`${productName}: ${words}. Change where this tasting goes`}
         className={`${TYPOGRAPHY_CLASSES.accountMeta} tap-target inline-flex items-center text-left text-tea-text-sec hover:text-tea-text transition-colors`}
       >
-        {shareLineWords(state)}
+        {words}
       </Button>
     </div>
   );

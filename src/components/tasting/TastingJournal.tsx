@@ -21,6 +21,9 @@ import { yourTablePageOpen } from '../../lib/yourTablePage';
 import { useAuth } from '../../hooks/useAuth';
 import { useStepParam } from '../../hooks/useStepParam';
 import { JournalShareLine, JournalShareSheet, canShareFromJournal, useTastingShares } from './JournalShareLine';
+import { useTeaTableMine } from '../../lib/teaTableApi';
+import { teaTableOpen } from '../../lib/teaTable';
+import { Button } from '../shared/Button';
 
 interface TastingJournalProps {
   onBack: () => void;
@@ -76,6 +79,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   const { isAuthenticated } = useAuth();
   const shareLinesOn = yourTablePageOpen() && isAuthenticated;
   const tastingShares = useTastingShares(shareLinesOn);
+  const teaTableMine = useTeaTableMine(shareLinesOn);
+  const tableTastings = new Set(teaTableOpen() ? teaTableMine.data?.mine : []);
   const [shareStepProductId, setShareStepProductId] = useStepParam('share');
 
   const handleShare = (entry: CustomerTasting) => {
@@ -434,9 +439,9 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                             {/* Name row */}
                             <div className="flex items-center gap-2 mb-0.5">
                               {onOrderTea && entry.productId && !entry.productId.startsWith('member-tea:') ? (
-                                <button
+                                <Button variant="plain" type="button"
                                   onClick={(e) => { e.stopPropagation(); onOrderTea(entry.productId); }}
-                                  className="group/tealink inline-flex items-baseline gap-1 text-sm font-serif text-tea-text hover:text-tea-gold focus-visible:text-tea-gold focus-visible:outline-none transition-colors text-left min-w-0"
+                                  className="tap-target group/tealink justify-start gap-1 text-sm font-serif text-tea-text hover:text-tea-gold focus-visible:text-tea-gold focus-visible:outline-none transition-colors text-left"
                                 >
                                   <span className="truncate">{entry.productName}</span>
                                   <span
@@ -446,7 +451,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                   >
                                     →
                                   </span>
-                                </button>
+                                </Button>
                               ) : (
                                 <span className="text-sm font-serif text-tea-text truncate">{entry.productName}</span>
                               )}
@@ -509,6 +514,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                         <JournalShareLine
                           productName={entry.productName}
                           state={tastingShares.isSuccess ? (tastingShares.data.get(entry.productId) ?? 'private') : null}
+                          onTeaTable={[entry.id, ...(entry.previousIds ?? [])].some(id => tableTastings.has(`tasting:${id}`))}
                           onOpen={() => setShareStepProductId(entry.productId)}
                         />
                       )}

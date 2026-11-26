@@ -27,3 +27,7 @@ export function favouritesOpen(env?: Env): boolean {
   if (site === 'false') return false;
   return FAVOURITES_OPEN;
 }
+
+export function favouritesPath(): string {
+  return favouritesOpen() ? '/account/favourites' : '/account/collection';
+}

@@ -129,9 +129,9 @@ export const AnchoredMenu: React.FC<AnchoredMenuProps> = ({
               <div className="fixed inset-0 z-nav" onClick={close} />
               <motion.div
                 role={role}
-                initial={{ opacity: 0, scale: 0.96, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: -4 }}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.12 }}
                 style={{ position: 'fixed', top: pos.top, left: pos.left, width }}
                 className={`z-nav bg-tea-surface border border-tea-border shadow-2xl rounded-xl py-1 flex flex-col origin-top ${className}`}

@@ -58,8 +58,23 @@ function setup() {
            ('recap-2', '${OTHER}', 'event-2', 'A quiet table.'),
            ('recap-3', '${SHOP}', 'event-draft', 'Not yet.');
   `);
+  // Each house's owner hosted its own sessions (A4 review, finding 7: only a host acts on a recap).
+  hostOf(db, 'owner', SHOP, ['event-1', 'event-draft']);
+  hostOf(db, 'other-host', OTHER, ['event-2']);
   const env = { DB: db as any, JWT_SECRET: SECRET, TEA_TABLE_OPEN: 'true', PROVIDER_LIMITER: { limit: async () => ({ success: true }) } };
   return { db, env };
+}
+
+/** Credits a person as lead host of sessions, through an unpublished page of their own in that house. */
+function hostOf(db: SqliteD1, userId: string, account: string, events: string[], role = 'lead_host') {
+  const page = `${userId}-page`;
+  db.sqlite.prepare(`INSERT OR IGNORE INTO contributors (id, account_id, user_id, display_name, is_published, links)
+    VALUES (?, ?, ?, ?, 0, '[]')`).run(page, account, userId, userId);
+  db.sqlite.prepare('INSERT OR IGNORE INTO contributor_accounts (contributor_id, account_id) VALUES (?, ?)').run(page, account);
+  for (const event of events) {
+    db.sqlite.prepare(`INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role, is_public)
+      VALUES (?, ?, ?, ?, ?, 0)`).run(`credit-${page}-${event}-${role}`, account, event, page, role);
+  }
 }
 
 type Who = { userId: string; account?: string } | null;
@@ -96,6 +111,23 @@ const shareToTable = (env: any, extra: Record<string, unknown> = { tea_table: tr
 const putRecap = (env: any, who: Who, id = 'event-1') => call(env, who, `/api/admin/tea-table/recaps/${id}`, { method: 'PUT' });
 
 describe('the consent gate', () => {
+  it('lets gather staff manage a recap for their own shop without publish', async () => {
+    const { db, env } = setup();
+    const gather = { userId: 'gather-staff', account: SHOP };
+    const publish = { userId: 'publish-staff', account: SHOP };
+    seedIdentity(db, { userId: gather.userId, accountId: SHOP, role: 'staff', bundles: ['gather'] });
+    seedIdentity(db, { userId: publish.userId, accountId: SHOP, role: 'staff', bundles: ['publish'] });
+    hostOf(db, gather.userId, SHOP, ['event-1'], 'co_host');
+    hostOf(db, publish.userId, SHOP, ['event-1'], 'co_host');
+    const path = '/api/admin/tea-table/recaps/event-1';
+    expect(await ok(env, gather, path)).toMatchObject({ eligible: true, on_table: false });
+    expect((await call(env, publish, path, { method: 'PUT' })).status).toBe(403);
+    expect((await putRecap(env, gather, 'event-2')).status).toBe(404);
+    expect(await ok(env, gather, path, { method: 'PUT' })).toMatchObject({ on_table: true });
+    await ok(env, gather, '/api/tea-table/holds/recap/event-1', { method: 'PUT', body: { days: 3 } });
+    expect(await ok(env, gather, path, { method: 'DELETE' })).toMatchObject({ on_table: false });
+  });
+
   it('leaves off a tasting shared under the older "On my page" wording', async () => {
     const { env } = setup();
     expect(keys(await table(env))).toEqual([]);
@@ -157,6 +189,38 @@ describe('the consent gate', () => {
   });
 });
 
+describe('only a host of the session acts on its recap (A4 review, finding 7)', () => {
+  it('refuses a shop member who did not host it, and keeps the platform owner\'s hand', async () => {
+    const { db, env } = setup();
+    // Staff of the same shop with gather and publish, and the shop's own owner on a session hosted by someone else.
+    const staff = { userId: 'shop-staff', account: SHOP };
+    seedIdentity(db, { userId: staff.userId, accountId: SHOP, role: 'staff', bundles: ['gather', 'publish'] });
+    db.sqlite.exec(`
+      INSERT INTO events (id, account_id, slug, title, event_date, lifecycle_status, public_visibility, recap_status, network_discovery)
+      VALUES ('event-guest', '${SHOP}', 'guest-sit', 'Guest sit', '2026-11-23', 'completed', 'public', 'published', 1);
+      INSERT INTO event_post_session (id, account_id, event_id, session_notes) VALUES ('recap-4', '${SHOP}', 'event-guest', 'A guest poured.');
+    `);
+    hostOf(db, 'member-two', SHOP, ['event-guest'], 'guest_host');
+    for (const [who, id] of [[staff, 'event-1'], [HOST, 'event-guest']] as const) {
+      const path = `/api/admin/tea-table/recaps/${id}`;
+      for (const method of ['GET', 'PUT', 'DELETE']) {
+        const refused = await call(env, who, path, { method });
+        expect(refused.status, `${who.userId} ${method} ${id}`).toBe(403);
+        expect(((await refused.json()) as any).code).toBe('not_host');
+      }
+      expect((await call(env, who, `/api/tea-table/holds/recap/${id}`, { method: 'PUT', body: { days: 3 } })).status).toBe(403);
+    }
+    expect(keys(await table(env))).toEqual([]);
+    // The host of the session may; the platform owner may act on any.
+    expect(await ok(env, HOST, '/api/admin/tea-table/recaps/event-1', { method: 'PUT' })).toMatchObject({ on_table: true });
+    expect((await call(env, staff, '/api/tea-table/holds/recap/event-1', { method: 'PUT', body: { days: 3 } })).status).toBe(403);
+    expect((await call(env, staff, '/api/tea-table/holds/recap/event-1', { method: 'DELETE' })).status).toBe(403);
+    expect(await ok(env, PLATFORM, '/api/admin/tea-table/recaps/event-guest', { method: 'PUT' })).toMatchObject({ on_table: true });
+    await ok(env, PLATFORM, '/api/tea-table/holds/recap/event-guest', { method: 'PUT', body: { days: 2 } });
+    expect((await table(env)).held.map((item: any) => item.id)).toEqual(['event-guest']);
+  });
+});
+
 describe('no score in any answer', () => {
   it('carries no rating, quality, verdict or count anywhere a reader can see', async () => {
     const { env } = setup();
@@ -195,7 +259,7 @@ describe('withdrawn and hidden pieces vanish from every view at once', () => {
     expect(await kept(env)).toEqual(['recap:event-1']);
   });
 
-  it('the author takes a tasting off the table; it stays on their page', async () => {
+  it('the author takes a tasting off the table; shared on their page before, it stays there', async () => {
     const { env, db } = setup();
     await onTableAndKept(env);
     expect((await ok(env, MEMBER, '/api/tea-table/me')).mine).toEqual(['tasting:journal-one']);
@@ -205,6 +269,41 @@ describe('withdrawn and hidden pieces vanish from every view at once', () => {
     expect(keys(await table(env))).toEqual(['recap:event-1']);
     expect(await kept(env)).toEqual(['recap:event-1']);
     expect((db.sqlite.prepare('SELECT share_state FROM member_tasting_shares').get() as any).share_state).toBe('page');
+    const page = await ok(env, null, '/api/people/mei');
+    expect(page.tastings.find((tea: any) => tea.product_id === 'tea-a').words.map((word: any) => word.text)).toEqual(['Orchid on the lid']);
+  });
+
+  it('the author takes off a tasting the table alone made public; it goes private everywhere (A4 review, finding 1)', async () => {
+    const { env, db } = setup();
+    // Never on the page by itself: the first share is the Tea Table share.
+    db.sqlite.prepare(`DELETE FROM member_tasting_shares`).run();
+    db.sqlite.prepare(`UPDATE member_photographs SET share_state = 'private'`).run();
+    await onTableAndKept(env);
+    // An offered quote the shop approved, and a photograph it placed.
+    db.sqlite.prepare(`UPDATE member_photographs SET offered_at = '2026-11-12', shop_use = 'placed'`).run();
+    db.sqlite.prepare(`INSERT INTO tasting_note_candidates (id, account_id, journal_entry_id, note_key, product_id, author_user_id,
+        source_text, status, attribution_name, offered_at, promoted_at, promoted_by, created_at, updated_at)
+      VALUES ('cand-1', ?, 'journal-one', 'n1', 'tea-a', 'member-one', 'Orchid on the lid', 'promoted', 'Mei', '2026-11-12', '2026-11-13', 'owner', '2026-11-12', '2026-11-13')`).run(SHOP);
+    db.sqlite.prepare(`INSERT INTO product_impressions (id, account_id, product_id, candidate_id, text, attribution_name, published_at, published_by,
+        created_at, show_on_listing, show_on_main_page)
+      VALUES ('imp-1', ?, 'tea-a', 'cand-1', 'Orchid on the lid', 'Mei', '2026-11-13', 'owner', '2026-11-13', 1, 1)`).run(SHOP);
+    const words = async () => (await ok(env, null, '/api/people/mei')).tastings.find((tea: any) => tea.product_id === 'tea-a');
+    expect((await words()).words.map((word: any) => word.text)).toEqual(['Orchid on the lid']);
+    expect(await ok(env, null, '/api/products/tea-a/impressions')).toHaveLength(1);
+
+    expect(await ok(env, MEMBER, '/api/tea-table/mine/tasting/journal-one', { method: 'DELETE' })).toMatchObject({ on_table: false, on_page: false });
+    expect(keys(await table(env))).toEqual(['recap:event-1']);
+    expect(await kept(env)).toEqual(['recap:event-1']);
+    expect(await words()).toBeUndefined();
+    expect(await ok(env, null, '/api/products/tea-a/impressions')).toEqual([]);
+    const tea = await ok(env, null, '/api/family/teas/tea-a/photographs');
+    expect(tea).toMatchObject({ lead: null, placed: [], family: [] });
+    expect(db.sqlite.prepare('SELECT share_state, tea_table_at FROM member_tasting_shares').get()).toEqual({ share_state: 'private', tea_table_at: null });
+    expect(db.sqlite.prepare(`SELECT COUNT(*) AS n FROM tea_table_holds WHERE item_kind = 'tasting'`).get()).toEqual({ n: 0 });
+    // Shared again, it goes back on both, and taken off it goes private again.
+    await shareToTable(env);
+    await ok(env, MEMBER, '/api/tea-table/mine/tasting/journal-one', { method: 'DELETE' });
+    expect(await words()).toBeUndefined();
   });
 
   it('the shop\'s hide and the platform owner\'s hide take a piece off, and restoring brings it back', async () => {
@@ -212,6 +311,7 @@ describe('withdrawn and hidden pieces vanish from every view at once', () => {
     await onTableAndKept(env);
     await ok(env, HOST, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'tasting', target_id: 'journal-one' } });
     expect(keys(await table(env))).toEqual(['recap:event-1']);
+    expect((await ok(env, MEMBER, '/api/tea-table/me')).mine).toEqual([]);
     await ok(env, HOST, '/api/admin/family/unhide', { method: 'POST', body: { target_kind: 'tasting', target_id: 'journal-one' } });
     expect(keys(await table(env)).sort()).toEqual(['recap:event-1', 'tasting:journal-one']);
     await ok(env, PLATFORM, '/api/admin/tea-table/hide', { method: 'POST', body: { kind: 'recap', id: 'event-1', hidden: true } });
@@ -220,6 +320,54 @@ describe('withdrawn and hidden pieces vanish from every view at once', () => {
     expect(await kept(env)).toEqual([]);
     await ok(env, PLATFORM, '/api/admin/tea-table/hide', { method: 'POST', body: { kind: 'recap', id: 'event-1', hidden: false } });
     expect(keys(await table(env))).toEqual(['recap:event-1']);
+  });
+
+  it('the platform owner\'s hide takes a recap off every public place; the host\'s take-off leaves its own page (A4 review, finding 2)', async () => {
+    const { env, db } = setup();
+    // Mei is credited as the session's photographer and shows it on her page.
+    db.sqlite.prepare('INSERT INTO contributor_accounts (contributor_id, account_id) VALUES (?, ?)').run('mei', SHOP);
+    db.sqlite.prepare(`INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role, is_public)
+      VALUES ('credit-mei', ?, 'event-1', 'mei', 'photographer', 1)`).run(SHOP);
+    db.sqlite.prepare(`INSERT INTO sit_profile_placements (account_id, event_id, contributor_id, role)
+      VALUES (?, 'event-1', 'mei', 'photographer')`).run(SHOP);
+    const everywhere = async () => {
+      const recent = await (await call(env, null, '/api/public/sit-links/recent', { method: 'POST' })).json() as any;
+      const links = await (await call(env, null, '/api/public/sit-links/people/mei')).json() as any;
+      return {
+        detail: (await call(env, null, '/api/public/sit-recaps/autumn-sit')).status,
+        legacy: (await call(env, null, '/api/events/autumn-sit/recap')).status,
+        recent: recent.recaps.map((recap: any) => recap.slug).sort(),
+        links: links.recaps.map((recap: any) => recap.slug),
+        table: keys(await table(env)),
+      };
+    };
+    // A published recap never put on the table is public, as it always was.
+    expect(await everywhere()).toEqual({ detail: 200, legacy: 200, recent: ['autumn-sit', 'other-sit'], links: ['autumn-sit'], table: [] });
+    await putRecap(env, HOST);
+    expect((await everywhere()).table).toEqual(['recap:event-1']);
+    // The host takes it off the table: it stays public on its own page.
+    await ok(env, HOST, '/api/admin/tea-table/recaps/event-1', { method: 'DELETE' });
+    expect(await everywhere()).toEqual({ detail: 200, legacy: 200, recent: ['autumn-sit', 'other-sit'], links: ['autumn-sit'], table: [] });
+    // The platform owner hides it: gone from every place, on the table or not.
+    await putRecap(env, HOST);
+    await ok(env, PLATFORM, '/api/admin/tea-table/hide', { method: 'POST', body: { kind: 'recap', id: 'event-1', hidden: true } });
+    expect(await everywhere()).toEqual({ detail: 404, legacy: 404, recent: ['other-sit'], links: [], table: [] });
+    db.sqlite.prepare(`UPDATE events SET tea_table_at = NULL`).run();
+    expect((await everywhere()).detail).toBe(404);
+    // Restored, it is public again.
+    await ok(env, PLATFORM, '/api/admin/tea-table/hide', { method: 'POST', body: { kind: 'recap', id: 'event-1', hidden: false } });
+    expect(await everywhere()).toMatchObject({ detail: 200, legacy: 200, links: ['autumn-sit'] });
+  });
+
+  it('sends a recap with no-store, so a hidden one is not kept (A4 review, finding 4)', async () => {
+    const { env } = setup();
+    for (const path of ['/api/events/autumn-sit/recap', '/api/public/sit-recaps/autumn-sit']) {
+      const response = await call(env, null, path);
+      expect(response.status, path).toBe(200);
+      expect(response.headers.get('Cache-Control'), path).toBe('no-store');
+    }
+    await ok(env, PLATFORM, '/api/admin/tea-table/hide', { method: 'POST', body: { kind: 'recap', id: 'event-1', hidden: true } });
+    expect((await call(env, null, '/api/events/autumn-sit/recap')).headers.get('Cache-Control')).toBe('no-store');
   });
 
   it('a host takes their recap off, and an unpublished recap is gone too', async () => {
