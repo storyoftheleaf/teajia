@@ -7,6 +7,7 @@ import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createArticleApi } from './articlesApi';
 import { createHostingApi, createTablesApi } from './hostingApi';
 import { createCirclesApi } from './circlesApi';
+import { createHostTokensApi } from './hostTokensApi';
 import { fewHostsOpen } from './fewHosts';
 import { anyoneHostsOpen } from './anyoneHosts';
 export type { HostedTableCreated, HostedTableDetail, HostedTableDoor, HostedTableInput, HostedTableSummary, HostingStatus } from './hostingApi';
@@ -4322,6 +4323,8 @@ export const api = {
   tables: createTablesApi({ apiUrl: API_URL, authedFetch }),
   // Launch 5, M4: circles and series (closed until src/lib/circles.ts opens).
   circles: createCirclesApi({ apiUrl: API_URL, authedFetch }),
+  // Launch 5, M6: a host's own assistant key (closed until src/lib/hostTokens.ts opens).
+  hostTokens: createHostTokensApi({ apiUrl: API_URL, authedFetch }),
 
   platform: {
     listUsers: async (): Promise<{ users: PlatformUser[] }> => {
