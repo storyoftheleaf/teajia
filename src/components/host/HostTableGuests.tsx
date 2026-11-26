@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import type { HostedTableGuest } from '../../lib/hostingApi';
 import { guestWhatsApp, hostSmallText, hostTableQueryKey, hostText, type HostTablePartProps } from './hostTableParts';
 import { SeatNoticeList } from './SeatNoticeList';
@@ -31,6 +32,8 @@ export function HostTableGuests({ tableId, detail }: HostTablePartProps) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: hostTableQueryKey(tableId) }),
   });
   const open = detail.table.lifecycle_status === 'published';
+  // Releasing a seat is Launch 3's (J9): offered only while its switch is on (A3).
+  const mayRelease = anyoneHostsOpen();
 
   return (
     <section aria-labelledby="host-part-guests" data-host-part="guests" className="space-y-5">
@@ -48,7 +51,7 @@ export function HostTableGuests({ tableId, detail }: HostTablePartProps) {
                 <GuestRow key={guest.id} guest={guest} open={open} byLink={detail.table.door === 'link'}
                   busy={(answer.isPending && answer.variables?.guestId === guest.id) || (release.isPending && release.variables === guest.id)}
                   onAnswer={yes => answer.mutate({ guestId: guest.id, yes })}
-                  onRelease={() => release.mutate(guest.id)} />
+                  onRelease={mayRelease ? () => release.mutate(guest.id) : undefined} />
               ))}
             </ul>
           </section>
@@ -66,13 +69,13 @@ function offerTime(at: string): string {
 }
 
 function GuestRow({ guest, open, byLink, busy, onAnswer, onRelease }: {
-  guest: HostedTableGuest; open: boolean; byLink: boolean; busy: boolean; onAnswer: (yes: boolean) => void; onRelease: () => void;
+  guest: HostedTableGuest; open: boolean; byLink: boolean; busy: boolean; onAnswer: (yes: boolean) => void; onRelease?: () => void;
 }) {
   const [asking, setAsking] = useState(false);
   const whatsapp = guestWhatsApp(guest);
   // A guest with a live offer is answered by the offer, not by the host.
   const waiting = open && (guest.status === 'requested' || (guest.status === 'waitlist' && !guest.offer_until));
-  const releasable = open && guest.status === 'confirmed';
+  const releasable = Boolean(onRelease) && open && guest.status === 'confirmed';
   return (
     <li className="space-y-1 rounded border border-tea-border bg-tea-surface p-3" data-host-guest={guest.id}>
       <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text`}>
@@ -116,7 +119,7 @@ function GuestRow({ guest, open, byLink, busy, onAnswer, onRelease }: {
             Keep it
           </Button>
           <Button type="button" size="sm" className="tap-target" disabled={busy}
-            onClick={() => { setAsking(false); onRelease(); }} aria-label={`Yes, release the seat of ${guest.full_name}`}>
+            onClick={() => { setAsking(false); onRelease?.(); }} aria-label={`Yes, release the seat of ${guest.full_name}`}>
             Release
           </Button>
         </div>

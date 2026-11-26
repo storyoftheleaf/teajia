@@ -638,15 +638,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 >
                   {submitMutation.isPending ? (
                     <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
-                  ) : answer?.status === 'waitlist' ? (
-                // A full table where the host says yes to each guest (J13 finding 1).
-                <div className="w-full max-w-xs flex flex-col items-center" data-testid="seat-request-waiting">
-                  <h3 className="h2 mb-3 text-center">You're on the waiting list.</h3>
-                  <p className="body-light text-center max-w-xs mb-6">
-                    The table is full. If a seat opens, the host will answer you.
-                  </p>
-                </div>
-              ) : requiresApproval === false ? (
+                  ) : requiresApproval === false ? (
                     'Reserve my seat'
                   ) : (
                     'Request my seat'

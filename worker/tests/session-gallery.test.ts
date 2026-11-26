@@ -49,7 +49,7 @@ async function fixture() {
   }
 
   const get = vi.fn(async () => ({ size: jpeg.length, arrayBuffer: async () => jpeg.slice().buffer }));
-  const env = { DB: sql as unknown as D1Database, ATLAS_BUCKET: { get } as unknown as R2Bucket };
+  const env = { DB: sql as unknown as D1Database, ATLAS_BUCKET: { get } as unknown as R2Bucket, ANYONE_HOSTS_OPEN: 'true' };
   const routes = afterSitRoutes<typeof env>({
     requireHost: async req => {
       const accountId = req.headers.get('Test-Host');

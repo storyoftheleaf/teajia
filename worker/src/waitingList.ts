@@ -20,7 +20,9 @@
 //   a stale cleanup cannot wipe a deadline that was renewed in between. The
 //   lapsed guest is marked (offer_lapsed_at) and is not offered again by
 //   itself; in Manage the host can put them back at the end of the queue,
-//   which clears the mark. The scheduled worker runs it.
+//   which clears the mark. The scheduled worker runs it. Only an offer this
+//   code made (it has an 'offered' notice) is ever lapsed, so no row from
+//   before Launch 3 is rewritten in bulk (A3; OFFER_MADE_HERE_SQL).
 // - Nobody loses a seat through someone else's action. releaseSeats is the
 //   only way a seat is given back: by the guest themself (cancel), or by the
 //   host on their own table (release). Each is guarded on the guest's status
@@ -45,7 +47,7 @@
 // second before it reads as expired in JavaScript; whole seconds make the two
 // agree. Liveness is still decided in SQL wherever a write depends on it.
 
-import { hostDoorSql } from './hostApproval';
+import { hostDoorSql, hostingStoppedSql } from './hostApproval';
 import { seatsTakenSql } from './hostTableGuests';
 import { sessionInstant } from './sessionWalkthrough';
 
@@ -58,6 +60,21 @@ export type SeatNoticeShown = SeatNoticeKind | 'returned';
 export const LIVE_OFFER_SQL = (alias: string) =>
   `${alias}.claim_expires_at IS NOT NULL AND datetime(${alias}.claim_expires_at) > datetime('now')`;
 const EXPIRED_OFFER_SQL = `claim_expires_at IS NOT NULL AND datetime(claim_expires_at) <= datetime('now')`;
+
+/**
+ * An offer this code made: offerFreedSeats writes an 'offered' notice with a
+ * seat for every offer, and no row from before Launch 3 has one (0134 made
+ * the table empty). Only such an offer is ever lapsed, so neither the
+ * scheduled run nor a cancel rewrites an old waiting-list row on live: an
+ * offer main's cascade made and left behind stays as it was, and that guest
+ * is offered again on the next freed seat, as main did (A3).
+ */
+const OFFER_MADE_HERE_SQL = (alias: string) => `EXISTS (SELECT 1 FROM event_seat_notices made
+    WHERE made.event_id = ${alias}.event_id AND made.account_id = ${alias}.account_id
+      AND made.attendee_id = ${alias}.id AND made.kind = 'offered' AND made.seats > 0)`;
+/** A waiting guest with no offer to wait on: none yet, or only an old one of main's that ran out. */
+const WAITING_WITH_NO_LIVE_OFFER_SQL = (alias: string) => `(${alias}.claim_expires_at IS NULL
+    OR (datetime(${alias}.claim_expires_at) <= datetime('now') AND NOT ${OFFER_MADE_HERE_SQL(alias)}))`;
 
 /** An offer's deadline: the claim window from now, rounded up to the whole second. */
 export function offerDeadline(now: number, minutes: number): string {
@@ -85,7 +102,7 @@ export type ReleaseSeatsInput = {
   eventId: string;
   attendeeId: string;
   /** The statuses the guest may be in for this release to happen. */
-  from: ReadonlyArray<'confirmed' | 'requested' | 'waitlist'>;
+  from: ReadonlyArray<'confirmed' | 'requested' | 'waitlist' | 'denied'>;
   /** 'cancelled' when the guest gave the seat up, 'released' when the host did. */
   kind: 'cancelled' | 'released';
   cancellationNote?: string;
@@ -144,9 +161,13 @@ export async function releaseSeats(db: Db, input: ReleaseSeatsInput): Promise<{ 
   return { seats: Number(row?.seats ?? 0) };
 }
 
-/** Guest cancellation, shared by the private guest link and the signed-in agent. */
+/**
+ * Guest cancellation, shared by the private guest link and the signed-in agent.
+ * A guest said no to may still cancel, as on main: they hold no seat, and any
+ * seat row left from before J9 is given back with it.
+ */
 export async function cancelGuestSeat(db: Db, input: Omit<ReleaseSeatsInput, 'from' | 'kind'>) {
-  const released = await releaseSeats(db, { ...input, from: ['confirmed', 'requested', 'waitlist'], kind: 'cancelled' });
+  const released = await releaseSeats(db, { ...input, from: ['confirmed', 'requested', 'waitlist', 'denied'], kind: 'cancelled' });
   if (!released) {
     const now = await db.prepare(`SELECT status FROM event_attendees WHERE id = ? AND event_id = ? AND account_id = ?
       ${input.userId === undefined ? '' : 'AND user_id = ?'}`)
@@ -154,7 +175,10 @@ export async function cancelGuestSeat(db: Db, input: Omit<ReleaseSeatsInput, 'fr
       .first<{ status: string }>();
     return now?.status === 'cancelled' ? { success: true, status: 'cancelled' } as const : null;
   }
-  if (released.seats > 0) await offerFreedSeats(db, input);
+  // Always offered on, as main's cascade was: a waiting guest who held a live
+  // offer gives back a seat that has no seat row, so seats can read 0 here.
+  // offerFreedSeats offers only a seat that is truly free (A3).
+  await offerFreedSeats(db, input);
   return {
     success: true, status: 'cancelled',
     ...(input.cancellationNote !== undefined ? { cancellation_note: input.cancellationNote } : {}),
@@ -171,8 +195,10 @@ export async function lapseExpiredOffers(db: Db, scope: { eventId: string; accou
   const { results } = await db.prepare(
     `UPDATE event_attendees SET claim_expires_at = NULL, offer_lapsed_at = datetime('now')
       WHERE status = 'waitlist' AND ${EXPIRED_OFFER_SQL}
-        AND id IN (SELECT id FROM event_attendees
-          WHERE status = 'waitlist' AND ${EXPIRED_OFFER_SQL}${one ? ' AND event_id = ? AND account_id = ?' : ''}
+        AND id IN (SELECT queued.id FROM event_attendees queued
+          WHERE queued.status = 'waitlist' AND queued.claim_expires_at IS NOT NULL
+            AND datetime(queued.claim_expires_at) <= datetime('now')
+            AND ${OFFER_MADE_HERE_SQL('queued')}${one ? ' AND queued.event_id = ? AND queued.account_id = ?' : ''}
           LIMIT ?)
       RETURNING id, event_id, account_id`
   ).bind(...(one ? [scope.eventId, scope.accountId, 100] : [scope.limit])).all<{ id: string; event_id: string; account_id: string }>();
@@ -194,13 +220,16 @@ export async function offerFreedSeats(db: Db, scope: { eventId: string; accountI
   await lapseExpiredOffers(db, scope);
   const event = await db.prepare(
     `SELECT e.total_capacity, e.claim_window_minutes, e.lifecycle_status, e.event_date, e.timezone,
-            ${hostDoorSql('a', 'e', { anyoneHosts: true })} AS door
+            ${hostDoorSql('a', 'e', { anyoneHosts: true })} AS door, ${hostingStoppedSql('a')} AS host_stopped
        FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ? AND e.account_id = ?`
   ).bind(scope.eventId, scope.accountId).first<{
     total_capacity: number; claim_window_minutes: number | null; lifecycle_status: string; event_date: string; timezone: string | null;
-    door: string | null;
+    door: string | null; host_stopped: number | null;
   }>();
   if (!event || event.lifecycle_status !== 'published') return [];
+  // A stopped host's table takes no one new (J2), so no seat is offered or
+  // asked for there: an offer the claim route would refuse is no offer (A3).
+  if (Number(event.host_stopped) === 1) return [];
   const start = sessionInstant(event.event_date, event.timezone);
   if (start && start.at <= now) return [];
   if (event.door === 'request') {
@@ -215,10 +244,10 @@ export async function offerFreedSeats(db: Db, scope: { eventId: string; accountI
       `UPDATE event_attendees SET claim_expires_at = ?
         WHERE id = (SELECT queued.id FROM event_attendees queued
             WHERE queued.event_id = ? AND queued.account_id = ? AND queued.status = 'waitlist'
-              AND queued.claim_expires_at IS NULL AND queued.offer_lapsed_at IS NULL
+              AND ${WAITING_WITH_NO_LIVE_OFFER_SQL('queued')} AND queued.offer_lapsed_at IS NULL
             ORDER BY queued.waitlist_position IS NULL, queued.waitlist_position, queued.created_at, queued.id
             LIMIT 1)
-          AND status = 'waitlist' AND claim_expires_at IS NULL AND offer_lapsed_at IS NULL
+          AND status = 'waitlist' AND ${WAITING_WITH_NO_LIVE_OFFER_SQL('event_attendees')} AND offer_lapsed_at IS NULL
           AND EXISTS (SELECT 1 FROM events e
             WHERE e.id = ? AND e.account_id = ? AND e.lifecycle_status = 'published'
               AND ${seatsTakenSql('e')} < e.total_capacity)
@@ -273,7 +302,11 @@ export async function returnWaitingToAsking(db: Db, scope: { eventId: string; ac
 const ASKING_SEATS_SQL = (event: string) => `(SELECT COUNT(*) FROM event_attendees asking
     WHERE asking.event_id = ${event}.id AND asking.account_id = ${event}.account_id AND asking.status = 'requested')`;
 
-/** The scheduled worker's part: lapse expired offers everywhere and move each queue on. */
+/**
+ * The scheduled worker's part: lapse expired offers everywhere and move each
+ * queue on. It touches only offers this code made (lapseExpiredOffers), never
+ * an old row of main's, so it needs no switch and no preview (A3).
+ */
 export async function advanceWaitingLists(db: Db, now = Date.now()): Promise<{ lapsed: number; offered: number }> {
   let lapsed = 0;
   let offered = 0;

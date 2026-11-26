@@ -88,7 +88,7 @@
 
 import { customerTagList } from '../customerContactHandles';
 import { guestLinkSessions } from '../guestLinkHolders';
-import { seatsTakenSql } from '../hostTableGuests';
+import { SEAT_OF_A_GUEST_STILL_COMING, seatsTakenSql } from '../hostTableGuests';
 import {
   EVENT_TRANSITIONS,
   reservePartySeats,
@@ -231,7 +231,7 @@ const EVENT_SELECT = `
          e.gathering_type, e.public_visibility, e.event_format,
          COALESCE((SELECT COUNT(*) FROM event_party_members pm
            WHERE pm.event_id = e.id AND pm.account_id = e.account_id
-             AND pm.seat_status IN ('held','confirmed')), 0) AS held_seats,
+             AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}), 0) AS held_seats,
          COALESCE((SELECT COUNT(*) FROM event_attendees offer
            WHERE offer.event_id = e.id AND offer.account_id = e.account_id
              AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL

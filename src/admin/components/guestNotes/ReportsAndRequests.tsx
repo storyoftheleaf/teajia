@@ -152,9 +152,11 @@ export function ReportsAndRequests() {
       {(reportList.length > 0 || (showSessionReports && sessionReports.isError)) && (
         <section aria-label="Reports" className="mt-8">
           <SectionHeading>Reports</SectionHeading>
-          {((isPlatformOwner && reportList.length > 0) || familyReports.length > 0) && (
+          {/* Every staff member sees the count of the reports they can act on, as on main; only
+              the platform owner's list holds session and person reports (A3). */}
+          {reportList.length > 0 && (
             <p className="mt-1 text-ui-12 text-tea-text-sec">
-              {isPlatformOwner && `${reportList.length} report${reportList.length === 1 ? '' : 's'} waiting. `}
+              {`${reportList.length} report${reportList.length === 1 ? '' : 's'} waiting. `}
               {familyReports.length > 0 && 'Hiding takes it off every page at once.'}
             </p>
           )}
