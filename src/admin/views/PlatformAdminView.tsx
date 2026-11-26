@@ -948,8 +948,9 @@ export const PlatformAdminView: React.FC<PlatformAdminViewProps> = ({ embedded =
     </div>
   );
 
+  // pb-nav-gap-lg: the last person's buttons clear the phone's bottom bar (J13 finding 3).
   return (
-    <div className="px-4 md:px-6 pt-4 pb-10 max-w-5xl mx-auto space-y-5">
+    <div className="px-4 md:px-6 pt-4 pb-nav-gap-lg max-w-5xl mx-auto space-y-5">
       {!embedded && (
         <div className="flex items-center gap-3">
           <ShieldCheck size={18} className="text-tea-gold shrink-0" />

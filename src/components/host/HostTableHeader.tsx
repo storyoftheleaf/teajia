@@ -7,7 +7,9 @@ import { Button } from '../shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
 import type { HostedTableDoor } from '../../lib/hostingApi';
-import { DOOR_WORDS, doorOf, doorWords, hostSmallText, hostTableQueryKey, hostText, tableWhen, type HostTablePartProps } from './hostTableParts';
+import {
+  DOOR_WORDS, TABLE_AREA_HINT, doorOf, doorWords, hostSmallText, hostTableQueryKey, hostText, tableWhen, type HostTablePartProps,
+} from './hostTableParts';
 
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
 const labelClass = `${TYPOGRAPHY_CLASSES.label} grid min-w-0 gap-1 text-tea-text-sec`;
@@ -43,8 +45,12 @@ export function HostTableHeader({ tableId, detail }: HostTablePartProps) {
       </div>
       {feedback && <p className={hostSmallText} role="status">{feedback}</p>}
       {table.lifecycle_status === 'published' && (
-        <TableSettings key={`${table.door}-${table.seats}`} tableId={tableId} detail={detail} />
+        <>
+          <TableSettings key={`${table.door}-${table.seats}`} tableId={tableId} detail={detail} />
+          <TableArea key={table.area_hint ?? ''} tableId={tableId} detail={detail} />
+        </>
       )}
+      {typeof table.is_tasting === 'boolean' && <TastingSwitch key={`${tableId}-${table.is_tasting}`} tableId={tableId} detail={detail} />}
     </header>
   );
 }
@@ -97,5 +103,73 @@ function TableSettings({ tableId, detail }: HostTablePartProps) {
       )}
       {change.isError && <p className={`${hostSmallText} w-full`} role="alert">{change.error.message}</p>}
     </form>
+  );
+}
+
+/**
+ * The area people are told, one short line, never the address (Launch 2,
+ * check run H13, finding 1). The worker refuses a link or the saved address
+ * (worker/src/hostTableArea.ts). Left blank, the public page names no place.
+ */
+function TableArea({ tableId, detail }: HostTablePartProps) {
+  const queryClient = useQueryClient();
+  const saved = detail.table.area_hint ?? '';
+  const [area, setArea] = useState(saved);
+  const change = useMutation({
+    mutationFn: (next: string) => api.tables.change(tableId, { area: next.trim() || null }),
+    retry: false,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: hostTableQueryKey(tableId) }),
+  });
+  const changed = area.trim() !== saved;
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!changed || change.isPending) return;
+    change.mutate(area);
+  }
+
+  return (
+    <form className="flex flex-wrap items-end gap-3" onSubmit={submit} aria-label="Area">
+      <label className={`${labelClass} flex-1`}>
+        Area
+        <input className={fieldClass} type="text" maxLength={80} value={area} aria-describedby="host-table-area-hint"
+          onChange={event => setArea(event.target.value)} />
+      </label>
+      <Button type="submit" variant="quiet" className="tap-target" disabled={!changed || change.isPending}>
+        {change.isPending ? 'Saving…' : 'Save'}
+      </Button>
+      <p id="host-table-area-hint" className={`${hostSmallText} w-full`}>{TABLE_AREA_HINT}</p>
+      {change.isError && <p className={`${hostSmallText} w-full`} role="alert">{change.error.message}</p>}
+    </form>
+  );
+}
+
+/**
+ * "This is a tasting" (J13 finding 4): the host's own choice, the same write
+ * as the set_session_tasting agent tool. On the day, a confirmed guest's page
+ * then opens the tasting; nothing is sent to anyone.
+ */
+function TastingSwitch({ tableId, detail }: HostTablePartProps) {
+  const queryClient = useQueryClient();
+  const saved = detail.table.is_tasting === true;
+  // What the host chose shows at once; a refusal puts the saved answer back.
+  const [shown, setShown] = useState(saved);
+  const change = useMutation({
+    mutationFn: (next: boolean) => api.tables.setTasting(tableId, next),
+    retry: false,
+    onError: () => setShown(saved),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: hostTableQueryKey(tableId) }),
+  });
+  return (
+    <div className="space-y-1">
+      <label className={`${hostText} inline-flex min-h-tap cursor-pointer items-center gap-2`}>
+        <input type="checkbox" role="switch" className="h-4 w-4 shrink-0 accent-tea-gold"
+          checked={shown} aria-checked={shown} disabled={change.isPending}
+          onChange={event => { setShown(event.target.checked); change.mutate(event.target.checked); }} data-testid="host-table-tasting" />
+        This is a tasting
+      </label>
+      <p className={hostSmallText}>On the day, each guest with a seat can open the tasting from their own page.</p>
+      {change.isError && <p className={hostSmallText} role="alert">{change.error.message}</p>}
+    </div>
   );
 }

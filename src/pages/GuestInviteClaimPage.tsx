@@ -279,10 +279,6 @@ const GuestInviteClaimPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Footer */}
-      <div className="text-center pt-10">
-        <p className="label-caps text-tea-text-dim">Hosted by Teajia</p>
-      </div>
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { useStepParam } from '../hooks/useStepParam';
 import { api, hasToken, type HostedTableDoor } from '../lib/api';
 import { authPagePath } from '../lib/authNavigation';
 import { fewHostsOpen } from '../lib/fewHosts';
+import { TABLE_AREA_HINT } from '../components/host/hostTableParts';
 
 const textClass = `${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`;
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
@@ -118,6 +119,7 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
       seats: Number(fields.get('seats')),
       door: fields.get('door') === 'link' || fields.get('door') === 'open' ? fields.get('door') as 'link' | 'open' : 'request',
       name: String(fields.get('name')).trim() || null,
+      area: String(fields.get('area') ?? '').trim() || null,
     }, { onSettled: () => { saving.current = false; } });
   }
 
@@ -147,6 +149,11 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
             <input type="text" name="name" className={fieldClass} maxLength={120} />
           </label>
         </div>
+        <label className={labelClass}>
+          Area (optional)
+          <input type="text" name="area" className={fieldClass} maxLength={80} aria-describedby="table-area-hint" />
+        </label>
+        <p id="table-area-hint" className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>{TABLE_AREA_HINT}</p>
         <fieldset>
           <legend className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>How guests get a seat</legend>
           {doors.includes('request') && (

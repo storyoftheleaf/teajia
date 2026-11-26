@@ -367,12 +367,14 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
             onClick={onOpenCancelConfirm}
             className="tap-target text-xs font-semibold text-tea-text-sec hover:text-tea-error transition-colors py-3"
           >
-            Cancel my reservation
+            {/* At a person's table the guest says it plainly (J13 finding 6). */}
+            {event.privateHost ? "I can't come" : 'Cancel my reservation'}
           </button>
         </div>
 
         {showCancelConfirm && (
           <CancelConfirmModal
+            personsTable={event.privateHost === true}
             attendeeName={attendee.fullName}
             onConfirm={onConfirmCancel}
             onClose={onCloseCancelConfirm}
