@@ -41,9 +41,14 @@ function GalleryPanel({ credential, galleryKey, setupId, identity }: {
     staleTime: 0, gcTime: 0, retry: false,
   });
   const [openId, setOpenId] = useStepParam('photo');
-  const refresh = () => Promise.all([
+  const photoScope = [GUEST_BOOK_PHOTOS_QUERY, identity.accountId, identity.userId];
+  // `gone` is a photograph just taken out: its picture is not asked for again (that answer is a 404).
+  const refresh = (gone?: string) => Promise.all([
     client.invalidateQueries({ queryKey, exact: true }),
-    client.invalidateQueries({ queryKey: [GUEST_BOOK_PHOTOS_QUERY, identity.accountId, identity.userId] }),
+    client.invalidateQueries({
+      queryKey: [GUEST_BOOK_PHOTOS_QUERY, identity.accountId, identity.userId],
+      predicate: query => !gone || query.queryKey[query.queryKey.length - 1] !== gone,
+    }),
     client.invalidateQueries({ queryKey: ['private-subject-photos', identity.accountId, identity.userId] }),
   ]);
 
@@ -53,6 +58,16 @@ function GalleryPanel({ credential, galleryKey, setupId, identity }: {
 
   const withdraw = useMutation({
     mutationFn: (grantId: string) => guestBookPhotoApi.withdraw(credential, grantId, identity),
+    // A picture of it still loading is stopped before it is taken out: asked for
+    // after, it is a 404 (A3).
+    onMutate: grantId => Promise.all([
+      client.cancelQueries({ queryKey: imageKey(grantId), exact: true }),
+      client.cancelQueries({ queryKey: photoScope, predicate: query => query.queryKey[query.queryKey.length - 1] === grantId }),
+    ]),
+    onError: (_, grantId) => Promise.all([
+      client.invalidateQueries({ queryKey: imageKey(grantId), exact: true }),
+      client.invalidateQueries({ queryKey: photoScope, predicate: query => query.queryKey[query.queryKey.length - 1] === grantId }),
+    ]),
     onSuccess: async (_, grantId) => {
       client.setQueryData<typeof gallery.data>(queryKey, previous => previous && {
         ...previous, photos: previous.photos.filter(photo => photo.id !== grantId),
@@ -64,13 +79,11 @@ function GalleryPanel({ credential, galleryKey, setupId, identity }: {
         previous => previous && Array.isArray(previous.gallery)
           ? { ...previous, gallery: previous.gallery.filter(photo => photo.id !== grantId) } : previous,
       );
-      client.removeQueries({
-        predicate: query => query.queryKey[0] === GUEST_BOOK_PHOTOS_QUERY
-          && query.queryKey.includes('included') && query.queryKey[query.queryKey.length - 1] === grantId,
-      });
-      client.removeQueries({ queryKey: imageKey(grantId), exact: true });
+      // Its tiles are still on screen until the lists above re-render, so their queries are
+      // left to unmount and be collected rather than removed: a removed query under a mounted
+      // tile is fetched again on its next render, and that answer is a 404 (A3).
       setOpenId(null);
-      await refresh();
+      await refresh(grantId);
     },
   });
 

@@ -20,7 +20,7 @@ import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from './hostTableAr
 import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
 import { guestLinkSessions, withoutForeignGuestLinks, type GuestLinkCaller } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
-import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest, type OwnHostedTable } from './hostTableGuests';
+import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, reviewHostedTableGuestBook, sayNoToGuest, SEAT_OF_A_GUEST_STILL_COMING, seatsTaken, seatsTakenSql, waitingGuest, type OwnHostedTable } from './hostTableGuests';
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
@@ -12515,7 +12515,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const count = await env.DB.prepare(
     `SELECT
        (SELECT COUNT(*) FROM event_party_members pm
-        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')) AS accepted,
+        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}) AS accepted,
        (SELECT COUNT(*) FROM event_attendees offer
         WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
           AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`
@@ -12772,7 +12772,7 @@ async function upcomingListedSessions(env: Env, reaches: Exclude<HostReach, 'inv
             ${personalAccountSql('a')} AS private_host,
             COALESCE((SELECT COUNT(*) FROM event_party_members pm
               WHERE pm.event_id = e.id AND pm.account_id = e.account_id
-                AND pm.seat_status IN ('held','confirmed')), 0) AS confirmed_count,
+                AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}), 0) AS confirmed_count,
             COALESCE((SELECT COUNT(*) FROM event_attendees offer
               WHERE offer.event_id = e.id AND offer.account_id = e.account_id
                 AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
@@ -13108,7 +13108,7 @@ const handleGetEventAvailability: Handler = async (_request, env, params) => {
   const count = await env.DB.prepare(
     `SELECT
        (SELECT COUNT(*) FROM event_party_members pm
-        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed')) AS accepted,
+        WHERE pm.event_id = ? AND pm.account_id = ? AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}) AS accepted,
        (SELECT COUNT(*) FROM event_attendees offer
         WHERE offer.event_id = ? AND offer.account_id = ? AND offer.status = 'waitlist'
           AND offer.claim_expires_at IS NOT NULL AND datetime(offer.claim_expires_at) > datetime('now')) AS offered`
@@ -13885,7 +13885,7 @@ const handleGetEvents: Handler = async (request, env) => {
       e.created_at, e.updated_at,
       COALESCE((SELECT COUNT(*) FROM event_party_members pm
         WHERE pm.event_id = e.id AND pm.account_id = e.account_id
-          AND pm.seat_status IN ('held','confirmed')), 0) as confirmed_count,
+          AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}), 0) as confirmed_count,
       COALESCE((SELECT COUNT(*) FROM event_attendees offer
         WHERE offer.event_id = e.id AND offer.account_id = e.account_id
           AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
@@ -13913,7 +13913,7 @@ const handleGetEvent: Handler = async (request, env, params) => {
     SELECT e.*,
       COALESCE((SELECT COUNT(*) FROM event_party_members pm
         WHERE pm.event_id = e.id AND pm.account_id = e.account_id
-          AND pm.seat_status IN ('held','confirmed')), 0) as confirmed_count,
+          AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}), 0) as confirmed_count,
       COALESCE((SELECT COUNT(*) FROM event_attendees offer
         WHERE offer.event_id = e.id AND offer.account_id = e.account_id
           AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
@@ -14429,10 +14429,12 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
   if (body.status === 'cancelled' && attendee.status !== 'cancelled') {
     const released = await releaseSeats(env.DB, {
       accountId, eventId: attendee.eid as string, attendeeId: params.id,
-      from: ['confirmed', 'requested', 'waitlist'], kind: 'released',
+      // A guest said no to can be marked cancelled too, as on main (A3).
+      from: ['confirmed', 'requested', 'waitlist', 'denied'], kind: 'released',
     });
     if (!released) return json({ error: 'This seat changed while you were looking. Open it again.', code: 'state_conflict' }, 409);
-    if (released.seats > 0) await offerFreedSeats(env.DB, { eventId: attendee.eid as string, accountId });
+    // Offered on whatever was held: a live offer is a seat with no seat row (A3).
+    await offerFreedSeats(env.DB, { eventId: attendee.eid as string, accountId });
   }
 
   return json({ success: true });
@@ -24644,7 +24646,7 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
        SELECT scoped.id as event_id,
          (SELECT COUNT(*) FROM event_party_members pm
           WHERE pm.event_id = scoped.id AND pm.account_id = scoped.account_id
-            AND pm.seat_status IN ('held','confirmed')) as confirmed_count,
+            AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}) as confirmed_count,
          (SELECT COUNT(*) FROM event_attendees offer
           WHERE offer.event_id = scoped.id AND offer.account_id = scoped.account_id
             AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
