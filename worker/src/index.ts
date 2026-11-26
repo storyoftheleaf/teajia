@@ -36,7 +36,7 @@ import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTab
 import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
 import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
-import { approveHostCreditSpend, declineHostCreditSpend, holdHostCreditForOrder, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnAvailableInShop, readOwnHostCredit, readShopHostCredit, settleHostCredit } from './hostCreditLedger';
+import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnAvailableInShop, readOwnHostCredit, readShopHostCredit, settleHostCredit, useHostCreditOnOrder } from './hostCreditLedger';
 import { hostCreditOpen } from '../../src/lib/hostCredit';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -15598,9 +15598,6 @@ const handleCreateInquiry: Handler = async (request, env, params, ctx) => {
   const via = firstTableOpen(env) && !validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES, 0)
     ? readVia((await request.clone().json().catch(() => null) as { via?: unknown } | null)?.via)
     : null;
-  // The host's one plain choice at checkout; nothing else about credit is read.
-  const useTeaCredit = hostCreditOpen(env) && !validateContentLength(request, INQUIRY_MAX_REQUEST_BYTES, 0)
-    && (await request.clone().json().catch(() => null) as { use_tea_credit?: unknown } | null)?.use_tea_credit === true;
   const response = await createInquiry(request, env, params, ctx);
   if (via && response.status === 201) {
     const saved = await response.clone().json().catch(() => null) as { id?: unknown; idempotent?: unknown } | null;
@@ -15613,22 +15610,8 @@ const handleCreateInquiry: Handler = async (request, env, params, ctx) => {
       for (const order of orders) await settleHostCredit(env, order.id);
     }
   }
-  if (useTeaCredit && response.status === 201) return withTeaCreditAsk(request, env, response);
   return response;
 };
-
-// A signed-in host chose, at checkout, to use their tea credit on this order.
-// Only the choice comes from the browser: who they are, which order, and how
-// much are all read from stored rows. The answer is a held request that waits
-// for the owner's approval in Manage (hostCreditLedger.ts, holdHostCreditForOrder).
-async function withTeaCreditAsk(request: Request, env: Env, response: Response): Promise<Response> {
-  const saved = await response.clone().json().catch(() => null) as Record<string, unknown> | null;
-  if (!saved || saved.idempotent === true || typeof saved.invoice_id !== 'string') return response;
-  const user = await optionalAuthenticatedUser(request, env);
-  if (!user) return response;
-  const tea_credit = await holdHostCreditForOrder(env, { userId: user.userId, invoiceId: saved.invoice_id });
-  return json({ ...saved, tea_credit }, 201);
-}
 
 const createInquiry: Handler = async (request, env, _params, ctx) => {
   const inquiryIp = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -25459,6 +25442,23 @@ const handleGetMyTeaCredit: Handler = async (request, env) => {
   return json({ ...own, store_available });
 };
 
+// POST /api/me/tea-credit/orders/:id/use: the host asks to use credit on one
+// of their own open orders. No amount is read from the request; the ledger
+// works it out from the order and the host's credit in that shop, and holds
+// it until the owner decides in Manage.
+const handleUseMyTeaCredit: Handler = async (request, env, params) => {
+  if (!hostCreditOpen(env)) return json({ error: 'Not found' }, 404);
+  const user = await optionalAuthenticatedUser(request, env);
+  if (!user) return json({ error: 'Sign in to use your tea credit' }, 401);
+  const held = await useHostCreditOnOrder(env, { hostUserId: user.userId, invoiceId: params.id });
+  if ('error' in held) {
+    if (held.error === 'closed') return json({ error: 'Not found' }, 404);
+    if (held.error === 'not_found') return restError(404, 'Order not found', 'invoice_not_found');
+    return restError(409, 'Your credit does not cover any more of this order.', 'host_credit_not_covered');
+  }
+  return json({ success: true, request: held }, 201);
+};
+
 async function requireHostCreditOwner(
   request: Request, env: Env, options: { allowPlatformOwner?: boolean } = {},
 ): Promise<AccountCtx | { error: Response }> {
@@ -33527,6 +33527,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/orders/:id', handleGetMyOrderDetail],
   ['POST', '/api/me/orders/:id/keep-in-chest', handleKeepOrderLineInChest],
   ['GET', '/api/me/tea-credit', handleGetMyTeaCredit],
+  ['POST', '/api/me/tea-credit/orders/:id/use', handleUseMyTeaCredit],
   ['GET', '/api/host-credit', handleListShopHostCredit],
   ['POST', '/api/host-credit/invoices/:id/approve', handleApproveHostCreditOrder],
   ['POST', '/api/host-credit/spend-requests/:id/approve', handleDecideHostCreditSpend],

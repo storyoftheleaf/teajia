@@ -18,7 +18,7 @@ import { Icons } from '../Icons';
 import { CartItemRow } from './CartItem';
 import { api } from '../../lib/api';
 import { useMyTeaCredit } from '../../hooks/useMyTeaCredit';
-import { formatCredit } from '../../lib/hostCreditApi';
+import { formatCredit, hostCreditApi } from '../../lib/hostCreditApi';
 import { agreedItemForDisplay } from '../../lib/orderTrackingDomain';
 import { createHumanOrderRef, createInquiryPayloadKey, createTrackingToken, validateStoreCart } from '../../lib/publicCartDomain';
 import { checkoutLocation, isUsDelivery, readCheckoutDetails, validateCheckoutDetails, type CheckoutDetails, type DeliveryChoice, type ReplyChannel } from '../../lib/checkoutDetails';
@@ -56,6 +56,8 @@ type SavedOrder = {
   viaWhatsApp: boolean;
   /** Launch 5: the tea credit the server held for this order, waiting for the shop. */
   creditAsked?: string;
+  /** The host chose credit but it could not be held just now. */
+  creditMissed?: boolean;
 };
 
 const PENDING_KEY = 'teajia_pendingOrderRequest';
@@ -205,7 +207,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const identity = pendingIdentity.current?.payloadKey === payloadKey ? pendingIdentity.current : requestIdentity(payloadKey);
       pendingIdentity.current = identity;
       try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(identity)); } catch { /* Keep the identity in memory for retry. */ }
-      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, update_email: channel === 'whatsapp' ? updateEmailForRequest(whatsappConsent, updateEmail) : undefined, customer_location: location, delivery_address: deliveryAddress || undefined, delivery_city: isBaliStore && isUsDelivery(details) ? details.location.trim() : undefined, delivery_state: isBaliStore && isUsDelivery(details) ? details.state.trim().toUpperCase() : undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website', via: currentOrderVia(), ...(offerCredit && useCredit ? { use_tea_credit: true } : {}) });
+      const result = await api.inquiries.create({ tracking_token: identity.trackingToken, ref_number: identity.ref, store_slug: storeSlug, customer_name: details.name.trim(), customer_contact: contact, whatsapp_handoff: channel === 'whatsapp-chat', whatsapp_confirmation_consent: requestWhatsApp, update_email: channel === 'whatsapp' ? updateEmailForRequest(whatsappConsent, updateEmail) : undefined, customer_location: location, delivery_address: deliveryAddress || undefined, delivery_city: isBaliStore && isUsDelivery(details) ? details.location.trim() : undefined, delivery_state: isBaliStore && isUsDelivery(details) ? details.state.trim().toUpperCase() : undefined, pickup: details.delivery === 'bali-pickup' || undefined, us_shipping_postcode: usShippingPostcode, delivery_country: isUsDelivery(details) ? 'US' : undefined, notes: details.notes.trim() || undefined, items_json: JSON.stringify(cart), total_estimate_usd: subtotal, currency: orderCurrency, source: 'website', via: currentOrderVia() });
       forgetOrderVia();
       const trackingUrl = `${window.location.origin}/order/${result.tracking_token}`;
       const savedItems: PublicCartItem[] = result.invoice_items ? result.invoice_items.map(line => {
@@ -215,7 +217,17 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
       const savedSubtotal = result.total_estimate_usd ?? savedItems.reduce((sum, item) => sum + item.totalPrice, 0);
       const shipping = result.shipping_checkout ?? result.shipping_quote;
       const total = savedSubtotal + (shipping?.shipping_usd ?? 0);
-      const creditAsked = result.tea_credit?.status === 'held' ? formatCredit(result.tea_credit.amount, result.tea_credit.currency) : undefined;
+      // Launch 5: the host chose to use their credit. The order is saved first;
+      // the worker then works out and holds the amount for the owner's approval.
+      // Credit is never worth failing an order over.
+      let creditAsked: string | undefined;
+      let creditMissed = false;
+      if (offerCredit && useCredit && result.invoice_id && !result.idempotent) {
+        try {
+          const used = await hostCreditApi.useOnOrder(result.invoice_id);
+          creditAsked = formatCredit(used.request.amount, used.request.currency);
+        } catch { creditMissed = true; }
+      }
       const orderMessage = buildOrderMessage({
         type: 'inquiry', ref: result.ref_number, invoiceNumber: result.invoice_number, trackingUrl,
         customerName: details.name.trim(), customerContact: contact, customerLocation: location,
@@ -223,11 +235,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
         items: savedItems.map(item => ({ name: item.name, variant: item.variant, quantity: item.packGrams ?? item.quantityGrams, packs: item.packs ?? 1, unit: item.category === 'tea' ? 'g' : ' pcs', price: formatTotal(item.totalPrice / (item.packs ?? 1)), total: formatTotal(item.totalPrice) })),
         subtotal: formatTotal(savedSubtotal), total: formatTotal(total),
       });
-      const message = creditAsked ? `${orderMessage}\n\nI asked to use ${creditAsked} of my tea credit on this order.` : orderMessage;
+      const message = creditAsked ? `${orderMessage}\n\nI asked to use ${creditAsked} of my tea credit on this order.`
+        : creditMissed ? `${orderMessage}\n\nI would like to use my tea credit on this order.` : orderMessage;
       const request: RecentOrderRequest = { trackingToken: result.tracking_token, reference: result.ref_number, storeSlug, createdAt: new Date().toISOString() };
       const remembered = rememberRecentOrderRequest(request);
       setWhatsappConsent(WHATSAPP_UPDATES_DEFAULT);
-      setPlacedOrder({ request, items: savedItems, total: formatTotal(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? formatTotal(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website', creditAsked });
+      setPlacedOrder({ request, items: savedItems, total: formatTotal(total), message, remembered, invoiceNumber: result.invoice_number, paymentDeadline: result.checkout_payment_deadline ?? result.shipping_checkout?.payment_deadline ?? result.pickup_payment_deadline, shippingQuoteRequested: result.shipping_quote_requested, shippingTotal: shipping ? formatTotal(shipping.shipping_usd) : undefined, handoff: channel === 'whatsapp-chat', viaWhatsApp: channel !== 'website', creditAsked, creditMissed });
       setUseCredit(false);
       setRecentRequests(readRecentOrderRequests(storeSlug));
       setUndoItem(null);
@@ -278,6 +291,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ storeSlug, storeName, ca
             ? 'Your order is reserved.' : `Your request is saved with ${storeName}.`}</p>
           <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{placedOrder.paymentDeadline ? 'Open your order to pay securely and follow its payment status.' : 'Your order request and draft invoice are saved. We’ll confirm your tea first; shipping is quoted and charged separately later.'}</p>
           {placedOrder.invoiceNumber && <p className="num text-ui-13 text-tea-text-sec">{`Invoice ${placedOrder.invoiceNumber}`}</p>}
+          {placedOrder.creditMissed && <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">Your tea credit could not be set aside on this order just now. Mention it when you talk with the shop and they will help.</p>}
           {placedOrder.creditAsked && <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec">{`You asked to use ${placedOrder.creditAsked} of your tea credit. The shop will look it over and confirm it with you.`}</p>}
         </div>
         <div className="space-y-4">

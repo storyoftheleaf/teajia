@@ -49,10 +49,23 @@ export interface OwnSpendRequest {
   decided_at: string | null;
 }
 
+/** One of the host's own open orders, and the credit it could take now. */
+export interface OwnCreditOrder {
+  invoice_id: string;
+  invoice_number: string | null;
+  account_id: string;
+  shop_name: string | null;
+  tea_total: number;
+  already: number;
+  may_use: number;
+  currency: string;
+}
+
 export interface MyTeaCredit {
   balances: HostCreditBalanceView[];
   lines: HostCreditLine[];
-  spend_requests: OwnSpendRequest[];
+  requests: OwnSpendRequest[];
+  orders: OwnCreditOrder[];
   /** Only with ?store: what checkout in that shop may offer. */
   store_available?: number;
 }
@@ -103,14 +116,15 @@ export interface ShopTeaCredit {
   second_look: SecondLookOrder[];
 }
 
-/** The answer checkout gets when the host chose to use their credit. */
-export type TeaCreditAsk =
-  | { status: 'held'; id: string; amount: number; currency: string }
-  | { status: 'not_held'; reason: string };
+/** The held request the worker wrote when the host asked to use credit. */
+export interface TeaCreditUse { id: string; amount: number; currency: string }
 
 export const hostCreditApi = {
   mine: (storeSlug?: string): Promise<MyTeaCredit> =>
     authedFetch(`${API_URL}/api/me/tea-credit${storeSlug ? `?store=${encodeURIComponent(storeSlug)}` : ''}`),
+  /** Ask to use credit on one of the host's own open orders. The worker works out the amount. */
+  useOnOrder: (invoiceId: string): Promise<{ success: true; request: TeaCreditUse }> =>
+    authedFetch(`${API_URL}/api/me/tea-credit/orders/${encodeURIComponent(invoiceId)}/use`, { method: 'POST' }),
   shop: (): Promise<ShopTeaCredit> => authedFetch(`${API_URL}/api/host-credit`),
   approveSpend: (id: string, confirmOverCeiling = false): Promise<{ ok: true; status: 'approved' }> =>
     authedFetch(`${API_URL}/api/host-credit/spend-requests/${encodeURIComponent(id)}/approve`, {

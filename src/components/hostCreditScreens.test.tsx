@@ -40,7 +40,8 @@ const mine: MyTeaCredit = {
     basis_amount: 120, basis_currency: 'USD', credit_amount: 12, credit_currency: 'USD', status: 'earned',
     earned_at: '2026-11-20T10:00:00Z', reversed_at: null, created_at: '2026-11-19T10:00:00Z',
   }],
-  spend_requests: [{ id: 'hcs', account_id: 'shop', shop_name: 'Teajia', invoice_id: 'inv', invoice_number: 'TJ-12', amount: 4, currency: 'USD', status: 'held', requested_at: '2026-11-25T10:00:00Z', decided_at: null }],
+  orders: [{ invoice_id: 'inv2', invoice_number: 'TJ-13', account_id: 'shop', shop_name: 'Teajia', tea_total: 10, already: 0, may_use: 8, currency: 'USD' }],
+  requests: [{ id: 'hcs', account_id: 'shop', shop_name: 'Teajia', invoice_id: 'inv', invoice_number: 'TJ-12', amount: 4, currency: 'USD', status: 'held', requested_at: '2026-11-25T10:00:00Z', decided_at: null }],
 };
 
 const shop: ShopTeaCredit = {
@@ -73,6 +74,9 @@ describe("the host's own view", () => {
     expect(html).toContain('From Evening tea');
     expect(html).toContain('Your order TJ-12');
     expect(html).toContain('Waiting for the shop');
+    expect(html).toContain('Your order TJ-13');
+    expect(html).toContain('$8.00 of it can come from your credit');
+    expect(html).toContain('Use my tea credit');
     expect(html).not.toMatch(/guest@|customer/i);
   });
 

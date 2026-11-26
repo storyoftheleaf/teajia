@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { hasToken } from '../lib/api';
 import { Icons } from '../components/Icons';
 import { Button } from '../components/shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import { historyIndex } from '../admin/components/adminHistory';
-import { formatCredit, type CreditLineStatus, type HostCreditBalanceView, type HostCreditLine, type OwnSpendRequest } from '../lib/hostCreditApi';
+import { formatCredit, hostCreditApi, type CreditLineStatus, type HostCreditBalanceView, type HostCreditLine, type OwnCreditOrder, type OwnSpendRequest } from '../lib/hostCreditApi';
 import { hostCreditOpen } from '../lib/hostCredit';
 import { TEA_CREDIT_PATH, hasTeaCredit, useMyTeaCredit } from '../hooks/useMyTeaCredit';
 
@@ -96,11 +97,30 @@ const AskRow: React.FC<{ ask: OwnSpendRequest; showShop: boolean }> = ({ ask, sh
   </li>
 );
 
+const OpenOrderRow: React.FC<{ order: OwnCreditOrder; showShop: boolean; busy: boolean; failed: boolean; onUse: () => void }> = ({ order, showShop, busy, failed, onUse }) => (
+  <li className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3.5 py-3">
+    <div className="min-w-0 flex-1">
+      <div className="text-ui-14 text-tea-text break-words">{order.invoice_number ? `Your order ${order.invoice_number}` : 'Your order'}</div>
+      <div className="text-ui-12 text-tea-text-sec mt-0.5">{[showShop ? order.shop_name : null, `${formatCredit(order.may_use, order.currency)} of it can come from your credit`].filter(Boolean).join(' · ')}</div>
+      {failed && <p role="alert" className="text-ui-12 text-tea-text mt-1">That did not go through. Please try again in a moment.</p>}
+    </div>
+    <Button size="sm" loading={busy} onClick={onUse}>Use my tea credit</Button>
+  </li>
+);
+
 export default function TeaCreditPage() {
   const navigate = useNavigate();
   const authed = hasToken();
   const open = hostCreditOpen();
   const { data, isLoading, isError } = useMyTeaCredit();
+  const queryClient = useQueryClient();
+  const [failedOrder, setFailedOrder] = useState<string | null>(null);
+  // The worker works out the amount and holds it for the shop's approval.
+  const use = useMutation({
+    mutationFn: (invoiceId: string) => hostCreditApi.useOnOrder(invoiceId),
+    onSuccess: () => { setFailedOrder(null); void queryClient.invalidateQueries({ queryKey: ['me', 'tea-credit'] }); },
+    onError: (_error, invoiceId) => setFailedOrder(invoiceId),
+  });
 
   useEffect(() => {
     if (open && !authed) navigate(`/signin?returnTo=${encodeURIComponent(TEA_CREDIT_PATH)}`, { replace: true });
@@ -138,13 +158,26 @@ export default function TeaCreditPage() {
         <div className="space-y-8">
           <div className="space-y-3">
             {data.balances.map(balance => <CreditBalanceCard key={`${balance.account_id}:${balance.currency}`} balance={balance} showShop={showShop} />)}
-            <p className="text-ui-13 leading-relaxed text-tea-text-sec">To use it, tick "Use my tea credit" when you check out. The shop looks over each use by hand.</p>
+            <p className="text-ui-13 leading-relaxed text-tea-text-sec">To use it, choose "Use my tea credit" when you check out, or on an open order below. The shop looks over each use by hand.</p>
           </div>
 
-          {data.spend_requests.length > 0 && (
+          {(data.orders ?? []).some(order => order.may_use > 0) && (
+            <section aria-label="Use it on an order" className="space-y-3">
+              <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Use it on an order</h2>
+              <ul className="space-y-2">
+                {data.orders.filter(order => order.may_use > 0).map(order => (
+                  <OpenOrderRow key={order.invoice_id} order={order} showShop={showShop}
+                    busy={use.isPending && use.variables === order.invoice_id} failed={failedOrder === order.invoice_id}
+                    onUse={() => use.mutate(order.invoice_id)} />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {data.requests.length > 0 && (
             <section aria-label="Credit you asked to use" className="space-y-3">
               <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Asked to use</h2>
-              <ul className="space-y-2">{data.spend_requests.map(ask => <AskRow key={ask.id} ask={ask} showShop={showShop} />)}</ul>
+              <ul className="space-y-2">{data.requests.map(ask => <AskRow key={ask.id} ask={ask} showShop={showShop} />)}</ul>
             </section>
           )}
 

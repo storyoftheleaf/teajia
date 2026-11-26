@@ -3,10 +3,10 @@ import worker from '../src/index';
 import { readShopHostCredit, settleHostCredit } from '../src/hostCreditLedger';
 import { seedIdentity, signedToken, SqliteD1 } from './helpers/sqliteD1';
 
-// Launch 5, the credit screens: a signed-in host asks at checkout to use their
-// tea credit. Only the choice comes from the browser; the order, the host and
-// the amount are read from stored rows, and the result is a held request that
-// waits for the owner.
+// Launch 5, the credit screens' worker reads: what checkout in one shop may
+// offer (GET /api/me/tea-credit?store=), and the orders waiting on the owner's
+// second look (GET /api/host-credit, second_look). The ask itself is
+// POST /api/me/tea-credit/orders/:id/use; nothing about credit rides on the order.
 
 let db: SqliteD1;
 const secret = 'credit-checkout-test';
@@ -68,46 +68,43 @@ function checkout(extra: Record<string, unknown>, as: string | null = 'host', op
 
 const requests = () => db.sqlite.prepare('SELECT host_user_id, amount, status FROM host_credit_spend_requests ORDER BY rowid').all();
 
-it('holds the host\'s available credit against their own order, worked out on the server', async () => {
+it('checkout reads what the host may use in that shop, and the use route holds it, worked out on the server', async () => {
   expect((await settleHostCredit(env(), 'sale')).earned).toBe(1);
   const before = await (await call('/api/me/tea-credit?store=shop')).json() as { store_available: number };
   expect(before.store_available).toBe(10);
+  expect(((await (await call('/api/me/tea-credit?store=nowhere')).json()) as { store_available: number }).store_available).toBe(0);
 
-  // An amount sent by the browser is ignored.
-  const response = await checkout({ use_tea_credit: true, tea_credit_amount: 999 });
-  const saved = await response.json() as { tea_credit?: { status: string; amount?: number }; invoice_id: string };
+  // The order carries nothing about credit; the ask is the route PR 544 added.
+  const response = await checkout({ tea_credit_amount: 999 });
+  const saved = await response.json() as Record<string, unknown> & { invoice_id: string };
   expect(response.status, JSON.stringify(saved)).toBe(201);
-  expect(saved.tea_credit).toMatchObject({ status: 'held', amount: 10, currency: 'USD' });
+  expect(saved).not.toHaveProperty('tea_credit');
+  expect(requests()).toEqual([]);
+  const used = await call(`/api/me/tea-credit/orders/${saved.invoice_id}/use`, { method: 'POST', body: { amount: 999 } });
+  expect(used.status).toBe(201);
   expect(requests()).toEqual([{ host_user_id: 'host', amount: 10, status: 'held' }]);
 
   const after = await (await call('/api/me/tea-credit?store=shop')).json() as {
     store_available: number; balances: Array<{ held: number; available: number }>;
-    spend_requests: Array<{ invoice_id: string; status: string; amount: number }>;
   };
   expect(after.store_available).toBe(0);
   expect(after.balances[0]).toMatchObject({ held: 10, available: 0 });
-  expect(after.spend_requests).toEqual([expect.objectContaining({ invoice_id: saved.invoice_id, status: 'held', amount: 10 })]);
-  // Nothing was spent: only the owner's approval writes a spent row.
   expect(db.sqlite.prepare("SELECT COUNT(*) AS n FROM host_credit_entries WHERE kind = 'spent'").get()).toEqual({ n: 0 });
 });
 
-it('asks for nothing unless the host chose it, when signed out, or with no credit', async () => {
+it('signed out, the read is refused; a guest with no credit is offered nothing', async () => {
   await settleHostCredit(env(), 'sale');
-  expect((await (await checkout({})).json() as Record<string, unknown>).tea_credit).toBeUndefined();
-  expect((await (await checkout({ use_tea_credit: true }, null)).json() as Record<string, unknown>).tea_credit).toBeUndefined();
-  expect(requests()).toEqual([]);
-
-  const owner = await (await checkout({ use_tea_credit: true }, 'owner')).json() as { tea_credit?: { status: string } };
-  expect(owner.tea_credit).toEqual({ status: 'not_held', reason: 'nothing_to_use' });
-  expect(requests()).toEqual([]);
+  expect((await call('/api/me/tea-credit?store=shop', { as: null })).status).toBe(401);
+  const owner = await (await call('/api/me/tea-credit?store=shop', { as: 'owner' })).json() as { store_available: number; balances: unknown[] };
+  expect(owner).toMatchObject({ store_available: 0, balances: [] });
 });
 
-it('with the flag off, checkout asks for nothing and the reads answer 404', async () => {
+it('with the flag off, the reads answer 404 and nothing is held', async () => {
   await settleHostCredit(env(), 'sale');
-  const saved = await (await checkout({ use_tea_credit: true }, 'host', false)).json() as Record<string, unknown>;
-  expect(saved.tea_credit).toBeUndefined();
+  const saved = await (await checkout({}, 'host', false)).json() as { invoice_id: string };
+  expect((await call(`/api/me/tea-credit/orders/${saved.invoice_id}/use`, { method: 'POST', open: false })).status).toBe(404);
   expect(requests()).toEqual([]);
-  expect((await call('/api/me/tea-credit', { open: false })).status).toBe(404);
+  expect((await call('/api/me/tea-credit?store=shop', { open: false })).status).toBe(404);
   expect((await call('/api/host-credit', { as: 'owner', open: false })).status).toBe(404);
 });
 

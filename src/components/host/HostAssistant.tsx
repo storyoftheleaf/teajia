@@ -29,7 +29,11 @@ function dayOf(value: string | null): string {
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export function HostAssistantSection() {
+/**
+ * `onlyWithKeys`: for a person who no longer hosts. The section shows only
+ * while they still hold a key, so they can disconnect it; otherwise nothing.
+ */
+export function HostAssistantSection({ onlyWithKeys = false }: { onlyWithKeys?: boolean } = {}) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const key = ['host-assistant-tokens', user?.email] as const;
@@ -38,6 +42,7 @@ export function HostAssistantSection() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: key });
   const list = tokens.data?.tokens ?? [];
   const stopping = step.startsWith(OFF) ? list.find(token => token.id === step.slice(OFF.length)) : undefined;
+  if (onlyWithKeys && list.length === 0) return null;
 
   return (
     <section aria-labelledby="host-assistant-heading" className="mt-8 space-y-3 border-t border-tea-border pt-4" data-testid="host-assistant">
@@ -61,7 +66,7 @@ export function HostAssistantSection() {
         </ul>
       )}
       {tokens.data && !tokens.data.may_connect && (
-        <p className={hostSmallText}>While hosting is paused, no assistant can reach your tables and no new key can be made.</p>
+        <p className={hostSmallText}>While you are not hosting, no assistant can reach your tables and no new key can be made.</p>
       )}
       {step === 'new' && tokens.data?.may_connect ? (
         <MakeKey mcpUrl={tokens.data.mcp_url} onMade={() => void refresh()} onDone={() => setStep(null)} />

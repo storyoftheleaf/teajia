@@ -36,10 +36,12 @@ const Row: React.FC<{ children: React.ReactNode; label: string }> = ({ children,
   </li>
 );
 
-export const TeaCreditSection: React.FC = () => {
+// Closed, nothing below is reached: no store read, no request.
+export const TeaCreditSection: React.FC = () => (hostCreditOpen() ? <OwnerOnly /> : null);
+
+const OwnerOnly: React.FC = () => {
   const isOwner = useAppStore(selectIsOwnerTier);
-  if (!hostCreditOpen() || !isOwner) return null;
-  return <TeaCreditSectionOpen />;
+  return isOwner ? <TeaCreditSectionOpen /> : null;
 };
 
 const TeaCreditSectionOpen: React.FC = () => {

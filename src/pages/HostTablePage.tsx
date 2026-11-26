@@ -53,7 +53,12 @@ function HostingAccess() {
       </>
     );
   } else if (!hosting.data.doors?.length) {
-    content = <p className={textClass}>Hosting opens by invitation for now.</p>;
+    content = (
+      <>
+        <p className={textClass}>Hosting opens by invitation for now.</p>
+        {hostTokensOpen() && <HostAssistantSection onlyWithKeys />}
+      </>
+    );
   } else {
     content = (
       <>

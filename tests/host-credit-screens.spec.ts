@@ -10,7 +10,7 @@
  * is answered here and nothing reaches a real shop. To run:
  *   VITE_API_URL=http://127.0.0.1:7897 VITE_HOST_CREDIT_OPEN=true  npx vite --port 7895 --strictPort --host 127.0.0.1
  *   VITE_API_URL=http://127.0.0.1:7897 VITE_HOST_CREDIT_OPEN=false npx vite --port 7896 --strictPort --host 127.0.0.1
- *   HOST_CREDIT_SCREENS=1 npx playwright test tests/host-credit-screens.spec.ts --project=chromium --workers=1 --trace off
+ *   HOST_CREDIT_SCREENS=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:7895 npx playwright test tests/host-credit-screens.spec.ts --project=chromium --workers=1 --trace off
  */
 import type { Page, Route } from '@playwright/test';
 import { expect as baseExpect, test } from './fixtures';
@@ -24,6 +24,8 @@ const OFF_URL = process.env.HOST_CREDIT_OFF_URL ?? 'http://127.0.0.1:7896';
 
 test.skip(!process.env.HOST_CREDIT_SCREENS, 'Needs the two sites above; set HOST_CREDIT_SCREENS=1 to run');
 test.setTimeout(120_000);
+// A machine whose Chromium is not where Playwright looks names it here.
+if (process.env.L5_CHROMIUM) test.use({ launchOptions: { executablePath: process.env.L5_CHROMIUM } });
 
 const SIZES = [
   { name: 'phone', width: 390, height: 844 },
@@ -53,7 +55,8 @@ const MINE = {
     tea_name: 'Moonlight White', basis_amount: 120, basis_currency: 'USD', credit_amount: 12, credit_currency: 'USD',
     status: 'earned', earned_at: '2026-11-20T10:00:00Z', reversed_at: null, created_at: '2026-11-19T10:00:00Z',
   }],
-  spend_requests: [] as unknown[],
+  requests: [] as unknown[],
+  orders: [] as unknown[],
 };
 
 async function json(route: Route, body: unknown, status = 200) {
@@ -80,6 +83,7 @@ const PRODUCT = {
 async function asHost(page: Page) {
   const sent: Array<Record<string, unknown>> = [];
   const reads: string[] = [];
+  const uses: string[] = [];
   await page.addInitScript(({ token, item }) => {
     if (!localStorage.getItem('credit-fixture-seeded')) {
       localStorage.setItem('teajia_token', token);
@@ -104,8 +108,11 @@ async function asHost(page: Page) {
       return json(route, {
         success: true, id: 'request-1', invoice_id: 'invoice-1', invoice_number: 'TJB-0042', tracking_token: body.tracking_token,
         ref_number: body.ref_number, source: 'website', email_sent: false,
-        ...(body.use_tea_credit === true ? { tea_credit: { status: 'held', id: 'hcs_1', amount: 12, currency: 'USD' } } : {}),
       }, 201);
+    }
+    if (path === '/api/me/tea-credit/orders/invoice-1/use' && request.method() === 'POST') {
+      uses.push(request.postData() ?? '');
+      return json(route, { success: true, request: { id: 'hcs_1', amount: 12, currency: 'USD' } }, 201);
     }
     if (path === '/api/s/teajia-bali') return json(route, {
       id: 'bali-account', slug: 'teajia-bali', name: 'Teajia Bali', public_enabled: true, can_be_paid: true,
@@ -119,7 +126,7 @@ async function asHost(page: Page) {
     if (path === '/api/me/memberships') return json(route, []);
     return json(route, []);
   });
-  return { sent, reads };
+  return { sent, reads, uses };
 }
 
 async function openCart(page: Page) {
@@ -190,7 +197,7 @@ for (const size of SIZES) {
     });
 
     test('checkout offers one plain choice, sends no amount, and the WhatsApp message says credit was asked for', async ({ page }) => {
-      const { sent, reads } = await asHost(page);
+      const { sent, reads, uses } = await asHost(page);
       await page.goto(`${ON_URL}/shop`, { waitUntil: 'domcontentloaded' });
       await openCart(page);
       const choice = page.getByRole('checkbox', { name: /Use my tea credit on this order/ });
@@ -202,8 +209,10 @@ for (const size of SIZES) {
       await assertNoOverflow(page);
       await page.getByRole('button', { name: 'Place order request', exact: true }).click();
       await expect.poll(() => sent.length).toBe(1);
-      expect(sent[0].use_tea_credit).toBe(true);
-      expect(Object.keys(sent[0]).filter(key => /credit/.test(key))).toEqual(['use_tea_credit']);
+      // The order carries nothing about credit; the ask is its own call, with no amount.
+      expect(Object.keys(sent[0]).filter(key => /credit/.test(key))).toEqual([]);
+      await expect.poll(() => uses.length).toBe(1);
+      expect(uses[0]).toBe('');
       await expect(page.getByText('You asked to use $12.00 of your tea credit. The shop will look it over and confirm it with you.')).toBeVisible();
       const whatsapp = page.getByRole('link', { name: 'Discuss this order on WhatsApp' });
       await expect(whatsapp).toHaveAttribute('href', /I%20asked%20to%20use%20%2412\.00%20of%20my%20tea%20credit/);
@@ -238,7 +247,7 @@ for (const size of SIZES) {
     });
 
     test('with the switch off, nothing about credit shows anywhere', async ({ page }) => {
-      const { sent, reads } = await asHost(page);
+      const { sent, reads, uses } = await asHost(page);
       await page.goto(`${OFF_URL}/shop`, { waitUntil: 'domcontentloaded' });
       await openCart(page);
       await expect(page.getByLabel('Your name', { exact: true })).toBeVisible();
@@ -246,7 +255,7 @@ for (const size of SIZES) {
       await fillOrder(page);
       await page.getByRole('button', { name: 'Place order request', exact: true }).click();
       await expect.poll(() => sent.length).toBe(1);
-      expect(sent[0].use_tea_credit).toBeUndefined();
+      expect(uses).toEqual([]);
       await assertNoOverflow(page);
 
       await page.goto(`${OFF_URL}/account/tea-credit`);

@@ -356,7 +356,7 @@ describe('tea credit for hosts: who reads what', () => {
     expect(JSON.stringify(mine.data)).not.toContain('Mei');
 
     const guest = await call(db, '/api/me/tea-credit', { as: 'staff' });
-    expect(guest.data).toEqual({ balances: [], lines: [], spend_requests: [] });
+    expect(guest.data).toEqual({ balances: [], lines: [], requests: [], orders: [] });
 
     expect((await call(db, '/api/host-credit', { as: 'staff' })).status).toBe(403);
     expect((await call(db, '/api/host-credit', { as: HOST, account: SHOP })).status).toBe(403);
@@ -473,6 +473,65 @@ describe('tea credit for hosts: spending waits for the owner', () => {
     expect(await holdHostCreditSpend(env(db, false), { accountId: SHOP, hostUserId: HOST, invoiceId: 'host-order', amount: 2 })).toEqual({ error: 'closed' });
     expect(await approveHostCreditSpend(e, { accountId: SHOP, requestId: 'nope', approverUserId: OWNER, confirmOverCeiling: false }))
       .toMatchObject({ ok: false, error: 'not_found' });
+  });
+
+  it('a hold is only on the host\'s own order, and all the requests on one order stay within its tea lines', async () => {
+    const db = seed();
+    await withCredit(db, 8);
+    const e = env(db);
+    // An open order of someone else's, in the same shop: the host's credit never pays for it.
+    order(db, { invoice: 'guest-order', via: 'none', customer: 'guest', lines: [['go-tea', 'tea', 100, 1]] });
+    expect(await holdHostCreditSpend(e, { accountId: SHOP, hostUserId: HOST, invoiceId: 'guest-order', amount: 2 })).toEqual({ error: 'not_covered' });
+    // A small order of the host's own: 3 of tea. Two requests cannot together take more than 3.
+    order(db, { invoice: 'small', via: 'none', customer: 'host-buyer', lines: [['small-tea', 'tea', 3, 1]] });
+    expect(await holdHostCreditSpend(e, { accountId: SHOP, hostUserId: HOST, invoiceId: 'small', amount: 2 })).toMatchObject({ id: expect.any(String) });
+    expect(await holdHostCreditSpend(e, { accountId: SHOP, hostUserId: HOST, invoiceId: 'small', amount: 2 })).toEqual({ error: 'not_covered' });
+    expect(await holdHostCreditSpend(e, { accountId: SHOP, hostUserId: HOST, invoiceId: 'small', amount: 1 })).toMatchObject({ id: expect.any(String) });
+  });
+
+  it('a host asks to use credit on their own order: the amount is worked out by the shop, never read from the request', async () => {
+    const db = seed();
+    await withCredit(db, 8);
+    const before = await call(db, '/api/me/tea-credit', { as: HOST });
+    expect(before.data.orders).toEqual([expect.objectContaining({ invoice_id: 'host-order', tea_total: 100, already: 0, may_use: 8 })]);
+    expect(JSON.stringify(before.data.orders)).not.toContain('guest');
+
+    const used = await call(db, '/api/me/tea-credit/orders/host-order/use', { method: 'POST', as: HOST, body: { amount: 999 } });
+    expect(used.status, JSON.stringify(used.data)).toBe(201);
+    expect(used.data.request).toMatchObject({ amount: 8, currency: 'USD' });
+    const after = await call(db, '/api/me/tea-credit', { as: HOST });
+    expect(after.data.balances[0]).toMatchObject({ earned: 8, held: 8, available: 0 });
+    expect(after.data.requests).toEqual([expect.objectContaining({ invoice_id: 'host-order', amount: 8, status: 'held' })]);
+    expect(after.data.orders[0]).toMatchObject({ already: 8, may_use: 0 });
+    // Nothing more to hold; another person's order and someone else using it are refused.
+    expect((await call(db, '/api/me/tea-credit/orders/host-order/use', { method: 'POST', as: HOST })).status).toBe(409);
+    order(db, { invoice: 'guest-order', via: 'none', customer: 'guest', lines: [['go-tea', 'tea', 100, 1]] });
+    expect((await call(db, '/api/me/tea-credit/orders/guest-order/use', { method: 'POST', as: HOST })).status).toBe(404);
+    expect((await call(db, '/api/me/tea-credit/orders/host-order/use', { method: 'POST', as: 'host2' })).status).toBe(404);
+    // The host cannot approve it: approval is the shop owner's, in the shop.
+    const id = after.data.requests[0].id;
+    expect((await call(db, `/api/host-credit/spend-requests/${id}/approve`, { method: 'POST', as: HOST })).status).toBe(404);
+    expect((await call(db, `/api/host-credit/spend-requests/${id}/approve`, { method: 'POST', as: HOST, account: SHOP })).status).toBe(403);
+    expect((await call(db, `/api/host-credit/spend-requests/${id}/approve`, { method: 'POST' })).status).toBe(200);
+    expect((await call(db, '/api/me/tea-credit', { as: HOST })).data.balances[0]).toMatchObject({ earned: 8, spent: 8, held: 0, available: 0 });
+    expect((await call(db, '/api/me/tea-credit/orders/host-order/use', { method: 'POST', as: HOST, open: false })).status).toBe(404);
+  });
+
+  it('two approvals at once of requests that together exceed the credit spend only what is there', async () => {
+    const db = seed();
+    await withCredit(db, 8);
+    const e = env(db);
+    const a = await holdHostCreditSpend(e, { accountId: SHOP, hostUserId: HOST, invoiceId: 'host-order', amount: 5 }) as { id: string };
+    const b = await holdHostCreditSpend(e, { accountId: SHOP, hostUserId: HOST, invoiceId: 'host-order', amount: 3 }) as { id: string };
+    // A Void elsewhere takes 4 away after both were held.
+    db.sqlite.exec(`INSERT INTO host_credit_entries (id, account_id, host_user_id, kind, amount, currency, invoice_id, spend_request_id, created_by)
+      VALUES ('correction', '${SHOP}', '${HOST}', 'spent', 4, 'USD', 'host-order', 'other', 'adrian')`);
+    const [first, second] = await Promise.all([
+      approveHostCreditSpend(e, { accountId: SHOP, requestId: a.id, approverUserId: OWNER, confirmOverCeiling: false }),
+      approveHostCreditSpend(e, { accountId: SHOP, requestId: b.id, approverUserId: OWNER, confirmOverCeiling: false }),
+    ]);
+    expect([first.ok, second.ok]).toEqual([false, false]);
+    expect(kinds(db).filter(k => k.startsWith('spent'))).toEqual(['spent:null:4']);
   });
 
   it('credit earned and asked for the same day is filed for the builder', async () => {
