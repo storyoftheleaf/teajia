@@ -252,7 +252,7 @@ const EventsPage: React.FC = () => {
             </div>
           ) : (
             visible.map((ev) => (
-              <EventRow key={ev.id} event={ev} isPast={isPastView} />
+              <EventRow key={ev.slug} event={ev} isPast={isPastView} />
             ))
           )}
         </div>

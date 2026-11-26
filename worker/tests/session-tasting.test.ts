@@ -48,7 +48,7 @@ async function setup() {
       ...(as === 'host' ? { 'X-Teajia-Account': 'shop' } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
-  }), { DB: db, JWT_SECRET: secret } as never, { waitUntil: () => undefined } as never);
+  }), { DB: db, JWT_SECRET: secret, ANYONE_HOSTS_OPEN: 'true' } as never, { waitUntil: () => undefined } as never);
   return { db, send };
 }
 
@@ -174,19 +174,26 @@ describe('the after-sit recap', () => {
     requireUser: async () => ({ error: new Response(null, { status: 401 }) }),
     limit: async () => null,
   });
-  const call = (db: SqliteD1, path: string, body: unknown, params: Record<string, string> = {}) => {
+  const call = (db: SqliteD1, path: string, body: unknown, params: Record<string, string> = {}, anyone = true) => {
     const route = routes.find(([verb, pattern]) => verb === 'POST' && pattern === path)!;
-    return route[2](new Request(`https://teajia.test${path}`, { method: 'POST', body: JSON.stringify(body) }), { DB: db as unknown as D1Database }, params);
+    return route[2](new Request(`https://teajia.test${path}`, { method: 'POST', body: JSON.stringify(body) }),
+      { DB: db as unknown as D1Database, ANYONE_HOSTS_OPEN: anyone ? 'true' : 'false' }, params);
   };
 
-  async function recap(tasting: boolean) {
+  async function recap(tasting: boolean, anyone = true) {
     const { db } = await setup();
     db.sqlite.exec(`UPDATE events SET lifecycle_status = 'completed', is_tasting = ${tasting ? 1 : 0} WHERE id = 'sit';
       UPDATE event_attendees SET attended = 1 WHERE id = 'seat';`);
     const link = await call(db, '/api/admin/events/:eventId/after-sit/:attendeeId', undefined, { eventId: 'sit', attendeeId: 'seat' });
     const { credential } = await link.json() as { credential: string };
-    return await (await call(db, '/api/after-sit/recap', { credential })).json() as Record<string, unknown>;
+    return await (await call(db, '/api/after-sit/recap', { credential }, {}, anyone)).json() as Record<string, unknown>;
   }
+
+  it('says nothing of a tasting while Launch 3 is closed (A3)', async () => {
+    const body = await recap(true, false);
+    expect(body.is_tasting).toBe(false);
+    expect(body).not.toHaveProperty('journal_teas');
+  });
 
   it('says a tasting was one and names the teas that have a record', async () => {
     const body = await recap(true);

@@ -640,14 +640,21 @@ for (const size of SIZES) {
           await assertNoOverflow(host.page, 'guest book review');
         });
         const tiles = (person: Person) => person.page.getByRole('list', { name: 'Photographs' }).getByRole('listitem');
+        // Both pictures are seen, in the gallery and in the Guest Book, not only their places:
+        // a picture still on its way when one is taken out is rightly refused (a 404).
+        const seesBoth = async (person: Person) => {
+          await expect(tiles(person)).toHaveCount(2);
+          await expect(tiles(person).getByRole('img')).toHaveCount(2);
+          await expect(person.page.getByRole('list', { name: 'Entries from session guests' }).getByRole('img')).toHaveCount(2);
+        };
         await check(mei, 'each guest sees both photographs together', `5-${tag}`, async () => {
           await mei.page.goto(path(links[c!.name]));
-          await expect(tiles(mei)).toHaveCount(2);
+          await seesBoth(mei);
           await assertNoOverflow(mei.page, 'gallery');
         });
         await check(ana, 'the other guest sees both too', `5-${tag}`, async () => {
           await ana.page.goto(path(links[d!.name]));
-          await expect(tiles(ana)).toHaveCount(2);
+          await seesBoth(ana);
         });
         await check(mei, 'one takes theirs out from her own tile', `5-${tag}`, async () => {
           // Her own tile carries the control, and only hers (J13 finding 5).

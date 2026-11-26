@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import { usePrivateQueryScope } from './usePrivateQueryScope';
 import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData, Venue } from '../../types/events';
 
@@ -205,7 +206,8 @@ export const useEventSeatNotices = (eventId: string) => {
     queryKey: ['event-seat-notices', eventId, ...scope.key],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
-    enabled: !!eventId && scope.ready,
+    // Seat notices are Launch 3's (J9): asked for only while its switch is on (A3).
+    enabled: !!eventId && scope.ready && anyoneHostsOpen(),
     queryFn: async () => (await api.events.getSeatNotices(eventId))?.notices ?? [],
   });
   return { ...query, data: scope.ready ? query.data : undefined };

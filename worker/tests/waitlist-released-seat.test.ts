@@ -34,7 +34,7 @@ async function call(path: string, options: { actor?: Actor; method?: string; bod
   return worker.fetch(new Request(`https://worker.test${path}`, {
     headers, method, body: body === undefined ? undefined : JSON.stringify(body),
   }), {
-    DB: db, JWT_SECRET: SECRET, APP_URL: 'https://hosts.test', FEW_HOSTS_OPEN: 'true',
+    DB: db, JWT_SECRET: SECRET, APP_URL: 'https://hosts.test', FEW_HOSTS_OPEN: 'true', ANYONE_HOSTS_OPEN: 'true',
     RSVP_LIMITER: { limit: async () => ({ success: true }) },
   } as never, { waitUntil: () => undefined } as never);
 }
