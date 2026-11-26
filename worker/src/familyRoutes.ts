@@ -253,13 +253,38 @@ export async function listOfferedPhotographs(db: D1Database, accountId: string, 
   })));
 }
 
-export type ShopPhotograph = { id: string; product_id: string; shop_use: string; shop_use_before_lead: string | null; offered_at: string | null };
+export type ShopPhotograph = {
+  id: string; product_id: string; shop_use: string; shop_use_before_lead: string | null; offered_at: string | null;
+  removed_by_member_at: string | null;
+};
 
 /** One photograph in this shop, offered or not. */
 export async function readShopPhotograph(db: D1Database, accountId: string, id: string): Promise<ShopPhotograph | null> {
   return db.prepare(
-    `SELECT id, product_id, shop_use, shop_use_before_lead, offered_at FROM member_photographs WHERE id = ? AND account_id = ?`,
+    `SELECT id, product_id, shop_use, shop_use_before_lead, offered_at, removed_by_member_at FROM member_photographs WHERE id = ? AND account_id = ?`,
   ).bind(id, accountId).first<ShopPhotograph>();
+}
+
+/** Why the shop may not take this photograph up, or null when it may. Pass and restore are always allowed. */
+export function photographUseRefusal(photo: ShopPhotograph, action: OwnerAction): { status: number; error: string; code: string } | null {
+  if (!photo.offered_at) return { status: 409, error: 'Only a photograph offered to Teajia can be used.', code: 'not_offered' };
+  if (photo.removed_by_member_at && (action === 'place' || action === 'lead')) {
+    return { status: 409, error: 'The member took this photograph off their page, so it cannot be used.', code: 'removed_by_author' };
+  }
+  return null;
+}
+
+/**
+ * Takes one tasting's offered quotes back, as DELETE
+ * /api/tasting-journal/:id/offers/:noteKey does for one: the approved quote
+ * leaves Home and the tea listing, and the offer leaves the shop's pile.
+ */
+export function withdrawTastingQuotes(db: D1Database, journalEntryId: string, authorUserId: string): D1PreparedStatement[] {
+  const offered = `SELECT id FROM tasting_note_candidates WHERE journal_entry_id = ? AND author_user_id = ? AND offered_at IS NOT NULL`;
+  return [
+    db.prepare(`DELETE FROM product_impressions WHERE candidate_id IN (${offered})`).bind(journalEntryId, authorUserId),
+    db.prepare(`DELETE FROM tasting_note_candidates WHERE id IN (${offered})`).bind(journalEntryId, authorUserId),
+  ];
 }
 
 export type PhotographUseOutcome =
@@ -270,7 +295,8 @@ export type PhotographUseOutcome =
 export async function applyPhotographUse(db: D1Database, shop: ShopCtx, id: string, action: OwnerAction): Promise<PhotographUseOutcome> {
   const photo = await readShopPhotograph(db, shop.accountId, id);
   if (!photo) return { refused: { status: 404, error: 'That photograph is not in this shop.', code: 'photograph_not_found' } };
-  if (!photo.offered_at) return { refused: { status: 409, error: 'Only a photograph offered to Teajia can be used.', code: 'not_offered' } };
+  const refused = photographUseRefusal(photo, action);
+  if (refused) return { refused };
   const decided = `shop_decided_at = datetime('now'), shop_decided_by = ?, updated_at = datetime('now')`;
   if (action === 'lead') {
     await db.batch([
@@ -485,8 +511,10 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     return json({ photograph: await signPhotograph(env.JWT_SECRET, ownPhoto(row!)) });
   };
 
-  // POST /api/family/photographs/:id/remove: gone from the member's page and view.
-  // The file and the row stay, so the shop can still use what was offered.
+  // POST /api/family/photographs/:id/remove: gone from the member's page and view,
+  // and from the tea page. A placed or lead photograph steps down, and a removed
+  // photograph can no longer be placed or made the lead. The row stays, so the
+  // shop's pile still shows it was offered and then taken back.
   const removePhoto: FamilyHandler<E> = async (request, env, params) => {
     const person = await deps.requireAuthenticatedUser(request, env);
     if ('error' in person) return person.error;
@@ -496,7 +524,11 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     if (!photo) return refuse(404, 'That photograph is not one of yours.', 'photograph_not_found');
     await env.DB.batch([
       env.DB.prepare(
-        `UPDATE member_photographs SET removed_by_member_at = COALESCE(removed_by_member_at, datetime('now')), updated_at = datetime('now')
+        `UPDATE member_photographs
+            SET removed_by_member_at = COALESCE(removed_by_member_at, datetime('now')),
+                shop_use = CASE WHEN shop_use IN ('placed', 'lead') THEN 'none' ELSE shop_use END,
+                shop_use_before_lead = NULL,
+                updated_at = datetime('now')
           WHERE id = ? AND author_user_id = ?`,
       ).bind(photo.id, person.userId),
       env.DB.prepare('DELETE FROM member_tea_covers WHERE author_user_id = ? AND photograph_id = ?').bind(person.userId, photo.id),
@@ -516,6 +548,9 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     const journal = await journalFor(env.DB, person, product.id);
     if (!journal) return refuse(409, 'Save the tasting first, then share it.', 'tasting_not_saved');
     const state = body.share_state;
+    // Private takes the tasting's offered and approved quotes off Home and the
+    // tea listing too, as withdrawing each offer would, in the same batch.
+    const withdrawQuotes = state === 'private' ? withdrawTastingQuotes(env.DB, journal.id, person.userId) : [];
     const [, photos] = await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO member_tasting_shares (journal_entry_id, account_id, product_id, author_user_id, share_state, shared_at, updated_at)
@@ -535,6 +570,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
                 updated_at = datetime('now')
           WHERE author_user_id = ?3 AND product_id = ?4 AND removed_by_member_at IS NULL`,
       ).bind(state, journal.id, person.userId, product.id),
+      ...withdrawQuotes,
     ]);
     // The first share makes the person's page (family, live without review); later ones leave it as it is.
     const page = state === 'private' ? null : await ensureFamilyPage(env.DB, person);
@@ -553,8 +589,8 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
          FROM member_photographs p
          JOIN users u ON u.id = p.author_user_id
         WHERE p.account_id = ? AND p.product_id = ?
-          AND (p.shop_use IN ('placed', 'lead')
-               OR (p.share_state IN ('page', 'offered') AND p.removed_by_member_at IS NULL))
+          AND p.removed_by_member_at IS NULL
+          AND (p.shop_use IN ('placed', 'lead') OR p.share_state IN ('page', 'offered'))
           AND ${NOT_HIDDEN}
         ORDER BY p.created_at DESC
         LIMIT 60`,

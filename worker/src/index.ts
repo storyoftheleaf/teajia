@@ -28,6 +28,8 @@ import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from
 import { listPrivateSessionReflections, readPrivateSessionReflection, writePrivateSessionReflection } from './privateSessionReflections';
 import { claimReceivedCard, listReceivedCards } from './memberReceivedCards';
 import { sharedSessionVerdict } from './sessionVerdictProjection';
+import { PUBLIC_TEA_REVIEW_COLUMNS, tastingWithoutScores } from './publicScores';
+import { eraseFamilyPhotoFiles, familyErasureStatements, familyPhotoKeysForUser } from './familyErasure';
 import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
 import { quoteUsCheckoutShipping } from './usCheckoutShipping';
 import { hasPublicStatus } from '../../src/lib/productPublication';
@@ -2243,8 +2245,11 @@ const handleDeleteAccount: Handler = async (request, env) => {
     return restError(409, 'Transfer or remove account ownership before deleting this identity', 'owner_floor_violation');
   }
 
+  // What they shared with the family goes first: those rows point at the user row.
+  const familyPhotoKeys = await familyPhotoKeysForUser(env.DB, claims.sub);
   await env.DB.batch([
     queueKeptPhotoCleanupForUser(env.DB, claims.sub),
+    ...familyErasureStatements(env.DB, claims.sub),
     env.DB.prepare('DELETE FROM private_session_reflections WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare('UPDATE event_attendees SET user_id = NULL WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare('DELETE FROM customer_tasting_journal WHERE user_id = ?').bind(personJournalOwner(claims.sub)),
@@ -2254,6 +2259,7 @@ const handleDeleteAccount: Handler = async (request, env) => {
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
   ]);
 
+  await eraseFamilyPhotoFiles(env.MEDIA_BUCKET, familyPhotoKeys);
   await retryKeptPhotoCleanup(env.DB, env.ATLAS_BUCKET);
   return json({ ok: true });
 };
@@ -2430,14 +2436,18 @@ const handleDeleteUser: Handler = async (request, env, params) => {
   if (!user) return json({ error: 'User not found' }, 404);
   if (user.platform_role === 'platform_owner') return json({ error: 'Cannot delete platform owner account' }, 403);
 
+  // What they shared with the family goes first: those rows point at the user row.
+  const familyPhotoKeys = await familyPhotoKeysForUser(env.DB, userId);
   await env.DB.batch([
     queueKeptPhotoCleanupForUser(env.DB, userId),
+    ...familyErasureStatements(env.DB, userId),
     env.DB.prepare('DELETE FROM private_session_reflections WHERE user_id = ?').bind(userId),
     env.DB.prepare('UPDATE event_attendees SET user_id = NULL WHERE user_id = ?').bind(userId),
     env.DB.prepare('DELETE FROM customer_tasting_journal WHERE user_id = ?').bind(personJournalOwner(userId)),
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(userId),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
   ]);
+  await eraseFamilyPhotoFiles(env.MEDIA_BUCKET, familyPhotoKeys);
   await retryKeptPhotoCleanup(env.DB, env.ATLAS_BUCKET);
   return json({ ok: true });
 };
@@ -11062,6 +11072,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       for (const key of PUBLIC_FIELDS) {
         if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
       }
+      if ('tasting' in safe) safe.tasting = tastingWithoutScores(safe.tasting);
       safe.account_slug = p.account_slug;
       safe.public_path = p.public_path;
       if (p.account_id === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
@@ -19494,10 +19505,11 @@ function viewSampleLabel(row: Record<string, any>, userId: string | null, shopOw
   };
 }
 
+// A sample label is read by anyone holding the link. The taster's numeric
+// score stays with the people who can see the source; the word verdict travels.
 function publicSampleTasting(row: Record<string, any>) {
   return {
     id: row.id,
-    rating: typeof row.rating === 'number' ? row.rating : null,
     verdict: ['love', 'like', 'neutral', 'pass'].includes(row.verdict) ? row.verdict : 'neutral',
     created_at: row.created_at,
   };
@@ -19911,7 +19923,8 @@ const handleGetTeaReviews: Handler = async (request, env) => {
              ORDER BY r.status ASC, r.updated_at DESC`;
     binds = [...keyBinds, authorAccountId, userId];
   } else {
-    query = `SELECT r.*, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
+    // Signed out: named columns, so the score cannot travel with the words.
+    query = `SELECT ${PUBLIC_TEA_REVIEW_COLUMNS}, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
              FROM tea_reviews r
              LEFT JOIN users u ON u.id = r.author_user_id
              LEFT JOIN accounts a ON a.id = r.author_account_id
@@ -19924,7 +19937,7 @@ const handleGetTeaReviews: Handler = async (request, env) => {
   // Parse JSON fields
   const rows = (result.results as Record<string, any>[]).map(r => ({
     ...r,
-    tasting: r.tasting ? JSON.parse(r.tasting) : null,
+    tasting: r.tasting ? (authorAccountId ? JSON.parse(r.tasting) : tastingWithoutScores(JSON.parse(r.tasting))) : null,
     voice_notes: r.voice_notes ? JSON.parse(r.voice_notes) : [],
     brew_params: r.brew_params ? JSON.parse(r.brew_params) : null,
   }));
@@ -23460,6 +23473,8 @@ async function fetchPublicProductsForAccount(
     for (const key of PUBLIC_FIELDS) {
       if (key in withPricing && (key !== 'exact_pack_price_usd' || withPricing[key] != null)) safe[key] = withPricing[key];
     }
+    // The shop's own score on a tea stays in Manage; the public listing carries its words.
+    if ('tasting' in safe) safe.tasting = tastingWithoutScores(safe.tasting);
     attachPublicTeawareDetails(safe, p);
     if (accountId === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
     maskCountPendingCommerce(safe, accountId, p);
