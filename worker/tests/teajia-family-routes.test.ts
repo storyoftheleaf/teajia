@@ -266,7 +266,8 @@ describe('sharing a tasting', () => {
     expect(publicBody.family).toHaveLength(1);
     // The member never allowed their name, so the public answer carries no author (quiet acknowledgement).
     expect(publicBody.family[0].author).toBeNull();
-    expect(publicBody.family[0].photograph_by).toBeNull();
+    // Closed, the public answer carries no credit line at all (A4 review, finding 11).
+    expect(publicBody.family[0]).not.toHaveProperty('photograph_by');
     for (const text of [sharedText, publicText, await (await call(env, MEMBER, '/api/family/teas/tea-a/mine')).text()]) {
       expect(text).not.toMatch(/rating|verdict|love|secret words/);
     }
@@ -337,7 +338,8 @@ describe('the shop\'s side', () => {
     }
     expect((await call(env, OWNER, `/api/admin/family/photographs/${third}/lead`, { method: 'POST' })).status).toBe(200);
     tea = await (await call(env, null, '/api/family/teas/tea-a/photographs')).json() as any;
-    expect(tea.lead).toMatchObject({ id: third, author: null, photograph_by: null });
+    expect(tea.lead).toMatchObject({ id: third, author: null });
+    expect(tea.lead).not.toHaveProperty('photograph_by');
 
     // A placed photograph made lead, then a new lead: the old lead steps back to what it was.
     await call(env, OWNER, `/api/admin/family/photographs/${second}/place`, { method: 'POST' });

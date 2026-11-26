@@ -13,6 +13,8 @@ import { Stack } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
 import { useManageNav, isManagePathActive, type ManageItem } from './manageNav';
+import { barSections, barSectionActive } from './navSections';
+import { homeBarOpen } from '../lib/homeBar';
 
 // One rail for everyone, a drawer for the people who run the shop
 // (Adrian, 2026-11-25, "Narrow B as a pair, one wide").
@@ -36,14 +38,6 @@ import { useManageNav, isManagePathActive, type ManageItem } from './manageNav';
 // line inside its buttons.
 const RAIL_WIDTH_REM = 3.75;
 const DRAWER_WIDTH_REM = 5.25;
-
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  section?: Section;
-  path?: string;
-}
 
 // ── LeftSidebar ────────────────────────────────────────────────────────────
 
@@ -93,15 +87,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   // ── Nav data ──────────────────────────────────────────────────────────────
 
-  const browseItems: NavItem[] = [
-    // Read lands on the unified /read section. `path` overrides the
-    // section→view routing exactly like the BottomTabBar "Read" tab; it still
-    // highlights as MAGAZINE so the active state matches the tab bar.
-    { id: 'MAGAZINE',  label: 'Read',    icon: <Icons.Magazine  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'MAGAZINE'  as Section, path: '/read' },
-    { id: 'LEARN',     label: 'Craft',   icon: <Icons.School    className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'LEARN'     as Section },
-    { id: 'OFFERINGS', label: 'Advise',  icon: <Icons.Sparkles  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'OFFERINGS' as Section },
-    { id: 'SHOP',      label: 'Shop',    icon: <Icons.Bag       className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'SHOP'      as Section },
-  ];
+  // The four words come from one list (navSections.ts), which the phone bar
+  // reads too, so the rail and the bar cannot fall out of step. Read lands on
+  // the unified /read section: a word's `path` overrides the section→view
+  // routing exactly like the bar's "Read" tab.
+  const barOpen = homeBarOpen();
+  const browseItems = barSections(barOpen);
 
   // Admin sub-items auto-reveal when the parent or one of its children is active.
   // No accordion state, avoids the hidden-active-item bug where a user-collapsed
@@ -201,9 +192,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
         <nav className="flex flex-col items-center gap-5 mt-9" aria-label="Browse">
           {browseItems.map(item => {
-            const isActive = !isAdminRoute && (
-              item.path ? currentPath.startsWith(item.path) : activeSection === item.section
-            );
+            const isActive = !isAdminRoute && barSectionActive(item, currentPath, activeSection);
             const onClick = () => {
               if (hasManageRoom) setSidebarRoom('browse');
               if (item.path) {
@@ -274,12 +263,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </span>
             )}
           </button>
-          <Link to="/people" className={`nav-rail-word ${footWord(currentPath.startsWith('/people'))}`} title="People">
-            People
-          </Link>
-          <Link to="/spaces" className={`nav-rail-word ${footWord(currentPath === '/spaces')}`} title="Places">
-            Places
-          </Link>
+          {/* With the new bar, People and Places live under "table" and
+              "house", so the foot is the three glyphs (Narrow B). */}
+          {!barOpen && (
+            <>
+              <Link to="/people" className={`nav-rail-word ${footWord(currentPath.startsWith('/people'))}`} title="People">
+                People
+              </Link>
+              <Link to="/spaces" className={`nav-rail-word ${footWord(currentPath === '/spaces')}`} title="Places">
+                Places
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Manage: the one word only shop staff see, last on the rail. Open,

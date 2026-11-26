@@ -40,7 +40,7 @@ import { teaTableOpen } from '../../src/lib/teaTable';
 import { ensureFamilyPage } from './familyPages';
 import { describeReports, familyFeedbackRoutes } from './familyFeedback';
 import { signPhotograph } from './familyMedia';
-import { photographBy } from './photographCredit';
+import { acknowledgementOpen, photographBy } from './photographCredit';
 import { yourTablePageOpen } from '../../src/lib/yourTablePage';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError, type TeaVoiceEnvironment } from './curateVoiceTranscription';
 
@@ -179,12 +179,13 @@ function shopPhoto(row: AuthoredRow): FamilySharedPhotograph & { author: FamilyA
  * linked only then too, and only when it is published (AUTHOR_COLUMNS). When
  * they did not allow it there is no author at all: no name, no page, no slug.
  */
-function publicPhoto(row: AuthoredRow): FamilySharedPhotograph {
+function publicPhoto(row: AuthoredRow, credit: boolean): FamilySharedPhotograph {
   const firstName = photographBy(row, row.author_name);
   return {
     ...photoParts(row),
     author: firstName ? { name: firstName, page_id: row.page_id ?? null } : null,
-    photograph_by: firstName,
+    // "Photograph by" opens with the Tea Table (A4 review, finding 11).
+    ...(credit ? { photograph_by: firstName } : {}),
   };
 }
 
@@ -569,6 +570,7 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
   // yes or no to "photograph by <first name>" wherever the picture is shown large.
   // Starts at no. Only the author can change it; it changes nothing else.
   const creditPhoto: FamilyHandler<E> = async (request, env, params) => {
+    if (!acknowledgementOpen(env)) return refuse(404, 'Not found', 'not_found');
     const person = await deps.requireAuthenticatedUser(request, env);
     if ('error' in person) return person.error;
     const body = await readBody(request);
@@ -670,7 +672,12 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
         ).bind(state, journal.id, person.userId, product.id),
         toTeaTable
           ? env.DB.prepare(
-            `UPDATE member_tasting_shares SET tea_table_at = datetime('now'), tea_table_sittings = ? WHERE journal_entry_id = ? AND author_user_id = ?`,
+            // A tasting already on the table keeps its place and its words: sharing
+            // it again does not move it forward (A4 review, finding 14).
+            `UPDATE member_tasting_shares
+                SET tea_table_sittings = CASE WHEN tea_table_at IS NULL THEN ? ELSE tea_table_sittings END,
+                    tea_table_at = COALESCE(tea_table_at, datetime('now'))
+              WHERE journal_entry_id = ? AND author_user_id = ?`,
           ).bind(sittings, journal.id, person.userId)
           : pageAlone,
       ]);
@@ -702,12 +709,14 @@ export function familyRoutes<E extends FamilyEnv>(deps: FamilyDeps<E>): [string,
     ).bind(product.account_id, product.id).all<PhotoRow & { author_name: string | null; page_id: string | null }>();
     const rows = results ?? [];
     const lead = rows.find(row => row.shop_use === 'lead');
+    const credit = acknowledgementOpen(env);
+    const shown = (row: AuthoredRow) => publicPhoto(row, credit);
     const body: FamilyTeaPhotographs = {
       product_id: product.id,
-      lead: lead ? publicPhoto(lead) : null,
-      placed: rows.filter(row => row.shop_use === 'placed').map(publicPhoto),
+      lead: lead ? shown(lead) : null,
+      placed: rows.filter(row => row.shop_use === 'placed').map(shown),
       family: rows.filter(row => row.shop_use !== 'placed' && row.shop_use !== 'lead'
-        && row.removed_by_member_at === null && row.share_state !== 'private').map(publicPhoto),
+        && row.removed_by_member_at === null && row.share_state !== 'private').map(shown),
     };
     return json(body);
   };

@@ -111,7 +111,7 @@ const quietScore = (person: Listed) =>
  * The list as the page shows it: only people with a photograph, grouped and
  * ordered, each carrying its group and nothing that says why it sits where it does.
  */
-export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 'founding_member' | 'list_pinned_at' | 'list_days_shared' | 'list_shop_picks' | 'list_tasting_photo_key' | 'list_pours'> & { list_group: PeopleListGroup; pours: boolean }> {
+export function arrangePeopleList<T extends Listed>(people: T[], acknowledged = true): Array<Omit<T, 'founding_member' | 'list_pinned_at' | 'list_days_shared' | 'list_shop_picks' | 'list_tasting_photo_key' | 'list_pours'> & { list_group: PeopleListGroup; pours?: boolean }> {
   return people
     // A photograph on their page stands first; without one, the newest they shared from a tasting.
     .map(person => (person.card_image_url || person.avatar_url || typeof person.list_tasting_photo_key !== 'string' || !person.list_tasting_photo_key
@@ -129,7 +129,10 @@ export function arrangePeopleList<T extends Listed>(people: T[]): Array<Omit<T, 
       || byName(a.person, b.person))
     .map(({ person, group }) => {
       const { founding_member: _f, list_pinned_at: _p, list_days_shared: _d, list_shop_picks: _s, list_tasting_photo_key: _k, list_pours: pours, ...shown } = person;
-      return { ...shown, list_group: group, pours: Number(pours) === 1 || pours === true };
+      // "Pours at tables" opens with the Tea Table (A4 review, finding 11).
+      return acknowledged
+        ? { ...shown, list_group: group, pours: Number(pours) === 1 || pours === true }
+        : { ...shown, list_group: group };
     });
 }
 

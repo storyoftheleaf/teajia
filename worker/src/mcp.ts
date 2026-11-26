@@ -7335,7 +7335,9 @@ async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: a
 
 async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   const tool = toolDefFor(name);
-  if (!tool) throw new Error(`Unknown tool: ${name}`);
+  // A closed tool answers exactly as an unknown one, before scope or role is
+  // read (A4 review, finding 12); tools/list already leaves it out.
+  if (!tool || ('unavailable' in tool && tool.unavailable?.(env, auth) === 'feature_closed')) throw new Error(`Unknown tool: ${name}`);
   // A host key never learns whether any other tool exists.
   if (auth.hostSelf && !HOST_SELF_TOOLS.has(name)) throw new Error(`Unknown tool: ${name}`);
 

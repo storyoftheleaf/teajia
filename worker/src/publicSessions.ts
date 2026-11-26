@@ -19,8 +19,9 @@ import { readSitPhotoRendition, sitPhotoRenditionResponse } from './revocableSit
 import { resolveSessionTeas, type PublicProductReader, type PublicSessionTea, type SessionTeaRef } from './sessionTeas';
 import { GUEST_BOOK_NOTE_LIMIT, prepareGuestBookNote } from './sessionGuestBook';
 import { readSessionServedTeas } from './sessionServedTeas';
+import { acknowledgementOpen } from './photographCredit';
 
-type Env = { DB: D1Database; ATLAS_BUCKET?: R2Bucket };
+type Env = { DB: D1Database; ATLAS_BUCKET?: R2Bucket; TEA_TABLE_OPEN?: string };
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
 type Auth<E> = (request: Request, env: E) => Promise<{ userId: string } | { error: Response }>;
 
@@ -264,12 +265,13 @@ export async function formalSessionCardsFor(db: D1Database, readPublic: PublicPr
 }
 
 /** The sit's recap: the host's words, then each poured tea with what guests attached to it. */
-export async function formalSessionRecap(db: D1Database, readPublic: PublicProductReader, slug: string) {
+export async function formalSessionRecap(db: D1Database, readPublic: PublicProductReader, slug: string, acknowledged = true) {
   const event = await readEventBySlug(db, slug);
   if (!event) return null;
   const people = (await peopleOf(db, [event])).get(event.id) ?? [];
   const [teas, photos, notes, pouredWith] = await Promise.all([
-    teasOf(db, readPublic, event), publicGuestPhotos(db, event), publicGuestNotes(db, event), pouredWithOf(db, event),
+    teasOf(db, readPublic, event), publicGuestPhotos(db, event), publicGuestNotes(db, event),
+    acknowledged ? pouredWithOf(db, event) : Promise.resolve(null),
   ]);
   const host = hostSignature(people);
   const placed = placeGuestItems(teas, photos, notes);
@@ -277,7 +279,8 @@ export async function formalSessionRecap(db: D1Database, readPublic: PublicProdu
   const writing = event.notes?.trim() ?? '';
   return {
     slug: event.slug, title: event.title, event_date: event.event_date, people,
-    poured_with: pouredWith,
+    // "Poured with" opens with the Tea Table (A4 review, finding 11).
+    ...(pouredWith ? { poured_with: pouredWith } : {}),
     note: writing ? { text: writing, by: host } : null,
     galleryPhoto: images[0] ?? null,
     teas: placed.teas,
@@ -298,7 +301,7 @@ export function publicSessionRoutes<E extends Env>(deps: {
   readPublic: (env: E) => PublicProductReader;
 }): [string, string, Handler<E>][] {
   const recap: Handler<E> = async (_request, env, { slug }) => {
-    const found = await formalSessionRecap(env.DB, deps.readPublic(env), slug);
+    const found = await formalSessionRecap(env.DB, deps.readPublic(env), slug, acknowledgementOpen(env));
     return found ? json({ recap: found }) : json({ error: 'This recap is unavailable.' }, 404);
   };
 

@@ -2,7 +2,7 @@ import { PrivateSubjectPhotos } from './components/events/PrivateKeptSetupPhotos
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react';
 import { lazyWithRetry } from './lib/lazyWithRetry';
-import { teaTableOpen } from './lib/teaTable';
+import { teaTableOpen } from './lib/teaTable'; import { favouritesOpen } from './lib/favouritesOpen';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { FollowRenamedPerson } from './pages/renamedPeople';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
@@ -206,6 +206,7 @@ import { useTeaDiscoverySync } from './hooks/useTeaDiscoverySync';
 import { useCompassSync } from './hooks/useCompassSync';
 import { useNotesSync } from './hooks/useNotesSync';
 import { pathToSection, sectionToPath } from './lib/routes';
+import { useSectionKeys } from './hooks/useSectionKeys';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
@@ -556,22 +557,8 @@ const AppContent = () => {
     return () => window.removeEventListener('keydown', handleSearchShortcut);
   }, []);
 
-  // Desktop keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
-      const sections: Section[] = ['HOME', 'MAGAZINE', 'LEARN', 'OFFERINGS', 'SHOP'];
-      if (e.key >= '1' && e.key <= '5') {
-        e.preventDefault();
-        setActiveSection(sections[parseInt(e.key) - 1]);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveSection]);
+  // Desktop keyboard shortcuts, keys 1 to 5 (src/hooks/useSectionKeys.ts).
+  useSectionKeys(setActiveSection);
 
   // Separate Inventory into Tea and Ware
   const teaInventory = useMemo(() => inventory.filter(i => i.category === 'tea'), [inventory]);
@@ -1284,7 +1271,7 @@ const AppContent = () => {
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/cellar" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CellarPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/favourites" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><FavouritesPage /></Suspense></ErrorBoundary>} />
+                {favouritesOpen() && <Route path="/account/favourites" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><FavouritesPage /></Suspense></ErrorBoundary>} />}
                 <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey/sits/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}>
                   <MemberSitPage renderPhotos={sit => <PrivateSubjectPhotos subject="member-sit" subjectId={sit.id} />} />
@@ -1315,7 +1302,7 @@ const AppContent = () => {
                   {WisdomPilotPreview && <Route path="/preview/wisdom-pilot/*" element={<ErrorBoundary><Suspense fallback={null}><WisdomPilotPreview /></Suspense></ErrorBoundary>} />}
                 </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/tea-table" element={teaTableOpen() ? <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaTablePage /></Suspense></ErrorBoundary> : <Navigate to="/" replace />} />
+                {teaTableOpen() && <Route path="/tea-table" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaTablePage /></Suspense></ErrorBoundary>} />}
                 <Route path="/tea-feed" element={<Navigate to={teaTableOpen() ? '/tea-table' : '/'} replace />} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/sits/casual/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CasualSitRecapPage /></Suspense></ErrorBoundary>} />

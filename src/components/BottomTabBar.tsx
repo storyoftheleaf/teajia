@@ -9,6 +9,8 @@ import { useAppStore, selectHasBundle, selectIsOwnerTier } from '../lib/store';
 import { useAuth } from '../hooks/useAuth';
 import { useSiteProblemCount } from '../lib/useSiteIncidents';
 import { ADMIN_BAR_TABS, type AdminTab } from './adminBarTabs';
+import { barSections, barSectionActive, type BarSection } from './navSections';
+import { homeBarOpen } from '../lib/homeBar';
 
 
 
@@ -156,26 +158,20 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     },
   });
 
-  // The "Read" tab lands on /read (the unified Read section: editor articles +
-  // the hand-built showcases), NOT the legacy /magazine listing. The optional
-  // `path` overrides the section→path routing for exactly this case; the tab
-  // still highlights as the MAGAZINE section so the active state is unchanged.
-  const leftSections = [
-    { id: 'MAGAZINE' as Section, label: 'Read', path: '/read' },
-    { id: 'LEARN' as Section, label: 'Craft' },
-  ];
+  // The four words come from one list (navSections.ts), which the desktop
+  // rail reads too. The "Read" tab lands on /read (the unified Read section),
+  // NOT the legacy /magazine listing: a word's optional `path` overrides the
+  // section→path routing, and the word still highlights by its section unless
+  // the list names the addresses that light it.
+  const barOpen = homeBarOpen();
+  const sections = barSections(barOpen);
+  const leftSections = sections.slice(0, 2);
+  const rightSections = sections.slice(2);
 
-  const rightSections = [
-    { id: 'OFFERINGS' as Section, label: 'Advise' },
-    { id: 'SHOP' as Section, label: 'Shop' },
-  ];
-
-  const renderTabButton = (section: { id: Section; label: string; path?: string }, index: number) => {
+  const renderTabButton = (section: BarSection, index: number) => {
     // A path-override tab (Read → /read) is active when on that path; otherwise
     // fall back to the section match.
-    const isActive = !isOnAdmin && (
-      section.path ? location.pathname.startsWith(section.path) : activeSection === section.id
-    );
+    const isActive = !isOnAdmin && barSectionActive(section, location.pathname, activeSection);
 
     return (
       <motion.button
@@ -195,11 +191,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             }
             return;
           }
-          if (section.id === activeSection) {
+          if (section.section === activeSection) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
           }
-          onNavigate(section.id);
+          onNavigate(section.section);
         }}
         className="flex-auto min-w-0 h-full flex items-center justify-center relative z-[1] transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
@@ -227,6 +223,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       <nav
         aria-label="Main navigation"
         data-testid="bottom-tab-bar"
+        data-bar-words={barOpen ? 'launch-4' : undefined}
         onContextMenu={(e) => e.preventDefault()}
         className={`bottom-nav-bar ${returningFromTasting ? 'tasting-site-reopen' : ''} fixed z-nav flex rounded-full transition-transform duration-200 select-none overflow-hidden left-3 right-3 min-[375px]:left-4 min-[375px]:right-4 animate-[slideUp_0.4s_ease-out] lg:hidden ${
           isOnAdmin ? 'lg:hidden' : ''

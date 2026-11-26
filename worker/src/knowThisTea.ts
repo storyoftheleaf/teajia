@@ -144,12 +144,16 @@ function toQuestion(row: QuestionRow): TeaTableQuestion {
 // ── Reading ─────────────────────────────────────────────────────────────────
 
 /** Questions on the table, newest first, for teaTable.ts to merge into its time order. */
-export async function readTableQuestions(db: D1Database, filter: { before?: string | null; limit: number }): Promise<TeaTableQuestion[]> {
+export async function readTableQuestions(db: D1Database, filter: { before?: { at: string; key: string | null } | null; limit: number }): Promise<TeaTableQuestion[]> {
   const binds: unknown[] = [];
   let before = '';
-  if (filter.before) { before = ' AND datetime(q.asked_at) < datetime(?)'; binds.push(filter.before); }
+  // The Tea Table's cursor (teaTable.ts, TeaTableCursor): older moments, and at the same moment a lower key.
+  if (filter.before?.key) {
+    before = " AND (datetime(q.asked_at) < datetime(?) OR (datetime(q.asked_at) = datetime(?) AND ('question:' || q.id) < ?))";
+    binds.push(filter.before.at, filter.before.at, filter.before.key);
+  } else if (filter.before) { before = ' AND datetime(q.asked_at) < datetime(?)'; binds.push(filter.before.at); }
   const { results } = await db.prepare(
-    `${QUESTION_SELECT} WHERE ${QUESTION_SHOWING}${before} ORDER BY datetime(q.asked_at) DESC, q.id DESC LIMIT ?`,
+    `${QUESTION_SELECT} WHERE ${QUESTION_SHOWING}${before} ORDER BY datetime(q.asked_at) DESC, ('question:' || q.id) DESC LIMIT ?`,
   ).bind(...binds, filter.limit).all<QuestionRow>();
   return (results ?? []).map(toQuestion);
 }

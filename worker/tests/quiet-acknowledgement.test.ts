@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
-import { request } from './helpers/personalSellerPilot';
+import { request as pilotRequest } from './helpers/personalSellerPilot';
 
 // Quiet acknowledgement (CLAUDE.md, third exception; todo/plans/guests-and-tea-masters.md,
 // "Quiet acknowledgement"): only things one person gives another, in words.
@@ -11,7 +11,15 @@ import { request } from './helpers/personalSellerPilot';
 // - "who pours" on the people list: a yes for someone credited on a completed
 //   session, never a count, never anything for a session still ahead.
 const databases: SqliteD1[] = [];
-beforeEach(() => vi.stubGlobal('fetch', vi.fn(() => { throw new Error('No external services in this test'); })));
+// Acknowledgement opens with the Tea Table (A4 review, finding 11); these
+// checks run with it open, and the last block runs with it closed.
+let tableOpen = 'true';
+const request: typeof pilotRequest = (db, path, options = {}) =>
+  pilotRequest(db, path, { ...options, vars: { TEA_TABLE_OPEN: tableOpen } });
+beforeEach(() => {
+  tableOpen = 'true';
+  vi.stubGlobal('fetch', vi.fn(() => { throw new Error('No external services in this test'); }));
+});
 afterEach(() => { databases.splice(0).forEach(db => db.close()); vi.unstubAllGlobals(); });
 
 const SHOP = 'shop';
@@ -210,5 +218,42 @@ describe('who pours', () => {
     const { contributors } = await (await request(db, '/api/people')).json() as { contributors: Array<{ id: string }> };
     // Not family pages, so the season group, by name: pouring earns no place.
     expect(contributors.map(c => c.id)).toEqual(['guestpour', 'hidden', 'never', 'poured', 'soon']);
+  });
+});
+
+describe('while the Tea Table is closed', () => {
+  beforeEach(() => { tableOpen = 'false'; });
+
+  it('no public answer carries photograph_by, poured_with or pours, and the credit cannot be changed', async () => {
+    const db = base();
+    seedIdentity(db, { userId: 'mei', accountId: 'mei-home', publicEnabled: false });
+    person(db, 'host', 'Adrian Host', true);
+    person(db, 'cohost', 'Mei Lin', true);
+    db.exec(`
+      INSERT INTO products (id, account_id, type, product_name, given_name, is_public, shown_in_shop, status, stock_grams)
+      VALUES ('tea', '${SHOP}', 'Oolong', 'Oolong', 'Oolong', 1, 1, 'Active', 100);
+      INSERT INTO member_photographs (id, account_id, product_id, author_user_id, full_key, small_key, full_bytes, small_bytes,
+        full_width, full_height, small_width, small_height, share_state, credit_name_shown)
+      VALUES ('photo', '${SHOP}', 'tea', 'mei', 'full.jpg', 'small.jpg', 900000, 90000, 2000, 1500, 480, 360, 'page', 1);
+      INSERT INTO events (id, account_id, slug, title, event_date, lifecycle_status, public_visibility, recap_status)
+      VALUES ('sit', '${SHOP}', 'courtyard', 'Tea in the courtyard', '2026-11-20', 'completed', 'public', 'published');
+      INSERT INTO event_post_session (event_id, account_id, session_notes) VALUES ('sit', '${SHOP}', 'Notes');
+      INSERT INTO event_contributors (id, event_id, account_id, contributor_id, role, is_public, display_order) VALUES
+        ('c1', 'sit', '${SHOP}', 'host', 'lead_host', 1, 0),
+        ('c2', 'sit', '${SHOP}', 'cohost', 'co_host', 1, 1);
+    `);
+    const photos = await (await request(db, '/api/family/teas/tea/photographs')).json() as { family: Array<Record<string, unknown>> };
+    expect(photos.family[0]).not.toHaveProperty('photograph_by');
+    const { recap } = await (await request(db, '/api/public/sit-recaps/courtyard')).json() as { recap: Record<string, unknown> };
+    expect(recap).not.toHaveProperty('poured_with');
+    const { contributors } = await (await request(db, '/api/people')).json() as { contributors: Array<Record<string, unknown>> };
+    expect(contributors.length).toBeGreaterThan(0);
+    for (const c of contributors) expect(c).not.toHaveProperty('pours');
+
+    const absent = await request(db, '/api/family/photographs/photo/no-such-route', { actor: { userId: 'mei', name: 'Mei', accountId: 'mei-home' }, method: 'PUT', body: {} });
+    const closed = await request(db, '/api/family/photographs/photo/credit', { actor: { userId: 'mei', name: 'Mei', accountId: 'mei-home' }, method: 'PUT', body: { credit_name_shown: false } });
+    expect(closed.status).toBe(404);
+    expect(await closed.text()).toBe(await absent.text());
+    expect(db.sqlite.prepare(`SELECT credit_name_shown FROM member_photographs WHERE id = 'photo'`).get()).toEqual({ credit_name_shown: 1 });
   });
 });
