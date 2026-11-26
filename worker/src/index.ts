@@ -11,6 +11,7 @@ import { createMemberPrivateSitsHandler } from './memberPrivateSits';
 import { afterSitRoutes } from './afterSitAccess';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
+import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
 import { teaTableRoutes } from './teaTable';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
@@ -319,6 +320,7 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   AFTER_SIT_LIMITER?: RateLimit;
   /** "true" opens Launch 1 in a local sandbox only; see src/lib/firstTable.ts. Never set on the live worker. */
   FIRST_TABLE_OPEN?: string;
+  HOST_ARTICLES_OPEN?: string;
   /** "true" or "false" opens or closes favourites (Launch 4); see src/lib/favouritesOpen.ts. */
   FAVOURITES_OPEN?: string;
   /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
@@ -25767,6 +25769,10 @@ const handleCreateArticle: Handler = async (request, env) => {
 const handleUpdateArticle: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
+  if (isHostArticleId(params.id)) {
+    const denied = await requirePlatformOwner(request, env);
+    if (denied) return denied;
+  }
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
@@ -25789,6 +25795,10 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   if (Array.isArray(body.blocks)) body.blocks = JSON.stringify(body.blocks);
   const existing = await readArticleReview(env.DB, accountId, params.id);
   if (!existing) return json({ error: 'Article not found' }, 404);
+  if (isHostArticleId(params.id) && Object.hasOwn(body, 'author_id')
+    && (body.author_id || null) !== (existing.author_id || null)) {
+    return restError(400, 'This article keeps the byline chosen by its writer.', 'host_article_byline');
+  }
   if (existing.approved_source_revision_id) {
     return restError(409, 'Open the WordForge edition review to replace this article.', 'externally_managed_article');
   }
@@ -25837,6 +25847,10 @@ function handleArticlePublication(status: 'published' | 'draft' | 'archived'): H
   return async (request, env, params) => {
     const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
+    if (isHostArticleId(params.id)) {
+      const denied = await requirePlatformOwner(request, env);
+      if (denied) return denied;
+    }
     const { accountId } = ctx;
     const body = await request.json().catch(() => null) as { review_digest?: unknown } | null;
     if (!isArticleReviewDigest(body?.review_digest)) return missingArticleReview();
@@ -31278,6 +31292,14 @@ const handleDriveSaveNow: Handler = async (request, env) => {
 
 // ── Routes ──
 const handleMemberPrivateSits: Handler = createMemberPrivateSitsHandler<Env>(requireAuthenticatedUser);
+const hostArticleHandlers = createHostArticleHandlers<Env>({
+  accountId: BALI_ACCOUNT_ID,
+  requireUser: requireAuthenticatedUser,
+  optionalUser: optionalAuthenticatedUser,
+  requireOwner: requirePlatformOwner,
+  limitSubmission: (env, userId) =>
+    enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `host-article:${userId}`),
+});
 const handleMemberPrivateSitPhotos: Handler = async (request, env, params) => {
   const user = await requireAuthenticatedUser(request, env);
   if ('error' in user) return user.error;
@@ -31814,6 +31836,9 @@ const routes: [string, string, Handler][] = [
 
   // Personal cellar (stock spine step 4) — location-less, person-owned stock.
   ['GET', '/api/me/private-sits', handleMemberPrivateSits],
+  ['GET', '/api/me/article-offers', hostArticleHandlers.member],
+  ['POST', '/api/me/article-offers', hostArticleHandlers.member],
+  ['GET', '/api/article-offers/:id/photos/:photoId', hostArticleHandlers.photo],
   ['POST', '/api/me/private-sits', handleMemberPrivateSits],
   ['POST', '/api/me/private-sits/accept', handleMemberPrivateSits],
   ['GET', '/api/me/private-sits/:id', handleMemberPrivateSits],
@@ -32111,6 +32136,8 @@ const routes: [string, string, Handler][] = [
 
   // Articles — Admin
   ['GET',    '/api/admin/articles',                    handleListArticles],
+  ['GET',    '/api/admin/article-offers',              hostArticleHandlers.review],
+  ['POST',   '/api/admin/article-offers/:id',          hostArticleHandlers.review],
   ['POST',   '/api/admin/articles',                    handleCreateArticle],
   ['GET',    '/api/admin/articles/:id',                handleGetArticle],
   ['PUT',    '/api/admin/articles/:id',                handleUpdateArticle],
