@@ -44,7 +44,7 @@ The sections are the parts of one circle:
 | 5. Find the tea | A favourite or a tasting leads to the tea | Shop |
 | 6. Host | A guest opens their own session and is its tea master | Home, Your Table |
 
-Read runs through all of it: it is how people sharpen their skill, and where articles show who people are and why they love tea. Someone who is only ever online has steps 3 to 5 in full.
+Read runs through all of it: it is how people sharpen their skill, and where articles show who people are and why they love tea. Proposed on 2026-11-26: Read is the third leg beside the tea and the tables. An invitation may carry one piece to read, the thank-you links each tea to its reading, sessions become articles, and experienced hosts may offer pieces that Adrian edits. What a regular host gains, and how to explain Teajia in one sentence, is in the plan under "What this is worth to someone who already hosts". Someone who is only ever online has steps 3 to 5 in full.
 
 One rule governs the phone. **The app never asks during a session:** it sends nothing, prompts nothing and shows nothing to scroll while people are sitting. A photograph is one tap. A tasting is the one kind of session where writing is the point, and the host chooses it. Adrian, 2026-11-26: "We're not trying to control people, but we don't want people in their mind or on the app."
 

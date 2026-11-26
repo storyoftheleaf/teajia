@@ -319,6 +319,88 @@ Proposed order, top to bottom. The closing house section, with 佳 家 嘉 and i
 
 Home is the same for everyone. What is yours stays in Your Table. Until sessions and shared tastings flow on their own, the pillar's rule holds: the living signal is written by a person.
 
+## What this is worth to someone who already hosts
+
+Adrian, 2026-11-26: "Think a bit more about what value this actually offers to people who do tea regularly and host gatherings regularly... I want this to be of service to the greater tea community. Also, it would be nice to be able to explain what this does to people as well. A big portion is also the articles."
+
+### The honest starting point
+
+A person who pours every week already has a system: a WhatsApp group, a notes app, a camera roll, a playlist, and their own memory. It works, it is free, and their guests are already in it. Teajia does not win by doing invitations slightly better. It earns a place only by giving what that pile of apps cannot. There are five such things.
+
+1. **Memory.** After three years of weekly tables a host cannot say what they poured for whom, what a guest said about the 2012 shou, or when a cake was last opened. Every session kept here becomes a record of a tea life: the people, the teas, the words, the photographs, in one place, by date, by person and by tea. This is the deepest value and almost nobody else offers it.
+2. **A tea's own story.** A cake in a host's Tea Chest gathers every session it was poured at and every word said about it, year after year. For people who age tea this is the thing they wish they had started ten years ago.
+3. **Something beautiful left behind.** A WhatsApp thread scrolls away. A session's page, with its teas, its photographs and its guests' words, stays and looks good. A host can show it to the next person they invite.
+4. **Knowledge at the elbow.** The tea on the invitation opens onto its cultivar, its region and its maker in Tea Wisdom, and onto an article where one exists. The host does not have to be the encyclopedia, and the guest can keep learning after they go home.
+5. **A way to be found by the right people.** A host's page, an article about them, and their past sessions say who they are better than any profile. A traveller who drinks tea can find a table in a city they do not know.
+
+Everything else in the six functions (invitations, the walkthrough, the playlist, the thank-you) is convenience. Convenience gets a host to try it once. These five are why they stay.
+
+### What follows from "of service to the greater tea community"
+
+These are the choices that separate a service to the community from a shop with a party attached. Each needs Adrian's yes.
+
+- **Any tea, from anyone.** A host can pour and name tea from any seller or farmer, and say where it came from, with a link out if they wish. Teajia's tea is simply the easiest to add and to buy. If only Adrian's tea can be shown properly, serious hosts will see a sales tool and leave. This is the single choice that most decides whether the wider community trusts it.
+- **A host's record belongs to the host.** They can take all of it away at any time: sessions, guests' names, teas, notes, photographs, as plain files. Saying so on the first screen costs nothing and buys a great deal of trust.
+- **Free to host.** No fee to open a table, invite, or keep a record. What sustains it is the tea people choose to buy and, later, the box. Say it once, plainly.
+- **The reference is open.** Tea Wisdom and the articles stay free to read with no account. They are the gift to people who will never host or buy.
+- **Private by default.** A host who never shares anything publicly still gets all five values above. The Tea Table is a choice, never the price of using the tool.
+
+### Aspects worth switching on, in order of value to a regular host
+
+Not already in the plan unless marked.
+
+1. **The host's own guest book, private.** For each person who has sat at their table: when they came, what they drank, what they liked, and one private line (no caffeine after four, loves aged white, bringing a friend next time). Only the host sees it. This is what a good host carries in their head, and losing it is what limits how many people they can host well.
+2. **The cellar that knows what was poured.** The Tea Chest already holds a host's teas. Add: grams left after each session, the sessions it appeared in, and a short line on how it is changing. A tea running low shows quietly on the host's own page, with the same tea or its nearest in the shop if there is one.
+3. **The brew, kept if wanted.** Pot or gaiwan, grams, water, how many infusions. One optional line per tea, entered after, never during. It also connects sessions to teaware, which is most of the shop's shelf (117 pieces against 20 teas) and has no part in the loop yet.
+4. **A table that meets again** (idea I5), grown slightly: a named circle, such as "Thursday table", with its own running record. Most real tea life is the same six people returning, and the record of a circle over a year is worth more than any single session.
+5. **A card for the table.** One printed page or one image: tonight's teas in order, a line on each, and one small code that leads to the session afterward. It keeps phones away better than any rule, and it is the kind of object hosts already make by hand.
+6. **A tea for the table, shared.** A host orders one cake or a few teas for the circle and the guests each take a share. Tea people already do this informally. It is the most natural way Adrian's tea enters a table, and it joins the host's credit and the host's box (idea I1). Payment stays between the people, as everywhere else.
+7. **Series.** A teacher runs six evenings on oolong. A series is a few sessions under one name with one page, a reading for each evening, and a guest's notes gathered across all of them. It serves the people who teach, who are the most regular hosts of all.
+8. **Sitting in.** Someone who wants to host can ask to pour beside an experienced host once. "Pouring" already exists as a word on a session, so this needs only a way to ask. It is how the craft has always passed on.
+9. **A waiting list and a released seat.** When a table of six is full, the seventh waits, and takes the seat if someone withdraws. Small, and it removes the most common message a regular host has to answer.
+10. **The host's handbook, in Read.** How to host a first table, how much tea for six people, how to pour for people who have never had gongfu tea, what to do when someone dislikes a tea. Written by Adrian and, in time, by other hosts. See the next section.
+
+Recommended to switch on first: 1, 2 and 5. They are small, they need no one but the host, and they give the memory that nothing else gives. Number 6 is the one closest to Adrian's own payback.
+
+### The articles are the third leg
+
+The site has three things of value: the tea, the tables and the writing. The plan so far treats Read as a shelf to one side. For a regular host it is closer to the centre, in five ways.
+
+- **Before a session:** the invitation can carry one piece to read, chosen by the host. "We are pouring Wuyi rock tea on Saturday; here is ten minutes on where it comes from."
+- **After a session:** the thank-you links each tea to its reading. A guest who liked a tea can go deeper that evening, which is when they are most curious and most likely to buy.
+- **About people:** the standing series on who someone is and why they love tea (already under "Later"). For a host this is the best introduction they could have, and it is the quiet acknowledgement Adrian wanted, given by one person to another.
+- **From sessions:** a finished session can already become a draft article (`draft_article_from_event`). A good tasting of five Dancong, with the guests' words, is a real piece that no magazine has.
+- **From hosts:** experienced hosts know things that are written nowhere. A host may offer a piece; Adrian edits and decides. Their name is on it. This is how Read grows past what one person can write, and it is service to the community in the plainest sense.
+
+The catch, stated plainly: there are five published articles today, all from one April batch. The articles can only carry this weight if they keep coming. One piece every two weeks, half of them about people and sessions that happened, would be enough, and sessions are what would supply them.
+
+### How to explain it
+
+Drafts for Adrian to change into his own voice. None of this is on the site until he says so.
+
+**One sentence.** Teajia is a home for people who gather around tea: it helps you invite people to your table, keeps what you poured and what was said, and connects it to good tea and good writing about tea.
+
+**Said aloud, in twenty seconds.** "You know how after a good tea session it all disappears? The teas, who came, what people said, the photographs are in six different phones. Teajia keeps that. You invite people with one link, they get directions to your house, and afterward everyone gets a thank-you with the teas, the playlist and the pictures. Over time you have a record of your whole tea life. And there is a shop and a library attached if you want to go further."
+
+**To someone who hosts every week.** "It is a guest book and a cellar book for your tea table. Use as much or as little as you like. Pour any tea you want. It is free, and your record is yours to take."
+
+**To a guest.** "It is where the tea you just drank lives. You can see what it was, read about it, keep your own notes, and find it again."
+
+**To someone who is only ever online.** "It is a place to learn tea properly, keep track of what you drink, and find good tea chosen by one person who knows the farmers."
+
+**To a tea house or a teacher.** "It is your sessions, your guests and your teas in one place, with a public page for the house if you want one."
+
+**What it is not.** Not a social network, not a booking platform that takes a cut, not a marketplace. Nobody is ranked, nothing is counted in public, and it never interrupts a session.
+
+The same one sentence belongs at the top of Home ("What this is", item 1 there) so the site and Adrian say the same thing.
+
+### Questions this raises for Adrian
+
+1. Any tea from anyone, shown properly, with Teajia's simply being the easiest: yes?
+2. Free to host, and a host can take their whole record away: may both be said plainly on the site?
+3. Which of the ten aspects to switch on first? The recommendation is the private guest book, the cellar that knows what was poured, and the card for the table.
+4. May experienced hosts offer articles, edited and decided by Adrian?
+
 ## Later, and worth preparing for
 
 - **The tea tasting box, six to twelve months out.** A set of teas sent to many people, tasted at home or poured by a host for friends, with everyone's tastings gathered on the Tea Table under that box. Three things prepare for it without building it: sets that can actually be bought (a line in `TODO.md` today), tastings gathered per tea, and the session invitation. It gives online-only people a table of their own.
