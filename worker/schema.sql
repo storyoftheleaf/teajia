@@ -4041,5 +4041,19 @@ CREATE INDEX IF NOT EXISTS idx_session_reports_open ON session_reports(status, c
 CREATE INDEX IF NOT EXISTS idx_session_reports_target ON session_reports(target_kind, target_id);
 ALTER TABLE session_guest_book_photos ADD COLUMN show_name INTEGER NOT NULL DEFAULT 0 CHECK (show_name IN (0, 1));
 
+-- 0134_waiting_list_offers.sql
+ALTER TABLE event_attendees ADD COLUMN offer_lapsed_at TEXT;
+
+CREATE TABLE IF NOT EXISTS event_seat_notices (
+  id          TEXT PRIMARY KEY,
+  account_id  TEXT NOT NULL,
+  event_id    TEXT NOT NULL,
+  attendee_id TEXT,
+  kind        TEXT NOT NULL CHECK (kind IN ('cancelled','released','offered','offer_lapsed','claimed')),
+  seats       INTEGER NOT NULL DEFAULT 0 CHECK (seats >= 0),
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_event_seat_notices_event ON event_seat_notices(event_id, account_id, created_at);
+
 -- 0136_host_table_tea_photos.sql
 ALTER TABLE event_tea_menu ADD COLUMN photo_url TEXT;
