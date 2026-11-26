@@ -120,64 +120,64 @@ const wisdomAddress = (state: WisdomAddress): Record<string, string> => {
   return next;
 };
 
+/**
+ * Wisdom's modes (Browse base, Reference issues, Listing wording, and Review
+ * incoming in a local preview) as one joined switch (`.mode-switch`), in the
+ * button shape the rest of the desk uses. Adrian, 2026-11-25, "one switch, then
+ * the kinds": while browsing, the switch rides at the start of the kinds row
+ * instead of standing as a row of its own, so the table starts a row higher.
+ * `browse` may be a function, which is handed the switch to place; given a
+ * node, the switch keeps its own row above it. In the other modes the switch
+ * stands alone above that mode's screen.
+ *
+ * The words are short (Base, Issues, Wording, Incoming) so the switch and the
+ * seven kinds share one line on a laptop; each button's accessible name is the
+ * full one.
+ */
 export const TeaReferenceWisdomSwitch: React.FC<{
   previewEnabled: boolean;
   isPlatformOwner?: boolean;
   canReadWording?: boolean;
-  browse: React.ReactNode;
+  browse: React.ReactNode | ((modes: React.ReactNode) => React.ReactNode);
   issues?: React.ReactNode;
   review: React.ReactNode;
 }> = ({ previewEnabled, isPlatformOwner = false, canReadWording = false, browse, issues, review }) => {
   const [surface, setSurface] = useState<'browse' | 'issues' | 'review'>('browse');
-  if (!previewEnabled && !isPlatformOwner) return <>{browse}</>;
+  const browseWith = (modes: React.ReactNode) => (typeof browse === 'function' ? browse(modes) : browse);
+  if (!previewEnabled && !isPlatformOwner) return <>{browseWith(null)}</>;
+
+  const modes = (
+    <div className="flex shrink-0 items-center gap-3">
+      <div className="mode-switch" role="group" aria-label="Wisdom mode">
+        <button type="button" className="btn-quiet" aria-pressed={surface === 'browse'} aria-label="Browse base" onClick={() => setSurface('browse')}>
+          Base
+        </button>
+        {isPlatformOwner && (
+          <button type="button" className="btn-quiet" aria-pressed={surface === 'issues'} aria-label="Reference issues" onClick={() => setSurface('issues')}>
+            Issues
+          </button>
+        )}
+        {canReadWording && (
+          <Link to="/admin/wisdom?wording=review" className="btn-quiet" aria-label="Listing wording">
+            Wording
+          </Link>
+        )}
+        {previewEnabled && (
+          <button type="button" className="btn-quiet" aria-pressed={surface === 'review'} aria-label="Review incoming" onClick={() => setSurface('review')}>
+            Incoming
+          </button>
+        )}
+      </div>
+      {previewEnabled && <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>Local preview only</span>}
+    </div>
+  );
+
+  if (surface === 'browse' && typeof browse === 'function') return <>{browse(modes)}</>;
 
   return (
     <div className="min-h-full bg-tea-bg">
-      <div className="flex flex-wrap gap-2 border-b border-tea-border bg-tea-surface px-3 py-2 md:px-4">
-        <button
-          type="button"
-          aria-pressed={surface === 'browse'}
-          onClick={() => setSurface('browse')}
-          className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-md border px-3 transition-colors ${
-            surface === 'browse'
-              ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
-              : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
-          }`}
-        >
-          Browse base
-        </button>
-        {isPlatformOwner && (
-          <button
-            type="button"
-            aria-pressed={surface === 'issues'}
-            onClick={() => setSurface('issues')}
-            className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-md border px-3 transition-colors ${
-              surface === 'issues'
-                ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
-                : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
-            }`}
-          >
-            Reference issues
-          </button>
-        )}
-        {canReadWording && <Link to="/admin/wisdom?wording=review" className="btn-quiet tap-target">Listing wording</Link>}
-        {previewEnabled && <button
-          type="button"
-          aria-pressed={surface === 'review'}
-          onClick={() => setSurface('review')}
-          className={`${TYPOGRAPHY_CLASSES.link} min-h-tap rounded-md border px-3 transition-colors ${
-            surface === 'review'
-              ? 'border-tea-gold bg-tea-gold/10 text-tea-gold'
-              : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'
-          }`}
-        >
-          Review incoming
-        </button>}
-        {previewEnabled && <span className={`${TYPOGRAPHY_CLASSES.label} flex min-h-tap items-center text-tea-text-dim`}>
-          Local preview only
-        </span>}
-      </div>
-      {surface === 'review' ? review : surface === 'issues' && isPlatformOwner ? issues : browse}
+      <div className="flex flex-wrap items-center gap-2 border-b border-tea-border px-3 py-2 md:px-4">{modes}</div>
+      {surface === 'review' ? review : surface === 'issues' && isPlatformOwner ? issues : browseWith(null)}
     </div>
   );
 };
@@ -407,9 +407,16 @@ function WisdomBrowserView({ canReadWording }: { canReadWording: boolean }) {
   // which is the opposite of what a switcher is for. Those three lines are also
   // why the strip condenses once the reader has scrolled: 76px of switcher above
   // a 36px row is two rows of the list spent on a decision already made.
-  const fullTabs = (
+  const fullTabs = (modes: React.ReactNode) => (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-tea-border px-3 py-1.5 md:px-4">
+      {modes && (
+        <>
+          {modes}
+          <span className="h-5 w-px bg-tea-keyline" aria-hidden="true" />
+        </>
+      )}
     <nav
-      className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b border-tea-border px-3 py-1.5 md:px-4"
+      className="flex flex-wrap items-baseline gap-x-5 gap-y-1"
       aria-label="Wisdom holdings"
     >
       {WISDOM_HOLDINGS.map(holding => {
@@ -438,6 +445,7 @@ function WisdomBrowserView({ canReadWording }: { canReadWording: boolean }) {
         );
       })}
     </nav>
+    </div>
   );
 
   /**
@@ -502,7 +510,7 @@ function WisdomBrowserView({ canReadWording }: { canReadWording: boolean }) {
     </AnchoredMenu>
   );
 
-  const wisdomBrowser = (
+  const wisdomBrowser = (modes: React.ReactNode) => (
     <div className="min-h-full bg-tea-bg">
       <h1 className="sr-only">Wisdom</h1>
       <OwnerWisdomLink />
@@ -515,7 +523,7 @@ function WisdomBrowserView({ canReadWording }: { canReadWording: boolean }) {
         key={active.id}
         holding={active}
         siblings={WISDOM_HOLDINGS}
-        tabs={condensed => (condensed ? condensedTabs : fullTabs)}
+        tabs={condensed => (condensed ? condensedTabs : fullTabs(modes))}
         selectedId={entry}
         onSelect={openEntry}
         onJump={jump}

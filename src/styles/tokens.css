@@ -803,6 +803,26 @@ body {
   border-bottom-color: var(--tea-gold);
 }
 
+/* A joined switch: quiet buttons inside one keyline, a hairline between them,
+   the chosen one lifted and gold. Wisdom's modes (WisdomView) use it. */
+.mode-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: var(--border-w) solid var(--tea-keyline);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.mode-switch > .btn-quiet {
+  border-radius: 0;
+  font-size: var(--fs-ui-12);
+}
+.mode-switch > .btn-quiet + .btn-quiet { border-inline-start: var(--border-w) solid var(--tea-keyline); }
+.mode-switch > .btn-quiet[aria-pressed="true"] {
+  background: var(--tea-elevated);
+  color: var(--tea-gold);
+  font-weight: 600;
+}
+
 /* chip: a small outlined toggle. On by the same signals as a tab. */
 .btn-chip {
   height: var(--control-h-sm);
