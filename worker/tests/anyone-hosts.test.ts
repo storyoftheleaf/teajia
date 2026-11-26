@@ -97,10 +97,10 @@ describe('J1, the contract', () => {
   });
 
   it('reads the standing in one place, and the door and the stop in SQL for the seat routes', async () => {
-    expect(await hostStanding(db as unknown as D1Database, 'ana')).toEqual({ approved: false, stopped: false });
-    expect(await hostStanding(db as unknown as D1Database, 'nobody')).toEqual({ approved: false, stopped: false });
+    expect(await hostStanding(db as unknown as D1Database, 'ana')).toEqual({ approved: false, stopped: false, reach: 'invitation' });
+    expect(await hostStanding(db as unknown as D1Database, 'nobody')).toEqual({ approved: false, stopped: false, reach: 'invitation' });
     db.sqlite.prepare(`UPDATE users SET host_approved_at = '2026-11-26', hosting_stopped_at = '2026-11-27' WHERE id = 'ana'`).run();
-    expect(await hostStanding(db as unknown as D1Database, 'ana')).toEqual({ approved: true, stopped: true });
+    expect(await hostStanding(db as unknown as D1Database, 'ana')).toEqual({ approved: true, stopped: true, reach: 'invitation' });
 
     db.sqlite.prepare(`INSERT INTO accounts (id, slug, name, kind, status, public_enabled, owner_user_id, personal_inventory_user_id)
       VALUES ('ana-chest', 'ana-chest', 'Chest', 'master', 'active', 0, 'ana', 'ana')`).run();

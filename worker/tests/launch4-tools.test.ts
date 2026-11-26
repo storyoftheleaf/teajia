@@ -185,10 +185,19 @@ describe('Launch 4 MCP tools', () => {
     const args = { id: 'tasting' };
     expect(await call('take_my_tasting_off_tea_table', args, 'other')).toMatchObject({ error: 'not_found' });
     await commit('hold_tea_table_piece', { kind: 'tasting', ...args, days: 1 }, 'owner');
+    // The author had put it on their page by itself first, so taking it off
+    // the table keeps the page (A4 review, finding 1).
+    db.exec("UPDATE member_tasting_shares SET page_alone_at = datetime('now')");
     await commit('take_my_tasting_off_tea_table', args);
     expect(db.sqlite.prepare('SELECT share_state, tea_table_at FROM member_tasting_shares').get())
       .toEqual({ share_state: 'page', tea_table_at: null });
     expect(db.sqlite.prepare('SELECT * FROM tea_table_holds').all()).toEqual([]);
+  });
+
+  it('makes a tasting private when the table was the only reason it was public', async () => {
+    await commit('take_my_tasting_off_tea_table', { id: 'tasting' });
+    expect(db.sqlite.prepare('SELECT share_state, tea_table_at FROM member_tasting_shares').get())
+      .toEqual({ share_state: 'private', tea_table_at: null });
   });
 
   it('limits moderation to the current platform owner and a hold to 1 through 14 days', async () => {

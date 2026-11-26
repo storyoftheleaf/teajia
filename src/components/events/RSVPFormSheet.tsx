@@ -9,6 +9,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import type { RSVPFormData, ContactMethod, RSVPResponse, SessionDoor } from '../../types/events';
 import { seatKeyFor } from '../../lib/seatKey';
+import { Button } from '../shared/Button';
 
 interface RSVPFormSheetProps {
   slug: string;
@@ -297,9 +298,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                       <p className="w-full text-ui-12 text-tea-text break-all text-center px-3 py-2.5 bg-tea-bg border border-tea-border rounded-md mb-3">
                         {ownLink}
                       </p>
-                      <button type="button" onClick={copyOwnLink} className="btn-primary w-full mb-2">
+                      <Button type="button" variant="primary" fullWidth onClick={copyOwnLink} className="mb-2">
                         {copied ? 'Copied' : 'Copy my link'}
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>

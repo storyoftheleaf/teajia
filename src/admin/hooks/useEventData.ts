@@ -198,6 +198,19 @@ export const usePendingAttendees = () => {
   return { ...query, data: scope.ready ? query.data : undefined };
 };
 
+// What happened to an event's seats (admin, J9)
+export const useEventSeatNotices = (eventId: string) => {
+  const scope = usePrivateQueryScope();
+  const query = useQuery({
+    queryKey: ['event-seat-notices', eventId, ...scope.key],
+    staleTime: STALE_TIME,
+    refetchOnWindowFocus: false,
+    enabled: !!eventId && scope.ready,
+    queryFn: async () => (await api.events.getSeatNotices(eventId))?.notices ?? [],
+  });
+  return { ...query, data: scope.ready ? query.data : undefined };
+};
+
 // Fetch notifications for an event (admin)
 export const useEventNotifications = (eventId: string) => {
   const scope = usePrivateQueryScope();

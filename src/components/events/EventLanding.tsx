@@ -447,7 +447,8 @@ const EventLanding: React.FC = () => {
         </button>
 
         {/* Admin edit shortcut */}
-        {isAdmin && (
+        {/* A private host's session carries no id (worker, A2 F4), so no Edit. */}
+        {isAdmin && event.id && (
           <button
             onClick={() => navigate(`/admin/events/${event.id}`)}
             className="btn-primary absolute top-3 right-4 z-dropdown backdrop-blur-md"

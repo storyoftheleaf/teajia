@@ -42,6 +42,7 @@ import { eventsToolModule } from './mcpTools/events';
 import { firstTableToolModule } from './mcpTools/firstTable';
 import { launch4ToolModule } from './mcpTools/launch4';
 import { fewHostsToolModule } from './mcpTools/fewHosts';
+import { launch3ToolModule } from './mcpTools/launch3';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -63,7 +64,7 @@ import { stockCountTools } from './mcpTools/stockCount';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
-import type { CurateReceiptService, HostSeatService, InventoryReceiptService, StockMovementService } from './mcpTools/registry';
+import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService } from './mcpTools/registry';
 import { resolveShopFreightDefault, shippingPerGramUsd } from './shippingRate';
 import { tastingWithoutScores } from './publicScores';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -123,6 +124,7 @@ type Env = {
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
   hostSeats?: HostSeatService;
+  launch3?: Launch3Services;
   JWT_SECRET: string;
   FAVOURITES_OPEN?: string;
   TEA_TABLE_OPEN?: string;
@@ -6181,7 +6183,7 @@ async function commitIntakeFinalize(env: Env, m: Extract<PendingMutation, { kind
 
 // ── tool registry / JSON-RPC dispatch ──
 
-const TOOL_DEFS = [
+const TOOL_DEFS: ToolDefinition[] = [
   {
     name: 'search_tea',
     scope: 'inventory:read',
@@ -7138,6 +7140,7 @@ const TOOL_MODULES: ToolModule[] = [
   firstTableToolModule,
   launch4ToolModule,
   fewHostsToolModule,
+  launch3ToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,
@@ -7172,14 +7175,15 @@ function visibleToolDefs(env: Env, auth: McpAuth) {
   // dispatches but never appears in tools/list is a tool nobody can find.
   return [...TOOL_DEFS, ...MODULE_TOOL_DEFS]
     .filter(tool => {
-      const scope = tool.scope as McpScope;
-      if (!hasMcpScope(auth, scope)) return false;
+      const scope = tool.scope;
+      if (tool.available && !tool.available(env, auth)) return false;
+      if (scope !== 'signed-in' && !hasMcpScope(auth, scope)) return false;
       // Owner-tier scoped tools are invisible without current owner authority.
-      if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
+      if (scope !== 'signed-in' && OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
       return !('unavailable' in tool && tool.unavailable?.(env, auth));
     })
     .map(tool => {
-      const { scope: _scope, unavailable: _unavailable, ...rest } = tool as ToolDefinition;
+      const { scope: _scope, available: _available, unavailable: _unavailable, ...rest } = tool as ToolDefinition;
       return { ...rest, annotations: annotationsFor(tool) };
     });
 }
@@ -7236,10 +7240,14 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   const tool = toolDefFor(name);
   if (!tool) throw new Error(`Unknown tool: ${name}`);
 
-  const scope = tool.scope as McpScope;
+  const scope = tool.scope;
+
+  if (tool.available && !tool.available(env, auth)) {
+    return mcpContent({ error: 'not_available' });
+  }
 
   // Scope check
-  if (!hasMcpScope(auth, scope)) {
+  if (scope !== 'signed-in' && !hasMcpScope(auth, scope)) {
     return mcpContent({
       error: 'insufficient_mcp_scope',
       required_scope: scope,
@@ -7249,7 +7257,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
   // Owner-tier gate — defense in depth: reject even if scope is in the token
   // when the creator no longer has owner-tier authority.
-  if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
+  if (scope !== 'signed-in' && OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
     return mcpContent({
       error: 'owner_tier_required',
       message: 'This tool requires current account-owner or platform-owner authority.',

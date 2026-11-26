@@ -6,6 +6,8 @@ export type { FavouriteArticle, FavouriteChestTea, FavouriteShopTea, MyFavourite
 import type { CustomerOrderDetail, TrackedOrder } from './orderTrackingTypes';
 import { createArticleApi } from './articlesApi';
 import { createHostingApi, createTablesApi } from './hostingApi';
+import { fewHostsOpen } from './fewHosts';
+import { anyoneHostsOpen } from './anyoneHosts';
 export type { HostedTableCreated, HostedTableDetail, HostedTableDoor, HostedTableInput, HostedTableSummary, HostingStatus } from './hostingApi';
 import { createMemberRecordsApi, createCompassInviteApi } from './memberRecordsApi';
 export type { ReceivedTeaCard, PrivateSessionReflection } from './memberRecordsApi';
@@ -484,8 +486,13 @@ export interface PlatformUser {
   host_approved_at?: string | null;
   /** Launch 3: when Adrian stopped this person's hosting. Only sent while Launch 2 is open. */
   hosting_stopped_at?: string | null;
+  /** Launch 3 (J10): how far this host's open tables are shown. Sent to the platform owner alone, while Launch 3 is open. */
+  host_reach?: HostReach;
   memberships: { account_id: string; role: string }[];
 }
+
+/** Launch 3 (J10): by their link only, to people signed in to Teajia, or on the public sessions list. */
+export type HostReach = 'invitation' | 'teajia' | 'listed';
 
 export interface PlatformAccount {
   id: string;
@@ -2669,6 +2676,10 @@ export const api = {
     getNotifications: async (id: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/notifications`)
     },
+    /** What happened to the session's seats (J9). An in-app list; nothing is sent. */
+    getSeatNotices: async (id: string): Promise<{ notices: import('./hostingApi').SeatNotice[] }> => {
+      return authedFetch(`${API_URL}/api/admin/events/${encodeURIComponent(id)}/seat-notices`)
+    },
     createNotifications: async (id: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/notifications`, {
         method: 'POST',
@@ -2802,6 +2813,16 @@ export const api = {
     },
     // Public endpoints
     listPublic: async () => {
+      // Launch 3 (J10): a signed-in person's list also carries the open tables
+      // of hosts Teajia shows to people on Teajia. The page cache is cleared
+      // whenever the sign-in changes (src/index.tsx).
+      if (fewHostsOpen() && anyoneHostsOpen() && getToken()) {
+        try {
+          return await authedFetch(`${API_URL}/api/me/sessions`);
+        } catch {
+          // Fall back to the public list, which is always right to show.
+        }
+      }
       const res = await fetchWithTimeout(`${API_URL}/api/events`);
       return handleResponse(res);
     },
@@ -4325,6 +4346,12 @@ export const api = {
     setHostingStopped: async (userId: string, stopped: boolean): Promise<{ ok: boolean; hosting_stopped: boolean }> => {
       return authedFetch(`${API_URL}/api/platform/users/${userId}/hosting-stopped`, {
         method: 'PUT', body: JSON.stringify({ stopped }),
+      });
+    },
+    // Launch 3 (J10): how far this host's open tables are shown. Platform owner only.
+    setHostReach: async (userId: string, reach: HostReach): Promise<{ ok: boolean; host_reach: HostReach }> => {
+      return authedFetch(`${API_URL}/api/platform/users/${userId}/host-reach`, {
+        method: 'PUT', body: JSON.stringify({ reach }),
       });
     },
     grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {

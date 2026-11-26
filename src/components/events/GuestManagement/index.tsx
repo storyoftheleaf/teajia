@@ -10,7 +10,7 @@ import {
   useUpdateApprovedGuests,
   useUpdateGuestListVisibility,
 } from '../../../hooks/useEventPolling';
-import { api } from '../../../lib/api';
+import { api, ApiError } from '../../../lib/api';
 import StoryCardsBriefing from '../StoryCardsBriefing';
 import { formatDay, isGuestEventCompleted } from './helpers';
 import RequestedView from './RequestedView';
@@ -115,7 +115,13 @@ const GuestManagement: React.FC = () => {
   }, [shouldShowBriefing]);
 
   // ---- No signal, with the way in kept on this phone ----
-  const offline = isError || fetchStatus === 'paused' || (typeof navigator !== 'undefined' && navigator.onLine === false);
+  // Only when there is truly no signal: the phone says it is offline, the
+  // request is waiting for a connection, or it failed without any answer. An
+  // answer from the server (a 4xx or 5xx) is not a lost signal, so the kept
+  // way is not shown for it (audit A2 F7).
+  const offline = fetchStatus === 'paused'
+    || (typeof navigator !== 'undefined' && navigator.onLine === false)
+    || (isError && !(error instanceof ApiError));
   if (!data && keptWay && offline) {
     return (
       <main className="min-h-screen bg-tea-bg px-4 pt-8 pb-nav" data-kept-way>

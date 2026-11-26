@@ -4,8 +4,11 @@
 // anyone who may not host yet (in Launch 2, anyone Adrian has not approved).
 import type { VenueGuide } from '../types/events';
 
-/** 'open' exists in the table's check but every route refuses it until Launch 3. */
-export type HostedTableDoor = 'request' | 'link';
+/**
+ * 'open' (Launch 3, J10) is offered in `doors` only to a host Teajia chose to
+ * show more widely; a seat there still needs the host's yes.
+ */
+export type HostedTableDoor = 'request' | 'link' | 'open';
 /**
  * doors: what this person may give a table, or null when they may not host yet.
  * stopped (Launch 3): present and true only when Teajia paused their hosting; told to them alone.
@@ -59,6 +62,10 @@ export interface HostedTableGuest {
   phone: string | null;
   /** The guest asked not to be photographed. */
   no_photographs: boolean;
+  /** A waiting guest offered a seat that opened: until when they may take it (J9). */
+  offer_until?: string | null;
+  /** A waiting guest whose offer ran out unclaimed (J9). */
+  offer_lapsed?: boolean;
 }
 /** Where a tea on a table comes from (slice H6): Teajia's shop, the host's own Tea Chest, or the words they typed. */
 export type HostedTableTeaSource = 'shop' | 'chest' | 'name';
@@ -86,9 +93,19 @@ export interface HostedTableTeaInput {
   from?: string | null;
   photo_url?: string | null;
 }
+/** What happened to a seat (J9), for the host to read. Nothing is ever sent. */
+export interface SeatNotice {
+  id: string;
+  kind: 'cancelled' | 'released' | 'offered' | 'offer_lapsed' | 'claimed';
+  seats: number;
+  guest_name: string | null;
+  created_at: string;
+}
 export interface HostedTableDetail {
   table: Omit<HostedTableSummary, 'guests'> & { requires_approval: number; public_visibility: string; seats_taken: number };
   guests: HostedTableGuest[];
+  /** What happened to the seats, newest first (J9). */
+  notices?: SeatNotice[];
   teas: HostedTableTea[];
   /** The doors this host may give the table. */
   doors: HostedTableDoor[];
@@ -145,6 +162,9 @@ export function createTablesApi({ apiUrl, authedFetch }: HostingApiDependencies)
       authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/yes`, { method: 'PUT', body: '{}' }),
     sayNo: (id: string, guestId: string): Promise<{ ok: true; status: 'denied' }> =>
       authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/no`, { method: 'PUT', body: '{}' }),
+    /** The host gives back a confirmed guest's seat; it is offered to the guest waiting longest (J9). */
+    releaseSeat: (id: string, guestId: string): Promise<{ ok: true; status: 'cancelled'; seats_released: number; offered: number }> =>
+      authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/guests/${encodeURIComponent(guestId)}/release`, { method: 'PUT', body: '{}' }),
     markWhoCame: (id: string, attendeeIds: string[]): Promise<{ ok: true }> =>
       authedFetch(`${apiUrl}/api/me/tables/${encodeURIComponent(id)}/came`, { method: 'PUT', body: JSON.stringify({ attendee_ids: attendeeIds }) }),
     thanksLink: (id: string, guestId: string): Promise<{ credential: string; expires_at: string }> =>
