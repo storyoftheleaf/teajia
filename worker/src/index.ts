@@ -26412,7 +26412,7 @@ const handleGetPublicContributor: Handler = async (request, env, params) => {
     // Pay shows for tea masters only; a page from before the family keeps its Pay.
     has_payment_methods: familyPageAllowsPay(familyPageTierOf(row.page_tier)) && paymentAvailability.hasAnyMethod,
     payment_accounts: familyPageAllowsPay(familyPageTierOf(row.page_tier)) ? paymentAvailability.accounts : [],
-    seasonal_line: seasonalLine, page_tier: familyPageTierOf(row.page_tier), tastings: await personTastings(env.DB, row.user_id as string | null),
+    seasonal_line: seasonalLine, page_tier: familyPageTierOf(row.page_tier), tastings: await personTastings(env.DB, row.user_id as string | null, row.display_name as string | null),
   });
 };
 

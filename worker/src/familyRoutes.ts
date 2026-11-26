@@ -38,6 +38,7 @@ import { teaTableOpen } from '../../src/lib/teaTable';
 import { ensureFamilyPage } from './familyPages';
 import { describeReports, familyFeedbackRoutes } from './familyFeedback';
 import { signPhotograph } from './familyMedia';
+import { photographBy } from './photographCredit';
 import { yourTablePageOpen } from '../../src/lib/yourTablePage';
 import { fixTeaVoiceText, hasTeaVoiceProvider, transcribeTeaVoice, TeaVoiceTranscriptionError, type TeaVoiceEnvironment } from './curateVoiceTranscription';
 
@@ -133,12 +134,6 @@ type PhotoRow = {
 
 /** The photographer said yes to "photograph by <first name>". Absent or anything else is no. */
 const nameShown = (row: { credit_name_shown?: number | null }) => Number(row.credit_name_shown) === 1;
-
-/** A first name only, and only when the photographer allowed it. */
-export function photographBy(row: { credit_name_shown?: number | null }, authorName: string | null | undefined): string | null {
-  if (!nameShown(row)) return null;
-  return (authorName ?? '').trim().split(/\s+/)[0] || null;
-}
 
 /** A row written before the column existed, or holding anything unexpected, reads as square. */
 /** The stored frame, or null when there is none or it does not read as one. */

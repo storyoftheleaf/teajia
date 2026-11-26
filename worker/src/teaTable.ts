@@ -43,7 +43,7 @@ type Shop = { accountId: string; userId: string };
 type Handler<E> = (request: Request, env: E, params: Record<string, string>) => Promise<Response>;
 export interface TeaTableDeps<E> {
   requireAuthenticatedUser(request: Request, env: E): Promise<Person | { error: Response }>;
-  requireBundle(request: Request, env: E, bundle: 'publish'): Promise<Shop | { error: Response }>;
+  requireBundle(request: Request, env: E, bundle: 'gather'): Promise<Shop | { error: Response }>;
 }
 
 const PAGE = 20;
@@ -402,14 +402,14 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     return person;
   };
 
-  /** The event, when the caller may act for it: the platform owner, or someone who publishes for the event's shop. */
+  /** The event, when the caller may act for it: the platform owner or a host with gather for the event's shop. */
   const hostOf = async (request: Request, env: E, eventId: string): Promise<{ userId: string; accountId: string } | { error: Response }> => {
     const person = await signedIn(request, env);
     if ('error' in person) return person;
     const event = await env.DB.prepare('SELECT id, account_id FROM events WHERE id = ?').bind(eventId).first<{ id: string; account_id: string }>();
     if (!event) return { error: notFound() };
     if (await isTeaTablePlatformOwner(env.DB, person.userId)) return { userId: person.userId, accountId: event.account_id };
-    const shop = await deps.requireBundle(request, env, 'publish');
+    const shop = await deps.requireBundle(request, env, 'gather');
     if ('error' in shop) return shop;
     // A host acts only for sessions of their own shop.
     if (shop.accountId !== event.account_id) return { error: notFound() };
@@ -436,7 +436,9 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
         `SELECT item_kind AS kind, item_id AS id FROM tea_table_keeps WHERE user_id = ? ORDER BY created_at DESC, item_id LIMIT ?`,
       ).bind(person.userId, MOST_KEPT).all<{ kind: TeaTableKind; id: string }>(),
       env.DB.prepare(
-        `SELECT journal_entry_id AS id FROM member_tasting_shares WHERE author_user_id = ? AND tea_table_at IS NOT NULL`,
+        `SELECT DISTINCT s.journal_entry_id AS id
+         ${TASTING_FROM}
+         WHERE s.author_user_id = ? AND ${TASTING_ON_TABLE}`,
       ).bind(person.userId).all<{ id: string }>(),
     ]);
     const body: TeaTableMine = {

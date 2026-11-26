@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Compass, Building2 } from 'lucide-react';
 import { READER_EXPLORE_LINKS } from './workflows';
+import { Button } from '../shared/Button';
 
 interface ReaderViewProps {
   onClose: () => void;
@@ -29,13 +30,13 @@ const LinkCluster: React.FC<{
       {links.map((link, i) => (
         <React.Fragment key={link.label}>
           {i > 0 && <span className="text-tea-text-dim" aria-hidden="true">·</span>}
-          <button
+          <Button variant="plain" type="button"
             onClick={link.onClick}
-            className="font-display text-ui-15 text-tea-text-sec hover:text-tea-text py-1 -my-1 transition-colors"
+            className="tap-target font-display text-ui-15 text-tea-text-sec hover:text-tea-text transition-colors"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {link.label}
-          </button>
+          </Button>
         </React.Fragment>
       ))}
     </div>
@@ -67,20 +68,20 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
 
       {/* ── Primary + secondary CTA ─────────────────────────────────── */}
       <div className="px-6 pb-6 space-y-2">
-        <button
+        <Button variant="primary" size="lg" type="button"
           onClick={onOpenSignIn}
-          className="btn-primary btn-primary-lg w-full"
+          className="tap-target w-full"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign in
-        </button>
-        <button
+        </Button>
+        <Button variant="quiet" type="button"
           onClick={onOpenSignUp}
-          className="w-full px-3 py-2 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs"
+          className="tap-target w-full"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Create an account
-        </button>
+        </Button>
       </div>
 
       {/* ── What's inside, text-link cluster, not rows ─────────────── */}

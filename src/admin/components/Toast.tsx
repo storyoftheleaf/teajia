@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { Button } from '../../components/shared/Button';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -35,11 +36,11 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed right-4 z-toast flex flex-col gap-3 pointer-events-none bottom-nav-gap lg:bottom-6 lg:right-6" aria-live="polite" aria-atomic="true" role="status">
+      <div className="fixed inset-x-4 z-toast flex flex-col items-end gap-3 pointer-events-none bottom-nav-gap lg:bottom-6 lg:right-6" aria-live="polite" aria-atomic="true" role="status">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto min-w-[240px] p-4 rounded-xl shadow-2xl flex items-center gap-3 border animate-in slide-in-from-right-full duration-300 fade-in ${
+            className={`pointer-events-auto w-full max-w-sm p-4 rounded-xl shadow-2xl flex flex-wrap items-center gap-3 border animate-in fade-in duration-300 ${
               t.type === 'success'
                 ? 'bg-tea-surface border-tea-accent-sub text-tea-text'
                 : t.type === 'error'
@@ -50,21 +51,21 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             {t.type === 'success' && <CheckCircle size={16} />}
             {t.type === 'error' && <AlertCircle size={16} />}
             {t.type === 'info' && <Info size={16} />}
-            <span className="text-xs font-medium tracking-wide font-sans">{t.message}</span>
+            <span className="min-w-0 flex-1 break-words text-xs font-medium tracking-wide font-sans">{t.message}</span>
             {t.action && (
-              <button
+              <Button variant="plain" type="button"
                 onClick={() => { t.action!.onClick(); setToasts((prev) => prev.filter((x) => x.id !== t.id)); }}
-                className="ml-auto text-ui-10 font-bold uppercase tracking-[0.15em] text-tea-gold hover:text-tea-text transition-colors px-2 py-0.5"
+                className="tap-target ml-auto text-ui-10 font-bold uppercase tracking-[0.15em] text-tea-gold hover:text-tea-text transition-colors px-2"
               >
                 {t.action.label}
-              </button>
+              </Button>
             )}
-            <button
+            <Button variant="icon" type="button" aria-label="Dismiss notice"
               onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-              className={`${t.action ? '' : 'ml-auto '}opacity-50 hover:opacity-100 transition-opacity`}
+              className="tap-target shrink-0"
             >
               <X size={14} />
-            </button>
+            </Button>
           </div>
         ))}
       </div>

@@ -96,6 +96,21 @@ const shareToTable = (env: any, extra: Record<string, unknown> = { tea_table: tr
 const putRecap = (env: any, who: Who, id = 'event-1') => call(env, who, `/api/admin/tea-table/recaps/${id}`, { method: 'PUT' });
 
 describe('the consent gate', () => {
+  it('lets gather staff manage a recap for their own shop without publish', async () => {
+    const { db, env } = setup();
+    const gather = { userId: 'gather-staff', account: SHOP };
+    const publish = { userId: 'publish-staff', account: SHOP };
+    seedIdentity(db, { userId: gather.userId, accountId: SHOP, role: 'staff', bundles: ['gather'] });
+    seedIdentity(db, { userId: publish.userId, accountId: SHOP, role: 'staff', bundles: ['publish'] });
+    const path = '/api/admin/tea-table/recaps/event-1';
+    expect(await ok(env, gather, path)).toMatchObject({ eligible: true, on_table: false });
+    expect((await call(env, publish, path, { method: 'PUT' })).status).toBe(403);
+    expect((await putRecap(env, gather, 'event-2')).status).toBe(404);
+    expect(await ok(env, gather, path, { method: 'PUT' })).toMatchObject({ on_table: true });
+    await ok(env, gather, '/api/tea-table/holds/recap/event-1', { method: 'PUT', body: { days: 3 } });
+    expect(await ok(env, gather, path, { method: 'DELETE' })).toMatchObject({ on_table: false });
+  });
+
   it('leaves off a tasting shared under the older "On my page" wording', async () => {
     const { env } = setup();
     expect(keys(await table(env))).toEqual([]);
@@ -212,6 +227,7 @@ describe('withdrawn and hidden pieces vanish from every view at once', () => {
     await onTableAndKept(env);
     await ok(env, HOST, '/api/admin/family/hide', { method: 'POST', body: { target_kind: 'tasting', target_id: 'journal-one' } });
     expect(keys(await table(env))).toEqual(['recap:event-1']);
+    expect((await ok(env, MEMBER, '/api/tea-table/me')).mine).toEqual([]);
     await ok(env, HOST, '/api/admin/family/unhide', { method: 'POST', body: { target_kind: 'tasting', target_id: 'journal-one' } });
     expect(keys(await table(env)).sort()).toEqual(['recap:event-1', 'tasting:journal-one']);
     await ok(env, PLATFORM, '/api/admin/tea-table/hide', { method: 'POST', body: { kind: 'recap', id: 'event-1', hidden: true } });

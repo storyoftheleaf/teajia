@@ -17,6 +17,7 @@
  * already has, without adding lines to the pinned worker type check.
  */
 import { isFamilyPhotographShape, readFamilyPhotographFrame, type FamilyPersonPhotograph, type FamilyPersonTasting, type FamilyPersonWord } from '../../src/lib/familyContract';
+import { photographBy } from './photographCredit';
 
 const MEDIA_PREFIX = 'https://media.teajia.co/';
 const mediaUrl = (key: string) => `${MEDIA_PREFIX}${key}`;
@@ -79,6 +80,7 @@ function storedFrame(text: string | null | undefined) {
 
 type PhotoRow = {
   id: string; product_id: string; small_key: string; full_key: string; small_width: number; small_height: number; shape?: string | null; frame?: string | null; at: string | null;
+  credit_name_shown: number | null;
 };
 type ProductRow = {
   id: string; name: string | null; chinese_name: string | null; slug: string | null; status: string | null;
@@ -86,7 +88,7 @@ type ProductRow = {
 };
 
 /** The teas a person has shared, newest first, as their page shows them. */
-export async function personTastings(db: D1Database, userId: string | null | undefined): Promise<FamilyPersonTasting[]> {
+export async function personTastings(db: D1Database, userId: string | null | undefined, authorName: string | null): Promise<FamilyPersonTasting[]> {
   if (!userId) return [];
   const [shares, photos] = await Promise.all([
     db.prepare(
@@ -98,7 +100,7 @@ export async function personTastings(db: D1Database, userId: string | null | und
         ORDER BY at DESC LIMIT ?`,
     ).bind(userId, MAX_TEAS).all<ShareRow>(),
     db.prepare(
-      `SELECT p.id, p.product_id, p.small_key, p.full_key, p.small_width, p.small_height, p.shape, p.frame, p.updated_at AS at
+      `SELECT p.id, p.product_id, p.small_key, p.full_key, p.small_width, p.small_height, p.shape, p.frame, p.credit_name_shown, p.updated_at AS at
          FROM member_photographs p
         WHERE p.author_user_id = ? AND p.share_state IN ('page', 'offered')
           AND p.removed_by_member_at IS NULL AND ${PHOTO_NOT_HIDDEN}
@@ -123,6 +125,7 @@ export async function personTastings(db: D1Database, userId: string | null | und
       small_width: Number(photo.small_width), small_height: Number(photo.small_height),
       shape: isFamilyPhotographShape(photo.shape) ? photo.shape : 'square',
       frame: storedFrame(photo.frame),
+      photograph_by: photographBy(photo, authorName),
     });
     pictures.set(photo.product_id, list);
     if (!order.includes(photo.product_id)) order.push(photo.product_id);

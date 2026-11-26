@@ -7,6 +7,7 @@ import type { AttentionItem } from '../../lib/api';
 import type { PayAccessTable } from '../profile/types';
 import { PayAccessRequestRow, soFarLine } from '../profile/PayAccessPanel';
 import { ATLAS_ROOT } from '../../atlas/atlasPaths';
+import { favouritesPath } from '../../lib/favouritesOpen';
 
 interface LaunchpadTile {
   id: string;
@@ -369,7 +370,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Heart {...ICON_PROPS} />,
       badge: inboundUnreadCount > 0 ? inboundUnreadCount : undefined,
       accent: inboundUnreadCount > 0,
-      onClick: () => { onClose(); navigate('/account/collection'); },
+      onClick: () => { onClose(); navigate(favouritesPath()); },
     },
     {
       // Stock spine step 4: the personal cellar, tea the user actually owns,

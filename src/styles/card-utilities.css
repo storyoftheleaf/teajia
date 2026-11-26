@@ -3653,11 +3653,11 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-dock-amount {
   display: flex;
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: var(--tap-min);
   align-items: center;
   gap: 8px;
   align-self: center;
-  min-height: 36px;
+  min-height: max(var(--control-h-lg), var(--tap-min));
   padding: 0 10px;
   overflow: hidden;
   white-space: nowrap;
@@ -3677,7 +3677,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-dock-add {
   flex: 0 0 auto;
   align-self: center;
-  min-height: 36px;
+  min-height: max(var(--control-h-lg), var(--tap-min));
   padding: 0 16px;
   white-space: nowrap;
   /* The same keyline, radius and wash as the amount picker beside it. It was

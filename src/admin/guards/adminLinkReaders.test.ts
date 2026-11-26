@@ -19,7 +19,7 @@ import {
 //
 // "Reads" means the screen's own file or a file it imports (two levels down,
 // leaving out src/lib and tests) holds `.get('<param>')`, `.getAll('<param>')`
-// or `.has('<param>')`, or AdminApp.tsx seeds it for that path (the Stock
+// or `.has('<param>')`, calls `useStepParam('<param>')`, or AdminApp.tsx seeds it for that path (the Stock
 // search box). A parameter that arrives only through a variable name is not
 // seen; add it to the list below with a note rather than loosening this.
 
@@ -104,7 +104,8 @@ const closureCache = new Map<string, string[]>();
 
 function readsParam(text: string, param: string): boolean {
   const q = param.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`\\.(?:get|getAll|has)\\(\\s*['"\`]${q}['"\`]\\s*\\)`).test(text);
+  return new RegExp(`\\.(?:get|getAll|has)\\(\\s*['"\`]${q}['"\`]\\s*\\)`).test(text)
+    || new RegExp(`\\buseStepParam\\(\\s*['"\`]${q}['"\`]\\s*[,)]`).test(text);
 }
 
 function filesOfScreen(name: string): string[] {

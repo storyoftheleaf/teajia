@@ -5,14 +5,14 @@ import { SqliteD1, seedIdentity } from './helpers/sqliteD1';
 // Teajia family, stage 4 (todo/plans/teajia-family.md): what a person's page
 // shows of their tastings, the owner's hides, sold-out teas and the people
 // list's "The family" ordering. Driven through worker.fetch against a real
-// SQLite database built from worker/schema.sql.
+// SQLite database built from the migration ledger.
 
 const SHOP = 'acc_teajia_bali';
 const databases: SqliteD1[] = [];
 afterEach(() => { while (databases.length) databases.pop()!.close(); });
 
 function setup() {
-  const db = new SqliteD1();
+  const db = new SqliteD1('migrations');
   databases.push(db);
   seedIdentity(db, { userId: 'owner', accountId: SHOP, role: 'owner' });
   for (const id of ['member-one', 'member-two', 'member-three']) {
@@ -77,6 +77,20 @@ const hide = (db: SqliteD1, kind: string, id: string) =>
   db.sqlite.prepare(`INSERT INTO family_hides (account_id, target_kind, target_id, hidden_by) VALUES (?, ?, ?, 'owner')`).run(SHOP, kind, id);
 
 describe('a person page shows what they shared', () => {
+  it('credits the photographer by first name only while they allow it', async () => {
+    const { db, env } = setup();
+    db.exec("UPDATE contributors SET display_name = 'Mei Chen' WHERE id = 'mei'");
+    db.exec("UPDATE member_photographs SET credit_name_shown = 1 WHERE id = 'p-shared'");
+    const credits = async () => {
+      const page = await (await get(env, '/api/people/mei')).json() as any;
+      const tea = page.tastings.find((t: any) => t.product_id === 'tea-a');
+      return Object.fromEntries(tea.photographs.map((p: any) => [p.id, p.photograph_by]));
+    };
+    expect(await credits()).toEqual({ 'p-shared': 'Mei', 'p-offered': null });
+    db.exec("UPDATE member_photographs SET credit_name_shown = 0 WHERE id = 'p-shared'");
+    expect(await credits()).toEqual({ 'p-shared': null, 'p-offered': null });
+  });
+
   it('lists shared tastings with dated words and small photographs, newest first', async () => {
     const { env } = setup();
     const body = await (await get(env, '/api/people/mei')).json() as any;
