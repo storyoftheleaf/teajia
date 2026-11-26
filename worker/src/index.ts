@@ -42,6 +42,7 @@ import { launch4RouteClosed, openRoutes } from './launch4Closed';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { approveHostCreditSpend, declineHostCreditSpend, HOST_CREDIT_SETTING_KEYS, readHostCreditSetting, readOwnAvailableInShop, readOwnHostCredit, readShopHostCredit, settleHostCredit, useHostCreditOnOrder } from './hostCreditLedger';
 import { hostCreditOpen } from '../../src/lib/hostCredit';
+import { tableCardOpen } from '../../src/lib/tableCard';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
 import { eraseKeptSetup, queueKeptPhotoCleanupForUser, retryKeptPhotoCleanup, serveKeptSetupPhotos } from './privateKeptSetupPhotos';
@@ -377,6 +378,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   CIRCLES_OPEN?: string;
   /** "true" or "false" opens or closes a host's own assistant key (Launch 5, M6); see src/lib/hostTokens.ts. */
   HOST_TOKENS_OPEN?: string;
+  /** "true" or "false" opens or closes the card for the table's tea menu fields (Launch 5, M3); see src/lib/tableCard.ts. */
+  TABLE_CARD_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -15036,9 +15039,12 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
      ORDER BY etm.brew_order ASC`
   ).bind(event.id, event.account_id, Number(event.account_public) === 1 ? 1 : 0).all<Record<string, unknown>>();
 
-  return json((result.results || []).map(({ shop_address, shop_store, ...row }) => ({
+  // Year and place are for the card (Launch 5, M3); closed, the menu answers as before.
+  const card = tableCardOpen(env);
+  return json((result.results || []).map(({ shop_address, shop_store, product_year, product_origin_region, product_origin_country, ...row }) => ({
     ...row,
     shop_path: shop_address ? shopTeaPath(String(shop_address), shop_store ? String(shop_store) : null) : null,
+    ...(card ? { product_year, product_origin_region, product_origin_country } : {}),
   })));
 };
 
@@ -15530,10 +15536,13 @@ const handleClaimInquiry:Handler=async(request,env,params)=>{
  WHERE account_id=? AND (id=? OR source_inquiry_id=?)
  AND EXISTS(SELECT 1 FROM invoices original WHERE original.id=? AND original.account_id=? AND original.fulfillment_claim_token=?)`
  ).bind(customerId,libraryAccount,inquiry.account_id,inquiry.converted_invoice_id,inquiry.id,inquiry.converted_invoice_id,inquiry.account_id,lease.claimToken)]);
- const { results: linkedOrders } = await env.DB.prepare(
-   'SELECT id FROM invoices WHERE account_id = ? AND (id = ? OR source_inquiry_id = ?)',
- ).bind(inquiry.account_id, inquiry.converted_invoice_id, inquiry.id).all<{ id: string }>();
- for (const order of linkedOrders) await settleHostCredit(env, order.id);
+ // Tea credit closed: no read here at all, as before Launch 5.
+ if (hostCreditOpen(env)) {
+   const { results: linkedOrders } = await env.DB.prepare(
+     'SELECT id FROM invoices WHERE account_id = ? AND (id = ? OR source_inquiry_id = ?)',
+   ).bind(inquiry.account_id, inquiry.converted_invoice_id, inquiry.id).all<{ id: string }>();
+   for (const order of linkedOrders) await settleHostCredit(env, order.id);
+ }
  await ensureContactRelationship(env,inquiry.account_id,customerId,'buyer','workflow','invoice',inquiry.converted_invoice_id);
  if(lease.invoice.status==='Filled'){const trail=await shipmentTeaTrail(env,inquiry.account_id,inquiry.converted_invoice_id);if(trail.length)await env.DB.batch(trail);}
  return json({success:true,invoice_id:inquiry.converted_invoice_id,account_id:inquiry.account_id});
@@ -15614,7 +15623,7 @@ const handleCreateInquiry: Handler = async (request, env, params, ctx) => {
   if (via && response.status === 201) {
     const saved = await response.clone().json().catch(() => null) as { id?: unknown; idempotent?: unknown } | null;
     // A replay answers with an order saved earlier: where it came from was settled then.
-    if (typeof saved?.id === 'string' && saved.idempotent !== true && await recordOrderSessionSource(env.DB, saved.id, via)) {
+    if (typeof saved?.id === 'string' && saved.idempotent !== true && await recordOrderSessionSource(env.DB, saved.id, via) && hostCreditOpen(env)) {
       // A website checkout is already an order: its tea lines are held as
       // pending credit now, worked out from the stored rows.
       const { results: orders } = await env.DB.prepare('SELECT id FROM invoices WHERE source_inquiry_id = ?')
@@ -22332,6 +22341,9 @@ const ACCOUNT_UPDATE_FIELDS = new Set([
   // follows the defaults in src/lib/hostCredit.ts. See hostCreditLedger.ts.
   ...HOST_CREDIT_SETTING_KEYS,
 ]);
+const ACCOUNT_UPDATE_FIELDS_WITHOUT_CREDIT: ReadonlySet<string> = new Set(
+  [...ACCOUNT_UPDATE_FIELDS].filter(field => !(HOST_CREDIT_SETTING_KEYS as readonly string[]).includes(field)),
+);
 
 // ─── Opening a store to buyers ───────────────────────────────────────────────
 // A tea master may build, stock and arrange a store while it is private. What a
@@ -22493,14 +22505,15 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
     body.default_shipping_rate_per_kg = n;
   }
 
-  for (const key of HOST_CREDIT_SETTING_KEYS) {
+  // Tea credit closed: its two settings are unknown fields here, refused as main refuses them.
+  for (const key of hostCreditOpen(env) ? HOST_CREDIT_SETTING_KEYS : []) {
     if (!(key in body)) continue;
     const setting = readHostCreditSetting(key, body[key]);
     if ('error' in setting) return restError(400, setting.error, 'host_credit_setting_invalid');
     body[key] = setting.value;
   }
 
-  const validated = validatedUpdateFields(body, ACCOUNT_UPDATE_FIELDS);
+  const validated = validatedUpdateFields(body, hostCreditOpen(env) ? ACCOUNT_UPDATE_FIELDS : ACCOUNT_UPDATE_FIELDS_WITHOUT_CREDIT);
   if ('error' in validated) return validated.error;
   const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);

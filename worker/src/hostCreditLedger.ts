@@ -139,6 +139,9 @@ export async function settleHostCredit(
   invoiceId: string,
   opts: { approvedBy?: string } = {},
 ): Promise<HostCreditSettlement> {
+  // Closed, it does nothing at all: no read, no write, no incident. Every
+  // invoice action on the live site runs exactly as it did before tea credit.
+  if (!hostCreditOpen(env)) return { ...NOTHING };
   if (typeof invoiceId !== 'string' || !invoiceId) return { ...NOTHING };
   try {
     const invoice = await env.DB.prepare(
@@ -148,14 +151,13 @@ export async function settleHostCredit(
         WHERE i.id = ?`,
     ).bind(invoiceId).first<InvoiceRow>();
     if (!invoice) return { ...NOTHING };
-    // Undo a posted award even when earning is closed, whether the invoice
-    // became Void or the buyer is later identified as the host.
+    // Undo a posted award, whether the invoice became Void or the buyer is
+    // later identified as the host.
     if (invoice.status === 'Void') {
       const reversed = await reverseInvoiceCredit(env.DB, invoice, 'void');
       if (reversed) await checkHostCreditIntegrity(env.DB, invoice.account_id);
       return { ...NOTHING, reversed };
     }
-    if (!hostCreditOpen(env) && !invoice.buyer_user_id) return { ...NOTHING };
     const result = await earnInvoiceCredit(env, invoice, opts.approvedBy ?? null);
     if (result.pending || result.earned || result.reversed) await checkHostCreditIntegrity(env.DB, invoice.account_id);
     return result;
