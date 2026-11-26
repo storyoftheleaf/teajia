@@ -4040,3 +4040,6 @@ CREATE TABLE IF NOT EXISTS session_reports (
 CREATE INDEX IF NOT EXISTS idx_session_reports_open ON session_reports(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_session_reports_target ON session_reports(target_kind, target_id);
 ALTER TABLE session_guest_book_photos ADD COLUMN show_name INTEGER NOT NULL DEFAULT 0 CHECK (show_name IN (0, 1));
+
+-- 0136_host_table_tea_photos.sql
+ALTER TABLE event_tea_menu ADD COLUMN photo_url TEXT;

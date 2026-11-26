@@ -18,7 +18,7 @@ let db: SqliteD1;
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-11-26T16:30:00Z'));
-  db = new SqliteD1('migrations', '0129');
+  db = new SqliteD1('migrations', '0136');
   seedIdentity(db, { userId: 'ana', accountId: 'personal-ana' });
   seedIdentity(db, { userId: 'other', accountId: 'another-shop' });
   db.exec(`

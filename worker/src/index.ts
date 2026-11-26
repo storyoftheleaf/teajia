@@ -20,6 +20,7 @@ import { createHostedTable, type HostedTableDoor } from './hostTable';
 import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest } from './hostTableGuests';
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
+import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -12601,11 +12602,13 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
 
   // Fetch tea menu for the event with product details for shop links
   const menuRows = await env.DB.prepare(
-    `SELECT etm.id, etm.event_id, etm.product_id, etm.custom_name, etm.custom_description,
+    `SELECT etm.id, etm.event_id, COALESCE(own.id, shop.id) AS product_id, etm.custom_name, etm.custom_description,
             etm.brew_order, etm.reveal_date,
-            p.product_name, p.type AS product_type, p.image_url AS product_image_url
+            COALESCE(own.product_name, shop.product_name) AS product_name,
+            COALESCE(own.type, shop.type) AS product_type,
+            COALESCE(etm.photo_url, own.image_url, shop.image_url) AS product_image_url
      FROM event_tea_menu etm
-     LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etm.account_id
+     ${menuProductJoins('etm')}
      WHERE etm.event_id = ? AND etm.account_id = ?
        AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
      ORDER BY etm.brew_order ASC NULLS LAST`
@@ -13054,13 +13057,22 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
     : null;
 
   // Get revealed tea menu items
+  // A product of the session's own account or a public tea of Teajia's shop
+  // (Launch 2, H6); any other product id is read as the menu's plain name.
   const menu = await env.DB.prepare(
-    `SELECT etm.*, p.given_name, p.product_name, p.chinese_name, p.type, p.image_url, p.description as product_description
+    `SELECT etm.id, etm.event_id, etm.account_id, etm.custom_name, etm.custom_description, etm.reveal_date,
+            etm.brew_order, etm.created_at, etm.photo_url, COALESCE(own.id, shop.id) AS product_id,
+            COALESCE(own.given_name, shop.given_name) AS given_name,
+            COALESCE(own.product_name, shop.product_name) AS product_name,
+            COALESCE(own.chinese_name, shop.chinese_name) AS chinese_name,
+            COALESCE(own.type, shop.type) AS type,
+            COALESCE(etm.photo_url, own.image_url, shop.image_url) AS image_url,
+            COALESCE(own.description, shop.description) AS product_description
      FROM event_tea_menu etm
-     LEFT JOIN products p ON p.id = etm.product_id
-     WHERE etm.event_id = ? AND (etm.reveal_date IS NULL OR etm.reveal_date <= datetime('now'))
+     ${menuProductJoins('etm', '?1')}
+     WHERE etm.event_id = ?2 AND (etm.reveal_date IS NULL OR etm.reveal_date <= datetime('now'))
      ORDER BY etm.brew_order ASC`
-  ).bind(attendee.event_id).all();
+  ).bind(attendee.account_id, attendee.event_id).all();
 
   // Get guest invites for this attendee
   const guestInvites = await env.DB.prepare(
@@ -14713,30 +14725,36 @@ const handleGetPublicTeaMenu: Handler = async (_request, env, params) => {
   ).bind(params.slug).first();
   if (!event) return json({ error: 'Event not found' }, 404);
 
+  // A tea of the session's own account, as before, or a public tea of
+  // Teajia's shop, which also carries its shop page (Launch 2, H6). Any other
+  // product id is read as the menu's plain name: no product fields, no id.
   const result = await env.DB.prepare(
     `SELECT
        etm.id,
        etm.event_id,
-       etm.product_id,
+       COALESCE(own.id, shop.id) AS product_id,
        etm.custom_name,
        etm.custom_description,
        etm.reveal_date,
        etm.brew_order,
-       p.given_name,
-       p.product_name,
-       p.chinese_name,
-       p.type AS product_type,
-       p.image_url AS product_image_url
+       COALESCE(own.given_name, shop.given_name) AS given_name,
+       COALESCE(own.product_name, shop.product_name) AS product_name,
+       COALESCE(own.chinese_name, shop.chinese_name) AS chinese_name,
+       COALESCE(own.type, shop.type) AS product_type,
+       COALESCE(etm.photo_url, own.image_url, shop.image_url) AS product_image_url,
+       ${shopTeaAddressColumns()}
      FROM event_tea_menu etm
-     LEFT JOIN products p
-       ON p.id = etm.product_id AND p.account_id = etm.account_id
+     ${menuProductJoins('etm')}
      WHERE etm.event_id = ?
        AND etm.account_id = ?
        AND (etm.reveal_date IS NULL OR datetime(etm.reveal_date) <= datetime('now'))
      ORDER BY etm.brew_order ASC`
-  ).bind(event.id, event.account_id).all();
+  ).bind(event.id, event.account_id).all<Record<string, unknown>>();
 
-  return json(result.results || []);
+  return json((result.results || []).map(({ shop_address, shop_store, ...row }) => ({
+    ...row,
+    shop_path: shop_address ? shopTeaPath(String(shop_address), shop_store ? String(shop_store) : null) : null,
+  })));
 };
 
 const handleUpsertTeaMenu: Handler = async (request, env, params) => {
@@ -17187,20 +17205,15 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
     // The host's own view of each guest (H4): what they wrote, a phone for
     // the host's WhatsApp, and whether they asked not to be photographed.
     hostTableGuests(env.DB, scope),
-    // A tea on this table's menu, named from this account's own record only.
-    env.DB.prepare(`
-      SELECT m.id, COALESCE(NULLIF(trim(m.custom_name), ''), p.product_name) AS name, m.product_id, m.brew_order
-        FROM event_tea_menu m
-        LEFT JOIN products p ON p.id = m.product_id AND p.account_id = m.account_id
-       WHERE m.event_id = ? AND m.account_id = ?
-       ORDER BY m.brew_order IS NULL, m.brew_order, m.id
-    `).bind(table.id, account.id).all<Record<string, unknown>>(),
+    // The teas on this table (H6): a Teajia shop tea, a tea of the host's own
+    // chest, or a plain name. No price, stock or cost.
+    hostTableTeas(env.DB, scope),
     seatsTaken(env.DB, scope),
   ]);
   return hostTableJson({
     table: { ...table, seats_taken: taken, link: `${appOrigin(env)}/event/${table.slug}` },
     guests,
-    teas: teas.results,
+    teas,
     doors: host.doors,
   });
 };
@@ -17327,6 +17340,54 @@ const handleHostedTableNotes: Handler = async (request, env, params) => {
   if ('notFound' in saved) return json({ error: 'Guest not found' }, 404);
   if ('refused' in saved) return restError(400, saved.refused.error, saved.refused.code);
   return hostTableJson({ note: saved.note });
+};
+
+// ── A tea for the table (Launch 2, H6). The host's own table only, through
+// requireOwnHostedTable. No price, stock or cost in any answer.
+
+// GET /api/me/tables/:id/tea-search?q=. Up to five teas: Teajia's shop first
+// (public, active, shown teas only), then the host's own chest.
+const handleHostedTableTeaSearch: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const query = new URL(request.url).searchParams.get('q') ?? '';
+  return hostTableJson({ matches: await searchTableTeas(env.DB, own.table, query) });
+};
+
+// PUT /api/me/tables/:id/teas {teas: [{id?, source, product_id?, name, from?, photo_url?}]}.
+// The whole list, in pouring order.
+const handleSaveHostedTableTeas: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const teas = readTableTeas(own.table, await request.json().catch(() => null));
+  if ('refused' in teas) return restError(teas.refused.status, teas.refused.error, teas.refused.code);
+  const saved = await saveTableTeas(env.DB, own.table, teas);
+  if ('refused' in saved) return restError(saved.refused.status, saved.refused.error, saved.refused.code);
+  return hostTableJson(saved);
+};
+
+// POST /api/me/tables/:id/teas/photo (multipart, one framed photograph). The
+// page opens every photograph in the shared photo editor first; this keeps it
+// under the table's own folder, the only place a saved tea may point at.
+const handleHostedTableTeaPhoto: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${own.host.userId}:host-tea-photo`);
+  if (limited) return limited;
+  if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  const key = `${tableTeaPhotoPrefix(own.table)}${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'image/jpeg' } });
+  return hostTableJson({ url: `https://media.teajia.co/${key}` }, 201);
 };
 
 const handleGrantShelf: Handler = async (request, env, params) => {
@@ -19048,8 +19109,9 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   // Get tea menu — if empty, skip invoice creation
   const menuRows = await env.DB.prepare(
     `SELECT etm.product_id, etm.brew_order FROM event_tea_menu etm
-     WHERE etm.event_id = ? AND etm.product_id IS NOT NULL`
-  ).bind(params.id).all();
+     WHERE etm.event_id = ? AND etm.product_id IS NOT NULL
+       AND EXISTS (SELECT 1 FROM products p WHERE p.id = etm.product_id AND p.account_id = ?)`
+  ).bind(params.id, accountId).all();
 
   if (menuRows.results.length === 0) {
     await env.DB.prepare(
@@ -32347,6 +32409,9 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/me/tables/:id/guests/:attendeeId/thanks-link', handleHostThanksLink],
   ['GET',    '/api/me/tables/:id/notes', handleHostedTableNotes],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/note', handleHostedTableNotes],
+  ['GET',    '/api/me/tables/:id/tea-search', handleHostedTableTeaSearch],
+  ['PUT',    '/api/me/tables/:id/teas', handleSaveHostedTableTeas],
+  ['POST',   '/api/me/tables/:id/teas/photo', handleHostedTableTeaPhoto],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],

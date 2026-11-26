@@ -70,7 +70,12 @@ const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
               {item.productType && (
                 <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-readgold mb-0.5">{item.productType}</p>
               )}
-              <p className="text-ui-16 text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{item.customName || item.productName}</p>
+              <p className="text-ui-16 text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+                {/* A tea of Teajia's shop leads to its page (Launch 2, H6); any other tea is its name. */}
+                {item.shopPath
+                  ? <Link to={item.shopPath} className="underline decoration-tea-border underline-offset-4 hover:decoration-tea-gold">{item.customName || item.productName}</Link>
+                  : item.customName || item.productName}
+              </p>
               {item.customDescription && (
                 <p className="body-light mt-1">{item.customDescription}</p>
               )}
@@ -181,6 +186,7 @@ const EventLanding: React.FC = () => {
           id: m.id as string,
           eventId: m.event_id as string,
           productId: (m.product_id as string) || undefined,
+          shopPath: typeof m.shop_path === 'string' && m.shop_path.startsWith('/shop/') ? m.shop_path : undefined,
           customName: (m.custom_name as string) || undefined,
           customDescription: (m.custom_description as string) || undefined,
           revealDate: (m.reveal_date as string) || undefined,
