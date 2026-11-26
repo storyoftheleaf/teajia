@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink, Pencil, Check } from 'lucide-react';
 import { api, type CellarItem, type ChestSourceInput, type ShelfOfferInput } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
+import { firstTableOpen } from '../../lib/firstTable';
 import { CellarOfferEditor } from './CellarOfferEditor';
 import { TeaChestStockLinks, useTeaChestStockAccount } from './TeaChestStockLinks';
 import { Button } from '../shared/Button';
@@ -80,6 +81,7 @@ const PLACEMENT_LABEL: Record<CellarItem['placementStatus'], string> = {
 export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const tableOpen = firstTableOpen();
   const stockAccount = useTeaChestStockAccount();
   const memberships = useAppStore(s => s.memberships);
   const activeAccount = useAppStore(s => s.activeAccount);
@@ -209,7 +211,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
     const siteSetSource = item?.source?.kind === 'bought' || item?.source?.kind === 'session';
     updateMut.mutate({ id, data: { name: trimmed, label: editLabel, grams: Number.isFinite(g) && g >= 0 ? g : 0,
       ...(editCost && { costAmount: editCost.amount, costCurrency: editCost.currency }),
-      ...(!siteSetSource && {
+      ...(tableOpen && !siteSetSource && {
         source_kind: editSourceKind || null,
         source_from_name: editSourceKind === 'gift' ? editSourceFromName.trim() || null : null,
       }),
@@ -245,13 +247,13 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                   </div>
                   <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                     <span className="shrink-0 text-ui-13 text-tea-text-sec">{gramsLine(item)}</span>
-                    <button
+                    {tableOpen && <button
                       type="button"
                       onClick={() => navigate(`/account/journal?chest=${encodeURIComponent(item.id)}`)}
                       className="tap-target text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
                     >
                       Taste this
-                    </button>
+                    </button>}
                   </div>
                 </li>
               ))}
@@ -355,7 +357,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
             className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
           />
           <input aria-label="Private label" placeholder="Private label (optional)" maxLength={60} value={label} onChange={event => setLabel(event.target.value)} className={`w-full ${chestField}`} />
-          <SourceChoice kind={sourceKind} fromName={sourceFromName} onKindChange={setSourceKind} onFromNameChange={setSourceFromName} />
+          {tableOpen && <SourceChoice kind={sourceKind} fromName={sourceFromName} onKindChange={setSourceKind} onFromNameChange={setSourceFromName} />}
           <div className="flex items-center gap-2">
             <input
               aria-label="Holding weight in grams"
@@ -434,7 +436,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                     className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                   />
                   <input aria-label="Private label" placeholder="Private label (optional)" maxLength={60} value={editLabel} onChange={event => setEditLabel(event.target.value)} className={`w-full ${chestField}`} />
-                  {item.source?.kind === 'bought' || item.source?.kind === 'session' ? (
+                  {!tableOpen ? null : item.source?.kind === 'bought' || item.source?.kind === 'session' ? (
                     <p className="text-ui-12 text-tea-text-sec">Where it came from: {sourceLine(item)}</p>
                   ) : (
                     <SourceChoice kind={editSourceKind} fromName={editSourceFromName} onKindChange={setEditSourceKind} onFromNameChange={setEditSourceFromName} />
@@ -508,13 +510,13 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
               {/* Placement (the move), hidden while editing this item */}
               {editingId !== item.id && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button
+                {tableOpen && <button
                   type="button"
                   onClick={() => navigate(`/account/journal?chest=${encodeURIComponent(item.id)}`)}
                   className="tap-target text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
                 >
                   Taste this
-                </button>
+                </button>}
                 {!item.shelfPublished && (
                   <span className="text-ui-12 text-tea-text-sec">
                     {PLACEMENT_LABEL[item.placementStatus]}

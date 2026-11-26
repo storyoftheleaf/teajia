@@ -6,6 +6,7 @@ import { TastingSession, type TastingItem } from '../components/tasting/TastingS
 import { PersonalTeaLinks } from '../components/account/PersonalTeaLinks';
 import { useJournalHydration } from '../hooks/useJournalHydration';
 import { api } from '../lib/api';
+import { firstTableOpen } from '../lib/firstTable';
 import type { CellarItem } from '../lib/teaChestTypes';
 
 export interface JournalDeepLink {
@@ -47,7 +48,7 @@ export default function JournalPage() {
   const chest = useQuery({
     queryKey: ['cellar'],
     queryFn: () => api.cellar.list(),
-    enabled: !!deepLink.chestItemId,
+    enabled: firstTableOpen() && !!deepLink.chestItemId,
     staleTime: 1000 * 60,
   });
   const chestTasting = journalTastingForDeepLink(deepLink, chest.data?.items ?? []);
@@ -71,7 +72,7 @@ export default function JournalPage() {
         <TastingSession
           key={chestTasting.id}
           item={chestTasting}
-          onClose={() => navigate(-1)}
+          onClose={() => navigate('/account/journal')}
         />
       )}
       <div className="mx-auto max-w-3xl px-4 pb-nav-gap-lg md:px-6">
