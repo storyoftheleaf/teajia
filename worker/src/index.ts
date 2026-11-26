@@ -8,7 +8,7 @@ import {
 import { ORDER_NOTICE_ACCOUNT_SQL, orderNoticeRecipient, recordMissingSellerAddress, type OrderNoticeAccount } from './orderNoticeRecipient';
 import { servePrivateSubjectPhotos } from './privateSubjectPhotos';
 import { createMemberPrivateSitsHandler } from './memberPrivateSits';
-import { afterSitRoutes } from './afterSitAccess';
+import { afterSitRoutes, issueAfterSitLink } from './afterSitAccess';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
@@ -16,6 +16,8 @@ import { hostApproved, hostDoorsFor, personalAccountSql, publicSessionHostSql, s
 import { isWalkthroughMedia, mayShowWalkthrough, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
+import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, sayNoToGuest, seatsTaken, waitingGuest } from './hostTableGuests';
+import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -17053,12 +17055,11 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
      WHERE e.id = ? AND ${OWN_HOSTED_TABLE_SQL}
   `).bind(params.id, account.id, host.userId).first<Record<string, unknown>>();
   if (!table) return json({ error: 'Table not found' }, 404);
-  const [guests, teas] = await Promise.all([
-    env.DB.prepare(`
-      SELECT id, full_name, status, plus_one, attended, created_at
-        FROM event_attendees WHERE event_id = ? AND account_id = ?
-       ORDER BY created_at ASC, id ASC
-    `).bind(table.id, account.id).all<Record<string, unknown>>(),
+  const scope = { id: String(table.id), account_id: account.id };
+  const [guests, teas, taken] = await Promise.all([
+    // The host's own view of each guest (H4): what they wrote, a phone for
+    // the host's WhatsApp, and whether they asked not to be photographed.
+    hostTableGuests(env.DB, scope),
     // A tea on this table's menu, named from this account's own record only.
     env.DB.prepare(`
       SELECT m.id, COALESCE(NULLIF(trim(m.custom_name), ''), p.product_name) AS name, m.product_id, m.brew_order
@@ -17067,20 +17068,138 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
        WHERE m.event_id = ? AND m.account_id = ?
        ORDER BY m.brew_order IS NULL, m.brew_order, m.id
     `).bind(table.id, account.id).all<Record<string, unknown>>(),
+    seatsTaken(env.DB, scope),
   ]);
-  return json({
-    table: { ...table, link: `${appOrigin(env)}/event/${table.slug}` },
-    guests: guests.results,
+  return hostTableJson({
+    table: { ...table, seats_taken: taken, link: `${appOrigin(env)}/event/${table.slug}` },
+    guests,
     teas: teas.results,
+    doors: host.doors,
   });
 };
 
-// PUT /api/me/tables/:id/guests/:attendeeId/note and GET /api/me/tables/:id/notes.
-// The host's private guest book; slice H9 builds it.
-const handleHostedTableNotes: Handler = async (request, env) => {
+// ── The host's page for one table (Launch 2, H4) and their private guest
+// book (H9). Every route below starts from requireOwnHostedTable: the caller
+// is an approved host, the session sits in their own personal account and
+// names them as its host. Anyone else, another host and the shop owner
+// included, gets the same 404.
+
+async function requireOwnHostedTable(request: Request, env: Env, eventId: string) {
   const host = await requireFewHostsHost(request, env);
-  if ('error' in host) return host.error;
-  return json({ error: 'Not built yet' }, 501);
+  if ('error' in host) return host;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  const table = account ? await ownHostedTable(env.DB, { hostUserId: host.userId, eventId }) : null;
+  if (!account || !table || table.account_id !== account.id) return { error: json({ error: 'Table not found' }, 404) };
+  return { host, table };
+}
+
+function hostTableJson(value: unknown, status = 200) {
+  const response = json(value, status);
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
+}
+
+// PUT /api/me/tables/:id {door?, seats?}. Change how guests get a seat, or
+// how many seats there are, before the table happens.
+const handleChangeHostedTable: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const change = readTableChange(await request.json().catch(() => null) as Record<string, unknown> | null, own.host.doors);
+  if ('refused' in change) return restError(change.refused.status, change.refused.error, change.refused.code);
+  const result = await changeHostedTable(env.DB, own.table, change);
+  if ('refused' in result) return restError(result.refused.status, result.refused.error, result.refused.code);
+  return hostTableJson({ ok: true });
+};
+
+// PUT /api/me/tables/:id/guests/:attendeeId/yes. The host says yes to a guest
+// who asked. The admin approval's own reservation and guarded allocator take
+// the seat, with the guest's requested party, or refuse when the table is full.
+const handleHostSaysYes: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const attendee = await waitingGuest(env.DB, own.table, params.attendeeId);
+  if (!attendee) return json({ error: 'Guest not found' }, 404);
+  if (attendee.status !== 'requested') {
+    return restError(409, 'This guest is no longer waiting for your yes.', 'state_conflict');
+  }
+  const reservation = await buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, Number(attendee.requested_guests) || 0);
+  if (!reservation) return restError(409, 'This guest’s request is incomplete. Ask them to take a seat again.', 'state_conflict');
+  const reserved = await reservePartySeats(env, reservation);
+  if (!reserved.ok) {
+    if (reserved.code === 'capacity_conflict') {
+      return restError(409, 'The table is full. Add a seat first, or say no.', 'capacity_conflict');
+    }
+    if (reserved.code === 'event_not_reservable') {
+      return restError(409, 'This table is no longer taking guests.', 'event_not_reservable');
+    }
+    return restError(409, 'This guest’s seat changed while you were looking. Open the table again.', 'state_conflict');
+  }
+  await buildActivityLog(env, 'attendee_approved', `Host said yes to ${attendee.full_name}`,
+    getUserEmail(request), 'event_attendee', attendee.id, own.table.account_id).run();
+  return hostTableJson({ ok: true, status: 'confirmed' });
+};
+
+// PUT /api/me/tables/:id/guests/:attendeeId/no. The host says no to a guest
+// who is still waiting. A waiting guest holds no seat, so nothing is freed.
+const handleHostSaysNo: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const attendee = await waitingGuest(env.DB, own.table, params.attendeeId);
+  if (!attendee) return json({ error: 'Guest not found' }, 404);
+  if (!(await sayNoToGuest(env.DB, own.table, attendee.id))) {
+    return restError(409, 'This guest is no longer waiting for your answer.', 'state_conflict');
+  }
+  await buildActivityLog(env, 'attendee_denied', `Host said no to ${attendee.full_name}`,
+    getUserEmail(request), 'event_attendee', attendee.id, own.table.account_id).run();
+  return hostTableJson({ ok: true, status: 'denied' });
+};
+
+// PUT /api/me/tables/:id/came {attendee_ids}. Once the table has begun, the
+// host marks who came; the table is then finished, so thank-you links open.
+const handleHostMarksWhoCame: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const body = await request.json().catch(() => null) as { attendee_ids?: unknown } | null;
+  const ids = body?.attendee_ids;
+  if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string')) {
+    return restError(400, 'Say who came.', 'hosted_table_came');
+  }
+  const result = await markWhoCame(env.DB, own.table, ids as string[]);
+  if ('refused' in result) return restError(result.refused.status, result.refused.error, result.refused.code);
+  return hostTableJson({ ok: true });
+};
+
+// POST /api/me/tables/:id/guests/:attendeeId/thanks-link. The same after-sit
+// link the shop's Sessions room copies, for a guest who came.
+const handleHostThanksLink: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const limited = await enforceDurableLimit(env.AFTER_SIT_LIMITER, 'AFTER_SIT_LIMITER', `after-sit:host:${own.table.account_id}`);
+  if (limited) return limited;
+  const issued = await issueAfterSitLink(env.DB, { attendeeId: params.attendeeId, eventId: own.table.id, accountId: own.table.account_id });
+  if (!issued) return json({ error: 'This guest’s thank-you link is unavailable.' }, 404);
+  const response = hostTableJson(issued);
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  return response;
+};
+
+// GET /api/me/tables/:id/notes and PUT /api/me/tables/:id/guests/:attendeeId/note {note}.
+// The host's private guest book (H9): read and written by the table's host
+// alone, through worker/src/hostGuestNotes.ts only.
+const handleHostedTableNotes: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const scope = { hostUserId: own.host.userId, accountId: own.table.account_id, eventId: own.table.id };
+  if (request.method === 'GET') {
+    const notes = await guestNotesFor(env.DB, scope);
+    return 'notFound' in notes ? json({ error: 'Table not found' }, 404) : hostTableJson(notes);
+  }
+  const body = await request.json().catch(() => null) as { note?: unknown } | null;
+  if (!body || !('note' in body)) return restError(400, 'Write the note as words.', 'guest_note_invalid');
+  const saved = await saveGuestNote(env.DB, { ...scope, attendeeId: params.attendeeId, note: body.note });
+  if ('notFound' in saved) return json({ error: 'Guest not found' }, 404);
+  if ('refused' in saved) return restError(400, saved.refused.error, saved.refused.code);
+  return hostTableJson({ note: saved.note });
 };
 
 const handleGrantShelf: Handler = async (request, env, params) => {
@@ -32091,6 +32210,11 @@ const routes: [string, string, Handler][] = [
   ['GET',    '/api/me/tables', handleListHostedTables],
   ['POST',   '/api/me/tables', handleCreateHostedTable],
   ['GET',    '/api/me/tables/:id', handleGetHostedTable],
+  ['PUT',    '/api/me/tables/:id', handleChangeHostedTable],
+  ['PUT',    '/api/me/tables/:id/came', handleHostMarksWhoCame],
+  ['PUT',    '/api/me/tables/:id/guests/:attendeeId/yes', handleHostSaysYes],
+  ['PUT',    '/api/me/tables/:id/guests/:attendeeId/no', handleHostSaysNo],
+  ['POST',   '/api/me/tables/:id/guests/:attendeeId/thanks-link', handleHostThanksLink],
   ['GET',    '/api/me/tables/:id/notes', handleHostedTableNotes],
   ['PUT',    '/api/me/tables/:id/guests/:attendeeId/note', handleHostedTableNotes],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
