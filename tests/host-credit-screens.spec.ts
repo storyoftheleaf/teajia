@@ -256,6 +256,7 @@ for (const size of SIZES) {
       await page.getByRole('button', { name: 'Place order request', exact: true }).click();
       await expect.poll(() => sent.length).toBe(1);
       expect(uses).toEqual([]);
+      expect(Object.keys(sent[0]).filter(key => /credit/.test(key))).toEqual([]);
       await assertNoOverflow(page);
 
       await page.goto(`${OFF_URL}/account/tea-credit`);
