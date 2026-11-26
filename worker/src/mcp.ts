@@ -34,12 +34,13 @@ import { logisticsTools } from './mcpTools/logistics';
 
 import { customerTagList } from './customerContactHandles';
 import { readVendorDependencies, vendorHasDependencies, deleteUnreferencedVendor } from './vendorDependencies';
-import { combineToolModules, type ToolModule } from './mcpTools/registry';
+import { combineToolModules, type ToolDefinition, type ToolModule } from './mcpTools/registry';
 import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
 import { transferToolModule } from './mcpTools/transfer';
 import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
 import { firstTableToolModule } from './mcpTools/firstTable';
+import { launch4ToolModule } from './mcpTools/launch4';
 import { writingToolModule } from './mcpTools/writing';
 import { costCurrencyTools } from './mcpTools/costCurrency';
 import { curateIntakeTools, curateManagerAccess } from './mcpTools/curateIntake';
@@ -121,6 +122,8 @@ type Env = {
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
   JWT_SECRET: string;
+  FAVOURITES_OPEN?: string;
+  TEA_TABLE_OPEN?: string;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
   OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // Edge rate limiter for the public prepare_order tool, which unlike the
@@ -7131,6 +7134,7 @@ const TOOL_MODULES: ToolModule[] = [
   curationTools,
   eventsToolModule,
   firstTableToolModule,
+  launch4ToolModule,
   writingToolModule,
   costCurrencyTools,
   curateIntakeTools,
@@ -7160,7 +7164,7 @@ function toolDefFor(name: string) {
     ?? MODULE_TOOL_DEFS.find(tool => tool.name === name);
 }
 
-function visibleToolDefs(auth: McpAuth) {
+function visibleToolDefs(env: Env, auth: McpAuth) {
   // Module tools are listed on the same terms as the built-in ones. A tool that
   // dispatches but never appears in tools/list is a tool nobody can find.
   return [...TOOL_DEFS, ...MODULE_TOOL_DEFS]
@@ -7169,10 +7173,10 @@ function visibleToolDefs(auth: McpAuth) {
       if (!hasMcpScope(auth, scope)) return false;
       // Owner-tier scoped tools are invisible without current owner authority.
       if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
-      return true;
+      return !('unavailable' in tool && tool.unavailable?.(env, auth));
     })
     .map(tool => {
-      const { scope: _scope, ...rest } = tool;
+      const { scope: _scope, unavailable: _unavailable, ...rest } = tool as ToolDefinition;
       return { ...rest, annotations: annotationsFor(tool) };
     });
 }
@@ -7249,6 +7253,9 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
       tool: name,
     });
   }
+
+  const unavailable = 'unavailable' in tool && tool.unavailable?.(env, auth);
+  if (unavailable) return mcpContent({ error: unavailable });
 
   let result;
   switch (name) {
@@ -7381,7 +7388,7 @@ async function mcpFetchInner(request: Request, env: Env): Promise<Response> {
       }
 
       case 'tools/list':
-        return rpcResult(id, { tools: visibleToolDefs(auth) });
+        return rpcResult(id, { tools: visibleToolDefs(env, auth) });
 
       case 'tools/call': {
         const name = params?.name;

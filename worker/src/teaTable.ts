@@ -56,7 +56,7 @@ const json = (value: unknown, status = 200) => Response.json(value, { status, he
 const privateJson = (value: unknown, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'private, no-store' } });
 const refuse = (status: number, error: string, code: string) => privateJson({ error, code }, status);
 const notFound = () => refuse(404, 'Not found', 'not_found');
-const isKind = (value: unknown): value is TeaTableKind => typeof value === 'string' && (KINDS as readonly string[]).includes(value);
+export const isTeaTableKind = (value: unknown): value is TeaTableKind => typeof value === 'string' && (KINDS as readonly string[]).includes(value);
 
 // ── The consent gate, as SQL ────────────────────────────────────────────────
 
@@ -75,8 +75,9 @@ const TASTING_ON_TABLE = `
   AND a.status = 'active' AND a.public_enabled = 1`;
 
 /** A recap on the table. Needs e (events) and a (accounts). */
+const RECAP_ELIGIBLE = `e.network_discovery = 1 AND ${publishedSitRecap}`;
 const RECAP_ON_TABLE = `
-  e.network_discovery = 1 AND ${publishedSitRecap}
+  ${RECAP_ELIGIBLE}
   AND e.tea_table_at IS NOT NULL AND e.tea_table_hidden_at IS NULL`;
 
 const held = (kind: TeaTableKind, id: string) => `EXISTS (SELECT 1 FROM tea_table_holds th
@@ -250,14 +251,132 @@ async function readByIds(db: D1Database, keys: Array<{ kind: TeaTableKind; id: s
   return keys.flatMap(key => found.get(teaTableKey(key)) ?? []);
 }
 
-async function onTable(db: D1Database, kind: TeaTableKind, id: string): Promise<boolean> {
-  return (await readByIds(db, [{ kind, id }])).length > 0;
+export async function teaTablePiece(db: D1Database, kind: TeaTableKind, id: string) {
+  return (await readByIds(db, [{ kind, id }]))[0];
 }
 
 /** Whether this person is the platform owner, read from the database, never from the token. */
-async function isPlatformOwner(db: D1Database, userId: string): Promise<boolean> {
+export async function isTeaTablePlatformOwner(db: D1Database, userId: string): Promise<boolean> {
   const row = await db.prepare('SELECT platform_role FROM users WHERE id = ?').bind(userId).first<{ platform_role: string | null }>();
   return row?.platform_role === 'platform_owner';
+}
+
+// Use the read gates in the insert itself, so concurrent withdrawal cannot create a new keep or hold.
+function visiblePiece(kind: TeaTableKind, idBind: string) {
+  return kind === 'tasting'
+    ? `SELECT 1 ${TASTING_FROM} WHERE s.journal_entry_id = ${idBind} AND ${TASTING_ON_TABLE}
+        AND COALESCE(NULLIF(p.given_name, ''), p.product_name) <> ''`
+    : `SELECT 1 FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ${idBind} AND ${RECAP_ON_TABLE}`;
+}
+
+export async function setTeaTableKeep(db: D1Database, userId: string, kind: TeaTableKind, id: string, kept: boolean) {
+  if (kept) {
+    const row = await db.prepare(
+      `INSERT INTO tea_table_keeps (user_id, item_kind, item_id) SELECT ?1, ?2, ?3
+        WHERE EXISTS (${visiblePiece(kind, '?3')})
+        ON CONFLICT(user_id, item_kind, item_id) DO UPDATE SET item_id = excluded.item_id
+        RETURNING item_id`,
+    ).bind(userId, kind, id).first();
+    if (!row) return notFound();
+  } else {
+    await db.prepare('DELETE FROM tea_table_keeps WHERE user_id = ? AND item_kind = ? AND item_id = ?')
+      .bind(userId, kind, id).run();
+  }
+  return privateJson({ kind, id, kept });
+}
+
+export async function takeTastingOffTeaTable(db: D1Database, userId: string, id: string) {
+  const [, result] = await db.batch([
+    db.prepare(`DELETE FROM tea_table_holds WHERE item_kind = 'tasting' AND item_id = ?
+      AND EXISTS (SELECT 1 FROM member_tasting_shares WHERE journal_entry_id = ? AND author_user_id = ? AND tea_table_at IS NOT NULL)`)
+      .bind(id, id, userId),
+    db.prepare(`UPDATE member_tasting_shares SET tea_table_at = NULL, tea_table_sittings = NULL, updated_at = datetime('now')
+      WHERE journal_entry_id = ? AND author_user_id = ? AND tea_table_at IS NOT NULL`).bind(id, userId),
+  ]);
+  return result.meta?.changes ? privateJson({ kind: 'tasting', id, on_table: false }) : notFound();
+}
+
+export function isTeaTableHoldDays(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value)
+    && value >= TEA_TABLE_HOLD_DAYS.least && value <= TEA_TABLE_HOLD_DAYS.most;
+}
+
+export async function holdTeaTablePiece(db: D1Database, userId: string, kind: TeaTableKind, id: string, days: unknown) {
+  if (!isTeaTableHoldDays(days)) {
+    return refuse(400, `Hold it for ${TEA_TABLE_HOLD_DAYS.least} to ${TEA_TABLE_HOLD_DAYS.most} days.`, 'validation_failed');
+  }
+  const row = await db.prepare(
+    `INSERT INTO tea_table_holds (item_kind, item_id, held_by, held_until)
+     SELECT ?1, ?2, ?3, datetime('now', '+' || ?4 || ' days') WHERE EXISTS (${visiblePiece(kind, '?2')})
+     ON CONFLICT(item_kind, item_id) DO UPDATE SET held_by = excluded.held_by, held_until = excluded.held_until
+     RETURNING held_until`,
+  ).bind(kind, id, userId, days).first<{ held_until: string }>();
+  if (!row) return refuse(409, 'Only a piece on the Tea Table can be held at the top.', 'not_on_table');
+  return privateJson({ kind, id, held_until: row.held_until });
+}
+
+export async function teaTableRecapTarget(db: D1Database, accountId: string, id: string) {
+  return db.prepare(`SELECT e.title, (${RECAP_ELIGIBLE} AND e.tea_table_hidden_at IS NULL) AS eligible
+    FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ? AND e.account_id = ?`)
+    .bind(id, accountId).first<{ title: string; eligible: number }>();
+}
+
+export async function setTeaTableRecap(db: D1Database, accountId: string, userId: string, eventId: string, onTable: boolean | null) {
+  if (onTable === true) {
+    await db.prepare(
+      `UPDATE events SET tea_table_at = datetime('now'), tea_table_by = ?
+        WHERE id = ? AND account_id = ? AND tea_table_at IS NULL AND tea_table_hidden_at IS NULL
+          AND id IN (SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ? AND ${RECAP_ELIGIBLE})`,
+    ).bind(userId, eventId, accountId, eventId).run();
+  } else if (onTable === false) {
+    await db.batch([
+      db.prepare('UPDATE events SET tea_table_at = NULL, tea_table_by = NULL WHERE id = ? AND account_id = ?').bind(eventId, accountId),
+      db.prepare(`DELETE FROM tea_table_holds WHERE item_kind = 'recap' AND item_id = ?
+        AND EXISTS (SELECT 1 FROM events WHERE id = ? AND account_id = ?)`).bind(eventId, eventId, accountId),
+    ]);
+  }
+  const [eligible, holdRow] = await Promise.all([
+    db.prepare(
+      `SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ? AND ${RECAP_ELIGIBLE}`,
+    ).bind(eventId).first<{ id: string }>(),
+    db.prepare(
+      `SELECT held_until FROM tea_table_holds WHERE item_kind = 'recap' AND item_id = ? AND datetime(held_until) > datetime('now')`,
+    ).bind(eventId).first<{ held_until: string }>(),
+  ]);
+  const body: TeaTableRecapState = {
+    eligible: Boolean(eligible),
+    on_table: Boolean(await teaTablePiece(db, 'recap', eventId)),
+    held_until: holdRow?.held_until ?? null,
+  };
+  if (onTable === true && !body.on_table) {
+    return refuse(409, 'A recap goes on the Tea Table once it is published, public and shown on the network.', 'recap_not_eligible');
+  }
+  return privateJson(body);
+}
+
+export async function setTeaTableHidden(db: D1Database, userId: string, kind: TeaTableKind, id: string, hidden: boolean) {
+  let change: D1PreparedStatement;
+  if (kind === 'tasting') {
+    const share = await db.prepare('SELECT account_id FROM member_tasting_shares WHERE journal_entry_id = ?')
+      .bind(id).first<{ account_id: string }>();
+    if (!share) return notFound();
+    change = hidden ? db.prepare(
+      `INSERT INTO family_hides (account_id, target_kind, target_id, hidden_by) VALUES (?, 'tasting', ?, ?)
+       ON CONFLICT(account_id, target_kind, target_id) DO NOTHING`,
+    ).bind(share.account_id, id, userId) : db.prepare(
+      "DELETE FROM family_hides WHERE account_id = ? AND target_kind = 'tasting' AND target_id = ?",
+    ).bind(share.account_id, id);
+  } else {
+    change = db.prepare(
+      `UPDATE events SET tea_table_hidden_at = ${hidden ? "COALESCE(tea_table_hidden_at, datetime('now'))" : 'NULL'} WHERE id = ?`,
+    ).bind(id);
+  }
+  const [result] = hidden ? await db.batch([
+    change,
+    db.prepare('DELETE FROM tea_table_holds WHERE item_kind = ? AND item_id = ?').bind(kind, id),
+  ]) : [await change.run()];
+  if (kind === 'recap' && !result.meta?.changes) return notFound();
+  return privateJson({ kind, id, hidden });
 }
 
 function normalBefore(value: string | null): string | null | 'bad' {
@@ -279,7 +398,7 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
   const platformOwner = async (request: Request, env: E): Promise<Person | { error: Response }> => {
     const person = await signedIn(request, env);
     if ('error' in person) return person;
-    if (!(await isPlatformOwner(env.DB, person.userId))) return { error: refuse(403, 'Platform owner access required', 'platform_owner_only') };
+    if (!(await isTeaTablePlatformOwner(env.DB, person.userId))) return { error: refuse(403, 'Platform owner access required', 'platform_owner_only') };
     return person;
   };
 
@@ -289,7 +408,7 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     if ('error' in person) return person;
     const event = await env.DB.prepare('SELECT id, account_id FROM events WHERE id = ?').bind(eventId).first<{ id: string; account_id: string }>();
     if (!event) return { error: notFound() };
-    if (await isPlatformOwner(env.DB, person.userId)) return { userId: person.userId, accountId: event.account_id };
+    if (await isTeaTablePlatformOwner(env.DB, person.userId)) return { userId: person.userId, accountId: event.account_id };
     const shop = await deps.requireBundle(request, env, 'publish');
     if ('error' in shop) return shop;
     // A host acts only for sessions of their own shop.
@@ -321,7 +440,7 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
       ).bind(person.userId).all<{ id: string }>(),
     ]);
     const body: TeaTableMine = {
-      kept: await readByIds(env.DB, (keeps.results ?? []).filter(row => isKind(row.kind))),
+      kept: await readByIds(env.DB, (keeps.results ?? []).filter(row => isTeaTableKind(row.kind))),
       mine: (own.results ?? []).map(row => teaTableKey({ kind: 'tasting', id: row.id })),
     };
     return privateJson(body);
@@ -331,35 +450,21 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
   const keep = (kept: boolean): Handler<E> => async (request, env, { kind, id }) => {
     const person = await signedIn(request, env);
     if ('error' in person) return person.error;
-    if (!isKind(kind)) return notFound();
-    if (kept) {
-      if (!(await onTable(env.DB, kind, id))) return notFound();
-      await env.DB.prepare('INSERT OR IGNORE INTO tea_table_keeps (user_id, item_kind, item_id) VALUES (?, ?, ?)')
-        .bind(person.userId, kind, id).run();
-    } else {
-      await env.DB.prepare('DELETE FROM tea_table_keeps WHERE user_id = ? AND item_kind = ? AND item_id = ?')
-        .bind(person.userId, kind, id).run();
-    }
-    return privateJson({ kind, id, kept });
+    if (!isTeaTableKind(kind)) return notFound();
+    return setTeaTableKeep(env.DB, person.userId, kind, id, kept);
   };
 
   // DELETE /api/tea-table/mine/tasting/:id: the author takes their tasting off the table. It stays on their page.
   const takeOff: Handler<E> = async (request, env, { id }) => {
     const person = await signedIn(request, env);
     if ('error' in person) return person.error;
-    const result = await env.DB.prepare(
-      `UPDATE member_tasting_shares SET tea_table_at = NULL, tea_table_sittings = NULL, updated_at = datetime('now')
-        WHERE journal_entry_id = ? AND author_user_id = ? AND tea_table_at IS NOT NULL`,
-    ).bind(id, person.userId).run();
-    if (!result.meta?.changes) return notFound();
-    await env.DB.prepare(`DELETE FROM tea_table_holds WHERE item_kind = 'tasting' AND item_id = ?`).bind(id).run();
-    return privateJson({ kind: 'tasting', id, on_table: false });
+    return takeTastingOffTeaTable(env.DB, person.userId, id);
   };
 
   // PUT and DELETE /api/tea-table/holds/:kind/:id { days }: hold a piece at the top for a while, or let it go.
   // A host holds only their own session's recap; the platform owner holds any piece.
   const hold = (holding: boolean): Handler<E> => async (request, env, { kind, id }) => {
-    if (!isKind(kind)) return notFound();
+    if (!isTeaTableKind(kind)) return notFound();
     let who: { userId: string };
     if (kind === 'recap') {
       const host = await hostOf(request, env, id);
@@ -376,51 +481,15 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     }
     const body = await request.json().catch(() => ({})) as { days?: unknown } | null;
     const days = body?.days === undefined ? TEA_TABLE_HOLD_DAYS.usual : body.days;
-    if (typeof days !== 'number' || !Number.isInteger(days) || days < TEA_TABLE_HOLD_DAYS.least || days > TEA_TABLE_HOLD_DAYS.most) {
-      return refuse(400, `Hold it for ${TEA_TABLE_HOLD_DAYS.least} to ${TEA_TABLE_HOLD_DAYS.most} days.`, 'validation_failed');
-    }
-    if (!(await onTable(env.DB, kind, id))) return refuse(409, 'Only a piece on the Tea Table can be held at the top.', 'not_on_table');
-    const row = await env.DB.prepare(
-      `INSERT INTO tea_table_holds (item_kind, item_id, held_by, held_until) VALUES (?1, ?2, ?3, datetime('now', '+' || ?4 || ' days'))
-       ON CONFLICT(item_kind, item_id) DO UPDATE SET held_by = excluded.held_by, held_until = excluded.held_until
-       RETURNING held_until`,
-    ).bind(kind, id, who.userId, days).first<{ held_until: string }>();
-    return privateJson({ kind, id, held_until: row?.held_until ?? null });
+    return holdTeaTablePiece(env.DB, who.userId, kind, id, days);
   };
 
   // GET, PUT and DELETE /api/admin/tea-table/recaps/:eventId: the host puts their published recap on the table, or takes it off.
   const recap: Handler<E> = async (request, env, { eventId }) => {
     const host = await hostOf(request, env, eventId);
     if ('error' in host) return host.error;
-    if (request.method === 'PUT') {
-      await env.DB.prepare(
-        `UPDATE events SET tea_table_at = datetime('now'), tea_table_by = ?
-          WHERE id = ? AND account_id = ? AND tea_table_at IS NULL
-            AND id IN (SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ? AND e.network_discovery = 1 AND ${publishedSitRecap})`,
-      ).bind(host.userId, eventId, host.accountId, eventId).run();
-    } else if (request.method === 'DELETE') {
-      await env.DB.batch([
-        env.DB.prepare('UPDATE events SET tea_table_at = NULL, tea_table_by = NULL WHERE id = ? AND account_id = ?').bind(eventId, host.accountId),
-        env.DB.prepare(`DELETE FROM tea_table_holds WHERE item_kind = 'recap' AND item_id = ?`).bind(eventId),
-      ]);
-    }
-    const [eligible, holdRow] = await Promise.all([
-      env.DB.prepare(
-        `SELECT e.id FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ? AND e.network_discovery = 1 AND ${publishedSitRecap}`,
-      ).bind(eventId).first<{ id: string }>(),
-      env.DB.prepare(
-        `SELECT held_until FROM tea_table_holds WHERE item_kind = 'recap' AND item_id = ? AND datetime(held_until) > datetime('now')`,
-      ).bind(eventId).first<{ held_until: string }>(),
-    ]);
-    const body: TeaTableRecapState = {
-      eligible: Boolean(eligible),
-      on_table: await onTable(env.DB, 'recap', eventId),
-      held_until: holdRow?.held_until ?? null,
-    };
-    if (request.method === 'PUT' && !body.on_table) {
-      return refuse(409, 'A recap goes on the Tea Table once it is published, public and shown on the network.', 'recap_not_eligible');
-    }
-    return privateJson(body);
+    const onTable = request.method === 'GET' ? null : request.method === 'PUT';
+    return setTeaTableRecap(env.DB, host.accountId, host.userId, eventId, onTable);
   };
 
   // GET /api/admin/tea-table: every piece put on the table, hidden ones too, with its keeps. The platform owner alone.
@@ -471,30 +540,10 @@ export function teaTableRoutes<E extends TeaTableEnv>(deps: TeaTableDeps<E>): [s
     const owner = await platformOwner(request, env);
     if ('error' in owner) return owner.error;
     const body = await request.json().catch(() => null) as { kind?: unknown; id?: unknown; hidden?: unknown } | null;
-    if (!body || !isKind(body.kind) || typeof body.id !== 'string' || typeof body.hidden !== 'boolean') {
+    if (!body || !isTeaTableKind(body.kind) || typeof body.id !== 'string' || typeof body.hidden !== 'boolean') {
       return refuse(400, 'Say what to hide.', 'validation_failed');
     }
-    if (body.kind === 'tasting') {
-      const share = await env.DB.prepare('SELECT account_id FROM member_tasting_shares WHERE journal_entry_id = ?')
-        .bind(body.id).first<{ account_id: string }>();
-      if (!share) return notFound();
-      if (body.hidden) {
-        await env.DB.prepare(
-          `INSERT INTO family_hides (account_id, target_kind, target_id, hidden_by) VALUES (?, 'tasting', ?, ?)
-           ON CONFLICT(account_id, target_kind, target_id) DO NOTHING`,
-        ).bind(share.account_id, body.id, owner.userId).run();
-      } else {
-        await env.DB.prepare(`DELETE FROM family_hides WHERE account_id = ? AND target_kind = 'tasting' AND target_id = ?`)
-          .bind(share.account_id, body.id).run();
-      }
-    } else {
-      const result = await env.DB.prepare(
-        `UPDATE events SET tea_table_hidden_at = ${body.hidden ? `COALESCE(tea_table_hidden_at, datetime('now'))` : 'NULL'} WHERE id = ?`,
-      ).bind(body.id).run();
-      if (!result.meta?.changes) return notFound();
-    }
-    if (body.hidden) await env.DB.prepare('DELETE FROM tea_table_holds WHERE item_kind = ? AND item_id = ?').bind(body.kind, body.id).run();
-    return privateJson({ kind: body.kind, id: body.id, hidden: body.hidden });
+    return setTeaTableHidden(env.DB, owner.userId, body.kind, body.id, body.hidden);
   };
 
   return [
