@@ -3,6 +3,7 @@ import { Button } from '../../../../components/shared/Button';
 import type { Product } from '../../../types';
 import { isLow, isUnchecked } from '../phone/groupStock';
 import { StockGroupSwitch } from './StockRowEditing';
+import { StockCountBar, teasOnScreen } from './StockCount';
 
 // Stock as rooms (Adrian, 2026-11-25): on a laptop the groups stand in a room of
 // their own on the left, the chosen group's teas fill the middle, and the open
@@ -20,6 +21,8 @@ export interface RoomActions {
   recount?: (tea: Product, from: HTMLElement) => void;
   photo?: (tea: Product) => void;
   taste?: (tea: Product) => void;
+  /** A count was saved to the stock ledger: put the new balance on the page. */
+  counted?: (id: string, after: number, unit: 'g' | 'unit') => void;
 }
 
 /** "low" or "never counted": the two warnings a group carries, each a filter. */
@@ -59,8 +62,10 @@ function PointerMenu({ at, label, items, onClose }: {
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    ref.current?.style.setProperty('--menu-x', `${at.x}px`);
-    ref.current?.style.setProperty('--menu-y', `${at.y}px`);
+    // Opened near an edge, the menu moves in so every line stays on screen.
+    const box = ref.current?.getBoundingClientRect();
+    ref.current?.style.setProperty('--menu-x', `${Math.max(0, Math.min(at.x, window.innerWidth - (box?.width ?? 0) - 8))}px`);
+    ref.current?.style.setProperty('--menu-y', `${Math.max(0, Math.min(at.y, window.innerHeight - (box?.height ?? 0) - 8))}px`);
     ref.current?.querySelector('button')?.focus();
   }, [at.x, at.y]);
   useEffect(() => {
@@ -78,13 +83,15 @@ function PointerMenu({ at, label, items, onClose }: {
 type Menu = { x: number; y: number; label: string; items: ReadonlyArray<readonly [string, () => void]> };
 
 /** The left room: every group by name, with its count and what needs attention. */
-export function StockRoomsRail({ groups, value, flag, onChange, onFlag, total, allLabel, groupBy, onGroupBy, onMenu }: {
+export function StockRoomsRail({ groups, value, flag, onChange, onFlag, total, allLabel, groupBy, onGroupBy, onMenu, onCount }: {
   groups: readonly RoomGroup[]; value: string | null; flag: Flag | null; total: number; allLabel: string;
   onChange: (key: string | null) => void; onFlag: (key: string, flag: Flag) => void;
-  groupBy: string; onGroupBy: (value: string) => void; onMenu?: (event: MouseEvent, group: RoomGroup) => void;
+  groupBy: string; onGroupBy: (value: string) => void; onMenu?: (event: MouseEvent, group: RoomGroup) => void; onCount?: () => void;
 }) {
   return <nav aria-label="Groups" data-testid="stock-rooms-rail" className="stock-rooms-rail custom-scrollbar">
     <StockGroupSwitch placement="rail" value={groupBy} onChange={onGroupBy} />
+    {onCount ? <Button variant="plain" type="button" onClick={onCount} data-testid="stock-count-start" title="Type what is on the shelf, press Enter, and the next tea is ready"
+      className="stock-room-count text-ui-12 text-tea-text-sec hover:text-tea-text">Count these teas</Button> : null}
     <RailEntry label={allLabel} count={total} on={value === null} onClick={() => onChange(null)} />
     {groups.map(group => <RailEntry key={group.key} label={group.label} count={group.items.length} on={value === group.key}
       low={group.items.filter(isLow).length} uncounted={group.items.filter(isUnchecked).length}
@@ -105,6 +112,7 @@ export function useStockRooms(on: boolean, groups: readonly RoomGroup[] | null, 
   const [room, setRoom] = useState<string | null>(null);
   const [flag, setFlag] = useState<Flag | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
+  const [count, setCount] = useState<{ ids: string[]; from: number } | null>(null);
   if (!on || !groups) return { active: null, rail: null, only: null, menu: null };
   const active = room !== null && groups.some(group => group.key === room) ? room : null;
   const only = active && flag ? FLAG_TEST[flag] : null;
@@ -136,15 +144,19 @@ export function useStockRooms(on: boolean, groups: readonly RoomGroup[] | null, 
     if (actions.recount) items.push(['Recount', () => actions.recount?.(tea, line)]);
     if (actions.photo) items.push(['Photo', () => actions.photo?.(tea)]);
     if (actions.taste) items.push(['Taste', () => actions.taste?.(tea)]);
+    if (actions.counted) items.push(['Count from here', () => { const ids = teasOnScreen(); setCount({ ids, from: Math.max(0, ids.indexOf(tea.id)) }); }]);
     setMenu({ x: event.clientX, y: event.clientY, label: tea.productName || 'Tea', items });
   } : undefined;
 
   return {
     active, only, onMenu: teaMenu,
-    menu: menu && <PointerMenu at={menu} label={menu.label} items={menu.items} onClose={() => setMenu(null)} />,
+    menu: <>{menu && <PointerMenu at={menu} label={menu.label} items={menu.items} onClose={() => setMenu(null)} />}
+      {count && actions?.counted ? <StockCountBar key={count.ids[count.from] ?? 'count'} ids={count.ids} from={count.from} onCounted={actions.counted}
+        find={id => groups.flatMap(group => group.items).find(product => product.id === id)} onClose={() => setCount(null)} /> : null}</>,
     rail: <StockRoomsRail groups={listed} value={active} flag={active ? flag : null} total={total} allLabel={allLabel}
-      onChange={key => { setRoom(key); setFlag(null); }}
-      onFlag={(key, kind) => { setFlag(active === key && flag === kind ? null : kind); setRoom(key); }}
+      onChange={key => { setRoom(key); setFlag(null); setCount(null); }}
+      onCount={actions?.counted ? () => setCount({ ids: teasOnScreen(), from: 0 }) : undefined}
+      onFlag={(key, kind) => { setFlag(active === key && flag === kind ? null : kind); setRoom(key); setCount(null); }}
       groupBy={groupBy} onGroupBy={onGroupBy} onMenu={supplierMenu} />,
   };
 }
