@@ -128,33 +128,18 @@ export type StepRow = {
 
 const STEPS = join(process.cwd(), 'test-results', 'review', 'steps.json');
 
-/**
- * Runs fn and counts what a person would do in it: clicks and taps, fields
- * filled or typed into, and changes of address. The row goes to steps.json
- * (an array, appended to). Over budget is recorded, never failed.
- */
-export async function task<T>(
-  page: Page,
-  name: string,
-  budget: number | { clicks: number; fields?: number },
-  fn: () => Promise<T>,
-  info?: TestInfo,
-): Promise<T> {
-  const b = typeof budget === 'number' ? { clicks: budget } : budget;
-  const counts = { clicks: 0, fields: 0, address_changes: 0 };
-  const path: string[] = [new URL(page.url() || REVIEW_SITE, REVIEW_SITE).pathname];
-  const onNav = (frame: any) => {
-    if (frame !== page.mainFrame()) return;
-    const p = new URL(frame.url()).pathname + new URL(frame.url()).search;
-    if (p !== path[path.length - 1]) { counts.address_changes++; path.push(p); }
-  };
-  page.on('framenavigated', onNav);
+type Counts = { clicks: number; fields: number; address_changes: number };
+const COUNTERS = new WeakMap<Page, Counts>();
 
-  // Count at the page so locator.click, page.click, tap, fill and type all count once each.
+/** The page's one counter. exposeFunction binds once per page, so every task on a page shares it. */
+async function pageCounter(page: Page): Promise<Counts> {
+  const existing = COUNTERS.get(page);
+  if (existing) return existing;
+  const counts: Counts = { clicks: 0, fields: 0, address_changes: 0 };
+  COUNTERS.set(page, counts);
   await page.exposeFunction('__reviewCount', (kind: 'click' | 'field') => {
     if (kind === 'click') counts.clicks++; else counts.fields++;
-  }).catch(() => { /* already exposed in this page */ });
-  (page as any).__reviewCounts = counts;
+  });
   const install = () => {
     const w = window as any;
     if (w.__reviewInstalled) return;
@@ -171,8 +156,31 @@ export async function task<T>(
   };
   await page.addInitScript(install);
   await page.evaluate(install).catch(() => { /* no document yet */ });
+  return counts;
+}
 
-  // exposeFunction binds once per page; route later counts to this task's counter.
+/**
+ * Runs fn and counts what a person would do in it: clicks and taps, fields
+ * filled or typed into, and changes of address. The row goes to steps.json
+ * (an array, appended to). Over budget is recorded, never failed.
+ */
+export async function task<T>(
+  page: Page,
+  name: string,
+  budget: number | { clicks: number; fields?: number },
+  fn: () => Promise<T>,
+  info?: TestInfo,
+): Promise<T> {
+  const b = typeof budget === 'number' ? { clicks: budget } : budget;
+  const counts = await pageCounter(page);
+  const path: string[] = [new URL(page.url() || REVIEW_SITE, REVIEW_SITE).pathname];
+  const onNav = (frame: any) => {
+    if (frame !== page.mainFrame()) return;
+    const p = new URL(frame.url()).pathname + new URL(frame.url()).search;
+    if (p !== path[path.length - 1]) { counts.address_changes++; path.push(p); }
+  };
+  page.on('framenavigated', onNav);
+  // One counter per page, shared by every task on it; each task reads the difference.
   const start = { ...counts };
   try {
     return await fn();
