@@ -2923,6 +2923,9 @@ export const api = {
         })),
         notes: data.notes || undefined,
         show_in_guest_list: data.show_in_guest_list ? true : undefined,
+        // Only a tick on "Please, no photographs of me" is sent; silence stays silence.
+        photo_consent: data.noPhotographs ? false : undefined,
+        seat_key: data.seatKey || undefined,
       };
       return authedFetch(`${API_URL}/api/events/${slug}/rsvp`, {
         method: 'POST',

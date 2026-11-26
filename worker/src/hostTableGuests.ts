@@ -78,7 +78,7 @@ export type HostTableGuest = {
   note: string | null;
   /** The phone number the guest gave, for the host's own WhatsApp. Null when none. */
   phone: string | null;
-  /** The guest asked not to be photographed (photo_consent stored as 0 on purpose). */
+  /** The guest asked not to be photographed (photo_consent 0; NULL means they said nothing). */
   no_photographs: boolean;
 };
 
@@ -98,9 +98,10 @@ export async function hostTableGuests(db: D1Database, table: Pick<OwnHostedTable
     created_at: row.created_at as string | null,
     note: typeof row.notes === 'string' && row.notes.trim() ? row.notes.trim() : null,
     phone: typeof row.phone_number === 'string' && row.phone_number.trim() ? row.phone_number.trim() : null,
-    // A seat taken before the guest could choose stores 0 as well; see the
-    // H4 report. The seat form's "Please, no photographs of me" (H10) sends
-    // photo_consent false, and only that should be read as a no.
+    // The seat form's "Please, no photographs of me" (H10) sends photo_consent
+    // false, stored as 0; a guest who said nothing is stored NULL since H5
+    // (seatRequest.photoConsentValue), so only a real no reads as one. Seats
+    // taken before H5 kept 0 for silence and were not rewritten.
     no_photographs: row.photo_consent === 0,
   }));
 }
