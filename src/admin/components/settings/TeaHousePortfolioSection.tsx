@@ -208,7 +208,7 @@ function HouseForm({ house }: { house: TeaHouseManageItem }) {
       </ul>
 
       <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
-        {shown && teaHousesOpen() && (
+        {shown && (
           <Link to={teaHousePagePath(house.slug)} className="tap-target text-ui-12 text-tea-gold hover:text-tea-gold-lt">Open the page</Link>
         )}
         {said
@@ -311,9 +311,9 @@ function OwnerSection() {
   );
 }
 
-/** Shown only to the platform owner. Works while the public pages are closed, so the words can be ready first. */
+/** Shown only to the platform owner, and only while the portfolio is open (A4 review, finding 10). */
 export function TeaHousePortfolioSection() {
   const platformRole = useAppStore(state => state.platformRole);
-  if (platformRole !== 'platform_owner') return null;
+  if (platformRole !== 'platform_owner' || !teaHousesOpen()) return null;
   return <OwnerSection />;
 }

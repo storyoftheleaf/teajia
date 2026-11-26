@@ -125,7 +125,7 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 | `/t/:token` | TableCardPage |  |
 | `/u/:slug` | ShelfPage |  |
 | `/find-a-table` | FindATable | Existing directory |
-| `/tea-houses/visit` | TeaHousesVisitPage | Public directory page, no dedicated flag |
+| `/tea-houses/visit` | TeaHousesVisitPage | Public directory page, behind `TEA_HOUSES_OPEN` |
 | `/community` |  | redirect to `/find-a-table` |
 | `/store/:slug` | Storefront |  |
 | `/people/:slug` | ContributorProfilePage |  |
@@ -240,19 +240,19 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 - Event list, upcoming sessions, event cards
 - **Sub-routes:**
   - `/event/:slug`: Event landing: description, attendee count, RSVP flow, tea menu preview
-  - `/event/:slug/recap`: Published recap, public “Poured with” credits and any included notes or photographs with permission. Family photo credit and recap credit have no dedicated flag.
+  - `/event/:slug/recap`: Published recap, public “Poured with” credits and any included notes or photographs with permission. Family photo credit and recap credit open with `TEA_TABLE_OPEN`.
 - **Status:** WIRED
 
 ### /tea-table
 
 - Off by default. Enable the page and controls with `VITE_TEA_TABLE_OPEN=true` on the site and the API with `TEA_TABLE_OPEN=true` in the Worker. When off, Tea Table API routes return 404.
 - Public list of eligible tastings shared with fresh Tea Table consent and published public network recaps that hosts place there. Its newest-first order uses the placement time. Manual holds expire.
-- All, Tastings and Sessions use the `show` refinement. Earlier uses the `before` step. The next session, Sessions and People are separate links.
+- All, Tastings and Sessions use the `show` refinement. Earlier uses the `before` step. Sessions and People are separate links. Nothing still to come is named.
 - Signed-in keeps are private. The platform owner alone sees totals in Manage under Publish, Guest notes, where they can hide or restore pieces. “Take off the table” can leave the author’s tasting on their profile.
 
 ### /tea-houses/visit
 
-- Public page with no dedicated flag. Uses `GET /api/network/stores`, which lists active public accounts with an active public product. No private saved tables or arrival details enter this directory.
+- Public page behind `TEA_HOUSES_OPEN`. Uses `GET /api/network/stores`, which lists active public accounts with an active public product. No private saved tables or arrival details enter this directory.
 - Shows each house’s name, optional city, country, tagline, cover photograph and next public session. Each row opens `/store/:slug`. No map or distance sort.
 - `/spaces` and `/find-a-table` still serve their own pages. `/community` still forwards to `/find-a-table`.
 
@@ -270,7 +270,7 @@ The phone's admin bar carries four of these words per role (`src/components/admi
 - **Status:** WIRED
 
 ### /people and /people/:slug
-- Published people directory and one global profile per person. “Pours at tables” is based on public credit on a completed session and has no effect on order. The person’s page can show the word Adrian granted by hand. These changes have no dedicated flag.
+- Published people directory and one global profile per person. “Pours at tables” is based on public credit on a completed session and has no effect on order. The person’s page can show the word Adrian granted by hand. “Pours at tables” opens with `TEA_TABLE_OPEN`; the granted word has no switch.
 - A host’s own tea selection comes from their active public storefront account. Guest collaborations are shown separately.
 - **Sub-routes:**
   - `/people/:slug/favorites`: shareable Public favorites

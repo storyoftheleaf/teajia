@@ -187,7 +187,9 @@ describe('host article offers', () => {
       { type: 'image', url: publicPaths[1] },
     ]);
     for (const path of publicPaths) {
-      expect((await call({ ...env, HOST_ARTICLES_OPEN: 'false' }, null, path)).status).toBe(200);
+      expect((await call(env, null, path)).status).toBe(200);
+      // Closed, no offer photograph is read, published or not (A4 review, finding 10).
+      expect((await call({ ...env, HOST_ARTICLES_OPEN: 'false' }, null, path)).status).toBe(404);
     }
     const adminPath = `/api/admin/articles/${offer.id}`;
     const managed = await (await call(env, 'adrian', adminPath)).json() as any;

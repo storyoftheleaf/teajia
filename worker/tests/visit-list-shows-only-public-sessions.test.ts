@@ -46,8 +46,9 @@ function seed() {
   return db;
 }
 
-async function stores(db: SqliteD1) {
-  const response = await request(db, '/api/network/stores');
+// The photograph and the next session open with the tea houses (A4 review, finding 11).
+async function stores(db: SqliteD1, open = 'true') {
+  const response = await request(db, '/api/network/stores', { vars: { TEA_HOUSES_OPEN: open } });
   expect(response.status).toBe(200);
   const text = await response.text();
   return { text, rows: JSON.parse(text) as Array<Record<string, unknown>> };
@@ -74,6 +75,15 @@ describe('the Visit list reads one directory answer', () => {
     expect(rows[1].next_session).toBeNull();
     for (const word of ['Unlisted', 'Private evening', 'Private only', 'Cancelled', 'Draft', 'Closed row', 'Hidden house']) {
       expect(text).not.toContain(word);
+    }
+  });
+
+  it('closed, the list is as it was before Visit: no photograph and no next session', async () => {
+    const { rows } = await stores(seed(), 'false');
+    expect(rows.map(row => row.slug)).toEqual(['house-a', 'house-b']);
+    for (const row of rows) {
+      expect(row).not.toHaveProperty('cover_image_url');
+      expect(row).not.toHaveProperty('next_session');
     }
   });
 

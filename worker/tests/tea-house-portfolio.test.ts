@@ -88,13 +88,36 @@ describe('a house portfolio is hidden until shown', () => {
     expect(manage.houses.find((house: any) => house.id === 'acc-closed').is_public).toBe(false);
   });
 
-  it('answers nothing publicly while the portfolio is closed, and Manage still works', async () => {
-    const { env } = setup('false');
+  it('answers nothing while the portfolio is closed, Manage included, exactly as an unknown address', async () => {
+    const { env } = setup();
     await say(env, 'acc-ubud', 'room', 'The room.');
     await show(env, 'acc-ubud');
-    for (const path of ['/api/tea-houses/work', '/api/tea-houses/work/ubud-house', '/api/tea-houses/build']) {
-      expect((await call(env, null, path)).status).toBe(404);
+    const closed = { ...env, TEA_HOUSES_OPEN: 'false' };
+    const absent = await call(closed, ADRIAN, '/api/no-such-address');
+    const absentText = await absent.text();
+    const requests: Array<[string, string, unknown]> = [
+      ['GET', '/api/tea-houses/work', undefined],
+      ['GET', '/api/tea-houses/work/ubud-house', undefined],
+      ['GET', '/api/tea-houses/build', undefined],
+      ['GET', '/api/admin/tea-houses', undefined],
+      ['PUT', '/api/admin/tea-houses/acc-ubud/parts/teaware', { words: 'Closed words.', photographs: [] }],
+      ['DELETE', '/api/admin/tea-houses/acc-ubud/parts/room', undefined],
+      ['PUT', '/api/admin/tea-houses/acc-ubud/page', { shown: false }],
+      ['PUT', '/api/admin/tea-houses/order', { houses: ['acc-ubud'] }],
+    ];
+    for (const [method, path, body] of requests) {
+      for (const who of [null, ADRIAN]) {
+        const response = await call(closed, who, path, { method, body });
+        expect(response.status, `${method} ${path}`).toBe(404);
+        expect(await response.text()).toBe(absentText);
+        expect(response.headers.get('Cache-Control')).toBe(absent.headers.get('Cache-Control'));
+      }
     }
+    // Nothing was written while closed.
+    const manage = await ok(env, ADRIAN, '/api/admin/tea-houses');
+    const ubud = manage.houses.find((house: any) => house.id === 'acc-ubud');
+    expect(ubud.parts.map((part: any) => part.part)).toEqual(['room']);
+    expect(ubud.page.shown).toBe(true);
   });
 });
 

@@ -16,7 +16,8 @@
  * only a house whose page he marked shown, whose own account is public and
  * active, and which has at least one part in his words. A part with no row is
  * not shown, and nothing is written for him: a house with no words is in
- * Visit only. No answer carries a count, a score or a ranking; Work is in his
+ * Visit only. While the portfolio is closed, Manage's routes are closed too
+ * (A4 review, finding 10): nothing is read or written until it opens. No answer carries a count, a score or a ranking; Work is in his
  * order and no other.
  */
 import { teaHousesOpen } from '../../src/lib/teaHouses';
@@ -82,26 +83,43 @@ const summaryOf = (row: HouseRow): TeaHouseSummary => ({
   slug: row.slug, name: row.name, place: teaHousePlace(row.location_city, row.location_country),
 });
 
-/** The shown houses in his order, each with its parts. */
+/**
+ * The shown houses in his order, each with its parts. One statement reads the
+ * houses and their parts together, so a page taken down or a part taken off
+ * between two reads can never leave a house shown with words it no longer
+ * qualifies by (A4 review, finding 13).
+ */
 async function readShown(db: D1Database, slug?: string): Promise<Array<{ house: HouseRow; parts: TeaHouseContribution[] }>> {
-  const houses = await db.prepare(
-    `SELECT a.id, a.slug, a.name, a.location_city, a.location_country, a.cover_image_url
-       FROM tea_house_pages hp JOIN accounts a ON a.id = hp.house_account_id
-      WHERE ${SHOWN_HOUSE} ${slug ? 'AND a.slug = ?' : ''}
-      ORDER BY hp.position ASC, a.name ASC
-      LIMIT ${MOST_HOUSES}`,
-  ).bind(...(slug ? [slug] : [])).all<HouseRow>();
-  const list = houses.results ?? [];
-  if (!list.length) return [];
-  const parts = await db.prepare(
-    `SELECT c.house_account_id, c.part, c.words, c.photographs
-       FROM tea_house_contributions c
-       JOIN tea_house_pages hp ON hp.house_account_id = c.house_account_id AND hp.account_id = c.account_id
-      WHERE c.house_account_id IN (${list.map(() => '?').join(', ')})`,
-  ).bind(...list.map(house => house.id)).all<PartRow>();
-  const byHouse = new Map<string, PartRow[]>();
-  for (const row of parts.results ?? []) byHouse.set(row.house_account_id, [...(byHouse.get(row.house_account_id) ?? []), row]);
-  return list.map(house => ({ house, parts: contributionsOf(byHouse.get(house.id) ?? []) }));
+  const rows = await db.prepare(
+    `WITH shown AS (
+       SELECT a.id, a.slug, a.name, a.location_city, a.location_country, a.cover_image_url,
+              hp.account_id AS page_account_id, hp.position
+         FROM tea_house_pages hp JOIN accounts a ON a.id = hp.house_account_id
+        WHERE ${SHOWN_HOUSE} ${slug ? 'AND a.slug = ?' : ''}
+        ORDER BY hp.position ASC, a.name ASC
+        LIMIT ${MOST_HOUSES}
+     )
+     SELECT s.id, s.slug, s.name, s.location_city, s.location_country, s.cover_image_url,
+            c.house_account_id, c.part, c.words, c.photographs
+       FROM shown s
+       JOIN tea_house_contributions c ON c.house_account_id = s.id AND c.account_id = s.page_account_id
+      ORDER BY s.position ASC, s.name ASC, s.id ASC`,
+  ).bind(...(slug ? [slug] : [])).all<HouseRow & PartRow>();
+  const houses = new Map<string, { house: HouseRow; rows: PartRow[] }>();
+  for (const row of rows.results ?? []) {
+    const entry = houses.get(row.id) ?? {
+      house: {
+        id: row.id, slug: row.slug, name: row.name, location_city: row.location_city,
+        location_country: row.location_country, cover_image_url: row.cover_image_url,
+      },
+      rows: [],
+    };
+    entry.rows.push({ house_account_id: row.house_account_id, part: row.part, words: row.words, photographs: row.photographs });
+    houses.set(row.id, entry);
+  }
+  return [...houses.values()]
+    .map(({ house, rows: parts }) => ({ house, parts: contributionsOf(parts) }))
+    .filter(entry => entry.parts.length > 0);
 }
 
 /** Whether this person is the platform owner, read from the database, never from the token. */
@@ -225,6 +243,7 @@ export function teaHousesRoutes<E extends TeaHousesEnv>(deps: TeaHousesDeps<E>):
 
   // GET /api/admin/tea-houses: every house, with what he has said about each.
   const manage: Handler<E> = async (request, env) => {
+    if (!teaHousesOpen(env)) return notFound();
     const owner = await platformOwner(request, env);
     if ('error' in owner) return owner.error;
     return privateJson(await readManage(env.DB, owner.accountId));
@@ -232,6 +251,7 @@ export function teaHousesRoutes<E extends TeaHousesEnv>(deps: TeaHousesDeps<E>):
 
   // PUT /api/admin/tea-houses/:houseId/parts/:part { words, photographs }; DELETE takes the part off.
   const part: Handler<E> = async (request, env, params) => {
+    if (!teaHousesOpen(env)) return notFound();
     const owner = await platformOwner(request, env);
     if ('error' in owner) return owner.error;
     if (!isTeaHousePart(params.part)) return refuse(400, 'Unknown part.', 'validation_failed');
@@ -270,6 +290,7 @@ export function teaHousesRoutes<E extends TeaHousesEnv>(deps: TeaHousesDeps<E>):
 
   // PUT /api/admin/tea-houses/:houseId/page { shown }: show or keep back a house's page.
   const show: Handler<E> = async (request, env, params) => {
+    if (!teaHousesOpen(env)) return notFound();
     const owner = await platformOwner(request, env);
     if ('error' in owner) return owner.error;
     const body = await readBody(request);
@@ -290,6 +311,7 @@ export function teaHousesRoutes<E extends TeaHousesEnv>(deps: TeaHousesDeps<E>):
 
   // PUT /api/admin/tea-houses/order { houses: [id, ...] }: his order, by hand. Houses left out keep theirs, after these.
   const order: Handler<E> = async (request, env) => {
+    if (!teaHousesOpen(env)) return notFound();
     const owner = await platformOwner(request, env);
     if ('error' in owner) return owner.error;
     const body = await readBody(request);

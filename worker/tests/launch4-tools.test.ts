@@ -61,10 +61,28 @@ async function rpc(method: string, params: unknown, token = 'host', flags = {}) 
   return body.result;
 }
 
+/** The whole JSON-RPC answer, error or not. */
+async function rawCall(name: string, args = {}, token = 'host', flags = {}) {
+  const response = await worker.fetch(new Request('https://worker.test/mcp', {
+    method: 'POST',
+    headers: { authorization: `Bearer tjmcp_${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
+  }), { DB: db as any, JWT_SECRET: 'synthetic', FAVOURITES_OPEN: 'true', TEA_TABLE_OPEN: 'true', ...flags });
+  return { status: response.status, body: await response.json() as any };
+}
+
+/** A closed tool answers exactly as a tool that does not exist (A4 review, finding 12). */
+async function expectAbsent(name: string, args: object, token: string, flags: object) {
+  const absent = await rawCall('no_such_tool', args, token, flags);
+  const answer = await rawCall(name, args, token, flags);
+  expect(answer).toEqual({
+    ...absent, body: { ...absent.body, error: { ...absent.body.error, message: absent.body.error.message.replace('no_such_tool', name) } },
+  });
+}
+
 const call = async (name: string, args = {}, token = 'host', flags = {}) =>
   (await rpc('tools/call', { name, arguments: args }, token, flags)).structuredContent;
 const list = (token = 'host') => call('list_my_favourites', {}, token);
-const closed = { error: 'feature_closed' };
 const invalid = { error: 'invalid_or_expired_confirmation_token' };
 
 async function preview(name: string, args: object, token = 'host') {
@@ -103,13 +121,15 @@ describe('Launch 4 MCP tools', () => {
     expect(withoutTable).toEqual(expect.arrayContaining(favourites));
     for (const name of favourites) {
       expect(withoutFavourites).not.toContain(name);
-      expect(await call(name, {}, 'owner', closedFavourites)).toEqual(closed);
+      await expectAbsent(name, {}, 'owner', closedFavourites);
     }
     for (const name of [...table, ...moderation]) {
       expect(withoutTable).not.toContain(name);
-      expect(await call(name, {}, 'owner', closedTable)).toEqual(closed);
+      await expectAbsent(name, {}, 'owner', closedTable);
     }
     expect(await call('set_my_favourite', {}, 'reader')).toMatchObject({ error: 'insufficient_mcp_scope' });
+    // Closed, even a token without the scope cannot tell the tool exists.
+    await expectAbsent('set_my_favourite', {}, 'reader', closedFavourites);
   });
 
   it.each([
@@ -119,7 +139,7 @@ describe('Launch 4 MCP tools', () => {
     const confirm = await preview('set_my_favourite', args);
     expect((await list())[group]).toEqual([]);
     expect(await call('set_my_favourite', { confirm }, 'sibling')).toEqual(invalid);
-    expect(await call('set_my_favourite', { confirm }, 'host', { FAVOURITES_OPEN: 'false' })).toEqual(closed);
+    await expectAbsent('set_my_favourite', { confirm }, 'host', { FAVOURITES_OPEN: 'false' });
     expect(await call('set_my_favourite', { confirm, id: 'ignored', kept: false })).toMatchObject({ committed: true, id, kept: true });
     expect(await call('set_my_favourite', { confirm })).toEqual(invalid);
     expect((await list())[group]).toEqual([expect.objectContaining({ id })]);
@@ -158,7 +178,7 @@ describe('Launch 4 MCP tools', () => {
     const confirm = await preview('set_tea_table_keep', args);
     expect(saved()).toEqual([{ user_id: 'other' }]);
     expect(await call('take_my_tasting_off_tea_table', { confirm })).toEqual(invalid);
-    expect(await call('set_tea_table_keep', { confirm }, 'host', { TEA_TABLE_OPEN: 'false' })).toEqual(closed);
+    await expectAbsent('set_tea_table_keep', { confirm }, 'host', { TEA_TABLE_OPEN: 'false' });
     expect(await call('set_tea_table_keep', { confirm })).toMatchObject({ committed: true, kept: true });
     expect(saved()).toEqual([{ user_id: 'host' }, { user_id: 'other' }]);
     await commit('set_tea_table_keep', { ...args, kept: false });
