@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, ChevronDown, Users, BookOpen, Edit3, UserCheck } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
+import { anyoneHostsOpen } from '../../lib/anyoneHosts';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAppStore } from '../../lib/store';
 import { useParallax } from '../../hooks/useParallax';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -19,7 +21,24 @@ interface PublicTeaMenuProps {
 
 type PublicEvent = TeaEvent & {
   reading?: { slug: string; title: string } | null;
+  contribution_kind?: 'free' | 'contribution' | 'price' | null;
+  contribution_note?: string | null;
 };
+
+function contributionLine(event: PublicEvent): string | null {
+  if (!anyoneHostsOpen()) return null;
+  const note = event.contribution_note;
+  switch (event.contribution_kind) {
+    case 'free':
+      return note ? `Free. ${note}` : 'Free.';
+    case 'contribution':
+      return note ? `By contribution. ${note}` : 'By contribution.';
+    case 'price':
+      return note || null;
+    default:
+      return null;
+  }
+}
 
 const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
   if (items.length === 0) return null;
@@ -326,6 +345,7 @@ const EventLanding: React.FC = () => {
   const eventFormat: import('../../types/events').EventFormat | undefined = ev.format ?? ev.event_format ?? undefined;
   const gatheringType: import('../../types/events').GatheringType | undefined = ev.gatheringType ?? ev.gathering_type ?? undefined;
   const reading = ev.reading;
+  const contribution = contributionLine(event);
   // requires_approval: raw integer from worker (0 or 1); default true for old events without the column
   const rawRequiresApproval = ev.requires_approval ?? ev.requiresApproval;
   const isInstantConfirm = rawRequiresApproval === false || rawRequiresApproval === 0;
@@ -476,6 +496,12 @@ const EventLanding: React.FC = () => {
               {areaHint ?? locationName ?? 'Location shared after RSVP'}
             </span>
           </div>
+
+          {contribution && (
+            <p data-testid="session-contribution" className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec break-words mb-5`}>
+              {contribution}
+            </p>
+          )}
 
           {reading && (
             <a
