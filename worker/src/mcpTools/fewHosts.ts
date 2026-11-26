@@ -36,6 +36,7 @@ import { reservePartySeats } from '../eventDomain';
 import { anyoneMayHost, hostDoorsFor, hostStanding, setHostApproval, type HostDoor } from '../hostApproval';
 import { GUEST_NOTE_MAX, guestNotesFor, saveGuestNote } from '../hostGuestNotes';
 import { createHostedTable } from '../hostTable';
+import { offerFreedSeats } from '../waitingList';
 import {
   hostTableGuests, ownHostedTable, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest,
   type HostTableGuest, type OwnHostedTable,
@@ -320,6 +321,7 @@ const answerGuest: ToolHandler = async (env, auth, args) => {
       return { error: 'state_conflict', message: 'This guest is no longer waiting for your answer. Nothing was written.' };
     }
     await activity(env, 'attendee_denied', `Host said no to ${attendee.full_name} via MCP`, pending, attendee.id, table.account_id);
+    await offerFreedSeats(env.DB, { eventId: table.id, accountId: table.account_id });
     return { committed: true, action: 'answer_guest', attendee_id: attendee.id, status: 'denied' };
   }
 

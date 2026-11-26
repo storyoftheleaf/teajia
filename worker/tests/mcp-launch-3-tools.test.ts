@@ -164,7 +164,8 @@ describe('Launch 3 MCP tools', () => {
     const web = await route('guest', '/api/rsvp/magic-web', 'PUT', { cancel: true });
     expect(await confirm('guest', 'release_my_seat', ticket)).toMatchObject(web as object);
     expect(seatState('agent')).toEqual(seatState('web'));
-    expect(seatState('agent')).toEqual([{ status: 'cancelled', offered: 0 }, { status: 'waitlist', offered: 1 }]);
+    // A by-request table: the freed seat sends the waiting guest back to asking, never offers it (J13 finding 1).
+    expect(seatState('agent')).toEqual([{ status: 'cancelled', offered: 0 }, { status: 'requested', offered: 0 }]);
   });
 
   it('lets an unapproved host release a confirmed guest with the same waiting list result as the route', async () => {

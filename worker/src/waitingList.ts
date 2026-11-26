@@ -27,6 +27,15 @@
 //   in the same transaction, and gives back every seat the party holds: the
 //   guest's own and any companion invitation nobody has claimed yet. A
 //   companion who already claimed holds a seat of their own and keeps it.
+// - At a table where every seat needs the host's yes (a person's by-request
+//   or open table; Launch 3, J13 finding 1), a freed seat is never offered.
+//   A guest who asked while it was full waits on its list (handleRSVP puts
+//   them there), and when a seat frees the longest-waiting guest goes back
+//   to asking: returnWaitingToAsking. The host then says yes or no as to any
+//   guest who asked. Only as many go back as there are free seats nobody is
+//   already asking for, so the host is never asked about more guests than
+//   the seats can take. The notice is an 'offered' row with no seat (the
+//   kinds are fixed by 0134's CHECK), read out as 'returned'.
 // - The host is told, in the app: event_seat_notices, read on the host's table
 //   page and in Manage. Nothing here sends anything to anyone, and no offer is
 //   made once a session has begun.
@@ -36,12 +45,15 @@
 // second before it reads as expired in JavaScript; whole seconds make the two
 // agree. Liveness is still decided in SQL wherever a write depends on it.
 
+import { hostDoorSql } from './hostApproval';
 import { seatsTakenSql } from './hostTableGuests';
 import { sessionInstant } from './sessionWalkthrough';
 
 type Db = Pick<D1Database, 'prepare' | 'batch'>;
 
 export type SeatNoticeKind = 'cancelled' | 'released' | 'offered' | 'offer_lapsed' | 'claimed';
+/** What the host reads: a stored 'offered' with no seat is a guest gone back to asking. */
+export type SeatNoticeShown = SeatNoticeKind | 'returned';
 
 export const LIVE_OFFER_SQL = (alias: string) =>
   `${alias}.claim_expires_at IS NOT NULL AND datetime(${alias}.claim_expires_at) > datetime('now')`;
@@ -181,13 +193,20 @@ export async function lapseExpiredOffers(db: Db, scope: { eventId: string; accou
 export async function offerFreedSeats(db: Db, scope: { eventId: string; accountId: string }, now = Date.now()): Promise<string[]> {
   await lapseExpiredOffers(db, scope);
   const event = await db.prepare(
-    `SELECT total_capacity, claim_window_minutes, lifecycle_status, event_date, timezone FROM events WHERE id = ? AND account_id = ?`
+    `SELECT e.total_capacity, e.claim_window_minutes, e.lifecycle_status, e.event_date, e.timezone,
+            ${hostDoorSql('a', 'e', { anyoneHosts: true })} AS door
+       FROM events e JOIN accounts a ON a.id = e.account_id WHERE e.id = ? AND e.account_id = ?`
   ).bind(scope.eventId, scope.accountId).first<{
     total_capacity: number; claim_window_minutes: number | null; lifecycle_status: string; event_date: string; timezone: string | null;
+    door: string | null;
   }>();
   if (!event || event.lifecycle_status !== 'published') return [];
   const start = sessionInstant(event.event_date, event.timezone);
   if (start && start.at <= now) return [];
+  if (event.door === 'request') {
+    await returnWaitingToAsking(db, scope, Number(event.total_capacity) || 0);
+    return [];
+  }
 
   const offered: string[] = [];
   const deadline = offerDeadline(now, Number(event.claim_window_minutes) || 60);
@@ -222,6 +241,38 @@ export async function offerFreedSeats(db: Db, scope: { eventId: string; accountI
   return offered;
 }
 
+/**
+ * At a table where every seat needs the host's yes: move the longest-waiting
+ * guests back to asking, one for each free seat nobody is already asking for.
+ * Each move is guarded in its own WHERE, so two releases at once cannot move
+ * more guests than that. Returns the guests moved, in order.
+ */
+export async function returnWaitingToAsking(db: Db, scope: { eventId: string; accountId: string }, capacity: number): Promise<string[]> {
+  const returned: string[] = [];
+  for (let round = 0; round < Math.max(1, capacity); round += 1) {
+    const row = await db.prepare(
+      `UPDATE event_attendees SET status = 'requested', claim_expires_at = NULL
+        WHERE id = (SELECT queued.id FROM event_attendees queued
+            WHERE queued.event_id = ? AND queued.account_id = ? AND queued.status = 'waitlist'
+            ORDER BY queued.waitlist_position IS NULL, queued.waitlist_position, queued.created_at, queued.id
+            LIMIT 1)
+          AND status = 'waitlist'
+          AND EXISTS (SELECT 1 FROM events e
+            WHERE e.id = ? AND e.account_id = ? AND e.lifecycle_status = 'published'
+              AND ${seatsTakenSql('e')} + ${ASKING_SEATS_SQL('e')} < e.total_capacity)
+        RETURNING id`
+    ).bind(scope.eventId, scope.accountId, scope.eventId, scope.accountId).first<{ id: string }>();
+    if (!row) break;
+    returned.push(row.id);
+    await recordSeatNotice(db, { ...scope, attendeeId: row.id, kind: 'offered', seats: 0 });
+  }
+  return returned;
+}
+
+/** The seats the guests still asking at a table would take, if the host said yes to each. */
+const ASKING_SEATS_SQL = (event: string) => `(SELECT COUNT(*) FROM event_attendees asking
+    WHERE asking.event_id = ${event}.id AND asking.account_id = ${event}.account_id AND asking.status = 'requested')`;
+
 /** The scheduled worker's part: lapse expired offers everywhere and move each queue on. */
 export async function advanceWaitingLists(db: Db, now = Date.now()): Promise<{ lapsed: number; offered: number }> {
   let lapsed = 0;
@@ -241,7 +292,7 @@ export const NEXT_WAITLIST_POSITION_SQL = `(SELECT COALESCE(MAX(queue.waitlist_p
 
 export type SeatNotice = {
   id: string;
-  kind: SeatNoticeKind;
+  kind: SeatNoticeShown;
   seats: number;
   guest_name: string | null;
   created_at: string;
@@ -257,5 +308,8 @@ export async function seatNoticesFor(db: Db, scope: { eventId: string; accountId
       ORDER BY n.created_at DESC, n.rowid DESC
       LIMIT ?`
   ).bind(scope.eventId, scope.accountId, limit).all<SeatNotice>();
-  return results.map(row => ({ ...row, seats: Number(row.seats) || 0 }));
+  return results.map(row => {
+    const seats = Number(row.seats) || 0;
+    return { ...row, kind: row.kind === 'offered' && seats === 0 ? 'returned' : row.kind, seats };
+  });
 }
