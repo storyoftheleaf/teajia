@@ -18,6 +18,8 @@ export interface BasicInfoSectionProps {
   gatheringType: GatheringType | undefined;
   flyerImageUrl: string | undefined;
   requiresApproval: boolean;
+  readingArticleId: string;
+  publishedArticles: Array<{ id: string; title: string }>;
   repeatDates: string[];
   uploading: boolean;
   isOpen: boolean;
@@ -30,6 +32,7 @@ export interface BasicInfoSectionProps {
   onDurationChange: (hours: number) => void;
   onRepeatDatesChange: React.Dispatch<React.SetStateAction<string[]>>;
   onRequiresApprovalChange: (value: boolean) => void;
+  onReadingArticleChange: (value: string) => void;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -47,6 +50,8 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   gatheringType,
   flyerImageUrl,
   requiresApproval,
+  readingArticleId,
+  publishedArticles,
   repeatDates,
   uploading,
   isOpen,
@@ -59,6 +64,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   onDurationChange,
   onRepeatDatesChange,
   onRequiresApprovalChange,
+  onReadingArticleChange,
   onImageUpload,
 }) => {
   return (
@@ -119,6 +125,22 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 />
                 <div className={`text-right text-ui-10 mt-0.5 ${(description || '').length > 450 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
                   {(description || '').length}/500
+                </div>
+              </Field>
+              <Field label="A reading for guests">
+                <div className="relative">
+                  <select
+                    aria-label="A reading for guests"
+                    value={readingArticleId}
+                    onChange={(e) => onReadingArticleChange(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">None</option>
+                    {publishedArticles.map(article => (
+                      <option key={article.id} value={article.id}>{article.title}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
                 </div>
               </Field>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
