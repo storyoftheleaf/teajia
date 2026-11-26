@@ -436,6 +436,7 @@ The same one sentence belongs at the top of Home ("What this is", item 1 there) 
 4. May experienced hosts offer articles, edited and decided by Adrian?
 5. May the wrapper reader be opened to hosts, so a host who does not know their tea can photograph it and be told?
 6. "Does anyone know this tea?" on the Tea Table, answered by Adrian or a known host: wanted, later, or not at all?
+7. Is step 1 the right first version: your own tables only, with the reading, the thank-you, "keep this tea" and tasting from the Tea Chest?
 
 ## Later, and worth preparing for
 
@@ -443,6 +444,94 @@ The same one sentence belongs at the top of Home ("What this is", item 1 there) 
 - **Articles about people.** A standing series in Read: who someone is and why they love tea. One per person, linked from their page and from Home. A completed session can already become a magazine draft, which is one easy source.
 - **An app.** Nothing in this plan blocks it. Every step is an address, every table screen is one action, and the invitation is a link. The first form is the site added to a phone's home screen. A store app is its own decision later.
 - **Ideas from the August working brief that now have a place**: Open Tables (a public session anyone may ask to join), Table Record (what a session leaves behind, which is the recap and Guest Book), Introductions, not profiles (the people articles), Second Table in a Box (the tasting box poured by a new host).
+
+## The first version, and how it grows
+
+Adrian, 2026-11-26: "How much of this to do MVP and get it going based on what is built, and what to expand it to and slowly build, is important." And on guests: "Even guests who start to curate and collect their own teas can, say, buy a tea from me and save it in their cabinet, receive a gift from someone else and put it in their cabinet also. They can taste their own teas and start to develop their flavor and taste." And on reading: "People can pick articles to send with their invitation. Like today we're going to be drinking puer and there could be an article around puer."
+
+The stages table below stays as the full list of work. This section is the order to actually do it in: the smallest thing that is whole, then four widenings, each started only when the one before has been used by real people. His word "cabinet" is the Tea Chest on the site.
+
+### What is already built and is used as it stands
+
+Read from the code on 2026-11-26.
+
+| Piece | State |
+|---|---|
+| Sign up by email or Google | Built |
+| A session with seats, RSVP and the host's approval | Built, but made in Manage, so today only by Adrian's shop account |
+| The teas poured at a session | Built (`worker/src/sessionTeas.ts`, the served teas editor) |
+| A playlist on a session | Built: a session has a playlist link and the recap page shows it |
+| An after-sit link, the Guest Book, the recap page | Built, as separate doors |
+| The tasting journal and a person's taste building over time | Built |
+| The Tea Chest: a person's own teas with grams, a photograph, notes, what it cost | Built (`personal_cellar_items`). A tea is added by hand. It can point at a shop tea (`linkedProductId`) |
+| Articles, Craft's course, Tea Wisdom | Built. Five articles published |
+| A reading attached to a session | Not built. Nothing links a session to an article |
+| A bought tea arriving in the buyer's Tea Chest | Not built, as far as the code shows. The link field is there; nothing fills it from an order |
+| A gift recorded as a gift | Not built. A gifted tea can be added by hand as any tea |
+| A tasting started from a tea in the Tea Chest | Not found in the Tea Chest screen. The journal and the chest sit apart |
+
+### Step 1, the first version: one real table, end to end
+
+The hosts are Adrian and nobody else yet. That is deliberate. It uses the sessions that already work, and it avoids the one large piece of engineering (making one kind of session so anyone can host, B5) until the rest has been tried on real guests.
+
+What a person can do when step 1 is done:
+
+1. **A guest gets one link** in WhatsApp. It shows the day, the area, who is hosting, and, if the host chose them, the teas and **one thing to read first**. They ask for a seat with a name.
+2. **Afterward they get one link again**: the thank-you. The host's words, the teas that were poured, each opening onto what it is, the playlist, the reading, and the photographs.
+3. **Beside each tea, "keep this tea".** One tap puts it in their own Tea Chest as a tea they have tasted, with the session it came from. If they buy it, the bought tea is in their chest with its grams.
+4. **In their Tea Chest, any tea can be tasted.** A tea they bought, a tea they were given, a tea they poured at a session: each opens a tasting, and their own sense of what they like builds from there. Adding a tea asks one thing more than today: where it came from (bought, a gift from someone, from a session).
+5. **Home says what this is** in one sentence, with the door "come to a table".
+
+What has to be built for it, all of it small:
+
+| # | Work | Size |
+|---|---|---|
+| 1a | Repair the invite address (stage 0) | Small |
+| 1b | A session can carry one article. The host picks from the published pieces. It shows on the invitation and the thank-you | Small |
+| 1c | The thank-you page: one page per session that gathers what already exists (teas, playlist, the host's note, the reading, the asks). Opens without an account | Medium |
+| 1d | "Keep this tea" from the thank-you and from a tea's page into the Tea Chest, and a bought tea arriving there | Medium |
+| 1e | "Where it came from" on a Tea Chest tea, and "taste this" from the chest into the journal | Small |
+| 1f | Home's first sentence and one door | Small |
+
+Before any of it: run one session by hand (idea I6), with the thank-you sent as a plain message, to see what guests actually open and answer.
+
+**Step 1 is done when** one real session has run through it and at least a few guests opened the thank-you and kept or tasted a tea. Not a number on a screen; Adrian will simply know.
+
+What step 1 leaves out on purpose: other hosts, the walkthrough to the house, the gallery, the Tea Table, tea houses, favourites in three kinds, credit, voice tools. Every one of them is better built after watching one real table use the small version.
+
+### Step 2: a few hosts, by hand
+
+Three to five people Adrian knows and trusts each get a small host's account, made by him. They host with exactly what he used in step 1. Added here: hosting on one screen with only a day and a time required, the three doors (by request, by link, open), a tea from anywhere with no price, "a tea from my shelf" as a complete entry, the walkthrough to the house (G18), and the host's private guest book.
+
+**Done when** those hosts have each run a session without asking Adrian how.
+
+### Step 3: anyone can host
+
+The large piece: one kind of session (B5), with the earlier private sits carried over after Adrian has seen the before and after. "Host a table" appears on Home and in Your Table. With it come the safety floor for strangers in homes (B1), reports, a session's gallery (G19), a waiting list, and "same table again".
+
+**Done when** someone Adrian has never met hosts a session that goes well.
+
+### Step 4: what happened becomes visible
+
+The Tea Table opens, because by now it has real things to show (B9). Then tea house pages, favourites in three kinds, the people articles, quiet acknowledgement, and the bar words, which need Adrian's explicit yes. Hosts may offer articles.
+
+### Step 5: the wider service
+
+A tea master's shelf and credit, with tracking switched on from the first thank-you in step 1 so nothing is lost. The wrapper reader for hosts. The card for the table. Circles and series. A shared tea for the table. Every action as a voice or agent tool. The host's box and the tasting box. Short video. The app.
+
+### How the steps map to the stages below
+
+| Step | Stages |
+|---|---|
+| 1 | 0, 1, the thank-you from 3, a slice of 7 (the Tea Chest), Home's first part from 8 |
+| 2 | Most of 2, the rest of 3 |
+| 3 | The session merge in 2, and 4 |
+| 4 | 5, 6, 7, 8, 9, 11 |
+| 5 | 9b, 10, Later |
+
+### The reading with the invitation
+
+A host picks at most one piece, from what is published. One is the right number: an invitation with three links gets none of them read. Where a tea on the session already has its own reading in Tea Wisdom, the invitation can offer that without the host doing anything. The limit today is the shelf: with five articles a host pouring puer has little to choose from. The first articles worth writing are therefore one short piece per family of tea (puer, oolong, white, green, red, dark), ten minutes each, written to be sent before a session. Six pieces would cover almost every table.
 
 ## Build stages
 
