@@ -80,6 +80,41 @@ export function findEligibleSeat(db: D1Database, credentialHash: string) {
   }>();
 }
 
+/**
+ * Issue one after-sit (thank-you) link for a guest who came to a finished
+ * session, or null when the seat is not eligible. Used by the shop's own route
+ * below and by a small host's route for their own table (Launch 2, H4); the
+ * caller has already proved the session is theirs.
+ */
+export async function issueAfterSitLink(db: D1Database, { attendeeId, eventId, accountId }: {
+  attendeeId: string; eventId: string; accountId: string;
+}): Promise<{ credential: string; expires_at: string } | null> {
+  const scope = [attendeeId, eventId, accountId];
+  const credential = createAfterSitCredential();
+  const hash = await hashAfterSitCredential(credential);
+  const expiresAt = Math.floor(Date.now() / 1000) + LINK_LIFETIME_SECONDS;
+  // The first link for a seat takes the main slot (or replaces one that has
+  // expired); a later copy is added beside it, so a link the guest already
+  // has keeps working until it expires.
+  const eligible = `SELECT a.id, a.event_id, a.account_id, ?, ? FROM event_attendees a
+     ${eventJoins}
+     WHERE a.id = ? AND a.event_id = ? AND a.account_id = ? AND ${guestSeat}`;
+  const [, first, extra] = await db.batch([
+    db.prepare(`DELETE FROM after_sit_extra_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?
+      AND expires_at <= unixepoch()`).bind(...scope),
+    db.prepare(`INSERT INTO after_sit_access (attendee_id, event_id, account_id, credential_hash, expires_at)
+     ${eligible}
+     ON CONFLICT(attendee_id, event_id, account_id) DO UPDATE SET
+       credential_hash = excluded.credential_hash, expires_at = excluded.expires_at
+     WHERE after_sit_access.expires_at <= unixepoch()`).bind(hash, expiresAt, ...scope),
+    db.prepare(`INSERT INTO after_sit_extra_access (attendee_id, event_id, account_id, credential_hash, expires_at)
+     ${eligible} AND NOT EXISTS (SELECT 1 FROM after_sit_access held WHERE held.credential_hash = ?)`)
+      .bind(hash, expiresAt, ...scope, hash),
+  ]);
+  return first.meta?.changes || extra.meta?.changes
+    ? { credential, expires_at: new Date(expiresAt * 1000).toISOString() } : null;
+}
+
 export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, string, Handler<E>][] {
   const manage: Handler<E> = async (request, env, { eventId, attendeeId }) => {
     const host = await deps.requireHost(request, env);
@@ -97,29 +132,8 @@ export function afterSitRoutes<E extends AfterSitEnv>(deps: Deps<E>): [string, s
       return first.meta?.changes || extra.meta?.changes || party.meta?.changes ? json({ revoked: true }) : unavailable();
     }
 
-    const credential = createAfterSitCredential();
-    const hash = await hashAfterSitCredential(credential);
-    const expiresAt = Math.floor(Date.now() / 1000) + LINK_LIFETIME_SECONDS;
-    // The first link for a seat takes the main slot (or replaces one that has
-    // expired); a later copy is added beside it, so a link the guest already
-    // has keeps working until it expires.
-    const eligible = `SELECT a.id, a.event_id, a.account_id, ?, ? FROM event_attendees a
-       ${eventJoins}
-       WHERE a.id = ? AND a.event_id = ? AND a.account_id = ? AND ${guestSeat}`;
-    const [, first, extra] = await env.DB.batch([
-      env.DB.prepare(`DELETE FROM after_sit_extra_access WHERE attendee_id = ? AND event_id = ? AND account_id = ?
-        AND expires_at <= unixepoch()`).bind(...scope),
-      env.DB.prepare(`INSERT INTO after_sit_access (attendee_id, event_id, account_id, credential_hash, expires_at)
-       ${eligible}
-       ON CONFLICT(attendee_id, event_id, account_id) DO UPDATE SET
-         credential_hash = excluded.credential_hash, expires_at = excluded.expires_at
-       WHERE after_sit_access.expires_at <= unixepoch()`).bind(hash, expiresAt, ...scope),
-      env.DB.prepare(`INSERT INTO after_sit_extra_access (attendee_id, event_id, account_id, credential_hash, expires_at)
-       ${eligible} AND NOT EXISTS (SELECT 1 FROM after_sit_access held WHERE held.credential_hash = ?)`)
-        .bind(hash, expiresAt, ...scope, hash),
-    ]);
-    return first.meta?.changes || extra.meta?.changes
-      ? json({ credential, expires_at: new Date(expiresAt * 1000).toISOString() }) : unavailable();
+    const issued = await issueAfterSitLink(env.DB, { attendeeId, eventId, accountId: host.accountId });
+    return issued ? json(issued) : unavailable();
   };
 
   function withLink(run: (request: Request, env: E, credentialHash: string, body: LinkInput) => Promise<Response>): Handler<E> {
