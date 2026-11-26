@@ -30,7 +30,10 @@ export type HostedTableInput = {
 
 export type HostedTable = { id: string; slug: string; link: string };
 
-/** Makes one hosted table. Returns null until H3 builds it. */
-export async function createHostedTable(_db: D1Database, _input: HostedTableInput): Promise<HostedTable | null> {
+/** A plain refusal the route answers with 400, e.g. a day already past. */
+export type HostedTableRefusal = { refused: { code: string; error: string } };
+
+/** Makes one hosted table, or refuses it. Returns null until H3 builds it. */
+export async function createHostedTable(_db: D1Database, _input: HostedTableInput): Promise<HostedTable | HostedTableRefusal | null> {
   return null;
 }

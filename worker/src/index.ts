@@ -16844,7 +16844,7 @@ const handleGetHosting: Handler = async (request, env) => {
 };
 
 const HOSTED_TABLE_DEFAULT_SEATS = 6;
-const HOSTED_TABLE_MAX_SEATS = 100;
+const HOSTED_TABLE_MAX_SEATS = 40;
 const HOSTED_TABLE_NAME_MAX = 120;
 
 function validTimeZone(zone: string): boolean {
@@ -16911,6 +16911,9 @@ const handleCreateHostedTable: Handler = async (request, env) => {
   });
   // The stub (hostTable.ts) returns null until slice H3 builds it.
   if (!table) return json({ error: 'Not built yet' }, 501);
+  // A refusal from the table writer (a day already past, for one) is the
+  // caller's to fix, never a server fault.
+  if ('refused' in table) return restError(400, table.refused.error, table.refused.code);
   return json(table, 201);
 };
 
