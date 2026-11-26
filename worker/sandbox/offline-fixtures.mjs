@@ -86,7 +86,11 @@ try {
   await prepare();
   if (!process.argv.includes('--prepare-only')) {
     // FIRST_TABLE_OPEN=true opens Launch 1 in this local shop only (src/lib/firstTable.ts).
-    const flags = process.env.FIRST_TABLE_OPEN === 'true' ? ['--var', 'FIRST_TABLE_OPEN:true'] : [];
+    // ANYONE_HOSTS_OPEN=true opens Launch 3 the same way (src/lib/anyoneHosts.ts).
+    const flags = [
+      ...(process.env.FIRST_TABLE_OPEN === 'true' ? ['--var', 'FIRST_TABLE_OPEN:true'] : []),
+      ...(process.env.ANYONE_HOSTS_OPEN === 'true' ? ['--var', 'ANYONE_HOSTS_OPEN:true'] : []),
+    ];
     const server = spawn(wrangler, ['dev', ...localOptions, ...flags], { cwd: worker, env, stdio: 'inherit' });
     server.on('error', error => { console.error(error.message); process.exitCode = 1; });
     server.on('exit', code => { process.exitCode = code ?? 1; });

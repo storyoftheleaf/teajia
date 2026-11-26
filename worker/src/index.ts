@@ -314,6 +314,7 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   AFTER_SIT_LIMITER?: RateLimit;
   /** "true" opens Launch 1 in a local sandbox only; see src/lib/firstTable.ts. Never set on the live worker. */
   FIRST_TABLE_OPEN?: string;
+  ANYONE_HOSTS_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -12408,7 +12409,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
-            e.requires_approval, e.venue_id, e.reading_article_id,
+            e.requires_approval, e.venue_id, e.reading_article_id, e.contribution_kind, e.contribution_note,
             v.photos AS venue_photos,
             a.name AS account_name,
             a.location_country AS account_location_country
@@ -13733,6 +13734,17 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
     body.briefing_cards = JSON.stringify(body.briefing_cards);
   }
   if (body.event_format === undefined) delete body.event_format;
+  if (body.contribution_kind !== undefined) {
+    if (body.contribution_kind === '' ) body.contribution_kind = null;
+    if (body.contribution_kind !== null && !['free', 'contribution', 'price'].includes(body.contribution_kind)) {
+      return json({ error: 'Choose free, by contribution, or a price, or say nothing.' }, 400);
+    }
+  }
+  if (body.contribution_note !== undefined) {
+    const note = typeof body.contribution_note === 'string' ? body.contribution_note.trim() : null;
+    if (note && note.length > 140) return json({ error: 'Keep the line to 140 characters.' }, 400);
+    body.contribution_note = note || null;
+  }
   if (body.reading_article_id !== undefined) {
     // One published article of this shop, or nothing (Launch 1, the first table).
     if (body.reading_article_id === null || body.reading_article_id === '') {
@@ -13742,7 +13754,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
     }
   }
 
-  const EVENT_ALLOWED_COLS = new Set(['reading_article_id','title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
+  const EVENT_ALLOWED_COLS = new Set(['reading_article_id','title','subtitle','description','slug','status','lifecycle_status','event_date','event_end_date','location_name','total_capacity','event_format','gathering_type','flyer_image_url','claim_window_minutes','venue_id','active_space_ids','location_id','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval','contribution_kind','contribution_note']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 

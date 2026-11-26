@@ -4001,3 +4001,22 @@ CREATE TABLE IF NOT EXISTS order_session_sources (
   host_user_id TEXT,
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- 0130_session_reports_contribution.sql
+ALTER TABLE events ADD COLUMN contribution_kind TEXT CHECK (contribution_kind IN ('free','contribution','price'));
+ALTER TABLE events ADD COLUMN contribution_note TEXT CHECK (contribution_note IS NULL OR length(contribution_note) <= 140);
+
+CREATE TABLE IF NOT EXISTS session_reports (
+  id               TEXT PRIMARY KEY,
+  target_kind      TEXT NOT NULL CHECK (target_kind IN ('session','person')),
+  target_id        TEXT NOT NULL,
+  reason           TEXT CHECK (reason IS NULL OR length(reason) <= 1000),
+  reporter_user_id TEXT REFERENCES users(id),
+  reporter_seat_id TEXT,
+  status           TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','acted','dismissed')),
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_at      TEXT,
+  resolved_by      TEXT REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_session_reports_open ON session_reports(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_session_reports_target ON session_reports(target_kind, target_id);
