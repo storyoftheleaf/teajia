@@ -12,6 +12,7 @@
  * 10px caps the reference used to run under every row on every page.
  */
 import React, { useMemo, useState } from 'react';
+import { ReadShelves } from '../../components/shared/ReadShelves';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, REGIONS, STYLES } from '../../wisdom';
@@ -155,6 +156,7 @@ export const WisdomHomeContent: React.FC<{
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
+      <ReadShelves here="wisdom" />
       <WisdomSubNav active="overview" />
 
       <div className="mt-7">
