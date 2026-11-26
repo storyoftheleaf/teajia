@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import type { EventAttendee, TeaEvent } from '../../../types/events';
 import { formatEventDate } from './helpers';
+import HostedByFoot from './HostedByFoot';
 
 const InterestCapture = lazy(() => import('../InterestCapture'));
 
@@ -67,9 +68,7 @@ const DeniedView: React.FC<DeniedViewProps> = ({ attendee, event, statusBanner }
         </div>
 
         <div className="text-center pt-10 pb-4">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/40">
-            Hosted by Teajia
-          </p>
+          <HostedByFoot event={event} className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/40" />
         </div>
       </div>
     </div>

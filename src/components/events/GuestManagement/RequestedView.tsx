@@ -2,6 +2,7 @@ import React from 'react';
 import { Bookmark } from 'lucide-react';
 import type { EventAttendee, TeaEvent } from '../../../types/events';
 import { formatEventDate } from './helpers';
+import HostedByFoot from './HostedByFoot';
 
 interface RequestedViewProps {
   attendee: EventAttendee;
@@ -81,9 +82,7 @@ const RequestedView: React.FC<RequestedViewProps> = ({ attendee, event }) => {
         </div>
 
         <div className="text-center pt-8 pb-12">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/50">
-            Hosted by Teajia
-          </p>
+          <HostedByFoot event={event} className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/50" />
         </div>
       </div>
     </div>
