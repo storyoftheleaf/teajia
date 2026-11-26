@@ -65,8 +65,6 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   // Send the reading only once it is known, so a failed load can never clear a saved one.
   const readingKnownRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const venueStepFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  const [venueStepUploading, setVenueStepUploading] = useState<number | null>(null);
 
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
@@ -312,33 +310,18 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     });
   }, []);
 
-  const handleVenueStepImageUpload = useCallback(async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const pickedFile = e.target.files?.[0];
-    if (!pickedFile) return;
-    e.target.value = '';
-    const file = await editPhoto(pickedFile, { title: 'Venue photo', freeShape: true });
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('Image must be under 10 MB', 'error');
-      return;
-    }
+  // A step photograph arrives already framed in the shared photo editor
+  // (VenueGuideSection, through WayStepPhoto); this only checks and uploads it.
+  const uploadVenueStepPhoto = useCallback(async (file: File): Promise<string> => {
+    if (file.size > 10 * 1024 * 1024) throw new Error('Image must be under 10 MB');
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowed.includes(file.type)) {
-      showToast('Only JPG, PNG, WebP, or GIF images are supported', 'error');
-      return;
-    }
-    setVenueStepUploading(idx);
-    try {
-      const compressed = await compressImage(file);
-      const result = await api.events.uploadFlyer(compressed, 'venue-guide');
-      updateVenueStep(idx, 'image_url', result.url || result);
-      showToast('Photo uploaded', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Upload failed', 'error');
-    } finally {
-      setVenueStepUploading(null);
-    }
-  }, [showToast, updateVenueStep]);
+    if (!allowed.includes(file.type)) throw new Error('Only JPG, PNG, WebP, or GIF images are supported');
+    const compressed = await compressImage(file);
+    const result = await api.events.uploadFlyer(compressed, 'venue-guide');
+    showToast('Photo uploaded', 'success');
+    return result.url || result;
+  }, [showToast]);
+  const venueStepPhotoFailed = useCallback((message: string) => showToast(message || 'Upload failed', 'error'), [showToast]);
 
   const sessionFlow = useMemo(() => form.sessionFlow || [], [form.sessionFlow]);
 
@@ -583,13 +566,12 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         <VenueGuideSection
           venueGuide={venueGuide}
           isOpen={openSections.has('venue-guide')}
-          venueStepUploading={venueStepUploading}
-          venueStepFileRefs={venueStepFileRefs}
           onToggle={onToggleVenueGuide}
           onAddVenueStep={addVenueStep}
           onUpdateVenueStep={updateVenueStep}
           onRemoveVenueStep={removeVenueStep}
-          onVenueStepImageUpload={handleVenueStepImageUpload}
+          uploadVenueStepPhoto={uploadVenueStepPhoto}
+          onVenueStepPhotoFailed={venueStepPhotoFailed}
           onUpdateVenueGuide={updateVenueGuide}
         />
 

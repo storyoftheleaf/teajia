@@ -20,7 +20,9 @@ import { createHostedTable, type HostedTableDoor } from './hostTable';
 import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest } from './hostTableGuests';
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
+import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
+import { keepTableWay, readTableWay, readTableWayInput, saveTableWay } from './hostTableWay';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -12577,8 +12579,9 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     hosts,
     host,
     pouring,
-    // A host's own house is the way in: its photographs go to a confirmed guest only.
-    venue_photos: privateHost ? [] : venuePhotos,
+    // Photographs of the house or table may be shown (Adrian, 2026-11-26); the
+    // address, map link and the way-in steps stay with a confirmed guest.
+    venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
     offered_count: offeredCount,
     confirmed_names: confirmedNames,
@@ -13180,7 +13183,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       area_hint: attendee.area_hint,
       guidelines_text: attendee.guidelines_text,
       venue_guide: showWay ? attendee.venue_guide : null,
-      venue_photos: showWay ? venuePhotos : [],
+      venue_photos: venuePhotos,
       timezone: attendee.timezone,
       status: attendee.event_status,
       lifecycle_status: attendee.lifecycle_status,
@@ -17405,6 +17408,27 @@ const handleHostedTableNotes: Handler = async (request, env, params) => {
   return hostTableJson({ note: saved.note });
 };
 
+// GET /api/me/record. The host's record, theirs to take away (H11; Adrian,
+// 2026-11-26: "Free to host, and your record is yours."). One JSON file of
+// their own tables only, built by hostRecord.ts: no guest contacts, no
+// addresses. Behind the Launch 2 switch. A host Adrian stopped still takes
+// the record of the tables they hosted; a person with no tables who may not
+// host gets the same 404 as every other host route.
+const handleHostRecord: Handler = async (request, env) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const approved = await hostApproved(env.DB, ctx.userId);
+  if (!hostDoorsFor(approved, fewHostsAnyoneHosts(env)) && !(await hostsAnyTable(env.DB, ctx.userId))) {
+    return fewHostsClosed();
+  }
+  const now = new Date();
+  const record = await hostRecord(env.DB, { userId: ctx.userId, name: ctx.name }, { appOrigin: appOrigin(env), now });
+  const response = hostTableJson(record);
+  response.headers.set('Content-Disposition', `attachment; filename="${hostRecordFileName(now)}"`);
+  return response;
+};
+
 // ── A tea for the table (Launch 2, H6). The host's own table only, through
 // requireOwnHostedTable. No price, stock or cost in any answer.
 
@@ -17451,6 +17475,51 @@ const handleHostedTableTeaPhoto: Handler = async (request, env, params) => {
   const key = `${tableTeaPhotoPrefix(own.table)}${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
   await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'image/jpeg' } });
   return hostTableJson({ url: `https://media.teajia.co/${key}` }, 201);
+};
+
+// The way to the house, from the host's side (H8): GET and PUT
+// /api/me/tables/:id/way, POST /api/me/tables/:id/way/keep {name}, and
+// POST /api/me/tables/:id/way/photos (multipart, one photograph already
+// framed in the shared photo editor). The table's host alone; a guest
+// receives the way only through the guest page's own gate (H7).
+const handleHostedTableWay: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  if (request.method === 'GET') return hostTableJson(await readTableWay(env.DB, own.table));
+  const input = readTableWayInput(await request.json().catch(() => null) as Record<string, unknown> | null, own.table.account_id);
+  if ('refused' in input) return restError(input.refused.status, input.refused.error, input.refused.code);
+  await saveTableWay(env.DB, own.table, input);
+  return hostTableJson(await readTableWay(env.DB, own.table));
+};
+
+const handleKeepHostedTableWay: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const body = await request.json().catch(() => null) as { name?: unknown } | null;
+  const kept = await keepTableWay(env.DB, own.table, body?.name);
+  if ('refused' in kept) return restError(kept.refused.status, kept.refused.error, kept.refused.code);
+  return hostTableJson(kept);
+};
+
+const handleHostedTableWayPhoto: Handler = async (request, env, params) => {
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, 'PROVIDER_LIMITER', `${own.table.account_id}:${own.host.userId}:upload-flyer`);
+  if (limited) return limited;
+  if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
+  if (!(request.headers.get('Content-Type') || '').includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
+  const file = (await request.formData()).get('file') as File | null;
+  if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  // Under venue-guide/, so it is served private and short-lived (sessionWalkthrough.ts).
+  const key = `accounts/${own.table.account_id}/venue-guide/${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
+  return hostTableJson({ url: `https://media.teajia.co/${key}`, key }, 201);
 };
 
 const handleGrantShelf: Handler = async (request, env, params) => {
@@ -23123,6 +23192,7 @@ const handlePlatformListUsers: Handler = async (request, env) => {
             (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id LIMIT 1) AS seller_state,
             (u.seller_approved_at IS NOT NULL OR EXISTS (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id
               AND pa.personal_seller_approved_at IS NOT NULL)) AS seller_approved,
+            u.host_approved_at,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -23146,6 +23216,8 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     shelf_slug: u.shelf_slug ?? null,
     has_tea_chest: u.seller_state != null,
     may_sell: u.seller_approved === 1,
+    // Launch 2: whether Adrian lets this person open tables by link. Shown on this screen only.
+    ...(fewHostsOpen(env) ? { may_host: u.host_approved_at != null, host_approved_at: u.host_approved_at ?? null } : {}),
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
@@ -32440,6 +32512,7 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/me/tea-chest/account', handlePersonalInventoryAccount],
   // Launch 2, a few hosts: closed (404) until src/lib/fewHosts.ts opens.
   ['GET',    '/api/me/hosting', handleGetHosting],
+  ['GET',    '/api/me/record', handleHostRecord],
   ['GET',    '/api/me/tables', handleListHostedTables],
   ['POST',   '/api/me/tables', handleCreateHostedTable],
   ['GET',    '/api/me/tables/:id', handleGetHostedTable],
@@ -32453,6 +32526,10 @@ const routes: [string, string, Handler][] = [
   ['GET',    '/api/me/tables/:id/tea-search', handleHostedTableTeaSearch],
   ['PUT',    '/api/me/tables/:id/teas', handleSaveHostedTableTeas],
   ['POST',   '/api/me/tables/:id/teas/photo', handleHostedTableTeaPhoto],
+  ['GET',    '/api/me/tables/:id/way', handleHostedTableWay],
+  ['PUT',    '/api/me/tables/:id/way', handleHostedTableWay],
+  ['POST',   '/api/me/tables/:id/way/keep', handleKeepHostedTableWay],
+  ['POST',   '/api/me/tables/:id/way/photos', handleHostedTableWayPhoto],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],
@@ -33095,6 +33172,8 @@ const requestHandler = {
           receiveImport: (scope, line, key) => receiveFinalizedImportLine(env, scope, line, key),
         },
         stockMovements: { apply: (scope, productId, input) => applyStockMovement(env, scope, productId, input) },
+        // A host's yes over MCP takes the admin approval's own reservation (Launch 2, H12).
+        hostSeats: { reservationFor: (attendee, guests) => buildApprovalReservation(env, attendee as unknown as ApprovalAttendeeRow, guests) },
       });
       return cors(response, corsOrigin);
     }

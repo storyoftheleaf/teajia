@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -19,6 +19,9 @@ import WaitlistView from './WaitlistView';
 import CancelledView from './CancelledView';
 import PostEventView from './PostEventView';
 import ConfirmedView from './ConfirmedView';
+import { forgetWay, readKeptWay, sweepEndedWays, type KeptWay } from '../../../lib/keptWay';
+
+const VenueGuide = lazy(() => import('../VenueGuide'));
 
 // ----------------------------------------------------------------
 // GuestManagement - thin status router.
@@ -29,7 +32,7 @@ const GuestManagement: React.FC = () => {
   const { magicToken } = useParams<{ magicToken: string }>();
   const navigate = useNavigate();
 
-  const { data, isLoading, isError, error } = useGuestManagement(magicToken || '');
+  const { data, isLoading, isError, error, fetchStatus } = useGuestManagement(magicToken || '');
   const cancelRSVP = useCancelRSVP(magicToken || '');
   const claimSeat = useClaimSeat(magicToken || '');
   const markBriefed = useMarkBriefed(magicToken || '');
@@ -54,6 +57,19 @@ const GuestManagement: React.FC = () => {
     enabled: !!magicToken && isCompleted,
     staleTime: 60_000,
   });
+
+  // The way in kept on this phone (H8). Opening any guest page removes what
+  // was kept for a session that has ended; this page's own copy is read once,
+  // for when there is no signal, and removed as soon as the server stops
+  // giving this page the way.
+  const [keptWay, setKeptWay] = useState<KeptWay | null>(() => (magicToken ? readKeptWay(magicToken) : null));
+  useEffect(() => { void sweepEndedWays(); }, []);
+  const wayGiven = Boolean(data && data.attendee.status === 'confirmed' && data.event.venueGuide);
+  useEffect(() => {
+    if (!data || !magicToken || wayGiven) return;
+    void forgetWay(magicToken);
+    setKeptWay(null);
+  }, [data, magicToken, wayGiven]);
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [guidelinesExpanded, setGuidelinesExpanded] = useState(false);
@@ -97,6 +113,23 @@ const GuestManagement: React.FC = () => {
       setShowBriefing(true);
     }
   }, [shouldShowBriefing]);
+
+  // ---- No signal, with the way in kept on this phone ----
+  const offline = isError || fetchStatus === 'paused' || (typeof navigator !== 'undefined' && navigator.onLine === false);
+  if (!data && keptWay && offline) {
+    return (
+      <main className="min-h-screen bg-tea-bg px-4 pt-8 pb-nav" data-kept-way>
+        <div className="mx-auto max-w-lg">
+          {keptWay.title && <h1 className="h1 mb-2">{keptWay.title}</h1>}
+          <p className="body-light mb-6" role="status">No signal. This is the way in, kept on this phone.</p>
+          {keptWay.address && <p className="mb-6 text-sm text-tea-text">{keptWay.address}</p>}
+          <Suspense fallback={null}>
+            <VenueGuide venueGuide={keptWay.guide} mapLink={keptWay.map_link ?? undefined} fromKept={magicToken} />
+          </Suspense>
+        </div>
+      </main>
+    );
+  }
 
   // ---- Loading ----
   if (isLoading) {

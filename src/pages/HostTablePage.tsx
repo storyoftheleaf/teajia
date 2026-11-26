@@ -39,13 +39,52 @@ function HostingAccess() {
   } else if (!hosting.data.doors?.length) {
     content = <p className={textClass}>Hosting opens by invitation for now.</p>;
   } else {
-    content = <MakeTable key={user?.email} doors={hosting.data.doors} />;
+    content = (
+      <>
+        <MakeTable key={user?.email} doors={hosting.data.doors} />
+        <YourRecord />
+      </>
+    );
   }
 
   return (
     <main className="mx-auto w-full max-w-lg px-4 pt-6 pb-nav">
       {content}
     </main>
+  );
+}
+
+/**
+ * The host's record, theirs to take away (slice H11). Adrian's words,
+ * 2026-11-26, said once on the host's own page. One JSON file, never a zip.
+ */
+function YourRecord() {
+  const download = useMutation({
+    mutationFn: api.hosting.record,
+    retry: false,
+    onSuccess: record => {
+      const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
+      const href = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = href;
+      anchor.download = `teajia-record-${record.made_at.slice(0, 10)}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+    },
+  });
+  return (
+    <section className="mt-8 space-y-2 border-t border-tea-border pt-4" data-testid="host-record">
+      <p className={textClass}>Free to host, and your record is yours.</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="secondary" className="tap-target" disabled={download.isPending}
+          onClick={() => download.mutate()}>
+          {download.isPending ? 'Preparing your record…' : 'Download my record'}
+        </Button>
+      </div>
+      {download.isError && <p className={textClass} role="alert">Could not prepare your record. Try again in a moment.</p>}
+    </section>
   );
 }
 
