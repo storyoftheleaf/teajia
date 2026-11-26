@@ -2,7 +2,7 @@
 
 Status: proposal, 2026-11-25. Nothing built under this name. It waits on Adrian's yes to the words in [docs/SECTIONS.md](../../docs/SECTIONS.md) and to the rule exception proposed in `CLAUDE.md`.
 
-> **Revised 2026-11-25, second pass.** The Tea Table is step 3 of the loop in [guests-and-tea-masters.md](guests-and-tea-masters.md): what guests put on the table after a session or a tasting at home. Its stages now come after the session invitation and the thank-you a host sends after a sit, and the phone rule there applies: it is never linked from a screen meant for the table.
+> **Revised 2026-11-25, second pass.** The Tea Table is step 3 of the loop in [guests-and-tea-masters.md](guests-and-tea-masters.md): what guests put on the table after a session or a tasting at home. On 2026-11-26 Adrian added: "The table's not supposed to be an event calendar, it's supposed to be what has happened in the past and look really good." So the stream shows only what has happened, and coming sessions are found from Home and from invitations, not here. Whether anything lifts a piece above time order is an open choice, set out in that plan under "The Tea Table is the past". Its stages now come after the session invitation and the thank-you a host sends after a sit, and the phone rule there applies: it is never linked from a screen meant for the table.
 
 ## What it is
 

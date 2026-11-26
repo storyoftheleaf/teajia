@@ -29,7 +29,7 @@ Three words to hold apart from now on:
 
 ## The centre: guests, tea masters, and the loop
 
-**Everyone is a guest. A session has a host, and may have other tea masters pouring.** Adrian, 2026-11-25: "Master is like master of ceremonies. Many people in the audience may be that, but there is only one that is that in the moment." And: "At one event I may be a master, at another event I may be a guest."
+**Everyone is a guest. A session has a host, and others may pour beside them.** A session says "hosted by" and "pouring"; the word tea master is kept for the word Adrian grants on a person's page (Adrian, 2026-11-26). The Tea Table shows what has happened, not what is coming. Adrian, 2026-11-25: "Master is like master of ceremonies. Many people in the audience may be that, but there is only one that is that in the moment." And: "At one event I may be a master, at another event I may be a guest."
 
 So the roles belong to a session, not to an account. Anyone can join. A tea master invites people into a session, "not into the site as much". A tea house is "a physical space, somewhere that people can sit down and drink tea", where tea masters, travelling ones included, can pour. A tea master's own place is a **table**: private, usually their home, shown to the public by area only (Adrian, 2026-11-26). The creator of a session is its host, and others may serve beside them.
 

@@ -31,12 +31,15 @@ Status: proposal, 2026-11-25, revised 2026-11-26 from Adrian's second round of a
 
 ## The model in one screen
 
-**Everyone is a guest. A session has a host, and may have other tea masters pouring.**
+**Everyone is a guest. A session has a host, and others may pour beside them.**
+
+Wherever this file still says "tea master" for someone at a session, read "host" or "pouring". The file keeps its name so that links hold.
 
 | Word | What it means from now on | What it is not |
 |---|---|---|
 | **Guest** | Anyone at a session who is not pouring. Away from a session, everyone: you read, you put things on the tea table, you keep favourites, you find tea. | A lower rank. A signed-out visitor is called a visitor, not a guest. |
-| **Tea master** | Someone pouring at a given session. The one who created it is its **host**, the master of ceremonies. Others may serve beside them. The same person is a guest at the next one. | A permanent class of account. |
+| **Host**, and **pouring** | The host created the session and is its master of ceremonies. Others may be pouring beside them. The same person is a guest at the next one. A session says "hosted by" and "pouring", and never calls anyone a master. | A rank, or a permanent class of account. |
+| **Tea master** | Only the word Adrian grants on a person's page, as decided 2026-11-19. It is not used for a role at a session (Adrian, 2026-11-26: "We don't want to create any weirdness around that word, to call someone a master"). | Something a person can call themselves. |
 | **Session** | A time when people sit down for tea. It names its host, anyone else pouring, where it is, its seats and its teas. It is either an ordinary sit or a tasting. | A place. |
 | **Table** | A tea master's own place to pour, usually their home. Private. The public sees only the area, and a confirmed guest sees the address. | Something listed or searchable. |
 | **Tea house** | A public place where people can sit down and drink tea. It has a keeper and chose to be seen. Tea masters pour there, including travelling ones who have no table of their own. | A tea master's home. A shop: a house may also have one, and many will not. |
@@ -269,7 +272,7 @@ Each stage leaves the site whole and is useful by itself. None changes a bar wor
 |---|---|---|---|
 | 0 | **Repairs.** Confirm G1 on the live site and fix the invite address so account and tea master invites land on a page that accepts them. Correct the profile screen wording | G1, part of G10 | Nothing |
 | 1 | **The words.** Vocabulary applied to copy, the plans, the pillar and the standing rules. No code beyond labels | G10 | Nothing more |
-| 2 | **Before: invite to a session.** One invitation link and code per session. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. A private sit may invite more than one person | G2, G3, G11, G15 | The safety floor (B1) and the session wording (B2) |
+| 2 | **Before: invite to a session.** First, one kind of session (B5). Then one invitation link and code per session, with the host's choice of door: by request, by link, or open. A guest opens it, gives a name, has a seat. A session names its host and anyone else pouring, and its place: a private table (area only) or a tea house. Seats open shown to the public, who is coming shown to confirmed guests. A private sit may invite more than one person | G2, G3, G11, G15 | The safety floor (B1) and the session wording (B2) |
 | 3 | **After: the thank-you.** The host composes one message from the session: their words, the teas poured with links, price and what is for sale, the playlist, and the three asks. The guest answers on one screen: how the teas felt, what it was like, photographs. It reuses the Guest Book, the tasting screen and the photo editor | G6, G14, the tracking half of G17 | Nothing. Orders that start from a thank-you, a session or a tea master's page carry that name from this stage on |
 | 4 | **During.** The one-tap camera for a session, and "this is a tasting" as the host's choice with one screen per tea. Paper notes can be entered afterward | part of G6 | Nothing |
 | 5 | **The Tea Table, first form.** `/tea-table` with sessions poured, the words people shared and their photographs, as [tea-table.md](tea-table.md) describes, with its consent and withdrawal gates. A "Host a table" door | G5 | The Tea Table rule exception; one real sit |
@@ -286,16 +289,47 @@ Each stage leaves the site whole and is useful by itself. None changes a bar wor
 
 **Answered by Adrian, 2026-11-26.**
 
-- The words: yes, with a host and other tea masters pouring.
+- The words: yes. A session has a host, and others may be pouring. The word master is not used for a session role.
 - A tea master's place is a private table, never public.
 - A Tea Chest tea may be kept, shown as a favourite, or offered for a while.
 - The phone rule as written above: yes. It is now in `CLAUDE.md`.
 - Who may host: "Anyone can host. There is moderation and curation depending on the people who are hosting. This is where gamification helps, but it's covert gamification."
 - Quiet acknowledgement: yes. It is now the third exception in `CLAUDE.md`.
 
-**What "anyone can host" means in the build.** Every session can exist. How far it is shown depends on its host, and that is decided by a person, never by a counter. Three reaches: by invitation only (the default for a new host), open to people already on Teajia, and listed publicly. Adrian, or the keeper of a tea house for sessions there, moves a host from one reach to the next. The host is told plainly, in private, that listed sessions are chosen by hand. Nothing on anyone's page shows which reach they have.
+**What "anyone can host" means in the build.** Every session can exist, and its host picks its door: by request, by link, or open. How far it is shown depends on its host, and that is decided by a person, never by a counter. Three reaches: by invitation only (the default for a new host), open to people already on Teajia, and listed publicly. Adrian, or the keeper of a tea house for sessions there, moves a host from one reach to the next. The host is told plainly, in private, that listed sessions are chosen by hand. Nothing on anyone's page shows which reach they have.
 
 Still open from the first pass: the four bar words (read, table, houses, shop), the Tea Table rule exception, the share wording, review or hide, Your Table as a page, and Adrian's facts for the build offering. They are listed in [docs/SECTIONS.md](../../docs/SECTIONS.md). New questions raised by the review below are gathered at its end.
+
+## Adrian's answers to the review (2026-11-26, later the same day)
+
+- **B1, safety.** "The host can set it to request or need link for invite or open. If there's a problem with the person, that can and should be reported." So every session has one of three doors, chosen by its host: **by request** (the host says yes to each seat), **by link** (anyone holding the invitation has a seat), or **open** (anyone may take a seat). A private table starts at by request. The report line stands.
+- **B2, the word.** Yes: "hosted by" and "pouring", with the word master kept out of it. Applied in the model above.
+- **B3 and B4, what a host gains and where their tea comes from.** "Either they will buy it or they will have their own." And the reason for the whole thing, in his words: "My goal is to make this app or program valuable to them too, but then make it easy for my teas to be used and purchased. The more people who use and integrate this into their system, the more visibility I will have. That's the payback, the visibility for my tea and slowly selling more." This is the business sentence of the plan. It means the tools must be worth using for a host who never pours a Teajia tea, and that Teajia's teas must be the easiest ones to add to a session, a shelf or a thank-you.
+- **B5, one kind of session.** He asked for a recommendation. It is below.
+- **B7, photographs of other people.** Yes to the line on every invitation and the tick when offering a photograph.
+- **B9, what the Tea Table is.** "The table's not supposed to be an event calendar, it's supposed to be what has happened in the past and look really good." He is weighing whether likes on past sessions and photographs should keep some higher, or whether it stays in time order: "It's kind of like a feed." See "The Tea Table is the past" below.
+
+### Recommendation on B5: one kind of session
+
+Build everything on the richer of the two, the sessions that already have seats, RSVP, hosts, teas, recaps and a thank-you path, and fold the member's private sit into it.
+
+- **Every host gets a small private account behind the scenes**, the same one a Tea Chest already creates for a person. Their sessions belong to it. This keeps the standing rule that every record has an account, and it means a host's sessions, shelf and Tea Chest live in one place. Nothing about it is shown as a "shop".
+- **A private sit becomes a session with the door set to by link** and one seat or more. The private sits already recorded are carried over, not lost. That is a change to stored records, so by the standing rule Adrian is shown a page of before and after rows first.
+- **A person never needs Manage to host.** Hosting is done from Your Table: date, seats, door, teas, invite. Manage stays for people who run a shop or a house.
+- **The tools follow the one model**, so there is one invitation, one thank-you and one set of voice and agent tools, not two.
+- **The cost of not doing this**: every later stage is built twice, and a member's sit can never have seats, more than one invitation, a thank-you or credit.
+
+One check before building: read how much of the session code assumes a shop account with staff, so that the size of this is known before stage 2 is promised.
+
+### The Tea Table is the past
+
+Corrected from the earlier draft, which put the coming sessions under the same word. The Tea Table shows what has happened: sessions poured, the words people gave, the photographs, the teas. It should be the best-looking page on the site, because it is what makes a visitor want to be at the next one. Coming sessions are not on it. They are found from Home's "Come to a table", from a host's page and from an invitation.
+
+On likes, a recommendation, and the choice is Adrian's since it changes a standing rule:
+
+- **Recommended: time order, with a hand that can hold a few pieces at the top.** The host of a session, and Adrian for the whole table, can hold a session or a photograph up for a while. It gets the effect he wants, the best work stays visible, without any count, and it is curation, which is the thing Teajia already stands on.
+- **A middle way: a private "keep".** A person can keep a session or a photograph, which saves it to their own favourites. Nobody sees how many kept it. Adrian sees it privately and may use it when choosing what to hold up. This is his covert layer applied to the table.
+- **Not recommended: likes that show.** A visible count is the one thing every rule so far has refused, it makes people post for the number, and it would turn the newest and quietest tables into the ones that look least loved.
 
 ## Blind spots and ideas (review of 2026-11-26)
 
@@ -353,11 +387,13 @@ Adrian asked for one more pass over the whole thing: the holes, and what he had 
 
 ### Questions this raises for Adrian
 
-1. B2: should a session say "hosted by" and "pouring", keeping "tea master" for the word you grant?
-2. B1: is the safety floor right as written, and is there anything from your own years of hosting that belongs on it?
+1. B2: answered. "Hosted by" and "pouring".
+2. B1: answered. Three doors, and reports.
 3. B3: answered on 2026-11-26. A tea master is credited for tea bought through them, it is tracked from the start, and the rule is tuned later. See "A tea master's shelf".
 4. I1: is a small host's box worth bringing forward, ahead of the full tasting box?
 5. I6: which coming session could be run by hand as the test?
+6. The Tea Table: time order with a hand that holds pieces up, a private keep, or likes that show?
+7. Does the word tea master stay as a word you grant on a person's page, or should that word go too?
 
 ## Not building
 
