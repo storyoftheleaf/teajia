@@ -41,6 +41,7 @@ const SHOP_TEA = 'Old tree white, test';
 const CHEST_TEA = 'Ana’s chest oolong, test';
 const TYPED_TEA = `Grandmother roasted ${RUN}`;
 const PRIVATE_LINE = `Quiet, wants a darker oolong next time ${RUN}`;
+const AREA = 'Ubud, near the market';
 
 const SIZES = [
   { name: 'phone 390x844', width: 390, height: 844, dayOffset: 3 },
@@ -191,6 +192,17 @@ for (const size of SIZES) {
         updateShared(w, { table: { id: made.id, slug: made.slug, path: made.path } });
         await assertNoOverflow(host.page);
 
+        // The host names the area on the table's page: one short line, never the address.
+        await host.page.goto(`/account/host/${made.id}`);
+        const areaForm = host.page.getByRole('form', { name: 'Area' });
+        await areaForm.getByLabel('Area', { exact: true }).fill(AREA);
+        const areaSaved = host.page.waitForResponse(r => r.url().endsWith(`/api/me/tables/${made.id}`) && r.request().method() === 'PUT');
+        await areaForm.getByRole('button', { name: 'Save', exact: true }).click();
+        expect((await areaSaved).status(), 'the area is saved').toBe(200);
+        await host.page.reload();
+        await expect(host.page.getByRole('form', { name: 'Area' }).getByLabel('Area', { exact: true })).toHaveValue(AREA);
+        await assertNoOverflow(host.page);
+
         // Setup for the steps below: the host tells the way in, so that what a
         // stranger must not see exists. Photographs go through the photo editor.
         await host.page.goto(`/account/host/${made.id}?part=way`);
@@ -225,9 +237,10 @@ for (const size of SIZES) {
         await expect(stranger.page.getByTestId('photographs-line')).toContainText('Photographs are sometimes taken at the table');
         await expect(stranger.page.getByRole('button', { name: 'Request your seat' })).toBeVisible();
         await expectNoWay(stranger.page);
-        // The area: the table was made with only a day and a time, so the page
-        // has only what it was given. Soft, so the other lines are still judged.
-        expect.soft(await stranger.page.locator('body').innerText(), 'the area line names an area, not the placeholder')
+        // The area the host gave in step 1, and never the placeholder.
+        expect(JSON.parse(publicText).area_hint, 'the public answer names the area').toBe(AREA);
+        await expect(stranger.page.getByTestId('session-area')).toHaveText(AREA, { ignoreCase: true });
+        expect(await stranger.page.locator('body').innerText(), 'the area line names an area, not the placeholder')
           .not.toMatch(/location shared after rsvp/i);
         await assertClean(stranger);
         await shoot(stranger, `2-${tag}`);
@@ -263,6 +276,14 @@ for (const size of SIZES) {
         await sheet.getByRole('button', { name: 'Done' }).click();
         updateShared(w, { guest: { name, token } });
 
+        // The session's page now shows her own state and the way back to her page, not the form.
+        await expect(guest.page.getByTestId('my-seat')).toContainText('You asked for a seat');
+        await expect(guest.page.getByRole('link', { name: 'Open your page' })).toHaveAttribute('href', `/m/${token}`);
+        await expect(guest.page.getByRole('button', { name: 'Request your seat' })).toHaveCount(0);
+        await guest.page.reload();
+        await expect(guest.page.getByTestId('my-seat')).toContainText('You asked for a seat');
+        await expect(guest.page.getByRole('button', { name: 'Request your seat' })).toHaveCount(0);
+
         // Their own page: waiting, and no way to the house.
         const answered = guest.page.waitForResponse(r => r.url().endsWith(`/api/rsvp/${token}`) && r.request().method() === 'GET');
         await guest.page.goto(`/m/${token}`);
@@ -270,6 +291,9 @@ for (const size of SIZES) {
         expectNoWayInAnswer(await rsvp.text(), `/api/rsvp/${token}`);
         await expect(guest.page.getByText(name)).toBeVisible();
         await expect(guest.page.locator('body')).toContainText(/request/i);
+        // The foot names the host by the session page's rule, never the shop.
+        await expect(guest.page.getByTestId('guest-page-host')).toHaveText(/Hosted by Ana/i);
+        expect(await guest.page.locator('body').innerText(), 'the foot').not.toMatch(/hosted by teajia/i);
         await expectNoWay(guest.page);
         await expect(guest.page.getByRole('link', { name: /open in maps/i })).toHaveCount(0);
         await assertClean(guest);

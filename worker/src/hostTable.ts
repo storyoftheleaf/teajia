@@ -13,6 +13,8 @@ export type HostedTableInput = {
   seats?: number;
   door?: HostedTableDoor;
   name?: string | null;
+  /** The public line naming where the table is, already read by hostTableArea.ts. */
+  area?: string | null;
   appOrigin: string;
 };
 
@@ -91,10 +93,11 @@ export async function createHostedTable(db: D1Database, input: HostedTableInput)
   await db.prepare(`
     INSERT INTO events (
       id, account_id, host_user_id, title, slug, event_date, timezone, total_capacity, door,
-      requires_approval, public_visibility, network_discovery, status, lifecycle_status,
+      requires_approval, area_hint, public_visibility, network_discovery, status, lifecycle_status,
       claim_window_minutes, event_format, gathering_type, recap_status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unlisted', 0, 'active', 'published',
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unlisted', 0, 'active', 'published',
       60, 'private_tasting', 'private', 'draft', datetime('now'), datetime('now'))
-  `).bind(id, accountId, hostUserId, title, slug, instant.toISOString(), timezone, seats, door, door === 'request' ? 1 : 0).run();
+  `).bind(id, accountId, hostUserId, title, slug, instant.toISOString(), timezone, seats, door, door === 'request' ? 1 : 0,
+    input.area ?? null).run();
   return { id, slug, link: `${appOrigin}/event/${slug}` };
 }

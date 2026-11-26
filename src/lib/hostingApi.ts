@@ -20,6 +20,8 @@ export interface HostedTableInput {
   /** Defaults to 'request'. */
   door?: HostedTableDoor;
   name?: string | null;
+  /** The area people are told, one short line, never the address. */
+  area?: string | null;
 }
 /** The host's record: their own tables, the names guests gave, teas poured, their private lines. */
 export interface HostRecordFile {
@@ -84,13 +86,18 @@ export interface HostedTableTeaInput {
   photo_url?: string | null;
 }
 export interface HostedTableDetail {
-  table: Omit<HostedTableSummary, 'guests'> & { requires_approval: number; public_visibility: string; seats_taken: number };
+  table: Omit<HostedTableSummary, 'guests'> & {
+    requires_approval: number; public_visibility: string; seats_taken: number;
+    /** The area the public page shows; null when the host gave none. */
+    area_hint?: string | null;
+  };
   guests: HostedTableGuest[];
   teas: HostedTableTea[];
   /** The doors this host may give the table. */
   doors: HostedTableDoor[];
 }
-export interface HostedTableChange { door?: HostedTableDoor; seats?: number }
+/** area: null clears it. */
+export interface HostedTableChange { door?: HostedTableDoor; seats?: number; area?: string | null }
 /** The way to the house for one table (slice H8). The guide is events.venue_guide. */
 export interface HostedTableWay {
   address: string | null;

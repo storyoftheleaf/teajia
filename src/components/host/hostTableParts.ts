@@ -21,6 +21,9 @@ export const hostTableQueryKey = (id: string) => ['host-table', id] as const;
 export const hostText = `${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`;
 export const hostSmallText = `${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`;
 
+/** Under the Area field: what it is for, and that it is never the way in (H13 finding 1). */
+export const TABLE_AREA_HINT = 'Shown to anyone with the link, such as a neighbourhood. Never the address.';
+
 export const DOOR_WORDS: Record<HostedTableDoor, string> = {
   request: 'I say yes to each guest',
   link: 'Anyone with the link has a seat',

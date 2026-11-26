@@ -10,6 +10,7 @@
 // same transaction as the seat is taken.
 
 import { sessionInstant } from './sessionWalkthrough';
+import { isAreaRefusal, readTableArea } from './hostTableArea';
 
 export type HostedTableDoor = 'request' | 'link';
 
@@ -137,7 +138,8 @@ export async function sayNoToGuest(db: D1Database, table: Pick<OwnHostedTable, '
   return Boolean(result.meta?.changes);
 }
 
-export type TableChange = { door?: HostedTableDoor; seats?: number };
+/** area: the public line naming where the table is (hostTableArea.ts); null clears it. */
+export type TableChange = { door?: HostedTableDoor; seats?: number; area?: string | null };
 export type TableChangeResult =
   | { ok: true }
   | { refused: { status: number; code: string; error: string } };
@@ -162,7 +164,12 @@ export function readTableChange(body: Record<string, unknown> | null, doors: Hos
     }
     change.seats = body.seats;
   }
-  if (change.door === undefined && change.seats === undefined) return refuse(400, 'hosted_table_change', 'Say what to change.');
+  const area = readTableArea(body);
+  if (isAreaRefusal(area)) return area;
+  if (area !== undefined) change.area = area;
+  if (change.door === undefined && change.seats === undefined && change.area === undefined) {
+    return refuse(400, 'hosted_table_change', 'Say what to change.');
+  }
   return change;
 }
 
@@ -184,6 +191,10 @@ export async function changeHostedTable(db: D1Database, table: OwnHostedTable, c
   if (change.seats !== undefined) {
     sets.push('total_capacity = ?');
     values.push(change.seats);
+  }
+  if (change.area !== undefined) {
+    sets.push('area_hint = ?');
+    values.push(change.area);
   }
   const result = await db.prepare(`
     UPDATE events SET ${sets.join(', ')}, updated_at = datetime('now')
