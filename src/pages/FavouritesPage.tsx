@@ -8,6 +8,9 @@ import { useAppStore } from '../lib/store';
 import { MY_FAVOURITES_KEY } from '../lib/favouritesTypes';
 import { favouritesOpen } from '../lib/favouritesOpen';
 import { SiteNotFound } from '../components/SiteNotFound';
+import { TEA_TABLE_MINE_KEY, teaTableApi, useTeaTableMine } from '../lib/teaTableApi';
+import { recapPath } from '../lib/publicSitConnections';
+import type { TeaTableItem, TeaTableMine } from '../lib/teaTableContract';
 
 // Launch 4, favourites in three kinds (todo/plans/guests-and-tea-masters-launch-4-run.md, K3).
 // Everything a person has marked, in one place: articles they kept, teas the
@@ -97,13 +100,23 @@ function OpenFavouritesPage() {
     onSuccess: (_result, { kind, id }) => drop(kind, id),
   });
 
+  // Pieces kept from the Tea Table, while it is open (src/lib/teaTable.ts). Its own record, read on its own.
+  const teaTable = useTeaTableMine();
+  const letGo = useMutation({
+    mutationFn: (item: TeaTableItem) => teaTableApi.keep(item.kind, item.id, false),
+    onSuccess: (_result, item) => qc.setQueryData<TeaTableMine>(TEA_TABLE_MINE_KEY, current => current && ({
+      ...current, kept: current.kept.filter(kept => !(kept.kind === item.kind && kept.id === item.id)),
+    })),
+  });
+
   if (!authed) return null;
 
   // A row the Keep control placed before the list was read again has no title yet.
   const articles = (data?.articles ?? []).filter(article => article.title);
   const shopTeas = data?.shop_teas ?? [];
   const chestTeas = data?.chest_teas ?? [];
-  const empty = !!data && articles.length === 0 && shopTeas.length === 0 && chestTeas.length === 0;
+  const tablePieces = teaTable.data?.kept ?? [];
+  const empty = !!data && articles.length === 0 && shopTeas.length === 0 && chestTeas.length === 0 && tablePieces.length === 0;
   const busy = (kind: Kind, id: string) => takeOff.isPending && takeOff.variables?.kind === kind && takeOff.variables.id === id;
 
   return (
@@ -159,6 +172,18 @@ function OpenFavouritesPage() {
             {chestTeas.map(tea => (
               <Row key={tea.id} to={tea.path} title={tea.name} detail={[tea.type, tea.year].filter(Boolean).join(', ') || null}
                 busy={busy('chest_teas', tea.id)} onTakeOff={() => takeOff.mutate({ kind: 'chest_teas', id: tea.id })} />
+            ))}
+          </Section>
+        )}
+        {tablePieces.length > 0 && (
+          <Section title="From the Tea Table">
+            {tablePieces.map(item => (
+              <Row key={`${item.kind}:${item.id}`}
+                to={item.kind === 'recap' ? recapPath(item.slug) : item.tea.path}
+                title={item.kind === 'recap' ? item.title : item.tea.name}
+                detail={item.kind === 'recap' ? (item.host ? `Hosted by ${item.host}` : null) : `Tasted by ${item.person.name}`}
+                busy={letGo.isPending && letGo.variables?.id === item.id}
+                onTakeOff={() => letGo.mutate(item)} />
             ))}
           </Section>
         )}

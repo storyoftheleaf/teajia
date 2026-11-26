@@ -2,7 +2,7 @@ import { PrivateSubjectPhotos } from './components/events/PrivateKeptSetupPhotos
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react';
 import { lazyWithRetry } from './lib/lazyWithRetry';
-import { BREWING_EXPERIENCES_OPEN } from './lib/brewingExperiences';
+import { teaTableOpen } from './lib/teaTable';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams, type Location } from 'react-router-dom';
 import { FollowRenamedPerson } from './pages/renamedPeople';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
@@ -75,7 +75,7 @@ const AfterSitPage = lazyWithRetry(() => import('./pages/AfterSitPage'));
 const MemberSitPage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitPage })));
 const MemberSitInvitePage = lazyWithRetry(() => import('./pages/MemberSitPage').then(module => ({ default: module.MemberSitInvitePage })));
 const EventRecapPage = lazyWithRetry(() => import('./pages/EventRecapPage'));
-const TeaFeedPage = lazyWithRetry(() => import('./pages/TeaFeedPage'));
+const TeaTablePage = lazyWithRetry(() => import('./pages/TeaTablePage'));
 const GuestManagement = lazyWithRetry(() => import('./components/events/GuestManagement'));
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
 const OrderStatusPage = lazyWithRetry(() => import('./pages/OrderStatusPage'));
@@ -1307,7 +1307,8 @@ const AppContent = () => {
                   {WisdomPilotPreview && <Route path="/preview/wisdom-pilot/*" element={<ErrorBoundary><Suspense fallback={null}><WisdomPilotPreview /></Suspense></ErrorBoundary>} />}
                 </>)}
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/tea-feed" element={BREWING_EXPERIENCES_OPEN ? <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaFeedPage /></Suspense></ErrorBoundary> : <Navigate to="/" replace />} />
+                <Route path="/tea-table" element={teaTableOpen() ? <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaTablePage /></Suspense></ErrorBoundary> : <Navigate to="/" replace />} />
+                <Route path="/tea-feed" element={<Navigate to={teaTableOpen() ? '/tea-table' : '/'} replace />} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/sits/casual/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CasualSitRecapPage /></Suspense></ErrorBoundary>} />
                 <Route path="/after-sit" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AfterSitPage /></Suspense></ErrorBoundary>} />

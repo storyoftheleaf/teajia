@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import { OwnerSitPhotoPermission } from './OwnerSitPhotoPermission';
-import { BREWING_EXPERIENCES_OPEN, brewingConsent } from '../../lib/brewingExperiences';
+import { TEA_TABLE_OPEN, teaTableConsent } from '../../lib/teaTable';
 
 const scope = { accountId: 'shop', userId: 'guest' };
 
@@ -17,18 +17,18 @@ function render() {
   );
 }
 
-describe('the public photo permission while Brewing experiences is not approved', () => {
+describe('the public photo permission while the Tea Table is closed', () => {
   it('is switched off in what ships', () => {
-    expect(BREWING_EXPERIENCES_OPEN).toBe(false);
+    expect(TEA_TABLE_OPEN).toBe(false);
   });
 
-  it('asks only for the public recap, never for Brewing experiences', () => {
+  it('asks only for the public recap, never for the Tea Table', () => {
     const html = render();
     expect(html).toContain('Public credit');
-    expect(html).not.toMatch(/Brewing experiences/);
+    expect(html).not.toMatch(/Tea Table|Brewing experiences/);
   });
 
-  it('records no Brewing experiences consent', () => {
-    expect(brewingConsent(true)).toBe(false);
+  it('records no Tea Table consent', () => {
+    expect(teaTableConsent(true)).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import { afterSitRoutes } from './afterSitAccess';
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { favouritesRoutes } from './favourites';
+import { teaTableRoutes } from './teaTable';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
 import { serveOwnerSitPhotoPermission, servePublicRecapPhoto, serveRecapPhotoReview } from './revocableSitPhotos';
 import { listKeptSetups } from './privateKeptSetups';
@@ -29,6 +30,8 @@ import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from
 import { listPrivateSessionReflections, readPrivateSessionReflection, writePrivateSessionReflection } from './privateSessionReflections';
 import { claimReceivedCard, listReceivedCards } from './memberReceivedCards';
 import { sharedSessionVerdict } from './sessionVerdictProjection';
+import { PUBLIC_TEA_REVIEW_COLUMNS, tastingWithoutScores } from './publicScores';
+import { eraseFamilyPhotoFiles, familyErasureStatements, familyPhotoKeysForUser } from './familyErasure';
 import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
 import { quoteUsCheckoutShipping } from './usCheckoutShipping';
 import { hasPublicStatus } from '../../src/lib/productPublication';
@@ -319,6 +322,8 @@ interface Env extends WorkerReleaseEnv, PayPalSandboxEnv, PayPalLiveEnv, Shippin
   FAVOURITES_OPEN?: string;
   /** "true" or "false" opens or closes Your Table as a page (Launch 4); see src/lib/yourTablePage.ts. */
   YOUR_TABLE_PAGE_OPEN?: string;
+  /** "true" or "false" opens or closes the Tea Table (Launch 4); see src/lib/teaTable.ts. */
+  TEA_TABLE_OPEN?: string;
   PROVIDER_LIMITER?: RateLimiterBinding;
   RSVP_LIMITER?: RateLimiterBinding;
   OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
@@ -2248,8 +2253,11 @@ const handleDeleteAccount: Handler = async (request, env) => {
     return restError(409, 'Transfer or remove account ownership before deleting this identity', 'owner_floor_violation');
   }
 
+  // What they shared with the family goes first: those rows point at the user row.
+  const familyPhotoKeys = await familyPhotoKeysForUser(env.DB, claims.sub);
   await env.DB.batch([
     queueKeptPhotoCleanupForUser(env.DB, claims.sub),
+    ...familyErasureStatements(env.DB, claims.sub),
     env.DB.prepare('DELETE FROM private_session_reflections WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare('UPDATE event_attendees SET user_id = NULL WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare('DELETE FROM customer_tasting_journal WHERE user_id = ?').bind(personJournalOwner(claims.sub)),
@@ -2259,6 +2267,7 @@ const handleDeleteAccount: Handler = async (request, env) => {
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
   ]);
 
+  await eraseFamilyPhotoFiles(env.MEDIA_BUCKET, familyPhotoKeys);
   await retryKeptPhotoCleanup(env.DB, env.ATLAS_BUCKET);
   return json({ ok: true });
 };
@@ -2435,14 +2444,18 @@ const handleDeleteUser: Handler = async (request, env, params) => {
   if (!user) return json({ error: 'User not found' }, 404);
   if (user.platform_role === 'platform_owner') return json({ error: 'Cannot delete platform owner account' }, 403);
 
+  // What they shared with the family goes first: those rows point at the user row.
+  const familyPhotoKeys = await familyPhotoKeysForUser(env.DB, userId);
   await env.DB.batch([
     queueKeptPhotoCleanupForUser(env.DB, userId),
+    ...familyErasureStatements(env.DB, userId),
     env.DB.prepare('DELETE FROM private_session_reflections WHERE user_id = ?').bind(userId),
     env.DB.prepare('UPDATE event_attendees SET user_id = NULL WHERE user_id = ?').bind(userId),
     env.DB.prepare('DELETE FROM customer_tasting_journal WHERE user_id = ?').bind(personJournalOwner(userId)),
     env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(userId),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
   ]);
+  await eraseFamilyPhotoFiles(env.MEDIA_BUCKET, familyPhotoKeys);
   await retryKeptPhotoCleanup(env.DB, env.ATLAS_BUCKET);
   return json({ ok: true });
 };
@@ -11067,6 +11080,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
       for (const key of PUBLIC_FIELDS) {
         if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
       }
+      if ('tasting' in safe) safe.tasting = tastingWithoutScores(safe.tasting);
       safe.account_slug = p.account_slug;
       safe.public_path = p.public_path;
       if (p.account_id === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
@@ -12408,10 +12422,14 @@ const PUBLIC_EVENT_DIRECT = "e.public_visibility IN ('public', 'unlisted')";
 const PUBLIC_EVENT_STORE = "e.public_visibility = 'public'";
 const PUBLIC_EVENT_DISCOVERY = "e.public_visibility = 'public' AND e.network_discovery = 1";
 
+// The public answer names the place (location_name, area_hint) and never the
+// way to it: the address, the map link and the photographed way in are read
+// only by a confirmed guest, on their own page (handleGetRSVP's
+// projection). Guard: worker/tests/public-session-no-address.test.ts.
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
-            e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
+            e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
             e.requires_approval, e.venue_id, e.reading_article_id,
             v.photos AS venue_photos,
@@ -12419,7 +12437,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
             a.location_country AS account_location_country
      FROM events e
      JOIN accounts a ON a.id = e.account_id
-     LEFT JOIN venues v ON v.id = e.venue_id
+     LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
        AND ${PUBLIC_EVENT_DIRECT} AND ${PUBLIC_EVENT_HOST}`
   ).bind(params.slug).first();
@@ -12878,7 +12896,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
             v.photos AS venue_photos
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     LEFT JOIN venues v ON v.id = e.venue_id
+     LEFT JOIN venues v ON v.id = e.venue_id AND v.account_id = e.account_id
      WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
@@ -14376,8 +14394,8 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -14405,7 +14423,10 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.area_hint || null,
     source.mood_hints || null,
     source.briefing_cards || null,
-    source.requires_approval !== undefined ? source.requires_approval : 1
+    source.requires_approval !== undefined ? source.requires_approval : 1,
+    // A copy is never more visible than the session it was made from.
+    source.public_visibility ?? 'public',
+    source.network_discovery ?? 1
   ).run();
 
   // F38: Clone tea menu entries (including all brewing fields)
@@ -18709,8 +18730,8 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format, location_id,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval, public_visibility, network_discovery)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -18739,7 +18760,10 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
     source.area_hint || null,
     source.mood_hints || null,
     source.briefing_cards || null,
-    source.requires_approval !== undefined ? source.requires_approval : 1
+    source.requires_approval !== undefined ? source.requires_approval : 1,
+    // A copy is never more visible than the session it was made from.
+    source.public_visibility ?? 'public',
+    source.network_discovery ?? 1
   );
 
   // Clone tea menu (same as F38/duplicate pattern)
@@ -19490,10 +19514,11 @@ function viewSampleLabel(row: Record<string, any>, userId: string | null, shopOw
   };
 }
 
+// A sample label is read by anyone holding the link. The taster's numeric
+// score stays with the people who can see the source; the word verdict travels.
 function publicSampleTasting(row: Record<string, any>) {
   return {
     id: row.id,
-    rating: typeof row.rating === 'number' ? row.rating : null,
     verdict: ['love', 'like', 'neutral', 'pass'].includes(row.verdict) ? row.verdict : 'neutral',
     created_at: row.created_at,
   };
@@ -19907,7 +19932,8 @@ const handleGetTeaReviews: Handler = async (request, env) => {
              ORDER BY r.status ASC, r.updated_at DESC`;
     binds = [...keyBinds, authorAccountId, userId];
   } else {
-    query = `SELECT r.*, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
+    // Signed out: named columns, so the score cannot travel with the words.
+    query = `SELECT ${PUBLIC_TEA_REVIEW_COLUMNS}, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
              FROM tea_reviews r
              LEFT JOIN users u ON u.id = r.author_user_id
              LEFT JOIN accounts a ON a.id = r.author_account_id
@@ -19920,7 +19946,7 @@ const handleGetTeaReviews: Handler = async (request, env) => {
   // Parse JSON fields
   const rows = (result.results as Record<string, any>[]).map(r => ({
     ...r,
-    tasting: r.tasting ? JSON.parse(r.tasting) : null,
+    tasting: r.tasting ? (authorAccountId ? JSON.parse(r.tasting) : tastingWithoutScores(JSON.parse(r.tasting))) : null,
     voice_notes: r.voice_notes ? JSON.parse(r.voice_notes) : [],
     brew_params: r.brew_params ? JSON.parse(r.brew_params) : null,
   }));
@@ -23480,6 +23506,8 @@ async function fetchPublicProductsForAccount(
     for (const key of PUBLIC_FIELDS) {
       if (key in withPricing && (key !== 'exact_pack_price_usd' || withPricing[key] != null)) safe[key] = withPricing[key];
     }
+    // The shop's own score on a tea stays in Manage; the public listing carries its words.
+    if ('tasting' in safe) safe.tasting = tastingWithoutScores(safe.tasting);
     attachPublicTeawareDetails(safe, p);
     if (accountId === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
     maskCountPendingCommerce(safe, accountId, p);
@@ -31773,6 +31801,7 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/me/private-sits/:id/photos/:photoId', handleMemberPrivateSitPhotos],
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
+  ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ['GET',    '/api/me/cellar', handleListCellar],
   ['POST',   '/api/me/cellar', handleCreateCellarItem],
   ['PUT',    '/api/me/cellar/:id', handleUpdateCellarItem],

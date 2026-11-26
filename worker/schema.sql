@@ -4013,3 +4013,24 @@ CREATE TABLE IF NOT EXISTS favourite_articles (
 ALTER TABLE personal_cellar_items ADD COLUMN favourite INTEGER NOT NULL DEFAULT 0 CHECK (favourite IN (0,1));
 -- 0132_quiet_acknowledgement.sql
 ALTER TABLE member_photographs ADD COLUMN credit_name_shown INTEGER NOT NULL DEFAULT 0 CHECK (credit_name_shown IN (0, 1));
+
+-- 0133_tea_table.sql
+CREATE TABLE IF NOT EXISTS tea_table_holds (
+  item_kind TEXT NOT NULL CHECK (item_kind IN ('recap','casual_sit','tasting')),
+  item_id   TEXT NOT NULL,
+  held_by   TEXT NOT NULL REFERENCES users(id),
+  held_until TEXT NOT NULL,
+  PRIMARY KEY (item_kind, item_id)
+);
+CREATE TABLE IF NOT EXISTS tea_table_keeps (
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_kind TEXT NOT NULL CHECK (item_kind IN ('recap','casual_sit','tasting')),
+  item_id   TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, item_kind, item_id)
+);
+ALTER TABLE member_tasting_shares ADD COLUMN tea_table_at TEXT;
+ALTER TABLE member_tasting_shares ADD COLUMN tea_table_sittings TEXT;
+ALTER TABLE events ADD COLUMN tea_table_at TEXT;
+ALTER TABLE events ADD COLUMN tea_table_by TEXT;
+ALTER TABLE events ADD COLUMN tea_table_hidden_at TEXT;
