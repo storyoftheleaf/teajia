@@ -116,7 +116,7 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
       time: String(fields.get('time')),
       timezone,
       seats: Number(fields.get('seats')),
-      door: fields.get('door') === 'link' ? 'link' : 'request',
+      door: fields.get('door') === 'link' || fields.get('door') === 'open' ? fields.get('door') as 'link' | 'open' : 'request',
       name: String(fields.get('name')).trim() || null,
     }, { onSettled: () => { saving.current = false; } });
   }
@@ -159,6 +159,12 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
             <label className={`${textClass} flex min-h-tap items-center gap-2`}>
               <input type="radio" name="door" value="link" defaultChecked={!doors.includes('request')} className="accent-tea-gold" />
               Anyone with the link has a seat
+            </label>
+          )}
+          {doors.includes('open') && (
+            <label className={`${textClass} flex min-h-tap items-center gap-2`}>
+              <input type="radio" name="door" value="open" className="accent-tea-gold" />
+              People on Teajia can find it, and I say yes to each guest
             </label>
           )}
         </fieldset>

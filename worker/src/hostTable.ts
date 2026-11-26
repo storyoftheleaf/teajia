@@ -1,4 +1,5 @@
-export type HostedTableDoor = 'request' | 'link';
+// 'open' (Launch 3, J10) is offered only by hostDoorsFor; a seat there still needs the host's yes.
+export type HostedTableDoor = 'request' | 'link' | 'open';
 
 export type HostedTableInput = {
   accountId: string;
@@ -95,6 +96,6 @@ export async function createHostedTable(db: D1Database, input: HostedTableInput)
       claim_window_minutes, event_format, gathering_type, recap_status, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unlisted', 0, 'active', 'published',
       60, 'private_tasting', 'private', 'draft', datetime('now'), datetime('now'))
-  `).bind(id, accountId, hostUserId, title, slug, instant.toISOString(), timezone, seats, door, door === 'request' ? 1 : 0).run();
+  `).bind(id, accountId, hostUserId, title, slug, instant.toISOString(), timezone, seats, door, door === 'link' ? 0 : 1).run();
   return { id, slug, link: `${appOrigin}/event/${slug}` };
 }
