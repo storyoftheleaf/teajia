@@ -12403,10 +12403,14 @@ const PUBLIC_EVENT_DIRECT = "e.public_visibility IN ('public', 'unlisted')";
 const PUBLIC_EVENT_STORE = "e.public_visibility = 'public'";
 const PUBLIC_EVENT_DISCOVERY = "e.public_visibility = 'public' AND e.network_discovery = 1";
 
+// The public answer names the place (location_name, area_hint) and never the
+// way to it: the address, the map link and the photographed way in are read
+// only by a confirmed guest, on their own page (handleGetRSVP's
+// projection). Guard: worker/tests/public-session-no-address.test.ts.
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
-            e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
+            e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
             e.requires_approval, e.venue_id, e.reading_article_id,
             v.photos AS venue_photos,
