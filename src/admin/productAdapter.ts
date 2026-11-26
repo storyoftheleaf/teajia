@@ -27,7 +27,7 @@ export function mapAdminProduct(p: any): Product {
         pricePerGramUSD: p.retail_price_per_gram_usd == null ? null : Number(p.retail_price_per_gram_usd),
         costPerGramUSD: p.cost_per_gram_usd == null ? null : Number(p.cost_per_gram_usd),
         costAmount: p.cost_amount == null ? null : Number(p.cost_amount),
-        stockGrams: Number(p.stock_grams) || 0,
+        stockGrams: Number(p.stock_grams_exact ?? p.stock_grams) || 0, // the true balance, part grams included
         lowStockThreshold: p.low_stock_threshold == null ? 100 : Number(p.low_stock_threshold),
         description: p.description || '',
         tastingNotes: Array.isArray(p.tasting_notes) ? p.tasting_notes : [],

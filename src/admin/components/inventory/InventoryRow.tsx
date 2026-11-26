@@ -315,7 +315,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }}
               className={`tap-target flex-col justify-center w-full max-w-full ${alignLeft ? 'items-start' : 'items-end'} ${numCellAlign} num text-ui-13 hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors ${stockTone}`}
             >
-              <span>{isOut ? 0 : Math.round(product.stockGrams)}</span>
+              <span>{isOut ? 0 : Number(Number(product.stockGrams).toFixed(2))}</span>
               {isLow && <span className="font-sans text-ui-10 leading-tight">Low</span>}
             </button>
           </td>
