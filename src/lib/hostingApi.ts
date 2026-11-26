@@ -21,6 +21,14 @@ export interface HostedTableInput {
   door?: HostedTableDoor;
   name?: string | null;
 }
+/** The host's record: their own tables, the names guests gave, teas poured, their private lines. */
+export interface HostRecordFile {
+  kind: 'teajia-host-record';
+  version: number;
+  made_at: string;
+  host: { name: string };
+  tables: unknown[];
+}
 export interface HostedTableCreated { id: string; slug: string; link: string }
 export interface HostedTableSummary {
   id: string;
@@ -106,6 +114,8 @@ interface HostingApiDependencies {
 export function createHostingApi({ apiUrl, authedFetch }: HostingApiDependencies) {
   return {
     get: (): Promise<HostingStatus> => authedFetch(`${apiUrl}/api/me/hosting`),
+    // The host's own record (slice H11), saved by the page as one JSON file. Never a zip.
+    record: (): Promise<HostRecordFile> => authedFetch(`${apiUrl}/api/me/record`),
   };
 }
 

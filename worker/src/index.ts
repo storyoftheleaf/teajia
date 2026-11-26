@@ -19,6 +19,7 @@ import { createHostedTable, type HostedTableDoor } from './hostTable';
 import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTableChange, sayNoToGuest, seatsTaken, seatsTakenSql, waitingGuest } from './hostTableGuests';
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
+import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { keepTableWay, readTableWay, readTableWayInput, saveTableWay } from './hostTableWay';
 import { readVia, recordOrderSessionSource } from './orderSessionSource';
@@ -17369,6 +17370,27 @@ const handleHostedTableNotes: Handler = async (request, env, params) => {
   return hostTableJson({ note: saved.note });
 };
 
+// GET /api/me/record. The host's record, theirs to take away (H11; Adrian,
+// 2026-11-26: "Free to host, and your record is yours."). One JSON file of
+// their own tables only, built by hostRecord.ts: no guest contacts, no
+// addresses. Behind the Launch 2 switch. A host Adrian stopped still takes
+// the record of the tables they hosted; a person with no tables who may not
+// host gets the same 404 as every other host route.
+const handleHostRecord: Handler = async (request, env) => {
+  if (!fewHostsOpen(env)) return fewHostsClosed();
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const approved = await hostApproved(env.DB, ctx.userId);
+  if (!hostDoorsFor(approved, fewHostsAnyoneHosts(env)) && !(await hostsAnyTable(env.DB, ctx.userId))) {
+    return fewHostsClosed();
+  }
+  const now = new Date();
+  const record = await hostRecord(env.DB, { userId: ctx.userId, name: ctx.name }, { appOrigin: appOrigin(env), now });
+  const response = hostTableJson(record);
+  response.headers.set('Content-Disposition', `attachment; filename="${hostRecordFileName(now)}"`);
+  return response;
+};
+
 // ── A tea for the table (Launch 2, H6). The host's own table only, through
 // requireOwnHostedTable. No price, stock or cost in any answer.
 
@@ -23132,6 +23154,7 @@ const handlePlatformListUsers: Handler = async (request, env) => {
             (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id LIMIT 1) AS seller_state,
             (u.seller_approved_at IS NOT NULL OR EXISTS (SELECT 1 FROM accounts pa WHERE pa.personal_inventory_user_id = u.id
               AND pa.personal_seller_approved_at IS NOT NULL)) AS seller_approved,
+            u.host_approved_at,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -23155,6 +23178,8 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     shelf_slug: u.shelf_slug ?? null,
     has_tea_chest: u.seller_state != null,
     may_sell: u.seller_approved === 1,
+    // Launch 2: whether Adrian lets this person open tables by link. Shown on this screen only.
+    ...(fewHostsOpen(env) ? { may_host: u.host_approved_at != null, host_approved_at: u.host_approved_at ?? null } : {}),
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
@@ -32448,6 +32473,7 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/me/tea-chest/account', handlePersonalInventoryAccount],
   // Launch 2, a few hosts: closed (404) until src/lib/fewHosts.ts opens.
   ['GET',    '/api/me/hosting', handleGetHosting],
+  ['GET',    '/api/me/record', handleHostRecord],
   ['GET',    '/api/me/tables', handleListHostedTables],
   ['POST',   '/api/me/tables', handleCreateHostedTable],
   ['GET',    '/api/me/tables/:id', handleGetHostedTable],

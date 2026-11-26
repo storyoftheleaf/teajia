@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Shield, ShieldCheck, Store, Users, Check, Loader2,
   ChevronDown, ChevronUp, Plus, Copy,
-  AlertTriangle, RefreshCw, ClipboardList, X, Boxes,
+  AlertTriangle, RefreshCw, ClipboardList, X, Boxes, Coffee,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { PlatformUser, PlatformAccount, AuditLogEntry } from '../../lib/api';
@@ -12,6 +12,7 @@ import { useToast } from '../components/Toast';
 import { Button } from '../../components/shared/Button';
 import type { PlatformRole } from '../../types';
 import { useStepParam } from '../../hooks/useStepParam';
+import { fewHostsOpen } from '../../lib/fewHosts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -185,6 +186,24 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     } finally { setBusy(null); }
   };
 
+  // Launch 2: Adrian lets a person host by link, stops them, or lets them
+  // again. Anyone may host; this is a second level, never named on the site.
+  // The open person is a step in the address (CLAUDE.md, "Back and forward").
+  const hostingOpen = isPlatformOwner && fewHostsOpen();
+  const [hostParam, stepHost] = useStepParam('host');
+  const hostUser = hostingOpen && hostParam ? users.find(u => u.id === hostParam) ?? null : null;
+  const handleSetMayHost = async (user: PlatformUser, approved: boolean) => {
+    setBusy(`host-${user.id}`);
+    try {
+      const res = await api.platform.setMayHost(user.id, approved);
+      const at = res.may_host ? (user.host_approved_at ?? new Date().toISOString()) : null;
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, may_host: res.may_host, host_approved_at: at } : u));
+      showToast(res.may_host ? `${user.name || user.email} may host by link` : `${user.name || user.email} no longer hosts by link`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to change hosting', 'error');
+    } finally { setBusy(null); }
+  };
+
   const handleResendInvite = async (user: PlatformUser) => {
     setBusy(`invite-${user.id}`);
     try {
@@ -210,6 +229,39 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
 
   return (
     <div className="space-y-2">
+      {hostUser && (
+        <div className="inset-panel p-3 space-y-2" data-testid="hosting-panel" role="region" aria-label="Hosting">
+          <div className="flex items-start gap-2">
+            <button type="button" onClick={() => stepHost(null)} aria-label="Close hosting"
+              className="tap-target text-tea-text-sec hover:text-tea-text transition-colors"><X size={14} /></button>
+            <div className="min-w-0 flex-1">
+              <p className="text-tea-text text-sm font-medium truncate">{hostUser.name || hostUser.email}</p>
+              <p className="text-ui-12 text-tea-text-sec">
+                {hostUser.may_host
+                  ? `Hosts by link${hostUser.host_approved_at ? ` since ${new Date(hostUser.host_approved_at).toLocaleDateString()}` : ''}. Their tables open to anyone holding the link.`
+                  : 'Does not host by link. Their table links stay closed until you let them.'}
+              </p>
+              <p className="text-ui-11 text-tea-text-dim">Seen here only. Nothing on the site says it.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {hostUser.may_host ? (
+              <ConfirmButton
+                onConfirm={() => void handleSetMayHost(hostUser, false)}
+                busy={busy === `host-${hostUser.id}`}
+                idleLabel={<>Stop hosting by link</>}
+                confirmLabel={<>Stop? Their links close now</>}
+                title="Their tables stop opening by link at once; sessions, guests and notes stay"
+              />
+            ) : (
+              <Button type="button" size="sm" loading={busy === `host-${hostUser.id}`}
+                onClick={() => void handleSetMayHost(hostUser, true)} data-testid="host-approve">
+                Let them host by link
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       {inviteResult && (
         <div className="inset-panel p-3 space-y-2">
           <p className="text-ui-12 text-tea-text-sec">Invite link. Email not configured, copy manually:</p>
@@ -283,6 +335,14 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                     onChange={() => void handleToggleMaySell(user)} data-testid="may-sell-switch" />
                   May sell on Teajia{!user.has_tea_chest && <span className="text-ui-11 text-tea-text-dim">· no Tea Chest yet</span>}
                 </label>
+              )}
+              {hostingOpen && (
+                <button type="button" onClick={() => stepHost(user.id)} data-testid="hosting-open"
+                  className={`${user.may_host ? 'pill pill-active' : 'pill'} flex items-center gap-1`}
+                  title={user.may_host ? 'Hosts by link' : 'Does not host by link'}>
+                  <Coffee size={10} />
+                  Hosting
+                </button>
               )}
               <button type="button" onClick={() => handleResendInvite(user)} disabled={busy === `invite-${user.id}`}
                 className="pill flex items-center gap-1" title="Resend invite">

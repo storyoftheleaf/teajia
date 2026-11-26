@@ -477,6 +477,9 @@ export interface PlatformUser {
   /** They have opened a Tea Chest, so Adrian can decide whether they may sell. */
   has_tea_chest?: boolean;
   may_sell?: boolean;
+  /** Launch 2: Adrian lets this person open tables by link. Only sent while Launch 2 is open. */
+  may_host?: boolean;
+  host_approved_at?: string | null;
   memberships: { account_id: string; role: string }[];
 }
 
