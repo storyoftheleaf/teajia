@@ -10,7 +10,8 @@
 // foreign-account or unfinished session's reference writes nothing. The host
 // is read from the session on the server, never taken from the browser:
 // events.host_user_id first (a hosted table names its host even when the host
-// has no public page, Launch 2), the lead host contributor's user second. Only a
+// has no public page, Launch 2), else the lead host the public page names
+// (sessionHost.ts, the one rule "Hosted by" and guest links use too). Only a
 // fresh save (201) writes a row: a replay of an earlier request does not.
 //
 // To reach the invoice an order became, join through
@@ -18,7 +19,7 @@
 // invoices.source_inquiry_id: only website checkouts set it, and it drives the
 // website order rules, so a converted cart request leaves it empty.
 
-import { sessionHostUserSql } from './guestLinkHolders';
+import { sessionHostUserSql } from './sessionHost';
 
 const VIA_FORMAT = /^[a-f0-9]{18}$/;
 

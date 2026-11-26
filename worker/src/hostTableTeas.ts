@@ -16,6 +16,8 @@
 // Every function takes the table that requireOwnHostedTable (index.ts)
 // already proved is the caller's own.
 
+import { INWARD_ORDERS_PAUSED_SQL } from '../../shared/catalog/inwardOrders';
+
 export type TableTeaSource = 'shop' | 'chest' | 'name';
 
 export type HostTableTea = {
@@ -82,6 +84,14 @@ export function shopTeaAddressColumns(): string {
     (SELECT sa.slug FROM accounts sa WHERE sa.id = shop.account_id) AS shop_store`;
 }
 
+/**
+ * Search offers only the shop teas the shop's browse list shows: in stock (or
+ * the one lot whose orders are paused, which the browse list keeps), the same
+ * rule as fetchPublicProductsForAccount in index.ts (audit A2 F9). A listed
+ * tea that later sells out still resolves on the table, as it does by address.
+ */
+const SHOP_BROWSE_STOCK_SQL = `(${INWARD_ORDERS_PAUSED_SQL} OR COALESCE(p.stock_grams, 0) > 0)`;
+
 /** Up to five teas whose name holds what the host typed: Teajia's shop first, then their own chest. */
 export async function searchTableTeas(db: D1Database, table: Table, query: string): Promise<TableTeaMatch[]> {
   const words = query.trim().slice(0, 80);
@@ -90,7 +100,7 @@ export async function searchTableTeas(db: D1Database, table: Table, query: strin
   const matches = (product: string) => `(${teaName(product)} LIKE ?1 ESCAPE '\\' OR ${product}.chinese_name LIKE ?1 ESCAPE '\\')`;
   const [shop, chest] = await db.batch([
     db.prepare(`SELECT p.id, ${teaName('p')} AS name, p.type, p.year FROM products p
-      WHERE p.account_id <> ?2 AND ${crossShopTeaSql('p')} AND ${teaName('p')} IS NOT NULL AND ${matches('p')}
+      WHERE p.account_id <> ?2 AND ${crossShopTeaSql('p')} AND ${SHOP_BROWSE_STOCK_SQL} AND ${teaName('p')} IS NOT NULL AND ${matches('p')}
       ORDER BY ${teaName('p')} COLLATE NOCASE, p.id LIMIT ${TABLE_TEA_SEARCH_LIMIT}`).bind(like, table.account_id),
     db.prepare(`SELECT p.id, ${teaName('p')} AS name, p.type, p.year FROM products p
       WHERE p.account_id = ?2 AND ${chestTeaSql('p')} AND ${teaName('p')} IS NOT NULL AND ${matches('p')}

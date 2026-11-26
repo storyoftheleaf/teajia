@@ -1,5 +1,5 @@
 import { SEAT_OF_A_GUEST_STILL_COMING } from './hostTableGuests';
-
+import { sessionHasEnded, type SessionTimes } from '../../shared/sessionEnd';
 export type EventLifecycle =
   | 'draft'
   | 'published'
@@ -276,9 +276,11 @@ export async function reservePartySeats(
   }
 
   const event = await env.DB.prepare(
-    `SELECT total_capacity, lifecycle_status FROM events WHERE id = ? AND account_id = ?`
-  ).bind(eventId, accountId).first<{ total_capacity: number; lifecycle_status: string }>();
-  if (!event || event.lifecycle_status !== 'published') {
+    `SELECT total_capacity, lifecycle_status, status, event_date, event_end_date, timezone FROM events WHERE id = ? AND account_id = ?`
+  ).bind(eventId, accountId).first<{ total_capacity: number; lifecycle_status: string } & SessionTimes>();
+  // No door seats anyone once the session has ended (audit A2 F6), by the
+  // one end rule in shared/sessionEnd.ts.
+  if (!event || event.lifecycle_status !== 'published' || sessionHasEnded(event)) {
     return { ok: false, code: 'event_not_reservable' };
   }
 
