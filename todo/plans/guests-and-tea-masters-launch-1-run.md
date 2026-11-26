@@ -13,13 +13,15 @@ Launches 2 to 5 are not cut here on purpose. Each is cut the same way once the o
 
 ## Who does what
 
-Adrian set this routing on 2026-11-26. It replaces the tier letters in the build file for Launch 1.
+Adrian set the routing for Opus, Sol, Astra and Fable on 2026-11-26, then asked Fable to pick the model for every job, the smaller Claude models included. It replaces the tier letters in the build file for Launch 1.
 
 | Who | Work |
 |---|---|
 | **Opus 5.5** | Owns the build end to end: ordinary engineering decisions, every shared file, small changes where handing off costs more than doing, integration, and the final walk as a guest and as a host |
 | **GPT-6.2 Sol** | Settled, bounded changes: the behaviour, the files, what must not change and one focused check are all stated |
 | **GPT-6.2 Astra** | Settled behaviour where the details are easy to get wrong: older data, repeated taps, retries, the same fact read through several doors. Returns a patch or findings, as its message says |
+| **Sonnet 5.5** | Started by Opus as helpers in the cloud, no Mac needed: the test table fixture, the agent tools (S10), the browser checks (S11), the six reading drafts, first drafts of the documents, and a first read of every Sol and Astra pull request. It is a different family from the GPT builders, so its read and its browser checks are independent of them |
+| **Haiku 5.5** | Mechanical errands for Opus: running lint and test suites and reporting what failed, finding every call site of a name, checking wording for em dashes and banned colour names, keeping the ledger rows current. Never a decision, never a file under `src/` or `worker/` |
 | **Fable** | Questions where the approach itself is unsure. Its answers for Launch 1 are the next section. Bring it new ones through the build thread |
 
 Shared files only Opus edits: `worker/src/index.ts`, `src/App.tsx`, `src/lib/store.ts`, `src/lib/api.ts`, `src/types.ts`, `src/styles/tokens.css`, `worker/migrations/`, `worker/src/mcpTools/registry.ts`, `CLAUDE.md`, `docs/PILLAR.md`, and the two build files. Workers write new modules and export functions. Opus adds the wiring lines.
@@ -150,7 +152,7 @@ thanks_ref?: string | null;
 
 ## The slices
 
-Twelve slices. S1, S2, S8 and S12 are Opus's own. Six go to Sol, two to Astra.
+Twelve slices. S1, S2, S8 and S12 are Opus's own. Four go to Sol, two to Astra, two to Sonnet.
 
 | # | Slice | Owner | Starts | Files it owns | Proven by |
 |---|---|---|---|---|---|
@@ -163,11 +165,11 @@ Twelve slices. S1, S2, S8 and S12 are Opus's own. Six go to Sol, two to Astra.
 | S7 | Where a chest tea came from, and "taste this" | Sol | After S1 | `src/components/AccountPanel/CellarView.tsx`, `src/pages/JournalPage.tsx` | `npm run test:mobile`; a gift is added and tasted without retyping |
 | S8 | Where an order came from | Opus | After S3 | New `worker/src/orderSessionSource.ts`, `src/lib/store.ts`, the one call in `index.ts` | An order from a thank-you has a row; one from the shop has none |
 | S9 | Audit: who can read what, and whether the order source can be wrong | Astra, findings | After S3, S5, S8 | Read only | The evidence named in its message |
-| S10 | The same actions as agent tools | Sol | After S4, S5 | New `worker/src/mcpTools/firstTable.ts` | A worker test that each write previews, then confirms |
-| S11 | Browser checks for the whole journey | Sol, a worker that built none of it | After S3 to S8 | New `tests/first-table.spec.ts` | Passes on phone and desktop sizes against the sandbox |
+| S10 | The same actions as agent tools | Sonnet | After S4, S5 | New `worker/src/mcpTools/firstTable.ts` | A worker test that each write previews, then confirms |
+| S11 | Browser checks for the whole journey | Sonnet, a helper that built none of it | After S3 to S8 | New `tests/first-table.spec.ts` | Passes on phone and desktop sizes against the sandbox |
 | S12 | Home's sentence and door; six reading drafts; truth-up of `docs/PILLAR.md`, `docs/CHANGELOG.md`, `docs/STATE_OF_THE_SITE.md`; the ledger | Opus | Home after Q2, the rest last | `src/pages/HomeV2Page.tsx`, `docs/` | Adrian's sentence, his yes. No bar word changes |
 
-**Side by side after S1:** S3, S4, S5, S7. That is four workers, which is the ceiling. **In order:** S1, then S5, then S6. S3, then S8, then S9. **Waiting on Adrian:** only the Home part of S12 (his sentence). Nothing else waits.
+**Side by side after S1:** S3, S4, S5, S7, all Sol on the Mac. That is four workers, which is the ceiling there. Sonnet's fixture and reading drafts run in the cloud at the same time and do not count against it. **In order:** S1, then S5, then S6. S3, then S8, then S9. **Waiting on Adrian:** only the Home part of S12 (his sentence). Nothing else waits.
 
 ## What Adrian is asked, and what he can try
 
@@ -361,7 +363,7 @@ Evidence to produce:
 Return: a numbered list of findings with severity (wrong data, leaked data, or cosmetic), the evidence for each, and for the items that hold, one line saying how you proved it. Do not fix. If a finding depends on a product decision, state the decision needed in one sentence.
 ```
 
-### Sol, S10: the same actions as agent tools
+### Sonnet, S10: the same actions as agent tools
 
 ```
 Repository storyoftheleaf/teajia. Branch from build/launch-1 as build/l1-s10-tools; pull request into build/launch-1, never main.
@@ -385,7 +387,7 @@ Acceptance check: worker/tests/first-table-tools.test.ts proves set_session_read
 Report back: the branch, test output, the registry lines, anything you could not do.
 ```
 
-### Sol, S11: browser checks for the whole journey (a worker that built none of it)
+### Sonnet, S11: browser checks for the whole journey (a helper that built none of it)
 
 ```
 Repository storyoftheleaf/teajia, branch build/launch-1. Branch as build/l1-s11-checks; pull request into build/launch-1, never main. You wrote none of this feature: test it as a stranger would, from what a person can do.
