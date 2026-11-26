@@ -23,7 +23,7 @@ for (const width of [375, 390, 1280]) {
       const panel = page.getByRole('region', { name: 'Oolong Test Tea 02, at a glance' });
       await expect(panel).toBeVisible();
       // The panel's minus, count and plus are drawn 32px across, under the 44px
-      // finger floor (open with Adrian, 2026-11-26), so this guards that each is
+      // finger floor, kept as drawn (Adrian, 2026-11-26), so this guards that each is
       // on screen and nothing covers it, not its size.
       const controls = [
         panel.getByRole('button', { name: 'Take some Oolong Test Tea 02 out', exact: true }),
