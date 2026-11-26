@@ -33,11 +33,39 @@ import { AccountSwitcherChip } from './AccountSwitcherChip';
 import { buildTeaMasterReadiness, type ShopReadinessInput, type TeaMasterReadiness } from '../readiness/teaMasterReadiness';
 import { usePersonReadiness } from '../readiness/usePersonReadiness';
 import { usePhotoEditor } from '../shared/usePhotoEditor';
+import { Button } from '../shared/Button';
+import { useStepParam } from '../../hooks/useStepParam';
+import { historyIndex } from '../../admin/components/adminHistory';
 
 interface AccountPanelProps {
   onClose: () => void;
   initialView?: PanelView;
+  /**
+   * Your Table as a page (YOUR_TABLE_PAGE_OPEN, Launch 4 K8): rendered at its
+   * own address instead of over the page. The view is the address (/account,
+   * /account/sessions, /account/tea-houses), journal and Tea Chest are their
+   * own pages, and `onClose` is leaving the page. Without it, the overlay
+   * behaves exactly as before.
+   */
+  asPage?: boolean;
 }
+
+/** The page's view, read from its address. */
+function pageViewFor(pathname: string): PanelView {
+  const path = pathname.replace(/\/+$/, '');
+  if (path === '/account/sessions') return 'events';
+  if (path === '/account/tea-houses') return 'location-switcher';
+  return 'main';
+}
+
+const PAGE_PATH_FOR_VIEW: Partial<Record<PanelView, string>> = {
+  main: '/account',
+  events: '/account/sessions',
+  'location-switcher': '/account/tea-houses',
+  // One copy of each view: on the page these are their own pages.
+  journal: '/account/journal',
+  cellar: '/account/cellar',
+};
 
 function getLocationFromSlug(slug: string): string {
   if (slug.includes('bali') || slug.includes('indonesia') || slug.includes('ubud')) return 'Ubud, Bali';
@@ -79,7 +107,7 @@ const ZoneLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
-export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView }) => {
+export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView, asPage = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -104,17 +132,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     setUpcomingEventsCount,
   } = useAppStore();
 
-  const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(!asPage);
   const triggerRef = useRef<HTMLElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [isVisible, setIsVisible] = useState(false);
-  useScrollLock(true);
+  useScrollLock(!asPage);
   const PERSISTABLE_VIEWS: PanelView[] = ['main'];
   const STORAGE_KEY = 'teajia-account-view';
 
   const VALID_VIEWS: PanelView[] = ['main', 'location-switcher', 'events', 'signin', 'signup', 'journal', 'cellar'];
-  const [panelView, setPanelViewRaw] = useState<PanelView>(() => {
+  const [overlayView, setPanelViewRaw] = useState<PanelView>(() => {
     if (initialView && initialView !== 'signin' && initialView !== 'signup' && VALID_VIEWS.includes(initialView)) return initialView;
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as PanelView | null;
@@ -123,13 +151,23 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     return 'main';
   });
 
+  const panelView: PanelView = asPage ? pageViewFor(location.pathname) : overlayView;
+  // What a door inside the view calls before it navigates. On the page there
+  // is nothing to close: the next address simply replaces this one.
+  const dismiss = asPage ? () => {} : onClose;
+
   const setPanelView = (view: PanelView) => {
+    if (asPage && view !== 'signin' && view !== 'signup') {
+      const path = PAGE_PATH_FOR_VIEW[view] ?? '/account';
+      if (location.pathname !== path) navigate(path);
+      return;
+    }
     if (view === 'signin' || view === 'signup') {
       const params = new URLSearchParams(location.search);
       if (location.pathname !== '/account') params.set('account', '1');
       const search = params.toString();
       const returnTo = authReturnTo(`${location.pathname}${search ? `?${search}` : ''}${location.hash}`);
-      onClose();
+      dismiss();
       navigate(authPagePath(view, returnTo));
       return;
     }
@@ -151,7 +189,13 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
 
   // Location switch state
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
-  const [locationSearch, setLocationSearch] = useState('');
+  const [overlayLocationSearch, setOverlayLocationSearch] = useState('');
+  const [pageLocationSearch, setPageLocationSearch] = useStepParam('q');
+  const locationSearch = asPage ? pageLocationSearch : overlayLocationSearch;
+  const setLocationSearch = (text: string) => {
+    if (asPage) setPageLocationSearch(text, { refine: true }); // history: refine
+    else setOverlayLocationSearch(text);
+  };
 
   // Avatar state
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(() => {
@@ -208,21 +252,25 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
 
   // Animate in
   useEffect(() => {
+    if (asPage) return;
     triggerRef.current = document.activeElement as HTMLElement;
     requestAnimationFrame(() => requestAnimationFrame(() => setIsVisible(true)));
     return () => { triggerRef.current?.focus(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close panel whenever the route changes
+  // Close panel whenever the route changes (the page IS the route, so never)
   const initialPathRef = useRef(location.pathname);
   useEffect(() => {
+    if (asPage) return;
     if (location.pathname !== initialPathRef.current) {
       onClose();
     }
-  }, [location.pathname, onClose]);
+  }, [asPage, location.pathname, onClose]);
 
   // Escape key
   useEffect(() => {
+    if (asPage) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (panelView !== 'main') {
@@ -235,7 +283,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, panelView]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asPage, onClose, panelView]);
 
   // ── Location switch ──────────────────────────────────────────────────────────
   const handleSwitchLocation = async (membership: AccountMembership) => {
@@ -269,11 +318,23 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
       setActiveAccountId(prevAccountId);
     } finally {
       setSwitchingTo(null);
-      if (panelView === 'location-switcher') setPanelView('main');
+      if (panelView === 'location-switcher') backToMain();
     }
   };
 
   const handleSignOut = () => { auth.logout(); };
+
+  // Back from a view to the launchpad. On the page that is the browser's own
+  // back when there is somewhere to go back to, so history never doubles.
+  const backToMain = () => {
+    if (asPage) {
+      if (historyIndex() > 0) navigate(-1);
+      else navigate('/account');
+      return;
+    }
+    setPanelView('main');
+    setLocationSearch('');
+  };
 
   const getInitials = (nameStr: string) =>
     nameStr.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -344,7 +405,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
     retry: false,
   });
 
-  const [eventListFilter, setEventListFilter] = useState<'upcoming' | 'open' | 'past'>('upcoming');
+  type EventListFilter = 'upcoming' | 'open' | 'past';
+  const [overlayEventFilter, setOverlayEventFilter] = useState<EventListFilter>('upcoming');
+  // On the page the three session tabs are steps in the address.
+  const [pageEventFilter, setPageEventFilter] = useStepParam('when', 'upcoming');
+  const eventListFilter: EventListFilter = asPage
+    ? (pageEventFilter === 'open' || pageEventFilter === 'past' ? pageEventFilter : 'upcoming')
+    : overlayEventFilter;
+  const setEventListFilter = (next: EventListFilter) => {
+    if (asPage) setPageEventFilter(next === 'upcoming' ? null : next);
+    else setOverlayEventFilter(next);
+  };
 
   // One read, two answers: what is still pending, and whether this shop has ever
   // taken an order at all. The second is a setup question and the first is a
@@ -605,11 +676,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
   return (
     <>
       {/* Backdrop */}
-      <div
+      {!asPage && <div
         className={`fixed inset-0 sidebar-inset z-panel-backdrop bg-black/80 backdrop-blur-sm ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         style={{ transition: isVisible ? 'opacity 300ms ease' : 'opacity 150ms ease' }}
         onClick={onClose}
-      />
+      />}
 
       {/* Panel, full-screen at all sizes (launchpad, not side drawer).
           Was md:w-[400px] right-anchored drawer; now fills the viewport so
@@ -618,8 +689,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
           sits above it (z-nav). X (top-left), Escape, and backdrop-click all close. */}
       <div
         ref={focusTrapRef}
-        className="fixed inset-0 sidebar-inset bg-tea-bg z-panel-modal flex flex-col"
-        style={{
+        className={asPage
+          ? 'bg-tea-bg flex flex-col min-h-full'
+          : 'fixed inset-0 sidebar-inset bg-tea-bg z-panel-modal flex flex-col'}
+        data-testid={asPage ? 'your-table-page' : undefined}
+        style={asPage ? undefined : {
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? undefined : 'none',
           transition: isVisible ? 'opacity 300ms ease' : 'opacity 150ms ease',
@@ -639,6 +713,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
         <div className="relative flex items-center px-4 py-2.5 border-b border-tea-border bg-tea-surface">
           {/* Left cluster: Close, then Back (when in a sub-view) */}
           <div className="flex items-center gap-1 shrink-0 relative z-10">
+            {asPage ? (
+              <Button
+                variant="plain"
+                onClick={isSubView ? backToMain : onClose}
+                className="min-w-tap min-h-tap flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
+                aria-label="Back"
+              >
+                <Icons.ChevronLeft className="w-5 h-5" />
+              </Button>
+            ) : <>
             <button
               onClick={onClose}
               className="min-w-tap min-h-tap flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
@@ -655,11 +739,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                 <Icons.ChevronLeft className="w-5 h-5" />
               </button>
             )}
+            </>}
           </div>
 
           {/* Centered title, absolutely positioned so it ignores sibling width */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] text-center">
-            <h2 className="h3 truncate">{headerTitle}</h2>
+            {asPage
+              ? <h1 className="h3 truncate">{headerTitle}</h1>
+              : <h2 className="h3 truncate">{headerTitle}</h2>}
             {!isSubView && auth.isAuthenticated && (
               <p className="text-ui-10 text-tea-text-sec truncate mt-0.5">
                 {accountContextName ? `Logged in to ${accountContextName}` : 'Logged in to your account'}
@@ -681,7 +768,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
         </div>
 
         {/* Content */}
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain relative pb-nav-gap surface-warm">
+        <div ref={scrollRef} className={asPage
+          ? 'flex-1 relative pb-nav-gap surface-warm'
+          : 'flex-1 min-h-0 overflow-y-auto overscroll-contain relative pb-nav-gap surface-warm'}>
           {/* Account-switcher chip, only when user has multiple memberships
               and we're on the main panel view (any role: Operator/Member/Reader/Staff). */}
           {panelView === 'main' && memberships.length > 1 && (
@@ -769,7 +858,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                           className={`py-4 ${i < displayedEvents.length - 1 ? 'border-b border-tea-border' : ''}`}
                         >
                           <button
-                            onClick={() => { onClose(); navigate(`/event/${ev.slug}`); }}
+                            onClick={() => { dismiss(); navigate(`/event/${ev.slug}`); }}
                             className="w-full flex gap-3.5 text-left hover:opacity-75 transition-opacity"
                           >
                             <div className="w-12 shrink-0 text-center pt-0.5">
@@ -828,7 +917,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
               <div className="px-6 pt-6 pb-6">
                 <TastingJournalView
                   onBack={() => setPanelView('main')}
-                  onOpenTea={(teaId) => { onClose(); navigate(`/shop/product/${teaId}`); }}
+                  onOpenTea={(teaId) => { dismiss(); navigate(`/shop/product/${teaId}`); }}
                 />
               </div>
             )}
@@ -918,18 +1007,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, initialView
                 payAccessBusy={payAccessMutation.isPending}
                 onApprovePayAccess={id => payAccessMutation.mutate({ id, decision: 'approve' })}
                 onDeclinePayAccess={id => payAccessMutation.mutate({ id, decision: 'decline' })}
-                onClose={onClose}
+                onClose={dismiss}
                 onOpenJournal={() => setPanelView('journal')}
                 onOpenEvents={() => setPanelView('events')}
                 onOpenCellar={() => setPanelView('cellar')}
                 onOpenLocationSwitcher={() => setPanelView('location-switcher')}
                 onSignOut={handleSignOut}
+                grouped={asPage}
               />
             )}
 
             {panelView === 'main' && !auth.isAuthenticated && (
               <ReaderView
-                onClose={onClose}
+                onClose={dismiss}
                 onOpenSignIn={() => setPanelView('signin')}
                 onOpenSignUp={() => setPanelView('signup')}
                 onOpenEvents={() => setPanelView('events')}
