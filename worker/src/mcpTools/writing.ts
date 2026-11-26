@@ -735,14 +735,14 @@ const toolDraftArticleFromEvent: ToolHandler = async (env, auth, args) => {
  * first two are the shop's own operational record. `tea_sample_tastings` is a
  * customer-facing surface: the public POST /api/samples/:id/tastings accepts
  * guests, stamps `taster_id` with the tasting customer's EMAIL when they are
- * signed in, and then auto-tags the matching customer row and mirrors the
- * verdict into reviews. Two things follow.
+ * signed in. (It no longer tags the customer row from the verdict: K14.)
+ * Two things follow.
  *
  * First, no tool here returns tastings row by row. Under `inventory:read` that
  * would hand a stock-scoped token a list of customer email addresses, which is
  * what `customers:read` exists to gate. `get_sample` returns the aggregate
- * instead — how many tasted it, how the verdicts fell, the average rating —
- * which is the whole of what sourcing needs from it.
+ * instead: how many tasted it. A score is its taster's own, so no verdict
+ * tally, average or would-buy count leaves either.
  *
  * Second, there is no `record_sample_tasting` tool. Writing a tasting is not
  * one INSERT: the HTTP path also tags the customer, mirrors to reviews and
@@ -919,42 +919,21 @@ const toolGetSample: ToolHandler = async (env, auth, args) => {
     'SELECT id, name, purpose FROM tea_sample_sets WHERE id = ? AND account_id = ?'
   ).bind(row.set_id, auth.accountId).first() as Record<string, any> | null;
 
-  // Aggregate only — see the note above SAMPLE_STATUSES. Verdicts and ratings
-  // are the sourcing signal; who gave them is customer data this scope does not
-  // cover, and `personal_note` is the taster's own note space either way.
-  const verdicts = await env.DB.prepare(
-    `SELECT t.verdict AS verdict, COUNT(*) AS n,
-            AVG(t.rating) AS avg_rating, SUM(t.would_buy) AS would_buy
+  // A score is its taster's own (Adrian, 2026-11-26): no average, no verdict
+  // tally, no would-buy count. The tool says only how many tastings there are.
+  const tasted = await env.DB.prepare(
+    `SELECT COUNT(*) AS n
        FROM tea_sample_tastings t
        JOIN tea_samples s ON s.id = t.sample_id AND s.account_id = ?
-      WHERE t.sample_id = ?
-      GROUP BY t.verdict`
-  ).bind(auth.accountId, sampleId).all() as { results: Array<{ verdict: string; n: number; avg_rating: number | null; would_buy: number | null }> };
-
-  const byVerdict: Record<string, number> = {};
-  let tastingCount = 0;
-  let wouldBuy = 0;
-  let ratingSum = 0;
-  let ratingCount = 0;
-  for (const v of verdicts.results) {
-    const n = Number(v.n);
-    byVerdict[v.verdict] = n;
-    tastingCount += n;
-    wouldBuy += Number(v.would_buy ?? 0);
-    if (v.avg_rating != null) { ratingSum += Number(v.avg_rating) * n; ratingCount += n; }
-  }
+      WHERE t.sample_id = ?`
+  ).bind(auth.accountId, sampleId).first() as { n: number } | null;
 
   return {
     sample: sampleToApi(row),
     set: set ? { id: set.id, name: set.name, purpose: set.purpose } : null,
     tastings: {
-      count: tastingCount,
-      by_verdict: byVerdict,
-      // Null rather than 0 when nobody has rated it: an unrated sample is not a
-      // sample rated zero, and averaging an empty set into 0 reads as "bad tea".
-      average_rating: ratingCount > 0 ? Math.round((ratingSum / ratingCount) * 10) / 10 : null,
-      would_buy_count: wouldBuy,
-      note: 'Aggregate only. Individual tastings carry the taster\'s identity and are not exposed to an inventory-scoped token.',
+      count: Number(tasted?.n ?? 0),
+      note: 'Scores and verdicts stay with each taster and are not given here.',
     },
   };
 };
@@ -1215,7 +1194,7 @@ const defs: ToolDefinition[] = [
   {
     name: 'get_sample',
     scope: 'inventory:read',
-    description: 'One sample in full, with its set and a summary of how it tasted: how many people tried it, how the verdicts fell, the average rating and how many would buy it. Individual tastings are not returned — they carry the taster\'s identity, which an inventory-scoped token does not cover.',
+    description: 'One sample in full, with its set and how many tastings it has. Scores, verdicts and individual tastings are not returned: a score is the taster\'s own.',
     inputSchema: {
       type: 'object',
       properties: {

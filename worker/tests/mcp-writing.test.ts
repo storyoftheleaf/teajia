@@ -370,12 +370,12 @@ describe('the sample shelf', () => {
     expect('user_id' in requested).toBe(false);
   });
 
-  it('summarises tastings without naming who tasted', async () => {
+  it('says how many tastings there are, with no score, verdict tally or average', async () => {
     const one = await tools.get_sample(env, auth, { sample_id: 'smp_yiwu' });
     expect(one.tastings.count).toBe(2);
-    expect(one.tastings.by_verdict).toEqual({ love: 1, like: 1 });
-    expect(one.tastings.average_rating).toBe(7);
-    expect(one.tastings.would_buy_count).toBe(1);
+    expect('by_verdict' in one.tastings).toBe(false);
+    expect('average_rating' in one.tastings).toBe(false);
+    expect('would_buy_count' in one.tastings).toBe(false);
     // taster_id is the customer's EMAIL when they were signed in, and
     // personal_note is the taster's own words. Neither is inventory data.
     const serialised = JSON.stringify(one);
@@ -383,10 +383,9 @@ describe('the sample shelf', () => {
     expect(serialised).not.toContain('Reminded me of home.');
   });
 
-  it('reports an unrated sample as unrated, not as rated zero', async () => {
+  it('reports an untasted sample as none tasted', async () => {
     const one = await tools.get_sample(env, auth, { sample_id: 'smp_request' });
     expect(one.tastings.count).toBe(0);
-    expect(one.tastings.average_rating).toBeNull();
   });
 
   it('moves a sample along the shelf and nothing else', async () => {

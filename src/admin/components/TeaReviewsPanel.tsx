@@ -78,8 +78,7 @@ function buildSynthesisPrompt(reviews: TeaReview[], productName: string, product
       }
     }
     if (r.notes) lines.push(`  Notes: ${r.notes}`);
-    if (r.rating) lines.push(`  Rating: ${r.rating}/10`);
-    if (r.verdict) lines.push(`  Verdict: ${r.verdict}`);
+    // A score is its taster's own: the words go to the writer, never the number or the verdict.
     lines.push('');
   }
 

@@ -1,6 +1,7 @@
 import { compassHolding, COMPASS_SAMPLE_HOLDING } from './compassHoldings';
 import { capturedHoldingFields, capturedRetailUsd } from './capturedHolding';
 import { tastingForShop, tastingHasTerms } from './curateImportTasting';
+import { isShopOwner, tastingWithoutScores } from './publicScores';
 import { compassVendorId } from './curateReceiptProduct';
 import { canonicalizeCostCurrency } from './costCurrency';
 import { nameProductColumns } from './productDefaults';
@@ -70,7 +71,9 @@ export async function promoteCompassEntry(db:D1Database, accountId:string, entry
   // Only words the shop can print reach the product, and the page drops its
   // "potential profile" note only when there are such words: a score or a note
   // alone is not the shop's tasting.
-  const shopTasting = tastingForShop(entry.tasting);
+  // A score reaches the shop's tea only when the owner gave it; anyone else's stays on their entry.
+  const capturedTasting = tastingForShop(entry.tasting);
+  const shopTasting = await isShopOwner(db, accountId, entry.user_id) ? capturedTasting : tastingWithoutScores(capturedTasting);
   const tasting = Object.keys(shopTasting).length ? JSON.stringify(shopTasting) : null;
 
   const productType = isTeaware ? 'Teaware' : (entry.type || 'Misc');

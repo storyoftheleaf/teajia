@@ -27,8 +27,9 @@ import { formatUsShippingAddress, validateUsShippingAddress } from '../../src/li
 import { paypalSandboxRoutes, paypalSandboxEnabled, type PayPalSandboxEnv } from './paypalSandbox';
 import { listPrivateSessionReflections, readPrivateSessionReflection, writePrivateSessionReflection } from './privateSessionReflections';
 import { claimReceivedCard, listReceivedCards } from './memberReceivedCards';
-import { sharedSessionVerdict } from './sessionVerdictProjection';
-import { PUBLIC_TEA_REVIEW_COLUMNS, tastingWithoutScores } from './publicScores';
+import { sessionVerdictFor, sharedSessionVerdict } from './sessionVerdictProjection';
+import { compassEntryForViewer, keepGiverCompassScores } from './compassScores';
+import { PUBLIC_TEA_REVIEW_COLUMNS, isShopOwner, tastingWithoutScores, tastingJsonWithoutScores, tastingScoresOnly } from './publicScores';
 import { eraseFamilyPhotoFiles, familyErasureStatements, familyPhotoKeysForUser } from './familyErasure';
 import { recordingAudioUrl, linkedRecordingSql, readOwnedRecording, preservePrivateRecordingClips, mergeRecordingClipsSql } from './privateRecordingMedia';
 import { quoteUsCheckoutShipping } from './usCheckoutShipping';
@@ -1652,10 +1653,19 @@ function cachedJson(data: unknown, maxAge: number, status = 200): Response {
  * Cache-Control's max-age sets how long an entry lives. CORS is added by the
  * router after this returns, so one entry serves every origin.
  */
+// Raised when what a cached public answer may carry changes, so an answer
+// built under the old rule is never served under the new one. 2026-11-26:
+// scores were taken off public reads (a score is personal).
+const EDGE_CACHE_GENERATION = 'scores-personal-1';
+
+function edgeCacheKey(origin: string, path: string): Request {
+  return new Request(`${origin}${path}?edge=${EDGE_CACHE_GENERATION}`, { method: 'GET' });
+}
+
 async function edgeCached(request: Request, maxAge: number, build: () => Promise<Response>): Promise<Response> {
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
   const url = new URL(request.url);
-  const key = new Request(url.origin + url.pathname, { method: 'GET' });
+  const key = edgeCacheKey(url.origin, url.pathname);
   if (cache) {
     const hit = await cache.match(key).catch(() => undefined);
     if (hit) return hit;
@@ -1677,7 +1687,7 @@ async function invalidatePublicCatalogue(request:Request,env:Env){
  if(url.pathname.startsWith('/api/rates')){const accounts=await env.DB.prepare("SELECT id FROM accounts WHERE status='active' LIMIT 1000").all();for(const account of accounts.results as any[])accountIds.add(account.id);}
  const paths:string[]=[];
  for(const id of accountIds){const account=await env.DB.prepare('SELECT slug FROM accounts WHERE id=?').bind(id).first() as any;if(account?.slug)paths.push(`/api/s/${encodeURIComponent(account.slug)}/products`);if(id===BALI_ACCOUNT_ID)paths.push('/api/products/public');}
- await Promise.all(paths.map(path=>cache.delete(new Request(url.origin+path,{method:'GET'}))));
+ await Promise.all(paths.map(path=>cache.delete(edgeCacheKey(url.origin,path))));
 }
 
 function swrJson(data: unknown, sMaxAge: number, swr: number, status = 200): Response {
@@ -2760,6 +2770,7 @@ const handleGetProducts: Handler = async (request, env, params) => {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
   const shopDefaultPerKgUsd = await shopFreightPerKgUsd(env, accountId, rates);
+  const seesShopScores = shopScoreGiver(ctx);
 
   const products = (result.results as any[]).map(p => {
     // Override the legacy is_featured column with the derived shop-collection
@@ -2777,12 +2788,43 @@ const handleGetProducts: Handler = async (request, env, params) => {
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
+    // The shop's score on a tea is the owner's own (tasting_source 'owner').
+    // Other members read the words without it.
+    if (!seesShopScores) {
+      p.tasting = tastingWithoutScores(p.tasting);
+      p.tasting_notes = tastingWithoutScores(p.tasting_notes);
+    }
     // Keep a missing balance from looking like a recorded zero after price projection.
     if ((p.type === 'Teaware' ? p.quantity_units : p.stock_grams) == null) p.stock_known_at = null;
     return addPricingFields(p, rates, shopDefaultPerKgUsd);
   });
   return params?.id ? (products[0] ? json(products[0]) : restError(404, 'Product not found', 'product_not_found')) : json(products);
 };
+
+/**
+ * Who may see the score on a shop's own tea. Every write of a product tasting
+ * is stamped the owner's voice (tasting_source 'owner'), so the owner is its
+ * giver. Staff, viewers and other shops read the words.
+ */
+function shopScoreGiver(ctx: { role: string }): boolean {
+  return ctx.role === 'owner';
+}
+
+/**
+ * A product tasting written by someone who is not its score's giver keeps the
+ * giver's score as stored: they never saw it, so what they send cannot speak
+ * for it. Returns the JSON text to store.
+ */
+async function keepShopScoreOnWrite(env: Env, accountId: string, productId: string | null, incoming: unknown): Promise<string> {
+  let parsed: unknown = incoming;
+  if (typeof incoming === 'string') { try { parsed = JSON.parse(incoming); } catch { parsed = {}; } }
+  const words = tastingWithoutScores(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}) as Record<string, unknown>;
+  if (!productId) return JSON.stringify(words);
+  const row = await env.DB.prepare('SELECT tasting FROM products WHERE id = ? AND account_id = ?').bind(productId, accountId).first<{ tasting: string | null }>();
+  let stored: unknown = null;
+  try { stored = row?.tasting ? JSON.parse(row.tasting) : null; } catch { stored = null; }
+  return JSON.stringify({ ...words, ...tastingScoresOnly(stored) });
+}
 
 // Public-safe fields whitelist
 const PUBLIC_FIELDS = [
@@ -3007,6 +3049,8 @@ const handleCreateProduct: Handler = async (request, env) => {
   if ('tasting' in body && body.tasting_source === undefined) {
     body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
   }
+  // A score on a shop's tea is the owner's; another member's new tea carries the words.
+  if ('tasting' in body && !shopScoreGiver(ctx)) body.tasting = await keepShopScoreOnWrite(env, accountId, null, body.tasting);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
@@ -3516,6 +3560,8 @@ async function applyProductUpdate(
   if ('tasting' in body && body.tasting_source === undefined) {
     body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
   }
+  // Someone other than the owner saves the words; the owner's score stays as it was.
+  if ('tasting' in body && !shopScoreGiver(ctx)) body.tasting = await keepShopScoreOnWrite(env, accountId, params.id, body.tasting);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop', 'sold_in_whole_units']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
@@ -3867,10 +3913,10 @@ const handleGetCatalog: Handler = async (request, env) => {
     const out: Record<string, any> = {
       id: p.id, type: p.type, form: p.form, given_name: p.given_name, chinese_name: p.chinese_name,
       product_name: p.product_name, year: p.year, origin_country: p.origin_country,
-      origin_region: p.origin_region, description: reviewedDescription(p.id, p.description), tasting_notes: p.tasting_notes,
+      origin_region: p.origin_region, description: reviewedDescription(p.id, p.description), tasting_notes: tastingWithoutScores(p.tasting_notes),
       image_url: p.image_url, additional_images: p.additional_images, lore: p.lore,
       show_wisdom: p.show_wisdom, processing_notes: p.processing_notes, terroir: p.terroir,
-      mood: p.mood, experience: p.experience, tea_key: p.tea_key, tasting: p.tasting,
+      mood: p.mood, experience: p.experience, tea_key: p.tea_key, tasting: tastingWithoutScores(p.tasting), // another shop's score stays with that shop
       status: p.status, is_featured: p.is_featured, is_curated: p.is_curated,
       material: p.material, capacity_ml: p.capacity_ml, teaware_category: p.teaware_category,
       quantity_units: p.quantity_units,
@@ -11073,6 +11119,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string, sourceTable?
         if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
       }
       if ('tasting' in safe) safe.tasting = tastingWithoutScores(safe.tasting);
+    if ('tasting_notes' in safe) safe.tasting_notes = tastingWithoutScores(safe.tasting_notes);
       safe.account_slug = p.account_slug;
       safe.public_path = p.public_path;
       if (p.account_id === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
@@ -11547,7 +11594,7 @@ const handleAttachPrivateRecording: Handler = async (request, env, params) => {
   }
   return json({
     recording_id: row.id, audio_url: audioUrl, clip,
-    entry: await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id=? AND account_id=?').bind(entryId, ctx.accountId).first(),
+    entry: compassEntryForViewer(await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id=? AND account_id=?').bind(entryId, ctx.accountId).first<Record<string, unknown>>(), ctx.userId),
     note: savedNote,
   });
 };
@@ -12535,6 +12582,8 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
   let sharedTastingNotes: string[] | null = null;
   if (postSession.shared_tasting_notes) {
     try { sharedTastingNotes = JSON.parse(postSession.shared_tasting_notes as string); } catch { sharedTastingNotes = null; }
+    // A recap is public: words only, whatever shape an older save left.
+    sharedTastingNotes = tastingWithoutScores(sharedTastingNotes);
   }
 
   // Fetch tea menu for the event with product details for shop links
@@ -14625,7 +14674,10 @@ const handleGetTastingNotes: Handler = async (request, env, params) => {
   if (guard) return guard;
 
   const result = await env.DB.prepare(
-    `SELECT etn.*, ea.full_name, ea.phone_number, etm.custom_name, p.given_name, p.product_name
+    // A guest's score is their own: staff read their words and picks, never the rating.
+    `SELECT etn.id, etn.event_id, etn.attendee_id, etn.tea_menu_id, etn.impression, etn.is_favorite, etn.created_at, etn.account_id,
+            ea.full_name, ea.phone_number, etm.custom_name, p.given_name, p.product_name,
+            COALESCE(NULLIF(p.given_name, ''), NULLIF(p.product_name, ''), etm.custom_name) AS tea_name
      FROM event_tasting_notes etn
      JOIN event_attendees ea ON ea.id = etn.attendee_id
      LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
@@ -17249,7 +17301,8 @@ const handleGetCompassEntries: Handler = async (request, env) => {
   query += ' ORDER BY created_at DESC';
 
   const result = await env.DB.prepare(query).bind(...binds).all();
-  return json({ entries: result.results });
+  // A manager reads every tea; the score on someone else's is theirs.
+  return json({ entries: (result.results as Record<string, unknown>[]).map(row => compassEntryForViewer(row, userId)) });
 };
 
 async function prepareAuditedCompassWrite(env: Env, scope: { accountId: string; userId: string }, before: Record<string, any> | null, entry: Record<string, any>, commandType: string, tastingChanged = false, preferredSetId?: string) {
@@ -17308,6 +17361,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
   if ('error' in decoded) return decoded.error;
   const existingContext = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ? AND (user_id = ? OR ? = 1) AND deleted_at IS NULL AND archived_at IS NULL AND merged_into_id IS NULL').bind(params.id, accountId, userId, manager ? 1 : 0).first() as Record<string, unknown> | null;
   if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
+  keepGiverCompassScores(decoded.values, existingContext, userId);
   if (decoded.values.audio_clips !== undefined) {
     decoded.values.audio_clips = preservePrivateRecordingClips(decoded.values.audio_clips, existingContext.audio_clips);
   }
@@ -17339,7 +17393,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params, execCtx) 
     execCtx.waitUntil(savePhotosToDriveQuietly(env, driveSeal(env), accountId, [params.id]));
   }
 
-  return json(updated);
+  return json(compassEntryForViewer(updated, userId));
 };
 
 const handleDeleteCompassEntry: Handler = async (request, env, params) => {
@@ -18008,8 +18062,10 @@ const handleGetNotes: Handler = async (request, env) => {
   const compassEntryId = url.searchParams.get('compass_entry_id');
   const sessionId = url.searchParams.get('session_id');
 
-  let query = 'SELECT * FROM notes WHERE account_id = ? AND (deleted IS NULL OR deleted = 0)';
-  const binds: unknown[] = [accountId];
+  // A private note is its writer's alone, and a tasting copy carries no score
+  // to anyone else even when shared.
+  let query = "SELECT * FROM notes WHERE account_id = ? AND (deleted IS NULL OR deleted = 0) AND (author_id = ? OR COALESCE(visibility, 'private') != 'private')";
+  const binds: unknown[] = [accountId, ctx.userId];
 
   if (teaKey) { query += ' AND tea_key = ?'; binds.push(teaKey); }
   else if (compassEntryId) { query += ' AND compass_entry_id = ?'; binds.push(compassEntryId); }
@@ -18018,8 +18074,19 @@ const handleGetNotes: Handler = async (request, env) => {
   query += ' ORDER BY created_at ASC';
 
   const rows = await env.DB.prepare(query).bind(...binds).all();
-  return json({ notes: rows.results ?? [] });
+  const notes = ((rows.results ?? []) as Record<string, any>[]).map(note => note.author_id === ctx.userId ? note : noteWithoutScores(note));
+  return json({ notes });
 };
+
+/** Someone else's note: the tasting copy loses its score, and so does the old "8/10 · " lead of its text. */
+function noteWithoutScores(note: Record<string, any>): Record<string, any> {
+  if (note.source_type !== 'tasting') return note;
+  return {
+    ...note,
+    text: typeof note.text === 'string' ? note.text.replace(/^\s*\d+(?:\.\d+)?\/10(?:\s*·\s*)?/, '') || 'Tasting session' : note.text,
+    tasting_snapshot: note.tasting_snapshot ? tastingJsonWithoutScores(note.tasting_snapshot) : note.tasting_snapshot,
+  };
+}
 
 const handleSyncNotes: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
@@ -18102,6 +18169,8 @@ async function propagateCapturedTasting(env:Env,accountId:string,userId:string,e
  const product=await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(entry.draft_product_id,accountId).first() as any;if(!product)return;
  const patch:Record<string,any>={};
  if(values.tasting!==undefined){let productTasting:Record<string,any>={},newTasting:Record<string,any>={},previousTasting:Record<string,any>={};try{productTasting=JSON.parse(product.tasting||'{}');}catch{}try{newTasting=tastingForShop(entry.tasting) as Record<string,any>;}catch{}try{previousTasting=tastingForShop(previous?.tasting) as Record<string,any>;}catch{}
+   // A score on the shop's tea is the owner's. Anyone else's Curate score stays on their own entry.
+   if(!await isShopOwner(env.DB,accountId,userId)){newTasting=tastingWithoutScores(newTasting);previousTasting=tastingWithoutScores(previousTasting);}
    const merged={...productTasting};let changed=false;
    for(const key of new Set([...Object.keys(previousTasting),...Object.keys(newTasting)])){
     const was=JSON.stringify(previousTasting[key]);const next=JSON.stringify(newTasting[key]);const current=JSON.stringify(productTasting[key]);
@@ -18155,6 +18224,8 @@ const handleSyncCompassEntries: Handler = async (request, env, _params, execCtx)
       // Nothing of this device's is left to write: acknowledged, unchanged.
       if (Object.keys(decoded.values).length === 0) { entryStatementIndexes[entryStatementIndexes.length - 1] = -2; continue; }
     }
+    keepGiverCompassScores(decoded.values, owner, userId);
+    if (Object.keys(decoded.values).length === 0) { entryStatementIndexes[entryStatementIndexes.length - 1] = -2; continue; }
     if (decoded.values.audio_clips !== undefined) {
       decoded.values.audio_clips = preservePrivateRecordingClips(decoded.values.audio_clips, owner?.audio_clips);
     }
@@ -19505,14 +19576,25 @@ function viewSampleLabel(row: Record<string, any>, userId: string | null, shopOw
   };
 }
 
-// A sample label is read by anyone holding the link. The taster's numeric
-// score stays with the people who can see the source; the word verdict travels.
+// A sample label is read by anyone holding the link. A taster's score and
+// verdict are theirs: the link shows only that a tasting happened.
 function publicSampleTasting(row: Record<string, any>) {
   return {
     id: row.id,
-    verdict: ['love', 'like', 'neutral', 'pass'].includes(row.verdict) ? row.verdict : 'neutral',
     created_at: row.created_at,
   };
+}
+
+/** A sample tasting read by someone other than its taster: the words, never the score or the verdict. */
+function sampleTastingWithoutScores(row: Record<string, any>): Record<string, any> {
+  const { rating: _rating, verdict: _verdict, would_buy: _wouldBuy, ...rest } = parseTastingRow(row);
+  return { ...rest, tasting: tastingWithoutScores(rest.tasting) };
+}
+
+/** The taster reads their own tasting whole. Anyone else reads it without its score. */
+function sampleTastingFor(viewerEmail: string | null) {
+  return (row: Record<string, any>) => viewerEmail && row.taster_id === viewerEmail
+    ? parseTastingRow(row) : sampleTastingWithoutScores(row);
 }
 
 // Public: GET /api/samples/:id
@@ -19533,7 +19615,9 @@ const handleGetSample: Handler = async (request, env, params) => {
 
   return sampleLabelResponse({
     ...sample,
-    tastings: tastings.results.map(canSeeSource ? parseTastingRow : publicSampleTasting),
+    tastings: tastings.results.map(row => user?.email && row.taster_id === user.email
+      ? parseTastingRow(row)
+      : canSeeSource ? sampleTastingWithoutScores(row) : publicSampleTasting(row)),
   });
 };
 
@@ -19612,7 +19696,11 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
       sampleId: params.id, accountId, requesterEmail, editKey: body.edit_key, secret: env.JWT_SECRET, write,
     });
     if (repeat.kind === 'refuse') return json({ error: repeat.error }, 409);
-    if (repeat.kind === 'unchanged') return json(parseTastingRow(prior as unknown as Record<string, any>), 200);
+    // The repeat is not proven to be the taster's, so it gets back no score of theirs.
+    if (repeat.kind === 'unchanged') {
+      const { taster_id: _tasterId, ...echo } = sampleTastingWithoutScores(prior as unknown as Record<string, any>);
+      return json(echo, 200);
+    }
     repeated = true;
     tasterId = prior.taster_id;
     await env.DB.prepare(
@@ -19638,69 +19726,8 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
     ), ...lifecycle]);
   }
 
-  // ── Feature 3: Auto-tag customer from sample verdict ─────────────────────
-  const verdict = body.verdict || 'neutral';
-  // tasterId is email if the user is authenticated (set above), otherwise it's a guest UUID
-  const tasterEmailForTag: string | null =
-    tasterId.includes('@') ? tasterId
-    : (typeof body.email === 'string' && body.email ? body.email : null);
-
-  if (tasterEmailForTag && (verdict === 'love' || verdict === 'like' || verdict === 'pass')) {
-    try {
-      const sampleMeta = await env.DB.prepare(
-        'SELECT type FROM tea_samples WHERE id = ?'
-      ).bind(params.id).first() as Record<string, any> | null;
-
-      const customer = await env.DB.prepare(
-        `SELECT id, tags FROM customers WHERE account_id = ? AND email = ? LIMIT 1`
-      ).bind(accountId, tasterEmailForTag).first() as Record<string, any> | null;
-
-      if (customer) {
-        const rawTags = customer.tags as string | null;
-        const currentTags: string[] = (() => {
-          try { return JSON.parse(rawTags || '[]'); }
-          catch { return rawTags ? rawTags.split(',').map((t: string) => t.trim()).filter(Boolean) : []; }
-        })();
-        const tagSet = new Set<string>(currentTags);
-
-        if (verdict === 'love' || verdict === 'like') {
-          const teaType = ((sampleMeta?.type as string | undefined) || '').toLowerCase();
-          const typeTagMap: Record<string, string> = {
-            sheng: 'sheng-lover', oolong: 'oolong-lover',
-            shou: 'puerh-lover', dark: 'puerh-lover',
-            white: 'white-tea-lover', green: 'green-lover',
-            red: 'red-tea-lover', yellow: 'yellow-tea-lover',
-          };
-          for (const [key, tag] of Object.entries(typeTagMap)) {
-            if (teaType.includes(key)) { tagSet.add(tag); break; }
-          }
-        }
-
-        if (verdict === 'pass') {
-          const passResult = await env.DB.prepare(
-            `SELECT COUNT(*) as cnt FROM tea_sample_tastings tst
-             JOIN tea_samples s ON s.id = tst.sample_id
-             WHERE s.account_id = ? AND tst.taster_id = ? AND tst.verdict = 'pass'`
-          ).bind(accountId, tasterId).first() as Record<string, any> | null;
-          if (((passResult?.cnt as number) || 0) >= 3) {
-            tagSet.add('selective');
-          }
-        }
-
-        const updatedTags = Array.from(tagSet);
-        const changed = updatedTags.length !== currentTags.length
-          || updatedTags.some(t => !currentTags.includes(t));
-        if (changed) {
-          await env.DB.prepare(
-            `UPDATE customers SET tags = ?, updated_at = datetime('now') WHERE id = ?`
-          ).bind(JSON.stringify(updatedTags), customer.id).run();
-        }
-      }
-    } catch {
-      // Non-critical — auto-tagging failure must not break the tasting submission
-    }
-  }
-  // ── End Feature 3 ──────────────────────────────────────────────────────────
+  // A taster's verdict is their own (Adrian, 2026-11-26). It no longer tags
+  // the customer row, where staff would read it as a label.
 
   const created = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(id).first();
   // The key goes only to the author of the row just written, never with someone else's row.
@@ -19891,16 +19918,18 @@ const handleGetTeaReviews: Handler = async (request, env) => {
 
   if (!tea_key && !product_id && !source_sample_id) return json({ error: 'tea_key, product_id, or source_sample_id required' }, 400);
 
-  const token = isAuthed(request);
+  // A session is read only once it is checked: an expired or revoked token reads as signed out.
+  const viewer = await optionalAuthenticatedUser(request, env);
+  const token = viewer ? isAuthed(request) : null;
   const claims = token ? parseToken(token) : null;
-  const authorAccountId = claims?.active_account_id || null;
-  const userId = claims?.sub || null;
+  const authorAccountId = viewer ? claims?.active_account_id || null : null;
+  const userId = viewer?.userId || null;
 
-  // Build visibility filter
-  // Authenticated users see network + their account-private + their own private + drafts from others in network
+  // Build visibility filter. Signed in: submitted network reviews, submitted
+  // reviews kept to this shop, and everything the viewer wrote, drafts too.
   let visFilter = `r.visibility = 'network' AND r.status = 'submitted'`;
   if (authorAccountId) {
-    visFilter = `(r.visibility = 'network' OR (r.visibility = 'account' AND r.author_account_id = ?) OR (r.visibility = 'private' AND r.author_user_id = ?))`;
+    visFilter = `((r.status = 'submitted' AND (r.visibility = 'network' OR (r.visibility = 'account' AND r.author_account_id = ?))) OR r.author_user_id = ?)`;
   }
 
   // Build WHERE clause — support filtering by any of the three keys
@@ -19935,12 +19964,19 @@ const handleGetTeaReviews: Handler = async (request, env) => {
 
   const result = await env.DB.prepare(query).bind(...binds).all();
   // Parse JSON fields
-  const rows = (result.results as Record<string, any>[]).map(r => ({
-    ...r,
-    tasting: r.tasting ? (authorAccountId ? JSON.parse(r.tasting) : tastingWithoutScores(JSON.parse(r.tasting))) : null,
-    voice_notes: r.voice_notes ? JSON.parse(r.voice_notes) : [],
-    brew_params: r.brew_params ? JSON.parse(r.brew_params) : null,
-  }));
+  // A score is its writer's: anyone else reads the words.
+  const rows = (result.results as Record<string, any>[]).map(r => {
+    const own = !!userId && r.author_user_id === userId;
+    const tasting = r.tasting ? JSON.parse(r.tasting) : null;
+    const row: Record<string, any> = {
+      ...r,
+      tasting: own ? tasting : tastingWithoutScores(tasting),
+      voice_notes: r.voice_notes ? JSON.parse(r.voice_notes) : [],
+      brew_params: r.brew_params ? JSON.parse(r.brew_params) : null,
+    };
+    if (!own) { delete row.rating; delete row.verdict; delete row.would_buy; }
+    return row;
+  });
   return json(rows);
 };
 
@@ -20668,9 +20704,11 @@ const handleListSamples: Handler = async (request, env) => {
      WHERE s.account_id = ? AND s.archived_at IS NULL ORDER BY tst.created_at ASC`
   ).bind(accountId).all();
   const tastingsBySample = new Map<string, Record<string, any>[]>();
+  // Sourcing staff read the words; each taster's score stays theirs.
+  const readTasting = sampleTastingFor(ctx.email || null);
   for (const tasting of tastings.results as Record<string, any>[]) {
     const list = tastingsBySample.get(tasting.sample_id as string) ?? [];
-    list.push(parseTastingRow(tasting));
+    list.push(readTasting(tasting));
     tastingsBySample.set(tasting.sample_id as string, list);
   }
   return json({ samples: rows.map((row) => ({ ...parseSampleRow(row), tastings: tastingsBySample.get(row.id as string) ?? [] })) });
@@ -23475,6 +23513,7 @@ async function fetchPublicProductsForAccount(
     }
     // The shop's own score on a tea stays in Manage; the public listing carries its words.
     if ('tasting' in safe) safe.tasting = tastingWithoutScores(safe.tasting);
+    if ('tasting_notes' in safe) safe.tasting_notes = tastingWithoutScores(safe.tasting_notes);
     attachPublicTeawareDetails(safe, p);
     if (accountId === BALI_ACCOUNT_ID) applyReviewedWordingFallback(safe);
     maskCountPendingCommerce(safe, accountId, p);
@@ -24870,7 +24909,7 @@ const handleGetSessionVerdicts: Handler = async (request, env, params) => {
   const gate = await requireSessionMember(request, env, params.id);
   if ('error' in gate) return gate.error;
 
-  // Verdicts are visible to all members of the session.
+  // A member reads their own result whole and only that others gave one.
   const verdicts = await env.DB.prepare(
     `SELECT tsv.*, u.name as user_name, sst.tea_name, sst.position
      FROM tasting_session_verdicts tsv
@@ -24881,7 +24920,7 @@ const handleGetSessionVerdicts: Handler = async (request, env, params) => {
   ).bind(params.id).all();
 
   return json({
-    verdicts: (verdicts.results as Record<string, unknown>[]).map(sharedSessionVerdict),
+    verdicts: (verdicts.results as Record<string, unknown>[]).map(sessionVerdictFor(gate.userId)),
   });
 };
 
@@ -25302,18 +25341,14 @@ const handleGetEntryFeedback: Handler = async (request, env, params) => {
      LIMIT 50`
   ).bind(params.id).all() : { results: [] };
 
-  const counts: Record<string, number> = { love: 0, like: 0, neutral: 0, pass: 0 };
-  const all = [...(sessionVerdicts.results as any[]), ...(tableVerdicts.results as any[])];
-  for (const v of all) {
-    if (v.verdict && counts[v.verdict] !== undefined) counts[v.verdict]++;
-  }
-
+  // A score is its giver's own: no tally, no total, no one else's verdict.
+  // A member reads their own session result whole, and the words left at a table.
   return json({
-    counts,
-    total: all.length,
-    session_verdicts: (sessionVerdicts.results as Record<string, unknown>[]).map(sharedSessionVerdict),
+    session_verdicts: (sessionVerdicts.results as Record<string, unknown>[]).map(sessionVerdictFor(ctx.userId)),
     table_verdicts: (tableVerdicts.results as any[]).map(v => ({
-      ...v, tasting_data: v.tasting_data ? JSON.parse(v.tasting_data) : null,
+      notes: v.notes ?? null,
+      created_at: v.created_at,
+      tasting_data: v.tasting_data ? tastingWithoutScores(JSON.parse(v.tasting_data)) : null,
     })),
   });
 };
@@ -25354,22 +25389,7 @@ const handleGetTableCard: Handler = async (request, env, params) => {
   ).bind(tokenRow.source_entry_id).first() as Record<string, any> | null;
   if (!entry) return json({ error: 'Entry not found' }, 404);
 
-  // Aggregate latest verdict per browser token (handles re-votes correctly)
-  const counts = await env.DB.prepare(
-    `SELECT verdict, COUNT(*) as c FROM (
-       SELECT browser_token, verdict FROM anonymous_verdicts
-       WHERE table_token = ?
-       GROUP BY browser_token HAVING created_at = MAX(created_at)
-     ) GROUP BY verdict`
-  ).bind(params.token).all();
-
-  const verdictCounts: Record<string, number> = { love: 0, like: 0, neutral: 0, pass: 0 };
-  for (const row of counts.results as any[]) {
-    if (row.verdict && verdictCounts[row.verdict] !== undefined) {
-      verdictCounts[row.verdict] = row.c;
-    }
-  }
-
+  // No tally: what one person thought is theirs, and a count of it is a score.
   return json({
     entry: {
       name: entry.name,
@@ -25382,7 +25402,6 @@ const handleGetTableCard: Handler = async (request, env, params) => {
       photo: null,
       teaKey: entry.tea_key,
     },
-    verdictCounts,
     token: params.token,
   });
 };
@@ -27814,13 +27833,13 @@ const handleGetShopCollections: Handler = async (_request, env) => {
         origin_region: item.origin_region,
         image_url: item.image_url,
         description: reviewedDescription(item.product_id, item.description),
-        tasting_notes: (() => {
+        tasting_notes: tastingWithoutScores((() => {
           if (!item.tasting_notes) return null;
           if (typeof item.tasting_notes === 'string') {
             try { return JSON.parse(item.tasting_notes); } catch { return null; }
           }
           return item.tasting_notes;
-        })(),
+        })()),
       });
     }
     itemsByCollection.set(item.collection_id, list);
@@ -28011,9 +28030,12 @@ const handleGetInboundCollection: Handler = async (request, env, params) => {
     (pub as any).recipient_seen_at = now;
   }
 
+  // Another shop's tea: its words travel, its score stays there.
   return json({
     publication: pub,
-    items: items.results ?? [],
+    items: ((items.results ?? []) as Record<string, any>[]).map(item => (
+      item.tasting_notes ? { ...item, tasting_notes: tastingJsonWithoutScores(item.tasting_notes) ?? '[]' } : item
+    )),
   });
 };
 
@@ -28097,7 +28119,10 @@ const handleImportInboundItems: Handler = async (request, env, params) => {
       id, ctx.accountId, 'Draft', 0, 0, null,
       null, null, null,
       src.id, params.pubId,
-      ...COPY_COLS.map(c => src[c] ?? null),
+      // The other shop's score is its own: the copy carries the words.
+      ...COPY_COLS.map(c => c === 'tasting' || c === 'tasting_notes'
+        ? (src[c] ? tastingJsonWithoutScores(src[c]) ?? (c === 'tasting' ? '{}' : src[c]) : null)
+        : src[c] ?? null),
     ];
     const placeholders = cols.map(() => '?').join(', ');
     stmts.push(
@@ -28171,6 +28196,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       if (typeof i.tasting_notes === 'string') {
         try { i.tasting_notes = JSON.parse(i.tasting_notes); } catch { i.tasting_notes = []; }
       }
+      i.tasting_notes = tastingWithoutScores(i.tasting_notes);
       const outOfStock = i.product_type === 'Teaware'
         ? (i.quantity_units ?? 0) <= 0
         : (i.stock_grams ?? 0) <= 0;
