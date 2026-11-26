@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { Car, DoorOpen, Navigation, Phone, Train } from 'lucide-react';
 import type { VenueGuide as VenueGuideType } from '../../types/events';
 import { keepWay, keptPhoto, wayPhotoUrl } from '../../lib/keptWay';
+import { Button } from '../shared/Button';
 
 export interface VenueGuideKeep {
   /** The guest's page this copy belongs to (their link's token). */
@@ -130,14 +131,14 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
           </div>
           {steps.length > 1 && (
             <div className="grid grid-cols-2 gap-3 px-4 pb-4">
-              <button type="button" onClick={goPrev} disabled={index === 0}
-                className="btn-secondary btn-lg tap-target h-12 w-full disabled:opacity-40">
+              <Button type="button" variant="secondary" size="lg" fullWidth onClick={goPrev} disabled={index === 0}
+                className="tap-target disabled:opacity-40">
                 Back
-              </button>
-              <button type="button" onClick={goNext} disabled={index === steps.length - 1}
-                className="btn-primary btn-lg tap-target h-12 w-full disabled:opacity-40">
+              </Button>
+              <Button type="button" variant="primary" size="lg" fullWidth onClick={goNext} disabled={index === steps.length - 1}
+                className="tap-target disabled:opacity-40">
                 Next
-              </button>
+              </Button>
             </div>
           )}
         </div>

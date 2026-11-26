@@ -36,9 +36,18 @@ export function mayShowWalkthrough(seatStatus: unknown, session: SessionTimes, d
 // photographs under accounts/<id>/venues/. Older step photographs were
 // uploaded as flyers, so a flyer key named in a guide counts too. They are
 // served private and short-lived, never public and immutable, so no shared
-// cache keeps them and a browser keeps them only briefly.
+// cache keeps them and a browser keeps them only briefly. A step photograph
+// is also served only by a signed address (wayMedia.ts); house photographs
+// under venues/ are public by Adrian's decision (2026-11-26).
 
 export const WALKTHROUGH_MEDIA_CACHE = 'private, max-age=300';
+
+/**
+ * A host's own tea photographs (hostTableTeas.ts) are served the same way: a
+ * photograph taken off the list, or one of a host who is stopped, must not
+ * stay in a shared cache for a year.
+ */
+export const HOST_TEA_MEDIA_KEY = /^accounts\/[^/]+\/host-teas\//;
 
 const WALKTHROUGH_KEY = /^accounts\/[^/]+\/(?:venue-guide|venues)\//;
 const FLYER_KEY = /^accounts\/([^/]+)\/flyers\/[^/]+$/;

@@ -128,7 +128,8 @@ describe('where an order request began', () => {
       UPDATE events SET thanks_ref = 'aaaaaaaaaaaaaaaaaa' WHERE id = 'event-a';
       UPDATE events SET thanks_ref = 'bbbbbbbbbbbbbbbbbb' WHERE id = 'event-open';
       UPDATE events SET thanks_ref = 'cccccccccccccccccc' WHERE id = 'event-b';
-      INSERT INTO contributors (id, account_id, display_name, user_id) VALUES ('host-c', 'shop-a', 'Adrian', 'guest');
+      -- A published page: the host is the lead host the public page names (sessionHost.ts, A2 F8).
+      INSERT INTO contributors (id, account_id, display_name, user_id, is_published) VALUES ('host-c', 'shop-a', 'Adrian', 'guest', 1);
       INSERT INTO contributor_accounts (contributor_id, account_id) VALUES ('host-c', 'shop-a');
       INSERT INTO event_contributors (id, account_id, event_id, contributor_id, role) VALUES ('ec-1', 'shop-a', 'event-a', 'host-c', 'lead_host');
       INSERT INTO inquiries (id, account_id, name, email, items, ref_number) VALUES

@@ -101,10 +101,21 @@ describe('the host saves the way in', () => {
     expect(saved.status).toBe(200);
     expect(saved.headers.get('Cache-Control')).toBe('private, no-store');
     const read = await (await call('/api/me/tables/t-ana/way', { actor: ana })).json() as Record<string, any>;
-    expect(read.way).toEqual({ ...threeSteps, place_id: null });
+    // The host reads each step photograph by an address signed for the host
+    // (wayMedia.ts); the guide itself keeps the bare address.
+    for (const step of read.way.venue_guide.steps) {
+      if (step.image_url) expect(step.image_url).toMatch(/\?exp=\d+&for=host&sig=[0-9a-f]{64}$/);
+    }
+    const bare = (guide: any) => ({ ...guide, steps: guide.steps.map((step: any) => step.image_url ? { ...step, image_url: step.image_url.split('?')[0] } : step) });
+    expect({ ...read.way, venue_guide: bare(read.way.venue_guide) }).toEqual({ ...threeSteps, place_id: null });
     const row = db.sqlite.prepare('SELECT address_text, map_link, venue_guide FROM events WHERE id = ?').get('t-ana') as Record<string, string>;
     expect(row.address_text).toBe('Jalan Raya Ubud 12');
     expect(JSON.parse(row.venue_guide).steps).toHaveLength(3);
+    expect(row.venue_guide).not.toContain('sig=');
+    // Saving back what was read (signed addresses) stores them bare again.
+    expect((await call('/api/me/tables/t-ana/way', { actor: ana, method: 'PUT', body: read.way })).status).toBe(200);
+    const again = db.sqlite.prepare('SELECT venue_guide FROM events WHERE id = ?').get('t-ana') as Record<string, string>;
+    expect(again.venue_guide).toBe(row.venue_guide);
   });
 
   it('clears the way when every part is left empty, and leaves out a step with nothing in it', async () => {
