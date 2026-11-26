@@ -51,7 +51,7 @@ export function publicSessionHostSql(account: string, options: { anyoneHosts?: b
   return `(${account}.status = 'active' AND (${account}.public_enabled = 1 OR (${personal}${hosted})))`;
 }
 
-export type HostDoor = 'request' | 'link';
+export type HostDoor = 'request' | 'link' | 'open';
 
 // ── Launch 3, anyone can host (todo/plans/guests-and-tea-masters-launch-3-run.md,
 // slice J1: the contract). Adrian, 2026-11-26:
@@ -66,7 +66,7 @@ export type HostDoor = 'request' | 'link';
 // - A host's first session is never listed anywhere, whatever reach says.
 // - Reach (users.host_reach: 'invitation' | 'teajia' | 'listed', NULL read
 //   as 'invitation') is set only by Adrian in Manage and read only by the
-//   server. Its routes are J10's; nothing here reads it.
+//   server (J10, below). It is never sent to any browser but his Manage.
 //
 // The switch is ANYONE_HOSTS_OPEN (src/lib/anyoneHosts.ts), read through
 // anyoneMayHost(env). It stands on Launch 2's switch (src/lib/fewHosts.ts):
@@ -78,23 +78,61 @@ export function anyoneMayHost(env: { ANYONE_HOSTS_OPEN?: string } | null | undef
   return anyoneHostsOpen(env);
 }
 
-/** What the server knows of a person as a host. Never sent to a guest. */
-export type HostStanding = { approved: boolean; stopped: boolean };
+// ── Launch 3, slice J10: reach, set by hand in Manage, and the open door.
+//
+// - 'invitation' (NULL reads as this): the host's sessions are found only by
+//   their link.
+// - 'teajia': their open sessions are shown to people signed in to Teajia
+//   (GET /api/me/sessions).
+// - 'listed': their open sessions are also on the public sessions list
+//   (GET /api/events).
+//
+// The open door is the third door. It is offered only while the Launch 3
+// switch is on, to a host who may host and is not stopped, whose reach is
+// above 'invitation'. A seat at an open table still needs the host's yes:
+// open means the table can be found, never that the house is open (the
+// floor: a seat at a private table always needs the host's yes). A guest is
+// met by request at it (hostDoorSql), so no guest reads the host's reach from
+// the door. A host's first session is never listed, whatever reach says.
+
+export type HostReach = 'invitation' | 'teajia' | 'listed';
+export const HOST_REACHES: readonly HostReach[] = ['invitation', 'teajia', 'listed'];
+
+/** The stored reach, read: NULL and anything unknown are 'invitation'. */
+export function hostReachOf(value: unknown): HostReach {
+  return value === 'teajia' || value === 'listed' ? value : 'invitation';
+}
+
+/** Whether this value is one of the three reaches (for a write). */
+export function isHostReach(value: unknown): value is HostReach {
+  return typeof value === 'string' && (HOST_REACHES as readonly string[]).includes(value);
+}
+
+/**
+ * What the server knows of a person as a host. Never sent to a guest; reach
+ * is sent to no one but Adrian's Manage.
+ */
+export type HostStanding = { approved: boolean; stopped: boolean; reach?: HostReach };
 
 /**
  * The doors a person may give their own table, or null when they may not host
  * at all. The one place the hosting gate lives. A stopped host has none. An
- * approved host has both doors. Anyone else may host only once `anyoneHosts`
- * (anyoneMayHost) is true, and then by request only. 'open' is never offered
- * here; it arrives with reach set by hand (J10), for approved hosts.
+ * approved host has request and link. Anyone else may host only once
+ * `anyoneHosts` (anyoneMayHost) is true, and then by request. The open door
+ * (J10) is added only while `anyoneHosts` is true, for a host whose reach is
+ * 'teajia' or 'listed'. With the switch off, reach changes nothing.
  *
  * `standing` may be the approval alone, as Launch 2 passed it.
  */
 export function hostDoorsFor(standing: boolean | HostStanding, anyoneHosts: boolean): HostDoor[] | null {
-  const { approved, stopped } = typeof standing === 'boolean' ? { approved: standing, stopped: false } : standing;
+  const { approved, stopped, reach } = typeof standing === 'boolean'
+    ? { approved: standing, stopped: false, reach: undefined }
+    : standing;
   if (stopped) return null;
-  if (approved) return ['request', 'link'];
-  return anyoneHosts ? ['request'] : null;
+  const doors: HostDoor[] | null = approved ? ['request', 'link'] : anyoneHosts ? ['request'] : null;
+  if (!doors) return null;
+  if (anyoneHosts && hostReachOf(reach) !== 'invitation') doors.push('open');
+  return doors;
 }
 
 /** Whether this person carries Adrian's host approval. */
@@ -105,12 +143,17 @@ export async function hostApproved(db: D1Database, userId: string): Promise<bool
   return Boolean(row);
 }
 
-/** The person's approval, and whether Adrian stopped them, in one read. */
-export async function hostStanding(db: D1Database, userId: string): Promise<HostStanding> {
-  if (!userId) return { approved: false, stopped: false };
-  const row = await db.prepare(`SELECT host_approved_at IS NOT NULL AS approved, hosting_stopped_at IS NOT NULL AS stopped
-      FROM users WHERE id = ?`).bind(userId).first<{ approved: number; stopped: number }>();
-  return { approved: Number(row?.approved) === 1, stopped: Number(row?.stopped) === 1 };
+/**
+ * The person's approval, whether Adrian stopped them, and their reach, in one
+ * read. Reach is for the server's own decisions (hostDoorsFor); no caller
+ * puts it in an answer.
+ */
+export async function hostStanding(db: D1Database, userId: string): Promise<Required<HostStanding>> {
+  if (!userId) return { approved: false, stopped: false, reach: 'invitation' };
+  const row = await db.prepare(`SELECT host_approved_at IS NOT NULL AS approved, hosting_stopped_at IS NOT NULL AS stopped,
+      host_reach AS reach
+      FROM users WHERE id = ?`).bind(userId).first<{ approved: number; stopped: number; reach: string | null }>();
+  return { approved: Number(row?.approved) === 1, stopped: Number(row?.stopped) === 1, reach: hostReachOf(row?.reach) };
 }
 
 /**
@@ -126,12 +169,36 @@ export function hostingStoppedSql(account: string): string {
 /**
  * The door a guest meets at this session. The by-link door is the approved
  * host's: a private account's table whose host no longer carries the approval
- * is met by request, so every seat needs their yes. Everything else is the
- * stored door as it is. Needs the accounts and events aliases.
+ * is met by request, so every seat needs their yes. While Launch 3 is open
+ * (`anyoneHosts`), an open table (J10) is met by request too: open is how far
+ * the table is shown, never how a seat is taken, and the guest is not told
+ * it. With the switch off an open door reads as stored, and the seat route
+ * refuses it as before. Everything else is the stored door as it is. Needs
+ * the accounts and events aliases.
  */
-export function hostDoorSql(account: string, event: string): string {
+export function hostDoorSql(account: string, event: string, options: { anyoneHosts?: boolean } = {}): string {
+  const open = options.anyoneHosts ? ` WHEN ${event}.door = 'open' THEN 'request'` : '';
   return `(CASE WHEN ${event}.door = 'link' AND ${personalAccountSql(account)} AND ${account}.host_approved_at IS NULL
-    THEN 'request' ELSE ${event}.door END)`;
+    THEN 'request'${open} ELSE ${event}.door END)`;
+}
+
+/**
+ * True for an open table whose host's reach is one of `reaches` right now:
+ * the session sits in the host's own active private account and names them
+ * as host, its door is 'open', it is published, and the host is not stopped.
+ * Reach is read at the moment of listing, so lowering it takes the tables off
+ * at once. The caller adds listableHostedSessionSql (the first session is
+ * never listed) and the day. Needs the accounts and events aliases.
+ */
+export function reachListedSessionSql(account: string, event: string, reaches: readonly Exclude<HostReach, 'invitation'>[]): string {
+  const allowed = reaches.filter(reach => reach === 'teajia' || reach === 'listed');
+  if (!allowed.length) return '0';
+  return `(${personalAccountSql(account)} AND ${account}.status = 'active'
+    AND ${event}.host_user_id = ${account}.owner_user_id
+    AND ${event}.door = 'open' AND ${event}.lifecycle_status = 'published'
+    AND EXISTS (SELECT 1 FROM users reach_host WHERE reach_host.id = ${event}.host_user_id
+      AND reach_host.hosting_stopped_at IS NULL
+      AND reach_host.host_reach IN (${allowed.map(reach => `'${reach}'`).join(', ')})))`;
 }
 
 /**
@@ -160,6 +227,18 @@ export async function setHostingStopped(db: D1Database, userId: string, stopped:
   ).bind(...(stopped ? [new Date().toISOString(), actorId, userId] : [userId])).run();
   if (!result.meta?.changes) return null;
   return { stopped };
+}
+
+/**
+ * Set one host's reach. The caller has already checked that the actor is the
+ * platform owner and that `reach` is one of the three. Nothing else changes:
+ * a table already open stays open, and is shown as far as the new reach says
+ * (reachListedSessionSql reads it at the moment of listing).
+ */
+export async function setHostReach(db: D1Database, userId: string, reach: HostReach) {
+  const result = await db.prepare('UPDATE users SET host_reach = ? WHERE id = ?').bind(reach, userId).run();
+  if (!result.meta?.changes) return null;
+  return { reach };
 }
 
 /**

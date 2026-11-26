@@ -4,8 +4,11 @@
 // anyone who may not host yet (in Launch 2, anyone Adrian has not approved).
 import type { VenueGuide } from '../types/events';
 
-/** 'open' exists in the table's check but every route refuses it until Launch 3. */
-export type HostedTableDoor = 'request' | 'link';
+/**
+ * 'open' (Launch 3, J10) is offered in `doors` only to a host Teajia chose to
+ * show more widely; a seat there still needs the host's yes.
+ */
+export type HostedTableDoor = 'request' | 'link' | 'open';
 /**
  * doors: what this person may give a table, or null when they may not host yet.
  * stopped (Launch 3): present and true only when Teajia paused their hosting; told to them alone.

@@ -13,7 +13,7 @@ import { enteredTastingFlag, eventTastingSessionId, joinEventTasting } from './s
 import { boughtLineChestState, boughtLineQuantityUnit, keepBoughtLine, type BoughtOrder } from './chestKeep';
 import { firstTableOpen } from '../../src/lib/firstTable';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
-import { anyoneMayHost, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostStanding, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, setHostApproval, setHostingStopped } from './hostApproval';
+import { anyoneMayHost, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
 import { isWalkthroughMedia, mayShowWalkthrough, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { guestLinkSessions, withoutForeignGuestLinks } from './guestLinkHolders';
 import { createHostedTable, type HostedTableDoor } from './hostTable';
@@ -12495,7 +12495,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.account_id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.guidelines_text, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
-            e.requires_approval, ${hostDoorSql('a', 'e')} AS door, e.venue_id, e.reading_article_id, e.host_user_id, e.contribution_kind, e.contribution_note,
+            e.requires_approval, ${hostDoorSql('a', 'e', { anyoneHosts: fewHostsAnyoneHosts(env) })} AS door, e.venue_id, e.reading_article_id, e.host_user_id, e.contribution_kind, e.contribution_note,
             v.photos AS venue_photos,
             a.name AS account_name,
             a.location_country AS account_location_country,
@@ -12730,7 +12730,20 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
 
 // GET /api/events — public upcoming events list
 // Scoped to platform-owner accounts so multi-tenant events don't bleed through.
-const handleListPublicEvents: Handler = async (_request, env, _params) => {
+//
+// Launch 3, J10: with ANYONE_HOSTS_OPEN on, the list also carries the open
+// tables of hosts Adrian set to 'listed' (reachListedSessionSql): published,
+// to come, the host not stopped, never their first session. The columns are
+// the same for every row, and none of them is the address or the reach.
+// GET /api/me/sessions is the same list for a signed-in person, who also
+// sees the open tables of hosts set to 'teajia'.
+function listedSessionsSql(env: Env, reaches: Exclude<HostReach, 'invitation'>[]): string {
+  const shop = `(a.is_platform_owner = 1 AND ${PUBLIC_EVENT_DISCOVERY} AND ${PUBLIC_EVENT_HOST})`;
+  if (!fewHostsOpen(env) || !anyoneMayHost(env)) return shop;
+  return `(${shop} OR ${reachListedSessionSql('a', 'e', reaches)})`;
+}
+
+async function upcomingListedSessions(env: Env, reaches: Exclude<HostReach, 'invitation'>[]) {
   const rows = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
             e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status,
@@ -12745,14 +12758,13 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
      JOIN accounts a ON a.id = e.account_id
      WHERE e.status = 'active'
        AND e.event_date >= datetime('now')
-       AND a.is_platform_owner = 1
-       AND ${PUBLIC_EVENT_DISCOVERY} AND ${PUBLIC_EVENT_HOST}
+       AND ${listedSessionsSql(env, reaches)}
        AND ${listableHostedSessionSql('e')}
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
 
-  const events = (rows.results ?? []).map((ev) => {
+  return (rows.results ?? []).map((ev) => {
     const confirmedCount = (ev.confirmed_count as number) || 0;
     const offeredCount = (ev.offered_count as number) || 0;
     return {
@@ -12762,8 +12774,23 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
       seats_remaining: Math.max(0, (ev.total_capacity as number) - confirmedCount - offeredCount),
     };
   });
+}
 
-  return swrJson(events, 300, 3600);
+const handleListPublicEvents: Handler = async (_request, env, _params) => {
+  return swrJson(await upcomingListedSessions(env, ['listed']), 300, 3600);
+};
+
+// GET /api/me/sessions. The sessions list for a person signed in to Teajia:
+// everything the public list carries, and the open tables of hosts Adrian
+// set to 'teajia'. Private to the person and never cached between people.
+// Only while Launch 3 is open; otherwise there is no such route.
+const handleListSignedInSessions: Handler = async (request, env) => {
+  if (!fewHostsOpen(env) || !anyoneMayHost(env)) return json({ error: 'Not found' }, 404);
+  const ctx = await requireAuthenticatedUser(request, env);
+  if ('error' in ctx) return ctx.error;
+  const response = json(await upcomingListedSessions(env, ['teajia', 'listed']));
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
@@ -12774,7 +12801,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
     `SELECT e.id, e.account_id, e.total_capacity, e.claim_window_minutes, e.requires_approval, e.lifecycle_status,
-            ${hostDoorSql('a', 'e')} AS door, ${hostingStoppedSql('a')} AS host_stopped
+            ${hostDoorSql('a', 'e', { anyoneHosts: fewHostsAnyoneHosts(env) })} AS door, ${hostingStoppedSql('a')} AS host_stopped
      FROM events e JOIN accounts a ON a.id = e.account_id
      WHERE e.slug = ? AND e.status = 'active'
        AND ${PUBLIC_EVENT_DIRECT} AND ${sessionLinkHostSql(env)}`
@@ -17209,6 +17236,24 @@ const handleHostingStopped: Handler = async (request, env, params) => {
   return changeHostingStopped(env, params.id, body.stopped, actor?.sub ?? 'unknown', actor?.email ?? '');
 };
 
+// PUT /api/platform/users/:id/host-reach {reach}. Adrian alone (Launch 3,
+// J10): how far this host's open tables are shown. 'invitation' (by their
+// link only), 'teajia' (to people signed in), 'listed' (the public sessions
+// list). Only while Launch 3 is open. Read by the server only; the answer
+// goes to his Manage and nowhere else.
+const handleHostReach: Handler = async (request, env, params) => {
+  if (!fewHostsOpen(env) || !anyoneMayHost(env)) return fewHostsClosed();
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { reach?: unknown } | null;
+  if (!isHostReach(body?.reach)) return json({ error: 'Say how far this host’s tables are shown: invitation, teajia or listed.' }, 400);
+  const actor = parseToken(isAuthed(request)!);
+  const result = await setHostReach(env.DB, params.id, body.reach);
+  if (!result) return json({ error: 'User not found' }, 404);
+  await logPlatformAction(env, 'host.reach_changed', actor?.sub ?? 'unknown', actor?.email ?? '', 'user', params.id, { reach: body.reach });
+  return json({ ok: true, host_reach: result.reach });
+};
+
 async function changeHostingStopped(env: Env, userId: string, stopped: boolean, actorId: string, email: string) {
   const result = await setHostingStopped(env.DB, userId, stopped, actorId);
   if (!result) return json({ error: 'User not found' }, 404);
@@ -17248,7 +17293,7 @@ function validTimeZone(zone: string): boolean {
   }
 }
 
-function readHostedTableInput(body: Record<string, unknown> | null):
+function readHostedTableInput(body: Record<string, unknown> | null, doors: HostedTableDoor[]):
   | { date: string; time: string; timezone: string; seats: number; door: HostedTableDoor; name: string | null }
   | { refusal: Response } {
   const refuse = (message: string, code: string) => ({ refusal: restError(400, message, code) });
@@ -17270,8 +17315,9 @@ function readHostedTableInput(body: Record<string, unknown> | null):
     seats = body.seats;
   }
   const doorInput = body.door ?? 'request';
-  // 'open' is allowed by the table's check but refused until Launch 3.
-  if (doorInput !== 'request' && doorInput !== 'link') {
+  // 'open' (Launch 3, J10) is read only for a host hostDoorsFor offers it to;
+  // anyone else is refused it exactly as before, with nothing naming reach.
+  if (doorInput !== 'request' && doorInput !== 'link' && !(doorInput === 'open' && doors.includes('open'))) {
     return refuse('A table opens by request or by link.', 'hosted_table_door');
   }
   let name: string | null = null;
@@ -17290,7 +17336,7 @@ function readHostedTableInput(body: Record<string, unknown> | null):
 const handleCreateHostedTable: Handler = async (request, env) => {
   const host = await requireFewHostsHost(request, env);
   if ('error' in host) return host.error;
-  const input = readHostedTableInput(await request.json().catch(() => null) as Record<string, unknown> | null);
+  const input = readHostedTableInput(await request.json().catch(() => null) as Record<string, unknown> | null, host.doors);
   if ('refusal' in input) return input.refusal;
   // The by-link door is the approved host's (Adrian, 2026-11-26).
   if (host.stopped) return hostingStoppedAnswer('table');
@@ -23332,6 +23378,9 @@ function effectiveFeatures(
 const handlePlatformListUsers: Handler = async (request, env) => {
   const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
+  // Reach (Launch 3, J10) goes to the platform owner's Manage alone.
+  const reachVisible = fewHostsOpen(env) && anyoneMayHost(env)
+    && await resolveDbPlatformRole(env, parseToken(isAuthed(request)!)?.sub ?? '') === 'platform_owner';
 
   const { results } = await env.DB.prepare(
     `SELECT u.id, u.email, u.name, u.username, u.platform_role, u.created_at,
@@ -23341,6 +23390,7 @@ const handlePlatformListUsers: Handler = async (request, env) => {
               AND pa.personal_seller_approved_at IS NOT NULL)) AS seller_approved,
             u.host_approved_at,
             u.hosting_stopped_at,
+            u.host_reach,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -23368,6 +23418,9 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     ...(fewHostsOpen(env) ? { may_host: u.host_approved_at != null, host_approved_at: u.host_approved_at ?? null } : {}),
     // Launch 3: whether Adrian stopped this person's hosting. Shown on this screen only.
     ...(fewHostsOpen(env) ? { hosting_stopped_at: u.hosting_stopped_at ?? null } : {}),
+    // Launch 3, J10: how far this host's open tables are shown. To the
+    // platform owner alone (Adrian's Manage), never to a platform admin.
+    ...(reachVisible ? { host_reach: hostReachOf(u.host_reach) } : {}),
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
@@ -32146,6 +32199,7 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/platform/users/:id/seller-approval', handleSellerApproval],
   ['PUT',  '/api/platform/users/:id/host-approval', handleHostApproval],
   ['PUT',  '/api/platform/users/:id/hosting-stopped', handleHostingStopped],
+  ['PUT',  '/api/platform/users/:id/host-reach', handleHostReach],
   ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
   ['GET',  '/api/platform/all-stock', handlePlatformAllStock],
@@ -32474,6 +32528,7 @@ const routes: [string, string, Handler][] = [
 
   // Events — Public
   ['GET', '/api/events', handleListPublicEvents],
+  ['GET', '/api/me/sessions', handleListSignedInSessions],
   ['GET', '/api/events/:slug/public', handleGetEventBySlug],
   ['GET', '/api/events/:slug/tea-menu', handleGetPublicTeaMenu],
   ['GET', '/api/events/:slug/recap', handleGetPublicEventRecap],
