@@ -61,3 +61,30 @@ export function guestWhatsApp(guest: Pick<HostedTableGuest, 'phone'>): string | 
   const digits = guest.phone?.replace(/\D/g, '') ?? '';
   return digits.length >= 6 ? `https://wa.me/${digits}` : null;
 }
+
+export interface TableLink { key: 'recap' | 'tea-table' | 'card'; to: string; label: string }
+
+/**
+ * Where a table's own page leads on (review U1-2, U1-14): the recap in Manage, the Tea Table, and
+ * the card to print. One tap each from the page of the table, shown only when the part's own switch
+ * is open and the person can use the place (Manage and the card are the shop owner's).
+ */
+export function tableLinks(
+  table: { id: string; slug: string; public_visibility: string; lifecycle_status: string },
+  open: { isAdmin: boolean; teaTable: boolean; card: boolean },
+): TableLink[] {
+  const links: TableLink[] = [];
+  if (open.isAdmin) {
+    links.push({
+      key: 'recap',
+      to: `/admin/events/${encodeURIComponent(table.id)}?tab=post-session`,
+      label: open.teaTable ? 'Write the recap and share it on the Tea Table' : 'Write the recap',
+    });
+  }
+  if (open.teaTable) links.push({ key: 'tea-table', to: '/tea-table', label: 'See the Tea Table' });
+  if (open.isAdmin && open.card && table.slug && table.public_visibility === 'public'
+    && !['cancelled', 'archived'].includes(table.lifecycle_status)) {
+    links.push({ key: 'card', to: `/admin/events/${encodeURIComponent(table.slug)}/card`, label: 'Print a card for the table' });
+  }
+  return links;
+}

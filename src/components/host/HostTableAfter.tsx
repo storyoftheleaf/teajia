@@ -11,6 +11,7 @@ import { api } from '../../lib/api';
 import { anyoneHostsOpen } from '../../lib/anyoneHosts';
 import type { HostedTableGuest } from '../../lib/hostingApi';
 import { GuestBookPrivate } from './GuestBookPrivate';
+import { HostTableLinks } from './HostTableLinks';
 import { sessionMoment } from '../../../shared/sessionEnd';
 import { hostSmallText, hostTableQueryKey, hostText, tableHasBegun, type HostTablePartProps } from './hostTableParts';
 
@@ -26,6 +27,7 @@ export function HostTableAfter(props: HostTablePartProps) {
   return (
     <section aria-labelledby="host-part-after" data-host-part="after" className="space-y-5">
       <h2 id="host-part-after" className={TYPOGRAPHY_CLASSES.h2}>After</h2>
+      <HostTableLinks {...props} only={['recap', 'tea-table']} />
       {ended ? <WhoCame {...props} /> : <p className={hostText}>When the table has ended, mark who came here.</p>}
       {anyoneHostsOpen() && ['completed', 'archived'].includes(detail.table.lifecycle_status) &&
         <GuestBookReview eventId={props.tableId} reviewer="host" />}
@@ -37,7 +39,8 @@ export function HostTableAfter(props: HostTablePartProps) {
 function WhoCame({ tableId, detail }: HostTablePartProps) {
   const [marking, setMarking] = useStepParam('mark');
   const coming = detail.guests.filter(guest => guest.status === 'confirmed');
-  const came = coming.filter(guest => guest.attended === 1);
+  const thanks = thanksGuests(coming);
+  const unmarked = coming.some(guest => guest.attended == null);
 
   if (marking === 'came') {
     return <MarkWhoCame tableId={tableId} guests={coming} onDone={() => setMarking(null)} />;
@@ -47,11 +50,12 @@ function WhoCame({ tableId, detail }: HostTablePartProps) {
       <Button type="button" variant="secondary" className="tap-target" onClick={() => setMarking('came')}
         disabled={coming.length === 0}>Mark who came</Button>
       {coming.length === 0 && <p className={hostSmallText}>Nobody had a seat at this table.</p>}
-      {came.length > 0 && (
+      {thanks.length > 0 && (
         <ul className="space-y-2" aria-label="Who came">
-          {came.map(guest => <ThanksRow key={guest.id} tableId={tableId} guest={guest} />)}
+          {thanks.map(guest => <ThanksRow key={guest.id} tableId={tableId} guests={coming} guest={guest} />)}
         </ul>
       )}
+      {unmarked && <p className={hostSmallText}>Copying a thank-you link counts everyone you have not marked as having come. Change it under Mark who came.</p>}
     </div>
   );
 }
@@ -92,12 +96,24 @@ function MarkWhoCame({ tableId, guests, onDone }: { tableId: string; guests: Hos
   );
 }
 
-function ThanksRow({ tableId, guest }: { tableId: string; guest: HostedTableGuest }) {
+/** Everyone who has a seat and is not marked as absent: each gets a thank-you link at once (review U1-7). */
+export function thanksGuests(confirmed: HostedTableGuest[]): HostedTableGuest[] {
+  return confirmed.filter(guest => guest.status === 'confirmed' && guest.attended !== 0);
+}
+
+function ThanksRow({ tableId, guest, guests }: { tableId: string; guest: HostedTableGuest; guests: HostedTableGuest[] }) {
+  const queryClient = useQueryClient();
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
   async function copy() {
     setBusy(true);
     try {
+      // A link is for a guest who came; until the host has marked who came, the tap marks them as the
+      // Mark screen opens (everyone not marked absent) and then copies, one tap instead of four.
+      if (guest.attended !== 1) {
+        await api.tables.markWhoCame(tableId, thanksGuests(guests).map(each => each.id));
+        await queryClient.invalidateQueries({ queryKey: hostTableQueryKey(tableId) });
+      }
       const issued = await api.tables.thanksLink(tableId, guest.id);
       const url = new URL('/after-sit', window.location.origin);
       url.hash = issued.credential;
