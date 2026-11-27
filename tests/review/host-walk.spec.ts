@@ -86,8 +86,13 @@ async function makeTable(w: Walk, opts: { daysAhead: number; door?: 'request' | 
   await page.locator('input[name="date"]').fill(day(opts.daysAhead));
   await page.locator('input[name="time"]').fill('16:30');
   if (opts.door && opts.door !== 'request') await page.locator(`input[name="door"][value="${opts.door}"]`).check();
+  const sent = {
+    door: await page.locator('input[name="door"]:checked').getAttribute('value'),
+    seats: await page.locator('input[name="seats"]').inputValue(),
+  };
   await page.getByRole('button', { name: 'Make the table' }).click();
   await expect(page.getByRole('heading', { name: 'Your table is ready' })).toBeVisible({ timeout: 20_000 });
+  return sent;
 }
 
 async function readyTableId(w: Walk): Promise<string> {
@@ -160,13 +165,14 @@ for (const who of ['ana', 'jun'] as const) {
     // ── 1. From Home, starts a table (2) ────────────────────────────────────
     await openHome(w);
     let first = '';
+    let firstSent = { door: '', seats: '' } as { door: string | null; seats: string };
     await step(w, '1', 'from Home, start a table', { clicks: 2 }, async () => {
       await w.page.getByRole('link', { name: /Host a table/ }).first().click();
       await expect(w.page.getByRole('heading', { name: 'Host a table' })).toBeVisible({ timeout: 20_000 });
       note(w, 'form', `fields on the make-a-table form: ${JSON.stringify(await formFieldsAsked(w))}`);
       const doors = await w.page.locator('input[name="door"]').evaluateAll(els => els.map(el => (el as HTMLInputElement).value));
       note(w, 'form', `doors offered: ${doors.join(', ')}`);
-      await makeTable(w, { daysAhead: 9 });
+      firstSent = await makeTable(w, { daysAhead: 9 });
       first = await readyTableId(w);
     });
 
@@ -184,15 +190,19 @@ for (const who of ['ana', 'jun'] as const) {
     let second = '';
     if (isAna) {
       await step(w, '2a', 'a second table, by link', 1, async () => {
-        await w.page.goBack();
+        await w.page.getByRole('button', { name: 'Make another table' }).click();
         await expect(w.page.getByRole('heading', { name: 'Host a table' })).toBeVisible();
-        note(w, 'form', `after Back the day field holds "${await w.page.locator('input[name="date"]').inputValue()}"`);
+        const dayHeld = await w.page.locator('input[name="date"]').inputValue();
+        const doorHeld = await w.page.locator('input[name="door"]:checked').getAttribute('value');
+        note(w, 'form', `after "Make another table" the day holds "${dayHeld}", the door is ${doorHeld}`);
+        finding(w, 'W2-1', dayHeld === '' && doorHeld === firstSent.door && (await w.page.locator('input[name="seats"]').inputValue()) === firstSent.seats, 'the second form opens with the day empty and the seats and door of the last table');
         await makeTable(w, { daysAhead: 12, door: 'link' });
         second = await readyTableId(w);
       }, { history: false });
       await step(w, '2b', 'a third table, open', 1, async () => {
-        await w.page.goBack();
+        await w.page.getByRole('button', { name: 'Make another table' }).click();
         await expect(w.page.getByRole('heading', { name: 'Host a table' })).toBeVisible();
+        finding(w, 'W2-1', (await w.page.locator('input[name="door"]:checked').getAttribute('value')) === 'link', 'the third form opens with the door of the last table (link)');
         await makeTable(w, { daysAhead: 15, door: 'open' });
       }, { history: false });
     } else {
@@ -431,7 +441,8 @@ for (const who of ['ana', 'jun'] as const) {
     await w.page.goto('/account/host');
     await step(w, '11a', 'make an assistant key', 2, async () => {
       await w.page.getByRole('button', { name: 'Connect an assistant' }).click();
-      await w.page.getByLabel('Name it').fill(`ChatGPT ${RUN}`);
+      // W6-7: "Name it" opens as "My assistant", so the common case types nothing.
+      await expect(w.page.getByLabel('Name it')).toHaveValue('My assistant');
       await w.page.getByRole('button', { name: 'Make the key' }).click();
       await expect(w.page.getByTestId('host-assistant-secret-value')).toBeVisible();
     }, { history: false });
@@ -448,6 +459,7 @@ for (const who of ['ana', 'jun'] as const) {
       await w.page.goForward();
       await w.page.waitForTimeout(800);
       const still = await w.page.getByTestId('host-assistant-secret-value').count();
+      if (still > 0) note(w, 'history', '11x: the key shown once is still on the screen after Back and Forward');
       finding(w, 'W2-10', still > 0, 'Back then Forward on the screen that shows the key once leaves a blank "Name it" form: the key that was made is gone and cannot be shown again');
       const stray = w.page.getByRole('button', { name: 'Cancel' });
       if (await stray.count()) await stray.first().click();

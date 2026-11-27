@@ -37,7 +37,7 @@ import { sharedTeaRecordId, sharedTeaRecordHref } from '../../lib/sharedTeaRecor
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { addTeaToDraftOrder } from '../../components/CurateV2/orderBuy';
-import { buildProductUpdatePayload } from '../productUpdatePayload';
+import { buildProductUpdatePayload, enteredNumber } from '../productUpdatePayload';
 import { shopRateInCurrency, shippingRateUsdFor } from '../../lib/shippingRate';
 import { isoCurrencyCode, rateToUsd } from '../../lib/currency';
 import { useShopFreightDefault } from '../hooks/useAdminData';
@@ -1541,7 +1541,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       aria-label="Cost currency"
                       title={product.costCurrency ? undefined : 'No currency recorded. The cost is a number with no unit.'}
                     >
-                      <option value="UNK" className="bg-admin-surface text-admin-text">—</option>
+                      <option value="UNK" className="bg-admin-surface text-admin-text">-</option>
                       {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
                         <option key={c} value={c} className="bg-admin-surface text-admin-text">{isoCurrencyCode(c)}</option>
                       ))}
@@ -1563,7 +1563,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     disabled={costRateToUsd === null}
                     onSave={(val) => {
                       if (costRateToUsd === null) return;
-                      handleUpdate(product.id, 'shippingRatePerKg', String(val).trim() === '' ? null : (Number(val) || 0) * costRateToUsd);
+                      const entered = enteredNumber(val);
+                      if (String(val).trim() === '') handleUpdate(product.id, 'shippingRatePerKg', null);
+                      else if (entered !== null) handleUpdate(product.id, 'shippingRatePerKg', entered * costRateToUsd); // an unreadable entry changes nothing
                     }}
                     type="number"
                     className="tabular-nums"
@@ -1598,7 +1600,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       {hasOverride ? '. ' : ', which is what the shop charges. '}
                       <button type="button" aria-expanded={breakdownOpen} className="tap-target text-tea-gold" onClick={() => setBreakdownOpen(!breakdownOpen)}>{breakdownOpen ? 'Hide the sums' : 'Show the sums'}</button>
                       {breakdownOpen && <div className="mt-2 space-y-1.5">
-                        <div className="flex justify-between"><span>Source cost / g</span><span className="text-admin-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || '—'}</span></div>
+                        <div className="flex justify-between"><span>Source cost / g</span><span className="text-admin-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || '-'}</span></div>
                         <div className="flex justify-between"><span>Exchange rate</span><span className="text-admin-text tabular-nums">{calc.rateUsed}</span></div>
                         <div className="flex justify-between"><span>True cost (USD)</span><span className="text-admin-text tabular-nums">${calc.trueCostUSD.toFixed(3)} / g</span></div>
                         <div className="flex justify-between"><span>3× markup</span><span className="text-admin-text tabular-nums">${calc.suggestedRetailUSD.toFixed(2)} / g</span></div>
@@ -1683,7 +1685,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   // Sealed tea: the shop offers whole multiples of one unit and nothing smaller.
                   ['soldInWholeUnits', 'Whole units only', 'Sold only as whole sealed units'],
                 ] as const).map(([field, label, hint]) => (
-                  <button key={field} type="button" title={hint} aria-pressed={Boolean(product[field])}
+                  <button key={field} type="button" title={hint} aria-pressed={Boolean(product[field])} className="tap-target"
                     aria-label={field === 'isSample' ? 'Sample-size offering' : field === 'soldInWholeUnits' ? 'Sold only in whole units' : label}
                     onClick={() => handleUpdate(product.id, field, !product[field])}>
                     <span className="curate-v2-label">{label}</span><span className="tea-page-toggle" aria-hidden="true" />

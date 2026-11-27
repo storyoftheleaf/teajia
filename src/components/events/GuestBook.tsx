@@ -109,7 +109,9 @@ function GuestBookPanel({ token, afterSitKey, setupId, teas, identity }: {
   const noteChanged = Boolean(note && (note !== own?.note || placementChanged));
   const noteCleared = Boolean(own?.note && !note);
   const photoUnavailable = Boolean(active.photo && !chosen);
-  const canSend = active.confirmed && !photoUnavailable && !noteCleared && (noteChanged || Boolean(chosen));
+  // Sending words is itself the consent to share them with the host (the line beside the button says so).
+  // Only a photograph needs its own tick: "I have permission to share this photo".
+  const canSend = (active.confirmed || !chosen) && !photoUnavailable && !noteCleared && (noteChanged || Boolean(chosen));
   const showEditor = !hasEntry || draft !== null;
 
   const attachedPhotos = contributed.length > 0 && (
@@ -214,15 +216,21 @@ function GuestBookPanel({ token, afterSitKey, setupId, teas, identity }: {
                     </Button>
                   </div>
                 )}
-                <label className="flex min-h-tap cursor-pointer items-center gap-2 text-ui-13 text-tea-text-sec">
-                  <input type="checkbox" className="h-4 w-4 shrink-0 accent-tea-gold"
-                    checked={active.confirmed} disabled={write.isPending}
-                    onChange={event => update({ confirmed: event.target.checked })} />
-                  <span>
-                    Share this entry with the host and, if approved, with this session’s guests under my name.
-                    {chosen && ' I have permission to share this photo.'}
-                  </span>
-                </label>
+                {chosen ? (
+                  <label className="flex min-h-tap cursor-pointer items-center gap-2 text-ui-13 text-tea-text-sec">
+                    <input type="checkbox" className="h-4 w-4 shrink-0 accent-tea-gold"
+                      checked={active.confirmed} disabled={write.isPending}
+                      onChange={event => update({ confirmed: event.target.checked })} />
+                    <span>
+                      Share this entry with the host and, if approved, with this session’s guests under my name.
+                      {' '}I have permission to share this photo.
+                    </span>
+                  </label>
+                ) : (
+                  <p className="text-ui-13 text-tea-text-sec">
+                    Sending shares this entry with the host and, if approved, with this session’s guests under my name.
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   {hasEntry && <Button type="button" variant="quiet" size="sm" disabled={write.isPending}
                     onClick={() => { setDraft(null); write.reset(); }}>Cancel</Button>}

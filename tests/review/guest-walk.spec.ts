@@ -360,7 +360,7 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
 
   // ── 5 ────────────────────────────────────────────────────────────────────
   test('5. after: the thank-you shows the teas with links and prices; she keeps a tea (1), leaves words and a photograph and chooses to be named (2 plus typing)', async ({ page }, info) => {
-    test.fail(true, 'W1-5 and W1-14');
+    test.fail(true, 'W1-5');
     test.setTimeout(240_000);
     const q = quiet(page);
     await signInWithToken(page, 'mei');
@@ -383,9 +383,8 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
     await task(page, '5b leave words and choose to be named (2, one field)', { clicks: 2, fields: 1 }, async () => {
       await page.getByLabel('Note (optional)').fill('The white opened slowly; honey on the lid.');
       await page.getByLabel(/show it on the public recap under my first name/i).check();
-      // W1-14 (S3): "Send for review" stays disabled until a second tick, "Share this entry with the host", with nothing saying so.
+      // W1-14: sending words is itself the consent to share with the host, so the button is ready at once.
       await expect.soft(page.getByRole('button', { name: 'Send for review' }), 'W1-14 the send button is ready once words are written').toBeEnabled();
-      await page.getByLabel(/Share this entry with the host/i).check();
       await page.getByRole('button', { name: 'Send for review' }).click();
       await expect(page.getByText(/Pending host review/i).first()).toBeVisible({ timeout: 15_000 });
     }, info);
@@ -409,7 +408,6 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
 
   // ── 6 ────────────────────────────────────────────────────────────────────
   test('6. she buys a tea from the thank-you through to the order (3)', async ({ page }, info) => {
-    test.fail(true, 'W1-7');
     test.setTimeout(240_000);
     const q = quiet(page);
     await signInWithToken(page, 'mei');
@@ -430,7 +428,7 @@ test.describe(`W1 the guest (site ${SITE_SET}, worker ${WORKER_SET})`, () => {
       await page.getByRole('button', { name: 'Place order request' }).click();
       await expect(page.getByText('Request received')).toBeVisible({ timeout: 15_000 });
     }, info);
-    // W1-7 (S3): she is signed in and the order form asks her name and email.
+    // W1-7: signed in, her name and email come from the account and are not asked.
     expect.soft(knownAsked, `W1-7 the order form asks a signed-in guest for her name and email (typed ${knownAsked} of 2; ${fieldsAsked} fields in all)`).toBe(0);
     // W1-8 (S3): the walk asks for a WhatsApp order; the rig's shop offers only a reply by email.
     await noSideScroll(page, 'the order');

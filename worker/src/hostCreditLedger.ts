@@ -936,7 +936,9 @@ export async function approveHostCreditSpend(
   if (overCeiling && !input.confirmOverCeiling) {
     return {
       ok: false, error: 'over_ceiling',
-      message: `This uses ${amount.toFixed(2)} ${request.currency} of credit on one order, more than the shop's ceiling of ${(terms?.ceilingUsd ?? 0).toFixed(2)} ${HOST_CREDIT_CURRENCY}. Approve again to confirm it.`,
+      message: terms && terms.ceilingUsd !== null
+        ? `This uses ${amount.toFixed(2)} ${request.currency} of credit on one order, more than the shop's ceiling of ${terms.ceilingUsd.toFixed(2)} ${HOST_CREDIT_CURRENCY}. Approve again to confirm it.`
+        : `This uses ${amount.toFixed(2)} ${request.currency} of credit on one order, and the shop has not set a ceiling. Approve again to confirm it.`,
     };
   }
 

@@ -59,7 +59,8 @@ test('W6-d make an assistant key', async ({ page }, info) => {
   await page.goto('/account/host');
   await task(page, 'W6 assistant key', 2, async () => {
     await page.getByTestId('host-assistant').getByRole('button').first().click();
-    await page.getByTestId('host-assistant-new').locator('input').fill('My assistant');
+    // W6-7: the name opens as "My assistant"; nothing to type.
+    await expect(page.getByTestId('host-assistant-new').locator('input')).toHaveValue('My assistant');
     await page.getByRole('button', { name: 'Make the key' }).click();
     await expect(page.getByTestId('host-assistant-secret')).toBeVisible();
     await page.getByRole('button', { name: 'Done' }).click();
@@ -84,6 +85,20 @@ test('W6-f Back on Favourites reached directly', async ({ page }) => {
   await page.getByRole('button', { name: 'Back' }).click();
   await page.waitForTimeout(800);
   note('favourites back, address after Back', page.url());
+  // W6-2: Back with no earlier page goes to Your Table, never off the site.
+  expect(new URL(page.url()).pathname).toBe('/account');
+});
+
+test('W6-h Back closes a photograph on the Tea Table', async ({ page }) => {
+  await signIn(page, 'guest');
+  await page.goto('/tea-table');
+  const photo = page.locator('button.photo-thumb').first();
+  test.skip(await photo.count() === 0, 'the rig has no photograph on the Tea Table');
+  await photo.click();
+  await expect(page.getByTestId('photograph-zoom')).toBeVisible();
+  await page.goBack();
+  await expect(page.getByTestId('photograph-zoom')).toHaveCount(0);
+  expect(new URL(page.url()).pathname).toBe('/tea-table');
 });
 
 test('W6-g choose your table place', async ({ page }, info) => {

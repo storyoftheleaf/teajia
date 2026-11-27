@@ -48,6 +48,8 @@ export interface HostedTableSummary {
   door: HostedTableDoor | 'open' | null;
   seats: number;
   lifecycle_status: string;
+  /** The area the public page shows, when the host gave one. In the list, so a new table can start from it. */
+  area_hint?: string | null;
   guests: { confirmed: number; requested: number; waitlist: number };
   link: string;
 }
