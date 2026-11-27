@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useInRouterContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { RectangleHorizontal, RectangleVertical, Square, X } from 'lucide-react';
 import { Button } from './Button';
@@ -65,11 +66,56 @@ export function PhotographThumb({ photo, size = 'row', onOpen, testId, label, cl
  * The zoom. The photograph, cropped to its shape, with whatever the caller puts
  * under it: the credit, and the actions that belong to this photograph.
  */
-export function PhotographZoom({ photo, onClose, children }: {
+export interface PhotographZoomProps {
   photo: ZoomPhotograph | null;
   onClose: () => void;
   children?: React.ReactNode;
-}) {
+  /** The caller already keeps the open photograph in the address (PersonTastings does). */
+  ownHistory?: boolean;
+}
+
+/**
+ * Opening a photograph is a step in the address (`?zoom=<id>`), so the browser's
+ * Back closes it instead of leaving the page (CLAUDE.md, "Back and forward").
+ * Done once here, so every page that shows the zoom follows.
+ */
+export function PhotographZoom(props: PhotographZoomProps) {
+  const routed = useInRouterContext();
+  return routed && !props.ownHistory ? <ZoomWithHistory {...props} /> : <ZoomView {...props} />;
+}
+
+function ZoomWithHistory({ photo, onClose, children }: PhotographZoomProps) {
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const open = Boolean(photo);
+  const id = photo?.id ?? '';
+  const inAddress = params.get('zoom') !== null;
+  const seen = useRef(false);
+
+  useEffect(() => {
+    if (open && !inAddress && !seen.current) {
+      setParams(current => { const next = new URLSearchParams(current); next.set('zoom', id); return next; });
+    } else if (open && inAddress) {
+      seen.current = true;
+    } else if (open && !inAddress && seen.current) {
+      // Back was pressed: the entry went away, so the photograph closes.
+      seen.current = false;
+      onClose();
+    } else if (!open && inAddress && seen.current) {
+      // The page closed it itself (an action on the photograph): drop the stale step quietly.
+      seen.current = false;
+      setParams(current => { const next = new URLSearchParams(current); next.delete('zoom'); return next; }, { replace: true });
+    }
+  }, [open, inAddress, id, onClose, setParams]);
+
+  const close = useCallback(() => {
+    if (seen.current) navigate(-1);
+    else onClose();
+  }, [navigate, onClose]);
+  return <ZoomView photo={photo} onClose={close}>{children}</ZoomView>;
+}
+
+function ZoomView({ photo, onClose, children }: PhotographZoomProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(photo);
   useEffect(() => {

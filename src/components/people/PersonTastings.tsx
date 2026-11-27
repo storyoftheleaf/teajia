@@ -95,7 +95,7 @@ function PhotographGrid({ tasting }: { tasting: FamilyPersonTasting }) {
           <li key={photo.id}><PhotographThumb photo={toZoom(photo)} size="page" onOpen={openPhoto} /></li>
         ))}
       </ul>
-      <PhotographZoom photo={open ? toZoom(open) : null} onClose={closePhoto}>
+      <PhotographZoom ownHistory photo={open ? toZoom(open) : null} onClose={closePhoto}>
         {open?.photograph_by && <p className="photo-zoom__credit">Photograph by {open.photograph_by}</p>}
       </PhotographZoom>
     </>

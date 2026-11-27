@@ -4,6 +4,8 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { hostArticleOffersApi, offerStatusLabel, useOfferScope } from '../../lib/hostArticleOffersApi';
 import { Button } from '../shared/Button';
 import { HostArticleOfferForm } from './HostArticleOfferForm';
+import { LoadFailed } from '../shared/LoadFailed';
+import { PART_QUERY, partView } from '../../lib/closedPart';
 
 export function MyHostArticleOffers({ writing, onStep }: { writing: boolean; onStep: (step: string | null) => void }) {
   const scope = useOfferScope();
@@ -14,7 +16,11 @@ export function MyHostArticleOffers({ writing, onStep }: { writing: boolean; onS
     queryFn: ({ signal }) => hostArticleOffersApi.mine(scope!, signal),
     enabled: !!scope,
     staleTime: 0,
+    ...PART_QUERY,
   });
+  const view = partView(query);
+  // A 404 is the worker not open yet (A10-3): offers are not offered, quietly.
+  const failed = view.state === 'failed';
 
   if (writing) {
     return (
@@ -35,12 +41,12 @@ export function MyHostArticleOffers({ writing, onStep }: { writing: boolean; onS
           </>
         ) : (
           <>
-            <p role={query.isError ? 'alert' : 'status'} className="text-ui-14 text-tea-text-sec">
-              {query.isError ? 'Your writing page could not be loaded.' : query.isPending ? 'Loading your writing page…' : 'Article offers are open to people who host.'}
+            <p role={failed ? 'alert' : 'status'} className="text-ui-14 text-tea-text-sec">
+              {failed ? 'Your writing page could not be loaded.' : view.state === 'loading' ? 'Loading your writing page…' : 'Article offers are open to people who host.'}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Button type="button" variant="quiet" className="tap-target" onClick={() => onStep(null)}>Back to profile</Button>
-              {query.isError && <Button type="button" variant="secondary" className="tap-target" onClick={() => void query.refetch()}>Retry</Button>}
+              {failed && <Button type="button" variant="secondary" className="tap-target" onClick={() => void query.refetch()}>Try again</Button>}
             </div>
           </>
         )}
@@ -49,12 +55,9 @@ export function MyHostArticleOffers({ writing, onStep }: { writing: boolean; onS
   }
 
   if (!scope || !query.data) {
-    return query.isError ? (
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <p role="alert" className="text-ui-14 text-tea-text-sec">Your article offers could not be loaded.</p>
-        <Button type="button" variant="quiet" className="tap-target" onClick={() => void query.refetch()}>Retry</Button>
-      </div>
-    ) : null;
+    return view.state === 'failed'
+      ? <LoadFailed className="mt-6" sentence="Your article offers could not be loaded just now." onRetry={view.retry} />
+      : null;
   }
   const { can_offer: canOffer, offers } = query.data;
   if (!canOffer && offers.length === 0) return null;

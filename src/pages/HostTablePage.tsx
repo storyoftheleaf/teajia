@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -15,13 +15,19 @@ import { circlesOpen } from '../lib/circles';
 import { HostAssistantSection } from '../components/host/HostAssistant';
 import { hostTokensOpen } from '../lib/hostTokens';
 import { TABLE_AREA_HINT } from '../components/host/hostTableParts';
+import { tableFormDefaults } from '../lib/tableDefaults';
+import { SiteNotFound } from '../components/SiteNotFound';
+import { LoadFailed } from '../components/shared/LoadFailed';
+import { PART_QUERY, partView } from '../lib/closedPart';
 
 const textClass = `${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`;
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
 const labelClass = `${TYPOGRAPHY_CLASSES.label} grid min-w-0 gap-1 text-tea-text-sec`;
 
+// Closed on the site, the address is what it was before Launch 2: the site's
+// not-found page, never a blank one (A10-8, W1-16).
 export default function HostTablePage() {
-  return fewHostsOpen() ? <HostingAccess /> : null;
+  return fewHostsOpen() ? <HostingAccess /> : <SiteNotFound />;
 }
 
 function HostingAccess() {
@@ -33,17 +39,20 @@ function HostingAccess() {
     queryFn: () => api.hosting.get(),
     enabled: signedIn && isSessionReady,
     staleTime: 60_000,
-    retry: false,
+    ...PART_QUERY,
   });
+  const view = partView(hosting);
 
   if (!signedIn) return <Navigate replace to={authPagePath('signin', pathname + search)} />;
+  // Open on the site and not yet on the worker: the address is not a page yet (A10-3).
+  if (view.state === 'closed') return <SiteNotFound />;
 
   let content: ReactNode;
-  if (!isSessionReady || hosting.isPending) {
+  if (!isSessionReady || view.state === 'loading' || view.state === 'off') {
     content = <p className={textClass} role="status">Checking hosting access…</p>;
-  } else if (hosting.isError) {
-    content = <p className={textClass} role="alert">Could not check hosting access. Reload to try again.</p>;
-  } else if (hosting.data.stopped) {
+  } else if (view.state === 'failed') {
+    content = <LoadFailed sentence="Could not check hosting access just now." onRetry={view.retry} />;
+  } else if (view.data.stopped) {
     // Launch 3: Teajia paused this person's hosting. Told to them alone, here.
     // Launch 5, M6: a stopped host still sees and may disconnect their assistant keys; none of them works.
     content = (
@@ -52,7 +61,7 @@ function HostingAccess() {
         {hostTokensOpen() && <HostAssistantSection />}
       </>
     );
-  } else if (!hosting.data.doors?.length) {
+  } else if (!view.data.doors?.length) {
     content = (
       <>
         <p className={textClass}>Hosting opens by invitation for now.</p>
@@ -62,7 +71,7 @@ function HostingAccess() {
   } else {
     content = (
       <>
-        <MakeTable key={user?.email} doors={hosting.data.doors} />
+        <MakeTable key={user?.email} doors={view.data.doors} />
         {yourTablePlaceOpen() && <YourTablePlaceSection />}
         {circlesOpen() && <HostCirclesSection />}
         {hostTokensOpen() && <HostAssistantSection />}
@@ -114,15 +123,35 @@ function YourRecord() {
 
 function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
   const [tableId, setTableId] = useStepParam('made');
+  const queryClient = useQueryClient();
   const saving = useRef(false);
+  const { user } = useAuth();
+  // What the site already knows: the last table's seats and door, and the area of "your table".
+  const tables = useQuery({ queryKey: ['host-tables-last', user?.email], queryFn: () => api.tables.list(), retry: false, staleTime: 0 });
+  const places = useQuery({
+    queryKey: ['your-table', user?.email], queryFn: () => api.hosting.yourTable(), retry: false,
+    enabled: yourTablePlaceOpen(),
+  });
+  // "Make another" starts a fresh form: the day and the time empty, the rest as the last table had it.
+  const [round, setRound] = useState(0);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const timezoneLabel = new Intl.DateTimeFormat(undefined, { timeZone: timezone, timeZoneName: 'longGeneric' })
     .formatToParts().find(part => part.type === 'timeZoneName')?.value ?? timezone.replace(/_/g, ' ');
   const create = useMutation({
     mutationFn: api.tables.create,
     retry: false,
-    onSuccess: table => setTableId(table.id),
+    onSuccess: table => {
+      void queryClient.invalidateQueries({ queryKey: ['host-tables-last', user?.email] });
+      setTableId(table.id);
+      // A first table can make this person a host of circles; read them again (W1-13).
+      void queryClient.invalidateQueries({ queryKey: ['host-circles'] });
+    },
   });
+  // The table just made is the last table; before any this visit, the newest on the host's list.
+  const lastSent = create.variables;
+  const known = tableFormDefaults(doors,
+    lastSent ? { seats: lastSent.seats ?? 6, door: lastSent.door ?? 'request', area_hint: lastSent.area ?? null } : tables.data?.tables[0],
+    places.data?.places);
   const justMade = create.data?.id === tableId && create.variables
     ? { link: create.data.link, day: formatDay(create.variables.date, 'UTC') }
     : undefined;
@@ -146,8 +175,8 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
   return (
     <div className="space-y-4">
       <h1 className={TYPOGRAPHY_CLASSES.h1}>{tableId ? 'Your table is ready' : 'Host a table'}</h1>
-      {tableId && <TableLink key={tableId} id={tableId} justMade={justMade} />}
-      <form hidden={Boolean(tableId)} className="space-y-3" onSubmit={submit}>
+      {tableId && <TableLink key={tableId} id={tableId} justMade={justMade} onAnother={() => { setRound(n => n + 1); setTableId(null); }} />}
+      <form key={round} hidden={Boolean(tableId)} className="space-y-3" onSubmit={submit}>
         <div className="flex flex-wrap gap-3">
           <label className={`${labelClass} flex-1`}>
             Day
@@ -162,7 +191,7 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
         <div className="grid grid-cols-3 gap-3">
           <label className={labelClass}>
             Seats
-            <input type="number" name="seats" className={fieldClass} defaultValue={6} min={1} max={40} step={1} required />
+            <input type="number" name="seats" key={`seats-${known.seats}`} className={fieldClass} defaultValue={known.seats} min={1} max={40} step={1} required />
           </label>
           <label className={`${labelClass} col-span-2`}>
             Name (optional)
@@ -171,26 +200,26 @@ function MakeTable({ doors }: { doors: HostedTableDoor[] }) {
         </div>
         <label className={labelClass}>
           Area (optional)
-          <input type="text" name="area" className={fieldClass} maxLength={80} aria-describedby="table-area-hint" />
+          <input type="text" name="area" key={`area-${known.area}`} defaultValue={known.area} className={fieldClass} maxLength={80} aria-describedby="table-area-hint" />
         </label>
         <p id="table-area-hint" className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec`}>{TABLE_AREA_HINT}</p>
         <fieldset>
           <legend className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>How guests get a seat</legend>
           {doors.includes('request') && (
             <label className={`${textClass} flex min-h-tap items-center gap-2`}>
-              <input type="radio" name="door" value="request" defaultChecked className="accent-tea-gold" />
+              <input type="radio" name="door" value="request" key={`request-${known.door}`} defaultChecked={known.door === 'request'} className="accent-tea-gold" />
               I say yes to each guest
             </label>
           )}
           {doors.includes('link') && (
             <label className={`${textClass} flex min-h-tap items-center gap-2`}>
-              <input type="radio" name="door" value="link" defaultChecked={!doors.includes('request')} className="accent-tea-gold" />
+              <input type="radio" name="door" value="link" key={`link-${known.door}`} defaultChecked={known.door === 'link'} className="accent-tea-gold" />
               Anyone with the link has a seat
             </label>
           )}
           {doors.includes('open') && (
             <label className={`${textClass} flex min-h-tap items-center gap-2`}>
-              <input type="radio" name="door" value="open" className="accent-tea-gold" />
+              <input type="radio" name="door" value="open" key={`open-${known.door}`} defaultChecked={known.door === 'open'} className="accent-tea-gold" />
               People on Teajia can find it, and I say yes to each guest
             </label>
           )}
@@ -210,10 +239,10 @@ function formatDay(date: string, timezone?: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'full', timeZone: timezone }).format(new Date(date));
 }
 
-function TableLink({ id, justMade }: { id: string; justMade?: { link: string; day: string } }) {
+function TableLink({ id, justMade, onAnother }: { id: string; justMade?: { link: string; day: string }; onAnother: () => void }) {
   const [feedback, setFeedback] = useState('');
   const { user } = useAuth();
-  const { data, isError } = useQuery({
+  const { data, isError, refetch } = useQuery({
     queryKey: ['host-table-link', user?.email, id],
     queryFn: () => api.tables.get(id),
     enabled: !justMade,
@@ -223,7 +252,7 @@ function TableLink({ id, justMade }: { id: string; justMade?: { link: string; da
   const details = justMade ?? (table && { link: table.link, day: formatDay(table.event_date, table.timezone ?? undefined) });
   if (!details) {
     return isError
-      ? <p className={textClass} role="alert">Could not open the table link. Reload to try again.</p>
+      ? <LoadFailed sentence="Could not open the table link just now." onRetry={() => void refetch()} />
       : <p className={textClass} role="status">Opening the table link…</p>;
   }
 
@@ -250,6 +279,7 @@ function TableLink({ id, justMade }: { id: string; justMade?: { link: string; da
       </div>
       {feedback && <p className={textClass} role="status">{feedback}</p>}
       <Link className="btn-quiet tap-target" to={`/account/host/${encodeURIComponent(id)}`}>Open the table’s page</Link>
+      <Button type="button" variant="quiet" className="tap-target" onClick={onAnother}>Make another table</Button>
     </div>
   );
 }

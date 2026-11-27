@@ -1,27 +1,20 @@
 // ----------------------------------------------------------------
 // GuestManagement - pure date/time helpers
 // ----------------------------------------------------------------
+import { sessionClock } from '../../../../shared/sessionClock';
 
-export function formatEventDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+// The table's own clock, with its zone named (shared/sessionClock.ts). Pass
+// the session's timezone; without one the viewer's own clock is named.
+export function formatEventDate(dateStr: string, timeZone?: string | null): string {
+  return sessionClock(dateStr, timeZone)?.longDate ?? '';
 }
 
-export function formatDay(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
+export function formatDay(dateStr: string, timeZone?: string | null): string {
+  return sessionClock(dateStr, timeZone)?.day ?? '';
 }
 
-export function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+export function formatTime(dateStr: string, timeZone?: string | null): string {
+  return sessionClock(dateStr, timeZone)?.time ?? '';
 }
 
 export function getClaimTimeRemaining(deadline: string): string {

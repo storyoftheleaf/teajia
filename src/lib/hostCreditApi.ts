@@ -106,6 +106,21 @@ export interface SecondLookOrder {
   credit_amount: number;
   currency: string;
   ceiling_usd: number | null;
+  /** Why it waits: over the shop's limit, or marked Filled by someone other than the owner (A8-6). */
+  reason?: 'over_ceiling' | 'not_filled_by_owner';
+}
+
+/** Credit a Void could not take back because the host had spent it; the shop absorbed it (A8-7). */
+export interface HostCreditShortfall {
+  award_entry_id: string;
+  host_user_id: string;
+  host_name: string | null;
+  invoice_id: string;
+  invoice_number: string | null;
+  amount: number;
+  currency: string;
+  reason: string;
+  created_at: string;
 }
 
 export interface ShopTeaCredit {
@@ -114,6 +129,7 @@ export interface ShopTeaCredit {
   lines: ShopCreditLine[];
   spend_requests: ShopSpendRequest[];
   second_look: SecondLookOrder[];
+  shortfalls?: HostCreditShortfall[];
 }
 
 /** The held request the worker wrote when the host asked to use credit. */
@@ -123,8 +139,14 @@ export const hostCreditApi = {
   mine: (storeSlug?: string): Promise<MyTeaCredit> =>
     authedFetch(`${API_URL}/api/me/tea-credit${storeSlug ? `?store=${encodeURIComponent(storeSlug)}` : ''}`),
   /** Ask to use credit on one of the host's own open orders. The worker works out the amount. */
-  useOnOrder: (invoiceId: string): Promise<{ success: true; request: TeaCreditUse }> =>
-    authedFetch(`${API_URL}/api/me/tea-credit/orders/${encodeURIComponent(invoiceId)}/use`, { method: 'POST' }),
+  /**
+   * Asks to use credit on an order. Pass one requestKey per press and reuse it
+   * on a retry: the worker answers a repeat with the original request.
+   */
+  useOnOrder: (invoiceId: string, requestKey?: string): Promise<{ success: true; request: TeaCreditUse }> =>
+    authedFetch(`${API_URL}/api/me/tea-credit/orders/${encodeURIComponent(invoiceId)}/use`, {
+      method: 'POST', ...(requestKey ? { headers: { 'Idempotency-Key': requestKey } } : {}),
+    }),
   shop: (): Promise<ShopTeaCredit> => authedFetch(`${API_URL}/api/host-credit`),
   approveSpend: (id: string, confirmOverCeiling = false): Promise<{ ok: true; status: 'approved' }> =>
     authedFetch(`${API_URL}/api/host-credit/spend-requests/${encodeURIComponent(id)}/approve`, {

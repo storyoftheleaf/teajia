@@ -1,183 +1,245 @@
-import React from 'react';
-import { ArrowRight, KeyRound, LockKeyhole, MessagesSquare, ServerCog, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
+import { Link } from 'react-router-dom';
+import { Check, Copy, Eye, KeyRound, LogIn, ShieldCheck, ShoppingBag, Undo2 } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
-import { getApiOrigin } from '../lib/api';
+import {
+  HOST_TOOL_GROUP,
+  MCP_PUBLIC_URL,
+  MCP_SERVER_URL,
+  PERSONAL_TOOL_GROUP,
+  PUBLIC_TOOLS,
+  SHOP_TOOL_GROUPS,
+  allCatalogTools,
+  type ToolGroup,
+} from './mcpToolCatalog';
 
-const API_URL = getApiOrigin();
-const MCP_URL = `${API_URL}/mcp`;
+// The same words the link preview carries (functions/_middleware.ts, MCP_PAGE_META).
+const TITLE = 'Connect your assistant to Teajia';
+const DESCRIPTION = 'Let Claude, ChatGPT or your own agent work a Teajia tea shop: bring teas in, price, invoice and send. Every change is shown first and happens only when you say yes.';
 
-const TOOL_GROUPS = [
-  {
-    title: 'Look up',
-    tools: ['search_tea', 'get_tea', 'list_low_stock', 'find_customer'],
-    copy: 'Find teas, inspect stock, and match customers before anything is changed.',
-  },
-  {
-    title: 'Stock',
-    tools: ['create_tea', 'add_stock', 'remove_stock'],
-    copy: 'Create products and record stock that entered or left the store.',
-  },
-  {
-    title: 'Sales',
-    tools: ['record_sale', 'fulfill_invoice', 'mark_invoice_paid'],
-    copy: 'Draft sales, deduct stock when goods leave, and mark payment when money arrives.',
-  },
+const SIGN_IN_CLIENTS = [
+  { name: 'Claude', where: 'Settings, then Connectors, then Add custom connector. Paste the address.' },
+  { name: 'ChatGPT', where: 'Settings, then Connectors, then Advanced, then Developer mode. Create, paste the address.' },
+  { name: 'Grok', where: 'grok.com/connectors, then New Connector, then Custom. Paste the address.' },
 ];
 
-const CLIENTS = [
-  {
-    name: 'Claude Desktop',
-    steps: [
-      'Open Settings, then Developer.',
-      'Edit the MCP configuration.',
-      'Add a remote HTTP MCP server using the Teajia MCP URL and bearer token.',
-      'Restart Claude and ask it to list Teajia tools.',
-    ],
-  },
-  {
-    name: 'Codex',
-    steps: [
-      'Open your Codex MCP configuration.',
-      'Add a remote HTTP server named teajia.',
-      'Set the URL to Teajia MCP and pass the token as an Authorization header.',
-      'Restart Codex and ask it to search Teajia inventory.',
-    ],
-  },
-  {
-    name: 'Hermes or another agent',
-    steps: [
-      'Use any MCP client that supports remote HTTP servers.',
-      'Store the Teajia token in that agent server environment.',
-      'Register the Teajia MCP URL as the tool endpoint.',
-      'Keep all write actions behind a human confirmation step.',
-    ],
-  },
+const TOKEN_CLIENTS = [
+  { name: 'Claude Code', where: 'The repository’s .mcp.json reads the token from TEAJIA_MCP_TOKEN.' },
+  { name: 'Codex, Hermes or your own agent', where: 'Add a remote HTTP server with the address and an Authorization header.' },
 ];
+
+const PROMISES = [
+  { icon: Eye, title: 'You see it first', copy: 'Every change comes back as a preview. Nothing is written until you say yes to that exact preview.' },
+  { icon: KeyRound, title: 'Only what you allow', copy: 'A connection reads, or also writes, only the parts you ticked. Prices and settings stay off unless you turn them on.' },
+  { icon: Undo2, title: 'Kept and undoable', copy: 'Each change is recorded against the connection that made it, and Curate changes can be undone.' },
+  { icon: ShieldCheck, title: 'Never in the chat', copy: 'A token lives in the assistant’s settings, never pasted into a conversation. Signing in needs no token at all.' },
+];
+
+function CopyLine({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
+      <p className="label-caps mb-2">{label}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <code className="min-w-0 flex-1 break-all text-ui-15 text-tea-text">{value}</code>
+        <button type="button" onClick={copy} className="btn-secondary btn-sm tap-target gap-2" aria-label={`Copy ${label.toLowerCase()}`}>
+          {copied ? <Check size={14} /> : <Copy size={14} />}
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ToolChips({ tools }: { tools: readonly string[] }) {
+  return (
+    <div className="flex flex-wrap items-start gap-1.5">
+      {tools.map((tool) => (
+        <code key={tool} className="rounded-md border border-tea-border bg-tea-bg px-2 py-1 text-ui-11 text-tea-text-sec">
+          {tool}
+        </code>
+      ))}
+    </div>
+  );
+}
+
+function GroupRow({ group }: { group: ToolGroup }) {
+  return (
+    <li className="grid items-start gap-3 border-t border-tea-border py-6 md:grid-cols-[3rem_minmax(0,16rem)_minmax(0,1fr)] md:gap-6">
+      <span className="hidden font-display text-ui-28 leading-none text-tea-gold md:block" aria-hidden="true">
+        {group.step ?? '·'}
+      </span>
+      <div>
+        <h3 className="text-ui-17 font-medium text-tea-text">
+          {group.step && <span className="mr-2 font-display text-ui-22 text-tea-gold md:hidden">{group.step}</span>}
+          {group.title}
+        </h3>
+        <p className="mt-1 text-ui-14 leading-[1.6] text-tea-text-sec">{group.copy}</p>
+      </div>
+      <div className="hidden md:block"><ToolChips tools={group.tools} /></div>
+      {/* On a phone the names would be a wall: they open on a tap. */}
+      <details className="md:hidden">
+        <summary className="tap-target inline-flex cursor-pointer items-center text-ui-13 text-tea-gold">
+          {group.tools.length} tools
+        </summary>
+        <div className="mt-2"><ToolChips tools={group.tools} /></div>
+      </details>
+    </li>
+  );
+}
 
 export default function McpPage() {
+  const toolCount = allCatalogTools().length;
+  const steps = SHOP_TOOL_GROUPS.filter((group) => group.step);
+  const rest = SHOP_TOOL_GROUPS.filter((group) => !group.step);
+
   return (
     <div className="min-h-[100dvh] bg-tea-bg text-tea-text">
-      <section className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-10 pb-nav-gap md:px-8 lg:py-14">
-        <header className="grid gap-8 border-b border-tea-border pb-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
-          <div>
-            <p className="mb-3 text-ui-11 uppercase tracking-[0.18em] text-tea-text-sec">Teajia MCP</p>
-            <h1 className={`${TYPOGRAPHY_CLASSES.h1} max-w-3xl text-tea-text`}>
-              Connect AI clients directly to a Teajia store.
-            </h1>
-            <p className="mt-5 max-w-2xl text-ui-16 leading-[1.7] text-tea-text-sec">
-              This is a Teajia feature. The store owns the token, the inventory, the customers,
-              invoices, stock movement, payment state, and audit trail. i64OS can document or link
-              to it, but it is not required for another person to use Teajia MCP.
-            </p>
-          </div>
-          <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
-            <p className="mb-2 text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec">MCP endpoint</p>
-            <code className="block break-all rounded-md border border-tea-border bg-tea-bg px-3 py-3 text-ui-12 text-tea-text">
-              {MCP_URL}
-            </code>
-            <a
-              href="/admin/mcp-tokens"
-              className="mt-4 inline-flex min-h-tap items-center gap-2 rounded-md border border-tea-gold/40 px-4 text-ui-13 text-tea-gold transition-colors hover:bg-tea-gold/10"
-            >
-              Open token manager <ArrowRight size={14} />
-            </a>
-          </div>
+      <Helmet>
+        <title>{`${TITLE} · Teajia`}</title>
+        <meta name="description" content={DESCRIPTION} />
+      </Helmet>
+
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-16 px-4 py-12 pb-nav-gap md:px-8 lg:gap-20 lg:py-16">
+        {/* What it is */}
+        <header className="max-w-3xl">
+          <p className="label-caps mb-4">The Teajia connector</p>
+          <h1 className="h1 text-tea-text">Run your tea shop from a conversation.</h1>
+          <p className="body-prose mt-6 text-tea-text-sec">
+            Connect Claude, ChatGPT or your own agent to your Teajia shop. It works the same records you do:
+            it brings a sample in, prices it, writes the invoice and sends the parcel. Every change is shown
+            to you first and happens only when you say yes.
+          </p>
+          <p className="mt-6 text-ui-14 text-tea-text-dim">
+            {toolCount} tools across the whole shop, from the first sample to the cup after.
+          </p>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              icon: KeyRound,
-              title: '1. Mint a token',
-              copy: 'Log into Teajia as the store owner and mint a token from Admin, Voice & Agent access.',
-            },
-            {
-              icon: ServerCog,
-              title: '2. Add the MCP URL',
-              copy: 'In Claude, Codex, Hermes, or another MCP client, point the server URL at Teajia.',
-            },
-            {
-              icon: ShieldCheck,
-              title: '3. Confirm writes',
-              copy: 'Search can run freely. Sales, stock, and payment changes should be reviewed before final action.',
-            },
-          ].map((item) => (
-            <article key={item.title} className="rounded-xl border border-tea-border bg-tea-surface p-5">
-              <item.icon size={19} className="mb-4 text-tea-gold" />
-              <h2 className="mb-2 text-ui-17 font-medium text-tea-text">{item.title}</h2>
-              <p className="text-ui-13 leading-[1.6] text-tea-text-sec">{item.copy}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        {/* Connect */}
+        <section aria-labelledby="connect" className="grid gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-12">
           <div>
-            <p className="mb-3 text-ui-11 uppercase tracking-[0.18em] text-tea-text-sec">Configuration</p>
-            <h2 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>What every AI client needs</h2>
-            <p className="mt-4 text-ui-14 leading-[1.7] text-tea-text-sec">
-              The exact settings screen differs by client, but the inputs are the same:
-              a remote HTTP MCP URL and an Authorization bearer token minted inside Teajia.
+            <p className="label-caps mb-3">Connect</p>
+            <h2 id="connect" className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>One address, two ways in</h2>
+            <p className="mt-4 text-ui-15 leading-[1.7] text-tea-text-sec">
+              Give your assistant this address. Apps you talk to ask you to sign in to Teajia and approve.
+              Agents that run on their own take a token you make in Manage.
             </p>
-          </div>
-          <div className="space-y-3">
-            <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
-              <p className="mb-2 text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec">URL</p>
-              <code className="break-all text-ui-13 text-tea-text">{MCP_URL}</code>
-            </div>
-            <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
-              <p className="mb-2 text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec">Header</p>
-              <code className="break-all text-ui-13 text-tea-text">Authorization: Bearer tjmcp_...</code>
-            </div>
-            <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
-              <p className="mb-2 text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec">Rule</p>
-              <p className="text-ui-13 leading-[1.6] text-tea-text-sec">
-                Do not paste the token into chat. Store it in the MCP client settings or server environment.
-              </p>
+            <div className="mt-6">
+              <CopyLine label="Connector address" value={MCP_SERVER_URL} />
             </div>
           </div>
-        </section>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          {CLIENTS.map((client) => (
-            <article key={client.name} className="rounded-xl border border-tea-border bg-tea-surface p-5">
-              <div className="mb-4 flex items-center gap-2">
-                <MessagesSquare size={17} className="text-tea-gold" />
-                <h2 className="text-ui-17 font-medium text-tea-text">{client.name}</h2>
+          <div className="grid gap-4">
+            <article className="rounded-xl border border-tea-border bg-tea-surface p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <LogIn size={17} className="text-tea-gold" />
+                <h3 className="text-ui-17 font-medium text-tea-text">Sign in</h3>
+                <span className="text-ui-12 text-tea-text-dim">no token to copy</span>
               </div>
-              <ol className="space-y-2 text-ui-13 leading-[1.6] text-tea-text-sec">
-                {client.steps.map((step) => (
-                  <li key={step}>{step}</li>
+              <ul className="space-y-3">
+                {SIGN_IN_CLIENTS.map((client) => (
+                  <li key={client.name} className="text-ui-14 leading-[1.6] text-tea-text-sec">
+                    <span className="font-medium text-tea-text">{client.name}.</span> {client.where}
+                  </li>
                 ))}
-              </ol>
+              </ul>
+              <p className="mt-3 text-ui-13 leading-[1.6] text-tea-text-dim">
+                The app opens Teajia, you sign in, choose what it may do, and approve.
+              </p>
             </article>
-          ))}
+
+            <article className="rounded-xl border border-tea-border bg-tea-surface p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <KeyRound size={17} className="text-tea-gold" />
+                <h3 className="text-ui-17 font-medium text-tea-text">Token</h3>
+                <span className="text-ui-12 text-tea-text-dim">for agents that run on their own</span>
+              </div>
+              <ul className="space-y-3">
+                {TOKEN_CLIENTS.map((client) => (
+                  <li key={client.name} className="text-ui-14 leading-[1.6] text-tea-text-sec">
+                    <span className="font-medium text-tea-text">{client.name}.</span> {client.where}
+                  </li>
+                ))}
+              </ul>
+              <code className="mt-4 block break-all rounded-md border border-tea-border bg-tea-bg px-3 py-2 text-ui-13 text-tea-text">
+                Authorization: Bearer tjmcp_...
+              </code>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link to="/admin/mcp-tokens" className="btn-primary btn-sm tap-target">Make a token</Link>
+                <span className="text-ui-13 text-tea-text-dim">Shop owners only. It is shown once.</span>
+              </div>
+            </article>
+          </div>
         </section>
 
-        <section>
-          <div className="mb-5 flex items-end justify-between gap-4 border-b border-tea-border pb-4">
-            <div>
-              <p className="mb-2 text-ui-11 uppercase tracking-[0.18em] text-tea-text-sec">Tools</p>
-              <h2 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>What the connected AI can do</h2>
-            </div>
-            <LockKeyhole size={20} className="hidden text-tea-text-sec md:block" />
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {TOOL_GROUPS.map((group) => (
-              <article key={group.title} className="rounded-xl border border-tea-border bg-tea-surface p-5">
-                <h3 className="mb-2 text-ui-17 font-medium text-tea-text">{group.title}</h3>
-                <p className="mb-4 text-ui-13 leading-[1.6] text-tea-text-sec">{group.copy}</p>
-                <div className="flex flex-wrap gap-2">
-                  {group.tools.map((tool) => (
-                    <code key={tool} className="rounded-md border border-tea-border bg-tea-bg px-2 py-1 text-ui-11 text-tea-text-sec">
-                      {tool}
-                    </code>
-                  ))}
-                </div>
+        {/* Safety */}
+        <section aria-labelledby="safety">
+          <p className="label-caps mb-3">Safety</p>
+          <h2 id="safety" className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Nothing changes without you</h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {PROMISES.map((item) => (
+              <article key={item.title} className="rounded-xl border border-tea-border bg-tea-surface p-5">
+                <item.icon size={18} className="mb-4 text-tea-gold" />
+                <h3 className="mb-2 text-ui-16 font-medium text-tea-text">{item.title}</h3>
+                <p className="text-ui-13 leading-[1.6] text-tea-text-sec">{item.copy}</p>
               </article>
             ))}
           </div>
         </section>
-      </section>
+
+        {/* What it can do */}
+        <section aria-labelledby="tools">
+          <p className="label-caps mb-3">What it can do</p>
+          <h2 id="tools" className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>A tea’s whole way through the shop</h2>
+          <p className="mt-4 max-w-2xl text-ui-15 leading-[1.7] text-tea-text-sec">
+            The same ten steps a tea takes in Teajia, from the day it is found to the day someone drinks it and comes back.
+            An assistant sees only the tools its connection allows.
+          </p>
+          <ol className="mt-8 border-b border-tea-border">
+            {steps.map((group) => <GroupRow key={group.title} group={group} />)}
+          </ol>
+
+          <h3 className="mt-12 text-ui-19 font-medium text-tea-text">Around the shop</h3>
+          <ul className="mt-4 border-b border-tea-border">
+            {rest.map((group) => <GroupRow key={group.title} group={group} />)}
+          </ul>
+
+          <h3 className="mt-12 text-ui-19 font-medium text-tea-text">For hosts and members</h3>
+          <ul className="mt-4 border-b border-tea-border">
+            <GroupRow group={HOST_TOOL_GROUP} />
+            <GroupRow group={PERSONAL_TOOL_GROUP} />
+          </ul>
+        </section>
+
+        {/* Public */}
+        <section aria-labelledby="public" className="grid gap-6 rounded-xl border border-tea-border bg-tea-surface p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <ShoppingBag size={17} className="text-tea-gold" />
+              <p className="label-caps">For shoppers</p>
+            </div>
+            <h2 id="public" className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Ask your assistant for a tea</h2>
+            <p className="mt-4 text-ui-15 leading-[1.7] text-tea-text-sec">
+              Anyone can connect this one, with no sign-in. It reads the shop&rsquo;s public teas and prices, and makes a
+              WhatsApp message ready to send. It never places an order: every order is a conversation with a person.
+            </p>
+          </div>
+          <div className="grid gap-4">
+            <CopyLine label="Public address" value={MCP_PUBLIC_URL} />
+            <ToolChips tools={PUBLIC_TOOLS} />
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

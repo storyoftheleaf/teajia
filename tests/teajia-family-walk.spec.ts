@@ -428,7 +428,6 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
         await expect(share).toBeVisible({ timeout: 20_000 });
         await expect(share.getByRole('button', { name: 'Keep private' })).toHaveAttribute('aria-pressed', 'true');
         await share.getByRole('button', { name: /offer my photographs/ }).click();
-        await share.getByRole('button', { name: 'Share', exact: true }).click();
         await expect(share.getByText(/On your page/)).toBeVisible({ timeout: 20_000 });
         await page.screenshot({ path: shot(7, 'a-share-step') });
         const after = await mine();
@@ -461,7 +460,6 @@ test('the Teajia family, walked end to end on a phone', async ({ page, browser }
       const share = tomorrow.getByRole('dialog', { name: 'Share this tasting' });
       if (await share.isVisible().catch(() => false)) {
         await share.getByRole('button', { name: /offer my photographs/ }).click();
-        await share.getByRole('button', { name: 'Share', exact: true }).click();
         await expect(share.getByText(/On your page/)).toBeVisible({ timeout: 20_000 });
         await share.getByRole('button', { name: 'Close' }).click().catch(() => undefined);
       }

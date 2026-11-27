@@ -36,7 +36,10 @@ const HOST_SET = [
   'host_table', 'list_my_tables', 'get_table_guests', 'answer_guest', 'add_table_tea', 'set_guest_note', 'get_guest_notes',
   'release_guest_seat', 'same_table_again', 'set_session_tasting', 'report',
   'make_circle', 'put_table_in_circle', 'list_my_circles',
-  'list_my_favourites',
+  'list_my_favourites', 'set_my_favourite', 'set_my_recap_on_tea_table',
+  // The rest of the host's page (review A11-10), each through its own route.
+  'change_my_table', 'mark_who_came', 'get_guest_thanks_link', 'review_guest_book', 'set_table_way',
+  'set_your_table', 'ask_guest_back', 'offer_article',
 ].sort();
 
 let db: SqliteD1;
@@ -126,6 +129,7 @@ beforeEach(async () => {
   flags = {
     HOST_TOKENS_OPEN: 'true', FEW_HOSTS_OPEN: 'true', ANYONE_HOSTS_OPEN: 'true',
     CIRCLES_OPEN: 'true', FAVOURITES_OPEN: 'true', TEA_TABLE_OPEN: 'true', FIRST_TABLE_OPEN: 'true',
+    YOUR_TABLE_PLACE_OPEN: 'true', HOST_ARTICLES_OPEN: 'true',
   };
   db = new SqliteD1('migrations');
   seedIdentity(db, { userId: 'adrian', accountId: 'platform-home', platformRole: 'platform_owner' });

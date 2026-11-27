@@ -65,3 +65,8 @@ export function withOrderVia(path: string, ref: string | null | undefined) {
   if (!firstTableOpen() || !ref || !FORMAT.test(ref)) return path;
   return `${path}${path.includes('?') ? '&' : '?'}via=${ref}`;
 }
+
+/** A guest who came from a thank-you has already chosen the tea: adding it opens the order at once (review U1-8). */
+export function addOpensOrder(now = Date.now()): boolean {
+  return currentOrderVia(now) !== undefined;
+}

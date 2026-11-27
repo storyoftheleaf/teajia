@@ -249,7 +249,6 @@ function memberJourneys() {
       await expect(share).toBeVisible();
       await audit(page, 'Choose where to share the tasting');
       await share.getByRole('button', { name: 'On my page and the Tea Table', exact: true }).click();
-      await share.getByRole('button', { name: 'Share', exact: true }).click();
       await expect(share.getByRole('status')).toHaveText('On your page and the Tea Table.');
       await audit(page, 'Member reads the share confirmation');
       await share.getByRole('button', { name: 'Close', exact: true }).click();
@@ -272,7 +271,6 @@ function memberJourneys() {
       await published.click();
       await audit(page, 'Member reopens the share choices');
       await share.getByRole('button', { name: 'Keep private', exact: true }).click();
-      await share.getByRole('button', { name: 'Done', exact: true }).click();
       await expect(page.getByRole('button', { name: /^River Oolong: Private\./ })).toBeVisible();
       await page.goto('/people/mei');
       await expect(page.getByTestId('profile-cover')).toContainText('Mei');

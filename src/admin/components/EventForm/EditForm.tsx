@@ -440,8 +440,16 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           contribution_note: contribution.kind ? contribution.note.trim() || null : null,
         } : {}),
       };
-      await api.events.update(initialData.id, payload);
-      showToast('Event updated', 'success');
+      const saved = await api.events.update(initialData.id, payload) as { not_kept?: unknown } | undefined;
+      // The worker names what it could not keep (A10-2): with the site open and
+      // the worker not yet, tasting and contribution are dropped, and saying
+      // "updated" would claim they were saved.
+      const notKept = Array.isArray(saved?.not_kept) ? saved.not_kept : [];
+      if (notKept.length > 0) {
+        showToast('The session is saved, but whether it is a tasting and what it asks for could not be kept yet. Try again later.', 'error');
+      } else {
+        showToast('Event updated', 'success');
+      }
       onSuccess();
     } catch (err: any) {
       showToast(err.message || 'Failed to save', 'error');

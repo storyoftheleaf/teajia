@@ -169,14 +169,16 @@ export const useGuestManagement = (token: string) => {
             claimedAt: t.claimed_at || undefined,
           }))
         : undefined;
-      // Map V2 briefing cards if present
-      const briefingCards: BriefingCard[] | undefined = data.briefing_cards
-        ? (typeof data.briefing_cards === 'string'
-            ? JSON.parse(data.briefing_cards)
-            : data.briefing_cards) as BriefingCard[]
-        : undefined;
+      // The host's saved briefing cards. The worker answers them on the
+      // event (event.briefing_cards); an older answer had them at the top
+      // (review A9-11). Read from the mapped event either way.
+      const event = mapEvent(data.event);
+      const rawCards = data.briefing_cards ?? null;
+      const briefingCards: BriefingCard[] | undefined = rawCards
+        ? (typeof rawCards === 'string' ? JSON.parse(rawCards) : rawCards) as BriefingCard[]
+        : event.briefingCards;
       return {
-        event: mapEvent(data.event),
+        event,
         attendee: mapAttendee(data.attendee),
         teaMenu: (data.tea_menu || []).map(mapTeaMenuItem),
         guestInvites,

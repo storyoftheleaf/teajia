@@ -248,7 +248,10 @@ describe('while the Tea Table is closed', () => {
     expect(photos.family[0].author).toEqual({ name: 'mei', page_id: null });
     db.exec(`UPDATE member_photographs SET credit_name_shown = 0 WHERE id = 'photo'`);
     const unchosen = await (await request(db, '/api/family/teas/tea/photographs')).json() as { family: Array<Record<string, unknown>> };
-    expect(unchosen.family[0].author).toEqual({ name: 'mei', page_id: null });
+    // A photographer who declined credit is never named, whatever the switch says (A7-2).
+    expect(unchosen.family[0].author).toBeNull();
+    expect(unchosen.family[0]).not.toHaveProperty('photograph_by');
+    expect(unchosen.family[0].small_url).toBeTruthy();
     db.exec(`UPDATE member_photographs SET credit_name_shown = 1 WHERE id = 'photo'`);
     const { recap } = await (await request(db, '/api/public/sit-recaps/courtyard')).json() as { recap: Record<string, unknown> };
     expect(recap).not.toHaveProperty('poured_with');

@@ -155,7 +155,6 @@ for (const size of SIZES) {
         await line.click();
         const step = mei.page.getByRole('dialog', { name: 'Share this tasting' });
         await step.getByRole('button', { name: 'On my page and the Tea Table', exact: true }).click();
-        await step.getByRole('button', { name: 'Share', exact: true }).click();
         await expect(step.getByRole('button', { name: 'Close' })).toBeVisible();
         await step.getByRole('button', { name: 'Close' }).click();
         await expect(mei.page.getByTestId('journal-share-line').filter({ hasText: 'On your page and the Tea Table' })).toBeVisible();

@@ -4358,8 +4358,65 @@ BEGIN
   VALUES (NEW.id, NEW.account_id,
           'V' || (SELECT last_number FROM curate_code_counters WHERE account_id = NEW.account_id AND scope = 'vendor'));
 END;
+-- 0149_host_credit_fills_and_request_keys.sql
+CREATE TABLE IF NOT EXISTS host_credit_fills (
+  invoice_id  TEXT PRIMARY KEY,
+  account_id  TEXT NOT NULL,
+  filled_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  credit_open INTEGER CHECK (credit_open IS NULL OR credit_open IN (0, 1))
+);
+CREATE TRIGGER IF NOT EXISTS host_credit_first_fill_insert
+AFTER INSERT ON invoices WHEN NEW.status = 'Filled'
+BEGIN
+  INSERT OR IGNORE INTO host_credit_fills (invoice_id, account_id) VALUES (NEW.id, NEW.account_id);
+END;
+CREATE TRIGGER IF NOT EXISTS host_credit_first_fill_update
+AFTER UPDATE OF status ON invoices WHEN NEW.status = 'Filled' AND OLD.status IS NOT 'Filled'
+BEGIN
+  INSERT OR IGNORE INTO host_credit_fills (invoice_id, account_id) VALUES (NEW.id, NEW.account_id);
+END;
+CREATE TRIGGER IF NOT EXISTS host_credit_unrecorded_fill_leaves
+AFTER UPDATE OF status ON invoices WHEN OLD.status = 'Filled' AND NEW.status IS NOT 'Filled'
+BEGIN
+  INSERT OR IGNORE INTO host_credit_fills (invoice_id, account_id, credit_open) VALUES (NEW.id, NEW.account_id, 0);
+END;
+ALTER TABLE host_credit_spend_requests ADD COLUMN request_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_host_credit_requests_key
+  ON host_credit_spend_requests(account_id, host_user_id, invoice_id, request_key)
+  WHERE request_key IS NOT NULL;
+ALTER TABLE host_credit_spend_requests ADD COLUMN release_reason TEXT;
 
 -- 0150_practice_lines.sql
 ALTER TABLE contributors ADD COLUMN practice_since INTEGER CHECK (practice_since IS NULL OR practice_since BETWEEN 1930 AND 2200);
 ALTER TABLE contributors ADD COLUMN practice_drawn TEXT CHECK (practice_drawn IS NULL OR length(practice_drawn) BETWEEN 1 AND 140);
 ALTER TABLE contributors ADD COLUMN practice_doings TEXT CHECK (practice_doings IS NULL OR length(practice_doings) BETWEEN 1 AND 200);
+
+-- 0152_host_credit_owner_fill_and_shortfalls.sql
+-- A8-6: a staff seller cannot award credit on their own. filled_by_staff is
+-- the person, not the shop's owner, whose Fill made the order Filled; the
+-- worker stamps it (worker/src/hostCreditLedger.ts). While it is set the
+-- order earns nothing until the owner approves it in Manage's second look.
+ALTER TABLE host_credit_fills ADD COLUMN filled_by_staff TEXT;
+
+-- Taken out of Filled, that Fill no longer stands: the next Fill decides again.
+CREATE TRIGGER IF NOT EXISTS host_credit_fill_staff_cleared_on_reopen
+AFTER UPDATE OF status ON invoices WHEN OLD.status = 'Filled' AND NEW.status IS NOT 'Filled'
+BEGIN
+  UPDATE host_credit_fills SET filled_by_staff = NULL WHERE invoice_id = NEW.id;
+END;
+
+-- A8-7: a Void that would reverse credit the host has already spent reverses
+-- only what is unspent, so the signed ledger never goes below zero. The rest is
+-- absorbed by the shop and kept here, one row per award, for the owner to see
+-- in Manage. Nobody is told.
+CREATE TABLE IF NOT EXISTS host_credit_shortfalls (
+  award_entry_id TEXT PRIMARY KEY,
+  account_id     TEXT NOT NULL,
+  host_user_id   TEXT NOT NULL,
+  invoice_id     TEXT NOT NULL,
+  amount         REAL NOT NULL CHECK (amount > 0),
+  currency       TEXT NOT NULL CHECK (length(currency) = 3 AND currency != 'UNK'),
+  reason         TEXT NOT NULL,
+  created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_host_credit_shortfalls_account ON host_credit_shortfalls (account_id, created_at);
