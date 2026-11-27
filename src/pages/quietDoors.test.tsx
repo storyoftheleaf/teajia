@@ -1,9 +1,15 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import HostTablePage from './HostTablePage';
 import HostedTablePage from './HostedTablePage';
 import { shareLine } from '../components/tasting/TastingShareStep';
+
+// The switch is on by default now; this check holds it shut to see the closed door.
+vi.mock('../lib/fewHosts', async importOriginal => {
+  const actual = await importOriginal<typeof import('../lib/fewHosts')>();
+  return { ...actual, fewHostsOpen: () => false };
+});
 
 // A10-8, W1-16: closed on the site, the hosting pages are the site's own
 // not-found page, as before Launch 2, never a blank one.

@@ -38,7 +38,7 @@ export function YourTablePlaceSection() {
 
   return (
     <section aria-labelledby="your-table-heading" className="mt-8 space-y-3 border-t border-tea-border pt-4" data-testid="your-table">
-      <h2 id="your-table-heading" className={TYPOGRAPHY_CLASSES.h2}>Your table</h2>
+      <h2 id="your-table-heading" className={TYPOGRAPHY_CLASSES.h2}>Your tea space</h2>
       {answer.isPending && <p className={hostSmallText} role="status">Opening your places…</p>}
       {view.state === 'failed' && <LoadFailed sentence="Could not open your places just now." onRetry={view.retry} />}
       {answer.data && !places.length && (

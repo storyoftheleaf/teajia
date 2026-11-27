@@ -101,7 +101,7 @@ describe('host credit identity and incident audit', () => {
         return typeof value === 'function' ? value.bind(target) : value;
       },
     });
-    for (const closed of [{ DB: watched }, { DB: watched, HOST_CREDIT_OPEN: 'false' }]) {
+    for (const closed of [{ DB: watched, HOST_CREDIT_OPEN: 'false' }]) {
       expect(await settleHostCredit(closed, 'sale')).toEqual({ pending: 0, earned: 0, reversed: 0, awaiting_approval: false });
     }
     const closedRecord = (sql: string) => /i\.status = 'Void'|release_reason = 'order_void'|UPDATE host_credit_fills SET credit_open/.test(sql);
@@ -114,7 +114,7 @@ describe('host credit identity and incident audit', () => {
     });
     const response = await worker.fetch(new Request(`https://worker.test/api/inquiries/${trackingRef}/claim`, {
       method: 'POST', headers: { Authorization: `Bearer ${token}` },
-    }), { DB: watched, JWT_SECRET: secret } as Parameters<typeof worker.fetch>[1], { waitUntil() {} } as never);
+    }), { DB: watched, JWT_SECRET: secret, HOST_CREDIT_OPEN: 'false' } as Parameters<typeof worker.fetch>[1], { waitUntil() {} } as never);
     expect(response.status, await response.text()).toBe(200);
     expect(seen.filter(sql => /host_credit|order_session_sources/.test(sql) && !closedRecord(sql))).toEqual([]);
     expect(seen.filter(sql => /SELECT id FROM invoices WHERE account_id = \? AND \(id = \? OR source_inquiry_id = \?\)/.test(sql))).toEqual([]);

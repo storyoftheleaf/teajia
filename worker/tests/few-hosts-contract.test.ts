@@ -30,7 +30,7 @@ async function call(path: string, options: { actor?: Actor; method?: string; bod
   return worker.fetch(new Request(`https://worker.test${path}`, {
     headers, method, body: body === undefined ? undefined : JSON.stringify(body),
   }), {
-    DB: db, JWT_SECRET: SECRET, APP_URL: 'https://hosts.test', FEW_HOSTS_OPEN: open ? 'true' : 'false',
+    DB: db, JWT_SECRET: SECRET, APP_URL: 'https://hosts.test', FEW_HOSTS_OPEN: open ? 'true' : 'false', ANYONE_HOSTS_OPEN: 'false',
   } as never);
 }
 

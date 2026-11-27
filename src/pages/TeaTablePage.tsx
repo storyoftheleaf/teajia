@@ -101,9 +101,23 @@ function TakeOffControl({ item }: { item: TeaTableTasting }) {
       client.invalidateQueries({ queryKey: ['family'] }),
     ]),
   });
+  // One "are you sure?" first (Adrian, 2026-11-27): taking it off can make the tasting private everywhere.
+  const [asking, setAsking] = useState(false);
+  if (asking) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-2" role="group" aria-label="Take this tasting off the table?" data-testid="tea-table-take-off-confirm">
+        <span className="font-sans text-ui-13 text-tea-text-sec">Take it off the table?</span>
+        <Button variant="quiet" size="sm" type="button" className="tap-target" onClick={() => setAsking(false)}>Keep it</Button>
+        <Button variant="secondary" size="sm" type="button" className="tap-target" disabled={takeOff.isPending}
+          onClick={() => takeOff.mutate()} data-testid="tea-table-take-off-yes">
+          {takeOff.isPending ? 'Taking off…' : 'Yes, take it off'}
+        </Button>
+      </span>
+    );
+  }
   return (
-    <Button variant="quiet" size="sm" type="button" className="tap-target" disabled={takeOff.isPending}
-      onClick={() => takeOff.mutate()} data-testid="tea-table-take-off">
+    <Button variant="quiet" size="sm" type="button" className="tap-target"
+      onClick={() => setAsking(true)} data-testid="tea-table-take-off">
       Take off the table
     </Button>
   );

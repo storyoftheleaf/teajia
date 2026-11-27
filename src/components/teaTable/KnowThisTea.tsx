@@ -97,7 +97,7 @@ export function QuestionPiece({ item, mine, onOpen, onGone }: {
       </div>}>
       <QuestionPhotograph item={item} />
       <div className="space-y-2 px-3 py-3">
-        <p className="whitespace-pre-line break-words font-body text-ui-15 leading-[1.65] text-tea-text" data-testid="know-this-tea-where">{item.where_from}</p>
+        <p className="whitespace-pre-line break-words font-body text-ui-17 leading-[1.65] text-tea-text" data-testid="know-this-tea-where">{item.where_from}</p>
         {item.named && (
           <p className="break-words text-ui-14 text-tea-text" data-testid="know-this-tea-named">
             Named: {item.named.path ? <Link to={item.named.path} className={quietLink}>{item.named.name}</Link> : item.named.name}
@@ -298,7 +298,7 @@ function NoteRow({ item, note, onUse }: { item: TeaTableQuestion; note: KnowThis
   return (
     <li className="border-b border-tea-border py-3 last:border-b-0" data-testid="know-this-tea-note">
       <p className="text-ui-12 font-medium text-tea-text-sec">{note.by}</p>
-      <p className="mt-1 whitespace-pre-line break-words font-body text-ui-15 leading-[1.65] text-tea-text">{note.words}</p>
+      <p className="mt-1 whitespace-pre-line break-words font-body text-ui-17 leading-[1.65] text-tea-text">{note.words}</p>
       {note.tea && <p className="mt-1 text-ui-13 text-tea-text">In the shop: <Link to={note.tea.path} className={quietLink}>{note.tea.name}</Link></p>}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {!item.named && (

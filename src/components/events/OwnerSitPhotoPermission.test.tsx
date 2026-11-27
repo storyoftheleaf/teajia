@@ -1,9 +1,15 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { OwnerSitPhotoPermission } from './OwnerSitPhotoPermission';
-import { TEA_TABLE_OPEN, teaTableConsent } from '../../lib/teaTable';
+import { teaTableConsent, teaTableOpen } from '../../lib/teaTable';
+
+// The Tea Table is open on the live site; these cases hold it shut.
+vi.mock('../../lib/teaTable', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../lib/teaTable')>();
+  return { ...actual, teaTableOpen: () => false, teaTableConsent: () => false };
+});
 
 const scope = { accountId: 'shop', userId: 'guest' };
 
@@ -18,8 +24,8 @@ function render() {
 }
 
 describe('the public photo permission while the Tea Table is closed', () => {
-  it('is switched off in what ships', () => {
-    expect(TEA_TABLE_OPEN).toBe(false);
+  it('is shut here', () => {
+    expect(teaTableOpen()).toBe(false);
   });
 
   it('asks only for the public recap, never for the Tea Table', () => {

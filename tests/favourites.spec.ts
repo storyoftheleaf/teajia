@@ -6,7 +6,7 @@ import { expect, test } from './fixtures';
 // Launch 4; with VITE_FAVOURITES_OPEN=true on the site these walk the open
 // page, and without it they prove nothing of it appears.
 
-const favouritesOpen = process.env.VITE_FAVOURITES_OPEN === 'true';
+const favouritesOpen = process.env.VITE_FAVOURITES_OPEN !== 'false';
 
 function fakeJWT(payload: object): string {
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -143,7 +143,9 @@ test.describe('favourites, open', () => {
     const keep = page.getByTestId('keep-article');
     await expect(keep).toHaveText('Keep');
     const box = await keep.boundingBox();
-    expect(box && box.width >= 44 && box.height >= 44).toBe(true);
+    // The site's own tap floor: 44px on a touch screen, smaller under a mouse (tokens.css).
+    const floor = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tap-min')));
+    expect(box && box.width >= floor && box.height >= floor).toBe(true);
     await keep.click();
     await expect(keep).toHaveText('Kept');
     expect(state.articles).toEqual([ARTICLE.id]);

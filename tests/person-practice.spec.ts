@@ -9,7 +9,7 @@ import { expect, test, type Page } from './fixtures';
 // PRACTICE_SHOTS=<folder/> also saves the screenshots for Adrian, phone and
 // desktop, into that folder.
 
-const practiceOpen = process.env.VITE_PRACTICE_LINES_OPEN === 'true';
+const practiceOpen = process.env.VITE_PRACTICE_LINES_OPEN !== 'false';
 const shots = process.env.PRACTICE_SHOTS ?? '';
 
 function fakeJWT(payload: object): string {

@@ -29,7 +29,7 @@ describe('the page groups', () => {
 
 describe('the switch', () => {
   it('follows the site setting by default and an explicit setting wins either way', () => {
-    expect(yourTablePageOpen({})).toBe(process.env.VITE_YOUR_TABLE_PAGE_OPEN === 'true');
+    expect(yourTablePageOpen({})).toBe(process.env.VITE_YOUR_TABLE_PAGE_OPEN !== 'false');
     expect(yourTablePageOpen({ YOUR_TABLE_PAGE_OPEN: 'true' })).toBe(true);
     expect(yourTablePageOpen({ YOUR_TABLE_PAGE_OPEN: 'false' })).toBe(false);
   });

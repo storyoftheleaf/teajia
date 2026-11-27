@@ -50,7 +50,7 @@ async function call(path: string, options: { actor?: Actor; method?: string; bod
   return worker.fetch(new Request(`https://worker.test${path}`, {
     headers, method, body: body === undefined ? undefined : JSON.stringify(body),
   }), {
-    DB: db, JWT_SECRET: SECRET, APP_URL: 'https://hosts.test', FEW_HOSTS_OPEN: open ? 'true' : 'false',
+    DB: db, JWT_SECRET: SECRET, APP_URL: 'https://hosts.test', FEW_HOSTS_OPEN: open ? 'true' : 'false', ANYONE_HOSTS_OPEN: 'false',
     RSVP_LIMITER: allow, PUBLIC_MCP_LIMITER: allow, PROVIDER_LIMITER: allow, INQUIRY_LIMITER: allow, AFTER_SIT_LIMITER: allow,
     MEDIA_BUCKET: bucket,
   } as never, { waitUntil: () => undefined } as never);

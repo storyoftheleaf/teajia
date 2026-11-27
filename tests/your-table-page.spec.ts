@@ -8,7 +8,7 @@ import { primaryNav } from './helpers/navigation';
 // VITE_YOUR_TABLE_PAGE_OPEN=true on the site these walk the page and each of
 // its views once; without it they prove /account is the overlay it was.
 
-const pageOpen = process.env.VITE_YOUR_TABLE_PAGE_OPEN === 'true';
+const pageOpen = process.env.VITE_YOUR_TABLE_PAGE_OPEN !== 'false';
 
 const SIZES = [
   { name: 'phone', width: 390, height: 844 },
@@ -80,7 +80,7 @@ async function prepare(page: Page, size: { width: number; height: number }, { si
       const body = request.postDataJSON() as { share_state: 'private' | 'page' | 'offered' };
       state.shareWrites.push({ productId: share[1], share_state: body.share_state });
       state.shares[share[1]] = body.share_state;
-      return route.fulfill({ json: { product_id: share[1], journal_entry_id: `journal-${share[1]}`, share_state: body.share_state, photographs_updated: 0, page_id: 'p1', page_path: '/people/p1', page_created: false } });
+      return route.fulfill({ json: { product_id: share[1], journal_entry_id: `journal-${share[1]}`, share_state: body.share_state, photographs_updated: 0, page_id: 'p1', page_path: '/people/p1', page_created: false, on_tea_table: true } });
     }
     if (pathname === '/api/tasting-journal' || pathname === '/api/tasting-journal/sync') return route.fulfill({ json: { entries: [] } });
     if (/^\/api\/s\/[^/]+\/events$/.test(pathname)) return route.fulfill({ json: [] });
@@ -177,8 +177,8 @@ test.describe('Your Table as a page, open', () => {
       await expect(page).toHaveURL(/share=tea-quiet/);
       const step = page.getByRole('dialog', { name: 'Share this tasting' });
       await expect(step).toBeVisible();
-      await step.getByRole('button', { name: 'On my page', exact: true }).click();
-      await expect(step.getByRole('status')).toHaveText('On your page.');
+      await step.getByRole('button', { name: 'On my page and the Tea Table', exact: true }).click();
+      await expect(step.getByRole('status')).toHaveText('On your page and the Tea Table.');
       expect(state.shareWrites).toEqual([{ productId: 'tea-quiet', share_state: 'page' }]);
       await step.getByRole('button', { name: 'Close' }).click();
       await expect(page.getByRole('button', { name: /^Quiet Oolong: On your page\./ })).toBeVisible();

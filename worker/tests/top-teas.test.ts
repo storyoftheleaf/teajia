@@ -43,7 +43,7 @@ async function call(url = path, options: { user?: string; method?: string; body?
   return worker.fetch(new Request('https://top-teas.test' + url, { headers, method: options.method, body: options.body }), {
     DB: db,
     JWT_SECRET: secret,
-    ...(options.open === false ? {} : { TOP_TEAS_OPEN: 'true' }),
+    ...(options.open === false ? { TOP_TEAS_OPEN: 'false' } : { TOP_TEAS_OPEN: 'true' }),
     PROVIDER_LIMITER: { limit: async () => ({ success: true }) },
     ATLAS_BUCKET: {
       put: async (key: string, body: ReadableStream, metadata: { httpMetadata: { contentType: string } }) => {
@@ -62,7 +62,7 @@ const save = (slot: string, fields: Record<string, string> = {}, photo = true) =
   call(path + '/' + slot, { method: 'PUT', user: 'mei-user', body: pick(fields, photo) });
 
 describe('top teas on a person page', () => {
-  it('opens an empty shelf for its owner and defaults to closed', async () => {
+  it('opens an empty shelf for its owner and closes when set to false', async () => {
     expect((await call(path, { user: 'mei-user', open: false })).status).toBe(404);
     const response = await call(path, { user: 'mei-user' });
     expect(response.status).toBe(200);

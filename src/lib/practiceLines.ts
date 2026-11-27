@@ -21,7 +21,7 @@
 // setting wins over the constant, either way: the site reads
 // VITE_PRACTICE_LINES_OPEN ('true' or 'false'), the worker reads the
 // PRACTICE_LINES_OPEN variable.
-export const PRACTICE_LINES_OPEN = false;
+export const PRACTICE_LINES_OPEN = true;
 
 type Env = { PRACTICE_LINES_OPEN?: string } | null | undefined;
 

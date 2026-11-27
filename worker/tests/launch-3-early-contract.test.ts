@@ -41,7 +41,7 @@ describe('Launch 3 early contract', () => {
   });
 
   it('while Launch 3 is closed, the public answer carries no contribution line and a save leaves it alone', async () => {
-    const { db, send } = await setup({});
+    const { db, send } = await setup({ ANYONE_HOSTS_OPEN: 'false' });
     db.sqlite.exec(`UPDATE events SET contribution_kind = 'free', contribution_note = 'Tea on us' WHERE id = 'sit'`);
     const body = await (await send('/api/events/courtyard/public')).json() as Record<string, unknown>;
     expect(body).not.toHaveProperty('contribution_kind');

@@ -169,10 +169,10 @@ describe('favourites', () => {
     expect(database.sqlite.prepare('SELECT COUNT(*) AS n FROM favourite_articles').get()).toEqual({ n: 0 });
   });
 
-  it('is wired into the worker and closed there by default', async () => {
+  it('is wired into the worker and closed there when set to false', async () => {
     const response = await worker.fetch(
       new Request('https://worker.test/api/me/favourites'),
-      { DB: database } as unknown as Parameters<typeof worker.fetch>[1],
+      { DB: database, FAVOURITES_OPEN: 'false' } as unknown as Parameters<typeof worker.fetch>[1],
     );
     expect(response.status).toBe(404);
     const opened = await worker.fetch(
@@ -193,7 +193,7 @@ describe('favourites', () => {
       expect(response.status, await response.clone().text()).toBe(200);
       return ((await response.json()) as { items: Array<Record<string, unknown>> }).items.find(item => item.id === 'chest-mine')!;
     };
-    expect(await chest()).not.toHaveProperty('favourite');
+    expect(await chest('false')).not.toHaveProperty('favourite');
     expect((await chest('true')).favourite).toBe(true);
   });
 });

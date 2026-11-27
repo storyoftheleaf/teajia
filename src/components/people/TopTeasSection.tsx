@@ -37,7 +37,8 @@ export function TopTeasSection({ slug }: { slug: string }) {
   });
 
   const data = shelf.data;
-  if (!data || (!data.can_edit && !data.picks.length)) return null;
+  // An answer without its picks (an error body, say) shows nothing rather than breaking the page.
+  if (!data?.picks || (!data.can_edit && !data.picks.length)) return null;
   const editing = data.can_edit && isTopTeaSlot(slot);
   return (
     <section className="px-6" aria-label="My top teas">

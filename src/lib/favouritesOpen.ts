@@ -9,7 +9,7 @@
 // An explicit setting wins over the constant, either way: the site reads
 // VITE_FAVOURITES_OPEN ('true' or 'false'), the worker reads the
 // FAVOURITES_OPEN variable.
-export const FAVOURITES_OPEN = false;
+export const FAVOURITES_OPEN = true;
 
 type Env = { FAVOURITES_OPEN?: string } | null | undefined;
 

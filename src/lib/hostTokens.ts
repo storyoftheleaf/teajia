@@ -17,7 +17,7 @@
 // HOST_TOKENS_OPEN variable. Neither is set on the live site.
 import { fewHostsOpen } from './fewHosts';
 
-export const HOST_TOKENS_OPEN = false;
+export const HOST_TOKENS_OPEN = true;
 
 type Env = { HOST_TOKENS_OPEN?: string; FEW_HOSTS_OPEN?: string } | null | undefined;
 

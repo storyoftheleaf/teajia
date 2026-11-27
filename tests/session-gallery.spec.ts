@@ -163,7 +163,7 @@ test('adding a photograph is one tap to the device picker, then the shared edito
 });
 
 test('with Launch 3 closed, the after-sit page shows no gallery and asks for none', async ({ page }) => {
-  test.skip(process.env.VITE_ANYONE_HOSTS_OPEN === 'true', 'Launch 3 is open on this site');
+  test.skip(process.env.VITE_ANYONE_HOSTS_OPEN !== 'false', 'Launch 3 is open on this site');
   const asked: string[] = [];
   page.on('request', request => { if (/\/api\/after-sit\/gallery/.test(request.url())) asked.push(request.url()); });
   await openAfterSit(page, freshState(), { launch3: false });

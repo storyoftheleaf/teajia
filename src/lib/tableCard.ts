@@ -7,7 +7,7 @@
 // VITE_TABLE_CARD_OPEN ('true' or 'false'), the worker reads TABLE_CARD_OPEN.
 // The card reads the public session answer; the worker switches only the tea
 // menu's year and place, which the card alone asks for.
-export const TABLE_CARD_OPEN = false;
+export const TABLE_CARD_OPEN = true;
 
 /** Whether the card for the table is open, on the site or in the worker. */
 export function tableCardOpen(env?: { TABLE_CARD_OPEN?: string } | null): boolean {

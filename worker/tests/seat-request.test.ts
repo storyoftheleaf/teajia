@@ -40,7 +40,7 @@ async function call(path: string, options: {
   return worker.fetch(new Request(`https://worker.test${path}`, {
     headers, method, body: body === undefined ? undefined : JSON.stringify(body),
   }), {
-    DB: db, JWT_SECRET: SECRET, APP_URL: 'https://hosts.test', FEW_HOSTS_OPEN: 'true', RSVP_LIMITER: limiter,
+    DB: db, JWT_SECRET: SECRET, APP_URL: 'https://hosts.test', FEW_HOSTS_OPEN: 'true', ANYONE_HOSTS_OPEN: 'false', RSVP_LIMITER: limiter,
   } as never, { waitUntil: () => undefined } as never);
 }
 

@@ -12,7 +12,7 @@
 // variable. Neither is set on the live site.
 import { fewHostsOpen } from './fewHosts';
 
-export const CIRCLES_OPEN = false;
+export const CIRCLES_OPEN = true;
 
 type Env = { CIRCLES_OPEN?: string; FEW_HOSTS_OPEN?: string } | null | undefined;
 

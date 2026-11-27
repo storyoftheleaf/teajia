@@ -29794,7 +29794,6 @@ const handleGetShopCollections: Handler = async (_request, env) => {
     publication_id: p.publication_id,
     slug: p.slug,
     published_at: p.published_at,
-    view_count: p.view_count,
     collection: {
       id: p.collection_id,
       account_id: p.account_id,
@@ -30177,7 +30176,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
     },
     items: visibleItems,
     account: account ? { name: account.name, slug: account.slug ?? null, whatsapp_number: account.whatsapp_number } : null,
-    publication: { slug: pub.slug, view_count: pub.view_count },
+    publication: { slug: pub.slug },
   });
 };
 

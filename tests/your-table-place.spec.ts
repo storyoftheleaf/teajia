@@ -56,7 +56,7 @@ async function openHostPage(page: Page, places: Place[]) {
     return route.fulfill({ json: {} });
   });
   await page.goto('/account/host');
-  await expect(page.getByRole('heading', { name: 'Your table', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your tea space', level: 2 })).toBeVisible();
   return state;
 }
 

@@ -64,7 +64,8 @@ function PracticeLinesOpen({ slug, tone }: { slug: string; tone: 'page' | 'profi
   });
 
   const data = practice.data;
-  if (!data) return null;
+  // An answer without its lines (an error body, say) shows nothing rather than breaking the page.
+  if (!data?.lines) return null;
   const { lines, can_edit: canEdit } = data;
   if (!canEdit && !hasPracticeLines(lines)) return null;
   const open = canEdit && isLineKey(step) ? step : null;

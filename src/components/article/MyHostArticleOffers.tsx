@@ -59,7 +59,7 @@ export function MyHostArticleOffers({ writing, onStep }: { writing: boolean; onS
       ? <LoadFailed className="mt-6" sentence="Your article offers could not be loaded just now." onRetry={view.retry} />
       : null;
   }
-  const { can_offer: canOffer, offers } = query.data;
+  const { can_offer: canOffer, offers = [] } = query.data;
   if (!canOffer && offers.length === 0) return null;
 
   return (

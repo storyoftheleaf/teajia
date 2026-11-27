@@ -240,6 +240,7 @@ for (const size of SIZES) {
         await mei.page.goto('/tea-table');
         const piece = teaTablePiece(mei.page, MEI_TEA);
         await piece.getByTestId('tea-table-take-off').click();
+        await piece.getByTestId('tea-table-take-off-yes').click();
         await expect(mei.page.getByTestId('tea-table-page')).not.toContainText(MEI_TEA);
       });
       await clean(mei, 'take off');
@@ -475,7 +476,7 @@ for (const size of SIZES) {
         await expect(visitor.page.getByRole('region', { name: 'My top teas' })).toHaveCount(0);
         await visitor.page.goto('/people');
         await visitor.page.waitForLoadState('networkidle');
-        await expect(visitor.page.getByText('Pours at tables')).toHaveCount(0);
+        await expect(visitor.page.getByText('Serves at tables')).toHaveCount(0);
         const answers = visitor.seen.join('\n');
         for (const field of ['photograph_by', 'poured_with', '"pours"', 'next_session', 'cover_image_url']) {
           expect.soft(answers.includes(field), `no ${field} in a public answer`).toBe(false);

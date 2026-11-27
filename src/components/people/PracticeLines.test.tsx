@@ -15,8 +15,8 @@ import {
 afterEach(() => vi.unstubAllEnvs());
 
 describe('the practice lines switch', () => {
-  it('is off by default, and the setting wins either way', () => {
-    expect(PRACTICE_LINES_OPEN).toBe(false);
+  it('is on since Adrian turned it on, and the setting wins either way', () => {
+    expect(PRACTICE_LINES_OPEN).toBe(true);
     expect(practiceLinesOpen({ PRACTICE_LINES_OPEN: 'true' })).toBe(true);
     expect(practiceLinesOpen({ PRACTICE_LINES_OPEN: 'false' })).toBe(false);
   });
