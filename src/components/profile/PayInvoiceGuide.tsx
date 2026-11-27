@@ -2,7 +2,7 @@ import { Button } from '../shared/Button';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Banknote, Bookmark, Check,  Copy, Repeat } from 'lucide-react';
+import { ArrowRight, Banknote, Bookmark, Check, Copy, Repeat } from 'lucide-react';
 import { TeaCup } from '../TeaCupIcon';
 import { useAppStore } from '../../lib/store';
 import { authPagePath } from '../../lib/authNavigation';

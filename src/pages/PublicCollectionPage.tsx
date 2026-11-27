@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Plus, ArrowRight, Share2, Link2, Bookmark,  MessageCircle, ShoppingBag } from 'lucide-react';
+import { Plus, ArrowRight, Share2, Link2, Bookmark, MessageCircle, ShoppingBag } from 'lucide-react';
 import { TeaCup } from '../components/TeaCupIcon';
 import { api } from '../lib/api';
 import { buildWhatsAppUrl } from '../lib/whatsapp';
