@@ -48,7 +48,7 @@
 // agree. Liveness is still decided in SQL wherever a write depends on it.
 
 import { hostDoorSql, hostingStoppedSql } from './hostApproval';
-import { seatsTakenSql } from './hostTableGuests';
+import { seatsTakenSql, sqlNow } from './hostTableGuests';
 import { sessionInstant } from './sessionWalkthrough';
 
 type Db = Pick<D1Database, 'prepare' | 'batch'>;
@@ -59,7 +59,7 @@ export type SeatNoticeShown = SeatNoticeKind | 'returned';
 
 export const LIVE_OFFER_SQL = (alias: string) =>
   `${alias}.claim_expires_at IS NOT NULL AND datetime(${alias}.claim_expires_at) > datetime('now')`;
-const EXPIRED_OFFER_SQL = `claim_expires_at IS NOT NULL AND datetime(claim_expires_at) <= datetime('now')`;
+const EXPIRED_OFFER_SQL = (now?: number) => `claim_expires_at IS NOT NULL AND datetime(claim_expires_at) <= ${sqlNow(now)}`;
 
 /**
  * An offer this code made: offerFreedSeats writes an 'offered' notice with a
@@ -73,13 +73,39 @@ const OFFER_MADE_HERE_SQL = (alias: string) => `EXISTS (SELECT 1 FROM event_seat
     WHERE made.event_id = ${alias}.event_id AND made.account_id = ${alias}.account_id
       AND made.attendee_id = ${alias}.id AND made.kind = 'offered' AND made.seats > 0)`;
 /** A waiting guest with no offer to wait on: none yet, or only an old one of main's that ran out. */
-const WAITING_WITH_NO_LIVE_OFFER_SQL = (alias: string) => `(${alias}.claim_expires_at IS NULL
-    OR (datetime(${alias}.claim_expires_at) <= datetime('now') AND NOT ${OFFER_MADE_HERE_SQL(alias)}))`;
+const WAITING_WITH_NO_LIVE_OFFER_SQL = (alias: string, now?: number) => `(${alias}.claim_expires_at IS NULL
+    OR (datetime(${alias}.claim_expires_at) <= ${sqlNow(now)} AND NOT ${OFFER_MADE_HERE_SQL(alias)}))`;
 
-/** An offer's deadline: the claim window from now, rounded up to the whole second. */
-export function offerDeadline(now: number, minutes: number): string {
+/**
+ * An offer's deadline: the claim window from now, rounded up to the whole
+ * second, and never past the session's start (review A9-6): once tea has
+ * begun nobody is asked to claim a seat.
+ */
+export function offerDeadline(now: number, minutes: number, startsAt?: number | null): string {
   const window = Number.isFinite(minutes) && minutes > 0 ? minutes : 60;
-  return new Date(Math.ceil((now + window * 60_000) / 1000) * 1000).toISOString();
+  const until = Math.ceil((now + window * 60_000) / 1000) * 1000;
+  const start = typeof startsAt === 'number' && Number.isFinite(startsAt) ? Math.floor(startsAt / 1000) * 1000 : null;
+  return new Date(start !== null && start < until ? start : until).toISOString();
+}
+
+/**
+ * The deadline a guest is shown on their own page: the stored one, capped at
+ * the start, and none at all once the session has begun, so an offer made
+ * before this rule existed stops asking too (review A9-6).
+ */
+export function offerShownUntil(claimExpiresAt: unknown, session: { event_date?: unknown; timezone?: unknown }, now = Date.now()): string | null {
+  if (typeof claimExpiresAt !== 'string' || !claimExpiresAt) return null;
+  const start = sessionInstant(session.event_date, session.timezone);
+  if (start && start.at <= now) return null;
+  const deadline = Date.parse(claimExpiresAt.includes('T') || /Z$/.test(claimExpiresAt) ? claimExpiresAt : claimExpiresAt.replace(' ', 'T') + 'Z');
+  if (!Number.isFinite(deadline)) return claimExpiresAt;
+  return start && start.at < deadline ? new Date(Math.floor(start.at / 1000) * 1000).toISOString() : claimExpiresAt;
+}
+
+/** Whether a session has begun, by its start in its own zone. */
+export function sessionHasBegun(session: { event_date?: unknown; timezone?: unknown }, now = Date.now()): boolean {
+  const start = sessionInstant(session.event_date, session.timezone);
+  return Boolean(start && start.at <= now);
 }
 
 const noticeId = () => `seat-notice-${crypto.randomUUID()}`;
@@ -190,14 +216,17 @@ export async function cancelGuestSeat(db: Db, input: Omit<ReleaseSeatsInput, 'fr
  * (from the scheduled worker) every event, a page at a time. Returns the
  * events whose queue may now move on.
  */
-export async function lapseExpiredOffers(db: Db, scope: { eventId: string; accountId: string } | { limit: number }) {
+export async function lapseExpiredOffers(db: Db, scope: { eventId: string; accountId: string } | { limit: number }, now?: number) {
   const one = 'eventId' in scope;
+  // One operation time for the read, the guard and the mark (review A9-14);
+  // SQLite's own now when none is handed in.
+  const at = sqlNow(now);
   const { results } = await db.prepare(
-    `UPDATE event_attendees SET claim_expires_at = NULL, offer_lapsed_at = datetime('now')
-      WHERE status = 'waitlist' AND ${EXPIRED_OFFER_SQL}
+    `UPDATE event_attendees SET claim_expires_at = NULL, offer_lapsed_at = ${at}
+      WHERE status = 'waitlist' AND ${EXPIRED_OFFER_SQL(now)}
         AND id IN (SELECT queued.id FROM event_attendees queued
           WHERE queued.status = 'waitlist' AND queued.claim_expires_at IS NOT NULL
-            AND datetime(queued.claim_expires_at) <= datetime('now')
+            AND datetime(queued.claim_expires_at) <= ${at}
             AND ${OFFER_MADE_HERE_SQL('queued')}${one ? ' AND queued.event_id = ? AND queued.account_id = ?' : ''}
           LIMIT ?)
       RETURNING id, event_id, account_id`
@@ -217,7 +246,7 @@ export async function lapseExpiredOffers(db: Db, scope: { eventId: string; accou
  * has already begun. Returns the guests offered a seat, in order.
  */
 export async function offerFreedSeats(db: Db, scope: { eventId: string; accountId: string }, now = Date.now()): Promise<string[]> {
-  await lapseExpiredOffers(db, scope);
+  await lapseExpiredOffers(db, scope, now);
   const event = await db.prepare(
     `SELECT e.total_capacity, e.claim_window_minutes, e.lifecycle_status, e.event_date, e.timezone,
             ${hostDoorSql('a', 'e', { anyoneHosts: true })} AS door, ${hostingStoppedSql('a')} AS host_stopped
@@ -238,19 +267,19 @@ export async function offerFreedSeats(db: Db, scope: { eventId: string; accountI
   }
 
   const offered: string[] = [];
-  const deadline = offerDeadline(now, Number(event.claim_window_minutes) || 60);
+  const deadline = offerDeadline(now, Number(event.claim_window_minutes) || 60, start?.at);
   for (let round = 0; round < Math.max(1, Number(event.total_capacity) || 0); round += 1) {
     const row = await db.prepare(
       `UPDATE event_attendees SET claim_expires_at = ?
         WHERE id = (SELECT queued.id FROM event_attendees queued
             WHERE queued.event_id = ? AND queued.account_id = ? AND queued.status = 'waitlist'
-              AND ${WAITING_WITH_NO_LIVE_OFFER_SQL('queued')} AND queued.offer_lapsed_at IS NULL
+              AND ${WAITING_WITH_NO_LIVE_OFFER_SQL('queued', now)} AND queued.offer_lapsed_at IS NULL
             ORDER BY queued.waitlist_position IS NULL, queued.waitlist_position, queued.created_at, queued.id
             LIMIT 1)
-          AND status = 'waitlist' AND ${WAITING_WITH_NO_LIVE_OFFER_SQL('event_attendees')} AND offer_lapsed_at IS NULL
+          AND status = 'waitlist' AND ${WAITING_WITH_NO_LIVE_OFFER_SQL('event_attendees', now)} AND offer_lapsed_at IS NULL
           AND EXISTS (SELECT 1 FROM events e
             WHERE e.id = ? AND e.account_id = ? AND e.lifecycle_status = 'published'
-              AND ${seatsTakenSql('e')} < e.total_capacity)
+              AND ${seatsTakenSql('e', now)} < e.total_capacity)
         RETURNING id`
     ).bind(deadline, scope.eventId, scope.accountId, scope.eventId, scope.accountId).first<{ id: string }>();
     if (!row) break;
@@ -311,7 +340,7 @@ export async function advanceWaitingLists(db: Db, now = Date.now()): Promise<{ l
   let lapsed = 0;
   let offered = 0;
   for (let page = 0; page < 5; page += 1) {
-    const events = await lapseExpiredOffers(db, { limit: 100 });
+    const events = await lapseExpiredOffers(db, { limit: 100 }, now);
     if (events.length === 0) break;
     lapsed += events.length;
     for (const event of events) offered += (await offerFreedSeats(db, event, now)).length;

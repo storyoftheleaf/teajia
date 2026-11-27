@@ -20,7 +20,7 @@ import { sessionHasEnded, type SessionTimes } from '../../shared/sessionEnd';
 
 // The rule itself lives in shared/sessionEnd.ts so the guest's phone reads the
 // same end as the worker does.
-export { SESSION_DEFAULT_HOURS, sessionEndsAt, sessionHasEnded, sessionInstant, type SessionTimes } from '../../shared/sessionEnd';
+export { SESSION_DEFAULT_HOURS, sessionCancelled, sessionEndsAt, sessionHasEnded, sessionInstant, sessionMoment, type SessionMoment, type SessionTimes } from '../../shared/sessionEnd';
 
 /**
  * Whether this guest may see the way to the house now: their seat is

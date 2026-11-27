@@ -3,10 +3,13 @@ import { Clock } from 'lucide-react';
 import type { EventAttendee, TeaEvent } from '../../../types/events';
 import { formatEventDate, formatTime, getClaimTimeRemaining } from './helpers';
 import CancelConfirmModal from './CancelConfirmModal';
+import type { SessionMoment } from '../../../../shared/sessionEnd';
 
 interface WaitlistViewProps {
   attendee: EventAttendee;
   event: TeaEvent;
+  /** Where the table stands now. From the start no seat is offered to claim (review A9-6). */
+  moment?: SessionMoment;
   // Claim-seat mutation
   onClaimSeat: () => void;
   claimPending: boolean;
@@ -23,6 +26,7 @@ interface WaitlistViewProps {
 const WaitlistView: React.FC<WaitlistViewProps> = ({
   attendee,
   event,
+  moment = 'before',
   onClaimSeat,
   claimPending,
   claimIsError,
@@ -34,6 +38,7 @@ const WaitlistView: React.FC<WaitlistViewProps> = ({
   cancelPending,
 }) => {
   const hasClaimOffer =
+    moment === 'before' &&
     !!attendee.claimExpiresAt &&
     new Date(attendee.claimExpiresAt).getTime() > Date.now();
 
@@ -87,8 +92,8 @@ const WaitlistView: React.FC<WaitlistViewProps> = ({
           </div>
 
           <div className="text-center text-sm text-tea-text-sec">
-            <p>{formatEventDate(event.eventDate)}</p>
-            <p className="text-tea-gold mt-1">{formatTime(event.eventDate)}</p>
+            <p>{formatEventDate(event.eventDate, event.timezone)}</p>
+            <p className="text-tea-gold mt-1">{formatTime(event.eventDate, event.timezone)}</p>
             {event.locationName && <p className="mt-1">{event.locationName}</p>}
           </div>
         </div>
@@ -124,8 +129,8 @@ const WaitlistView: React.FC<WaitlistViewProps> = ({
         </div>
 
         <div className="text-center mb-8">
-          <p className="text-sm text-tea-text-sec">{formatEventDate(event.eventDate)}</p>
-          <p className="text-sm text-tea-gold mt-1">{formatTime(event.eventDate)}</p>
+          <p className="text-sm text-tea-text-sec">{formatEventDate(event.eventDate, event.timezone)}</p>
+          <p className="text-sm text-tea-gold mt-1">{formatTime(event.eventDate, event.timezone)}</p>
         </div>
 
         <div className="text-center">

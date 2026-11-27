@@ -9,12 +9,15 @@ import CancelConfirmModal from './CancelConfirmModal';
 import TastingDoor from './TastingDoor';
 import { anyoneHostsOpen } from '../../../lib/anyoneHosts';
 import { wayEndsAt } from '../../../lib/keptWay';
+import type { SessionMoment } from '../../../../shared/sessionEnd';
 
 const VenueGuide = lazy(() => import('../VenueGuide'));
 const TeaMenuPreview = lazy(() => import('../TeaMenuPreview'));
 
 interface ConfirmedViewProps {
   data: GuestManagementData;
+  /** Where the table stands now. During and after, nothing asks the guest to plan (review A9-5). */
+  moment?: SessionMoment;
   statusBanner: React.ReactNode;
   // Guidelines accordion
   guidelinesExpanded: boolean;
@@ -48,6 +51,7 @@ interface ConfirmedViewProps {
 
 const ConfirmedView: React.FC<ConfirmedViewProps> = ({
   data,
+  moment = 'before',
   statusBanner,
   guidelinesExpanded,
   onToggleGuidelines,
@@ -78,6 +82,11 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
 
   // Show approved guest invite links
   const approvedGuests = guestInvites ?? [];
+  // Planning (a calendar entry, a +1, dietary notes, showing a name) is for
+  // before tea. From the start the page asks for nothing (CLAUDE.md, "the app
+  // never asks during a tea session"); the way in, the teas and the tasting
+  // door the host chose stay.
+  const planning = moment === 'before';
 
   return (
     <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
@@ -103,8 +112,8 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
 
             <div className="w-8 h-px bg-tea-gold/30 mx-auto my-5" />
 
-            <p className="font-serif text-base text-tea-text">{formatEventDate(event.eventDate)}</p>
-            <p className="font-serif text-base text-tea-gold mt-1">{formatTime(event.eventDate)}</p>
+            <p className="font-serif text-base text-tea-text">{formatEventDate(event.eventDate, event.timezone)}</p>
+            <p className="font-serif text-base text-tea-gold mt-1">{formatTime(event.eventDate, event.timezone)}</p>
             {event.locationName && (
               <p className="text-sm text-tea-text-sec mt-2">{event.locationName}</p>
             )}
@@ -120,9 +129,11 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
         )}
 
         {/* Calendar download */}
-        <div className="flex justify-center mb-10">
-          <CalendarDownload event={event} />
-        </div>
+        {planning && (
+          <div className="flex justify-center mb-10">
+            <CalendarDownload event={event} />
+          </div>
+        )}
 
         {/* Guest invite links, divide-y list rows with identity miniatures */}
         {approvedGuests.length > 0 && (
@@ -256,7 +267,7 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
         </div>
 
         {/* Guest count toggle (plus one) */}
-        {status === 'confirmed' && (
+        {planning && status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
             <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
               Bringing a guest?
@@ -292,7 +303,7 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
         )}
 
         {/* Dietary requirements / notes */}
-        {status === 'confirmed' && (
+        {planning && status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
             <label htmlFor="rsvp-dietary-notes" className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
               Dietary notes or special requests
@@ -331,7 +342,7 @@ const ConfirmedView: React.FC<ConfirmedViewProps> = ({
         )}
 
         {/* Guest list opt-in toggle */}
-        {status === 'confirmed' && (
+        {planning && status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
             <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
               Guest list

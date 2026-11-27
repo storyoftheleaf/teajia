@@ -22,7 +22,7 @@ import { hostTokensRoutes } from './hostTokens';
 import { teaHousesRoutes } from './teaHouses';
 import { fewHostsOpen } from '../../src/lib/fewHosts';
 import { accountHostingStopped, anyoneMayHost, HOSTING_STOPPED_SAYS, hostApproved, hostDoorSql, hostDoorsFor, hostingStoppedSql, hostReachOf, hostStanding, isHostReach, listableHostedSessionSql, personalAccountSql, publicSessionHostSql, reachListedSessionSql, setHostApproval, setHostingStopped, setHostReach, type HostReach } from './hostApproval';
-import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
+import { HOST_TEA_MEDIA_KEY, isWalkthroughMedia, mayShowWalkthrough, sessionEndsAt, sessionHasEnded, sessionInstant as sessionStart, sessionMoment, WALKTHROUGH_MEDIA_CACHE } from './sessionWalkthrough';
 import { CONTRIBUTOR_EFFECTIVELY_PUBLISHED_SQL, publicLeadHostSql } from './sessionHost';
 import { areaGivesAwayTheWay, isAreaRefusal, readTableArea } from './hostTableArea';
 import { signedWayPhotoUrl, signWayGuide, WAY_HOST, WAY_SIGNED_SECONDS, wayMediaVerdict } from './wayMedia';
@@ -32,7 +32,7 @@ import { changeHostedTable, hostTableGuests, markWhoCame, ownHostedTable, readTa
 import { createsCustomer, linkDoorFullAnswer, looksUpByContact, photoConsentValue, seatContact, seatDoorRule, seatIdFromKey, seatKey, seatRequirement, seatStatusFor, usesSeatKey } from './seatRequest';
 import { guestNotesFor, saveGuestNote } from './hostGuestNotes';
 import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
-import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, recordSeatNotice, releaseSeats, seatNoticesFor } from './waitingList';
+import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, offerShownUntil, recordSeatNotice, releaseSeats, seatNoticesFor, sessionHasBegun } from './waitingList';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTableWay, signWayForHost } from './hostTableWay';
 import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
@@ -12568,6 +12568,9 @@ function seatReservationError(result: Exclude<ReservePartySeatsResult, { ok: tru
   if (result.code === 'event_not_reservable') {
     return json({ error: 'Event is not accepting reservations', code: 'event_not_reservable' }, 409);
   }
+  if (result.code === 'already_seated') {
+    return json({ error: 'You already have a seat at this table.', code: 'already_seated' }, 409);
+  }
   return json({ error: 'Reservation state changed', code: 'state_conflict' }, 409);
 }
 
@@ -12889,30 +12892,60 @@ function listedSessionsSql(env: Env, reaches: Exclude<HostReach, 'invitation'>[]
   return `(${shop} OR ${reachListedSessionSql('a', 'e', reaches)})`;
 }
 
-async function upcomingListedSessions(env: Env, reaches: Exclude<HostReach, 'invitation'>[]) {
-  const rows = await env.DB.prepare(
-    `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
-            e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status,
-            ${yourTableAreaSql(yourTableShown(env))},
-            ${personalAccountSql('a')} AS private_host,
-            COALESCE((SELECT COUNT(*) FROM event_party_members pm
-              WHERE pm.event_id = e.id AND pm.account_id = e.account_id
-                AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}), 0) AS confirmed_count,
-            COALESCE((SELECT COUNT(*) FROM event_attendees offer
-              WHERE offer.event_id = e.id AND offer.account_id = e.account_id
-                AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
-                AND datetime(offer.claim_expires_at) > datetime('now')), 0) AS offered_count
-     FROM events e
-     JOIN accounts a ON a.id = e.account_id
-     WHERE e.status = 'active'
-       AND e.event_date >= datetime('now')
-       AND ${listedSessionsSql(env, reaches)}
-       AND ${listableHostedSessionSql('e')}
-     ORDER BY e.event_date ASC
-     LIMIT 20`
-  ).all();
+/** How many sessions an upcoming list carries. */
+const UPCOMING_SESSIONS_LIMIT = 20;
 
-  return (rows.results ?? []).map(({ private_host: privateHost, id, ...ev }) => {
+async function upcomingListedSessions(env: Env, reaches: Exclude<HostReach, 'invitation'>[]) {
+  // Upcoming is the instant rule (shared/sessionEnd.ts sessionMoment, review
+  // A6-4): a session is listed only before its start, read in its own time
+  // zone, and only while its seat door is open (published). The SQL reads a
+  // generous window, a day either side of any wall clock, and the rule is
+  // applied to each row before the list is cut to its limit, so an old row
+  // stored as a wall time never takes the place of one still to come.
+  const now = Date.now();
+  const eligible: Record<string, unknown>[] = [];
+  const page = 100;
+  for (let offset = 0; offset < 2000; offset += page) {
+    const rows = await env.DB.prepare(
+      `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
+              e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status, e.lifecycle_status,
+              ${yourTableAreaSql(yourTableShown(env))},
+              ${personalAccountSql('a')} AS private_host,
+              COALESCE((SELECT COUNT(*) FROM event_party_members pm
+                WHERE pm.event_id = e.id AND pm.account_id = e.account_id
+                  AND pm.seat_status IN ('held','confirmed') AND ${SEAT_OF_A_GUEST_STILL_COMING('pm')}), 0) AS confirmed_count,
+              COALESCE((SELECT COUNT(*) FROM event_attendees offer
+                WHERE offer.event_id = e.id AND offer.account_id = e.account_id
+                  AND offer.status = 'waitlist' AND offer.claim_expires_at IS NOT NULL
+                  AND datetime(offer.claim_expires_at) > datetime('now')), 0) AS offered_count
+       FROM events e
+       JOIN accounts a ON a.id = e.account_id
+       WHERE e.status = 'active'
+         AND e.lifecycle_status = 'published'
+         AND datetime(e.event_date) >= datetime('now', '-1 day')
+         AND ${listedSessionsSql(env, reaches)}
+         AND ${listableHostedSessionSql('e')}
+       ORDER BY datetime(e.event_date) ASC, e.id ASC
+       LIMIT ? OFFSET ?`
+    ).bind(page, offset).all();
+    const results = (rows.results ?? []) as Record<string, unknown>[];
+    for (const row of results) {
+      if (sessionMoment(row, now) === 'before') eligible.push(row);
+    }
+    // Rows come in wall-clock order; a day past the last one kept, no
+    // session in any zone can start before it.
+    if (results.length < page) break;
+    if (eligible.length >= UPCOMING_SESSIONS_LIMIT) {
+      const kept = sessionStart(eligible[UPCOMING_SESSIONS_LIMIT - 1].event_date, 'UTC')?.at ?? 0;
+      const last = sessionStart(results[results.length - 1].event_date, 'UTC')?.at ?? 0;
+      if (last - kept > 26 * 60 * 60 * 1000) break;
+    }
+  }
+  const startOf = (row: Record<string, unknown>) => sessionStart(row.event_date, row.timezone)?.at ?? Number.MAX_SAFE_INTEGER;
+  const upcoming = eligible.sort((a, b) => startOf(a) - startOf(b)).slice(0, UPCOMING_SESSIONS_LIMIT)
+    .map(({ event_end_date: _end, lifecycle_status: _lifecycle, ...row }) => row);
+
+  return upcoming.map(({ private_host: privateHost, id, ...ev }) => {
     const confirmedCount = (ev.confirmed_count as number) || 0;
     const offeredCount = (ev.offered_count as number) || 0;
     return {
@@ -13072,6 +13105,18 @@ const handleRSVP: Handler = async (request, env, params) => {
     const rawToken = isAuthed(request);
     if (rawToken && await verifyToken(rawToken, env.JWT_SECRET)) seatUserId = parseToken(rawToken)?.sub ?? null;
   }
+  // One person, one seat (review A9-2): a signed-in guest who already holds a
+  // seat here, by any door (a circle's ask back, a request, a link from
+  // another phone), is handed that seat, not a second one. The allocator
+  // refuses a second row for the same person inside its write as well.
+  const ownSeat = async () => seatUserId
+    ? env.DB.prepare(`SELECT magic_token, status FROM event_attendees
+        WHERE event_id = ? AND account_id = ? AND user_id = ? AND status IN ('confirmed', 'requested', 'waitlist')
+        ORDER BY CASE status WHEN 'confirmed' THEN 0 ELSE 1 END, created_at ASC LIMIT 1`)
+      .bind(event.id, accountId, seatUserId).first<Record<string, unknown>>()
+    : null;
+  const alreadyHere = await ownSeat();
+  if (alreadyHere) return seatAnswer(alreadyHere, 200, true);
 
   // Approval-required requests do not hold capacity. Instant RSVPs reserve the
   // complete party atomically through the canonical seat allocator.
@@ -13157,6 +13202,16 @@ const handleRSVP: Handler = async (request, env, params) => {
   if (!reserved.ok) {
     const first = await keyedSeat();
     if (first) return seatAnswer(first, 200, true);
+    if (reserved.code === 'already_seated') {
+      const mine = await ownSeat();
+      if (mine) return seatAnswer(mine, 200, true);
+      // Matched by a contact only: the same neutral answer as the lookup above,
+      // so a typed email or phone never hands out someone's private link.
+      return json({
+        ok: true,
+        message: 'Your RSVP request was received. If an RSVP already exists, use RSVP recovery to receive its private link.',
+      });
+    }
     if (doorRule === 'link' && reserved.code === 'capacity_conflict') {
       const taken = await seatsTaken(env.DB, { id: String(event.id), account_id: accountId });
       const full = linkDoorFullAnswer(Number(event.total_capacity) - taken, seats.length);
@@ -13372,7 +13427,8 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       bringing_tea: attendee.bringing_tea,
       waitlist_position: attendee.waitlist_position,
       claimed_at: attendee.claimed_at,
-      claim_expires_at: attendee.claim_expires_at,
+      // Never past the start, and none once tea has begun (review A9-6).
+      claim_expires_at: offerShownUntil(attendee.claim_expires_at, sessionTimes),
       attended: attendee.attended,
       created_at: attendee.created_at,
       guest_requests: guestRequests,
@@ -13530,7 +13586,7 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
 
 const handleClaimSpot: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
-    `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id,
+    `SELECT ea.*, e.claim_window_minutes, e.id as eid, e.account_id as event_account_id, e.event_date, e.timezone,
             (ea.claim_expires_at IS NOT NULL AND datetime(ea.claim_expires_at) > datetime('now')) AS offer_live
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
@@ -13554,6 +13610,11 @@ const handleClaimSpot: Handler = async (_request, env, params) => {
   }
   // Liveness is decided by SQLite, the same clock the guarded write reads.
   if (Number(attendee.offer_live) !== 1) return expired();
+  // Once tea has begun no seat is claimed, even on an offer made before the
+  // deadline was capped at the start (review A9-6).
+  if (sessionHasBegun(attendee)) {
+    return json({ error: 'Tea has begun, so this seat can no longer be taken.', code: 'offer_expired' }, 410);
+  }
 
   const primary = await env.DB.prepare(
     `SELECT id, full_name, seat_status FROM event_party_members
@@ -14603,6 +14664,14 @@ const handleCreateNotifications: Handler = async (request, env, params) => {
   const { accountId } = ctx;
   const guard = await assertEventInAccount(env, params.id, accountId);
   if (guard) return guard;
+  // A coming-up reminder is for before tea only (review A9-7): from the start
+  // on, guests are sitting, and the app asks them for nothing.
+  const times = await env.DB.prepare(
+    `SELECT event_date, event_end_date, timezone, lifecycle_status, status FROM events WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first();
+  if (!times || sessionMoment(times) !== 'before') {
+    return json({ error: 'Reminders are prepared before the session begins.', code: 'reminder_window_closed' }, 409);
+  }
 
   const attendees = await env.DB.prepare(
     `SELECT id FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
@@ -17704,7 +17773,7 @@ const handleGetHostedTable: Handler = async (request, env, params) => {
   const account = await personalInventoryAccount(env.DB, host.userId);
   if (!account) return json({ error: 'Table not found' }, 404);
   const table = await env.DB.prepare(`
-    SELECT e.id, e.slug, e.title, e.event_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status,
+    SELECT e.id, e.slug, e.title, e.event_date, e.event_end_date, e.timezone, e.door, e.total_capacity AS seats, e.lifecycle_status,
            e.requires_approval, e.public_visibility, e.area_hint, e.is_tasting
       FROM events e
      WHERE e.id = ? AND ${OWN_HOSTED_TABLE_SQL}
@@ -20275,6 +20344,10 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   const magicToken = crypto.randomUUID();
   const newAttendeeId = crypto.randomUUID();
   const contactMethod = body.phone ? 'whatsapp' : 'email';
+  // A signed-in companion is known by their account too, so the one-seat rule
+  // (eventDomain.ts onePersonGuard, review A9-2) sees them at this door.
+  const claimToken = isAuthed(request);
+  const claimUserId = claimToken && await verifyToken(claimToken, env.JWT_SECRET) ? parseToken(claimToken)?.sub ?? null : null;
   const offeredSeat = await env.DB.prepare(
     `SELECT id, seat_status FROM event_party_members
      WHERE invitation_id = ? AND account_id = ? AND event_id = ?`
@@ -20297,7 +20370,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
       invitationId: invite.id as string,
     }],
     createParticipation: {
-      columns: ['full_name', 'phone_number', 'email', 'contact_method', 'magic_token', 'source', 'access_tier', 'photo_consent'],
+      columns: ['full_name', 'phone_number', 'email', 'contact_method', 'magic_token', 'source', 'access_tier', 'photo_consent', 'user_id'],
       values: [
         body.name,
         body.phone || null,
@@ -20308,6 +20381,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
         'standard',
         // Not asked at this door, so not recorded as a no.
         null,
+        claimUserId,
       ],
     },
     guestClaim: {
