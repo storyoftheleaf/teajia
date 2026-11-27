@@ -12,13 +12,15 @@ A page answers the question a tea buyer actually has: why does this place, style
 
 *Adrian's note, on Menghai County:* it should talk a little about the history, but why do people like Menghai? Is it the ecosystem, the nature, or just the history?
 
-### 2. Few numbers (Adrian, 2026-11-27)
+### 2. Numbers that tell the story stay; numbers that are only data go (Adrian, 2026-11-27)
 
-Too many numbers are not relatable. Keep a number only when the reader needs it to understand the tea: the decade ripe pu'er began, say. Leave out recipe codes, altitude ranges, founding years and counts unless the number is the point of the section. One number in a section is plenty; two is the limit.
+Too many numbers are not relatable, but the right number is part of the story. Keep a number the trade talks about or that carries meaning for the reader: a recipe like 7572 and what it stands for, or the decade ripe pu'er began. Leave out numbers that are only data piled up: altitude ranges, counts, exact founding years one after another. Never strip a section of numbers just to have fewer.
+
+*Adrian's notes:* "Too many numbers is not relatable." Then: "7572 is nice in there, so don't take out all the numbers necessarily."
 
 ### 3. Clear, never dumbed down (Adrian, 2026-11-27)
 
-Write it the way a knowledgeable tea person talks to someone who cares about tea: clear sentences, one idea at a time, and the full substance kept. Making a page easier to understand never means making it thinner. Keep the real names, the trade terms, the distinctions and the reasons; cut only clutter (number lists, hedging, repetition). Explain a term only where a keen buyer would not know it, and never explain what any tea drinker knows. A name the trade uses as a name, such as 7572, is a name rather than a number and stays.
+Write it the way a knowledgeable tea person talks to someone who cares about tea: clear sentences, one idea at a time, and the full substance kept. Making a page easier to understand never means making it thinner. Keep the real names, the trade terms, the distinctions and the reasons; cut only clutter (number lists, hedging, repetition). Explain a term only where a keen buyer would not know it, and never explain what any tea drinker knows.
 
 *Adrian's notes:* "This is a simple." Then: "Just because you're making it easier to understand, you don't have to dumb it down."
 
@@ -28,6 +30,6 @@ The rules above, applied to Menghai County's "Where ripe pu'er began" section.
 
 **Before:** Menghai Tea Factory was among the Yunnan state factories that brought wet piling into production in 1973. Its 7572 ripe cake, usually dated from 1975, became a reference recipe for the style. The number reads as a recipe: 75 for 1975, 7 for the main leaf grade in the blend, 2 for Menghai.
 
-**After:** Ripe pu'er was born in the early 1970s, when Yunnan's state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against, and much of Menghai's standing in ripe tea comes from it.
+**After:** Ripe pu'er was born in the early 1970s, when Yunnan's state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.
 
-(The rewrite keeps the substance and the name the trade knows, 7572, and drops the decoding of it and the exact years. A recipe's meaning belongs on its own named-tea page if one is written.)
+(The rewrite opens with why it matters and keeps 7572 and its meaning, which are part of the story. What it drops is the run of exact years.)
