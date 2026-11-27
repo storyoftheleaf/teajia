@@ -1,5 +1,5 @@
 import { Gift } from 'lucide-react';
-import { useShopPrice } from '../shop/shopPrice';
+import { useExactUsd } from './useExactUsd';
 
 /**
  * A discount on an invoice, said at the top as the gift it is (Adrian,
@@ -11,11 +11,9 @@ export function PayInvoiceGift({ from, discount }: {
   from: string | null;
   discount: { percent: number; amount_usd: number } | null | undefined;
 }) {
-  const shopPrice = useShopPrice();
+  const exact = useExactUsd();
   if (!discount || !(discount.amount_usd > 0)) return null;
-  const saved = shopPrice.code === 'USD'
-    ? `$${Number.isInteger(discount.amount_usd) ? discount.amount_usd : discount.amount_usd.toFixed(2)}`
-    : shopPrice.symbolTotal(discount.amount_usd);
+  const saved = exact(discount.amount_usd);
   return (
     <div className="mt-3 flex items-center gap-3 rounded-md border border-tea-border bg-tea-accent-sub px-3 py-2.5 md:px-4" data-testid="pay-invoice-gift">
       <Gift size={20} strokeWidth={1.5} className="shrink-0 text-tea-gold" aria-hidden="true" />

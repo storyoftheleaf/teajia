@@ -4,7 +4,7 @@ import { useOpenLinkTea } from '../shop/useOpenLinkTea';
 import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
 import { TeaLedger, type TeaLedgerGroup } from '../shop/TeaLedger';
 import type { WeighOption } from '../shop/TeaWeighControl';
-import { useShopPrice } from '../shop/shopPrice';
+import { useExactUsd } from './useExactUsd';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 import type { PayLinkTeaLine } from './types';
@@ -26,7 +26,6 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
 }) {
   const { openId, open: setOpenId, close: closeTea } = useOpenLinkTea();
-  const shopPrice = useShopPrice();
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
   const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
   const favoriteIds = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
@@ -51,9 +50,7 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, disco
   const totalUsd = Math.round((lines.reduce((sum, line) => sum + line.line_total_usd, 0) - (discount?.amount_usd ?? 0)) * 100) / 100;
   // An invoice owes cents, so dollars read to the cent; another currency
   // reads as the shop quotes it, the near figure.
-  const exact = (usd: number) => (shopPrice.code === 'USD'
-    ? `$${Number.isInteger(usd) ? usd : usd.toFixed(2)}`
-    : shopPrice.symbolTotal(usd));
+  const exact = useExactUsd();
   const formatPrice = (usd: number) => (usd === 0 ? 'Free' : exact(usd));
   const byId = useMemo(() => new Map(rows.map(row => [row.id, row])), [rows]);
   const groups = useMemo<TeaLedgerGroup[]>(() => {
