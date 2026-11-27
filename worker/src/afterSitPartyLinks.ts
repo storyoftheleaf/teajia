@@ -1,5 +1,5 @@
 import { createAfterSitCredential, hashAfterSitCredential } from './afterSitCredential';
-import { GUEST_BOOK_NOTE_LIMIT, guestBookEntryKeys, guestBookPlacement, prepareGuestBookNote, type GuestBookPlacement } from './sessionGuestBook';
+import { GUEST_BOOK_NOTE_LIMIT, guestBookEntryKeys, guestBookPlacement, guestSignature, prepareGuestBookNote, type GuestBookPlacement } from './sessionGuestBook';
 import { namedSetupTeas } from './privateKeptSetups';
 
 const LINK_LIFETIME_SECONDS = 14 * 24 * 60 * 60;
@@ -86,7 +86,7 @@ export async function servePartyGuestBook(db: D1Database, link: PartyLink, crede
   if (body.action === 'read') {
     const [included, own] = await Promise.all([
       db.prepare(
-        `SELECT b.id, COALESCE(b.signed_name, a.full_name) AS display_name, b.note, b.user_id
+        `SELECT b.id, ${guestSignature} AS display_name, b.note, b.user_id
          FROM session_guest_book b
          JOIN event_attendees a ON a.id = b.attendee_id AND a.account_id = b.account_id AND a.event_id = b.event_id
          WHERE b.account_id = ? AND b.event_id = ? AND b.status = 'included' AND a.status = 'confirmed' AND a.attended = 1

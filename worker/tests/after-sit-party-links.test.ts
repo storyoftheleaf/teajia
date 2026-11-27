@@ -86,6 +86,19 @@ describe('after-sit party links', () => {
     expect(await review.json()).toMatchObject({ entries: [{ display_name: 'Booker Full Name' }] });
   });
 
+  it('shows the booking note to a party reader by the booking first name, never the surname (A7-1)', async () => {
+    // The old shape: a booking note with no saved signature, already included.
+    db.exec(`INSERT INTO session_guest_book (id, account_id, event_id, attendee_id, user_id, note, status, updated_at)
+      VALUES ('booking-note', 'shop-a', 'event-a', 'attendee', 'booker', 'A quiet evening.', 'included', '2026-11-22')`);
+    const credential = await newPartyCredential('Mei');
+    const read = await (await guestBook(credential, 'plus-one', { action: 'read' })).json() as { entries: Array<{ display_name: string }> };
+    expect(read.entries).toMatchObject([{ display_name: 'Booker', note: 'A quiet evening.' }]);
+    expect(JSON.stringify(read)).not.toContain('Full Name');
+    // The host's review keeps the roster name.
+    const review = await serveGuestBookReview(new Request('https://teajia.test'), db as unknown as D1Database, 'shop-a', 'event-a');
+    expect(await review.json()).toMatchObject({ entries: [{ display_name: 'Booker Full Name' }] });
+  });
+
   it('cannot reach another event or another shop', async () => {
     const credential = await newPartyCredential();
     await guestBook(credential, 'plus-one', { action: 'send', note: 'Only here.' });
