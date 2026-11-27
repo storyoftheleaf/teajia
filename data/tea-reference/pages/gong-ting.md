@@ -5,7 +5,7 @@ kind: leaf_grade
 label: Gong Ting
 native_name: 宫廷
 parent: shou
-visibility: draft
+visibility: public
 ---
 
 ## What Gong Ting means {#definition}

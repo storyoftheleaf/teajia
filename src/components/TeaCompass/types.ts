@@ -28,7 +28,7 @@ export type YixingClayType = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Lvni' | 
 export type TeawareEra = string;
 
 export type BrowseGrouping = 'date' | 'vendor';
-export type BrowseFilter = 'all' | 'to_taste' | 'selected';
+export type BrowseFilter = 'all' | 'to_taste' | 'selected' | 'waiting';
 export type BrowseSort = 'recent' | 'score' | 'price' | 'name';
 // Library layout, list rows, or a grid of the capture photos (bag shots)
 export type BrowseLayout = 'list' | 'photos';

@@ -1,4 +1,5 @@
 import { Button } from '../../../components/shared/Button';
+import { serviceHref, shipmentHref, SHIPMENT_STATE_WORD } from './logisticsLinks';
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -349,6 +350,16 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
           {stage !== 'attention' && items.length > 0 && !expanded && <p className="py-1 text-tea-text-sec">{items.slice(0, 2).map(line => line.product_name).join(' · ')}{items.length > 2 ? ` + ${items.length - 2} more` : ''}</p>}
           {stage !== 'attention' && tracking && <p className="py-1 text-tea-text-sec">{routeSummary ? 'Supplier tracking' : 'Delivery'} · {tracking}</p>}
           {stage !== 'attention' && logisticsOrder?.tracking_update && <LogisticsTrackingUpdate update={logisticsOrder.tracking_update} />}
+          {stage !== 'attention' && logisticsOrder?.logistics_company_name && purchase && (() => {
+            // Every connection is a link (Adrian, 2026-11-27): its company's service, and each shipment it is on.
+            const companyService = (logistics?.services || []).find(service => service.active && service.logistics_company_id === logisticsOrder.logistics_company_id);
+            const onShipments = (logistics?.shipments || []).filter(shipment => shipment.state !== 'cancelled' && shipment.lines.some(line => line.purchase_id === purchase.id));
+            return <p data-testid="purchase-connections" className="flex flex-wrap gap-x-2 py-1 text-tea-text-sec">
+              <span>Goes to</span>
+              <Link className="tap-target underline text-tea-gold" to={serviceHref(companyService?.id || 'new')}>{logisticsOrder.logistics_company_name}{companyService ? ` · ${companyService.name}` : ', add its rate'}</Link>
+              {onShipments.map(shipment => <Link key={shipment.id} className="tap-target underline text-tea-gold" to={shipmentHref(shipment.id)}>{SHIPMENT_STATE_WORD[shipment.state]}{shipment.eta ? `, due ${shipment.eta}` : ''}</Link>)}
+            </p>;
+          })()}
           {attention.length > 0 && <p className="px-3 py-1 text-tea-text-sec">{attention.map(item => item.message).join(' ')}</p>}
         </TeaCard>
         {expanded && <>
@@ -394,7 +405,7 @@ export function PurchaseTrackingView({ NewForm, MatchForm, initialOpen }: { NewF
     <header className="purchase-tracking-header">
       <div><h1 className={T.h2}>Purchases</h1></div>
       <div className="purchase-tracking-tools"><button type="button" className="tap-target purchase-tracking-button" disabled={isFetching} onClick={() => { void refetch(); void logisticsQuery.refetch(); }} aria-label="Refresh purchases"><RefreshCw size={14} className={isFetching ? 'animate-spin' : ''}/></button><button type="button" className="tap-target purchase-tracking-button purchase-tracking-add" aria-label="Add purchase" onClick={() => setNewForm(true)}><Plus size={14}/><span>Add purchase</span></button></div>
-      {logistics && <LogisticsServices key={`services:${accountId}`} services={logistics.services || []} accountId={accountId} busy={busy} mutate={mutate}/>}
+      {logistics && <LogisticsServices key={`services:${accountId}`} services={logistics.services || []} tracking={logistics} accountId={accountId} busy={busy} mutate={mutate}/>}
       {logistics && <LogisticsAddresses key={`addresses:${accountId}`} addresses={logistics.addresses || []} services={logistics.services || []} accountId={accountId} busy={busy} mutate={mutate}/>}
     </header>
     <div className="purchase-tracking-filters">

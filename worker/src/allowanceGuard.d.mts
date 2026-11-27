@@ -1,1 +1,2 @@
 export function guardFetch(request: Request, env: unknown, ctx: unknown, handler: unknown, options: {binding?:string;project:string;classify?:(request:Request)=>{priority:string;feature:string}}): Promise<Response>;
+export function classifyRequest(request: Request): {priority:string;feature:string};

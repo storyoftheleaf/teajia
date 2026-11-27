@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-26T04:44:21.850Z",
+  "composedAt": "2026-11-27T03:55:54.884Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,24 @@
     "form": "Loose",
     "year": 2023,
     "origin": "Taiwan",
-    "stockGrams": 75,
-    "pricePerGramUsd": 0.95,
-    "tags": [
-      "muscatel",
-      "honey",
-      "ripe peach",
-      "floral sweetness",
-      "long finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "8630d742-ff45-466d-a26f-9e7e2993a46f",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [red tea](red:definition) from Taiwan, made in 2023 and recorded as competition grade. Red tea is what English calls black tea: the leaf is fully oxidised, left after rolling until its own enzymes turn it from green to reddish brown, a step the Chinese trade calls fermentation. Taiwan’s [red tea](red:history) dates from the Japanese period, when it was first grown at Yuchi near Sun Moon Lake."
+        "layer": "place",
+        "text": "A [red tea](red:definition) grown in Taiwan. The label names only [the island](taiwan:on-a-label), not a mountain or township, so it tells you where the leaf grew and nothing finer. Red tea on the island dates from [the Japanese period](red:history), when it was first made at Yuchi near Sun Moon Lake, in the centre of [the island's tea country](taiwan:areas)."
+      },
+      {
+        "layer": "type",
+        "text": "It is the fully oxidised tea that English calls black. The fresh leaf is [withered](red:making) until it is soft enough to work, then rolled so its juices and enzymes meet. It is left in warm, damp air until it turns reddish brown, and dried with hot air to end the change and keep it stable."
       },
       {
         "layer": "age",
-        "text": "Red tea has [no tradition of ageing](red:ageing). Sealed, it keeps its quality for about a year and a half to three years, and at three years this tea is at the far end of that span, so it is one to drink now rather than keep."
+        "text": "This lot is from 2023, so it is three years old. Red tea has [no tradition of ageing](red:ageing): sealed, it keeps for about a year and a half to three years, and this tea now sits at the far end of that span."
       }
     ],
     "brewing": {
@@ -43,7 +41,6 @@
       "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -54,7 +51,19 @@
       "rev": 1
     },
     {
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
       "claimId": "red:history",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:areas",
+      "rev": 1
+    },
+    {
+      "claimId": "red:making",
       "rev": 1
     },
     {
@@ -72,5 +81,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:23.993Z"
+  "approvedAt": "2026-11-27T04:17:03.813Z"
 }

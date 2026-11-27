@@ -3,946 +3,931 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
-    "claimId": "green:styles",
-    "pageId": "green",
-    "sectionKey": "styles",
-    "label": "The main styles",
+    "claimId": "dancong:name",
+    "pageId": "dancong",
+    "sectionKey": "name",
+    "label": "Single bush",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Green"
-    },
-    "terms": [
-      {
-        "original": "炒青",
-        "pinyin": "chǎo qīng",
-        "gloss": "pan-fired green tea"
-      },
-      {
-        "original": "蒸青",
-        "pinyin": "zhēng qīng",
-        "gloss": "steamed green tea"
-      },
-      {
-        "original": "烘青",
-        "pinyin": "hōng qīng",
-        "gloss": "oven-dried green tea"
-      },
-      {
-        "original": "晒青",
-        "pinyin": "shài qīng",
-        "gloss": "sun-dried green tea"
-      },
-      {
-        "original": "西湖龙井",
-        "pinyin": "xī hú lóngjǐng",
-        "gloss": "West Lake Longjing"
-      },
-      {
-        "original": "碧螺春",
-        "pinyin": "bìluóchūn",
-        "gloss": "Biluochun"
-      }
-    ],
-    "rev": 1,
-    "scope": "Green tea family kit",
-    "text": "Green tea is sorted by how it is fixed and how it is dried. Pan-fired tea is dried in the pan and is the usual Chinese way; West Lake Longjing from Zhejiang, flat and straight, is the best-known example, and Biluochun from Jiangsu is curled into small snails. Steamed tea is fixed with steam, which is the usual Japanese way, and it gives a deeper green leaf and a grassier, sometimes seaweed-like taste. Oven-dried tea is dried over gentle heat after fixing, which leaves the leaf looser and keeps more of its white down. Sun-dried tea is dried in sunlight.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "jingmai:common-impressions",
-    "pageId": "jingmai",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "jingmai"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "jingmai",
-    "text": "Sellers and drinkers most often name a strong flower or fruit fragrance and a sweetness that comes early and lasts. Some find the bitterness light and the astringency stronger. Spring tea is said to carry more fragrance than summer or autumn tea.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "jingmai:forest-tea",
-    "pageId": "jingmai",
-    "sectionKey": "forest-tea",
-    "label": "Forest tea",
-    "axis": "place",
-    "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
+      "type": "Oolong",
       "origin_includes": [
-        "jingmai"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "jingmai",
-    "text": "The tea grows under the shade of the forest, with little pruning, and the trees are tall. The trade values Jingmai for this forest setting and for its old trees. It is sold as Pu’er, both raw and ripe, under the mountain’s name.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "jingmai:history",
-    "pageId": "jingmai",
-    "sectionKey": "history",
-    "label": "Who grew it and since when",
-    "axis": "maker_history",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "jingmai"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "jingmai",
-    "text": "The Bulang and Dai peoples have grown tea on the mountain for a thousand years or more. The date most often given for the start is about the tenth century, though one local source says thirteen hundred years. An oral story names an ancestor of the Bulang as the first to tend the wild tea, but it is a story, not a record.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "jingmai:where",
-    "pageId": "jingmai",
-    "sectionKey": "where",
-    "label": "Where Jingmai is",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "jingmai"
+        "phoenix mountain"
       ]
     },
     "terms": [
       {
-        "original": "景迈山",
-        "pinyin": "jǐngmài shān",
-        "gloss": "Jingmai Mountain"
+        "original": "单丛",
+        "pinyin": "dāncóng",
+        "gloss": "single bush"
       },
       {
-        "original": "芒景",
-        "pinyin": "mángjǐng",
-        "gloss": "Mangjing, the neighbouring village"
+        "original": "单枞",
+        "pinyin": "dāncōng",
+        "gloss": "single bush, other spelling"
       }
     ],
     "rev": 1,
-    "scope": "jingmai",
-    "text": "Jingmai is a tea mountain in Huimin Town, Lancang Lahu Autonomous County, in Pu’er City, Yunnan. Its old tea forests and villages were listed together as a UNESCO World Heritage cultural landscape in 2023. The listing names five tea forests, nine villages and three protective forests, around the villages of Jingmai and Mangjing. Places give the height of the tea as about 1,000 to 1,600 metres.",
+    "scope": "Phoenix Dancong style kit",
+    "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "kunlu-mountain:common-impressions",
-    "pageId": "kunlu-mountain",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "kunlu mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "kunlu-mountain",
-    "text": "Sellers most often describe a light, graceful fragrance and a sweet aftertaste, with some bitterness and astringency that turn sweet.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "kunlu-mountain:trees",
-    "pageId": "kunlu-mountain",
-    "sectionKey": "trees",
-    "label": "The trees",
-    "axis": "place",
+    "claimId": "dancong:old-bushes",
+    "pageId": "dancong",
+    "sectionKey": "old-bushes",
+    "label": "Old bushes and Song tea",
+    "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
+      "type": "Oolong",
       "origin_includes": [
-        "kunlu mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "kunlu-mountain",
-    "text": "The trees are tall and mostly unpruned. Wild, transitional and planted types grow together, with large, medium and small leaves mixed. The trade knows the mountain for these old trees.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "kunlu-mountain:tribute-history",
-    "pageId": "kunlu-mountain",
-    "sectionKey": "tribute-history",
-    "label": "Tribute tea",
-    "axis": "maker_history",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "kunlu mountain"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "kunlu-mountain",
-    "text": "In the Qing period, tea from Kunlu was made as tribute tea and carried to Beijing by horse caravan, about two months along the Tea Horse Road. Making Pu’er tribute tea in Ning’er is now listed as national intangible cultural heritage. Many sellers call the mountain an imperial tea garden, but the date and the details of that role are not settled.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "kunlu-mountain:where",
-    "pageId": "kunlu-mountain",
-    "sectionKey": "where",
-    "label": "Where Kunlu Mountain is",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "kunlu mountain"
+        "phoenix mountain"
       ]
     },
     "terms": [
       {
-        "original": "困鹿山",
-        "pinyin": "kùnlù shān",
-        "gloss": "Kunlu Mountain"
+        "original": "老丛",
+        "pinyin": "lǎocóng",
+        "gloss": "old bush"
+      },
+      {
+        "original": "宋种",
+        "pinyin": "sòngzhǒng",
+        "gloss": "Song variety"
       }
     ],
     "rev": 1,
-    "scope": "kunlu-mountain",
-    "text": "Kunlu Mountain is a spur of the Wuliang Mountains in Ning’er Hani and Yi Autonomous County, Pu’er City, Yunnan. The name is also written with other characters in older writing. Its old tea trees cover a little over 10,000 mu, about 667 hectares, and places give its height as about 1,410 to 2,271 metres.",
+    "scope": "Phoenix Dancong style kit",
+    "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "lapsang:ageing",
-    "pageId": "lapsang",
+    "claimId": "dancong:ya-shi-xiang",
+    "pageId": "dancong",
+    "sectionKey": "ya-shi-xiang",
+    "label": "Ya Shi Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_any": [
+        "ya",
+        "duck"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鸭屎香",
+        "pinyin": "yā shǐ xiāng",
+        "gloss": "duck dung aroma"
+      },
+      {
+        "original": "银花香",
+        "pinyin": "yínhuā xiāng",
+        "gloss": "silver flower aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dark:ageing",
+    "pageId": "dark",
     "sectionKey": "ageing",
-    "label": "Keeping and ageing Lapsang",
+    "label": "Dark tea and age",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
+      "type": "Dark"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
+    "scope": "Dark tea in general",
+    "text": "Dark tea is made to be kept, and the trade values it more with age. Over years it turns darker and redder in the cup and grows mellower and sweeter. How fast it changes depends on how it is stored, and the trade does not agree on one way: some keep it cool and dry for a slow, clean change, others warmer and more humid for a faster, deeper one. When a tea counts as young or aged differs from style to style, so each style sets its own measure.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "lapsang:brewing",
-    "pageId": "lapsang",
+    "claimId": "dark:brewing",
+    "pageId": "dark",
     "sectionKey": "brewing",
-    "label": "Brewing Lapsang",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lapsang:common-impressions",
-    "pageId": "lapsang",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lapsang:definition",
-    "pageId": "lapsang",
-    "sectionKey": "definition",
-    "label": "What Lapsang Souchong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "正山小种",
-        "pinyin": "zhèngshān xiǎozhǒng",
-        "gloss": "true mountain small kind"
-      },
-      {
-        "original": "桐木",
-        "pinyin": "tóngmù",
-        "gloss": "Tongmu"
-      },
-      {
-        "original": "外山",
-        "pinyin": "wàishān",
-        "gloss": "outer mountain"
-      }
-    ],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lapsang:history",
-    "pageId": "lapsang",
-    "sectionKey": "history",
-    "label": "How Lapsang began",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "金骏眉",
-        "pinyin": "jīn jùn méi",
-        "gloss": "Jin Jun Mei"
-      }
-    ],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "Zhengshan Xiaozhong is called the oldest red tea, the ancestor of red tea, born in Tongmu; the dates given for it differ. The usual story is of soldiers camped among the picked leaf in the harvest season: the leaf spoiled, the villagers dried it over pine fire, and the smoky tea was sold to Dutch buyers. The story is told, not recorded. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. In 2005 Tongmu makers devised Jin Jun Mei, a red tea of buds alone made the Lapsang way but not smoked, and it changed the village’s trade.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lapsang:making",
-    "pageId": "lapsang",
-    "sectionKey": "making",
-    "label": "How Lapsang is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "过红锅",
-        "pinyin": "guò hóngguō",
-        "gloss": "through the hot pan"
-      }
-    ],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "The leaf is withered, rolled and left to oxidise in covered baskets or cloth bags for some hours, until it turns reddish-brown to copper. It then goes into a hot pan, guo hong guo, which stops the oxidation fast, lifts the aroma and gives a sweeter, rounder cup, and is rolled again while hot, which shapes the strip and helps it take up smoke. In the traditional way the leaf is withered with pine heat in the qinglou and dried over the pine fire for most of a day.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lapsang:notice-aged",
-    "pageId": "lapsang",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in Lapsang kept for years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "The smoke softer and further back, with dried fruit coming forward.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lapsang:smoke",
-    "pageId": "lapsang",
-    "sectionKey": "smoke",
-    "label": "Smoked and unsmoked",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_any": [
-        "lapsang",
-        "zhengshan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "松烟",
-        "pinyin": "sōngyān",
-        "gloss": "pine smoke"
-      },
-      {
-        "original": "青楼",
-        "pinyin": "qīnglóu",
-        "gloss": "drying house"
-      },
-      {
-        "original": "桂圆",
-        "pinyin": "guìyuán",
-        "gloss": "longan"
-      }
-    ],
-    "rev": 1,
-    "scope": "Lapsang and Wuyi red style kit",
-    "text": "The traditional tea is dried over a fire of local pine, and the pine smoke gives it its main aroma, with longan fruit said to sit in the same note. The work is done in a qinglou, a wooden house of several floors with the fire at the bottom and the leaf on bamboo mats above, so the heat and smoke rise through the leaf. The strongly smoked style was made for export and never took hold in China. An unsmoked Tongmu red tea now sits beside it, built up from about 2005 and made widely for the Chinese market. Cheap Lapsang from outside Tongmu is often flavoured or smoked by a shortcut rather than made in a qinglou.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:common-character",
-    "pageId": "lincang",
-    "sectionKey": "common-character",
-    "label": "A broad regional tendency",
-    "axis": "sensory_observation",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "attribution": {
-      "sourceId": "teadb-lincang",
-      "sourceRole": "specialist_editorial",
-      "sample": "Regional convention reported in specialist writing about Lincang"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Young single-origin Lincang sheng is often described as green, firm, and bitter. This reputation is useful as a starting point only: Lincang is a large prefecture, and material from its counties, mountains, and villages should not be collapsed into one tasting profile.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:history",
-    "pageId": "lincang",
-    "sectionKey": "history",
-    "label": "History beyond single origins",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Lincang has a smaller public archive of famous aged single-origin teas than Yiwu or Menghai. Older blended productions, especially those associated with Xiaguan, nevertheless provide a historical thread, even when the exact origin of their base material cannot be reconstructed.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "lincang:scope",
-    "pageId": "lincang",
-    "sectionKey": "scope",
-    "label": "Northern Pu’er country",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Lincang",
-    "text": "Lincang lies north of Pu’er Prefecture and against Myanmar to the west. Its tea geography includes Mengku, Yongde, Fengqing, Bangdong, Bingdao, and Xigui, with repeated place names such as Daxueshan making precise labels especially important.",
-    "sourceIds": [
-      "teadb-lincang"
-    ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:ageing",
-    "pageId": "liu-an",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Liu An",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Liu An is said to improve with years in its basket, turning mellower, rounder and redder in the cup. Young tea has an edge of charcoal or smoke that settles with age. Keep it dry, clean, away from smells and direct sun, in wrapping that breathes, not sealed airtight.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:basket",
-    "pageId": "liu-an",
-    "sectionKey": "basket",
-    "label": "The basket and its tickets",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "箬叶",
-        "pinyin": "ruò yè",
-        "gloss": "bamboo leaf lining"
-      },
-      {
-        "original": "茶票",
-        "pinyin": "chá piào",
-        "gloss": "tea ticket"
-      },
-      {
-        "original": "孙义顺",
-        "pinyin": "sūn yì shùn",
-        "gloss": "Sun Yi Shun"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "The tea is packed into woven bamboo baskets lined with bamboo leaf, from about 250 to 600 grams each, several tied into a bundle. The leaf lining gives the tea a bamboo note that sellers liken to rice dumplings, and drinkers keep the leaves to brew a small piece with the tea. Old baskets carry printed paper tickets naming the firm, which collectors use to tell editions and fakes apart. Sun Yi Shun is the best-known old firm, but modern baskets carry the name too, so the name alone does not date a basket.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:brewing",
-    "pageId": "liu-an",
-    "sectionKey": "brewing",
-    "label": "Brewing Liu An",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Use water at or near the boil, rinse the leaf quickly, and keep the steeps short, each a little longer than the last, in a gaiwan or clay pot; doses run from about 3 to 8 grams for 100 ml, for six to ten or more steeps. A small piece of the basket's bamboo leaf is often brewed with it. Aged tea can also be simmered in a larger pot, about 1 gram to 200 to 300 ml, for a few minutes or longer.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:common-impressions",
-    "pageId": "liu-an",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Bamboo leaf above all, herbal or medicinal notes, a sweetness that returns after swallowing, a cooling feel in the mouth and throat, and a smooth, thick cup with little bitterness; young tea shows some smoke or charcoal, and the liquor runs from orange-gold to red.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:definition",
-    "pageId": "liu-an",
-    "sectionKey": "definition",
-    "label": "What Liu An basket tea is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "六安篓茶",
-        "pinyin": "liù ān lǒu chá",
-        "gloss": "Liu An basket tea"
-      },
-      {
-        "original": "安茶",
-        "pinyin": "ān chá",
-        "gloss": "An tea"
-      },
-      {
-        "original": "祁门",
-        "pinyin": "qímén",
-        "gloss": "Qimen"
-      },
-      {
-        "original": "六安瓜片",
-        "pinyin": "liù ān guāpiàn",
-        "gloss": "Liu An Gua Pian"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Liu An basket tea is a dark tea packed into small bamboo baskets and kept for years. Despite its name it is made in Qimen County in southern Anhui, around Luxi and Rongkou, not in Lu'an, from the local small-leaf Qimen bush that Keemun red tea also comes from. In the south it was sold as Liu An, and sellers today use Liu An, Lu An, Lao Liu An and An tea for the same basket tea; the name is said to come from its following the Liu An way of making and trading. It is not Liu An Gua Pian, a green tea from the Lu'an area that only shares part of the name.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:making",
-    "pageId": "liu-an",
-    "sectionKey": "making",
-    "label": "How Liu An is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "夜露",
-        "pinyin": "yè lù",
-        "gloss": "night dew"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Spring leaf, picked around Grain Rain, is first made much like a green tea: withered, fixed, rolled and dried into rough tea, which rests through the summer. In early autumn it is sorted, graded, blended and fired over charcoal. Then comes the step most accounts single out: the fired tea is spread on bamboo mats outdoors for one night to take the dew, and gathered before sunrise. It is steamed soft, packed into baskets lined with bamboo leaf, tied into bundles and fired a last time over charcoal, and it is sold only after resting for some years, commonly three.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:notice-aged",
-    "pageId": "liu-an",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in Liu An kept for years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:old-stock",
-    "pageId": "liu-an",
-    "sectionKey": "old-stock",
-    "label": "Old baskets",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Old baskets were kept in Hong Kong and Macau tea houses, medicine shops and homes, and the oldest are treated as collector's pieces, with prices that climb steeply with age. Fakes exist, so buyers look at the tickets, the basket's shape and the story of the stock.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-an:southern-trade",
-    "pageId": "liu-an",
-    "sectionKey": "southern-trade",
-    "label": "The southern trade",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Basket tea went south to Guangdong, Hong Kong, Macau and the overseas Chinese of Southeast Asia, and that is where it was known and drunk. It was kept in homes and medicine shops, added to herbal remedies, and older drinkers in the south still call it a cooling tea in the traditional Chinese sense. Production stopped in the 1930s and 1940s, as war cut the southern trade, and the tea was nearly gone for decades. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:age-aged",
-    "pageId": "liu-bao",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
+    "label": "Brewing dark tea",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
+      "type": "Dark"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Liu Bao of ten years and more",
-    "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
+    "scope": "Dark tea in general",
+    "text": "Dark tea takes boiling water. Its leaf is mature and dense, so it gives up its flavour slowly and is hard to overbrew. Rinse it first with boiling water and pour that off within seconds: the rinse wakes the leaf and washes off dust and any stale smell from storage, and an old tea may take a second rinse. In a small pot use plenty of leaf, about 7 grams to 120 ml, then steep very briefly at first and a little longer each time; a good dark tea gives many cups.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "liu-bao:age-settling",
-    "pageId": "liu-bao",
-    "sectionKey": "age-settling",
-    "label": "Five to ten years",
+    "claimId": "dark:brewing-pressed",
+    "pageId": "dark",
+    "sectionKey": "brewing-pressed",
+    "label": "Breaking a pressed dark tea",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
+      "type": "Dark"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Liu Bao of about five to ten years",
-    "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
+    "scope": "Dark tea in general",
+    "text": "From a brick, cake or basket, ease the leaf off along the edge or from the top with a pick rather than snapping it. Whole pieces give up their flavour steadily; crumbs release it all at once and cloud the cup.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "liu-bao:age-young",
-    "pageId": "liu-bao",
-    "sectionKey": "age-young",
-    "label": "Young Liu Bao",
+    "claimId": "dark:brewing-simmer",
+    "pageId": "dark",
+    "sectionKey": "brewing-simmer",
+    "label": "Simmering older dark tea",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
+      "type": "Dark"
     },
-    "terms": [],
+    "terms": [
+      {
+        "original": "煮",
+        "pinyin": "zhǔ",
+        "gloss": "simmering"
+      }
+    ],
     "rev": 1,
-    "scope": "Liu Bao under about five years",
-    "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
+    "scope": "Dark tea in general",
+    "text": "Older or coarse dark tea is often simmered rather than steeped: the leaf goes into a pot of water, comes to a gentle boil and simmers for a few minutes. Thick leaf and long-aged tea release their flavour slowly, and the steady heat gives a fuller, smoother cup than short steeps do.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "liu-bao:brewing",
-    "pageId": "liu-bao",
-    "sectionKey": "brewing",
-    "label": "Brewing Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "liu-bao:common-impressions",
-    "pageId": "liu-bao",
+    "claimId": "dark:common-impressions",
+    "pageId": "dark",
     "sectionKey": "common-impressions",
     "label": "What people often notice",
     "axis": "sensory_observation",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
+      "type": "Dark"
     },
-    "terms": [
-      {
-        "original": "红浓陈醇",
-        "pinyin": "hóng nóng chén chún",
-        "gloss": "red, thick, aged, mellow"
-      },
-      {
-        "original": "槟榔香",
-        "pinyin": "bīng láng xiāng",
-        "gloss": "betel nut aroma"
-      }
-    ],
+    "terms": [],
     "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
+    "scope": "Dark tea in general",
+    "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "liu-bao:definition",
-    "pageId": "liu-bao",
+    "claimId": "dark:definition",
+    "pageId": "dark",
     "sectionKey": "definition",
-    "label": "What Liu Bao is",
+    "label": "What dark tea is",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
+      "type": "Dark"
     },
     "terms": [
       {
-        "original": "六堡茶",
-        "pinyin": "liù bǎo chá",
-        "gloss": "Liu Bao tea"
+        "original": "黑茶",
+        "pinyin": "hēi chá",
+        "gloss": "dark tea"
       }
     ],
     "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
+    "scope": "Dark tea in general",
+    "text": "Dark tea is Chinese tea whose leaf, after it is heated and rolled, is left to change in warmth and moisture, where microbes and the leaf’s own chemistry slowly darken and mellow it. Because that change comes after the leaf is made, the trade calls it post-fermented. In Chinese it is hei cha, “black tea”, which is not the English black tea; that tea is red tea, hong cha, in Chinese.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "liu-bao:history",
-    "pageId": "liu-bao",
+    "claimId": "dark:history",
+    "pageId": "dark",
     "sectionKey": "history",
-    "label": "How the trade fell and returned",
+    "label": "How the trade grew",
     "axis": "process",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
+      "type": "Dark"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
+    "scope": "Dark tea in general",
+    "text": "The first records of dark tea by name are from the Ming dynasty, in Hunan around Anhua and in Sichuan, and in the late Ming it became a state-managed tea sent to the north-west in exchange for horses. In the Qing dynasty merchants carried the craft to more regions and more shapes, and some styles were made for new markets: Guangxi’s Liu Bao, for one, went to the tin mines of Southeast Asia. In the twentieth century state factories took over much of the making and settled the brick shapes that are sold today.",
     "sourceIds": [],
     "reviewState": "approved"
   },
   {
-    "claimId": "liu-bao:making-factory",
-    "pageId": "liu-bao",
-    "sectionKey": "making-factory",
-    "label": "The factory way",
+    "claimId": "dark:making",
+    "pageId": "dark",
+    "sectionKey": "making",
+    "label": "How dark tea is made",
     "axis": "process",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
+      "type": "Dark"
+    },
+    "terms": [
+      {
+        "original": "渥堆",
+        "pinyin": "wò duī",
+        "gloss": "piling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dark:why",
+    "pageId": "dark",
+    "sectionKey": "why",
+    "label": "Why it was made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark"
+    },
+    "terms": [
+      {
+        "original": "边销茶",
+        "pinyin": "biān xiāo chá",
+        "gloss": "border tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Dark tea in general",
+    "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dian-hong:ageing",
+    "pageId": "dian-hong",
+    "sectionKey": "ageing",
+    "label": "Keeping Dian Hong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
       "origin_includes": [
-        "guangxi"
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dian-hong:brewing",
+    "pageId": "dian-hong",
+    "sectionKey": "brewing",
+    "label": "Brewing Dian Hong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dian-hong:common-impressions",
+    "pageId": "dian-hong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dian-hong:definition",
+    "pageId": "dian-hong",
+    "sectionKey": "definition",
+    "label": "What Dian Hong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
       ]
     },
     "terms": [
       {
-        "original": "冷水渥堆",
-        "pinyin": "lěng shuǐ wò duī",
-        "gloss": "cold-water piling"
+        "original": "滇红",
+        "pinyin": "diān hóng",
+        "gloss": "Yunnan red"
       }
     ],
     "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dian-hong:history",
+    "pageId": "dian-hong",
+    "sectionKey": "history",
+    "label": "How Dian Hong began",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dian-hong:large-leaf",
+    "pageId": "dian-hong",
+    "sectionKey": "large-leaf",
+    "label": "Why the large leaf matters",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "金毫",
+        "pinyin": "jīn háo",
+        "gloss": "golden buds"
+      }
+    ],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dian-hong:making",
+    "pageId": "dian-hong",
+    "sectionKey": "making",
+    "label": "How Dian Hong is made",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "金芽",
+        "pinyin": "jīn yá",
+        "gloss": "golden bud"
+      }
+    ],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "dian-hong:old-tree-and-sun-dried",
+    "pageId": "dian-hong",
+    "sectionKey": "old-tree-and-sun-dried",
+    "label": "Old-tree and sun-dried red",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Red",
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "古树",
+        "pinyin": "gǔ shù",
+        "gloss": "old trees"
+      },
+      {
+        "original": "晒红",
+        "pinyin": "shài hóng",
+        "gloss": "sun-dried red"
+      }
+    ],
+    "rev": 1,
+    "scope": "All red tea; Dian Hong where the origin is Yunnan",
+    "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fuding:inside-fuding",
+    "pageId": "fuding",
+    "sectionKey": "inside-fuding",
+    "label": "Taimu, Bailin and the other districts",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      },
+      {
+        "original": "太姥山",
+        "pinyin": "tàimǔ shān",
+        "gloss": "Taimu Mountain"
+      },
+      {
+        "original": "白琳",
+        "pinyin": "báilín",
+        "gloss": "Bailin, a growing district in Fuding"
+      }
+    ],
+    "rev": 1,
+    "scope": "Named districts within Fuding; no agreed difference between them is claimed",
+    "text": "Taimu Mountain and Bailin are the two places inside Fuding that the trade names most. Taimu is tied to the first famous bud tea and to the mother tree of the Fuding bush. Bailin is tied to an early bud tea of its own, known as white down tea. Diantou, Panxi and Guanyang are also named as main growing districts. Sellers say tea from higher and cooler ground is lighter and cleaner, and that each district differs in scent, body and sweetness, but too few places agree on how to tell them apart to treat any of that as settled. The year and the maker change the cup as much as the district does.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fuding:known-for",
+    "pageId": "fuding",
+    "sectionKey": "known-for",
+    "label": "What Fuding is known for",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fuding's standing as the home of white tea and its main bushes; grades and styles are on the white tea pages",
+    "text": "Fuding is known as the home of white tea. Fuding, Zhenghe and Jianyang are the three places in Fujian that make it, and Fuding is the one most often named as its origin. Its way of making white tea, a long natural wither without any frying or rolling, is listed as national cultural heritage in China. The leaf comes mostly from two local bushes, Fuding Da Bai and Fuding Da Hao, which together make up nearly all the tea grown there. What the types and grades of white tea are, and how Fuding and Zhenghe compare, is covered on the white tea pages.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fuding:on-a-label",
+    "pageId": "fuding",
+    "sectionKey": "on-a-label",
+    "label": "Fuding on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      }
+    ],
+    "rev": 1,
+    "scope": "What the protected name Fuding white tea says about place, and what it does not",
+    "text": "Fuding white tea is a protected origin name in China, recognised since 2009. On a label it means that the leaf grew and was made inside Fuding, which is a claim about place only. It does not say which grade the tea is, which year it was picked or how long it has aged. Taimu and Bailin are narrower names inside it, and a label rarely proves which of them is meant.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fuding:where-it-is",
+    "pageId": "fuding",
+    "sectionKey": "where-it-is",
+    "label": "Where Fuding is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      }
+    ],
+    "rev": 1,
+    "scope": "Where Fuding sits and its main landmark",
+    "text": "Fuding is a county-level city in the north-east corner of Fujian, on the coast and against the Zhejiang border. Mountains close it in on three sides and the East China Sea lies to the east. It is hilly almost everywhere, and Taimu Mountain, a scenic and geopark area, is its best known peak.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fuding:why-it-matters",
+    "pageId": "fuding",
+    "sectionKey": "why-it-matters",
+    "label": "Why people value Fuding",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "fuding"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎",
+        "pinyin": "fúdǐng",
+        "gloss": "Fuding, county-level city in north-east Fujian"
+      }
+    ],
+    "rev": 1,
+    "scope": "The landscape and climate people cite as the reason for Fuding tea; general, not a rule for every tea",
+    "text": "Fuding is where mountain and sea meet, and that is the reason most often given for its tea. Hills and mountains cover most of the land and forest covers well over half of it, so the gardens sit on terraced mid-slopes with forest above them. The climate is mild, humid and often misty, with sea air moving up the valleys, and the soil is acidic red and yellow earth. The trade ties this to the plump, downy buds that white tea needs, and to a tea that is usually described as fresh, sweet and floral. Many gardens are also grown with other plants and animals around the bushes, which the region now presents as a farming heritage in its own right.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:ageing",
+    "pageId": "fujian-white",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Fujian white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "一年茶，三年药，七年宝",
+        "pinyin": "yī nián chá, sān nián yào, qī nián bǎo",
+        "gloss": "one year tea, three years medicine, seven years treasure"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "The trade says white tea is tea in its first year, medicine at three years and a treasure at seven; it is a saying, not a tested claim, and no agreed number of years makes a tea aged. With age it moves from fresh and sweet toward jujube, dried fruit, honey, wood and herbs, with a deeper, redder liquor and a rounder body. Keep it dry, clean and aired, away from strong smells and sunlight.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:brewing",
+    "pageId": "fujian-white",
+    "sectionKey": "brewing",
+    "label": "Brewing Fujian white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:cakes",
+    "pageId": "fujian-white",
+    "sectionKey": "cakes",
+    "label": "White tea cakes",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "白茶饼",
+        "pinyin": "báichá bǐng",
+        "gloss": "white tea cake"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:common-impressions",
+    "pageId": "fujian-white",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:cultivars",
+    "pageId": "fujian-white",
+    "sectionKey": "cultivars",
+    "label": "The bushes",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎大白",
+        "pinyin": "fúdǐng dàbái",
+        "gloss": "Fuding Da Bai"
+      },
+      {
+        "original": "福鼎大毫",
+        "pinyin": "fúdǐng dàháo",
+        "gloss": "Fuding Da Hao"
+      },
+      {
+        "original": "政和大白",
+        "pinyin": "zhènghé dàbái",
+        "gloss": "Zhenghe Da Bai"
+      },
+      {
+        "original": "菜茶",
+        "pinyin": "càichá",
+        "gloss": "Cai Cha"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:definition",
+    "pageId": "fujian-white",
+    "sectionKey": "definition",
+    "label": "What Fujian white is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "福鼎白茶",
+        "pinyin": "fúdǐng báichá",
+        "gloss": "Fuding white tea"
+      },
+      {
+        "original": "政和白茶",
+        "pinyin": "zhènghé báichá",
+        "gloss": "Zhenghe white tea"
+      },
+      {
+        "original": "太姥山",
+        "pinyin": "tàimǔ shān",
+        "gloss": "Taimu Mountain"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Fujian is the home of white tea. Fuding and Zhenghe are its two leading counties, and Jianyang and Songxi make white tea too. Fuding is a coastal city in the north-east of the province, by the Zhejiang border, hilly over most of its land; its white tea is tied to Taimu Mountain, where the first mother tree and the first famous bud tea are placed. Fuding white tea is a protected origin name in China. Zhenghe is an inland mountain county further west.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:fuding-and-zhenghe",
+    "pageId": "fujian-white",
+    "sectionKey": "fuding-and-zhenghe",
+    "label": "Fuding and Zhenghe",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Fuding buds are plumper and downier than Zhenghe's. In the cup, Fuding is most often called the lighter, fresher, more floral style, and Zhenghe the fuller, thicker, mellower one. That is the trade's comparison of the two places, not a rule for every tea.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:grades",
+    "pageId": "fujian-white",
+    "sectionKey": "grades",
+    "label": "Grades",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [
+      {
+        "original": "白毫银针",
+        "pinyin": "báiháo yínzhēn",
+        "gloss": "Silver Needle"
+      },
+      {
+        "original": "白牡丹",
+        "pinyin": "bái mǔdān",
+        "gloss": "White Peony"
+      },
+      {
+        "original": "贡眉",
+        "pinyin": "gòngméi",
+        "gloss": "Gong Mei"
+      },
+      {
+        "original": "寿眉",
+        "pinyin": "shòuméi",
+        "gloss": "Shou Mei"
+      },
+      {
+        "original": "新工艺白茶",
+        "pinyin": "xīn gōngyì báichá",
+        "gloss": "new-craft white tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "The trade sorts Fujian white tea by how the leaf was picked. Silver Needle is buds alone. White Peony is a bud with one or two young leaves. Gong Mei has more leaf than bud, and Shou Mei is the mature-leaf grade, with large leaves and few or no buds, often from later picks. Fuding also makes a separate new-craft white tea, xin gongyi, which is lightly rolled after withering and is darker in the cup.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:history",
+    "pageId": "fujian-white",
+    "sectionKey": "history",
+    "label": "How Fujian white began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "White tea in its present form is a Qing dynasty tea of the 1700s and 1800s, first from Fuding or Jianyang and from Zhenghe later in the 1800s. Fuding Silver Needle was first sold abroad around 1890. The stories of Taimu and older uses of the name white tea are legend, kept apart from this record.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:making",
+    "pageId": "fujian-white",
+    "sectionKey": "making",
+    "label": "How Fujian white is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Two steps make it: withering, then drying at low heat, with no fixing and no rolling for the classic grades. The leaf is withered in the sun, indoors in moving air, indoors with gentle warmth, or by a mix of these, as the weather and the leaf allow, usually for two to three days. It is then dried at low heat, over charcoal or by machine, until it keeps.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "fujian-white:notice-aged",
+    "pageId": "fujian-white",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Fujian white",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "White",
+      "origin_includes": [
+        "fujian"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Fujian white style kit",
+    "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea.",
     "sourceIds": [],
     "reviewState": "approved"
   }

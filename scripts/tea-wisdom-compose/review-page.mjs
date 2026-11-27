@@ -13,8 +13,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildWisdom } from '../tea-reference-markdown/lib/page-builder.mjs';
-import { readEntries } from './lib/entries.mjs';
+import { readJson, reviewItems } from './lib/review-items.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, all) => (
@@ -22,58 +21,20 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, inde
 ), []));
 const OUT = path.resolve(args.out ?? path.join(ROOT, '.tea-wisdom-review', 'review.html'));
 
-const wisdom = await buildWisdom({
-  pagesDirectory: path.join(ROOT, 'data', 'tea-reference', 'pages'),
-  translationsPath: path.join(ROOT, 'data', 'tea-reference', 'private', 'translations.json'),
-  claimsPath: path.join(ROOT, 'data', 'tea-reference', 'claims.json'),
-});
-const scopes = args.scopes ? JSON.parse(await fs.readFile(path.resolve(args.scopes), 'utf8')) : {};
-const onlyPages = args.pages ? new Set(args.pages.split(',')) : null;
-const sources = new Map(wisdom.draftSources.map(source => [source.sourceId, source]));
-const pages = new Map(wisdom.draftPages.map(page => [page.id, page]));
-
-const KIND = { tea_family: 'Tea family', tea_type: 'Style', major_region: 'Region', tea_area: 'Place', leaf_grade: 'Grade', named_tea: 'Named tea', reference_topic: 'Topic' };
-
-const claimItems = wisdom.draftClaims
-  .filter(claim => (claim.reviewState === 'draft' || claim.reviewState === 'pending') && !claim.withdrawn)
-  .filter(claim => !onlyPages || onlyPages.has(claim.pageId))
-  .map(claim => {
-    const page = pages.get(claim.pageId);
-    return {
-      key: claim.claimId,
-      kind: 'claim',
-      group: claim.pageId,
-      groupLabel: page?.label ?? claim.pageId,
-      groupMeta: [KIND[page?.kind] ?? page?.kind, page?.nativeName, page?.parentId ? `inside ${pages.get(page.parentId)?.label ?? page.parentId}` : null].filter(Boolean).join(' · '),
-      label: claim.label,
-      text: claim.pendingText ?? claim.text,
-      before: claim.reviewState === 'pending' ? claim.text : null,
-      scope: claim.scope || scopes[claim.claimId] || page?.label || claim.pageId,
-      sources: claim.sourceIds.map(id => sources.get(id)).filter(Boolean).map(source => ({ title: source.title, publisher: source.publisher, url: /^https:\/\//.test(source.url ?? '') ? source.url : null })),
-      flags: claim.unresolvedSourceIds?.length ? [`${claim.unresolvedSourceIds.length} source(s) not captured yet`] : [],
-    };
-  });
-
-const entryItems = args['no-entries'] ? [] : (await readEntries(path.join(ROOT, 'data', 'tea-reference', 'entries')))
-  .filter(({ file }) => file.status !== 'approved')
-  .map(({ file }) => ({
-    key: `entry:${file.record.id}`,
-    kind: 'entry',
-    group: 'entries',
-    groupLabel: file.record.name,
-    groupMeta: [file.record.type, file.record.form, file.record.year, file.record.origin].filter(Boolean).join(' · '),
-    label: file.record.chineseName ?? '',
-    paragraphs: (file.entry?.paragraphs ?? []).map(part => part.text),
-    brewing: file.entry?.brewing ?? null,
-    notice: file.entry?.notice ?? null,
-    flags: [...(file.problems ?? []).map(problem => `${problem.where}: ${problem.problem}`), ...(file.unsupported ?? []).map(flag => `Not supported: "${flag.words}"${flag.why ? ` (${flag.why})` : ''}`)],
-  }));
+const scopes = await readJson(args.scopes ? path.resolve(args.scopes) : path.join(ROOT, '.tea-wisdom-review', 'scopes.json'), {});
+const keys = args.items ? new Set(await readJson(path.resolve(args.items), [])) : null;
+const notes = args.notes ? await readJson(path.resolve(args.notes), {}) : {};
+const items = (await reviewItems(ROOT, { scopes, pages: args.pages ? new Set(args.pages.split(',')) : null, entries: args['no-entries'] !== 'true', keys }))
+  .map(item => (notes[item.key] ? { ...item, judge: notes[item.key] } : item));
+const claimItems = items.filter(item => item.kind === 'claim');
+const entryItems = items.filter(item => item.kind === 'entry');
+const WENT_UP = args.mode === 'went-up';
 
 const run = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
-const data = { run, items: [...claimItems, ...entryItems] };
+const data = { run, wentUp: WENT_UP, items: [...claimItems, ...entryItems] };
 const json = JSON.stringify(data).replace(/</g, '\\u003c');
 
-const html = `<title>Wisdom Review</title>
+const html = `<title>${WENT_UP ? 'Wisdom Went Up' : 'Wisdom Review'}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -106,8 +67,8 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:64px;padding:8
 .rule{display:flex;gap:8px;align-items:center;font-size:.9rem;min-height:44px}.rule input{width:20px;height:20px;accent-color:var(--you)}
 </style>
 <div class="wrap">
-  <header style="display:grid;gap:8px"><div class="meta">Teajia · Wisdom review · run ${run}</div><h1>Wisdom Review</h1>
-  <p class="sec">Pages first: each section as a reader will see it, with where it comes from. Then the tea entries. Approve, or send back with a note. Tick \"Make this a rule for every page\" when the note should change how every page is written. Your choices save here, and nothing goes live until you say "push".</p></header>
+  <header style="display:grid;gap:8px"><div class="meta">Teajia · Wisdom review · run ${run}</div><h1>${WENT_UP ? 'What went up' : 'Held for you'}</h1>
+  <p class="sec">${WENT_UP ? 'The judge approved these against your rules. Read when you like. Send back anything that is wrong; tick the rule box when the note should change every page.' : 'The judge was not sure about these, and says why under each. Pages first, then tea entries. Approve, or send back with a note.'} Tick \"Make this a rule for every page\" when the note should change how every page is written. Your choices save here, and nothing goes live until you say "push".</p></header>
   <div id="list"></div>
 </div>
 <script id="data" type="application/json">${json}</script>
@@ -135,12 +96,12 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:64px;padding:8
     rule.addEventListener('change', () => save(item, 'send_back', note.value));
     let timer; note.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => save(item, 'send_back', note.value), 800); });
     ok.addEventListener('click', () => save(item, 'approve', '')); back.addEventListener('click', () => { save(item, 'send_back', note.value); note.focus(); });
-    box.append(ok, back, state); controls.set(item.key, { ok, back, state, note, rule, ruleRow }); const wrap = el('div', { style: 'display:grid;gap:8px' }); wrap.append(box, note, ruleRow); return wrap;
+    if (data.wentUp) box.append(back, state); else box.append(ok, back, state); controls.set(item.key, { ok, back, state, note, rule, ruleRow }); const wrap = el('div', { style: 'display:grid;gap:8px' }); wrap.append(box, note, ruleRow); return wrap;
   };
   if (!data.items.length) { list.append(el('p', { class: 'empty' }, 'Nothing is waiting for review.')); return; }
   const groups = new Map(); for (const item of data.items) { const g = item.kind === 'entry' ? item.key : item.group; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(item); }
   const cleanEntries = data.items.filter(i => i.kind === 'entry' && !i.flags.length);
-  if (cleanEntries.length > 1) { const bulk = el('div', { class: 'card bulk' }); bulk.append(el('p', {}, cleanEntries.length + ' entries have no flags.')); const b = el('button', { type: 'button' }, 'Approve all ' + cleanEntries.length + ' clean entries'); b.addEventListener('click', () => cleanEntries.forEach(i => save(i, 'approve', ''))); bulk.append(b); list.append(bulk); }
+  if (!data.wentUp && cleanEntries.length > 1) { const bulk = el('div', { class: 'card bulk' }); bulk.append(el('p', {}, cleanEntries.length + ' entries have no flags.')); const b = el('button', { type: 'button' }, 'Approve all ' + cleanEntries.length + ' clean entries'); b.addEventListener('click', () => cleanEntries.forEach(i => save(i, 'approve', ''))); bulk.append(b); list.append(bulk); }
   const stack = el('div', { style: 'display:grid;gap:20px' }); list.append(stack);
   for (const items of groups.values()) {
     const first = items[0]; const card = el('section', { class: 'card' }); const head = el('div', { style: 'display:grid;gap:4px' });
@@ -158,6 +119,7 @@ textarea{font:inherit;width:100%;box-sizing:border-box;min-height:64px;padding:8
         item.paragraphs.forEach(t => box.append(withTerms(t)));
         if (item.brewing) box.append(el('p', { class: 'sec' }, typeof item.brewing === 'string' ? item.brewing : 'Brewing: from the style kit'));
       }
+      if (item.judge) box.append(el('p', { class: 'src' }, 'Judge: ' + item.judge));
       item.flags.forEach(f => box.append(el('p', { class: 'flag' }, f)));
       box.append(decide(item)); card.append(box);
     }

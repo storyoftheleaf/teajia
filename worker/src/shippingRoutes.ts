@@ -1,7 +1,9 @@
 /**
  * Shipping routes: how bought tea travels home (migration 0042). Set once in
- * Settings, read by the buying basket to estimate freight silently. The shelf
- * price never reads these; it prices freight at the shop rate.
+ * Settings, read by the buying basket for addresses, packing and rounding. They
+ * no longer hold a rate (Adrian, 2026-11-27): freight rates are typed only in
+ * Logistics, with the services and the shop default. A rate a route already
+ * carries stays in its row, unread; a save that names one is refused.
  *
  * Nothing entered is NULL, anything entered is the number, zero included: an
  * empty rate is "nobody said", never free freight. A rate states its currency
@@ -27,7 +29,7 @@ export interface ShippingRouteRow {
 export interface LearnedFromBills { bills: number; per_kg: number; currency: string }
 
 const TEXT_FIELDS = ['carrier', 'destination'] as const;
-const NUMBER_FIELDS = ['rate_per_kg', 'packing_percent', 'billing_step_kg', 'minimum_kg'] as const;
+const NUMBER_FIELDS = ['packing_percent', 'billing_step_kg', 'minimum_kg'] as const;
 
 /** An entered number, or null when the field was left empty. Refuses anything else by name. */
 function entered(value: unknown, field: string): number | null {
@@ -42,6 +44,7 @@ export class RouteRefusal extends Error {}
 /** The columns a save writes, checked. `partial` keeps fields the body did not name. */
 export function routeFields(body: Record<string, unknown>, partial: boolean): Partial<Omit<ShippingRouteRow, 'id'>> {
   const out: Partial<Omit<ShippingRouteRow, 'id'>> = {};
+  if ('rate_per_kg' in body || 'rate_currency' in body) throw new RouteRefusal('Freight rates are set in Logistics, not on a route.');
   if ('mode' in body || !partial) {
     if (body.mode !== 'air' && body.mode !== 'sea') throw new RouteRefusal('mode must be air or sea.');
     out.mode = body.mode;
@@ -49,7 +52,6 @@ export function routeFields(body: Record<string, unknown>, partial: boolean): Pa
   for (const f of TEXT_FIELDS) if (f in body || !partial) out[f] = typeof body[f] === 'string' && (body[f] as string).trim() ? (body[f] as string).trim().slice(0, 200) : null;
   for (const f of NUMBER_FIELDS) if (f in body || !partial) out[f] = entered(body[f], f);
   if (out.billing_step_kg === 0) throw new RouteRefusal('billing_step_kg must be more than zero, or empty.');
-  if ('rate_currency' in body || !partial) out.rate_currency = canonicalCurrency(typeof body.rate_currency === 'string' ? body.rate_currency : null);
   return out;
 }
 
@@ -86,9 +88,6 @@ export async function saveRoute(db: D1Database, accountId: string, id: string | 
     if (!existing) throw new RouteRefusal('No such route.');
     fields = { ...existing, ...fields };
   }
-  // A rate without its money, or a money without a rate, is refused by name.
-  if ((fields.rate_per_kg ?? null) !== null && !fields.rate_currency) throw new RouteRefusal('Say which currency the rate is in.');
-  if ((fields.rate_per_kg ?? null) === null) fields.rate_currency = null;
   const cols = ['mode', 'carrier', 'destination', 'rate_per_kg', 'rate_currency', 'packing_percent', 'billing_step_kg', 'minimum_kg'] as const;
   const values = cols.map((c) => fields[c] ?? null);
   if (id) {

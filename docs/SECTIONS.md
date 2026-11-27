@@ -13,13 +13,13 @@ The pillar already says what Teajia is for: a place to source tea, study it, and
 | Section | Word on the bar | What it is | Who it is for | Routes | What it replaces |
 |---|---|---|---|---|---|
 | **Read** | read | Everything you study: the magazine, Craft (how to make and serve tea), and Tea Wisdom (the reference) | Readers, learners, anyone looking something up | `/read`, `/article/:slug`, `/craft`, `/wisdom/*` | Read and Craft as two words, and Wisdom with no door on desktop |
-| **Tea Table** | table | What people have put on the tea table, newest first: tastings, photographs, notes, sessions poured. With it, the sessions calendar and the people | Family members, guests, visitors who want to see the life of the place | `/tea-table`, `/events`, `/event/:slug`, `/people`, `/people/:slug` | The switched-off `/tea-feed`, Sessions and People hidden in menus |
-| **Tea Houses** | houses | Building a tea house with Adrian, the houses already built, the houses you can visit, and working with Adrian in general | Founders, hotels and retreats, tea masters with a room, travellers looking for a table | `/tea-houses`, `/tea-houses/build`, `/tea-houses/work`, `/tea-houses/visit`, `/store/:slug`, `/advise` | Advise as a word, `/for-your-space`, `/spaces`, `/find-a-table`, the gated portfolio |
+| **Tea Table** | tea table | What people have put on the tea table, newest first: tastings, photographs, notes, sessions poured. With it, the sessions calendar and the people | Family members, guests, visitors who want to see the life of the place | `/tea-table`, `/events`, `/event/:slug`, `/people`, `/people/:slug` | The switched-off `/tea-feed`, Sessions and People hidden in menus |
+| **Tea Houses** | tea house | Building a tea house with Adrian, the houses already built, the houses you can visit, and working with Adrian in general | Founders, hotels and retreats, tea masters with a room, travellers looking for a table | `/tea-houses`, `/tea-houses/build`, `/tea-houses/work`, `/tea-houses/visit`, `/store/:slug`, `/advise` | Advise as a word, `/for-your-space`, `/spaces`, `/find-a-table`, the gated portfolio |
 | **Shop** | shop | Tea and teaware, by inquiry | Buyers and collectors | `/shop`, `/shop/product/:id` | Nothing. Stays as it is |
 | **Your Table** | the person glyph | Your own table: journal, photographs, Tea Chest, favourites, orders, journey, your page, your tea houses | Anyone signed in | `/account` and `/account/*` | The overlay panel. Same door, a real page behind it |
 | **Manage** | manage (staff only) | The seven working rooms | Adrian, shop owners, staff | `/admin/*` | Nothing. Seven rooms stay |
 
-The bar and the rail stay four words, in the same slots as today: **Read, Tea table, (emblem), Tea house, Shop**, set on one line in `src/components/navSections.ts`. Table takes Craft's place and houses takes Advise's. The rail's foot becomes exactly the "Narrow B" drawing Adrian picked on 2026-11-25: search, account, bag, and manage for staff. People and Places leave the foot because each now lives under a word.
+The bar and the rail stay four words, in the same slots as today: **read, tea table, (emblem), tea house, shop** (Adrian, 2026-11-26). "Tea table" takes Craft's place and "tea house" takes Advise's. Under 340 wide the letters go one size smaller. The rail's foot becomes exactly the "Narrow B" drawing Adrian picked on 2026-11-25: search, account, bag, and manage for staff. People and Places leave the foot because each now lives under a word.
 
 Three words to hold apart from now on:
 
@@ -194,10 +194,10 @@ For the new routes, a tab or a view is a step and pushes a history entry. A filt
 | `/wisdom/*` | unchanged address; lights "read" | section only |
 | `/tea-feed` | forwards to `/tea-table` when enabled, otherwise Home | `TEA_TABLE_OPEN` |
 | (none) | `/tea-table`, `/tea-table?show=tastings` or `sessions` (refinement), `/tea-table?before=<date>` (step) | `TEA_TABLE_OPEN` |
-| `/events`, `/event/:slug`, `/event/:slug/recap`, `/sits/casual/:slug`, `/session/:id` | unchanged address; lights "table" | section only |
-| `/people`, `/people/:slug`, `/people/:slug/favorites`, `/people/:slug/pay` | unchanged address; lights "table" | section only |
+| `/events`, `/event/:slug`, `/event/:slug/recap`, `/sits/casual/:slug`, `/session/:id` | unchanged address; lights "tea table" | section only |
+| `/people`, `/people/:slug`, `/people/:slug/favorites`, `/people/:slug/pay` | unchanged address; lights "tea table" | section only |
 | `/community` | forwards to `/tea-table` (currently forwards to `/find-a-table`) | proposed |
-| `/advise` | unchanged address; lights "houses"; design row leads to `/tea-houses/build` | section only |
+| `/advise` | unchanged address; lights "tea house"; design row leads to `/tea-houses/build` | section only |
 | `/consult` | forwards to `/advise` as today | none |
 | `/advise?v=projects`, `?pid=` | forwards to `/tea-houses/work` and `/tea-houses/work/:slug` | forward |
 | `/for-your-space` | forwards to `/tea-houses/build?for=space` | forward |
@@ -207,7 +207,7 @@ For the new routes, a tab or a view is a step and pushes a history entry. A filt
 | (none) | `/account/host`, `/account/host/:id` | `FEW_HOSTS_OPEN` |
 | (none) | `/admin/events/:slug/card` | `TABLE_CARD_OPEN` |
 | `/store-launch-playbook` | unchanged; linked from `/tea-houses/build` and from Settings | none |
-| `/store/:slug` | unchanged; lights "houses" | section only |
+| `/store/:slug` | unchanged; lights "tea house" | section only |
 | (none) | `/tea-houses/visit` | `TEA_HOUSES_OPEN` |
 | (none) | `/tea-houses`, `/tea-houses/build`, `/tea-houses/work`, `/tea-houses/work/:slug` | `TEA_HOUSES_OPEN` |
 | `/shop`, `/shop/product/:id` | unchanged | none |
@@ -226,7 +226,7 @@ Keys 1 to 5, section highlighting and the navigation labels follow the new words
 
 The Tea Table is the one exception to the rule against social feeds. One public page may show, newest first, what people have chosen to put there: shared tastings with their words and photographs, and published session recaps. It shows what has happened. A host may hold their own recap at the top for a while by hand, and Adrian may hold any piece. Nothing rises by itself. A person may keep a piece in their own favourites. Only Adrian can see the number of keeps, in Manage. There are no likes, comments, follows, follower or view counts, scores, streaks, rankings, recommendations or notifications on the Tea Table. The site calls it the Tea Table. A person can take off their own item, and the owner can hide any item.
 
-The Launch 4 run sheet records Adrian’s yes to this exception on 2026-11-26. `CLAUDE.md` still carries its proposal marker, and Adrian's own word is needed to change it. The implementation stays behind `TEA_TABLE_OPEN`, off by default.
+The Launch 4 run sheet records Adrian’s yes to this exception on 2026-11-26. `CLAUDE.md` now carries it as in force, under "The Tea Table", with his wider words of the same day: a classy, curated social page is welcome, never a Facebook-style network, and any further social part waits for him to name it. The implementation stays behind `TEA_TABLE_OPEN`, off by default.
 
 Quiet acknowledgement comes from one person to another: a host’s thank-you, being quoted by name, “Photograph by”, “Poured with”, or a word Adrian grants by hand on a person’s page. No numbers, levels, titles for volume or nudges. Adrian may decide a host’s reach by hand and that standing stays private. Photo credit, recap credit (“Poured with”) and “Pours at tables” open with `TEA_TABLE_OPEN`: with it off no public answer carries `photograph_by`, `poured_with` or `pours`, and the photographer’s credit choice cannot be changed. The granted word has no switch of its own. The photo credit depends on the family photographer’s explicit first-name choice. A published recap may name public co-hosts and guest hosts, linking any published page. The Tea Table’s tasting photos use the tasting byline and have no separate photographer credit line. “Pours at tables” comes from public credit on a completed or archived session whose date has passed. It does not change the list’s order.
 
@@ -238,15 +238,15 @@ The same guardrails are recorded in [PILLAR.md](PILLAR.md), [CONSOLIDATED_DIRECT
 
 **From the second pass, all answered on 2026-11-26**: the words, private tables, the Tea Chest's states, the phone rule, anyone may host with reach decided by hand, and quiet acknowledgement. They are recorded in [guests-and-tea-masters.md](../todo/plans/guests-and-tea-masters.md), "Decisions". The same file's "Blind spots and ideas" holds a review of the whole plan and five new questions.
 
-The remaining product decisions include the bar and page labels, enabling Your Table as a page, and Adrian’s facts for the tea house offering. The first-pass decisions below record the original recommendations and where the branch implements them.
+The bar words (read, tea table, tea house, shop) and the tea house offering were answered on 2026-11-26. What remains is switching on what is built, each switch on Adrian's word. The first-pass decisions below record the original recommendations and where the branch implements them.
 
-1. **The four words (answered 2026-11-26; he now doubts the middle two).** Recommended: **read, table, houses, shop**, with Craft as the second shelf of Read. The other honest choice: keep **read, craft, houses, shop**, and give the Tea Table the home page and the phone menu instead of a word. The first puts the living part of the site on the bar. The second keeps Craft where you named it. A fifth word does not fit the phone bar or the Narrow B rail without redrawing both.
-2. **The two new labels (built as "Tea table" and "Tea house"; Adrian doubts them).** Recommended: "table" and "houses" on the bar, "The Tea Table" and "Tea Houses" as page titles. The existing words are verbs (read, craft, advise, shop), so "gather" and "build" are the alternative if you want to keep that pattern.
-3. **Advise leaves the bar.** Recommended: yes. The page stays at `/advise` as "work with Adrian" and is reached from Tea Houses, Sessions, Shop and About. Tea house building takes the word because it is the offering you want seen.
+1. **The four words.** Answered 2026-11-26: **read, tea table, tea house, shop**. The original recommendation was **read, table, houses, shop**, with Craft as the second shelf of Read. The other honest choice: keep **read, craft, houses, shop**, and give the Tea Table the home page and the phone menu instead of a word. The first puts the living part of the site on the bar. The second keeps Craft where you named it. A fifth word does not fit the phone bar or the Narrow B rail without redrawing both.
+2. **The two new labels.** Answered 2026-11-26 with the two-word labels above. The original recommendation was "table" and "houses" on the bar, "The Tea Table" and "Tea Houses" as page titles. The existing words are verbs (read, craft, advise, shop), so "gather" and "build" are the alternative if you want to keep that pattern.
+3. **Advise leaves the bar.** Answered yes on 2026-11-26. The page stays at `/advise` as "work with Adrian" and is reached from Tea Houses, Sessions, Shop and About. Tea house building takes the word because it is the offering you want seen.
 4. **Sharing and the Tea Table.** Built behind `TEA_TABLE_OPEN`. The Share step asks for Tea Table consent under the combined wording. Older shares need a fresh choice.
 5. **Review or hide.** Behind `TEA_TABLE_OPEN`, eligible tastings appear on explicit share. The platform owner can hide or restore a piece in Guest notes.
 6. **Your Table becomes a page.** Built at `/account` behind `YOUR_TABLE_PAGE_OPEN`, off by default pending approval to enable it.
-7. **The tea house offering itself.** The site needs your facts, and nobody should guess them: the stages as you actually run them, what a client receives at each, whether any price or price range is shown, and which of the ten case studies in the code are real projects you may name and show. A draft of the stages is in [tea-houses.md](../todo/plans/tea-houses.md) for you to correct.
+7. **The tea house offering itself.** Answered by Adrian on 2026-11-26: meet the person, find the purpose (many people, social or meditative), see what they already have or rebuild with his aesthetic, then provide only what the house needs, including training the staff to train. Price follows the conversation. Written up in [tea-houses.md](../todo/plans/tea-houses.md), "The offering, as Adrian runs it".
 
 ## Build order
 

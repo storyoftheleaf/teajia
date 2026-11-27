@@ -110,3 +110,9 @@ export function inventoryTeaType(value: string): string {
 }
 
 export const INVENTORY_TEA_TYPES = TEA_TYPES.map(inventoryTeaType);
+
+/** Every stored spelling of a tea type: the short words and the inventory's "Sheng Puer"/"Shou Puer". */
+export const STORED_TEA_TYPES: readonly string[] = [...new Set<string>([...TEA_TYPES, ...INVENTORY_TEA_TYPES])];
+
+/** True for a product row's type when it is a tea, whichever stored spelling it uses. */
+export const isStoredTeaType = (value: string): boolean => STORED_TEA_TYPES.includes(value);

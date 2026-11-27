@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-24T06:52:56.034Z",
+  "composedAt": "2026-11-27T03:50:56.566Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -20,15 +20,15 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "A loose Liu Bao from the 1990s, kept the old way: packed into a bamboo basket lined with bamboo leaves, where the leaf could breathe through its decades of rest. It was stored in Guangzhou, the city the river trade once passed through on its way [out by sea](liu-bao:nanyang-trade) to the miners of Southeast Asia."
+        "text": "A loose [Liu Bao](liu-bao:definition) from the 1990s, kept in Guangzhou and stored the old way. It was not pressed into cakes. The leaf was [packed into bamboo baskets](liu-bao:making-traditional) lined with bamboo leaves, and the basket lets the tea breathe, so it goes on changing through the decades it rests."
+      },
+      {
+        "layer": "place",
+        "text": "Liu Bao is the [dark tea](dark:definition) of [Guangxi](guangxi:where-it-is), named for Liubao town in Cangwu County, near Wuzhou. Its leaf is piled after it is made, so warmth, moisture and microbes can slowly change it. The region's [warm, wet climate](guangxi:land-and-climate) is part of the reason it is made here: the trade links that steady damp to the slow ageing the style is kept for."
       },
       {
         "layer": "age",
-        "text": "That puts it well past the ten years after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). Where it rested matters as much as how long, which is why the basket and the city belong to its story."
-      },
-      {
-        "layer": "type",
-        "text": "[Liu Bao](liu-bao:definition) is a [dark tea](dark:definition) from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Its leaf is heaped damp after it is made, so that warmth and microbes darken and soften it, and in the [farmhouse way](liu-bao:making-traditional) it is then packed tight into baskets to age."
+        "text": "At over thirty years, this lot is well past the ten the trade needs before it counts a Liu Bao as [aged](liu-bao:age-aged), and how a tea was stored matters as much as how long. Guangzhou has long been part of the style's story. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea to the Chinese workers of the [Southeast Asian tin mines](liu-bao:nanyang-trade)."
       }
     ],
     "brewing": {
@@ -41,22 +41,17 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "liu-bao:nanyang-trade",
-      "rev": 2
-    },
-    {
-      "claimId": "liu-bao:age-aged",
+      "claimId": "liu-bao:definition",
       "rev": 1
     },
     {
-      "claimId": "liu-bao:definition",
+      "claimId": "liu-bao:making-traditional",
       "rev": 1
     },
     {
@@ -64,8 +59,20 @@
       "rev": 1
     },
     {
-      "claimId": "liu-bao:making-traditional",
+      "claimId": "guangxi:where-it-is",
       "rev": 1
+    },
+    {
+      "claimId": "guangxi:land-and-climate",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-bao:nanyang-trade",
+      "rev": 2
     },
     {
       "claimId": "liu-bao:brewing",
@@ -78,5 +85,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-24T06:53:06.354Z"
+  "approvedAt": "2026-11-27T04:17:18.952Z"
 }

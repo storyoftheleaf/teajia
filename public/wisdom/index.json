@@ -1,13 +1,13 @@
 {
   "name": "Teajia Tea Wisdom Base",
   "version": "1.0.0",
-  "generatedAt": "2026-11-24",
+  "generatedAt": "2026-11-27",
   "license": "CC BY 4.0, see LICENSE.txt",
   "homepage": "https://teajia.com",
   "contact": "hello@teajia.com",
   "counts": {
     "cultivars": 79,
-    "regions": 183,
+    "regions": 185,
     "teaVarieties": 316,
     "producers": 10,
     "styles": 10,
@@ -119,7 +119,7 @@
       "name": "regions",
       "label": "Growing regions",
       "about": "Places tea is grown, with altitude and climate where a source stated them.",
-      "count": 183,
+      "count": 185,
       "csv": "https://teajia.com/wisdom/tea-wisdom-regions.csv",
       "record": "https://teajia.com/wisdom/region/{id}.json",
       "index": "https://teajia.com/wisdom/regions",
@@ -239,6 +239,7 @@
         "new-taipei-city",
         "nilgiri",
         "nishio-city-aichi",
+        "northern-vietnam-highlands",
         "nuwara-eliya",
         "pasha",
         "phoenix-mountain",
@@ -307,6 +308,7 @@
         "zhenghe",
         "zhenghe-county-fujian",
         "zhengyan-area-wuyi",
+        "zhudong",
         "zhushan-township-nantou"
       ]
     },

@@ -35,7 +35,7 @@ There is one Wisdom Base, at teajia.com/wisdom. It is built from two layers that
 
 ### When a new tea is posted: what the Wisdom Base needs
 
-Check each of these against the tea's record before composing its entry. Anything missing is written as a page (draft), shown to Adrian, approved, and only then used. The check is `wisdomNeeds()`, run on the Mac as `node scripts/tea-wisdom-compose/needs.mjs`, and the whole chain, from this check to the entry on the shop, with each agent's model, rules and where each page goes, is [docs/agents/TEA-WISDOM-AGENTS.md](agents/TEA-WISDOM-AGENTS.md), run by `/tea-wisdom`.
+Check each of these against the tea's record before composing its entry. Anything missing is written as a page (draft), shown to Adrian, approved, and only then used. The check is `wisdomNeeds()`, run on the Mac as `node scripts/tea-wisdom-compose/needs.mjs`, and the whole chain, from this check to the entry on the shop, with each agent's model, rules and where each page goes, is [docs/agents/TEA-WISDOM-AGENTS.md](agents/TEA-WISDOM-AGENTS.md), run by `/tea-wisdom`. New type and style kits come only through that chain.
 
 | From the tea record | Needs | Lives in | Checked as |
 |---|---|---|---|

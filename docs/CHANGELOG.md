@@ -1,3 +1,32 @@
+## 2026-11-27: Bringing a tea in, step 1: where each tea is, and what is waiting for you
+
+The first of five steps agreed with Adrian on the board "Bringing a tea in" (one Bring in door, one tea card, one waiting list). It only reads what is already stored and writes nothing.
+
+- **Waiting** is a Library tab on the same line as All, To taste, Chosen and Rejected (Adrian, 2026-11-27: one line like the sorting, never a list at the top). It shows each tea once, grouped under the step that is Adrian's: arrivals to approve, samples to taste, tasted teas to decide on, chosen teas not yet in Stock, and Stock teas missing their amount, cost or write-up. Teas waiting on a supplier (ordered, on the way, a requested sample) are not counted. The tabs carry no numbers (Adrian: "just a little dot"): Waiting shows a small gold dot while something waits, and each tab's count stays in the name a screen reader hears. The five tabs size to their words so they stay on one line on a phone.
+- **Where this tea is** on every Library tea (`src/components/curate/TeaPathLine.tsx`): Taste, Want it?, Add to Stock, How much is there, What it cost, Write it up, with an arrival to approve first when one waits. The next step is named with one tap where one exists: Taste, Review arrival (the existing accept card), Open in Stock, Write it up. A sample is never asked to be weighed. A fresh Stock record's zero only counts as an amount once the shelf is checked or the tea sold out.
+- **The write-up step reads the Wisdom Base.** It shows "Wisdom pages needed: N" or "Entry ready to write" from `wisdomNeeds()`, the same check as the Wisdom Base fold in Stock (`src/components/curate/useWisdomWriteup.ts`, pages loaded only when needed). With pages missing, its button opens the tea in Stock where the fold lists them.
+- **Past the write-up** (the tea system map's gap 1, Adrian's yes 2026-11-27): the path carries on with Priced, Main photo, On the site (public, shown in the shop and Active) and Tea Wisdom entry (an approved entry in `GENERATED_ENTRIES`, loaded late by `src/components/curate/useWisdomEntryIds.ts`; the step is left out until it has loaded, and teaware has none). Price, photo and going public stay Adrian's choice per tea, so only one of them reaches Waiting: "Public, no Tea Wisdom entry yet".
+- The rules are one function, `teaPath` / `libraryWaiting` in `src/components/curate/teaPath.ts`, tested in `teaPath.test.ts`.
+
+
+## 2026-11-27: Price links for agents
+
+Two agent tools in `worker/src/mcpTools/priceLinks.ts`, so anyone can show a friend what some teas cost without touching stock. `draft_invoice` writes a Draft invoice (inventory not deducted, unpaid) and returns its pay link from `resolveInvoicePayment`; `share_collection_link` opens a private person link to a collection at `/c/<slug>` and never publishes to the shop. Fixed: invoice lines refused every tea stored as "Sheng Puer" or "Shou Puer", because `authorizeInvoiceLines` read the short type words only; it now reads `isStoredTeaType`. The `update_tea_pricing` freight description now says freight is added at cost. Guard: `worker/tests/price-link-tools.test.ts`.
+## 2026-11-27: Freight rates live in Logistics
+
+Every freight rate is typed in Logistics services on the Purchases page and nowhere else. No tea's price moves.
+
+- **Shop default** moved there from Store Settings (same account columns; `update_account_settings` still writes it).
+- **+ Logistics company** asks for two things, the name and the rate; air, per kg, the shop currency and the service name default behind More details. A new name becomes a contact on save.
+- **+ My suitcase** makes a free-by-the-kilo air service under a "My luggage" contact, picked on the tea page like any service.
+- **No per-tea typing**: the Add tea form, the phone Freight sheet and `create_tea` / `update_tea_pricing` set no rate. A tea that kept its own shows it read-only with Clear and the price it would move to.
+- **Shipping routes** keep addresses, packing and rounding; their rate is no longer read or written. The buying basket prices from the dearest active service of each mode, else the shop default for air.
+- **Imports** stamp no rate on a batch.
+- **One shipping line on the tea.** The Price part shows a single link: when it arrives, what shipping adds to a gram, and by what, opening the shipment (or the service). The detail lives in Logistics, and a tea is put on a service by hand with "+ Add tea" on that service's card.
+- **Journey track.** Each logistics service is a card with four stages, ordered, at the forwarder, on the way, arrived, each counting its orders or shipments and opening them as links; its teas sit below as tags. The tea page and shipment cards use the same tags. Separated by close tones, no lines.
+- **Everything is connected, every connection a link.** A service row lists its company's waiting orders, its shipments and the teas it prices (`?serviceId=` opens it). The tea page lists the shipments it is on and links its service. A shipment card links its service and each tea; an order links its company's service and its shipments. Once a shipment's bill is confirmed, every tea on it with no service yet travels by that service (`adoptShipmentService` in `worker/src/logistics.ts`), so its freight comes from that bill; a service picked by hand is kept.
+- **Product REST doors** refuse a typed rate (clearing allowed; an edit may only carry an existing rate across a cost-currency change).
+
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 
 Finished on `build/l5-finish`, every part off until Adrian says "ship".

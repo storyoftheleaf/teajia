@@ -1,6 +1,6 @@
 {
   "status": "approved",
-  "composedAt": "2026-11-27T00:17:55.069Z",
+  "composedAt": "2026-11-27T03:59:25.411Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -19,12 +19,16 @@
     "productId": "82c845c0-9cb6-4ce3-9eb0-29b501acd080",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "Leaf from Yiwu, in Yunnan, made into [ripe pu’er](shou:definition) in 2006 and left loose rather than pressed into a cake. That puts it in the style’s fourth decade: Yunnan’s factories brought the [wet-pile method](shou:wet-piling) into production in 1973, after a joint team studied faster piling in Guangdong."
+        "layer": "place",
+        "text": "This leaf comes from [Yiwu](greater-yiwu:where-it-is), in the north of Mengla County in Xishuangbanna, on the east side of the Lancang River. The area is one of the old Six Famous Tea Mountains, and its town has long been where leaf from the surrounding villages is gathered and processed."
       },
       {
         "layer": "age",
-        "text": "At twenty years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf is still changing slowly with the air and moisture around it, so the way it has been kept matters as much as the years."
+        "text": "At twenty years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, which is why the way it has been kept matters as much as the years."
+      },
+      {
+        "layer": "type",
+        "text": "It was made as [ripe pu’er](shou:definition) in 2006 and kept loose rather than pressed, thirty-three years after Yunnan’s state factories brought the [wet-pile method](shou:wet-piling) into production. The pile is wetted, heaped and covered to hold the heat its microbes give off, then turned to let air in, so that in weeks the leaf reaches a change that raw pu’er only finds over years of keeping."
       }
     ],
     "brewing": {
@@ -37,12 +41,19 @@
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "greater-yiwu:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
     {
       "claimId": "shou:definition",
       "rev": 1
@@ -50,10 +61,6 @@
     {
       "claimId": "shou:wet-piling",
       "rev": 2
-    },
-    {
-      "claimId": "shou:age-aged",
-      "rev": 1
     },
     {
       "claimId": "shou:brewing",
@@ -66,5 +73,5 @@
   ],
   "problems": [],
   "unsupported": [],
-  "approvedAt": "2026-11-27T00:36:11.432Z"
+  "approvedAt": "2026-11-27T04:17:17.990Z"
 }

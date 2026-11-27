@@ -18,7 +18,8 @@ import { TeaRecordFields, RecordVoice } from './TeaRecordFields';
 import { TeaRecordAssistant } from './TeaRecordAssistant';
 import { PhotoCapture } from './PhotoCapture';
 import { TYPOGRAPHY_CLASSES as T } from '../../designTokens';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { CollectionPill } from '../../admin/components/collections/CollectionPill';
 import { Pencil, Share2, Star, Trash2, X } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { selectHasBundle, selectIsOwnerTier, useAppStore } from '../../lib/store';
@@ -30,6 +31,10 @@ import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { useLibraryPurchases, purchaseStateLabel } from '../../lib/libraryPurchaseState';
 import { LibraryReceiptActions } from './LibraryReceiptActions';
+import { teaPath } from '../curate/teaPath';
+import { TeaPathLine, type TeaPathActions } from '../curate/TeaPathLine';
+import { useWisdomWriteup, wisdomWriteupHint } from '../curate/useWisdomWriteup';
+import { useWisdomEntryIds } from '../curate/useWisdomEntryIds';
 import { TastingSession } from '../tasting/TastingSession';
 import { curateTastingUpdate } from '../../lib/curateTastingSave';
 import type { TastingData } from '../../types';
@@ -60,6 +65,8 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const accountScopeRevision = useTeaCompassStore(s => s.accountScopeRevision);
   const userId = useAppStore(s => s.activeUserId);
   const canTrackOrder = useAppStore(s => selectIsOwnerTier(s) || selectHasBundle(s, 'stock'));
+  // Collections sit behind Publish, like their own room (/admin/collections).
+  const canCollect = useAppStore(s => selectIsOwnerTier(s) || selectHasBundle(s, 'publish'));
   const updateEntry = (id: string, patch: Parameters<ReturnType<typeof useTeaCompassStore.getState>['updateEntry']>[1]) => {
     const store = useTeaCompassStore.getState();
     if (store.accountScopeId !== accountScopeId || store.accountScopeRevision !== accountScopeRevision) return;
@@ -78,6 +85,13 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const [newNote, setNewNote] = useState('');
   const [noteMessage, setNoteMessage] = useState('');
   useEffect(() => { setConfirmDelete(false); setNewNote(''); setNoteMessage(''); setActiveSection('tea'); setMoreFieldsOpen(false); setQuoteOpen(false); }, [entryId, accountScopeRevision]);
+  // The write-up step reads the Wisdom Base check for this tea (wisdomNeeds).
+  const wisdom = useWisdomWriteup({
+    id: entry?.id, type: entry?.type ?? null, form: entry?.form ?? null, product_name: entry?.name ?? null,
+    given_name: entry?.givenName ?? null, chinese_name: entry?.chineseName ?? null,
+    origin_region: entry?.originRegion ?? null, origin_country: entry?.originCountry ?? null, year: entry?.year ?? null,
+  }, !!entry && entry.category === 'tea' && !previewEntry);
+  const wisdomEntryIds = useWisdomEntryIds(!!entry && entry.category === 'tea' && !previewEntry);
   if (!entry) return null;
   const stockProductId = sharedStockRecordId(entry, stockProducts.data || []);
   const stockProduct = stockProducts.data?.find(product => product.id === stockProductId);
@@ -112,6 +126,30 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       ? { label: stockProduct?.isPublic && stockProduct?.shownInShop ? 'View in Stock' : 'Review Shop listing', run: openStock }
       : purchaseHref ? { label: 'Open supplier order', run: () => navigate(purchaseHref) }
         : onAcquire && !purchases.isLoading && !purchases.isError ? { label: orderLabel, run: () => onAcquire(entry.id) } : null;
+  const arrivalWaiting = (purchases.receiptProposals ?? []).some(receipt => receipt.status === 'pending' && receipt.compass_entry_id === entry.id);
+  const wisdomEntry = wisdomEntryIds && stockProductId ? wisdomEntryIds.has(stockProductId) : undefined;
+  const path = teaPath({ entry, purchaseStatus: purchase.status, arrivalWaiting, stock: stockProduct ?? null, wisdomEntry });
+  const storyHref = stockProductId ? `/admin/products/${encodeURIComponent(stockProductId)}/story` : undefined;
+  const pathActions: TeaPathActions = {
+    arrival: onAcquire ? { label: 'Review arrival', run: () => onAcquire(entry.id) } : undefined,
+    taste: { label: 'Taste', run: () => setTastingOpen(true) },
+    decide: { label: '', hint: 'Want or Reject, above' },
+    stock: { label: '', hint: 'Add to Stock, below' },
+    amount: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    cost: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    // Pages still missing: the Stock panel's Wisdom Base fold lists them.
+    writeup: !storyHref ? undefined : wisdom && wisdom.open > 0
+      ? { label: 'See what’s needed', run: openStock, hint: wisdomWriteupHint(wisdom) }
+      : { label: 'Write it up', to: storyHref, hint: wisdomWriteupHint(wisdom) },
+    priced: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    photo: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    public: stockProductId ? { label: 'Open in Stock', run: openStock } : undefined,
+    // The entry is composed by the Tea Wisdom chain from the Wisdom Base
+    // pages; from here Adrian can only see what those pages still need.
+    entry: wisdom && wisdom.open > 0 && stockProductId
+      ? { label: 'See what’s needed', run: openStock, hint: wisdomWriteupHint(wisdom) }
+      : { label: '', hint: wisdom ? 'Pages ready for the Tea Wisdom chain' : undefined },
+  };
   const orderCheck = purchases.isError ? 'Couldn’t check orders' : purchases.isLoading ? 'Checking orders…' : '';
   const showPurchaseSummary = sampleReceipts.length > 0 || !!purchaseLabel || !previewEntry;
   const purchaseSummary = showPurchaseSummary && <div className="flex min-h-tap flex-wrap items-center justify-between gap-x-3 gap-y-1" aria-label="Next step for this tea" role="group">
@@ -184,6 +222,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <span className="text-ui-12 text-tea-text-dim">{entry.tasting ? 'Tasting recorded' : 'No tasting yet'}</span>
         <button type="button" onClick={() => setTastingOpen(true)} className="tea-record-taste tap-target inline-flex min-h-tap items-center gap-1.5 rounded-md px-3 text-ui-13 font-medium" aria-label="Taste"><TeaCupIcon />Taste</button>
       </div>
+      {!previewEntry && !purchases.isLoading && <TeaPathLine path={path} actions={pathActions} />}
       {purchaseSummary}
       <div role="tablist" aria-label="Tea workspace" className="tea-record-tabs">
         {([['tea', 'Tea'], ['notes', 'Notes'], ['orders', 'Orders'], ['files', 'Files']] as const).map(([key, label]) => <button key={key} role="tab" type="button" aria-selected={activeSection === key} aria-controls={`record-panel-${entry.id}`} className="tap-target min-h-tap text-ui-13" onClick={() => setActiveSection(key)}>{label}</button>)}
@@ -297,8 +336,16 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <CurateRecordTools flat entityType="tea" entityId={entry.id} onChanged={() => { const account = useTeaCompassStore.getState().accountScopeId; if (account) void hydrateCompassEntries(account); }} />
       </RecordGroup>
       </div>
+      {stockProductId && !previewEntry && <section aria-label="Write up and share" data-testid="library-stock-next" className="border-t border-tea-border py-2 flex flex-wrap items-center gap-2">
+        {/* Once a tea is in Stock its write-up and its collections are one tap
+            from here, so sending a priced link never means a trip round through
+            Stock (Adrian, 2026-11-27: "a lot of parts but they're not fluidly
+            all connected"). Each is a link or the shared pill, so back works. */}
+        <Link to={`/admin/products/${encodeURIComponent(stockProductId)}/story`} className="tap-target min-h-tap inline-flex items-center rounded-md px-3 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text">Write it up</Link>
+        {canCollect && <CollectionPill productId={stockProductId} />}
+      </section>}
       {nextAction?.run !== openStock && <section aria-label="Inventory handoff" className="border-t border-tea-border py-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-ui-12 text-tea-text-sec">{entry.draftProductId ? 'Stock & listing' : 'Create a private inventory listing'}</span>
+        <span className="text-ui-12 text-tea-text-sec">{entry.draftProductId ? 'Stock & listing' : 'Add it to Stock, private until you list it'}</span>
         <>{stockProductId ? <button type="button" className="tap-target min-h-tap text-ui-12 text-tea-text" onClick={openStock}>View in Stock</button> : <CreateInventoryRecordAction entryId={entry.id} compact productId={entry.draftProductId} onOpenInventory={onOpenInventory ?? (productId => navigate(sharedStockRecordHref(productId)))} />}</>
       </section>}
     </div>

@@ -25,7 +25,7 @@ export function vendorFieldsPayload(draft: Draft): VendorStructuredFields {
 
 /** The canonical vendor profile is loaded before editing, so old endpoints
  * remain present unless the operator explicitly removes them. */
-export function CurateVendorFields({ vendorId }: { vendorId: string }) {
+export function CurateVendorFields({ vendorId, withContacts = true }: { vendorId: string; /** false where the page already edits contacts above (the vendor page), so the list has one editor. */ withContacts?: boolean }) {
   const account = useAppStore(state => state.activeAccountId);
   const request = useRef(0);
   const savingRef = useRef(false);
@@ -52,7 +52,11 @@ export function CurateVendorFields({ vendorId }: { vendorId: string }) {
     const sentEditRevision = editRevision.current;
     setError(''); setSaving(true);
     try {
-      const patch = vendorFieldsPayload(draft);
+      const full = vendorFieldsPayload(draft);
+      // Without its own contacts editor this form must not send the list back: the
+      // contacts card above may have changed it since this draft loaded.
+      // The vendor code is edited in the card above too, so it stays out as well.
+      const patch = withContacts ? full : (({ contacts: _contacts, contacts_mode: _mode, vendor_code: _code, ...rest }) => rest)(full);
       await api.curateWorkspace.saveVendor(vendorId, { ...patch });
       if (generation === request.current && useAppStore.getState().activeAccountId === account) setSaved(editRevision.current === sentEditRevision);
     } catch {
@@ -60,11 +64,12 @@ export function CurateVendorFields({ vendorId }: { vendorId: string }) {
     } finally { savingRef.current = false; if (generation === request.current) setSaving(false); }
   };
   return <details className="border-t border-tea-border pt-3" data-testid="curate-vendor-fields">
-    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-tap text-tea-text-sec`}>People &amp; addresses</summary>
+    <summary className={`${TYPOGRAPHY_CLASSES.label} cursor-pointer min-h-tap text-tea-text-sec`}>{withContacts ? 'People & addresses' : 'More people and addresses'}</summary>
+    {!withContacts && <p className="text-ui-13 text-tea-text-sec pb-2">For a shop with several people to talk to, or more than one address, such as a shop and a warehouse. One person and one address fit in the card above.</p>}
     {error && <p role="alert" className="text-ui-12 text-tea-text-sec">{error}</p>}
     {!draft && error && <button type="button" className={buttonClass} onClick={() => setRetry(value => value + 1)}>Retry vendor details</button>}
     {!draft ? <p className={`${TYPOGRAPHY_CLASSES.body} text-tea-text-sec`}>Loading vendor details</p> : <div className="space-y-5 pb-3">
-      {field('Vendor code', draft.vendor_code, value => change({ vendor_code: value }))}
+      {withContacts && field('Vendor code', draft.vendor_code, value => change({ vendor_code: value }))}
       <div className="space-y-3">
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Contact people</p>
         {draft.contact_people.map((person, index) => <div className="space-y-2 border-b border-tea-border pb-3" key={person.id}>
@@ -77,7 +82,7 @@ export function CurateVendorFields({ vendorId }: { vendorId: string }) {
         </div>)}
         <button type="button" className={buttonClass} onClick={() => change({ contact_people: [...draft.contact_people, { id: crypto.randomUUID(), name: '' }] })}>Add contact person</button>
       </div>
-      <div className="space-y-3">
+      {withContacts && <div className="space-y-3">
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Contact channels</p>
         {draft.contacts.map((contact, index) => {
           const update = (patch: Partial<VendorContactEndpoint>) => change({ contacts: draft.contacts.map((row, position) => position === index ? { ...row, ...patch } : row) });
@@ -100,7 +105,7 @@ export function CurateVendorFields({ vendorId }: { vendorId: string }) {
           </div>;
         })}
         <button type="button" className={buttonClass} onClick={() => change({ contacts: [...draft.contacts, { id: crypto.randomUUID(), channel: '', handle: '' }] })}>Add contact channel</button>
-      </div>
+      </div>}
       <div className="space-y-3">
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>Addresses</p>
         {draft.addresses.map((address, index) => {
