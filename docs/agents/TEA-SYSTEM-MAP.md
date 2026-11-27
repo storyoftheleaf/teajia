@@ -6,6 +6,7 @@ Whiteboards for Adrian (same content, drawn):
 
 - [The tea system, end to end](https://claude.ai/artifact/RE2RbTsE1SJAMZoy8UdvhS): this map.
 - [Teajia, section by section](https://claude.ai/artifact/VmvoJCULgNWbmerUqiVY5i): the whole site. Each section carries a card to its detailed board.
+- Section boards, one per part of the site: [Read](https://claude.ai/artifact/ScMi5emjDXfuChAQDaTjNC), [Tea Table, sessions and people](https://claude.ai/artifact/8TLB9JJKRuU8grsi4KTkVo), [Tea Houses](https://claude.ai/artifact/8t3JqANYy58JP4reJ2kJrc), [Your Table](https://claude.ai/artifact/MySjydyn6bxEfK9D6moVr2). Shop and Manage open this map's board.
 - Child boards: [Bringing a tea in](https://claude.ai/artifact/5wWBCaREDvXyoSiCAu4pAf) (steps 1 to 6, the intake plan), [From sample to sent link](https://claude.ai/artifact/Cw9iVkjtje3bjMBcpFeTZf) (steps 2 to 9), [New tea to Tea Wisdom](https://claude.ai/artifact/8N9HcPPeDqHmfUbZbLdT21) (step 7), [Wisdom Review](https://claude.ai/artifact/2MZWE6AFWwCmih1PonbesE) (Adrian's approvals in step 7).
 
 **Keep it true.** When you change a step, its doors or its tools, change its row here and the whiteboard in the same piece of work. When a gap below is closed, move it out of "Missing" and say which PR closed it.
@@ -55,7 +56,7 @@ Every step exists and works on its own. What is missing are the joins between st
 
 In the order recommended to fix them. Nothing here is built without Adrian's yes.
 
-1. **A tea's path stops at "Written up".** `src/components/curate/teaPath.ts` (PR 586) ends at the write-up. Carry it on: priced, main photo, public, Tea Wisdom entry, in a collection. Read-only, like the rest of 586. Recommended next, after 586 merges.
+1. **A tea's path stops at "Written up".** `src/components/curate/teaPath.ts` (PR 586) ends at the write-up. Carry it on: priced, main photo, public, Tea Wisdom entry, in a collection. Read-only, like the rest of 586. Adrian said yes on 2026-11-27; asked of the intake thread, which owns that file.
 2. **Three doors skip the Library.** Stock Add tea, Bulk intake and the agent's `create_tea` make a Stock tea with no supplier, quote or tasting behind it. Already agreed: one Bring in sheet (intake plan step 2).
 3. **Two Taste doors, four approve doors, and Add to Stock arrives empty.** A new Stock tea starts with no counted amount and no price, and nothing asks. Already planned: intake plan step 4 (one Taste door with the grams; Add to Stock brings amount and cost from the arrival or quote).
 4. **Two write-ups, and no signal between them.** The Story description is live the moment it is saved. The Tea Wisdom entry lives in `data/tea-reference/entries/` and is live only after a push. Nothing tells anyone that a public tea has no entry; the chain runs only when Adrian asks. Recommended: a "Public, no Tea Wisdom entry yet" group in Waiting for you. The chain still runs only on his word.
