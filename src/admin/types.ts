@@ -356,6 +356,8 @@ export interface Customer {
   /** The vendor's automatic V code (migration 0155); finds the vendor too. */
   vendorShortCode?: string;
   face_photo?: string;
+  /** The whole photo the face was cut from, for reframing (migration 0153). */
+  face_photo_original?: string;
   latitude?: number;
   longitude?: number;
   createdAt: string;

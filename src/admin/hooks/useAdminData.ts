@@ -202,6 +202,7 @@ export const useCustomers = (options?: { enabled?: boolean }) => {
         // Short code shown by the vendor's name: V1, or one typed on the vendor page.
         vendorCode: c.vendor_code || c.vendor_short_code || undefined,
         vendorShortCode: c.vendor_short_code || undefined,
+        face_photo_original: c.face_photo_original || undefined,
         storefront_photo: c.storefront_photo || undefined,
         business_card_photo: c.business_card_photo || undefined,
         type: c.type || 'customer',
