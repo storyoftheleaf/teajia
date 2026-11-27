@@ -26,7 +26,7 @@ describe('Library active record scope', () => {
     expect(markup).toContain('Received encounter');
     expect(markup).toContain('Promoted encounter');
     expect(markup).toContain('Recent'); // Transfer-only view remains in View & sort.
-    expect(markup).toMatch(/All<\/span><span[^>]*>2</);
+    expect(markup).toContain('aria-label="All 2"');
   });
   it('keeps untasted received samples in the queue even after product linking', () => {
     fixture.state.browseFilter = 'to_taste';
@@ -37,7 +37,7 @@ describe('Library active record scope', () => {
     const markup = render();
     expect(markup).toContain('Sample ready to taste');
     expect(markup).toContain('Transferred sample');
-    expect(markup).toMatch(/To taste<\/span><span[^>]*>2</);
+    expect(markup).toContain('aria-label="To taste 2"');
   });
 });
 
@@ -86,8 +86,8 @@ describe('Library workflow decisions', () => {
     expect(markup).toContain('Chat order');
     expect(markup).not.toContain('Rejected order');
     expect(markup).not.toContain('Unconfirmed draft');
-    expect(markup).toMatch(/Chosen<\/span><span[^>]*>1</);
-    expect(markup).toMatch(/Rejected<\/span><span[^>]*>1</);
+    expect(markup).toContain('aria-label="Chosen 1"');
+    expect(markup).toContain('aria-label="Rejected 1"');
   });
   it('uses the shared supplier name instead of the captured name', () => {
     fixture.state.entries = [{ ...createEmptyEntry(), id: '1', name: 'Linked tea', linkedCustomerId: 'supplier-1', vendorName: 'Old name' }];
