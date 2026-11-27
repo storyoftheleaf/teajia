@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { LinkTeaPage, LinkTeaTop } from '../shop/LinkTeaPage';
+import { X } from 'lucide-react';
+import { LinkTeaPage } from '../shop/LinkTeaPage';
 import { useOpenLinkTea } from '../shop/useOpenLinkTea';
 import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
 import { TeaLedger, type TeaLedgerGroup } from '../shop/TeaLedger';
@@ -18,9 +19,12 @@ import type { PayLinkTeaLine } from './types';
  * sell carries none. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
-export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart }: {
+export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, choosing = false, onChosen }: {
   lines: readonly PayLinkTeaLine[];
   invoiceNumber?: string | null;
+  /** The guide's Taste was tapped: the next tea opened goes straight to its tasting. */
+  choosing?: boolean;
+  onChosen?: () => void;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
 }) {
   const { openId, open: setOpenId, close: closeTea } = useOpenLinkTea();
@@ -68,6 +72,12 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart }: {
   if (lines.length === 0) return null;
   return (
     <section aria-label="What this pays for" data-testid="pay-invoice-teas">
+      {choosing && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-tea-gold bg-tea-accent-sub px-4 py-2" role="status" data-testid="pay-taste-choose">
+          <span className="font-display text-ui-18 text-tea-text">Which one are you drinking?</span>
+          <button type="button" onClick={onChosen} aria-label="Not now" className="tap-target inline-flex items-center justify-center text-tea-text-sec hover:text-tea-text"><X size={16} /></button>
+        </div>
+      )}
       <TeaLedger
         groups={groups}
         activeType="All"
@@ -77,7 +87,11 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart }: {
         formatPrice={formatPrice}
         favoriteIds={favoriteIds}
         onToggleFavorite={(id, event) => { event.stopPropagation(); const row = byId.get(id); if (row?.line.product_id) toggleFavoriteTea(row.line.product_id); }}
-        onOpenProduct={card => { if (byId.get(card.id)?.line.product_id) setOpenId(card.id); }}
+        onOpenProduct={card => {
+          if (!byId.get(card.id)?.line.product_id) return;
+          setOpenId(card.id, choosing ? { taste: '1' } : undefined);
+          onChosen?.();
+        }}
         weighOptionsFor={card => { const row = byId.get(card.id); return row ? [row.amount] : undefined; }}
       />
       <div className="flex items-baseline justify-between gap-4 border-b border-tea-border px-4 py-4 md:px-6" data-testid="pay-invoice-total">
@@ -89,7 +103,8 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart }: {
           item={openRow.product}
           onClose={closeTea}
           onAddToCart={onAddToCart}
-          top={<LinkTeaTop line={[invoiceNumber ? `On your invoice ${invoiceNumber}` : 'On your invoice', openRow.amount.label ?? `${openRow.amount.grams}g`].join(' · ')} />}
+          yoursLine={['Yours', openRow.amount.label ?? `${openRow.amount.grams}g`, invoiceNumber ? `Invoice ${invoiceNumber}` : null].filter(Boolean).join(' · ')}
+          joinMarker="keep"
         />
       )}
     </section>

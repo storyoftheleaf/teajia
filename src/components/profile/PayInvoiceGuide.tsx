@@ -1,0 +1,180 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowRight, Banknote, Bookmark, Check, Coffee, Copy, Repeat } from 'lucide-react';
+import { useAppStore } from '../../lib/store';
+import { authPagePath } from '../../lib/authNavigation';
+import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
+import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
+
+const KEEP_PARAM = 'keep';
+const TASTE_PARAM = 'choose';
+
+/**
+ * The four pictures under an invoice's head (Adrian, 2026-11-27: the sheet is
+ * the way into the site, "visual guide, not reading paragraphs"): Pay, Keep,
+ * Taste, Again. They are in the order the days go, the one she is at is lit,
+ * and each is a button. Keep puts the invoice in her account and its teas in
+ * her saved teas; signed out it goes through joining, which shows the teas she
+ * is keeping, and finishes by itself on the way back. Taste asks which tea and
+ * opens its tasting on the shop's own page. Again is her teas in the shop.
+ * The words are placeholders until Adrian names them.
+ *
+ * The shop that sent the invoice sees the same pictures and never keeps its
+ * own invoice (PayInvoiceAfter gives it the link to copy).
+ */
+export function PayInvoiceGuide({ slug, token, productIds, teaser, signedIn, kept: keptAtLoad, paid, yoursToSend = false, againPath, onPay, onTaste }: {
+  slug: string;
+  token: string | null;
+  productIds: string[];
+  teaser: Omit<KeepTeaser, 'path'>;
+  signedIn: boolean;
+  kept: boolean;
+  paid: boolean;
+  yoursToSend?: boolean;
+  /** Where Again goes before she has kept anything: the collection the teas came from, or the shop. */
+  againPath: string;
+  onPay: () => void;
+  onTaste: () => void;
+}) {
+  const [search, setSearch] = useSearchParams();
+  const navigate = useNavigate();
+  const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
+  const queryClient = useQueryClient();
+  const [state, setState] = useState<'idle' | 'saving' | 'kept' | 'error'>(keptAtLoad ? 'kept' : 'idle');
+  const [error, setError] = useState<string | null>(null);
+  const kept = state === 'kept';
+
+  const save = async (): Promise<boolean> => {
+    if (!token || yoursToSend) return false;
+    setState('saving');
+    setError(null);
+    try {
+      await keepPayInvoice(slug, token);
+      void queryClient.invalidateQueries({ queryKey: ['me', 'bought-teas'] });
+      void queryClient.invalidateQueries({ queryKey: ['profile', slug, 'pay-access'] });
+      productIds.filter(id => !useAppStore.getState().favoriteTeas.includes(id)).forEach(id => toggleFavoriteTea(id));
+      setState('kept');
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'That did not save. Try again.');
+      setState('error');
+      return false;
+    }
+  };
+
+  // Joining, then back here with the marker: finish what she tapped, once.
+  const join = (also?: string) => {
+    const back = new URLSearchParams(search);
+    back.set(KEEP_PARAM, '1');
+    if (also) back.set(also, '1');
+    holdKeepTeaser({ ...teaser, path: window.location.pathname });
+    navigate(authPagePath('signup', `${window.location.pathname}?${back.toString()}`));
+  };
+  const finished = useRef(false);
+  useEffect(() => {
+    if (finished.current || !signedIn || search.get(KEEP_PARAM) !== '1') return;
+    finished.current = true;
+    const choose = search.get(TASTE_PARAM) === '1';
+    const next = new URLSearchParams(search);
+    next.delete(KEEP_PARAM);
+    next.delete(TASTE_PARAM);
+    setSearch(next, { replace: true });
+    void (async () => {
+      const ok = keptAtLoad || yoursToSend || await save();
+      if (ok && choose) onTaste();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn, search]);
+
+  const keep = () => { if (!signedIn) join(); else if (!kept) void save(); };
+  const taste = async () => {
+    if (!signedIn) { join(TASTE_PARAM); return; }
+    if (!kept && !yoursToSend && !(await save())) return;
+    onTaste();
+  };
+  const at = !paid ? 'pay' : !kept && !yoursToSend ? 'keep' : 'taste';
+
+  return (
+    <nav aria-label="What comes next" className="mt-3" data-testid="pay-guide">
+      <ol className="relative mx-auto flex max-w-md items-start justify-between">
+        <li aria-hidden="true" className="absolute inset-x-10 top-6 border-t border-tea-border" />
+        <Step label={paid ? 'Paid' : 'Pay'} done={paid} lit={at === 'pay'} icon={<Banknote size={20} aria-hidden="true" />} onClick={onPay} testId="pay-guide-pay" />
+        <Step label={kept ? 'Kept' : state === 'saving' ? 'Keeping' : 'Keep'} done={kept} lit={at === 'keep'} disabled={yoursToSend || state === 'saving'} icon={<Bookmark size={20} aria-hidden="true" />} onClick={keep} testId="pay-guide-keep" />
+        <Step label="Taste" lit={at === 'taste'} icon={<Coffee size={20} aria-hidden="true" />} onClick={() => { void taste(); }} testId="pay-guide-taste" />
+        <Step label="Again" icon={<Repeat size={20} aria-hidden="true" />} to={kept ? '/shop?bought=1' : againPath} testId="pay-guide-again" />
+      </ol>
+      {error && <p role="alert" className="mt-2 text-center font-sans text-ui-12 text-tea-text-sec">{error}</p>}
+    </nav>
+  );
+}
+
+function Step({ label, icon, done = false, lit = false, disabled = false, onClick, to, testId }: {
+  label: string;
+  icon: ReactNode;
+  done?: boolean;
+  lit?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  to?: string;
+  testId: string;
+}) {
+  const ring = done
+    ? 'cta-solid border-tea-gold'
+    : lit
+      ? 'border-tea-gold bg-tea-accent-sub text-tea-gold'
+      : 'border-tea-border bg-tea-bg text-tea-text-sec group-hover:border-tea-gold';
+  const body = (
+    <>
+      <span className={`flex h-12 w-12 items-center justify-center rounded-full border transition-colors ${ring}`}>
+        {done ? <Check size={20} aria-hidden="true" /> : icon}
+      </span>
+      <span className={`font-sans text-ui-12 ${lit || done ? 'text-tea-text' : 'text-tea-text-sec'}`}>{label}</span>
+    </>
+  );
+  const shape = 'group relative flex w-20 flex-col items-center gap-1.5';
+  return (
+    <li className="relative" data-testid={testId} data-state={done ? 'done' : lit ? 'lit' : 'ahead'}>
+      {to
+        ? <Link to={to} className={shape}>{body}</Link>
+        : <button type="button" onClick={onClick} disabled={disabled} aria-current={lit ? 'step' : undefined} className={shape}>{body}</button>}
+    </li>
+  );
+}
+
+/**
+ * The one line under the invoice's total: where her teas live once kept, the
+ * collection they came from, and for the shop that sent it, the link to copy.
+ */
+export function PayInvoiceAfter({ kept, yoursToSend = false, collection }: {
+  kept: boolean;
+  yoursToSend?: boolean;
+  collection?: { title: string; path: string } | null;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+    } catch { /* the address bar still has it */ }
+  };
+  if (!kept && !yoursToSend && !collection) return null;
+  const quiet = 'tap-target inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text';
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 md:px-6" data-testid="pay-after">
+      {yoursToSend ? (
+        <span className="flex flex-wrap items-center gap-3" data-testid="pay-yours-to-send">
+          <span className="font-body text-ui-14 text-tea-text">This is your invoice to send.</span>
+          <button type="button" onClick={copy} className="btn-secondary tap-target shrink-0">
+            {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Link copied' : 'Copy the link'}
+          </button>
+        </span>
+      ) : kept ? (
+        <Link to="/shop?bought=1" className={quiet} data-testid="pay-your-teas">Your teas <ArrowRight size={12} /></Link>
+      ) : <span />}
+      {collection && (
+        <Link to={collection.path} className={quiet} data-testid="pay-collection-link">See {collection.title} <ArrowRight size={12} /></Link>
+      )}
+    </div>
+  );
+}
