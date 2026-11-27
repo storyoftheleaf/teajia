@@ -1,5 +1,6 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
+import { discountPercent, readInvoiceDiscount, writeInvoiceDiscount } from './invoiceDiscount';
 import { listMyBoughtTeas } from './myBoughtTeas';
 import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
@@ -28641,7 +28642,8 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
   if (refusal) return json(refusal, 409);
 
-  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean; yours_to_send: boolean; collection: { title: string; path: string } | null } | null = null;
+  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[]; kept: boolean; yours_to_send: boolean; collection: { title: string; path: string } | null;
+    discount: { percent: number; amount_usd: number; subtotal_usd: number } | null; discount_editable: boolean } | null = null;
   if (link) {
     await env.DB.prepare(
       `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
@@ -28673,6 +28675,7 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
         const yoursToSend = viewer
           ? await sendsInvoice(env, link.account_id, ledgerInvoice.id, viewer.userId, contributor.user_id)
           : false;
+        const discount = await readInvoiceDiscount(env, link.account_id, ledgerInvoice.id);
         // The collection these teas were chosen from, while its link is live.
         const collection = await env.DB.prepare(
           `SELECT c.title, cp.slug FROM invoices i
@@ -28683,6 +28686,9 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
         invoice = {
           invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines, kept, yours_to_send: yoursToSend,
           collection: collection ? { title: collection.title, path: `/c/${collection.slug}` } : null,
+          // A discount the shop offered, and for the shop itself whether it can still change it.
+          discount: discount?.percent ? { percent: discount.percent, amount_usd: discount.discount_usd, subtotal_usd: discount.subtotal_usd } : null,
+          discount_editable: yoursToSend && Boolean(discount?.editable),
         };
       }
     }
@@ -28746,6 +28752,32 @@ const handleKeepPayInvoice: Handler = async (request, env, params) => {
       { link_id: link.id, customer_id: kept.customerId, linked: kept.linked }, link.account_id, null);
   }
   return json({ ok: true, invoice_id: link.invoice_id, already: kept.already });
+};
+
+// POST /api/public/people/:slug/pay-access/discount { token, percent }
+// The shop's own view of an invoice's pay sheet offers a percent off
+// (invoiceDiscount.ts). Only the shop that sent it; 0 takes it off.
+const handleSetPayInvoiceDiscount: Handler = async (request, env, params) => {
+  const auth = await requireAuthenticatedUser(request, env);
+  if ('error' in auth) return auth.error;
+  const contributor = await loadPayContributor(env, params.slug);
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+  const body = await request.json().catch(() => ({})) as { token?: unknown; percent?: unknown };
+  const token = typeof body.token === 'string' ? body.token : null;
+  const { link } = await resolvePayAccess(env, contributor, auth, token);
+  if (!link?.invoice_id) return json({ error: 'This link has no invoice' }, 404);
+  if (!await sendsInvoice(env, link.account_id, link.invoice_id, auth.userId, contributor.user_id)) {
+    return json({ error: 'Only the shop that sent this invoice can offer a discount' }, 403);
+  }
+  const percent = discountPercent(body.percent);
+  if (percent === null) return json({ error: 'Give a percent from 0 to 99.9' }, 400);
+  const invoice = await env.DB.prepare('SELECT status FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(link.invoice_id, link.account_id).first<{ status: string }>();
+  const written = await writeInvoiceDiscount(env, link.account_id, link.invoice_id, percent, String(invoice?.status ?? ''));
+  if (!written.ok) return json({ error: written.error === 'invoice_not_editable' ? 'This invoice can no longer change' : 'This invoice just changed. Reload and try again.' }, 409);
+  await logPlatformAction(env, 'pay_invoice.discount', auth.userId, auth.email, 'invoice', link.invoice_id,
+    { percent, discount_usd: written.discount_usd, total_usd: written.total_usd }, link.account_id, null);
+  return json({ ok: true, percent, discount_usd: written.discount_usd, total_usd: written.total_usd });
 };
 
 function openPayShareUrl(env: Env, slug: string, token: string): string {
@@ -34285,6 +34317,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/public/people/:slug/pay-access', handleGetPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/request', handleRequestPayAccess],
   ['POST', '/api/public/people/:slug/pay-access/keep', handleKeepPayInvoice],
+  ['POST', '/api/public/people/:slug/pay-access/discount', handleSetPayInvoiceDiscount],
   ['GET', '/api/public/read/publish-state', handleGetReadPublishState],
   ['GET', '/api/read/access', handleReadAccess],
   ['POST', '/api/read/session', handleReadSession],

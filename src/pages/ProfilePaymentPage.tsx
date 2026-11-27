@@ -64,6 +64,20 @@ export default function ProfilePaymentPage({ onAddToCart }: {
   const access = accessQuery.data;
   const open = access?.access === 'open';
 
+  // An invoice link carries the amount it was sent with. When the invoice has
+  // changed since (a discount offered on it), what it owes now wins, so the
+  // amount to send and the reference agree with the sheet.
+  const owedUsd = access?.invoice?.outstanding_usd;
+  useEffect(() => {
+    if (owedUsd === undefined || owedUsd <= 0) return;
+    if ((search.get('currency') ?? 'USD').toUpperCase() !== 'USD') return;
+    const sent = Number(search.get('amount'));
+    if (!search.get('amount') || Math.abs(sent - owedUsd) < 0.005) return;
+    const next = new URLSearchParams(search);
+    next.set('amount', owedUsd.toFixed(2));
+    setSearch(next, { replace: true }); // history: refine
+  }, [owedUsd, search, setSearch]);
+
   // The amount and the customer's currency travel with the request, because the
   // conversion is the worker's to make: it holds the live rate table and the
   // hour it was refreshed, and a rate worked out on this side would be a second
@@ -250,8 +264,10 @@ export default function ProfilePaymentPage({ onAddToCart }: {
           {visibleCount > 0 && <p className="mt-1.5 font-body text-ui-14 italic leading-[1.5] text-tea-text-sec">{waysLine}</p>}
         </header>
         <div className="mt-2">
-          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} />
-          <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} slug={slug} token={shareToken} kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true} />
+          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} onAddToCart={onAddToCart} discount={access.invoice?.discount ?? null} />
+          <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} slug={slug} token={shareToken} kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true}
+            discount={access.invoice?.yours_to_send ? { editable: access.invoice.discount_editable === true, percent: access.invoice.discount?.percent ?? null } : undefined}
+            onDiscountChanged={() => queryClient.invalidateQueries({ queryKey: ['profile', slug, 'pay-access'] })} />
           <section aria-label="Pay" className="mt-4 max-w-2xl">
             {accountLinks}
             <div className={associationRows.length > 0 ? 'mt-4' : ''}>{chooser}</div>
