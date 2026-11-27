@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../shared/Button';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
+import { HostTableLinks } from './HostTableLinks';
 import type { HostedTableDoor } from '../../lib/hostingApi';
 import {
   DOOR_WORDS, TABLE_AREA_HINT, doorOf, doorWords, hostSmallText, hostTableQueryKey, hostText, tableWhen, type HostTablePartProps,
@@ -44,6 +45,7 @@ export function HostTableHeader({ tableId, detail }: HostTablePartProps) {
         <a className="btn-secondary tap-target" href={whatsapp} target="_blank" rel="noreferrer">Send in WhatsApp</a>
       </div>
       {feedback && <p className={hostSmallText} role="status">{feedback}</p>}
+      <HostTableLinks tableId={tableId} detail={detail} only={['card']} />
       {table.lifecycle_status === 'published' && (
         <>
           <TableSettings key={`${table.door}-${table.seats}`} tableId={tableId} detail={detail} />
