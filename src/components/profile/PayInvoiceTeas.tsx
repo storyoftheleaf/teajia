@@ -22,22 +22,39 @@ export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) 
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
   const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
   const favoriteIds = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
-  // One row per line. A tea bought twice, or a line with no tea behind it,
-  // gets an id of its own so the rows stay apart.
+  // One row per tea and amount. The same tea bought as two 100g packs is two
+  // lines on the invoice and one row here reading "2 × 100g" (Adrian,
+  // 2026-11-27). A tea bought in other amounts, or a line with no tea behind
+  // it, gets a row and an id of its own.
   const rows = useMemo(() => {
+    const packs = new Map<string, { line: PayLinkTeaLine; count: number; totalUsd: number }>();
+    lines.forEach((line, index) => {
+      const key = line.product_id ? `${line.product_id}|${line.unit}|${line.quantity}` : `line-${index}`;
+      const pack = packs.get(key);
+      if (pack) { pack.count += 1; pack.totalUsd += line.line_total_usd; }
+      else packs.set(key, { line, count: 1, totalUsd: line.line_total_usd });
+    });
     const seen = new Set<string>();
-    return lines.map((line, index) => {
+    return Array.from(packs.values()).map(({ line, count, totalUsd }, index) => {
       const id = line.product_id && !seen.has(line.product_id) ? line.product_id : `invoice-line-${index}`;
       if (line.product_id) seen.add(line.product_id);
       const card = linkTeaInventoryItem({ ...sourceOf(line), ...line, chineseName: line.chinese_name, year: line.year, image: line.image_url });
+      const one = line.unit === 'g' ? `${line.quantity}g` : `${line.quantity} ${line.quantity === 1 ? 'piece' : 'pieces'}`;
       const amount: WeighOption = {
-        grams: line.quantity,
-        totalUsd: line.line_total_usd,
-        label: line.unit === 'g' ? undefined : `${line.quantity} ${line.quantity === 1 ? 'piece' : 'pieces'}`,
+        grams: line.quantity * count,
+        totalUsd: Math.round(totalUsd * 100) / 100,
+        label: count > 1 ? `${count} × ${one}` : line.unit === 'g' ? undefined : one,
       };
       return { id, line, card: { ...card, id } as InventoryItem, amount };
     });
   }, [lines]);
+  const totalUsd = Math.round(lines.reduce((sum, line) => sum + line.line_total_usd, 0) * 100) / 100;
+  // An invoice owes cents, so dollars read to the cent; another currency
+  // reads as the shop quotes it, the near figure.
+  const exact = (usd: number) => (shopPrice.code === 'USD'
+    ? `$${Number.isInteger(usd) ? usd : usd.toFixed(2)}`
+    : shopPrice.symbolTotal(usd));
+  const formatPrice = (usd: number) => (usd === 0 ? 'Free' : exact(usd));
   const byId = useMemo(() => new Map(rows.map(row => [row.id, row])), [rows]);
   const groups = useMemo<TeaLedgerGroup[]>(() => {
     const order: string[] = [];
@@ -59,12 +76,16 @@ export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) 
         specialFilter="None"
         tastingCounts={new Map()}
         priceWeight={50}
-        formatPrice={usd => (usd === 0 ? 'Free' : shopPrice.symbolTotal(usd))}
+        formatPrice={formatPrice}
         favoriteIds={favoriteIds}
         onToggleFavorite={(id, event) => { event.stopPropagation(); const row = byId.get(id); if (row?.line.product_id) toggleFavoriteTea(row.line.product_id); }}
         onOpenProduct={card => { if (byId.get(card.id)?.line.product_id) setOpenId(card.id); }}
         weighOptionsFor={card => { const row = byId.get(card.id); return row ? [row.amount] : undefined; }}
       />
+      <div className="flex items-baseline justify-between gap-4 border-b border-tea-border px-4 py-4 md:px-6" data-testid="pay-invoice-total">
+        <span className="label-caps text-tea-text-sec">Total</span>
+        <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
+      </div>
       {openId && (
         <AlcoveModal
           item={cards.find(card => card.id === openId) ?? null}

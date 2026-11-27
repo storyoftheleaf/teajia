@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
 import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
+import { PayInvoiceKeep } from '../components/profile/PayInvoiceKeep';
 import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { authPagePath } from '../lib/authNavigation';
 import { buildPaymentPageUrl, isTrackingTokenShaped, normalizeLocalAmount, parsePaymentContext, toPaymentOrderSummary } from '../components/profile/profileDomain';
@@ -214,7 +215,7 @@ export default function ProfilePaymentPage() {
   const accountOffer = !access.viewer.signed_in && (
     <p className="mt-4 border-t border-tea-border pt-4 text-ui-13 text-tea-text-sec" data-testid="pay-account-offer">
       Want to keep this?{' '}
-      <Link to={authPagePath('signup', `${window.location.pathname}${window.location.search}`)} className="tap-target text-tea-text underline decoration-tea-border underline-offset-2 hover:text-tea-gold">Make a free account</Link>
+      <Link to={authPagePath('signup', `${window.location.pathname}${window.location.search}`)} className="relative text-tea-text underline before:absolute before:-inset-y-3 before:inset-x-0 before:content-['']  decoration-tea-border underline-offset-2 hover:text-tea-gold">Make a free account</Link>
       {' '}and your teas stay with you. You don’t need one to pay.
     </p>
   );
@@ -245,9 +246,9 @@ export default function ProfilePaymentPage() {
           <PayInvoiceTeas lines={invoiceLines} />
           <section aria-label="Pay" className="mt-6 max-w-2xl rounded-md border border-tea-border bg-tea-surface px-4 py-4 md:px-5">
             {accountLinks}
-            <div className={associationRows.length > 0 ? 'mt-4' : ''}>{chooser}</div>
-            {accountOffer}
+            <div className={`${associationRows.length > 0 ? 'mt-4' : ''} [&>div>section:first-child>div:first-child]:mt-0`}>{chooser}</div>
           </section>
+          <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} />
         </div>
       </main>
     );

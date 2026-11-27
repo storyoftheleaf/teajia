@@ -27,6 +27,13 @@ interface BottomTabBarProps {
   isAdminRoute?: boolean;
 }
 
+/** Words with an equal spacer before, between and after them. */
+function spaced(words: React.ReactNode[], side: string): React.ReactNode[] {
+  const out: React.ReactNode[] = [<div key={`${side}-s0`} aria-hidden className="bottom-nav-spacer" />];
+  words.forEach((word, index) => { out.push(word, <div key={`${side}-s${index + 1}`} aria-hidden className="bottom-nav-spacer" />); });
+  return out;
+}
+
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
@@ -104,7 +111,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           onAccountClose?.();
           navigate(tab.path);
         }}
-        className="flex-auto min-w-0 h-full flex items-center justify-center relative z-[1] transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="bottom-nav-word flex-none h-full flex items-center justify-center relative z-[1] transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={tab.label}
         aria-current={isActive ? 'page' : undefined}
@@ -197,7 +204,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.section);
         }}
-        className="flex-auto min-w-0 h-full flex items-center justify-center relative z-[1] transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="bottom-nav-word flex-none h-full flex items-center justify-center relative z-[1] transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
@@ -288,13 +295,15 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               bar a tap on a word must never open the menu. */}
           {/* Narrow phones give every spare pixel to the words. At wider
               widths, half-share end spacers restore the even rhythm used
-              by this bar before its compact-phone adjustment. */}
+              by this bar before its compact-phone adjustment.
+              Now (Adrian, 2026-11-27, "it should be equidistant"): an equal
+              spacer before, between and after the words of each half, and
+              no button box wider than what it draws, so the gaps you see
+              between the menu, the words and the logo are the same. */}
           <div className="flex flex-1 basis-0 min-w-0 h-full">
-          <div aria-hidden className="bottom-nav-spacer" />
-          {isAdminRoute
+          {spaced(isAdminRoute
             ? adminLeftTabs.map((tab, index) => renderAdminTabButton(tab, index))
-            : leftSections.map((section, index) => renderTabButton(section, index))}
-          <div aria-hidden className="bottom-nav-spacer" />
+            : leftSections.map((section, index) => renderTabButton(section, index)), 'left')}
           </div>
 
           {/* Center: HOME / ADMIN HOME. The logo is always the center
@@ -326,11 +335,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           </motion.button>
 
           <div className="flex flex-1 basis-0 min-w-0 h-full">
-          <div aria-hidden className="bottom-nav-spacer" />
-          {isAdminRoute
+          {spaced(isAdminRoute
             ? adminRightTabs.map((tab, index) => renderAdminTabButton(tab, index + adminLeftTabs.length + 1))
-            : rightSections.map((section, index) => renderTabButton(section, index + leftSections.length + 1))}
-          <div aria-hidden className="bottom-nav-spacer" />
+            : rightSections.map((section, index) => renderTabButton(section, index + leftSections.length + 1)), 'right')}
           </div>
 
           {/* Far right: Your Table (clean icon, sits inside the floating capsule) */}
