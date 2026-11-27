@@ -11,7 +11,7 @@ import {
   LinkTeaEntry, linkTeaInventoryItem, useLinkTeaWriting,
   type LinkTeaDetailFields, type LinkTeaSource,
 } from '../components/shop/linkTea';
-import { LinkTeaPage } from '../components/shop/LinkTeaPage';
+import { LinkTeaPage, LinkTeaTop } from '../components/shop/LinkTeaPage';
 import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { TeaLedger, type TeaLedgerGroup } from '../components/shop/TeaLedger';
 import { weighOptions, startingIndex, type WeighOption } from '../components/shop/TeaWeighControl';
@@ -180,6 +180,7 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
   const curatorName = collection.curator_display_name;
   const signedIn = (() => { try { return !!(localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token')); } catch { return false; } })();
   const curatorFirstName = (curatorName?.trim().split(/\s+/)[0]) || storeName;
+  const collectionTopLine = `Chosen for you by ${curatorFirstName} · ${collection.title}`;
   const visible = useMemo(() => items.filter(i => i.product_status === 'Active'), [items]);
   const slug = data.publication.slug;
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -348,7 +349,7 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
                 onOpenCart={onOpenCart ? () => { setDetailId(null); onOpenCart(); } : undefined}
               />
             )}
-            addition={<PickNote item={focused} curatorFirstName={curatorFirstName} />}
+            top={<LinkTeaTop line={collectionTopLine} note={focused.item_note} noteBy={curatorFirstName} />}
           />
         );
       })()}
@@ -489,14 +490,3 @@ function collectionTeaItem(item: PublicCollectionItem): InventoryItem {
   });
 }
 
-/** Above the tea's page: the sender's note, in their words. */
-const PickNote: React.FC<{ item: PublicCollectionItem; curatorFirstName: string }> = ({ item, curatorFirstName }) => {
-  const note = item.item_note?.trim();
-  if (!note) return null;
-  return (
-    <p className="mb-5 font-body text-ui-15 leading-[1.7] text-tea-text italic" data-testid="collection-tea-writing">
-      “{note}”
-      <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
-    </p>
-  );
-};

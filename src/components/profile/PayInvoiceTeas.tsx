@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { LinkTeaPage } from '../shop/LinkTeaPage';
+import { LinkTeaPage, LinkTeaTop } from '../shop/LinkTeaPage';
 import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
 import { TeaLedger, type TeaLedgerGroup } from '../shop/TeaLedger';
 import type { WeighOption } from '../shop/TeaWeighControl';
@@ -16,7 +16,7 @@ import type { PayLinkTeaLine } from './types';
  * paying happens here, so the card carries no order footer. Shown only to a
  * holder of the invoice's own link; the worker decides that before it sends a line.
  */
-export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) {
+export function PayInvoiceTeas({ lines, invoiceNumber = null }: { lines: readonly PayLinkTeaLine[]; invoiceNumber?: string | null }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const shopPrice = useShopPrice();
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
@@ -78,7 +78,13 @@ export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) 
         <span className="label-caps text-tea-text-sec">Total</span>
         <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
       </div>
-      {openRow && <LinkTeaPage item={openRow.product} onClose={() => setOpenId(null)} />}
+      {openRow && (
+        <LinkTeaPage
+          item={openRow.product}
+          onClose={() => setOpenId(null)}
+          top={<LinkTeaTop line={[invoiceNumber ? `On your invoice ${invoiceNumber}` : 'On your invoice', openRow.amount.label ?? `${openRow.amount.grams}g`].join(' · ')} />}
+        />
+      )}
     </section>
   );
 }

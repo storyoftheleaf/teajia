@@ -243,8 +243,8 @@ export default function ProfilePaymentPage() {
           {visibleCount > 0 && <p className="mt-1.5 font-body text-ui-14 italic leading-[1.5] text-tea-text-sec">{waysLine}</p>}
         </header>
         <div className="mt-2">
-          <PayInvoiceTeas lines={invoiceLines} />
-          <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} slug={slug} token={shareToken} kept={access.invoice?.kept === true} />
+          <PayInvoiceTeas lines={invoiceLines} invoiceNumber={access.invoice?.invoice_number ?? null} />
+          <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} slug={slug} token={shareToken} kept={access.invoice?.kept === true} yoursToSend={access.invoice?.yours_to_send === true} />
           <section aria-label="Pay" className="mt-4 max-w-2xl">
             {accountLinks}
             <div className={associationRows.length > 0 ? 'mt-4' : ''}>{chooser}</div>
