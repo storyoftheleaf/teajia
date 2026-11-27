@@ -381,18 +381,50 @@ jobs:
       - name: Full browser suite (shard ${{ matrix.shard }}/6)
         run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --shard=${{ matrix.shard }}/6 --reporter=list
 
-  e2e-changed-shard:
-    # Pull requests only: the specs this PR changed, against its base branch.
-    # A PR that changes no spec (or no file a spec imports) runs none here and
-    # passes; `checks` and `mobile` above still ran in full. Same projects,
-    # same build as `e2e`, so a spec
-    # that passes here passes there. Full history is fetched because
-    # --only-changed diffs against the base ref. A shared fixture can select
-    # every spec, so split the same selection across six blocking jobs as on
-    # main rather than timing out one serial PR runner.
+  e2e-changed-select:
+    # Pull requests only: which browser specs this PR changed, against its
+    # base branch (Playwright's --only-changed follows each spec's imports).
+    # Most PRs change none. Asking once here, on one runner, instead of on
+    # six shards that each then ran nothing, keeps the account's concurrent
+    # job limit for the lanes that do work: on 2026-11-27 jobs queued one to
+    # two and a half minutes for a free runner while six idle shards held
+    # them. Listing needs neither the browser nor the dev server.
     runs-on: ubuntu-latest
     needs: gate
     if: needs.gate.outputs.run == 'true' && github.event_name == 'pull_request'
+    timeout-minutes: 10
+    outputs:
+      total: ${{ steps.select.outputs.total }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - id: select
+        name: Which specs this PR changed
+        run: |
+          set -euo pipefail
+          out="$(npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --list)"
+          printf '%s\n' "$out" | tail -n 40
+          total="$(printf '%s\n' "$out" | sed -n 's/^Total: \([0-9][0-9]*\) tests\{0,1\} in .*/\1/p' | tail -n1)"
+          case "$total" in ''|*[!0-9]*) echo "could not read the test count; running the shards"; total=1;; esac
+          echo "total=$total" >> "$GITHUB_OUTPUT"
+
+  e2e-changed-shard:
+    # The selected specs, split six ways as on main, so a shared fixture that
+    # selects every spec does not time out one serial runner. Same projects,
+    # same build as `e2e`, so a spec that passes here passes there.
+    runs-on: ubuntu-latest
+    needs: [gate, e2e-changed-select]
+    if: needs.gate.outputs.run == 'true' && github.event_name == 'pull_request' && needs.e2e-changed-select.outputs.total != '0'
     timeout-minutes: 35
     strategy:
       fail-fast: false
@@ -411,10 +443,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Most PRs change no spec, and every shard used to install Chromium and
-      # build (about 2 minutes each, 12 runner minutes a PR) to then run
-      # nothing (2026-11-27). Listing needs neither the browser nor the dev
-      # server, so ask first and skip the rest when this shard has no test.
+      # A small selection leaves some shards with no test; those skip the
+      # browser install and the build.
       - id: select
         name: Which specs this shard runs
         run: |
@@ -438,16 +468,21 @@ jobs:
         run: npx playwright test --project="Desktop Chrome" --project="Mobile Chrome" --only-changed="origin/${{ github.base_ref }}" --pass-with-no-tests --shard=${{ matrix.shard }}/6 --reporter=list
 
   e2e-changed:
-    # Keep one stable required check while every shard contributes a verdict.
+    # Keep one stable required check. It passes when the selection ran and
+    # either chose nothing (the shards skip) or every shard passed.
     runs-on: ubuntu-latest
-    needs: [gate, e2e-changed-shard]
+    needs: [gate, e2e-changed-select, e2e-changed-shard]
     if: always() && needs.gate.outputs.run == 'true' && github.event_name == 'pull_request'
     timeout-minutes: 3
     steps:
-      - name: Require every changed-spec shard
+      - name: Require the selection and every changed-spec shard
         env:
+          SELECT_RESULT: ${{ needs.e2e-changed-select.result }}
+          TOTAL: ${{ needs.e2e-changed-select.outputs.total }}
           SHARDS_RESULT: ${{ needs.e2e-changed-shard.result }}
-        run: test "$SHARDS_RESULT" = success
+        run: |
+          test "$SELECT_RESULT" = success
+          if [ "$TOTAL" = 0 ]; then test "$SHARDS_RESULT" = skipped; else test "$SHARDS_RESULT" = success; fi
 
   china-scan:
     # node:test only, no browser, no server: safe and cheap to run on every

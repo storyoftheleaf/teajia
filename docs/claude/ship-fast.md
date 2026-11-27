@@ -39,10 +39,11 @@ move on: the merge happens when the required checks pass, a failure comes
 back as an event, and the thread never sits on a check. A one-way door is
 held at `merge-danger` until Adrian's `owner-approved` label.
 
-Auto-merge needs "Allow auto-merge" in the repository's settings and the
-three check names (`checks`, `mobile`, `e2e-changed`, plus `merge-danger`)
-required on main. Until both are on, the subscription's green event is the
-signal: merge then, never by watching the checks.
+Auto-merge is on, and main requires `checks`, `mobile`, `e2e-changed` and
+`merge-danger` (set 2026-11-27). Those settings belong to the
+`storyoftheleaf` GitHub account; Adrian's everyday account cannot change
+them. If GitHub says a PR is already clean when you turn auto-merge on,
+merge it directly.
 
 After the merge, check the change live (the deploy is about a minute for a
 proven worker tree, a couple for the site) and report it.
@@ -51,19 +52,25 @@ proven worker tree, a couple for the site) and report it.
 
 What a PR runs, all side by side (2026-11-27):
 
-| Lane | What | About |
+| Lane | What | Runs (measured) |
 |---|---|---|
-| `checks-static` | tsc, worker type ratchet, src unit tests, colors | 2 min |
-| `build` | the production bundle | 1.5 min |
-| `worker-tests` ×6 | the worker suite, sharded | 2.5 min |
-| `mobile-lane` ×3 | mobile browser suite in two halves, and the admin journeys | 2.5 min |
-| `e2e-changed-shard` ×6 | browser specs the PR changed; lists first and skips the browser install and build when it has none | 0.5 min |
+| `checks-static` | tsc, worker type ratchet, src unit tests, colors | 2.7 min |
+| `build` | the production bundle | 1.3 min |
+| `worker-tests` ×6 | the worker suite, sharded | 2 to 3 min |
+| `mobile-lane` ×3 | mobile browser suite in two halves, and the admin journeys | 1.3 to 3.5 min |
+| `e2e-changed-select` | lists the browser specs the PR changed | 0.5 min |
+| `e2e-changed-shard` ×6 | only when that list is not empty | as needed |
+
+The account runs about twenty jobs at once. Past that, jobs wait for a
+runner, and on 2026-11-27 that wait (1 to 2.5 minutes) was as long as the
+work. So a lane earns a job of its own only when it shortens the long pole;
+work that takes seconds rides in a job that already exists.
 
 `checks`, `mobile` and `e2e-changed` join their lanes into the three stable
 check names. A prose-only PR (`*.md`, `docs/`, `todo/`) still starts the
 workflow, and the gate skips every lane in seconds, so the required checks
-report instead of hanging. When a lane nears the long pole, split it rather than raise its
-timeout. A flaky test is fixed or deleted the day it is seen, never retried
+report instead of hanging. When a lane nears the long pole, split it rather
+than raise its timeout. A flaky test is fixed or deleted the day it is seen, never retried
 by hand and never skipped: a rerun costs the same five minutes as a fix.
 
 Deploys: a worker deploy skips the suite when Playwright already proved the
