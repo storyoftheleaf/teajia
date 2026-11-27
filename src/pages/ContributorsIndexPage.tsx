@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/shared/Button';
 import { ContributorIdentityMark } from '../components/shared/ContributorIdentityMark';
 import { Cover, Dek, GroupHead, PeopleNav, PeopleRoot, SplitName, useReadingProgress, useReveals } from '../components/people/immersive';
 import { coverKicker } from '../components/people/profileFormat';
+import { servesAtPath } from '../components/people/ServesAt';
 import { useContributors } from '../hooks/useContributor';
 import { PEOPLE_LIST_FAMILY_SHOWN, type PeopleListGroup } from '../lib/familyContract';
 import { mediaUrl } from '../lib/mediaUrl';
@@ -28,10 +29,24 @@ import { useHeldTitle } from '../hooks/useHeldTitle';
 // has poured at a completed session (the worker's `pours`). Words only: no
 // count of sessions, no icon, nothing that grows with how often.
 
-/** "Serves at tables", or nothing. The same three words for everyone who pours. */
+/**
+ * "Serves at tables", or nothing. The same three words for everyone who pours.
+ * A tap on it opens their page at where they serve (tea spaces, step 4); the
+ * rest of the card opens their page as before. Keyboard users reach the same
+ * list from the line on the page itself.
+ */
 function PoursLine({ person }: { person: ContributorListItem }) {
+  const navigate = useNavigate();
   if (person.pours !== true) return null;
-  return <span className="mt-1 block font-sans text-ui-12 text-tea-text-sec" data-testid="person-pours">Serves at tables</span>;
+  return (
+    <span
+      className="mt-1 block font-sans text-ui-12 text-tea-text-sec underline decoration-tea-border underline-offset-4"
+      data-testid="person-pours"
+      onClick={event => { event.preventDefault(); event.stopPropagation(); navigate(servesAtPath(person.id)); }}
+    >
+      Serves at tables
+    </span>
+  );
 }
 
 /** The group a person sits in. The worker says; an answer without it falls back to the word on their page. */

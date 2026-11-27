@@ -13,7 +13,7 @@
 
 export const TABLE_AREA_MAX = 80;
 
-export type YourTablePlace = { id: string; name: string; area_hint: string | null; is_table: boolean };
+export type YourTablePlace = { id: string; name: string; area_hint: string | null; is_table: boolean; shown?: boolean };
 
 type Refused = { refused: { status: number; code: string; error: string } };
 const refuse = (code: string, error: string, status = 400): Refused => ({ refused: { status, code, error } });
@@ -21,7 +21,7 @@ const refuse = (code: string, error: string, status = 400): Refused => ({ refuse
 /** The host’s saved places by name, every one of them (review A6-3), and which one is their table. Their own page only. */
 export async function readYourTable(db: D1Database, accountId: string): Promise<{ places: YourTablePlace[] }> {
   const rows = await db.prepare(
-    `SELECT id, name, area_hint, is_host_table FROM saved_locations
+    `SELECT id, name, area_hint, is_host_table, shown_on_spaces FROM saved_locations
       WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC, id ASC`,
   ).bind(accountId).all<Record<string, unknown>>();
   return {
@@ -30,13 +30,16 @@ export async function readYourTable(db: D1Database, accountId: string): Promise<
       name: String(row.name ?? ''),
       area_hint: typeof row.area_hint === 'string' && row.area_hint.trim() ? row.area_hint : null,
       is_table: Number(row.is_host_table) === 1,
+      // On the tea spaces page (step 3), by its area only.
+      shown: Number(row.is_host_table) === 1 && Number(row.shown_on_spaces) === 1,
     })),
   };
 }
 
 /**
- * Name one saved place as the host's table, with the area the public is told.
- * Any other place of theirs stops being the table in the same write.
+ * Mark one saved place as a tea space of the host's, with the area the public
+ * is told. A host may have several (tea spaces, step 2, 2026-11-27); the
+ * others are left as they are.
  */
 export async function chooseYourTable(db: D1Database, accountId: string, body: Record<string, unknown> | null):
   Promise<{ places: YourTablePlace[] } | Refused> {
@@ -60,20 +63,73 @@ export async function chooseYourTable(db: D1Database, accountId: string, body: R
     }
   }
   if (/https?:\/\//i.test(area)) return refuse('your_table_area_address', 'Write only the area, not a link.');
-  await db.batch([
-    db.prepare(`UPDATE saved_locations SET is_host_table = 0, updated_at = datetime('now')
-                 WHERE account_id = ? AND is_host_table = 1 AND id <> ?`).bind(accountId, placeId),
-    db.prepare(`UPDATE saved_locations SET is_host_table = 1, area_hint = ?, updated_at = datetime('now')
-                 WHERE id = ? AND account_id = ?`).bind(area, placeId, accountId),
-  ]);
+  await db.prepare(`UPDATE saved_locations SET is_host_table = 1, area_hint = ?, updated_at = datetime('now')
+               WHERE id = ? AND account_id = ?`).bind(area, placeId, accountId).run();
   return readYourTable(db, accountId);
 }
 
-/** Undo: none of the host's places is their table. The places themselves stay. */
-export async function undoYourTable(db: D1Database, accountId: string): Promise<{ places: YourTablePlace[] }> {
-  await db.prepare(`UPDATE saved_locations SET is_host_table = 0, updated_at = datetime('now')
-                     WHERE account_id = ? AND is_host_table = 1`).bind(accountId).run();
+export const TEA_SPACE_NAME_MAX = 80;
+/** The same ceiling as a table's kept places (WAY_MAX_PLACES in hostTableWay.ts). */
+export const TEA_SPACE_PLACES_MAX = 50;
+
+/**
+ * Add a new tea space: a name and the area, nothing more (tea spaces, step 2).
+ * It is kept as one of the host's saved places with no address yet; the way in
+ * is added from a table's page as before.
+ */
+export async function addTeaSpace(db: D1Database, accountId: string, body: Record<string, unknown> | null):
+  Promise<{ places: YourTablePlace[] } | Refused> {
+  const name = typeof body?.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : '';
+  if (!name) return refuse('tea_space_name', 'Give your tea space a name.');
+  if (name.length > TEA_SPACE_NAME_MAX) return refuse('tea_space_name', `Keep the name under ${TEA_SPACE_NAME_MAX} characters.`);
+  const area = typeof body?.area_hint === 'string' ? body.area_hint.trim() : '';
+  if (!area) return refuse('your_table_area', 'Write the area your tea space is in.');
+  if (area.length > TABLE_AREA_MAX) return refuse('your_table_area', `Keep the area under ${TABLE_AREA_MAX} characters.`);
+  if (/https?:\/\//i.test(area)) return refuse('your_table_area_address', 'Write only the area, not a link.');
+  const count = await db.prepare('SELECT COUNT(*) AS n FROM saved_locations WHERE account_id = ?')
+    .bind(accountId).first<{ n: number }>();
+  if (Number(count?.n ?? 0) >= TEA_SPACE_PLACES_MAX) return refuse('table_way_places_full', `You can keep up to ${TEA_SPACE_PLACES_MAX} places.`, 409);
+  await db.prepare(`INSERT INTO saved_locations (name, address, account_id, is_host_table, area_hint)
+                    VALUES (?, '', ?, 1, ?)`).bind(name, accountId, area).run();
   return readYourTable(db, accountId);
+}
+
+/**
+ * Undo: the place named (or, with none named, every place) stops being a tea
+ * space. The places themselves stay.
+ */
+export async function undoYourTable(db: D1Database, accountId: string, placeId?: string | null): Promise<{ places: YourTablePlace[] }> {
+  if (placeId) {
+    await db.prepare(`UPDATE saved_locations SET is_host_table = 0, shown_on_spaces = 0, updated_at = datetime('now')
+                       WHERE account_id = ? AND id = ? AND is_host_table = 1`).bind(accountId, placeId).run();
+  } else {
+    await db.prepare(`UPDATE saved_locations SET is_host_table = 0, shown_on_spaces = 0, updated_at = datetime('now')
+                       WHERE account_id = ? AND is_host_table = 1`).bind(accountId).run();
+  }
+  return readYourTable(db, accountId);
+}
+
+/**
+ * Say which of the host's tea spaces a table is in (tea spaces, step 2), or
+ * none (null). Only a tea space of the table's own account; anything else
+ * answers as if it did not exist. The table's address and way in stay as set.
+ */
+export async function setTableTeaSpace(db: D1Database, table: { id: string; account_id: string }, body: Record<string, unknown> | null):
+  Promise<{ table_id: string; space: YourTablePlace | null } | Refused> {
+  const raw = body?.place_id;
+  if (raw !== null && typeof raw !== 'string') return refuse('tea_space_place', 'Choose one of your tea spaces, or none.');
+  const placeId = typeof raw === 'string' ? raw.trim() : '';
+  let space: YourTablePlace | null = null;
+  if (placeId) {
+    const row = await db.prepare(
+      'SELECT id, name, area_hint FROM saved_locations WHERE id = ? AND account_id = ? AND is_host_table = 1',
+    ).bind(placeId, table.account_id).first<{ id: string; name: string; area_hint: string | null }>();
+    if (!row) return refuse('tea_space_place', 'That is not one of your tea spaces.', 404);
+    space = { id: row.id, name: String(row.name ?? ''), area_hint: row.area_hint, is_table: true };
+  }
+  await db.prepare(`UPDATE events SET location_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+    .bind(space?.id ?? null, table.id, table.account_id).run();
+  return { table_id: table.id, space };
 }
 
 /**

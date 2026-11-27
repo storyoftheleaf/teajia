@@ -677,6 +677,56 @@ describe('reports and favourites, page and tool', () => {
   });
 });
 
+// ── Tea spaces (todo/plans/tea-spaces.md, steps 2 and 5) ─────────────────────
+
+describe('tea spaces: the page and the host key, the same', () => {
+  beforeEach(() => { flags.YOUR_TABLE_PLACE_OPEN = 'true'; });
+  const spacesOfAna = () => db.sqlite.prepare(
+    `SELECT name, area_hint FROM saved_locations WHERE account_id = 'ana-personal' AND is_host_table = 1 ORDER BY name`,
+  ).all();
+
+  it('adds two spaces, one on the page and one by the key, and lists both', async () => {
+    const page = await route('ana', '/api/me/your-table', 'POST', { name: 'The garden room', area_hint: 'Ubud, near the market' });
+    expect(page.status, JSON.stringify(page.body)).toBe(200);
+    const added = await viaTool(anaKey, 'add_my_tea_space', { name: 'The tea room', area: 'Ubud, near the market' });
+    expect(added.preview.preview).toMatchObject({ name: 'The tea room', area: 'Ubud, near the market' });
+    expect(added.result).toMatchObject({ committed: true });
+    expect(spacesOfAna()).toEqual([
+      { name: 'The garden room', area_hint: 'Ubud, near the market' },
+      { name: 'The tea room', area_hint: 'Ubud, near the market' },
+    ]);
+    const listed = await call(anaKey, 'list_my_tea_spaces');
+    expect(listed.tea_spaces.map((space: { name: string }) => space.name)).toEqual(['The garden room', 'The tea room']);
+    expect(await call(anaKey, 'add_my_tea_space', { confirm: added.ticket })).toEqual(INVALID);
+  });
+
+  it('a link in the area is refused every way and writes nothing', async () => {
+    const page = await route('ana', '/api/me/your-table', 'POST', { name: 'Room', area_hint: 'https://maps.example/x' });
+    expect(page.status).toBe(400);
+    expect((await call(anaKey, 'add_my_tea_space', { name: 'Room', area: 'https://maps.example/x' })).error).toBe('your_table_area_address');
+    expect(spacesOfAna()).toEqual([]);
+  });
+
+  it('puts a table in a space and takes it out again; someone else\'s space or table is refused', async () => {
+    await route('ana', '/api/me/your-table', 'POST', { name: 'The garden room', area_hint: 'Ubud' });
+    const garden = (db.sqlite.prepare(`SELECT id FROM saved_locations WHERE account_id = 'ana-personal'`).get() as { id: string }).id;
+    const set = await viaTool(anaKey, 'set_table_tea_space', { table_id: 't-ana', place_id: garden });
+    expect(set.preview.preview).toMatchObject({ space: 'The garden room' });
+    expect(set.result).toMatchObject({ committed: true, space: { id: garden, name: 'The garden room', area: 'Ubud' } });
+    const locationOf = (id: string) => (db.sqlite.prepare('SELECT location_id FROM events WHERE id = ?').get(id) as { location_id: string | null }).location_id;
+    expect(locationOf('t-ana')).toBe(garden);
+    const cleared = await route('ana', '/api/me/tables/t-ana/space', 'PUT', { place_id: null });
+    expect(cleared.status).toBe(200);
+    expect(locationOf('t-ana')).toBeNull();
+
+    db.sqlite.exec(`INSERT INTO saved_locations (id, name, address, account_id, is_host_table, area_hint) VALUES ('bo-room', 'Bo room', '', 'bo-personal', 1, 'Sanur')`);
+    expect((await call(anaKey, 'set_table_tea_space', { table_id: 't-ana', place_id: 'bo-room' })).error).toBe('tea_space_place');
+    expect((await route('ana', '/api/me/tables/t-ana/space', 'PUT', { place_id: 'bo-room' })).status).toBe(404);
+    expect((await call(anaKey, 'set_table_tea_space', { table_id: 't-bo', place_id: garden })).error).toBe('table_not_found');
+    expect(locationOf('t-bo')).toBeNull();
+  });
+});
+
 // ── The table of ways in ────────────────────────────────────────────────────
 
 describe('actions with an empty cell in the table', () => {
@@ -694,6 +744,9 @@ describe('actions with an empty cell in the table', () => {
       'POST /api/me/tables/:id/guest-book/:id/review': 'review_guest_book',
       'PUT /api/me/tables/:id/way': 'set_table_way',
       'PUT|DELETE /api/me/your-table': 'set_your_table',
+      'GET /api/me/your-table': 'list_my_tea_spaces',
+      'POST /api/me/your-table': 'add_my_tea_space',
+      'PUT /api/me/tables/:id/space': 'set_table_tea_space',
       'POST /api/me/tables/:id/circle-guests/:id/ask': 'ask_guest_back',
       'POST /api/me/article-offers': 'offer_article',
       'PUT|DELETE /api/me/favourites/*, PUT /api/me/cellar/:id/favourite': 'set_my_favourite',

@@ -16,6 +16,8 @@ import { firstTableOpen } from '../../src/lib/firstTable';
 import { createHostArticleHandlers, isHostArticleId } from './hostArticleOffers';
 import { favouritesRoutes } from './favourites';
 import { practiceColumnsRemoved, practiceLinesRoutes } from './practiceLines';
+import { servesAtRoutes } from './servesAt';
+import { setTeaSpaceShown, teaSpacesPageRoutes } from './teaSpacesPage';
 import { favouritesOpen } from '../../src/lib/favouritesOpen';
 import { teaTableRoutes } from './teaTable';
 import { knowThisTeaRoutes } from './knowThisTea';
@@ -37,7 +39,7 @@ import { hostRecord, hostRecordFileName, hostsAnyTable } from './hostRecord';
 import { advanceWaitingLists, cancelGuestSeat, NEXT_WAITLIST_POSITION_SQL, offerFreedSeats, offerNextAsMain, offerOn, offerShownUntil, recordSeatNotice, releaseSeats, seatNoticesFor, sessionHasBegun } from './waitingList';
 import { hostTableTeas, menuProductJoins, readTableTeas, saveTableTeas, searchTableTeas, shopTeaAddressColumns, shopTeaPath, tableTeaPhotoPrefix } from './hostTableTeas';
 import { guardGuideWrite, keepTableWay, readTableWay, readTableWayInput, saveTableWay, signWayForHost } from './hostTableWay';
-import { chooseYourTable, readYourTable, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
+import { addTeaSpace, chooseYourTable, readYourTable, setTableTeaSpace, undoYourTable, withYourTable, yourTableAreaSql } from './yourTablePlace';
 import { yourTablePlaceOpen } from '../../src/lib/yourTablePlace';
 import { teaHousesOpen } from '../../src/lib/teaHouses';
 import { launch4RouteClosed, openRoutes } from './launch4Closed';
@@ -18238,10 +18240,18 @@ const handleYourTable: Handler = async (request, env) => {
   if (!yourTableShown(env)) return fewHostsClosed();
   const host = await requireFewHostsHost(request, env);
   if ('error' in host) return host.error;
+  if (request.method === 'POST') {
+    // Add a tea space by name and area (tea spaces, step 2): the host's own account, made on first use.
+    const own = await ensurePersonalInventoryAccount(env.DB, host.userId, host.name);
+    if (!own) return json({ error: 'Your account is unavailable.' }, 409);
+    const added = await addTeaSpace(env.DB, own.id, await request.json().catch(() => null) as Record<string, unknown> | null);
+    if ('refused' in added) return restError(added.refused.status, added.refused.error, added.refused.code);
+    return hostTableJson(added);
+  }
   const account = await personalInventoryAccount(env.DB, host.userId);
   if (!account) return hostTableJson({ places: [] });
   if (request.method === 'GET') return hostTableJson(await readYourTable(env.DB, account.id));
-  if (request.method === 'DELETE') return hostTableJson(await undoYourTable(env.DB, account.id));
+  if (request.method === 'DELETE') return hostTableJson(await undoYourTable(env.DB, account.id, new URL(request.url).searchParams.get('place_id')));
   const chosen = await chooseYourTable(env.DB, account.id, await request.json().catch(() => null) as Record<string, unknown> | null);
   if ('refused' in chosen) return restError(chosen.refused.status, chosen.refused.error, chosen.refused.code);
   return hostTableJson(chosen);
@@ -18260,6 +18270,31 @@ const handleHostedTableWay: Handler = async (request, env, params) => {
   if ('refused' in input) return restError(input.refused.status, input.refused.error, input.refused.code);
   await saveTableWay(env.DB, own.table, input);
   return hostTableJson(await signWayForHost(env.JWT_SECRET, await readTableWay(env.DB, own.table)));
+};
+
+// PUT /api/me/your-table/:id/shown {shown}: a host turns one of their tea
+// spaces on or off the tea spaces page, where it shows by its area only.
+const handleYourTeaSpaceShown: Handler = async (request, env, params) => {
+  if (!yourTableShown(env)) return fewHostsClosed();
+  const host = await requireFewHostsHost(request, env);
+  if ('error' in host) return host.error;
+  const account = await personalInventoryAccount(env.DB, host.userId);
+  if (!account) return restError(404, 'That is not one of your tea spaces.', 'tea_space_place');
+  const body = await request.json().catch(() => null) as { shown?: unknown } | null;
+  const set = await setTeaSpaceShown(env.DB, account.id, params.id, body?.shown);
+  if ('refused' in set) return restError(set.refused.status, set.refused.error, set.refused.code);
+  return hostTableJson(await readYourTable(env.DB, account.id));
+};
+
+// PUT /api/me/tables/:id/space {place_id | null}: which of the host's tea
+// spaces this table is in (tea spaces, step 2). The table's host alone.
+const handleHostedTableSpace: Handler = async (request, env, params) => {
+  if (!yourTableShown(env)) return fewHostsClosed();
+  const own = await requireOwnHostedTable(request, env, params.id);
+  if ('error' in own) return own.error;
+  const set = await setTableTeaSpace(env.DB, own.table, await request.json().catch(() => null) as Record<string, unknown> | null);
+  if ('refused' in set) return restError(set.refused.status, set.refused.error, set.refused.code);
+  return hostTableJson(set);
 };
 
 const handleKeepHostedTableWay: Handler = async (request, env, params) => {
@@ -33875,6 +33910,8 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/me/private-sits/:id/photos/:photoId/share', handleMemberPrivateSitPhotos],
   ...favouritesRoutes<Env>({ requireUser: requireAuthenticatedUser }),
   ...practiceLinesRoutes<Env>({ optionalUser: optionalAuthenticatedUser, requireUser: requireAuthenticatedUser }),
+  ...servesAtRoutes<Env>(),
+  ...teaSpacesPageRoutes<Env>(),
   ...teaTableRoutes<Env>({ requireAuthenticatedUser, requireBundle }),
   ...knowThisTeaRoutes<Env>({ requireAuthenticatedUser }),
   ...teaHousesRoutes<Env>({ requireAuthenticatedUser }),
@@ -33923,12 +33960,15 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/me/tables/:id/teas/photo', handleHostedTableTeaPhoto],
   ['GET',    '/api/me/tables/:id/way', handleHostedTableWay],
   ['PUT',    '/api/me/tables/:id/way', handleHostedTableWay],
+  ['PUT',    '/api/me/tables/:id/space', handleHostedTableSpace],
   ['POST',   '/api/me/tables/:id/way/keep', handleKeepHostedTableWay],
   ['POST',   '/api/me/tables/:id/way/photos', handleHostedTableWayPhoto],
   // Launch 4, K4: closed (404) until src/lib/yourTablePlace.ts opens.
   ['GET',    '/api/me/your-table', handleYourTable],
   ['PUT',    '/api/me/your-table', handleYourTable],
   ['DELETE', '/api/me/your-table', handleYourTable],
+  ['POST',   '/api/me/your-table', handleYourTable],
+  ['PUT',    '/api/me/your-table/:id/shown', handleYourTeaSpaceShown],
   ['GET',    '/api/me/shelf', handleGetMyShelf],
   ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
   ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],

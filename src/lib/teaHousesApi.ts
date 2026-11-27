@@ -15,6 +15,9 @@ export const teaHousesApi = {
     handleResponse(await fetchWithTimeout(`${API_URL}/api/tea-houses/work`, { cache: 'no-store' })),
   page: async (slug: string): Promise<TeaHousePage> =>
     handleResponse(await fetchWithTimeout(`${API_URL}/api/tea-houses/work/${encodeURIComponent(slug)}`, { cache: 'no-store' })),
+  // Tea spaces, step 3: the one page of spaces (worker/src/teaSpacesPage.ts).
+  spaces: async (): Promise<TeaSpacesAnswer> =>
+    handleResponse(await fetchWithTimeout(`${API_URL}/api/tea-spaces`, { cache: 'no-store' })),
   build: async (): Promise<TeaHouseBuild> =>
     handleResponse(await fetchWithTimeout(`${API_URL}/api/tea-houses/build`, { cache: 'no-store' })),
   manage: {
@@ -33,6 +36,21 @@ export const teaHousesApi = {
 };
 
 export const TEA_HOUSES_WORK_KEY = ['tea-houses', 'work'] as const;
+
+export type TeaSpacesAnswer = {
+  houses: { name: string; slug: string; spaces: string[] }[];
+  spaces: { id: string; area: string; served_by: { name: string; slug: string } | null }[];
+};
+
+/** The tea spaces page: shown houses with their spaces, then hosts' spaces by area. */
+export function useTeaSpaces() {
+  return useQuery({
+    queryKey: ['tea-spaces'],
+    queryFn: () => teaHousesApi.spaces(),
+    enabled: teaHousesOpen(),
+    ...TEA_HOUSE_READ,
+  });
+}
 
 /**
  * A house page can stop qualifying (taken down, its words taken off, the house
