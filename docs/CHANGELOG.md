@@ -1,3 +1,7 @@
+## 2026-11-27: "Tea Masters" labels say "Hosts"
+
+Adrian chose "Rename to Hosts" (2026-11-27). Every visible "Tea Masters" or "Tea Master" label on the site now says "Hosts" or "Host": the Manage room under Publish (`src/components/manageNav.ts`), its page, Platform access, the audit log words, the profile and readiness screens, the word Adrian grants on a page (`FAMILY_PAGE_WORDS.master`, `src/lib/familyContract.ts`) and the worker's messages and invitation subject. Addresses, ids, routes, the `master` tier and every stored value stay as they were, so old links keep working and existing roles keep their words. Prose about tea masters in history and the Wisdom Base is not a label and is unchanged, as is "No tea masters here".
+
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 
 Finished on `build/l5-finish`, every part off until Adrian says "ship".

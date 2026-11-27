@@ -105,7 +105,7 @@ test('keeps an unreviewed mapping off the profile and handles stale links and mi
   await expect(page.locator('html')).toHaveClass(/light/);
   await expect(page.getByRole('heading', { name: 'Hill Tea Shelf' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Order from Hannah Hill' })).toHaveCount(2);
-  await expect(page.getByRole('link', { name: /Tea Master profile/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /host profile/i })).toHaveCount(0);
 
   await page.goto('/u/empty-shelf');
   await expect(page.getByText('No teas are currently for sale.')).toBeVisible();

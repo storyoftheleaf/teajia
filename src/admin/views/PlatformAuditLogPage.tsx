@@ -13,7 +13,7 @@ const ACTION_LABELS: Record<string, string> = {
   'account.reactivated': 'Account reactivated',
   'account.suspended': 'Account suspended',
   'account.trust_tier_changed': 'Trust tier changed',
-  'account.upgraded_to_location': 'Tea Master upgraded to Location',
+  'account.upgraded_to_location': 'Host upgraded to Location',
   'feature.toggled': 'Feature toggled',
   'platform_role.changed': 'Platform role changed',
   'user.invite_resent': 'Invite resent',
@@ -22,7 +22,7 @@ const ACTION_LABELS: Record<string, string> = {
   'member.bundles_updated': 'Member bundles updated',
   'application.approved': 'Application approved',
   'application.declined': 'Application declined',
-  'tea_master.invited': 'Tea Master invited',
+  'tea_master.invited': 'Host invited',
   // Network listings (Step 2)
   'listing.carried': 'Carried tea from network',
   'listing.updated': 'Listing edited',

@@ -571,7 +571,7 @@ const LaunchReadinessPanel: React.FC<{
         { label: 'Public products available', done: audit.products.readyPublic > 0 },
         { label: 'Checkout/contact route exists', done: !!account.whatsapp_number || !!account.contact_email },
         ...(person ? [
-          { label: 'Your Tea Master profile is published', done: person.isPublished },
+          { label: 'Your host profile is published', done: person.isPublished },
           { label: 'A public payment method to be paid through', done: person.publishedPaymentMethods > 0 },
         ] : []),
       ],

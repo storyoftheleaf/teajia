@@ -102,7 +102,7 @@ export const PlatformAccessView: React.FC = () => {
         <div className="flex items-baseline gap-6 flex-wrap text-tea-text-sec mt-4">
           <CountLine value={counts.locations} label="Locations" />
           <span aria-hidden className="text-tea-border">·</span>
-          <CountLine value={counts.masters} label="Tea Masters" />
+          <CountLine value={counts.masters} label="Hosts" />
           <span aria-hidden className="text-tea-border">·</span>
           <CountLine value={counts.pending} label="Pending" emphasis={counts.pending > 0} />
         </div>
@@ -202,7 +202,7 @@ const AccountsRegister: React.FC<AccountsRegisterProps> = ({ accounts, applicati
 
       {masters.length > 0 && (
         <section className="mb-12">
-          <SectionLabel>Tea Masters</SectionLabel>
+          <SectionLabel>Hosts</SectionLabel>
           <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
             {masters.map(a => <AccountRow key={a.id} account={a} onChange={onChange} />)}
           </ul>
@@ -385,7 +385,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
   };
 
   const displayName = application.applicant_name || application.applicant_email;
-  const kindLabel = application.proposed_account_kind === 'master' ? 'Tea Master' : 'Location';
+  const kindLabel = application.proposed_account_kind === 'master' ? 'Host' : 'Location';
 
   return (
     <li className="px-4 py-3">
@@ -557,16 +557,16 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
 
   return (
     <div>
-      {/* Invite Tea Master */}
+      {/* Invite Host */}
       <section className="mb-12">
-        <SectionLabel>Invite a Tea Master</SectionLabel>
+        <SectionLabel>Invite a Host</SectionLabel>
         {!inviting ? (
           <button
             type="button"
             onClick={() => { setInviting(true); setResult(null); }}
             className="btn-primary"
           >
-            Invite Tea Master
+            Invite Host
           </button>
         ) : (
           <div className="space-y-3 max-w-md bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -623,7 +623,7 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
         )}
         {result && (
           <div className="mt-4 text-tea-text-sec text-ui-13 leading-[1.6]">
-            <div>Tea Master account created for {result.email}.</div>
+            <div>Host account created for {result.email}.</div>
             {result.email_sent ? (
               <div className="mt-1">Invite email sent.</div>
             ) : (
