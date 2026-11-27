@@ -9,7 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useSiteProblemCount } from '../lib/useSiteIncidents';
 import { useAppStore } from '../lib/store';
 import type { SidebarRoom } from '../lib/store';
-import { Stack } from '@phosphor-icons/react';
+import { Stack, SunHorizon } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
 import { useManageNav, isManagePathActive, type ManageItem } from './manageNav';
@@ -33,11 +33,12 @@ import { homeBarOpen } from '../lib/homeBar';
 // put away"; pressing the word manage again while standing in Manage puts it
 // away or brings it back. The canvas: outputs/sidebar-directions-2026-11-25.
 
-// 60px rail: "advise" and "manage", the widest words, sit inside it with room.
-// 84px drawer: "Sessions" and "Settings", the widest room words, fit on one
-// line inside its buttons.
+// 60px rail: "manage", the widest one-line word, sits inside it with room;
+// "tea table" and "tea spaces" go on two close lines (Adrian, 2026-11-27).
+// 56px drawer: a small glyph over each room's word, "sessions" and
+// "settings" the widest (Adrian, 2026-11-27, flush, slim).
 const RAIL_WIDTH_REM = 3.75;
-const DRAWER_WIDTH_REM = 5.25;
+const DRAWER_WIDTH_REM = 3.5;
 
 // ── LeftSidebar ────────────────────────────────────────────────────────────
 
@@ -123,13 +124,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const showPanel = hasManageRoom && room === 'manage';
 
   // The aside is the rail alone (3.75rem) or the rail plus the open drawer
-  // (3.75 + 5.25 = 9rem). Full-screen panels read this to clear it
+  // (3.75 + 3.5 = 7.25rem). Full-screen panels read this to clear it
   // (`.sidebar-inset`), and App.tsx reads it for the main column's margin.
   const drawerOpen = showPanel && !sidebarCollapsed;
+  const asideWidth = drawerOpen ? `${RAIL_WIDTH_REM + DRAWER_WIDTH_REM}rem` : `${RAIL_WIDTH_REM}rem`;
   useEffect(() => {
-    const width = drawerOpen ? `${RAIL_WIDTH_REM + DRAWER_WIDTH_REM}rem` : `${RAIL_WIDTH_REM}rem`;
-    document.documentElement.style.setProperty('--teajia-sidebar-w', width);
-  }, [drawerOpen]);
+    document.documentElement.style.setProperty('--teajia-sidebar-w', asideWidth);
+  }, [asideWidth]);
 
   // Landing on an admin route puts you in the workshop. Picking a room by hand
   // does not navigate, so it survives until the next navigation, at which point
@@ -169,9 +170,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     <aside
       data-testid="left-sidebar"
       aria-label="Main navigation"
-      className={`hidden lg:flex flex-row fixed left-0 top-0 h-screen z-sticky select-none transition-[width] duration-300 ${
-        drawerOpen ? 'w-[9rem]' : 'w-[3.75rem]'
-      }`}
+      style={{ width: asideWidth }}
+      className="hidden lg:flex flex-row fixed left-0 top-0 h-screen z-sticky select-none transition-[width] duration-300"
     >
       {/* ── The rail ─────────────────────────────────────────────────────── */}
       <div className="nav-rail w-[3.75rem] shrink-0 h-full flex flex-col items-center pt-7 pb-6">
@@ -190,7 +190,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           />
         </button>
 
-        <nav className="flex flex-col items-center gap-5 mt-9" aria-label="Browse">
+        <nav className="flex flex-col items-center gap-[18px] mt-9" aria-label="Browse">
           {browseItems.map(item => {
             const isActive = !isAdminRoute && barSectionActive(item, currentPath, activeSection);
             const onClick = () => {
@@ -206,12 +206,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               }
               onNavigate(item.section);
             };
+            // `rail-stacked` sets a two-word label on two lines held close
+            // ("tea" over "table"), so it fits the rail and reads as one word.
             return item.path ? (
-              <Link key={item.id} to={item.path} onClick={onClick} className={`nav-rail-word ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
+              <Link key={item.id} to={item.path} onClick={onClick} className={`nav-rail-word rail-stacked ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
                 {item.label}
               </Link>
             ) : (
-              <button key={item.id} onClick={onClick} className={`nav-rail-word ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
+              <button key={item.id} onClick={onClick} className={`nav-rail-word rail-stacked ${railWord(isActive)}`} style={isActive ? activeGlow : undefined}>
                 {item.label}
               </button>
             );
@@ -321,22 +323,30 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="nav-drawer w-[5.25rem] shrink-0 h-full flex flex-col justify-end overflow-y-auto hide-scrollbar"
+            style={{ width: `${DRAWER_WIDTH_REM}rem` }}
+            className="nav-drawer shrink-0 h-full flex flex-col overflow-y-auto hide-scrollbar"
           >
+            <div className="nav-drawer-list">
             <span className="nav-drawer-label">Manage</span>
             {today && (
-              <Link to={today.path} className="nav-room" aria-current={isTodayActive ? 'page' : undefined}>
-                {today.label}
-              </Link>
+              <>
+                <Link to={today.path} className="nav-room" aria-current={isTodayActive ? 'page' : undefined}>
+                  <span className="nav-room-mark"><SunHorizon className="nav-room-glyph" size={17} weight="light" aria-hidden="true" /></span>
+                  <span className="nav-room-word">{today.label}</span>
+                </Link>
+                <span className="nav-drawer-rule" aria-hidden="true" />
+              </>
             )}
             {manageItems.map(item => {
               const isActive = here(item.path) || (item.children?.some(c => here(c.path)) ?? false);
               return (
                 <Link key={item.id} to={item.path} className="nav-room" aria-current={isActive ? 'page' : undefined}>
-                  {item.label}
+                  <span className="nav-room-mark"><item.Icon className="nav-room-glyph" size={17} weight="light" aria-hidden="true" /></span>
+                  <span className="nav-room-word">{item.label}</span>
                 </Link>
               );
             })}
+            </div>
           </motion.nav>
         )}
       </AnimatePresence>

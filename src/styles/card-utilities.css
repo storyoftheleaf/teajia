@@ -3468,61 +3468,58 @@ input[type="number"]::-webkit-outer-spin-button {
   border-right: 1px solid var(--tea-keyline);
 }
 
-/* The staff drawer beside the rail (LeftSidebar). One step LIGHTER than the
-   rail, and the open word "manage" wears the same tone and runs over the
-   rail's keyline into it, so word and drawer read as one shape, not a second
-   rail. The rooms are one wide, stacked up from that word. */
+/* The staff drawer beside the rail (LeftSidebar): a full-height porcelain
+   leaf joined to the rail, brightening toward the foot, a gold hairline down
+   its outer edge. The rooms stack up from the word manage, a small glyph
+   over each word in the rail's lowercase serif, hairlines between them; the
+   room you are in is lit gold on a soft gold wash. The word manage, open, is
+   gold with a gold hairline under it, and no longer folds into the drawer as
+   a tab (Adrian, 2026-11-27: flush, slim, chosen over eight other looks). */
 .nav-drawer {
-  background: var(--tea-surface);
-  padding: 0 var(--space-1) var(--space-6);
-  gap: var(--space-1);
+  justify-content: flex-end;
+  padding: 0 0 var(--space-3);
+  background: linear-gradient(180deg, var(--tea-surface), var(--tea-elevated));
+  border-right: 1px solid rgb(var(--tea-gold-rgb) / 0.22);
 }
-.nav-drawer-label {
-  display: block;
-  padding: 0 var(--space-1) var(--space-2);
-  font-family: var(--font-sans);
-  font-size: var(--fs-ui-10);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--tea-text-dim);
-}
+.nav-drawer-list { display: flex; flex-direction: column; }
+.nav-drawer-label, .nav-drawer-rule { display: none; }
 .nav-room {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  min-height: var(--control-h);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-control);
-  background: var(--tea-elevated);
-  font-family: var(--font-sans);
-  font-size: var(--fs-ui-12);
+  justify-content: center;
+  gap: 4px;
+  min-height: var(--tap-min);
+  padding: var(--space-2) 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-ui-11);
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
   color: var(--tea-text-sec);
   white-space: nowrap;
   transition: color 150ms ease, background-color 150ms ease;
 }
+.nav-room ~ .nav-room { border-top: 1px solid var(--tea-border); margin: 0 var(--space-1); }
 .nav-room:hover { color: var(--tea-text); }
 .nav-room:focus-visible { outline: 2px solid rgb(var(--tea-gold-rgb) / 0.5); outline-offset: 1px; }
-.nav-room[aria-current="page"] {
-  background: rgb(var(--tea-bg-rgb));
-  color: var(--tea-gold);
-  font-weight: 600;
-  box-shadow: inset 0 -2px 0 var(--tea-gold);
-}
-.nav-manage-word {
-  position: relative;
-  flex-shrink: 0;
-}
+.nav-room[aria-current="page"] { margin: 0; color: var(--tea-gold); background: rgb(var(--tea-gold-rgb) / 0.08); }
+.nav-room[aria-current="page"] + .nav-room { border-top-color: transparent; }
+.nav-room-glyph { flex-shrink: 0; }
+.nav-manage-word { position: relative; flex-shrink: 0; }
 .nav-manage-word::after {
   content: '';
   position: absolute;
   inset: calc(-1 * var(--space-3)) calc(-1 * var(--space-2));
 }
-.nav-manage-word[data-open="true"] {
-  align-self: stretch;
-  margin: 0 -1px 0 var(--space-1);
-  padding: var(--space-3) 0 var(--space-3) var(--space-2);
-  border-radius: var(--radius-control) 0 0 var(--radius-control);
-  background: var(--tea-surface);
-  text-align: left;
+.nav-manage-word[data-open="true"]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 20px;
+  margin-left: -10px;
+  border-top: 1px solid var(--tea-gold);
 }
 
 /* The rail's words sit close, 14px type on a 20px gap, which is the design
@@ -3541,6 +3538,14 @@ input[type="number"]::-webkit-outer-spin-button {
   right: -24px;
   top: -10px;
   bottom: -10px;
+}
+
+/* A two-word rail label on two lines held close, so "tea" over "table"
+   reads as one word and stays inside the 60px rail (Adrian, 2026-11-27). */
+.rail-stacked {
+  display: block;
+  width: min-content;
+  text-align: center;
 }
 
 /* The seam. With both halves the same material the join needs stating, and
