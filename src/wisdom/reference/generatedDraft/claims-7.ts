@@ -5,965 +5,964 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "menghai-county:county-and-factory",
-    "pageId": "menghai-county",
-    "sectionKey": "county-and-factory",
-    "label": "Menghai the place, Menghai Tea Factory the maker",
+    "claimId": "guangxi:land-and-climate",
+    "pageId": "guangxi",
+    "sectionKey": "land-and-climate",
+    "label": "What the land gives the tea",
     "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "origin_includes": [
-        "menghai"
+        "guangxi"
       ]
     },
-    "terms": [
-      {
-        "original": "勐海茶厂",
-        "pinyin": "Měnghǎi Cháchǎng",
-        "gloss": "Menghai Tea Factory"
-      },
-      {
-        "original": "大益",
-        "pinyin": "Dàyì",
-        "gloss": "Dayi"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Menghai on a label can mean the county where the leaf grew, or Menghai Tea Factory, which sits in the county and is part of the Dayi group. They are not the same claim. The factory buys and blends leaf from several Menghai mountains, and some of its ripe tea uses leaf from outside the county, such as Lincang. Its recipes and its history belong to its own cakes. A Menghai tea from a village or a small maker is not a factory tea, and a factory cake is not a single mountain unless it says so.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Menghai on a label can mean the county where the leaf grew, or Menghai Tea Factory, which sits in the county and is part of the Dayi group. They are not the same claim. The factory buys and blends leaf from several Menghai mountains, and some of its ripe tea uses leaf from outside the county, such as Lincang. Its recipes and its history belong to its own cakes. A Menghai tea from a village or a small maker is not a factory tea, and a factory cake is not a single mountain unless it says so.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:history",
-    "pageId": "menghai-county",
-    "sectionKey": "history",
-    "label": "Why the name is so well known",
-    "axis": "maker_history",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "pending",
-    "pendingText": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Menghai County",
-        "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-FEBD2174326734F21F2CFF3B"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:mengsong-naka",
-    "pageId": "menghai-county",
-    "sectionKey": "mengsong-naka",
-    "label": "Mengsong and Naka",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "mengsong"
-      ],
-      "name_includes": [
-        "naka"
-      ]
-    },
-    "terms": [
-      {
-        "original": "勐宋",
-        "pinyin": "Měngsòng",
-        "gloss": "Mengsong township"
-      },
-      {
-        "original": "那卡",
-        "pinyin": "Nàkǎ",
-        "gloss": "Naka village"
-      }
-    ],
-    "rev": 1,
-    "scope": "Naka village in Mengsong, Menghai County",
-    "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Naka village in Mengsong, Menghai County",
-        "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the listing wording and requested that the verified place lead.",
-        "evidenceIds": [
-          "EVIDENCE-44D0521EB5689FC6FA0D2B95"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:old-gardens",
-    "pageId": "menghai-county",
-    "sectionKey": "old-gardens",
-    "label": "Old trees, left to grow",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "menghai"
-      ]
-    },
-    "terms": [
-      {
-        "original": "古茶园",
-        "pinyin": "gǔ cháyuán",
-        "gloss": "old tea garden"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:peoples",
-    "pageId": "menghai-county",
-    "sectionKey": "peoples",
-    "label": "Who tends the mountains",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "menghai"
-      ]
-    },
-    "terms": [
-      {
-        "original": "布朗族",
-        "pinyin": "Bùlǎngzú",
-        "gloss": "Bulang people"
-      },
-      {
-        "original": "拉祜族",
-        "pinyin": "Lāhùzú",
-        "gloss": "Lahu people"
-      },
-      {
-        "original": "哈尼族",
-        "pinyin": "Hānízú",
-        "gloss": "Hani people"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:ripe-origins",
-    "pageId": "menghai-county",
-    "sectionKey": "ripe-origins",
-    "label": "Where ripe pu’er began",
-    "axis": "maker_history",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {},
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "text": "Wuzhou sits near the Tropic of Cancer, with a warm, wet, subtropical monsoon climate, plenty of rain, and hills and forest all around. People in the trade link this damp, steady warmth to the way Liu Bao ages slowly in cool storehouses, because the microbes that shape a dark tea like it. The soils are acidic, and the trade sees the setting as part of why Liu Bao is made here and not simply anywhere.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:scope",
-    "pageId": "menghai-county",
-    "sectionKey": "scope",
-    "label": "Western Xishuangbanna",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "pending",
-    "pendingText": "Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Menghai County",
-        "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-5F496A300F5E710FC8FA80B0"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:why-people-value-it",
-    "pageId": "menghai-county",
-    "sectionKey": "why-people-value-it",
-    "label": "Why people value Menghai",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {},
-    "terms": [
-      {
-        "original": "勐海",
-        "pinyin": "Měnghǎi",
-        "gloss": "Menghai"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
-    "previousRevisions": [],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-tea-mountain-circuit:editorial-boundary",
-    "pageId": "menghai-tea-mountain-circuit",
-    "sectionKey": "editorial-boundary",
-    "label": "An itinerary, not an origin",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
-    "sourceIds": [
-      "ctma-menghai-seven-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
+    "pendingText": "Wuzhou sits near the Tropic of Cancer, with a warm, wet, subtropical monsoon climate, plenty of rain, and hills and forest all around. People in the trade link this damp, steady warmth to the way Liu Bao ages slowly in cool storehouses, because the microbes that shape a dark tea like it. The soils are acidic, and the trade sees the setting as part of why Liu Bao is made here and not simply anywhere.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "menghai-tea-mountain-circuit:reading-the-circuit",
-    "pageId": "menghai-tea-mountain-circuit",
-    "sectionKey": "reading-the-circuit",
-    "label": "Reading the circuit",
+    "claimId": "guangxi:on-a-label",
+    "pageId": "guangxi",
+    "sectionKey": "on-a-label",
+    "label": "Guangxi on a label",
     "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
-    "sourceIds": [
-      "ctma-menghai-seven-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "menghai-tea-mountain-circuit:seven-mountain-route",
-    "pageId": "menghai-tea-mountain-circuit",
-    "sectionKey": "seven-mountain-route",
-    "label": "Seven mountain stops",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
-    "sourceIds": [
-      "ctma-menghai-seven-mountains-2025"
-    ],
-    "reviewState": "draft",
-    "pendingText": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "nanqiao-ruigong-brick:malaysian-tea-fair",
-    "pageId": "nanqiao-ruigong-brick",
-    "sectionKey": "malaysian-tea-fair",
-    "label": "A brick on the Malaysian tea market",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "nanqiao-ruigong-brick"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "A 2008 Ruigong product shown at the 2022 fair.",
-    "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
-    "sourceIds": [
-      "dahonghua-ruigong-brick"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "A 2008 Ruigong product shown at the 2022 fair.",
-        "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-0621572B10EDCD30C5521E55",
-          "EVIDENCE-12982E87A3E2D326852D474A"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "nanqiao-ruigong-brick:nanqiao-name",
-    "pageId": "nanqiao-ruigong-brick",
-    "sectionKey": "nanqiao-name",
-    "label": "Where the Nanqiao name comes from",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "nanqiao-ruigong-brick"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The Nanqiao company and its trade.",
-    "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
-    "sourceIds": [
-      "ctma-nanqiao-company"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The Nanqiao company and its trade.",
-        "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
-        "approvedAt": "2026-11-23",
-        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
-        "evidenceIds": [
-          "EVIDENCE-6B4D99DDB582935C71194716",
-          "EVIDENCE-4C832477FC20B224F7F37626",
-          "EVIDENCE-5468B24272F8BE0E9BB775EB",
-          "EVIDENCE-2E575AC1E516A475D2D6C4ED"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "nantou:altitude-bands",
-    "pageId": "nantou",
-    "sectionKey": "altitude-bands",
-    "label": "Low, middle and high Nantou",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "nantou"
-      ]
-    },
-    "terms": [
-      {
-        "original": "高山茶",
-        "pinyin": "gāoshān chá",
-        "gloss": "high mountain tea"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "The trade splits Nantou's tea country by height. Low hills such as Mingjian grow tea for volume. The middle belt, around Zhushan, Sun Moon Lake and Dong Ding, is where roasted oolong is at home. Above about a thousand metres, around Shan Lin Xi and the high ground of Ren'ai Township, the gardens are cool and misty and make the light, sweet high mountain style. Which style a Nantou oolong follows depends on where in the county it grew, so the county name alone does not tell you whether it will be roasted or green and floral.",
+    "text": "Guangxi on a label names a region, not a style. A Guangxi dark tea is most often Liu Bao, but a tea from Guangxi can also be jasmine, and a tea made like Liu Bao elsewhere is not from Guangxi. The finer names, Wuzhou, Cangwu and Liubao, tell you more than the province does.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "The trade splits Nantou's tea country by height. Low hills such as Mingjian grow tea for volume. The middle belt, around Zhushan, Sun Moon Lake and Dong Ding, is where roasted oolong is at home. Above about a thousand metres, around Shan Lin Xi and the high ground of Ren'ai Township, the gardens are cool and misty and make the light, sweet high mountain style. Which style a Nantou oolong follows depends on where in the county it grew, so the county name alone does not tell you whether it will be roasted or green and floral.",
+    "pendingText": "Guangxi on a label names a region, not a style. A Guangxi dark tea is most often Liu Bao, but a tea from Guangxi can also be jasmine, and a tea made like Liu Bao elsewhere is not from Guangxi. The finer names, Wuzhou, Cangwu and Liubao, tell you more than the province does.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "nantou:lugu-dong-ding",
-    "pageId": "nantou",
-    "sectionKey": "lugu-dong-ding",
-    "label": "Lugu and Dong Ding",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "nantou"
-      ]
-    },
-    "terms": [
-      {
-        "original": "鹿谷",
-        "pinyin": "Lùgǔ",
-        "gloss": "Lugu; Dong Ding township"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Lugu Township, in the south west of Nantou, is where Dong Ding oolong comes from, and it is the best known tea place in the county. Lugu has grown tea for sale since the nineteenth century, and Dong Ding mountain is covered in gardens. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page. What this page adds is its place: Lugu sits in the middle belt of Nantou, below the high mountain gardens, so it is a county of roasted teas as well as light ones.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Lugu Township, in the south west of Nantou, is where Dong Ding oolong comes from, and it is the best known tea place in the county. Lugu has grown tea for sale since the nineteenth century, and Dong Ding mountain is covered in gardens. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page. What this page adds is its place: Lugu sits in the middle belt of Nantou, below the high mountain gardens, so it is a county of roasted teas as well as light ones.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "nantou:ren-ai-and-lishan",
-    "pageId": "nantou",
-    "sectionKey": "ren-ai-and-lishan",
-    "label": "Ren'ai Township and Lishan",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "nantou"
-      ]
-    },
-    "terms": [
-      {
-        "original": "仁愛",
-        "pinyin": "Rén'ài",
-        "gloss": "Ren'ai Township"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Ren'ai Township, in the east of Nantou, grows high mountain tea at roughly 1,100 to 2,000 metres. Lishan is next door but is not in Nantou. Sources place it in Taichung, and sellers sell it as its own name for tea grown above about 1,800 metres. Teas from the high ground between the two, such as Dayuling, are placed in different counties by different sources, so a seller's county for them is not safe to assume. Alishan, often named with these, is in Chiayi County.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Ren'ai Township, in the east of Nantou, grows high mountain tea at roughly 1,100 to 2,000 metres. Lishan is next door but is not in Nantou. Sources place it in Taichung, and sellers sell it as its own name for tea grown above about 1,800 metres. Teas from the high ground between the two, such as Dayuling, are placed in different counties by different sources, so a seller's county for them is not safe to assume. Alishan, often named with these, is in Chiayi County.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "nantou:shan-lin-xi",
-    "pageId": "nantou",
-    "sectionKey": "shan-lin-xi",
-    "label": "Shan Lin Xi",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "nantou"
-      ]
-    },
-    "terms": [
-      {
-        "original": "杉林溪",
-        "pinyin": "Shānlínxī",
-        "gloss": "Shan Lin Xi"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Shan Lin Xi is a high mountain tea area in Zhushan Township, in Nantou, and it is described as lying near Dong Ding. Its gardens are among the county's highest and are known for bamboo forest, mist and steep slopes. Places quote its altitude differently, from the low hundreds of metres up to about 1,950 metres in one account and 1,600 to 1,800 metres in another, so no single range is safe to state.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Shan Lin Xi is a high mountain tea area in Zhushan Township, in Nantou, and it is described as lying near Dong Ding. Its gardens are among the county's highest and are known for bamboo forest, mist and steep slopes. Places quote its altitude differently, from the low hundreds of metres up to about 1,950 metres in one account and 1,600 to 1,800 metres in another, so no single range is safe to state.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "nantou:sun-moon-lake",
-    "pageId": "nantou",
-    "sectionKey": "sun-moon-lake",
-    "label": "Sun Moon Lake and Yuchi",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "origin_includes": [
-        "nantou"
-      ]
-    },
-    "terms": [
-      {
-        "original": "魚池",
-        "pinyin": "Yúchí",
-        "gloss": "Yuchi Township"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Yuchi Township, around Sun Moon Lake, is Nantou's black tea country. It grows Assam type tea, introduced in Japanese times, and its Sun Moon Lake black tea became better known after the 1999 earthquake, when growers there turned to it. It is not oolong, so it matters here only as the other half of Nantou's tea picture.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Yuchi Township, around Sun Moon Lake, is Nantou's black tea country. It grows Assam type tea, introduced in Japanese times, and its Sun Moon Lake black tea became better known after the 1999 earthquake, when growers there turned to it. It is not oolong, so it matters here only as the other half of Nantou's tea picture.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "nantou:where-it-is",
-    "pageId": "nantou",
+    "claimId": "guangxi:where-it-is",
+    "pageId": "guangxi",
     "sectionKey": "where-it-is",
-    "label": "Where Nantou is",
+    "label": "Where Guangxi is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "广西",
+        "pinyin": "Guǎngxī",
+        "gloss": "Guangxi"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Guangxi is a province-level region in the south of China, officially the Guangxi Zhuang Autonomous Region, and it borders Guangdong on its eastern side. Its tea is not one thing. Two very different teas carry its name: Liu Bao, an aged dark tea from the east, and jasmine tea from Hengzhou.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Guangxi is a province-level region in the south of China, officially the Guangxi Zhuang Autonomous Region, and it borders Guangdong on its eastern side. Its tea is not one thing. Two very different teas carry its name: Liu Bao, an aged dark tea from the east, and jasmine tea from Hengzhou.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangxi:wuzhou-and-cangwu",
+    "pageId": "guangxi",
+    "sectionKey": "wuzhou-and-cangwu",
+    "label": "How Wuzhou and Cangwu sit inside it",
     "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "origin_includes": [
-        "nantou"
+        "guangxi"
       ]
     },
     "terms": [
       {
-        "original": "南投",
-        "pinyin": "Nántóu",
-        "gloss": "Nantou; south head"
+        "original": "梧州",
+        "pinyin": "Wúzhōu",
+        "gloss": "Wuzhou"
+      },
+      {
+        "original": "苍梧",
+        "pinyin": "Cāngwú",
+        "gloss": "Cangwu"
+      },
+      {
+        "original": "六堡",
+        "pinyin": "Liùbǎo",
+        "gloss": "Liubao"
       }
     ],
     "rev": null,
     "scope": "",
-    "text": "Nantou is a county in the middle of Taiwan, and the only one that does not touch the sea. About four fifths of it is hills and mountains, rising to the Central Mountain Range in the east and to Yushan, the island's highest peak, in the south. Sun Moon Lake, the island's largest lake, lies in the middle. On a tea record, Nantou usually names the county as a whole, and a township or mountain inside it, such as Lugu or Shan Lin Xi, is the finer place.",
+    "text": "Wuzhou is the city in eastern Guangxi that anchors the Liu Bao trade, and Cangwu is a county under it. Liubao town, which gave the tea its name, lies in Cangwu. When a label says Wuzhou it names the wider tea area and the city's factories, and when it says Cangwu or Liubao it points to the original home of the tea. Making has since spread to other counties around Wuzhou, so the three names are nested rather than interchangeable.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Nantou is a county in the middle of Taiwan, and the only one that does not touch the sea. About four fifths of it is hills and mountains, rising to the Central Mountain Range in the east and to Yushan, the island's highest peak, in the south. Sun Moon Lake, the island's largest lake, lies in the middle. On a tea record, Nantou usually names the county as a whole, and a township or mountain inside it, such as Lugu or Shan Lin Xi, is the finer place.",
+    "pendingText": "Wuzhou is the city in eastern Guangxi that anchors the Liu Bao trade, and Cangwu is a county under it. Liubao town, which gave the tea its name, lies in Cangwu. When a label says Wuzhou it names the wider tea area and the city's factories, and when it says Cangwu or Liubao it points to the original home of the tea. Making has since spread to other counties around Wuzhou, so the three names are nested rather than interchangeable.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "nantou:why-people-value-it",
-    "pageId": "nantou",
+    "claimId": "hengfengyuan:golden-bull",
+    "pageId": "hengfengyuan",
+    "sectionKey": "golden-bull",
+    "label": "Golden Bull is a separate mark",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "name_any": [
+        "hengfengyuan",
+        "heng feng yuan"
+      ],
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "金牛",
+        "pinyin": "jīnniú",
+        "gloss": "golden bull"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Golden Bull is covered on its own page. None of the places read for this page name Golden Bull together with Hengfengyuan, so the link between them rests on the title of the tea alone.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Golden Bull is covered on its own page. None of the places read for this page name Golden Bull together with Hengfengyuan, so the link between them rests on the title of the tea alone.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hengfengyuan:ripe-brand",
+    "pageId": "hengfengyuan",
+    "sectionKey": "ripe-brand",
+    "label": "A name for ripe tea",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "name_any": [
+        "hengfengyuan",
+        "heng feng yuan"
+      ],
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "熟茶",
+        "pinyin": "shúchá",
+        "gloss": "ripe tea (shou)"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Within Changtai, Hengfengyuan is the brand for fermented, or ripe, pu’er. The trade knows it for ripe cakes, tuo cha and loose ripe tea, and sellers who handle it describe the style as thick and mellow. A tea sold under the Hengfengyuan name is therefore normally a shou tea, which is how this one is sold.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Within Changtai, Hengfengyuan is the brand for fermented, or ripe, pu’er. The trade knows it for ripe cakes, tuo cha and loose ripe tea, and sellers who handle it describe the style as thick and mellow. A tea sold under the Hengfengyuan name is therefore normally a shou tea, which is how this one is sold.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hengfengyuan:who",
+    "pageId": "hengfengyuan",
+    "sectionKey": "who",
+    "label": "Who Hengfengyuan is",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "name_any": [
+        "hengfengyuan",
+        "heng feng yuan"
+      ],
+      "origin_includes": [
+        "yunnan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "恒丰源",
+        "pinyin": "héngfēngyuán",
+        "gloss": "Hengfengyuan, a brand name"
+      },
+      {
+        "original": "昌泰",
+        "pinyin": "chāngtài",
+        "gloss": "Changtai, the company that owns the brand"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Hengfengyuan is a pu’er brand name belonging to Changtai, a private Yunnan tea company based in Xishuangbanna. It is one of several brands Changtai sells under, alongside others such as Yichang Hao, which is the group’s better known Yiwu line. Little is published about Hengfengyuan beyond its place inside Changtai, so this page says only that.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Hengfengyuan is a pu’er brand name belonging to Changtai, a private Yunnan tea company based in Xishuangbanna. It is one of several brands Changtai sells under, alongside others such as Yichang Hao, which is the group’s better known Yiwu line. Little is published about Hengfengyuan beyond its place inside Changtai, so this page says only that.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hsinchu:hakka",
+    "pageId": "hsinchu",
+    "sectionKey": "hakka",
+    "label": "A Hakka tea country",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "hsinchu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "客家",
+        "pinyin": "Kèjiā",
+        "gloss": "Hakka"
+      },
+      {
+        "original": "擂茶",
+        "pinyin": "léichá",
+        "gloss": "lei cha; ground tea with nuts and grains"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Tea in Hsinchu is largely a Hakka trade. Local Hakka families grow the leaf, make the tea and sell it, and many farms have passed down through generations, with family tea making reaching back to the Japanese period. Hakka tea culture here also includes lei cha, a ground tea drink with nuts and grains, which is associated with Beipu. Farm visits and tea trails are now part of how the county presents its tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Tea in Hsinchu is largely a Hakka trade. Local Hakka families grow the leaf, make the tea and sell it, and many farms have passed down through generations, with family tea making reaching back to the Japanese period. Hakka tea culture here also includes lei cha, a ground tea drink with nuts and grains, which is associated with Beipu. Farm visits and tea trails are now part of how the county presents its tea.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hsinchu:on-a-label",
+    "pageId": "hsinchu",
+    "sectionKey": "on-a-label",
+    "label": "Hsinchu on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "hsinchu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "新竹縣",
+        "pinyin": "Xīnzhú xiàn",
+        "gloss": "Hsinchu County"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Hsinchu on a label names the county, and it does not by itself say which township or what kind of tea. Oriental Beauty is not made only in Hsinchu, and accounts say that production has spread to nearby areas such as Miaoli and Taoyuan, so the county name is part of what a buyer is paying for. A county name with a township, such as Emei or Beipu, says more. Whether Hsinchu makes other teas in quantity, such as green or red tea, is not established here, though small amounts of Baozhong, high mountain oolong and black tea are served at local tea events.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Hsinchu on a label names the county, and it does not by itself say which township or what kind of tea. Oriental Beauty is not made only in Hsinchu, and accounts say that production has spread to nearby areas such as Miaoli and Taoyuan, so the county name is part of what a buyer is paying for. A county name with a township, such as Emei or Beipu, says more. Whether Hsinchu makes other teas in quantity, such as green or red tea, is not established here, though small amounts of Baozhong, high mountain oolong and black tea are served at local tea events.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hsinchu:oriental-beauty-names",
+    "pageId": "hsinchu",
+    "sectionKey": "oriental-beauty-names",
+    "label": "Oriental Beauty and its names",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "hsinchu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "白毫烏龍",
+        "pinyin": "báiháo wūlóng",
+        "gloss": "white tip oolong"
+      },
+      {
+        "original": "膨風茶",
+        "pinyin": "péngfēng chá",
+        "gloss": "braggart's tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Oriental Beauty is also called bai hao oolong, meaning white tip oolong, after the pale buds in the leaf. In Hsinchu it has an older folk name, pengfeng cha, which means braggart's tea. Stories about how it got the name Oriental Beauty, and about it being sent to a queen, are told in many places, but they differ in detail and are not settled history.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Oriental Beauty is also called bai hao oolong, meaning white tip oolong, after the pale buds in the leaf. In Hsinchu it has an older folk name, pengfeng cha, which means braggart's tea. Stories about how it got the name Oriental Beauty, and about it being sent to a queen, are told in many places, but they differ in detail and are not settled history.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hsinchu:summer-leafhopper",
+    "pageId": "hsinchu",
+    "sectionKey": "summer-leafhopper",
+    "label": "The summer leafhopper",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "hsinchu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "小綠葉蟬",
+        "pinyin": "xiǎo lǜ yèchán",
+        "gloss": "small green leafhopper"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Oriental Beauty depends on a small green leafhopper that feeds on the young shoots in summer. Its bite makes the plant produce the compounds that give the tea its honey and ripe fruit character, so growers avoid spraying pesticide on these gardens. The buds are picked by hand, usually the bud and the next two leaves, and the leaf is oxidised heavily, close to a black tea, before it is dried. This is why Oriental Beauty is a summer tea in Hsinchu, and why it is more costly to grow than an oolong that does not need the insect.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Oriental Beauty depends on a small green leafhopper that feeds on the young shoots in summer. Its bite makes the plant produce the compounds that give the tea its honey and ripe fruit character, so growers avoid spraying pesticide on these gardens. The buds are picked by hand, usually the bud and the next two leaves, and the leaf is oxidised heavily, close to a black tea, before it is dried. This is why Oriental Beauty is a summer tea in Hsinchu, and why it is more costly to grow than an oolong that does not need the insect.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hsinchu:tea-townships",
+    "pageId": "hsinchu",
+    "sectionKey": "tea-townships",
+    "label": "The tea townships",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "hsinchu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "峨眉",
+        "pinyin": "Éméi",
+        "gloss": "Emei Township"
+      },
+      {
+        "original": "北埔",
+        "pinyin": "Běipǔ",
+        "gloss": "Beipu Township"
+      },
+      {
+        "original": "橫山",
+        "pinyin": "Héngshān",
+        "gloss": "Hengshan Township"
+      },
+      {
+        "original": "竹東",
+        "pinyin": "Zhúdōng",
+        "gloss": "Zhudong Township"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Within the county, Emei and Beipu are the two names the trade gives most often. They are neighbouring Hakka townships on the same river valley. Emei is described as the larger producer today, while Beipu has become better known as a heritage town with a historic old street and as a place to buy. Hengshan and Zhudong are also named as Oriental Beauty areas, and Guanxi is named in some accounts. Which township a tea comes from is worth reading on the label, because the county name covers all of them.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Within the county, Emei and Beipu are the two names the trade gives most often. They are neighbouring Hakka townships on the same river valley. Emei is described as the larger producer today, while Beipu has become better known as a heritage town with a historic old street and as a place to buy. Hengshan and Zhudong are also named as Oriental Beauty areas, and Guanxi is named in some accounts. Which township a tea comes from is worth reading on the label, because the county name covers all of them.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hsinchu:where-it-is",
+    "pageId": "hsinchu",
+    "sectionKey": "where-it-is",
+    "label": "Where Hsinchu is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "hsinchu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "新竹",
+        "pinyin": "Xīnzhú",
+        "gloss": "Hsinchu; new bamboo"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Hsinchu is a county in the north west of Taiwan, with Taoyuan to the north, Miaoli to the south and the Taiwan Strait to the west. Most of it is hills and uplands, rising to the Xueshan and Dabajian ranges in the east. Most of its people are Hakka. Hsinchu City is a separate city and not part of the county, so on a tea record Hsinchu normally means the county, and a township such as Emei or Beipu is the finer place.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Hsinchu is a county in the north west of Taiwan, with Taoyuan to the north, Miaoli to the south and the Taiwan Strait to the west. Most of it is hills and uplands, rising to the Xueshan and Dabajian ranges in the east. Most of its people are Hakka. Hsinchu City is a separate city and not part of the county, so on a tea record Hsinchu normally means the county, and a township such as Emei or Beipu is the finer place.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "hsinchu:why-people-value-it",
+    "pageId": "hsinchu",
     "sectionKey": "why-people-value-it",
-    "label": "Why people value Nantou tea",
+    "label": "Why people value Hsinchu tea",
     "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "origin_includes": [
-        "nantou"
+        "hsinchu"
       ]
     },
     "terms": [
       {
-        "original": "南投",
-        "pinyin": "Nántóu",
-        "gloss": "Nantou"
+        "original": "東方美人",
+        "pinyin": "Dōngfāng měirén",
+        "gloss": "Oriental Beauty; Eastern Beauty"
       }
     ],
     "rev": null,
     "scope": "",
-    "text": "Nantou is Taiwan's biggest tea county, with more than half of the island's tea plantings and output. What makes it matter to a buyer is range. In one county the land climbs from low hills to cold mountain gardens, so it makes very different teas side by side: roasted oolong from the lower slopes, lightly oxidised high mountain oolong from the cool heights, and black tea near the lake. A tea sold as Nantou says which county it came from, and the township, mountain or garden says which of those teas it is.",
+    "text": "Hsinchu is the home of Oriental Beauty, the honey-sweet, fruity oolong that is the county's best known tea. It is a hill country tea, grown on low to middling ground rather than on the cold high mountains of central Taiwan, and the style depends on the climate of these hills in summer, when a small insect feeds on the young shoots. A buyer who sees Hsinchu on a tea is most likely looking at Oriental Beauty, and the place matters because the tea is hard to make well anywhere else.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Nantou is Taiwan's biggest tea county, with more than half of the island's tea plantings and output. What makes it matter to a buyer is range. In one county the land climbs from low hills to cold mountain gardens, so it makes very different teas side by side: roasted oolong from the lower slopes, lightly oxidised high mountain oolong from the cool heights, and black tea near the lake. A tea sold as Nantou says which county it came from, and the township, mountain or garden says which of those teas it is.",
+    "pendingText": "Hsinchu is the home of Oriental Beauty, the honey-sweet, fruity oolong that is the county's best known tea. It is a hill country tea, grown on low to middling ground rather than on the cold high mountains of central Taiwan, and the style depends on the climate of these hills in summer, when a small insect feeds on the young shoots. A buyer who sees Hsinchu on a tea is most likely looking at Oriental Beauty, and the place matters because the tea is hard to make well anywhere else.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "oolong:ageing",
-    "pageId": "oolong",
+    "claimId": "jingmai:common-impressions",
+    "pageId": "jingmai",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "jingmai"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "jingmai",
+    "text": "Sellers and drinkers most often name a strong flower or fruit fragrance and a sweetness that comes early and lasts. Some find the bitterness light and the astringency stronger. Spring tea is said to carry more fragrance than summer or autumn tea.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "jingmai",
+        "text": "Sellers and drinkers most often name a strong flower or fruit fragrance and a sweetness that comes early and lasts. Some find the bitterness light and the astringency stronger. Spring tea is said to carry more fragrance than summer or autumn tea.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "jingmai:forest-tea",
+    "pageId": "jingmai",
+    "sectionKey": "forest-tea",
+    "label": "Forest tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "jingmai"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "jingmai",
+    "text": "The tea grows under the shade of the forest, with little pruning, and the trees are tall. The trade values Jingmai for this forest setting and for its old trees. It is sold as Pu’er, both raw and ripe, under the mountain’s name.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "jingmai",
+        "text": "The tea grows under the shade of the forest, with little pruning, and the trees are tall. The trade values Jingmai for this forest setting and for its old trees. It is sold as Pu’er, both raw and ripe, under the mountain’s name.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "jingmai:history",
+    "pageId": "jingmai",
+    "sectionKey": "history",
+    "label": "Who grew it and since when",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "jingmai"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "jingmai",
+    "text": "The Bulang and Dai peoples have grown tea on the mountain for a thousand years or more. The date most often given for the start is about the tenth century, though one local source says thirteen hundred years. An oral story names an ancestor of the Bulang as the first to tend the wild tea, but it is a story, not a record.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "jingmai",
+        "text": "The Bulang and Dai peoples have grown tea on the mountain for a thousand years or more. The date most often given for the start is about the tenth century, though one local source says thirteen hundred years. An oral story names an ancestor of the Bulang as the first to tend the wild tea, but it is a story, not a record.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "jingmai:where",
+    "pageId": "jingmai",
+    "sectionKey": "where",
+    "label": "Where Jingmai is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "jingmai"
+      ]
+    },
+    "terms": [
+      {
+        "original": "景迈山",
+        "pinyin": "jǐngmài shān",
+        "gloss": "Jingmai Mountain"
+      },
+      {
+        "original": "芒景",
+        "pinyin": "mángjǐng",
+        "gloss": "Mangjing, the neighbouring village"
+      }
+    ],
+    "rev": 1,
+    "scope": "jingmai",
+    "text": "Jingmai is a tea mountain in Huimin Town, Lancang Lahu Autonomous County, in Pu’er City, Yunnan. Its old tea forests and villages were listed together as a UNESCO World Heritage cultural landscape in 2023. The listing names five tea forests, nine villages and three protective forests, around the villages of Jingmai and Mangjing. Places give the height of the tea as about 1,000 to 1,600 metres.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "jingmai",
+        "text": "Jingmai is a tea mountain in Huimin Town, Lancang Lahu Autonomous County, in Pu’er City, Yunnan. Its old tea forests and villages were listed together as a UNESCO World Heritage cultural landscape in 2023. The listing names five tea forests, nine villages and three protective forests, around the villages of Jingmai and Mangjing. Places give the height of the tea as about 1,000 to 1,600 metres.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "kunlu-mountain:common-impressions",
+    "pageId": "kunlu-mountain",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "kunlu mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "kunlu-mountain",
+    "text": "Sellers most often describe a light, graceful fragrance and a sweet aftertaste, with some bitterness and astringency that turn sweet.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "kunlu-mountain",
+        "text": "Sellers most often describe a light, graceful fragrance and a sweet aftertaste, with some bitterness and astringency that turn sweet.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "kunlu-mountain:trees",
+    "pageId": "kunlu-mountain",
+    "sectionKey": "trees",
+    "label": "The trees",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "kunlu mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "kunlu-mountain",
+    "text": "The trees are tall and mostly unpruned. Wild, transitional and planted types grow together, with large, medium and small leaves mixed. The trade knows the mountain for these old trees.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "kunlu-mountain",
+        "text": "The trees are tall and mostly unpruned. Wild, transitional and planted types grow together, with large, medium and small leaves mixed. The trade knows the mountain for these old trees.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "kunlu-mountain:tribute-history",
+    "pageId": "kunlu-mountain",
+    "sectionKey": "tribute-history",
+    "label": "Tribute tea",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "kunlu mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "kunlu-mountain",
+    "text": "In the Qing period, tea from Kunlu was made as tribute tea and carried to Beijing by horse caravan, about two months along the Tea Horse Road. Making Pu’er tribute tea in Ning’er is now listed as national intangible cultural heritage. Many sellers call the mountain an imperial tea garden, but the date and the details of that role are not settled.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "kunlu-mountain",
+        "text": "In the Qing period, tea from Kunlu was made as tribute tea and carried to Beijing by horse caravan, about two months along the Tea Horse Road. Making Pu’er tribute tea in Ning’er is now listed as national intangible cultural heritage. Many sellers call the mountain an imperial tea garden, but the date and the details of that role are not settled.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "kunlu-mountain:where",
+    "pageId": "kunlu-mountain",
+    "sectionKey": "where",
+    "label": "Where Kunlu Mountain is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "kunlu mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "困鹿山",
+        "pinyin": "kùnlù shān",
+        "gloss": "Kunlu Mountain"
+      }
+    ],
+    "rev": 1,
+    "scope": "kunlu-mountain",
+    "text": "Kunlu Mountain is a spur of the Wuliang Mountains in Ning’er Hani and Yi Autonomous County, Pu’er City, Yunnan. The name is also written with other characters in older writing. Its old tea trees cover a little over 10,000 mu, about 667 hectares, and places give its height as about 1,410 to 2,271 metres.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "kunlu-mountain",
+        "text": "Kunlu Mountain is a spur of the Wuliang Mountains in Ning’er Hani and Yi Autonomous County, Pu’er City, Yunnan. The name is also written with other characters in older writing. Its old tea trees cover a little over 10,000 mu, about 667 hectares, and places give its height as about 1,410 to 2,271 metres.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lapsang:ageing",
+    "pageId": "lapsang",
     "sectionKey": "ageing",
-    "label": "Keeping and ageing oolong",
+    "label": "Keeping and ageing Lapsang",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong"
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "Lapsang has no recognised tradition of long ageing, and no category of decades-old red tea is described. Over its first few years in good storage the pine smoke softens and moves toward dried fruit, wood and sweetness. Keep it sealed, dry, cool and away from light and other smells; a smoky tea scents whatever is near it.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "oolong:brewing",
-    "pageId": "oolong",
+    "claimId": "lapsang:brewing",
+    "pageId": "lapsang",
     "sectionKey": "brewing",
-    "label": "Brewing oolong",
+    "label": "Brewing Lapsang",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong"
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "In a cup or pot, use about 3 grams for 240 ml, with water at 90 to 100°C, and steep about two to five minutes, usually around three. Gongfu style, use about 5 grams in a 100 to 110 ml gaiwan or pot, with short steeps that grow a little longer each round. Too hot or too long and the smoke turns harsh and bitter and covers the tea.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "oolong:common-impressions",
-    "pageId": "oolong",
+    "claimId": "lapsang:common-impressions",
+    "pageId": "lapsang",
     "sectionKey": "common-impressions",
     "label": "What people often notice",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong"
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
+      ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "In the smoked tea: pine and pine resin, longan or dried longan, campfire or woodsmoke, dried fruit and a sweet aftertaste. In the unsmoked tea: honey, longan and fruit or flowers.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "oolong:definition",
-    "pageId": "oolong",
+    "claimId": "lapsang:definition",
+    "pageId": "lapsang",
     "sectionKey": "definition",
-    "label": "What oolong is",
+    "label": "What Lapsang Souchong is",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong"
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
     },
     "terms": [
       {
-        "original": "乌龙茶",
-        "pinyin": "wūlóng chá",
-        "gloss": "oolong tea"
+        "original": "正山小种",
+        "pinyin": "zhèngshān xiǎozhǒng",
+        "gloss": "true mountain small kind"
       },
       {
-        "original": "青茶",
-        "pinyin": "qīng chá",
-        "gloss": "blue-green tea"
+        "original": "桐木",
+        "pinyin": "tóngmù",
+        "gloss": "Tongmu"
+      },
+      {
+        "original": "外山",
+        "pinyin": "wàishān",
+        "gloss": "outer mountain"
       }
     ],
     "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "Zhengshan Xiaozhong is the red tea of Tongmu, in the Wuyi mountains of northern Fujian; its home villages and gardens lie inside the Wuyi mountains nature reserve. Zhengshan, true mountain, names the Tongmu core, and waishan, outer mountain, is tea made the same way outside it; how much that line says about quality is argued over. Lapsang Souchong is the Western name for it, taken from the Fuzhou dialect. In English the name now usually means the strongly smoked tea sold abroad, while in China Zhengshan Xiaozhong covers gentler and unsmoked tea too.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "oolong:families",
-    "pageId": "oolong",
-    "sectionKey": "families",
-    "label": "The four families",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [
-      {
-        "original": "岩韵",
-        "pinyin": "yán yùn",
-        "gloss": "rock rhyme"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:history",
-    "pageId": "oolong",
+    "claimId": "lapsang:history",
+    "pageId": "lapsang",
     "sectionKey": "history",
-    "label": "How oolong began",
+    "label": "How Lapsang began",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong"
+      "type": "Red",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
     },
-    "terms": [],
+    "terms": [
+      {
+        "original": "金骏眉",
+        "pinyin": "jīn jùn méi",
+        "gloss": "Jin Jun Mei"
+      }
+    ],
     "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "Zhengshan Xiaozhong is called the oldest red tea, the ancestor of red tea, born in Tongmu; the dates given for it differ. The usual story is of soldiers camped among the picked leaf in the harvest season: the leaf spoiled, the villagers dried it over pine fire, and the smoky tea was sold to Dutch buyers. The story is told, not recorded. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. In 2005 Tongmu makers devised Jin Jun Mei, a red tea of buds alone made the Lapsang way but not smoked, and it changed the village’s trade.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "Zhengshan Xiaozhong is called the oldest red tea, the ancestor of red tea, born in Tongmu; the dates given for it differ. The usual story is of soldiers camped among the picked leaf in the harvest season: the leaf spoiled, the villagers dried it over pine fire, and the smoky tea was sold to Dutch buyers. The story is told, not recorded. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. In 2005 Tongmu makers devised Jin Jun Mei, a red tea of buds alone made the Lapsang way but not smoked, and it changed the village’s trade.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "oolong:making",
-    "pageId": "oolong",
+    "claimId": "lapsang:making",
+    "pageId": "lapsang",
     "sectionKey": "making",
-    "label": "How oolong is made",
+    "label": "How Lapsang is made",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [
-      {
-        "original": "做青",
-        "pinyin": "zuò qīng",
-        "gloss": "tossing the leaf in rounds"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:notice-aged",
-    "pageId": "oolong",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "oolong:oxidation-and-roast",
-    "pageId": "oolong",
-    "sectionKey": "oxidation-and-roast",
-    "label": "Oxidation and roast",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong"
-    },
-    "terms": [
-      {
-        "original": "焙火",
-        "pinyin": "bèi huǒ",
-        "gloss": "roasting"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "phoenix-mountain:mist-and-climate",
-    "pageId": "phoenix-mountain",
-    "sectionKey": "mist-and-climate",
-    "label": "Mist, cool air and slow leaf",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
+      "type": "Red",
       "origin_includes": [
-        "phoenix mountain"
+        "wuyi mountains"
+      ],
+      "name_any": [
+        "lapsang",
+        "zhengshan"
       ]
     },
     "terms": [
       {
-        "original": "山韵",
-        "pinyin": "shān yùn",
-        "gloss": "mountain rhyme"
+        "original": "过红锅",
+        "pinyin": "guò hóngguō",
+        "gloss": "through the hot pan"
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "People value the mountain for the weather the tea grows in. Cloud and mist sit on the upper slopes for much of the year, the light is soft, and the nights are cool. The bushes grow slowly in these conditions, and the trade links that slow growth to the thick leaf and the lasting scent of the best tea. The higher the garden, the cooler it is, and the more a tea is expected to show what the trade calls mountain rhyme.",
+    "rev": 1,
+    "scope": "Lapsang and Wuyi red style kit",
+    "text": "The leaf is withered, rolled and left to oxidise in covered baskets or cloth bags for some hours, until it turns reddish-brown to copper. It then goes into a hot pan, guo hong guo, which stops the oxidation fast, lifts the aroma and gives a sweeter, rounder cup, and is rolled again while hot, which shapes the strip and helps it take up smoke. In the traditional way the leaf is withered with pine heat in the qinglou and dried over the pine fire for most of a day.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "People value the mountain for the weather the tea grows in. Cloud and mist sit on the upper slopes for much of the year, the light is soft, and the nights are cool. The bushes grow slowly in these conditions, and the trade links that slow growth to the thick leaf and the lasting scent of the best tea. The higher the garden, the cooler it is, and the more a tea is expected to show what the trade calls mountain rhyme.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "phoenix-mountain:old-trees",
-    "pageId": "phoenix-mountain",
-    "sectionKey": "old-trees",
-    "label": "The old trees",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "phoenix mountain"
-      ]
-    },
-    "terms": [
+    "reviewState": "approved",
+    "previousRevisions": [
       {
-        "original": "古茶树",
-        "pinyin": "gǔ cháshù",
-        "gloss": "old tea tree"
-      },
-      {
-        "original": "宋种",
-        "pinyin": "Sòngzhǒng",
-        "gloss": "Song variety"
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Lapsang and Wuyi red style kit",
+        "text": "The leaf is withered, rolled and left to oxidise in covered baskets or cloth bags for some hours, until it turns reddish-brown to copper. It then goes into a hot pan, guo hong guo, which stops the oxidation fast, lifts the aroma and gives a sweeter, rounder cup, and is rolled again while hot, which shapes the strip and helps it take up smoke. In the traditional way the leaf is withered with pine heat in the qinglou and dried over the pine fire for most of a day.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Lapsang and Wuyi red kit 2026-11-24",
+        "evidenceIds": []
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "The mountain is known for tea trees that stand where they have grown for hundreds of years, left unpruned so that they grow tall and send roots deep into the granite. A few are said to be 600 or 700 years old, and are tied by tradition to the Song dynasty, though no age is agreed or proven. Their leaf is made on its own and sold at very high prices, because each gives only a few kilograms a year. Most of what is sold today comes from bushes grown from these trees, not from the trees themselves.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "The mountain is known for tea trees that stand where they have grown for hundreds of years, left unpruned so that they grow tall and send roots deep into the granite. A few are said to be 600 or 700 years old, and are tied by tradition to the Song dynasty, though no age is agreed or proven. Their leaf is made on its own and sold at very high prices, because each gives only a few kilograms a year. Most of what is sold today comes from bushes grown from these trees, not from the trees themselves.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   }
 ];

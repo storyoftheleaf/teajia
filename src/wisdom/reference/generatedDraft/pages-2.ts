@@ -5,6 +5,581 @@ import type { DraftReferencePage } from '../claims';
 
 export const PART: readonly DraftReferencePage[] = [
   {
+    "id": "gong-ting",
+    "slug": "gong-ting",
+    "kind": "leaf_grade",
+    "label": "Gong Ting",
+    "visibility": "draft",
+    "nativeName": "宫廷",
+    "parentId": "shou",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Gong Ting means",
+        "sourceIds": []
+      },
+      {
+        "key": "appearance",
+        "label": "Reading the leaf",
+        "sourceIds": []
+      },
+      {
+        "key": "grade-and-quality",
+        "label": "Grade is not quality",
+        "sourceIds": []
+      },
+      {
+        "key": "name-on-the-label",
+        "label": "A grade, and a selling word",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "other-names",
+        "label": "Other names and other teas",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "gongjian",
+    "slug": "gongjian",
+    "kind": "leaf_grade",
+    "label": "Gongjian",
+    "visibility": "draft",
+    "nativeName": "贡尖",
+    "parentId": "anhua-dark",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Gongjian means",
+        "sourceIds": []
+      },
+      {
+        "key": "among-three-tips",
+        "label": "Where it sits among the three tips",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "other-names",
+        "label": "Other names and other teas",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "greater-yiwu",
+    "slug": "greater-yiwu",
+    "kind": "tea_area",
+    "label": "Greater Yiwu",
+    "visibility": "public",
+    "nativeName": "易武",
+    "parentId": "yunnan",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "sections": [
+      {
+        "key": "scope",
+        "label": "A name at several scales",
+        "sourceIds": [
+          "teadb-greater-yiwu"
+        ]
+      },
+      {
+        "key": "common-character",
+        "label": "Shared reputation, varied tea",
+        "sourceIds": [
+          "teadb-greater-yiwu"
+        ]
+      },
+      {
+        "key": "history",
+        "label": "Trade history",
+        "sourceIds": [
+          "teadb-greater-yiwu"
+        ]
+      },
+      {
+        "key": "where-it-is",
+        "label": "Where Yiwu is",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for",
+        "label": "What Yiwu is known for",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Yiwu on a label",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "green",
+    "slug": "green",
+    "kind": "tea_family",
+    "label": "Green tea (lü cha)",
+    "visibility": "public",
+    "nativeName": "绿茶",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What green tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How green tea is made",
+        "sourceIds": []
+      },
+      {
+        "key": "styles",
+        "label": "The main styles",
+        "sourceIds": []
+      },
+      {
+        "key": "anhui",
+        "label": "Anhui green tea",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping green tea",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing green tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "guangdong",
+    "slug": "guangdong",
+    "kind": "major_region",
+    "label": "Guangdong",
+    "visibility": "draft",
+    "nativeName": "广东",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Guangdong is",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for",
+        "label": "What Guangdong is known for",
+        "sourceIds": []
+      },
+      {
+        "key": "phoenix-dancong",
+        "label": "Phoenix Mountain and dancong",
+        "sourceIds": []
+      },
+      {
+        "key": "yingde-black",
+        "label": "Yingde black tea",
+        "sourceIds": []
+      },
+      {
+        "key": "trade-hub",
+        "label": "A trading province",
+        "sourceIds": []
+      },
+      {
+        "key": "drinking-culture",
+        "label": "How Guangdong drinks tea",
+        "sourceIds": []
+      },
+      {
+        "key": "storage",
+        "label": "Hong Kong and Guangdong storage",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "guangxi",
+    "slug": "guangxi",
+    "kind": "major_region",
+    "label": "Guangxi",
+    "visibility": "draft",
+    "nativeName": "广西",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Guangxi is",
+        "sourceIds": []
+      },
+      {
+        "key": "wuzhou-and-cangwu",
+        "label": "How Wuzhou and Cangwu sit inside it",
+        "sourceIds": []
+      },
+      {
+        "key": "land-and-climate",
+        "label": "What the land gives the tea",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for-liu-bao",
+        "label": "What Guangxi is known for in dark tea",
+        "sourceIds": []
+      },
+      {
+        "key": "hengzhou-jasmine",
+        "label": "Hengzhou jasmine tea",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Guangxi on a label",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "hengfengyuan",
+    "slug": "hengfengyuan",
+    "kind": "reference_topic",
+    "label": "Hengfengyuan",
+    "visibility": "draft",
+    "nativeName": "恒丰源",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "who",
+        "label": "Who Hengfengyuan is",
+        "sourceIds": []
+      },
+      {
+        "key": "ripe-brand",
+        "label": "A name for ripe tea",
+        "sourceIds": []
+      },
+      {
+        "key": "golden-bull",
+        "label": "Golden Bull is a separate mark",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "hsinchu",
+    "slug": "hsinchu",
+    "kind": "major_region",
+    "label": "Hsinchu",
+    "visibility": "draft",
+    "nativeName": "新竹",
+    "parentId": "taiwan",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Hsinchu is",
+        "sourceIds": []
+      },
+      {
+        "key": "why-people-value-it",
+        "label": "Why people value Hsinchu tea",
+        "sourceIds": []
+      },
+      {
+        "key": "tea-townships",
+        "label": "The tea townships",
+        "sourceIds": []
+      },
+      {
+        "key": "hakka",
+        "label": "A Hakka tea country",
+        "sourceIds": []
+      },
+      {
+        "key": "summer-leafhopper",
+        "label": "The summer leafhopper",
+        "sourceIds": []
+      },
+      {
+        "key": "oriental-beauty-names",
+        "label": "Oriental Beauty and its names",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Hsinchu on a label",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "jingmai",
+    "slug": "jingmai",
+    "kind": "tea_area",
+    "label": "Jingmai",
+    "visibility": "public",
+    "nativeName": "景迈山",
+    "parentId": "yunnan",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where",
+        "label": "Where Jingmai is",
+        "sourceIds": []
+      },
+      {
+        "key": "forest-tea",
+        "label": "Forest tea",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "Who grew it and since when",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "kunlu-mountain",
+    "slug": "kunlu-mountain",
+    "kind": "tea_area",
+    "label": "Kunlu Mountain",
+    "visibility": "public",
+    "nativeName": "困鹿山",
+    "parentId": "yunnan",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where",
+        "label": "Where Kunlu Mountain is",
+        "sourceIds": []
+      },
+      {
+        "key": "trees",
+        "label": "The trees",
+        "sourceIds": []
+      },
+      {
+        "key": "tribute-history",
+        "label": "Tribute tea",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "lapsang",
+    "slug": "lapsang",
+    "kind": "tea_type",
+    "label": "Lapsang Souchong (Zhengshan Xiaozhong)",
+    "visibility": "public",
+    "nativeName": "正山小种",
+    "parentId": "red",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Lapsang Souchong is",
+        "sourceIds": []
+      },
+      {
+        "key": "smoke",
+        "label": "Smoked and unsmoked",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Lapsang is made",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Lapsang began",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Lapsang",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Lapsang",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in Lapsang kept for years",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "li-shan",
+    "slug": "li-shan",
+    "kind": "tea_area",
+    "label": "Li Shan",
+    "visibility": "draft",
+    "nativeName": "梨山",
+    "parentId": "taiwan",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Li Shan is",
+        "sourceIds": []
+      },
+      {
+        "key": "why-people-value-it",
+        "label": "Why people value Li Shan tea",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "From orchards to tea",
+        "sourceIds": []
+      },
+      {
+        "key": "taichung-or-nantou",
+        "label": "Taichung or Nantou",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Li Shan on a label",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "lincang",
+    "slug": "lincang",
+    "kind": "major_region",
+    "label": "Lincang",
+    "visibility": "public",
+    "nativeName": "临沧",
+    "parentId": "yunnan",
+    "sourceIds": [
+      "teadb-lincang"
+    ],
+    "sections": [
+      {
+        "key": "scope",
+        "label": "Northern Pu’er country",
+        "sourceIds": [
+          "teadb-lincang"
+        ]
+      },
+      {
+        "key": "common-character",
+        "label": "A broad regional tendency",
+        "sourceIds": [
+          "teadb-lincang"
+        ]
+      },
+      {
+        "key": "history",
+        "label": "History beyond single origins",
+        "sourceIds": [
+          "teadb-lincang"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "liu-an",
+    "slug": "liu-an",
+    "kind": "tea_type",
+    "label": "Liu An",
+    "visibility": "public",
+    "nativeName": "六安篓茶",
+    "parentId": "dark",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "definition",
+        "label": "What Liu An basket tea is",
+        "sourceIds": []
+      },
+      {
+        "key": "making",
+        "label": "How Liu An is made",
+        "sourceIds": []
+      },
+      {
+        "key": "basket",
+        "label": "The basket and its tickets",
+        "sourceIds": []
+      },
+      {
+        "key": "southern-trade",
+        "label": "The southern trade",
+        "sourceIds": []
+      },
+      {
+        "key": "old-stock",
+        "label": "Old baskets",
+        "sourceIds": []
+      },
+      {
+        "key": "ageing",
+        "label": "Keeping and ageing Liu An",
+        "sourceIds": []
+      },
+      {
+        "key": "brewing",
+        "label": "Brewing Liu An",
+        "sourceIds": []
+      },
+      {
+        "key": "common-impressions",
+        "label": "What people often notice",
+        "sourceIds": []
+      },
+      {
+        "key": "notice-aged",
+        "label": "What people often notice in Liu An kept for years",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "liu-bao",
     "slug": "liu-bao",
     "kind": "tea_type",
@@ -72,6 +647,43 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "notice-aged",
         "label": "What people often notice in aged Liu Bao",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
+    "id": "lugu",
+    "slug": "lugu",
+    "kind": "tea_area",
+    "label": "Lugu",
+    "visibility": "draft",
+    "nativeName": "鹿谷",
+    "parentId": "nantou",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Lugu is",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for",
+        "label": "Why people value Lugu tea",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How tea came to Lugu",
+        "sourceIds": []
+      },
+      {
+        "key": "dong-ding-and-dalunshan",
+        "label": "Dong Ding and the higher gardens",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Lugu on a label",
         "sourceIds": []
       }
     ]
@@ -258,6 +870,43 @@ export const PART: readonly DraftReferencePage[] = [
     ]
   },
   {
+    "id": "muzha",
+    "slug": "muzha",
+    "kind": "tea_area",
+    "label": "Muzha",
+    "visibility": "draft",
+    "nativeName": "木柵",
+    "parentId": "taiwan",
+    "sourceIds": [],
+    "sections": [
+      {
+        "key": "where-it-is",
+        "label": "Where Muzha is",
+        "sourceIds": []
+      },
+      {
+        "key": "history",
+        "label": "How Tieguanyin came to Muzha",
+        "sourceIds": []
+      },
+      {
+        "key": "known-for",
+        "label": "The tea Muzha is known for",
+        "sourceIds": []
+      },
+      {
+        "key": "visiting",
+        "label": "Visiting the tea hills",
+        "sourceIds": []
+      },
+      {
+        "key": "on-a-label",
+        "label": "Muzha on a label",
+        "sourceIds": []
+      }
+    ]
+  },
+  {
     "id": "nanqiao-ruigong-brick",
     "slug": "nanqiao-ruigong-brick",
     "kind": "named_tea",
@@ -283,640 +932,6 @@ export const PART: readonly DraftReferencePage[] = [
         "sourceIds": [
           "ctma-nanqiao-company"
         ]
-      }
-    ]
-  },
-  {
-    "id": "nantou",
-    "slug": "nantou",
-    "kind": "major_region",
-    "label": "Nantou",
-    "visibility": "draft",
-    "nativeName": "南投",
-    "parentId": "taiwan",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "where-it-is",
-        "label": "Where Nantou is",
-        "sourceIds": []
-      },
-      {
-        "key": "why-people-value-it",
-        "label": "Why people value Nantou tea",
-        "sourceIds": []
-      },
-      {
-        "key": "altitude-bands",
-        "label": "Low, middle and high Nantou",
-        "sourceIds": []
-      },
-      {
-        "key": "lugu-dong-ding",
-        "label": "Lugu and Dong Ding",
-        "sourceIds": []
-      },
-      {
-        "key": "shan-lin-xi",
-        "label": "Shan Lin Xi",
-        "sourceIds": []
-      },
-      {
-        "key": "ren-ai-and-lishan",
-        "label": "Ren'ai Township and Lishan",
-        "sourceIds": []
-      },
-      {
-        "key": "sun-moon-lake",
-        "label": "Sun Moon Lake and Yuchi",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "oolong",
-    "slug": "oolong",
-    "kind": "tea_family",
-    "label": "Oolong (wulong)",
-    "visibility": "public",
-    "nativeName": "乌龙茶",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What oolong is",
-        "sourceIds": []
-      },
-      {
-        "key": "making",
-        "label": "How oolong is made",
-        "sourceIds": []
-      },
-      {
-        "key": "oxidation-and-roast",
-        "label": "Oxidation and roast",
-        "sourceIds": []
-      },
-      {
-        "key": "families",
-        "label": "The four families",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How oolong began",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Keeping and ageing oolong",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing oolong",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged oolong",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "phoenix-mountain",
-    "slug": "phoenix-mountain",
-    "kind": "major_region",
-    "label": "Phoenix Mountain",
-    "visibility": "draft",
-    "nativeName": "凤凰山",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "where-it-is",
-        "label": "Where Phoenix Mountain is",
-        "sourceIds": []
-      },
-      {
-        "key": "mist-and-climate",
-        "label": "Mist, cool air and slow leaf",
-        "sourceIds": []
-      },
-      {
-        "key": "wudong-and-villages",
-        "label": "Wudong and the other gardens",
-        "sourceIds": []
-      },
-      {
-        "key": "old-trees",
-        "label": "The old trees",
-        "sourceIds": []
-      },
-      {
-        "key": "people",
-        "label": "The people of the mountain",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "puer",
-    "slug": "puer",
-    "kind": "tea_family",
-    "label": "Pu’er",
-    "visibility": "public",
-    "nativeName": "普洱茶",
-    "sourceIds": [
-      "ctma-puer-history-2021"
-    ],
-    "sections": [
-      {
-        "key": "identity",
-        "label": "A tea rooted in Yunnan",
-        "sourceIds": [
-          "ctma-puer-history-2021"
-        ]
-      },
-      {
-        "key": "history",
-        "label": "Trade and continuity",
-        "sourceIds": [
-          "ctma-puer-history-2021"
-        ]
-      },
-      {
-        "key": "modern-family",
-        "label": "The modern family",
-        "sourceIds": [
-          "ctma-puer-history-2021"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "red",
-    "slug": "red",
-    "kind": "tea_family",
-    "label": "Red tea (hong cha)",
-    "visibility": "public",
-    "nativeName": "红茶",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What red tea is",
-        "sourceIds": []
-      },
-      {
-        "key": "making",
-        "label": "How red tea is made",
-        "sourceIds": []
-      },
-      {
-        "key": "whole-and-broken",
-        "label": "Whole leaf and broken leaf",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How red tea spread",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Keeping red tea",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing red tea",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "san-he-liu-bao",
-    "slug": "san-he-liu-bao",
-    "kind": "named_tea",
-    "label": "San He Liu Bao",
-    "visibility": "public",
-    "nativeName": "三鹤六堡茶",
-    "sourceIds": [
-      "china-coop-san-he-baskets",
-      "cns-wuzhou-aging-warehouse",
-      "guangxi-archives-liubao",
-      "mofcom-three-cranes"
-    ],
-    "sections": [
-      {
-        "key": "three-cranes",
-        "label": "The three cranes",
-        "sourceIds": [
-          "mofcom-three-cranes"
-        ]
-      },
-      {
-        "key": "export-buyers",
-        "label": "What buyers wanted from the leaf",
-        "sourceIds": [
-          "guangxi-archives-liubao"
-        ]
-      },
-      {
-        "key": "cold-water-piling",
-        "label": "Water and the Wuzhou pile",
-        "sourceIds": [
-          "mofcom-three-cranes"
-        ]
-      },
-      {
-        "key": "basket-weavers",
-        "label": "The basket makers",
-        "sourceIds": [
-          "china-coop-san-he-baskets"
-        ]
-      },
-      {
-        "key": "aging-warehouse",
-        "label": "A warehouse built for aging",
-        "sourceIds": [
-          "cns-wuzhou-aging-warehouse"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "sheng",
-    "slug": "sheng",
-    "kind": "tea_type",
-    "label": "Sheng Pu’er",
-    "visibility": "public",
-    "nativeName": "生普洱",
-    "parentId": "puer",
-    "sourceIds": [
-      "marshaln-young-puer-2013",
-      "teaguardian-raw-cooked-puer"
-    ],
-    "sections": [
-      {
-        "key": "identity",
-        "label": "What sheng means",
-        "sourceIds": [
-          "teaguardian-raw-cooked-puer"
-        ]
-      },
-      {
-        "key": "processing",
-        "label": "From maocha to finished tea",
-        "sourceIds": [
-          "teaguardian-raw-cooked-puer"
-        ]
-      },
-      {
-        "key": "aging",
-        "label": "Change through storage",
-        "sourceIds": [
-          "marshaln-young-puer-2013"
-        ]
-      },
-      {
-        "key": "making",
-        "label": "How raw pu’er is made",
-        "sourceIds": []
-      },
-      {
-        "key": "pressing",
-        "label": "Pressing",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How the trade grew",
-        "sourceIds": []
-      },
-      {
-        "key": "history-modern",
-        "label": "Collectors and mountains",
-        "sourceIds": []
-      },
-      {
-        "key": "storage",
-        "label": "Storage",
-        "sourceIds": []
-      },
-      {
-        "key": "age-young",
-        "label": "Young raw pu’er",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Raw pu’er with age",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing raw pu’er",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing-pressed",
-        "label": "Breaking a pressed cake",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged raw pu’er",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "shou",
-    "slug": "shou",
-    "kind": "tea_type",
-    "label": "Shou (ripe pu’er)",
-    "visibility": "public",
-    "nativeName": "熟普洱",
-    "parentId": "puer",
-    "sourceIds": [
-      "white2tea-ripe-puer"
-    ],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What ripe pu’er is",
-        "sourceIds": []
-      },
-      {
-        "key": "wet-piling",
-        "label": "Wet piling",
-        "sourceIds": [
-          "white2tea-ripe-puer"
-        ]
-      },
-      {
-        "key": "piling-history",
-        "label": "How piling came to be",
-        "sourceIds": []
-      },
-      {
-        "key": "piling-1973",
-        "label": "Yunnan learns the pile",
-        "sourceIds": []
-      },
-      {
-        "key": "piling-today",
-        "label": "Piling today",
-        "sourceIds": []
-      },
-      {
-        "key": "age-young",
-        "label": "Young ripe pu’er",
-        "sourceIds": []
-      },
-      {
-        "key": "age-settling",
-        "label": "Five to ten years",
-        "sourceIds": []
-      },
-      {
-        "key": "age-aged",
-        "label": "Ten years and more",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing ripe pu’er",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing-pressed",
-        "label": "Breaking a pressed tea",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged ripe pu’er",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "sichuan-dark",
-    "slug": "sichuan-dark",
-    "kind": "tea_type",
-    "label": "Sichuan border tea",
-    "visibility": "public",
-    "nativeName": "南路边茶",
-    "parentId": "dark",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What Sichuan border tea is",
-        "sourceIds": []
-      },
-      {
-        "key": "making",
-        "label": "How Sichuan border tea is made",
-        "sourceIds": []
-      },
-      {
-        "key": "kangzhuan-jinjian",
-        "label": "Kangzhuan and Jinjian",
-        "sourceIds": []
-      },
-      {
-        "key": "tea-horse-road",
-        "label": "The Tea Horse Road",
-        "sourceIds": []
-      },
-      {
-        "key": "packing",
-        "label": "Strip packs and yak hide",
-        "sourceIds": []
-      },
-      {
-        "key": "butter-tea",
-        "label": "Butter tea",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Keeping and ageing Sichuan border tea",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing Sichuan border tea",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in Sichuan border tea kept for years",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "taiwan",
-    "slug": "taiwan",
-    "kind": "major_region",
-    "label": "Taiwan",
-    "visibility": "draft",
-    "nativeName": "台湾",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "where-it-is",
-        "label": "Where Taiwan is",
-        "sourceIds": []
-      },
-      {
-        "key": "known-for",
-        "label": "What Taiwan is known for in tea",
-        "sourceIds": []
-      },
-      {
-        "key": "areas",
-        "label": "How the tea areas sit on the island",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How tea came to Taiwan",
-        "sourceIds": []
-      },
-      {
-        "key": "on-a-label",
-        "label": "Taiwan on a label",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "taiwan-oolong",
-    "slug": "taiwan-oolong",
-    "kind": "tea_type",
-    "label": "Taiwan oolong",
-    "visibility": "public",
-    "nativeName": "台灣烏龍茶",
-    "parentId": "oolong",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What Taiwan oolong is",
-        "sourceIds": []
-      },
-      {
-        "key": "high-mountain",
-        "label": "High mountain tea",
-        "sourceIds": []
-      },
-      {
-        "key": "dong-ding",
-        "label": "Dong Ding",
-        "sourceIds": []
-      },
-      {
-        "key": "baozhong",
-        "label": "Baozhong",
-        "sourceIds": []
-      },
-      {
-        "key": "oriental-beauty",
-        "label": "Oriental Beauty",
-        "sourceIds": []
-      },
-      {
-        "key": "muzha",
-        "label": "Muzha Tieguanyin",
-        "sourceIds": []
-      },
-      {
-        "key": "history",
-        "label": "How Taiwan oolong grew",
-        "sourceIds": []
-      },
-      {
-        "key": "ageing",
-        "label": "Keeping and ageing Taiwan oolong",
-        "sourceIds": []
-      },
-      {
-        "key": "brewing",
-        "label": "Brewing Taiwan oolong",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
-      },
-      {
-        "key": "notice-aged",
-        "label": "What people often notice in aged Taiwan oolong",
-        "sourceIds": []
-      }
-    ]
-  },
-  {
-    "id": "tea-heads",
-    "slug": "tea-heads",
-    "kind": "tea_type",
-    "label": "Tea heads",
-    "visibility": "public",
-    "nativeName": "老茶头",
-    "parentId": "puer",
-    "sourceIds": [],
-    "sections": [
-      {
-        "key": "definition",
-        "label": "What tea heads are",
-        "sourceIds": []
-      },
-      {
-        "key": "formation",
-        "label": "How they form",
-        "sourceIds": []
-      },
-      {
-        "key": "old",
-        "label": "Why \"old\"",
-        "sourceIds": []
-      },
-      {
-        "key": "common-impressions",
-        "label": "What people often notice",
-        "sourceIds": []
       }
     ]
   }

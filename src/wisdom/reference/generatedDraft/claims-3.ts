@@ -5,910 +5,619 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "dark:definition",
-    "pageId": "dark",
-    "sectionKey": "definition",
-    "label": "What dark tea is",
-    "axis": "type",
+    "claimId": "cangwu:on-a-label",
+    "pageId": "cangwu",
+    "sectionKey": "on-a-label",
+    "label": "Cangwu on a label",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark"
+      "origin_includes": [
+        "cangwu"
+      ]
     },
     "terms": [
       {
-        "original": "黑茶",
-        "pinyin": "hēi chá",
-        "gloss": "dark tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea is Chinese tea whose leaf, after it is heated and rolled, is left to change in warmth and moisture, where microbes and the leaf’s own chemistry slowly darken and mellow it. Because that change comes after the leaf is made, the trade calls it post-fermented. In Chinese it is hei cha, “black tea”, which is not the English black tea; that tea is red tea, hong cha, in Chinese.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
+        "original": "苍梧",
+        "pinyin": "Cāngwú",
+        "gloss": "Cangwu"
+      },
       {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Dark tea is Chinese tea whose leaf, after it is heated and rolled, is left to change in warmth and moisture, where microbes and the leaf’s own chemistry slowly darken and mellow it. Because that change comes after the leaf is made, the trade calls it post-fermented. In Chinese it is hei cha, “black tea”, which is not the English black tea; that tea is red tea, hong cha, in Chinese.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
+        "original": "梧州",
+        "pinyin": "Wúzhōu",
+        "gloss": "Wuzhou"
       }
     ],
-    "pageVisibility": "public"
+    "rev": null,
+    "scope": "",
+    "text": "Cangwu on a label names a county, and Liubao names a town inside it. They tell a buyer more than Wuzhou or Guangxi do, because the protected Liu Bao name covers the wider Wuzhou area and the leaf there does not all come from Cangwu. A label that says Cangwu is still not proof of leaf from the Liubao mountains, so a named village or a named maker backs it up better than the county word alone.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Cangwu on a label names a county, and Liubao names a town inside it. They tell a buyer more than Wuzhou or Guangxi do, because the protected Liu Bao name covers the wider Wuzhou area and the leaf there does not all come from Cangwu. A label that says Cangwu is still not proof of leaf from the Liubao mountains, so a named village or a named maker backs it up better than the county word alone.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "dark:history",
-    "pageId": "dark",
-    "sectionKey": "history",
-    "label": "How the trade grew",
-    "axis": "process",
+    "claimId": "cangwu:tea-boat-road",
+    "pageId": "cangwu",
+    "sectionKey": "tea-boat-road",
+    "label": "The tea boat road",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark"
+      "origin_includes": [
+        "cangwu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "茶船古道",
+        "pinyin": "chá chuán gǔdào",
+        "gloss": "tea boat ancient road"
+      },
+      {
+        "original": "合口",
+        "pinyin": "Hékǒu",
+        "gloss": "Hekou, river landing"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Tea left the mountains by water. Merchants gathered it at the river landing of Hekou, below Liubao, and boats carried it down the Xijiang river through Wuzhou to Guangzhou, then on to Hong Kong, Macau and Southeast Asia. The trade calls this the tea boat road. It explains why Liu Bao was long drunk more in Malaysia and Singapore than in China, and why its history belongs to the overseas Chinese communities as much as to Guangxi.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Tea left the mountains by water. Merchants gathered it at the river landing of Hekou, below Liubao, and boats carried it down the Xijiang river through Wuzhou to Guangzhou, then on to Hong Kong, Macau and Southeast Asia. The trade calls this the tea boat road. It explains why Liu Bao was long drunk more in Malaysia and Singapore than in China, and why its history belongs to the overseas Chinese communities as much as to Guangxi.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "cangwu:where-it-is",
+    "pageId": "cangwu",
+    "sectionKey": "where-it-is",
+    "label": "Where Cangwu is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "cangwu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "苍梧",
+        "pinyin": "Cāngwú",
+        "gloss": "Cangwu"
+      },
+      {
+        "original": "六堡镇",
+        "pinyin": "Liùbǎo zhèn",
+        "gloss": "Liubao town"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Cangwu is a county of Wuzhou city, in eastern Guangxi, close to the border with Guangdong. Its northern part is hill and mountain country, and that is where the tea is. The town of Liubao lies there, in the north of the county, and Liu Bao tea takes its name from the town. Cangwu is the original home of Liu Bao, the place the style comes from.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Cangwu is a county of Wuzhou city, in eastern Guangxi, close to the border with Guangdong. Its northern part is hill and mountain country, and that is where the tea is. The town of Liubao lies there, in the north of the county, and Liu Bao tea takes its name from the town. Cangwu is the original home of Liu Bao, the place the style comes from.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "china-national-tea-corporation:many-factories",
+    "pageId": "china-national-tea-corporation",
+    "sectionKey": "many-factories",
+    "label": "Many factories, one mark",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "yunnan"
+      ],
+      "name_any": [
+        "zhongcha",
+        "cnnp"
+      ]
     },
     "terms": [],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "The first records of dark tea by name are from the Ming dynasty, in Hunan around Anhua and in Sichuan, and in the late Ming it became a state-managed tea sent to the north-west in exchange for horses. In the Qing dynasty merchants carried the craft to more regions and more shapes, and some styles were made for new markets: Guangxi’s Liu Bao, for one, went to the tin mines of Southeast Asia. In the twentieth century state factories took over much of the making and settled the brick shapes that are sold today.",
+    "rev": null,
+    "scope": "",
+    "text": "Through the state era, pu’er from several Yunnan factories reached the market under the Zhong Cha mark, chiefly Kunming, Menghai and Xiaguan. The company was the trader and brand owner, and the factories made the tea. After the factories moved to their own brands in the 1980s and 1990s, Zhong Cha was also put on tea from smaller and newer makers. For that reason the mark belongs to the company, not to one factory or one style of tea.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "The first records of dark tea by name are from the Ming dynasty, in Hunan around Anhua and in Sichuan, and in the late Ming it became a state-managed tea sent to the north-west in exchange for horses. In the Qing dynasty merchants carried the craft to more regions and more shapes, and some styles were made for new markets: Guangxi’s Liu Bao, for one, went to the tin mines of Southeast Asia. In the twentieth century state factories took over much of the making and settled the brick shapes that are sold today.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "Through the state era, pu’er from several Yunnan factories reached the market under the Zhong Cha mark, chiefly Kunming, Menghai and Xiaguan. The company was the trader and brand owner, and the factories made the tea. After the factories moved to their own brands in the 1980s and 1990s, Zhong Cha was also put on tea from smaller and newer makers. For that reason the mark belongs to the company, not to one factory or one style of tea.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "dark:making",
-    "pageId": "dark",
-    "sectionKey": "making",
-    "label": "How dark tea is made",
-    "axis": "process",
+    "claimId": "china-national-tea-corporation:mark-and-tea",
+    "pageId": "china-national-tea-corporation",
+    "sectionKey": "mark-and-tea",
+    "label": "Reading the mark on a tea",
+    "axis": "maker_history",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark"
+      "origin_includes": [
+        "yunnan"
+      ],
+      "name_any": [
+        "zhongcha",
+        "cnnp"
+      ]
     },
-    "terms": [
-      {
-        "original": "渥堆",
-        "pinyin": "wò duī",
-        "gloss": "piling"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "A Zhong Cha label says who sold the tea. It does not say which factory made it, which leaf went in, or how good it is, and teas under the mark vary a great deal from one era and one maker to the next. A factory’s history is not a fact about every tea under this name. What a given cake is, and what its own designation such as Red Seal or Blue Seal Green Label means, belongs on that tea’s own page, not here.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Most dark tea shares four steps, each with a reason. The leaf is heated first, the kill-green, to stop its own enzymes from browning it; coarse leaf is often sprinkled with a little water so it heats evenly. It is rolled gently, because the large, mature leaf used for dark tea is tough and breaks if it is worked hard. It is then piled, and in the pile warmth, moisture and microbes do the darkening and mellowing, so the heap is turned to keep its heat in range. Finally it is dried, which stops the change and makes the tea stable enough to keep. Many styles then steam the leaf and press it, or pack it into baskets, and let it age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "A Zhong Cha label says who sold the tea. It does not say which factory made it, which leaf went in, or how good it is, and teas under the mark vary a great deal from one era and one maker to the next. A factory’s history is not a fact about every tea under this name. What a given cake is, and what its own designation such as Red Seal or Blue Seal Green Label means, belongs on that tea’s own page, not here.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "dark:why",
-    "pageId": "dark",
-    "sectionKey": "why",
-    "label": "Why it was made",
-    "axis": "type",
+    "claimId": "china-national-tea-corporation:today",
+    "pageId": "china-national-tea-corporation",
+    "sectionKey": "today",
+    "label": "Where the company stands now",
+    "axis": "maker_history",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark"
+      "origin_includes": [
+        "yunnan"
+      ],
+      "name_any": [
+        "zhongcha",
+        "cnnp"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "The company is now part of COFCO, the state grain and food group, and it still sells tea, pu’er among it, under the Zhong Cha name. The sources differ on when it became a COFCO subsidiary, with dates in the mid 2000s given, and one account says the brand was briefly set aside and then brought back. That brief gap is reported by only a few places, so it is not stated as settled.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The company is now part of COFCO, the state grain and food group, and it still sells tea, pu’er among it, under the Zhong Cha name. The sources differ on when it became a COFCO subsidiary, with dates in the mid 2000s given, and one account says the brand was briefly set aside and then brought back. That brief gap is reported by only a few places, so it is not stated as settled.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "china-national-tea-corporation:what-it-is",
+    "pageId": "china-national-tea-corporation",
+    "sectionKey": "what-it-is",
+    "label": "What the company is",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "yunnan"
+      ],
+      "name_any": [
+        "zhongcha",
+        "cnnp"
+      ]
     },
     "terms": [
       {
-        "original": "边销茶",
-        "pinyin": "biān xiāo chá",
-        "gloss": "border tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Dark tea in general",
-    "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
+        "original": "中国茶叶公司",
+        "pinyin": "Zhōngguó Cháyè Gōngsī",
+        "gloss": "China Tea Company"
+      },
       {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Dark tea in general",
-        "text": "Dark tea was made for people who lived far from where tea grows: Tibet, Mongolia, China’s north-west and, later, Central Asia and Russia. The trade called it border tea. The tea had to survive months on the road, so it was pressed into bricks, cakes and logs, or packed tight in baskets. A dense, even shape is easier to carry, stack and strap to a pack animal, and it keeps better than loose leaf. Some dark tea is still sold loose.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
+        "original": "中茶",
+        "pinyin": "Zhōngchá",
+        "gloss": "short name of the company and its brand"
       }
     ],
-    "pageVisibility": "public"
+    "rev": null,
+    "scope": "",
+    "text": "China National Tea Corporation, known in pu’er circles as Zhong Cha, CNNP or China Tea, began in 1949 as the state’s national tea trading company, set up soon after the People’s Republic was founded. It organised tea production, export and sales across the country, and in Yunnan it stood above the big state factories. The name has changed with the state’s trade bodies over the years, and the sources do not agree on every step, so this page does not try to give one clean chain of names.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "China National Tea Corporation, known in pu’er circles as Zhong Cha, CNNP or China Tea, began in 1949 as the state’s national tea trading company, set up soon after the People’s Republic was founded. It organised tea production, export and sales across the country, and in Yunnan it stood above the big state factories. The name has changed with the state’s trade bodies over the years, and the sources do not agree on every step, so this page does not try to give one clean chain of names.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "dian-hong:ageing",
-    "pageId": "dian-hong",
+    "claimId": "china-national-tea-corporation:zhong-cha-mark",
+    "pageId": "china-national-tea-corporation",
+    "sectionKey": "zhong-cha-mark",
+    "label": "The Zhong Cha mark",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "yunnan"
+      ],
+      "name_any": [
+        "zhongcha",
+        "cnnp"
+      ]
+    },
+    "terms": [
+      {
+        "original": "八中",
+        "pinyin": "bā zhōng",
+        "gloss": "eight zhong, nickname of the mark"
+      },
+      {
+        "original": "中茶牌",
+        "pinyin": "Zhōngchá pái",
+        "gloss": "Zhong Cha trademark"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The Zhong Cha trademark is a green character for tea, cha, ringed by eight red characters for zhong, which is why the trade also calls it the “eight zhong” mark. It dates from the early 1950s. Sources give 1951 for the trademark and 1952 for the finished look of the logo, so the exact year is not settled. It is one of the oldest tea marks in China and is the sign most people mean when they say a pu’er is “Zhong Cha”.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The Zhong Cha trademark is a green character for tea, cha, ringed by eight red characters for zhong, which is why the trade also calls it the “eight zhong” mark. It dates from the early 1950s. Sources give 1951 for the trademark and 1952 for the finished look of the logo, so the exact year is not settled. It is one of the oldest tea marks in China and is the sign most people mean when they say a pu’er is “Zhong Cha”.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "da-xue-shan:on-a-label",
+    "pageId": "da-xue-shan",
+    "sectionKey": "on-a-label",
+    "label": "Da Xue Shan on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "da xue shan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Treat Da Xue Shan on a label as a lead, not a source. Ask which county the leaf came from, whether the trees are wild, ancient or planted, and what the seller means by wild. Menghai is sometimes named in this context, but a Da Xue Shan in Menghai is not established by the places read.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Treat Da Xue Shan on a label as a lead, not a source. Ask which county the leaf came from, whether the trees are wild, ancient or planted, and what the seller means by wild. Menghai is sometimes named in this context, but a Da Xue Shan in Menghai is not established by the places read.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "da-xue-shan:where-it-is",
+    "pageId": "da-xue-shan",
+    "sectionKey": "where-it-is",
+    "label": "One name, several mountains",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "da xue shan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "大雪山",
+        "pinyin": "dàxuěshān",
+        "gloss": "Big Snow Mountain"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Da Xue Shan means Big Snow Mountain, and Yunnan has more than one mountain called that. In Lincang alone, trade writing lists four: the Mengku one on the Bangma ridge in Shuangjiang County, the Bangdong one east of Lincang County, the Yongde one in the south-east of Yongde County, and the Fengqing one near Sanchahu. The name on a label does not settle which of them the leaf came from.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Da Xue Shan means Big Snow Mountain, and Yunnan has more than one mountain called that. In Lincang alone, trade writing lists four: the Mengku one on the Bangma ridge in Shuangjiang County, the Bangdong one east of Lincang County, the Yongde one in the south-east of Yongde County, and the Fengqing one near Sanchahu. The name on a label does not settle which of them the leaf came from.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "da-xue-shan:which-one",
+    "pageId": "da-xue-shan",
+    "sectionKey": "which-one",
+    "label": "The one the trade usually means",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "da xue shan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "When pu'er writing says Da Xue Shan, it most often means the Mengku mountain: the main peak of the Bangma ridge, on the border of Shuangjiang and Gengma counties. Teas from it are often sold under the Mengku name. The Yongde mountain is the next most common, and sellers of its tea name Yongde or the reserve there. A seller who writes only Da Xue Shan has not said which one, and the other three are not rare enough to rule out.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "When pu'er writing says Da Xue Shan, it most often means the Mengku mountain: the main peak of the Bangma ridge, on the border of Shuangjiang and Gengma counties. Teas from it are often sold under the Mengku name. The Yongde mountain is the next most common, and sellers of its tea name Yongde or the reserve there. A seller who writes only Da Xue Shan has not said which one, and the other three are not rare enough to rule out.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "da-xue-shan:wild-and-old",
+    "pageId": "da-xue-shan",
+    "sectionKey": "wild-and-old",
+    "label": "Wild tea is not the same as old garden tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "da xue shan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Wild tree tea, ancient garden tea and ordinary plantation tea are three different things, and Da Xue Shan is sold under all three. A cake described as wild arbor may come from trees tens of years old rather than from the ancient forest itself. Sellers describe raw tea from the mountain as strong and bitter, with a lasting sweet return, but taste varies by which mountain and which trees.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Wild tree tea, ancient garden tea and ordinary plantation tea are three different things, and Da Xue Shan is sold under all three. A cake described as wild arbor may come from trees tens of years old rather than from the ancient forest itself. Sellers describe raw tea from the mountain as strong and bitter, with a lasting sweet return, but taste varies by which mountain and which trees.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "da-xue-shan:wild-trees",
+    "pageId": "da-xue-shan",
+    "sectionKey": "wild-trees",
+    "label": "Wild trees in the forest",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "da xue shan"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "People value Da Xue Shan for its wild tea trees. On the Mengku mountain a wild ancient tree community grows on the mid slopes in dense forest, at roughly 2,200 to 2,750 metres, and is described as among the largest and best preserved anywhere. The tea there is left to grow without pruning, fertilizer or managed picking paths. The core of that forest is now closed and protected, so it is no longer picked. Tea sold from the mountain comes from lower and managed ground.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "People value Da Xue Shan for its wild tea trees. On the Mengku mountain a wild ancient tree community grows on the mid slopes in dense forest, at roughly 2,200 to 2,750 metres, and is described as among the largest and best preserved anywhere. The tea there is left to grow without pruning, fertilizer or managed picking paths. The core of that forest is now closed and protected, so it is no longer picked. Tea sold from the mountain comes from lower and managed ground.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "dali:grown-in-dali",
+    "pageId": "dali",
+    "sectionKey": "grown-in-dali",
+    "label": "Tea grown in Dali",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "dali"
+      ]
+    },
+    "terms": [
+      {
+        "original": "大理",
+        "pinyin": "Dàlǐ",
+        "gloss": "Dali"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dali makes only a small amount of tea itself. Gardens lie mainly on the Cang mountains and on the Wuliang range in Nanjian County, and what is sold locally is often green tea. Dali sits north of the zone where Yunnan’s large leaf tea trees are most concentrated, in a belt where large and smaller leaf plants grow side by side. The finest pu’er material is not usually said to come from here.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dali makes only a small amount of tea itself. Gardens lie mainly on the Cang mountains and on the Wuliang range in Nanjian County, and what is sold locally is often green tea. Dali sits north of the zone where Yunnan’s large leaf tea trees are most concentrated, in a belt where large and smaller leaf plants grow side by side. The finest pu’er material is not usually said to come from here.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "dali:on-a-label",
+    "pageId": "dali",
+    "sectionKey": "on-a-label",
+    "label": "Pressed in Dali, grown elsewhere",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "dali"
+      ]
+    },
+    "terms": [
+      {
+        "original": "沱茶",
+        "pinyin": "tuóchá",
+        "gloss": "bowl tea, a bowl shaped compressed tea"
+      },
+      {
+        "original": "下关",
+        "pinyin": "Xiàguān",
+        "gloss": "Xiaguan, the tea town of Dali"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dali on a tuocha or cake says where the tea was pressed, not where the leaf grew. The Xiaguan trade has long blended leaf brought in from other parts of Yunnan, with Lincang counties such as Fengqing often named among them. Reading a Xiaguan tuocha as Dali leaf is a mistake. It is better read as a Dali pressing of Yunnan leaf, and the maker is a separate question from the place.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dali on a tuocha or cake says where the tea was pressed, not where the leaf grew. The Xiaguan trade has long blended leaf brought in from other parts of Yunnan, with Lincang counties such as Fengqing often named among them. Reading a Xiaguan tuocha as Dali leaf is a mistake. It is better read as a Dali pressing of Yunnan leaf, and the maker is a separate question from the place.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "dali:tuocha-trade",
+    "pageId": "dali",
+    "sectionKey": "tuocha-trade",
+    "label": "The tuocha trade at Xiaguan",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "dali"
+      ]
+    },
+    "terms": [
+      {
+        "original": "沱茶",
+        "pinyin": "tuóchá",
+        "gloss": "bowl tea, a bowl shaped compressed tea"
+      },
+      {
+        "original": "下关",
+        "pinyin": "Xiàguān",
+        "gloss": "Xiaguan, the tea town of Dali"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Xiaguan stood on the old caravan routes that carried Yunnan tea north to Sichuan and Tibet, and from the early twentieth century it was a gathering and pressing town for compressed tea. The bowl shaped tuocha is tied to Xiaguan: trading houses there are credited with developing it, and it is pressed there still. Sources give different years for when the shape first appeared, so no date is settled here. The trade at Xiaguan is the reason the name Dali shows up on pu’er at all.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Xiaguan stood on the old caravan routes that carried Yunnan tea north to Sichuan and Tibet, and from the early twentieth century it was a gathering and pressing town for compressed tea. The bowl shaped tuocha is tied to Xiaguan: trading houses there are credited with developing it, and it is pressed there still. Sources give different years for when the shape first appeared, so no date is settled here. The trade at Xiaguan is the reason the name Dali shows up on pu’er at all.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "dali:where-it-is",
+    "pageId": "dali",
+    "sectionKey": "where-it-is",
+    "label": "Where Dali is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "dali"
+      ]
+    },
+    "terms": [
+      {
+        "original": "大理",
+        "pinyin": "Dàlǐ",
+        "gloss": "Dali"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dali is a prefecture in western Yunnan, north of Lincang and well north of the pu’er mountains of Xishuangbanna. Its best known tea place is the town of Xiaguan, which sits between the Cang mountains and Erhai lake. Dali is a place in tea mostly because of what was pressed and traded there, and much less because of what grows there.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dali is a prefecture in western Yunnan, north of Lincang and well north of the pu’er mountains of Xishuangbanna. Its best known tea place is the town of Xiaguan, which sits between the Cang mountains and Erhai lake. Dali is a place in tea mostly because of what was pressed and traded there, and much less because of what grows there.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "dancong:ageing",
+    "pageId": "dancong",
     "sectionKey": "ageing",
-    "label": "Keeping Dian Hong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Dian Hong changes in storage, but the trade treats it as best in its first one to three years. It is kept for freshness rather than for age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:brewing",
-    "pageId": "dian-hong",
-    "sectionKey": "brewing",
-    "label": "Brewing Dian Hong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Dian Hong takes hot water, roughly 90 to 100°C. A common start is about 5 grams to 100 ml, with short steeps that lengthen slowly as the leaf opens.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:common-impressions",
-    "pageId": "dian-hong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "A full, sweet cup, often described as malty, with chocolate or cocoa and honey notes and sometimes something floral. The liquor runs golden to bright red, and a good grade has little bitterness.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:definition",
-    "pageId": "dian-hong",
-    "sectionKey": "definition",
-    "label": "What Dian Hong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "滇红",
-        "pinyin": "diān hóng",
-        "gloss": "Yunnan red"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Dian Hong is red tea from Yunnan, made from the province’s large-leaf tea trees. Its home is Fengqing County in Lincang, in the south-west of the province, and it is also made in other parts of Lincang and in Menghai, Pu’er, Baoshan and Dehong. Golden buds through the dry leaf are the mark of the style.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:history",
-    "pageId": "dian-hong",
-    "sectionKey": "history",
-    "label": "How Dian Hong began",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "When the war cut China off from its eastern tea regions, the country needed a new red tea to sell abroad, and the national tea company looked to Yunnan’s large leaf. Feng Shaoqiu reached Shunning, now Fengqing, in late 1938 and made a trial batch from one bud and two leaves. An experimental factory followed there in 1939, the start of today’s Fengqing factory. For decades nearly all Dian Hong went abroad; it was sold widely at home only from the 1980s.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:large-leaf",
-    "pageId": "dian-hong",
-    "sectionKey": "large-leaf",
-    "label": "Why the large leaf matters",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "金毫",
-        "pinyin": "jīn háo",
-        "gloss": "golden buds"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Yunnan’s large-leaf trees give a plump leaf with many buds, and a strong cup. The trade ties that strength to the leaf’s high polyphenol content, which is also why Dian Hong stands up to milk. The buds turn golden as the tea is made, so a tea heavy in buds shows more gold.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:making",
-    "pageId": "dian-hong",
-    "sectionKey": "making",
-    "label": "How Dian Hong is made",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "金芽",
-        "pinyin": "jīn yá",
-        "gloss": "golden bud"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Dian Hong follows the steps of every red tea: the leaf is withered, then rolled to break its cells so oxidation can begin, then left to oxidise until it turns from green to reddish brown, and then dried with heat, which fixes it and keeps the leaf golden. It is then sorted into grades. There are two broad kinds: gongfu, whole or strip leaf, and broken. The gongfu grades use one bud with one to three leaves, and teas of buds alone, sold as golden bud or golden needle, sit at the top. A grade name says nothing about where the leaf grew or how old the trees were.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "dian-hong:old-tree-and-sun-dried",
-    "pageId": "dian-hong",
-    "sectionKey": "old-tree-and-sun-dried",
-    "label": "Old-tree and sun-dried red",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Red",
-      "origin_includes": [
-        "yunnan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "古树",
-        "pinyin": "gǔ shù",
-        "gloss": "old trees"
-      },
-      {
-        "original": "晒红",
-        "pinyin": "shài hóng",
-        "gloss": "sun-dried red"
-      }
-    ],
-    "rev": 1,
-    "scope": "All red tea; Dian Hong where the origin is Yunnan",
-    "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All red tea; Dian Hong where the origin is Yunnan",
-        "text": "Two newer branches sell under the Yunnan red name. Old-tree red is made from old tea trees; it is priced higher, and there is no agreed definition or standard for it. Sun-dried red is red tea whose last drying is done in the strong spring sun of the mountains rather than over heat, a choice of process and not a separate kind of tea. The trade does not agree whether either should be called Dian Hong.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 15)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:ageing",
-    "pageId": "fujian-white",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Fujian white",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "一年茶，三年药，七年宝",
-        "pinyin": "yī nián chá, sān nián yào, qī nián bǎo",
-        "gloss": "one year tea, three years medicine, seven years treasure"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "The trade says white tea is tea in its first year, medicine at three years and a treasure at seven; it is a saying, not a tested claim, and no agreed number of years makes a tea aged. With age it moves from fresh and sweet toward jujube, dried fruit, honey, wood and herbs, with a deeper, redder liquor and a rounder body. Keep it dry, clean and aired, away from strong smells and sunlight.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "The trade says white tea is tea in its first year, medicine at three years and a treasure at seven; it is a saying, not a tested claim, and no agreed number of years makes a tea aged. With age it moves from fresh and sweet toward jujube, dried fruit, honey, wood and herbs, with a deeper, redder liquor and a rounder body. Keep it dry, clean and aired, away from strong smells and sunlight.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:brewing",
-    "pageId": "fujian-white",
-    "sectionKey": "brewing",
-    "label": "Brewing Fujian white",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Gongfu style, use about 1 gram of leaf to 15 to 25 ml of water, for example 5 grams in a 100 to 110 ml gaiwan; weigh it, since the leaf is light and bulky. Silver Needle and young, delicate tea take water below the boil, about 75 to 90°C; older, leafier or aged tea takes water at or near the boil. Start with a steep of 10 to 45 seconds and add a few seconds each round. An aged cake is often rinsed quickly first, and older pressed tea can be simmered on the stove, about 5 grams to 500 ml for 3 to 10 minutes; young, delicate tea is not.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:cakes",
-    "pageId": "fujian-white",
-    "sectionKey": "cakes",
-    "label": "White tea cakes",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "白茶饼",
-        "pinyin": "báichá bǐng",
-        "gloss": "white tea cake"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Pressed white tea is new. Cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. A cake is made from one of several grades, White Peony, Gong Mei or Shou Mei, so its grade has to be read from its own description. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can be the year it was pressed rather than picked.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:common-impressions",
-    "pageId": "fujian-white",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "In young Fuding tea: a sweet cup, floral, fresh and brisk, with the scent of the down. Zhenghe tea is most often called thick and full.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:cultivars",
-    "pageId": "fujian-white",
-    "sectionKey": "cultivars",
-    "label": "The bushes",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "福鼎大白",
-        "pinyin": "fúdǐng dàbái",
-        "gloss": "Fuding Da Bai"
-      },
-      {
-        "original": "福鼎大毫",
-        "pinyin": "fúdǐng dàháo",
-        "gloss": "Fuding Da Hao"
-      },
-      {
-        "original": "政和大白",
-        "pinyin": "zhènghé dàbái",
-        "gloss": "Zhenghe Da Bai"
-      },
-      {
-        "original": "菜茶",
-        "pinyin": "càichá",
-        "gloss": "Cai Cha"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Fuding grows two named cultivars, Fuding Da Bai and Fuding Da Hao, and Fuding Silver Needle is made from their buds; Fuding Da Bai comes from Bailiu village in Diantou and has plump buds heavy with white down. Zhenghe has its own, Zhenghe Da Bai, used for its Silver Needle and White Peony. Both replaced, mostly from the late 1800s on, the older small-leaf local plants grown from seed, called Cai Cha.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:definition",
-    "pageId": "fujian-white",
-    "sectionKey": "definition",
-    "label": "What Fujian white is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "福鼎白茶",
-        "pinyin": "fúdǐng báichá",
-        "gloss": "Fuding white tea"
-      },
-      {
-        "original": "政和白茶",
-        "pinyin": "zhènghé báichá",
-        "gloss": "Zhenghe white tea"
-      },
-      {
-        "original": "太姥山",
-        "pinyin": "tàimǔ shān",
-        "gloss": "Taimu Mountain"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Fujian is the home of white tea. Fuding and Zhenghe are its two leading counties, and Jianyang and Songxi make white tea too. Fuding is a coastal city in the north-east of the province, by the Zhejiang border, hilly over most of its land; its white tea is tied to Taimu Mountain, where the first mother tree and the first famous bud tea are placed. Fuding white tea is a protected origin name in China. Zhenghe is an inland mountain county further west.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Fujian is the home of white tea. Fuding and Zhenghe are its two leading counties, and Jianyang and Songxi make white tea too. Fuding is a coastal city in the north-east of the province, by the Zhejiang border, hilly over most of its land; its white tea is tied to Taimu Mountain, where the first mother tree and the first famous bud tea are placed. Fuding white tea is a protected origin name in China. Zhenghe is an inland mountain county further west.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:fuding-and-zhenghe",
-    "pageId": "fujian-white",
-    "sectionKey": "fuding-and-zhenghe",
-    "label": "Fuding and Zhenghe",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Fuding buds are plumper and downier than Zhenghe's. In the cup, Fuding is most often called the lighter, fresher, more floral style, and Zhenghe the fuller, thicker, mellower one. That is the trade's comparison of the two places, not a rule for every tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Fuding buds are plumper and downier than Zhenghe's. In the cup, Fuding is most often called the lighter, fresher, more floral style, and Zhenghe the fuller, thicker, mellower one. That is the trade's comparison of the two places, not a rule for every tea.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:grades",
-    "pageId": "fujian-white",
-    "sectionKey": "grades",
-    "label": "Grades",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "白毫银针",
-        "pinyin": "báiháo yínzhēn",
-        "gloss": "Silver Needle"
-      },
-      {
-        "original": "白牡丹",
-        "pinyin": "bái mǔdān",
-        "gloss": "White Peony"
-      },
-      {
-        "original": "贡眉",
-        "pinyin": "gòngméi",
-        "gloss": "Gong Mei"
-      },
-      {
-        "original": "寿眉",
-        "pinyin": "shòuméi",
-        "gloss": "Shou Mei"
-      },
-      {
-        "original": "新工艺白茶",
-        "pinyin": "xīn gōngyì báichá",
-        "gloss": "new-craft white tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "The trade sorts Fujian white tea by how the leaf was picked. Silver Needle is buds alone. White Peony is a bud with one or two young leaves. Gong Mei has more leaf than bud, and Shou Mei is the mature-leaf grade, with large leaves and few or no buds, often from later picks. Fuding also makes a separate new-craft white tea, xin gongyi, which is lightly rolled after withering and is darker in the cup.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "The trade sorts Fujian white tea by how the leaf was picked. Silver Needle is buds alone. White Peony is a bud with one or two young leaves. Gong Mei has more leaf than bud, and Shou Mei is the mature-leaf grade, with large leaves and few or no buds, often from later picks. Fuding also makes a separate new-craft white tea, xin gongyi, which is lightly rolled after withering and is darker in the cup.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:history",
-    "pageId": "fujian-white",
-    "sectionKey": "history",
-    "label": "How Fujian white began",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "White tea in its present form is a Qing dynasty tea of the 1700s and 1800s, first from Fuding or Jianyang and from Zhenghe later in the 1800s. Fuding Silver Needle was first sold abroad around 1890. The stories of Taimu and older uses of the name white tea are legend, kept apart from this record.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "White tea in its present form is a Qing dynasty tea of the 1700s and 1800s, first from Fuding or Jianyang and from Zhenghe later in the 1800s. Fuding Silver Needle was first sold abroad around 1890. The stories of Taimu and older uses of the name white tea are legend, kept apart from this record.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:making",
-    "pageId": "fujian-white",
-    "sectionKey": "making",
-    "label": "How Fujian white is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Two steps make it: withering, then drying at low heat, with no fixing and no rolling for the classic grades. The leaf is withered in the sun, indoors in moving air, indoors with gentle warmth, or by a mix of these, as the weather and the leaf allow, usually for two to three days. It is then dried at low heat, over charcoal or by machine, until it keeps.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Two steps make it: withering, then drying at low heat, with no fixing and no rolling for the classic grades. The leaf is withered in the sun, indoors in moving air, indoors with gentle warmth, or by a mix of these, as the weather and the leaf allow, usually for two to three days. It is then dried at low heat, over charcoal or by machine, until it keeps.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "fujian-white:notice-aged",
-    "pageId": "fujian-white",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Fujian white",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "fujian"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Fujian white style kit",
-    "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Fujian white style kit",
-        "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Fujian white kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "gaba:brewing",
-    "pageId": "gaba",
-    "sectionKey": "brewing",
-    "label": "Brewing GABA oolong",
+    "label": "Keeping Dancong",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "type": "Oolong",
-      "process_in_name": [
-        "gaba"
+      "origin_includes": [
+        "phoenix mountain"
       ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
+    "scope": "Phoenix Dancong style kit",
+    "text": "Freshly roasted Dancong is rested for some months before it is at its best; how many months is not agreed. Keep it sealed, dry, cool and out of the light.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "In a cup or pot, steep it for about two to five minutes. It is forgiving of small changes in water temperature and steeping time. It can also be cold-brewed, steeped for some hours in the fridge.",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Freshly roasted Dancong is rested for some months before it is at its best; how many months is not agreed. Keep it sealed, dry, cool and out of the light.",
         "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "gaba:common-impressions",
-    "pageId": "gaba",
+    "claimId": "dancong:aromas",
+    "pageId": "dancong",
+    "sectionKey": "aromas",
+    "label": "Aroma types",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "香型",
+        "pinyin": "xiāngxíng",
+        "gloss": "aroma type"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Dancong is sorted and sold by its aroma type, named for a flower, fruit or spice the scent recalls. The scent comes from the bush and the making, not from anything added: an orchid or almond Dancong names a smell, not an ingredient. The trade speaks of the ten aroma types. Nine names turn up in every full list: Huangzhi, yellow sprig; Zhilan, orchid; Milan, honey orchid; Yulan, magnolia; Xingren, almond; Jianghua, ginger flower; Guihua, osmanthus; Yelai, night-blooming flower; and Rougui, cinnamon. The tenth is most often jasmine.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:brewing",
+    "pageId": "dancong",
+    "sectionKey": "brewing",
+    "label": "Brewing Dancong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Brew it gongfu style in a small gaiwan or clay pot, with about 3 to 8 grams for 100 to 120 ml and hot water, about 88 to 100°C; Chinese accounts mostly say 95 to 100°C. A quick rinse is common. Steeps start at a few seconds and grow a few seconds each round, and a good Dancong gives about eight to fifteen. Too long, too hot or too much leaf and it turns bitter and astringent.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:common-impressions",
+    "pageId": "dancong",
     "sectionKey": "common-impressions",
     "label": "What people often notice",
     "axis": "type",
@@ -916,24 +625,325 @@ export const PART: readonly DraftClaim[] = [
     "listingEligible": true,
     "appliesWhen": {
       "type": "Oolong",
-      "process_in_name": [
-        "gaba"
+      "origin_includes": [
+        "phoenix mountain"
       ]
     },
-    "terms": [],
+    "terms": [
+      {
+        "original": "山韵",
+        "pinyin": "shān yùn",
+        "gloss": "mountain rhyme"
+      }
+    ],
     "rev": 1,
-    "scope": "GABA oolong process kit",
-    "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
+    "scope": "Phoenix Dancong style kit",
+    "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "GABA oolong process kit",
-        "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness.",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber.",
         "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the GABA oolong kit 2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:definition",
+    "pageId": "dancong",
+    "sectionKey": "definition",
+    "label": "What Phoenix Dancong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "凤凰单丛",
+        "pinyin": "fènghuáng dāncóng",
+        "gloss": "Phoenix single bush"
+      },
+      {
+        "original": "乌岽",
+        "pinyin": "wūdōng",
+        "gloss": "Wudong peak"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Phoenix Dancong is the oolong of Phoenix Mountain, Fenghuang Shan, in Chao'an, Chaozhou, in eastern Guangdong. Wudong is the peak named most often as its heart. The dry leaf is a long strip, twisted tight, dark and glossy, not rolled into a ball.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:history",
+    "pageId": "dancong",
+    "sectionKey": "history",
+    "label": "The local tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "潮州工夫茶",
+        "pinyin": "cháozhōu gōngfu chá",
+        "gloss": "Chaozhou gongfu tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "The old tea of the mountain was called bird-beak tea, and later Shuixian. Dancong is the everyday tea of Chaozhou, and gongfu brewing is tied to Chaozhou, where Chaozhou gongfu tea is still made with small vessels, set ways of pouring, and three cups.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:making",
+    "pageId": "dancong",
+    "sectionKey": "making",
+    "label": "How Dancong is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "The leaf is withered in the sun and cooled indoors, then shaken and rested in rounds; this is the step that bruises the leaf edge and builds the scent. It is fixed fast at high heat in a hot pan or drum, rolled into strips, dried, and roasted again as it is refined, sometimes over more than one round. Charcoal is the traditional fire. The roast is a main difference between teas: a light roast keeps the floral scent bright, a heavier one gives a deeper, sweeter cup with caramel in it.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:mi-lan-xiang",
+    "pageId": "dancong",
+    "sectionKey": "mi-lan-xiang",
+    "label": "Mi Lan Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_includes": [
+        "mi",
+        "lan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "蜜兰香",
+        "pinyin": "mìlán xiāng",
+        "gloss": "honey orchid aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Mi Lan Xiang, honey orchid, is one of the traditional ten aroma types and one of the most widely made, often named as a good first Dancong. It is described as honey-sweet with an orchid scent, with a cooked sweet potato note, and a liquor from golden amber to orange-red, depending on the roast. The one name covers a range of teas.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:name",
+    "pageId": "dancong",
+    "sectionKey": "name",
+    "label": "Single bush",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "单丛",
+        "pinyin": "dāncóng",
+        "gloss": "single bush"
+      },
+      {
+        "original": "单枞",
+        "pinyin": "dāncōng",
+        "gloss": "single bush, other spelling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Dancong means single bush: the leaf of one bush picked and made on its own, never mixed with others. The bushes are chosen from the old Phoenix Shuixian plants of the mountain. Today a named Dancong is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree, though some very old trees are still made on their own.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:old-bushes",
+    "pageId": "dancong",
+    "sectionKey": "old-bushes",
+    "label": "Old bushes and Song tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "老丛",
+        "pinyin": "lǎocóng",
+        "gloss": "old bush"
+      },
+      {
+        "original": "宋种",
+        "pinyin": "sòngzhǒng",
+        "gloss": "Song variety"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Old bushes, laocong, are prized for depth and a lasting sweetness, and give little leaf; no age is agreed for when a bush counts as old. Song variety, songzhong, is a market label for the oldest named lines, Huangzhi above all, not a proven age. A legend gives the old trees their name: the last Song emperor, fleeing as a boy, was given tea on the mountain by a phoenix.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "dancong:ya-shi-xiang",
+    "pageId": "dancong",
+    "sectionKey": "ya-shi-xiang",
+    "label": "Ya Shi Xiang",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "phoenix mountain"
+      ],
+      "name_any": [
+        "ya",
+        "duck"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鸭屎香",
+        "pinyin": "yā shǐ xiāng",
+        "gloss": "duck dung aroma"
+      },
+      {
+        "original": "银花香",
+        "pinyin": "yínhuā xiāng",
+        "gloss": "silver flower aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Phoenix Dancong style kit",
+    "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Phoenix Dancong style kit",
+        "text": "Ya Shi Xiang, duck dung aroma, is the market name for a very floral Dancong, and most lists of the ten leave it out even though it sells widely. It is also called Yinhua Xiang, silver flower or honeysuckle aroma, a name put forward in 2014 for a scent likened to the wild honeysuckle of the mountain; many sellers keep the old name. Its line is traced to Pingkengtou village. Three stories explain the name, all told as stories: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush. The tea tastes nothing like its name: every account of the cup gives flowers, usually with milk or cream, honey or fruit.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Phoenix Dancong kit 2026-11-25",
         "evidenceIds": []
       }
     ],

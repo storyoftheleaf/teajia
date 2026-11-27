@@ -5,498 +5,939 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "liu-an:basket",
-    "pageId": "liu-an",
-    "sectionKey": "basket",
-    "label": "The basket and its tickets",
-    "axis": "type",
+    "claimId": "gong-ting:grade-and-quality",
+    "pageId": "gong-ting",
+    "sectionKey": "grade-and-quality",
+    "label": "Grade is not quality",
+    "axis": "terminology",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
+      "grade": "gong-ting"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "gong-ting",
+        "text": "A grade describes leaf size and the style of the cup, not how good the tea is. A well made coarser grade can drink better than a poorly made Gong Ting, and where each grade line falls differs from one maker to the next.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:name-on-the-label",
+    "pageId": "gong-ting",
+    "sectionKey": "name-on-the-label",
+    "label": "A grade, and a selling word",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "gong-ting",
+    "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "gong-ting",
+        "text": "Gong Ting is a modern market name, not an old court grade: the trade dates it to Menghai in the late 1990s, and ripe tea itself only began in the 1970s. The Menghai standard grades loose ripe tea only, so Gong Ting printed on a cake or brick is a selling word, not a grade.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gong-ting:other-names",
+    "pageId": "gong-ting",
+    "sectionKey": "other-names",
+    "label": "Other names and other teas",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gong-ting"
     },
     "terms": [
       {
-        "original": "箬叶",
-        "pinyin": "ruò yè",
-        "gloss": "bamboo leaf lining"
-      },
-      {
-        "original": "茶票",
-        "pinyin": "chá piào",
-        "gloss": "tea ticket"
-      },
-      {
-        "original": "孙义顺",
-        "pinyin": "sūn yì shùn",
-        "gloss": "Sun Yi Shun"
+        "original": "宫廷",
+        "pinyin": "gōngtíng",
+        "gloss": "palace; Palace Grade"
       }
     ],
     "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "The tea is packed into woven bamboo baskets lined with bamboo leaf, from about 250 to 600 grams each, several tied into a bundle. The leaf lining gives the tea a bamboo note that sellers liken to rice dumplings, and drinkers keep the leaves to brew a small piece with the tea. Old baskets carry printed paper tickets naming the firm, which collectors use to tell editions and fakes apart. Sun Yi Shun is the best-known old firm, but modern baskets carry the name too, so the name alone does not date a basket.",
+    "scope": "gong-ting",
+    "text": "Gong Ting is also written Gongting and sold in English as Palace Grade. The older record of the word notes that it is also used for the finest bud and leaf of aged Taiwanese oolong, so the name is not limited to ripe pu’er. That oolong use rests on one record and has not been checked against other places.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "The tea is packed into woven bamboo baskets lined with bamboo leaf, from about 250 to 600 grams each, several tied into a bundle. The leaf lining gives the tea a bamboo note that sellers liken to rice dumplings, and drinkers keep the leaves to brew a small piece with the tea. Old baskets carry printed paper tickets naming the firm, which collectors use to tell editions and fakes apart. Sun Yi Shun is the best-known old firm, but modern baskets carry the name too, so the name alone does not date a basket.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
+        "scope": "gong-ting",
+        "text": "Gong Ting is also written Gongting and sold in English as Palace Grade. The older record of the word notes that it is also used for the finest bud and leaf of aged Taiwanese oolong, so the name is not limited to ripe pu’er. That oolong use rests on one record and has not been checked against other places.",
+        "approvedAt": "2026-11-26",
+        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
         "evidenceIds": []
       }
     ],
-    "pageVisibility": "public"
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "liu-an:brewing",
-    "pageId": "liu-an",
-    "sectionKey": "brewing",
-    "label": "Brewing Liu An",
-    "axis": "type",
+    "claimId": "gongjian:among-three-tips",
+    "pageId": "gongjian",
+    "sectionKey": "among-three-tips",
+    "label": "Where it sits among the three tips",
+    "axis": "grade",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Use water at or near the boil, rinse the leaf quickly, and keep the steeps short, each a little longer than the last, in a gaiwan or clay pot; doses run from about 3 to 8 grams for 100 ml, for six to ten or more steeps. A small piece of the basket's bamboo leaf is often brewed with it. Aged tea can also be simmered in a larger pot, about 1 gram to 200 to 300 ml, for a few minutes or longer.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Use water at or near the boil, rinse the leaf quickly, and keep the steeps short, each a little longer than the last, in a gaiwan or clay pot; doses run from about 3 to 8 grams for 100 ml, for six to ten or more steeps. A small piece of the basket's bamboo leaf is often brewed with it. Aged tea can also be simmered in a larger pot, about 1 gram to 200 to 300 ml, for a few minutes or longer.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:common-impressions",
-    "pageId": "liu-an",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Bamboo leaf above all, herbal or medicinal notes, a sweetness that returns after swallowing, a cooling feel in the mouth and throat, and a smooth, thick cup with little bitterness; young tea shows some smoke or charcoal, and the liquor runs from orange-gold to red.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Bamboo leaf above all, herbal or medicinal notes, a sweetness that returns after swallowing, a cooling feel in the mouth and throat, and a smooth, thick cup with little bitterness; young tea shows some smoke or charcoal, and the liquor runs from orange-gold to red.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:definition",
-    "pageId": "liu-an",
-    "sectionKey": "definition",
-    "label": "What Liu An basket tea is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
+      "grade": "gongjian"
     },
     "terms": [
       {
-        "original": "六安篓茶",
-        "pinyin": "liù ān lǒu chá",
-        "gloss": "Liu An basket tea"
+        "original": "贡尖",
+        "pinyin": "gòngjiān",
+        "gloss": "tribute tip; the middle grade of the three Anhua tips"
       },
       {
-        "original": "安茶",
-        "pinyin": "ān chá",
-        "gloss": "An tea"
+        "original": "天尖",
+        "pinyin": "tiānjiān",
+        "gloss": "heavenly tip, the finest of the three"
       },
       {
-        "original": "祁门",
-        "pinyin": "qímén",
-        "gloss": "Qimen"
-      },
-      {
-        "original": "六安瓜片",
-        "pinyin": "liù ān guāpiàn",
-        "gloss": "Liu An Gua Pian"
+        "original": "生尖",
+        "pinyin": "shēngjiān",
+        "gloss": "the coarsest of the three tips"
       }
     ],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Liu An basket tea is a dark tea packed into small bamboo baskets and kept for years. Despite its name it is made in Qimen County in southern Anhui, around Luxi and Rongkou, not in Lu'an, from the local small-leaf Qimen bush that Keemun red tea also comes from. In the south it was sold as Liu An, and sellers today use Liu An, Lu An, Lao Liu An and An tea for the same basket tea; the name is said to come from its following the Liu An way of making and trading. It is not Liu An Gua Pian, a green tea from the Lu'an area that only shares part of the name.",
+    "rev": null,
+    "scope": "",
+    "text": "The three tips are sorted by the leaf they are made from. Tianjian takes the most tender leaf, Shengjian the coarsest with the most stalk, and Gongjian the leaf in between, usually described as second grade. For a buyer that places it as the plainer, sturdier step up from Shengjian and the lighter, less tender step down from Tianjian. A grade says how the leaf was sorted, not how well the tea was made or kept, so a careful, well aged Gongjian can drink better than a careless Tianjian.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Liu An basket tea is a dark tea packed into small bamboo baskets and kept for years. Despite its name it is made in Qimen County in southern Anhui, around Luxi and Rongkou, not in Lu'an, from the local small-leaf Qimen bush that Keemun red tea also comes from. In the south it was sold as Liu An, and sellers today use Liu An, Lu An, Lao Liu An and An tea for the same basket tea; the name is said to come from its following the Liu An way of making and trading. It is not Liu An Gua Pian, a green tea from the Lu'an area that only shares part of the name.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "The three tips are sorted by the leaf they are made from. Tianjian takes the most tender leaf, Shengjian the coarsest with the most stalk, and Gongjian the leaf in between, usually described as second grade. For a buyer that places it as the plainer, sturdier step up from Shengjian and the lighter, less tender step down from Tianjian. A grade says how the leaf was sorted, not how well the tea was made or kept, so a careful, well aged Gongjian can drink better than a careless Tianjian.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "liu-an:making",
-    "pageId": "liu-an",
-    "sectionKey": "making",
-    "label": "How Liu An is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "夜露",
-        "pinyin": "yè lù",
-        "gloss": "night dew"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Spring leaf, picked around Grain Rain, is first made much like a green tea: withered, fixed, rolled and dried into rough tea, which rests through the summer. In early autumn it is sorted, graded, blended and fired over charcoal. Then comes the step most accounts single out: the fired tea is spread on bamboo mats outdoors for one night to take the dew, and gathered before sunrise. It is steamed soft, packed into baskets lined with bamboo leaf, tied into bundles and fired a last time over charcoal, and it is sold only after resting for some years, commonly three.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Spring leaf, picked around Grain Rain, is first made much like a green tea: withered, fixed, rolled and dried into rough tea, which rests through the summer. In early autumn it is sorted, graded, blended and fired over charcoal. Then comes the step most accounts single out: the fired tea is spread on bamboo mats outdoors for one night to take the dew, and gathered before sunrise. It is steamed soft, packed into baskets lined with bamboo leaf, tied into bundles and fired a last time over charcoal, and it is sold only after resting for some years, commonly three.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:notice-aged",
-    "pageId": "liu-an",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in Liu An kept for years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:old-stock",
-    "pageId": "liu-an",
-    "sectionKey": "old-stock",
-    "label": "Old baskets",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Old baskets were kept in Hong Kong and Macau tea houses, medicine shops and homes, and the oldest are treated as collector's pieces, with prices that climb steeply with age. Fakes exist, so buyers look at the tickets, the basket's shape and the story of the stock.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Old baskets were kept in Hong Kong and Macau tea houses, medicine shops and homes, and the oldest are treated as collector's pieces, with prices that climb steeply with age. Fakes exist, so buyers look at the tickets, the basket's shape and the story of the stock.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-an:southern-trade",
-    "pageId": "liu-an",
-    "sectionKey": "southern-trade",
-    "label": "The southern trade",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "anhui"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu An basket tea style kit",
-    "text": "Basket tea went south to Guangdong, Hong Kong, Macau and the overseas Chinese of Southeast Asia, and that is where it was known and drunk. It was kept in homes and medicine shops, added to herbal remedies, and older drinkers in the south still call it a cooling tea in the traditional Chinese sense. Production stopped in the 1930s and 1940s, as war cut the southern trade, and the tea was nearly gone for decades. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu An basket tea style kit",
-        "text": "Basket tea went south to Guangdong, Hong Kong, Macau and the overseas Chinese of Southeast Asia, and that is where it was known and drunk. It was kept in homes and medicine shops, added to herbal remedies, and older drinkers in the south still call it a cooling tea in the traditional Chinese sense. Production stopped in the 1930s and 1940s, as war cut the southern trade, and the tea was nearly gone for decades. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Liu An basket tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:age-aged",
-    "pageId": "liu-bao",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao of ten years and more",
-    "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of ten years and more",
-        "text": "After about ten years the trade counts a Liu Bao as aged. The cup turns amber to deep red-brown, thick and smooth, with woody and herbal notes, and decades-old tea is often said to take on ginseng and camphor. How it was stored matters as much as how long, and the trade does not agree whether it keeps improving for decades or peaks sooner.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:age-settling",
-    "pageId": "liu-bao",
-    "sectionKey": "age-settling",
-    "label": "Five to ten years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao of about five to ten years",
-    "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of about five to ten years",
-        "text": "Between about five and ten years the aged character begins to show. The pile smell has gone, the cup deepens toward red, and the woody, sweet notes the trade looks for start to come through.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:age-young",
-    "pageId": "liu-bao",
-    "sectionKey": "age-young",
-    "label": "Young Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao under about five years",
-    "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao under about five years",
-        "text": "Under about five years a Liu Bao is still young. Its cup is paler, yellow to orange, and it can carry a faint smell of the pile and a little brightness or bitterness that age will soften.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:brewing",
-    "pageId": "liu-bao",
-    "sectionKey": "brewing",
-    "label": "Brewing Liu Bao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao takes very hot or boiling water, because its leaf is dense and gives up its depth slowly. Rinse it once or twice and pour the rinse away. Use about 5 to 8 grams to 100 ml, start with steeps of five to fifteen seconds and add a few seconds each round; a good Liu Bao gives ten cups or more.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:common-impressions",
-    "pageId": "liu-bao",
+    "claimId": "gongjian:common-impressions",
+    "pageId": "gongjian",
     "sectionKey": "common-impressions",
     "label": "What people often notice",
     "axis": "sensory_observation",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Dark",
+      "grade": "gongjian"
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "People often notice pine smoke or pine wood from the wood-fire drying, a sweet taste and a thick, smooth feel, in a clear orange liquor. Aged Gongjian is said to turn mellower and sweeter with years in storage. These impressions are shared by Anhua dark tea in general and are not specific to this grade.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "People often notice pine smoke or pine wood from the wood-fire drying, a sweet taste and a thick, smooth feel, in a clear orange liquor. Aged Gongjian is said to turn mellower and sweeter with years in storage. These impressions are shared by Anhua dark tea in general and are not specific to this grade.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gongjian:definition",
+    "pageId": "gongjian",
+    "sectionKey": "definition",
+    "label": "What Gongjian means",
+    "axis": "grade",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "grade": "gongjian"
+    },
+    "terms": [
+      {
+        "original": "贡尖",
+        "pinyin": "gòngjiān",
+        "gloss": "tribute tip; the middle grade of the three Anhua tips"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Gongjian is the middle one of the three traditional loose Anhua teas, known together as the three tips. The name is usually rendered \"tribute tip\". It is a loose, lightly pressed tea made from Anhua raw dark tea, and it sits between the finer Tianjian and the coarser Shengjian.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Gongjian is the middle one of the three traditional loose Anhua teas, known together as the three tips. The name is usually rendered \"tribute tip\". It is a loose, lightly pressed tea made from Anhua raw dark tea, and it sits between the finer Tianjian and the coarser Shengjian.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "gongjian:other-names",
+    "pageId": "gongjian",
+    "sectionKey": "other-names",
+    "label": "Other names and other teas",
+    "axis": "terminology",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "grade": "gongjian"
+    },
+    "terms": [
+      {
+        "original": "贡尖",
+        "pinyin": "gòngjiān",
+        "gloss": "tribute tip; the middle grade of the three Anhua tips"
+      },
+      {
+        "original": "湘尖",
+        "pinyin": "xiāngjiān",
+        "gloss": "Hunan tip; the family name of the three tips"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Gongjian is also written Gong Jian and sold in English as Tribute Tip. Its three sisters are together called the three tips, and the same family is also named Xiangjian, the Hunan tip. Tianjian and Shengjian are separate grades with their own leaf. Why the tea is called \"tribute\" is not established here, so the name should not be read as proof that this grade was ever sent as tribute.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Gongjian is also written Gong Jian and sold in English as Tribute Tip. Its three sisters are together called the three tips, and the same family is also named Xiangjian, the Hunan tip. Tianjian and Shengjian are separate grades with their own leaf. Why the tea is called \"tribute\" is not established here, so the name should not be read as proof that this grade was ever sent as tribute.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "greater-yiwu:common-character",
+    "pageId": "greater-yiwu",
+    "sectionKey": "common-character",
+    "label": "Shared reputation, varied tea",
+    "axis": "sensory_observation",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "attribution": {
+      "sourceId": "teadb-greater-yiwu",
+      "sourceRole": "specialist_editorial",
+      "sample": "Regional convention reported in specialist writing about Greater Yiwu"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Greater Yiwu is often associated with a softer opening and a persistent sweet return when compared with the more forceful profiles linked to western Xishuangbanna. The area contains many growing places, however, and their material can vary substantially; this is a regional tendency, not a tasting promise for an individual tea.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Greater Yiwu is often associated with a softer opening and a persistent sweet return when compared with the more forceful profiles linked to western Xishuangbanna. The area contains many growing places, however, and their material can vary substantially; this is a regional tendency, not a tasting promise for an individual tea.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-063C59A9C3026FEBF80765F1"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:history",
+    "pageId": "greater-yiwu",
+    "sectionKey": "history",
+    "label": "Trade history",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Greater Yiwu",
+    "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Yiwu became an important collection and distribution point for tea from the old Six Famous Tea Mountains. Its trade connected local leaf, merchant networks, tribute routes, and later some of the best-known early twentieth-century tea firms.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-A856667D478345A121C24FD6"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:known-for",
+    "pageId": "greater-yiwu",
+    "sectionKey": "known-for",
+    "label": "What Yiwu is known for",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
       "origin_includes": [
-        "guangxi"
+        "yiwu"
       ]
     },
     "terms": [
       {
-        "original": "红浓陈醇",
-        "pinyin": "hóng nóng chén chún",
-        "gloss": "red, thick, aged, mellow"
-      },
-      {
-        "original": "槟榔香",
-        "pinyin": "bīng láng xiāng",
-        "gloss": "betel nut aroma"
+        "original": "易武",
+        "pinyin": "Yìwǔ",
+        "gloss": "Yiwu"
       }
     ],
+    "rev": null,
+    "scope": "",
+    "text": "Yiwu is known for raw pu’er that drinks soft and sweet rather than forceful. The trade describes a smooth, thick liquor with little bitterness, a floral and honeyed fragrance, and a sweet aftertaste that lasts through many infusions. People like it because it is easy to drink young and is said to hold up well with age. It is the usual contrast to the heavier teas of Menghai and Bulang. This is a regional tendency. The area is large, and the tea from one village can taste quite different from another.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Yiwu is known for raw pu’er that drinks soft and sweet rather than forceful. The trade describes a smooth, thick liquor with little bitterness, a floral and honeyed fragrance, and a sweet aftertaste that lasts through many infusions. People like it because it is easy to drink young and is said to hold up well with age. It is the usual contrast to the heavier teas of Menghai and Bulang. This is a regional tendency. The area is large, and the tea from one village can taste quite different from another.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:on-a-label",
+    "pageId": "greater-yiwu",
+    "sectionKey": "on-a-label",
+    "label": "Yiwu on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "yiwu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "易武",
+        "pinyin": "Yìwǔ",
+        "gloss": "Yiwu"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Yiwu on a label is a market name, and it is not proof of where the leaf grew. The word is used for the town, for the mountain and for a wider area, and sellers also use it for tea made with Yiwu leaf or in a Yiwu style. Some cakes sold under the name blend in leaf from elsewhere. The clearest labels name the village or plot as well as Yiwu, and a seller who can tie a tea to a village, a harvest and a maker is giving you something you can check.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Yiwu on a label is a market name, and it is not proof of where the leaf grew. The word is used for the town, for the mountain and for a wider area, and sellers also use it for tea made with Yiwu leaf or in a Yiwu style. Some cakes sold under the name blend in leaf from elsewhere. The clearest labels name the village or plot as well as Yiwu, and a seller who can tie a tea to a village, a harvest and a maker is giving you something you can check.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:scope",
+    "pageId": "greater-yiwu",
+    "sectionKey": "scope",
+    "label": "A name at several scales",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
     "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
+    "scope": "Greater Yiwu",
+    "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+    "sourceIds": [
+      "teadb-greater-yiwu"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Greater Yiwu",
+        "text": "Yiwu can mean a township, a market center, or a much broader tea area in eastern Xishuangbanna. In trade, the name often reaches beyond the town itself, so a Yiwu label should be read as a regional claim whose scale still needs context.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-B4A02CADDFD91399DD30150A"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "greater-yiwu:where-it-is",
+    "pageId": "greater-yiwu",
+    "sectionKey": "where-it-is",
+    "label": "Where Yiwu is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "yiwu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "易武",
+        "pinyin": "Yìwǔ",
+        "gloss": "Yiwu"
+      },
+      {
+        "original": "勐腊",
+        "pinyin": "Měnglà",
+        "gloss": "Mengla"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Yiwu is in the north of Mengla County, the eastern county of Xishuangbanna in southern Yunnan, on the east side of the Lancang River (the upper Mekong). It is one of the old Six Famous Tea Mountains, and the town of Yiwu has long been where tea from the surrounding villages is gathered and processed. Mahei, Mansa and Luoshuidong are among the villages around it where old trees still grow.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Yiwu is in the north of Mengla County, the eastern county of Xishuangbanna in southern Yunnan, on the east side of the Lancang River (the upper Mekong). It is one of the old Six Famous Tea Mountains, and the town of Yiwu has long been where tea from the surrounding villages is gathered and processed. Mahei, Mansa and Luoshuidong are among the villages around it where old trees still grow.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "green:ageing",
+    "pageId": "green",
+    "sectionKey": "ageing",
+    "label": "Keeping green tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Green"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Green tea family kit",
+    "text": "Green tea is a tea to drink fresh. The sources read give its best time as within about a year of picking, and a shelf life of a year or two when it is sealed. After that it goes flat: the fresh smell fades and the cup turns dull. Nothing read describes a tradition of ageing green tea, and it does not mature the way pu’er or white tea can. Keep it sealed, dark, dry and away from strong smells. If a green tea is sold as old, what counts is how it was kept, because the type itself does not promise anything.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "A sweet, smooth cup, woody and herbal, which the trade sums up as red, thick, aged and mellow. The note most often named is betel nut, faint in younger tea and clearer with age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "scope": "Green tea family kit",
+        "text": "Green tea is a tea to drink fresh. The sources read give its best time as within about a year of picking, and a shelf life of a year or two when it is sealed. After that it goes flat: the fresh smell fades and the cup turns dull. Nothing read describes a tradition of ageing green tea, and it does not mature the way pu’er or white tea can. Keep it sealed, dark, dry and away from strong smells. If a green tea is sold as old, what counts is how it was kept, because the type itself does not promise anything.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the green tea kit 2026-11-25",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "liu-bao:definition",
-    "pageId": "liu-bao",
+    "claimId": "green:anhui",
+    "pageId": "green",
+    "sectionKey": "anhui",
+    "label": "Anhui green tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Green",
+      "origin_includes": [
+        "anhui"
+      ]
+    },
+    "terms": [
+      {
+        "original": "黄山毛峰",
+        "pinyin": "huángshān máofēng",
+        "gloss": "Huangshan Maofeng"
+      }
+    ],
+    "rev": 1,
+    "scope": "Green tea family kit",
+    "text": "Anhui is one of the main green tea provinces of China. Its best-known green tea is Huangshan Maofeng, from the Huangshan mountains: a slightly curled leaf covered in fine white down, fixed and then dried over gentle heat rather than in a pan, which is why it counts as oven-dried and not pan-fired.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Green tea family kit",
+        "text": "Anhui is one of the main green tea provinces of China. Its best-known green tea is Huangshan Maofeng, from the Huangshan mountains: a slightly curled leaf covered in fine white down, fixed and then dried over gentle heat rather than in a pan, which is why it counts as oven-dried and not pan-fired.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the green tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "green:brewing",
+    "pageId": "green",
+    "sectionKey": "brewing",
+    "label": "Brewing green tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Green"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Green tea family kit",
+    "text": "Green tea takes water well below the boil, about 80°C, a little cooler for the youngest leaf and a little warmer for older, larger leaf. Boiling water draws out bitterness and dries the cup. A common start is about 2 grams of leaf to 100 ml, in a glass or a small gaiwan, with short steeps of half a minute to two minutes, and the same leaf can be brewed a few times.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Green tea family kit",
+        "text": "Green tea takes water well below the boil, about 80°C, a little cooler for the youngest leaf and a little warmer for older, larger leaf. Boiling water draws out bitterness and dries the cup. A common start is about 2 grams of leaf to 100 ml, in a glass or a small gaiwan, with short steeps of half a minute to two minutes, and the same leaf can be brewed a few times.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the green tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "green:common-impressions",
+    "pageId": "green",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Green"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Green tea family kit",
+    "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Green tea family kit",
+        "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the green tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "green:definition",
+    "pageId": "green",
     "sectionKey": "definition",
-    "label": "What Liu Bao is",
+    "label": "What green tea is",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark",
+      "type": "Green"
+    },
+    "terms": [
+      {
+        "original": "绿茶",
+        "pinyin": "lǜ chá",
+        "gloss": "green tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Green tea family kit",
+    "text": "Green tea is the tea whose leaf is never allowed to oxidise. Soon after picking, the leaf is heated, and the heat stops the leaf’s own enzymes before they can turn it brown, so it keeps its green colour and its fresh, leafy taste. That sets it apart from red tea, where the change is let run to the end, and from oolong, where it is stopped halfway. Green tea is made in many provinces of China, Zhejiang, Jiangsu and Anhui among them, and in Japan, Taiwan and elsewhere.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Green tea family kit",
+        "text": "Green tea is the tea whose leaf is never allowed to oxidise. Soon after picking, the leaf is heated, and the heat stops the leaf’s own enzymes before they can turn it brown, so it keeps its green colour and its fresh, leafy taste. That sets it apart from red tea, where the change is let run to the end, and from oolong, where it is stopped halfway. Green tea is made in many provinces of China, Zhejiang, Jiangsu and Anhui among them, and in Japan, Taiwan and elsewhere.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the green tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "green:making",
+    "pageId": "green",
+    "sectionKey": "making",
+    "label": "How green tea is made",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Green"
+    },
+    "terms": [
+      {
+        "original": "杀青",
+        "pinyin": "shā qīng",
+        "gloss": "fixing, killing the green"
+      },
+      {
+        "original": "揉捻",
+        "pinyin": "róu niǎn",
+        "gloss": "rolling"
+      }
+    ],
+    "rev": 1,
+    "scope": "Green tea family kit",
+    "text": "Green tea is made in three steps, and each has a reason. First the leaf is fixed, heated fast in a hot pan or drum, or with steam, to stop the enzymes; the Chinese trade calls this killing the green, and it is the step that makes the tea green. Then the leaf is rolled, twisted and pressed, so it takes its shape and lets out a little juice. Last it is dried, by pan, oven heat or sun, until only a few percent of water is left, so it keeps and does not go mouldy.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Green tea family kit",
+        "text": "Green tea is made in three steps, and each has a reason. First the leaf is fixed, heated fast in a hot pan or drum, or with steam, to stop the enzymes; the Chinese trade calls this killing the green, and it is the step that makes the tea green. Then the leaf is rolled, twisted and pressed, so it takes its shape and lets out a little juice. Last it is dried, by pan, oven heat or sun, until only a few percent of water is left, so it keeps and does not go mouldy.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the green tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "green:styles",
+    "pageId": "green",
+    "sectionKey": "styles",
+    "label": "The main styles",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Green"
+    },
+    "terms": [
+      {
+        "original": "炒青",
+        "pinyin": "chǎo qīng",
+        "gloss": "pan-fired green tea"
+      },
+      {
+        "original": "蒸青",
+        "pinyin": "zhēng qīng",
+        "gloss": "steamed green tea"
+      },
+      {
+        "original": "烘青",
+        "pinyin": "hōng qīng",
+        "gloss": "oven-dried green tea"
+      },
+      {
+        "original": "晒青",
+        "pinyin": "shài qīng",
+        "gloss": "sun-dried green tea"
+      },
+      {
+        "original": "西湖龙井",
+        "pinyin": "xī hú lóngjǐng",
+        "gloss": "West Lake Longjing"
+      },
+      {
+        "original": "碧螺春",
+        "pinyin": "bìluóchūn",
+        "gloss": "Biluochun"
+      }
+    ],
+    "rev": 1,
+    "scope": "Green tea family kit",
+    "text": "Green tea is sorted by how it is fixed and how it is dried. Pan-fired tea is dried in the pan and is the usual Chinese way; West Lake Longjing from Zhejiang, flat and straight, is the best-known example, and Biluochun from Jiangsu is curled into small snails. Steamed tea is fixed with steam, which is the usual Japanese way, and it gives a deeper green leaf and a grassier, sometimes seaweed-like taste. Oven-dried tea is dried over gentle heat after fixing, which leaves the leaf looser and keeps more of its white down. Sun-dried tea is dried in sunlight.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Green tea family kit",
+        "text": "Green tea is sorted by how it is fixed and how it is dried. Pan-fired tea is dried in the pan and is the usual Chinese way; West Lake Longjing from Zhejiang, flat and straight, is the best-known example, and Biluochun from Jiangsu is curled into small snails. Steamed tea is fixed with steam, which is the usual Japanese way, and it gives a deeper green leaf and a grassier, sometimes seaweed-like taste. Oven-dried tea is dried over gentle heat after fixing, which leaves the leaf looser and keeps more of its white down. Sun-dried tea is dried in sunlight.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the green tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "guangdong:drinking-culture",
+    "pageId": "guangdong",
+    "sectionKey": "drinking-culture",
+    "label": "How Guangdong drinks tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "工夫茶",
+        "pinyin": "gōngfu chá",
+        "gloss": "gongfu tea"
+      },
+      {
+        "original": "饮茶",
+        "pinyin": "yǐn chá",
+        "gloss": "yum cha, drinking tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Tea is a daily habit here, in two very different forms. In the east, Chaozhou gongfu tea is the local way of brewing: small pots and cups, quick infusions, and a tea station at the front of many shops and homes. In Guangzhou and the delta, tea is drunk at yum cha, the morning or midday meal of a pot of tea with small dishes of dim sum. Pu'er, chrysanthemum and other teas are served this way, and pu'er has long been an everyday tea for ordinary people across the province.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Tea is a daily habit here, in two very different forms. In the east, Chaozhou gongfu tea is the local way of brewing: small pots and cups, quick infusions, and a tea station at the front of many shops and homes. In Guangzhou and the delta, tea is drunk at yum cha, the morning or midday meal of a pot of tea with small dishes of dim sum. Pu'er, chrysanthemum and other teas are served this way, and pu'er has long been an everyday tea for ordinary people across the province.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangdong:known-for",
+    "pageId": "guangdong",
+    "sectionKey": "known-for",
+    "label": "What Guangdong is known for",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "单丛",
+        "pinyin": "dāncóng",
+        "gloss": "single bush; Phoenix oolong"
+      },
+      {
+        "original": "英德红茶",
+        "pinyin": "Yīngdé hóngchá",
+        "gloss": "Yingde black tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Guangdong does not grow tea on the scale of Yunnan, Fujian or Hunan, and the trade knows it for two teas rather than for volume. One is the oolong of Phoenix Mountain, called dancong, which is the tea most buyers mean when they say Guangdong. The other is Yingde black tea. Beyond these, the province matters for what happens to tea after it is made: where it is traded, stored and drunk.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Guangdong does not grow tea on the scale of Yunnan, Fujian or Hunan, and the trade knows it for two teas rather than for volume. One is the oolong of Phoenix Mountain, called dancong, which is the tea most buyers mean when they say Guangdong. The other is Yingde black tea. Beyond these, the province matters for what happens to tea after it is made: where it is traded, stored and drunk.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangdong:phoenix-dancong",
+    "pageId": "guangdong",
+    "sectionKey": "phoenix-dancong",
+    "label": "Phoenix Mountain and dancong",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "凤凰单丛",
+        "pinyin": "Fènghuáng dāncóng",
+        "gloss": "Phoenix single-bush oolong"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The oolong of Phoenix Mountain, in Chaozhou in the east, is the province's best known tea. It is valued for its strong scent, floral or fruity depending on the bush, and for old trees that give each tea its own character. The mountain, its villages and its trees have their own page, so this page does not repeat them. On a label, Guangdong alone says very little, and the mountain or village name is what points to the tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The oolong of Phoenix Mountain, in Chaozhou in the east, is the province's best known tea. It is valued for its strong scent, floral or fruity depending on the bush, and for old trees that give each tea its own character. The mountain, its villages and its trees have their own page, so this page does not repeat them. On a label, Guangdong alone says very little, and the mountain or village name is what points to the tea.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangdong:storage",
+    "pageId": "guangdong",
+    "sectionKey": "storage",
+    "label": "Hong Kong and Guangdong storage",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "香港仓",
+        "pinyin": "Xiānggǎng cāng",
+        "gloss": "Hong Kong storage"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Hong Kong and Guangzhou are the places the trade names when it talks about traditionally stored pu'er. Both are hot and humid, which ages tea faster and darker than a dry climate does. Old pu'er sat for decades in the storerooms of Hong Kong teahouses and restaurants, and the \"Hong Kong storage\" label grew out of that. Whether a given tea sold under that name was really kept in Hong Kong, and how damp it was, is not something the label settles. See the pu'er pages for what storage does to the tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Hong Kong and Guangzhou are the places the trade names when it talks about traditionally stored pu'er. Both are hot and humid, which ages tea faster and darker than a dry climate does. Old pu'er sat for decades in the storerooms of Hong Kong teahouses and restaurants, and the \"Hong Kong storage\" label grew out of that. Whether a given tea sold under that name was really kept in Hong Kong, and how damp it was, is not something the label settles. See the pu'er pages for what storage does to the tea.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangdong:trade-hub",
+    "pageId": "guangdong",
+    "sectionKey": "trade-hub",
+    "label": "A trading province",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "芳村",
+        "pinyin": "Fāngcūn",
+        "gloss": "Fangcun, tea market in Guangzhou"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Guangdong's weight in tea comes as much from its ports and markets as from its gardens. Guangzhou has been a gateway for tea leaving China, and its Fangcun market is described as the largest tea trading centre in the south, with thousands of shops and merchants from many provinces, Hong Kong and Taiwan. Pu'er in particular moves through Guangzhou, and for most of the last century its main buyers were in Hong Kong and Taiwan. A tea sold in Guangzhou is therefore not a tea grown in Guangdong.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Guangdong's weight in tea comes as much from its ports and markets as from its gardens. Guangzhou has been a gateway for tea leaving China, and its Fangcun market is described as the largest tea trading centre in the south, with thousands of shops and merchants from many provinces, Hong Kong and Taiwan. Pu'er in particular moves through Guangzhou, and for most of the last century its main buyers were in Hong Kong and Taiwan. A tea sold in Guangzhou is therefore not a tea grown in Guangdong.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangdong:where-it-is",
+    "pageId": "guangdong",
+    "sectionKey": "where-it-is",
+    "label": "Where Guangdong is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "广东",
+        "pinyin": "Guǎngdōng",
+        "gloss": "Guangdong"
+      },
+      {
+        "original": "广州",
+        "pinyin": "Guǎngzhōu",
+        "gloss": "Guangzhou"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Guangdong is a large province on the south coast of China, built around the Pearl River Delta. Its capital is Guangzhou, the old Canton, and Hong Kong and Macao sit beside it. The climate is hot and humid, with a rainy season and a drier one. Tea is grown mostly in the hills of the east and the north, away from the delta.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Guangdong is a large province on the south coast of China, built around the Pearl River Delta. Its capital is Guangzhou, the old Canton, and Hong Kong and Macao sit beside it. The climate is hot and humid, with a rainy season and a drier one. Tea is grown mostly in the hills of the east and the north, away from the delta.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangdong:yingde-black",
+    "pageId": "guangdong",
+    "sectionKey": "yingde-black",
+    "label": "Yingde black tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangdong"
+      ]
+    },
+    "terms": [
+      {
+        "original": "英德红茶",
+        "pinyin": "Yīngdé hóngchá",
+        "gloss": "Yingde black tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Yingde, north of Guangzhou, makes the province's black tea. It is a young style by Chinese standards: machine production began in the late 1950s, and much of it has been sold abroad. Writers describe it as sweet, with a cocoa or chocolate note, and a malty, slightly peppery finish. It is not a mountain tea in the way Phoenix oolong is, and it should not be read as a fact about the province's other teas.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Yingde, north of Guangzhou, makes the province's black tea. It is a young style by Chinese standards: machine production began in the late 1950s, and much of it has been sold abroad. Writers describe it as sweet, with a cocoa or chocolate note, and a malty, slightly peppery finish. It is not a mountain tea in the way Phoenix oolong is, and it should not be read as a fact about the province's other teas.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangxi:hengzhou-jasmine",
+    "pageId": "guangxi",
+    "sectionKey": "hengzhou-jasmine",
+    "label": "Hengzhou jasmine tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "横州",
+        "pinyin": "Héngzhōu",
+        "gloss": "Hengzhou"
+      },
+      {
+        "original": "茉莉花茶",
+        "pinyin": "mòlìhuā chá",
+        "gloss": "jasmine tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The other tea Guangxi is known for is jasmine tea from Hengzhou, a county-level city. Hengzhou is described as the largest jasmine growing area in China, and a very large part of the country's jasmine flowers are picked there, which is why so much scented tea starts from its flowers. This is a scented tea of a different kind from Liu Bao, and the two share nothing but the province.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The other tea Guangxi is known for is jasmine tea from Hengzhou, a county-level city. Hengzhou is described as the largest jasmine growing area in China, and a very large part of the country's jasmine flowers are picked there, which is why so much scented tea starts from its flowers. This is a scented tea of a different kind from Liu Bao, and the two share nothing but the province.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "guangxi:known-for-liu-bao",
+    "pageId": "guangxi",
+    "sectionKey": "known-for-liu-bao",
+    "label": "What Guangxi is known for in dark tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
       "origin_includes": [
         "guangxi"
       ]
@@ -504,475 +945,17 @@ export const PART: readonly DraftClaim[] = [
     "terms": [
       {
         "original": "六堡茶",
-        "pinyin": "liù bǎo chá",
+        "pinyin": "Liùbǎo chá",
         "gloss": "Liu Bao tea"
       }
     ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
+    "rev": null,
+    "scope": "",
+    "text": "Guangxi is known above all for Liu Bao, a dark tea the trade values for how it ages. It matters to buyers as the one famous dark tea of the south, made for the hot, humid life of Chinese workers in Southeast Asia, and Wuzhou has grown it into a large industry with its own protected name. The style, its making and its aged stock are on the Liu Bao page, so this page does not repeat them.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao is a dark tea from Cangwu County, near Wuzhou in Guangxi, named for the town of Liubao where it began. Like every dark tea, its leaf is piled after it is made, so that warmth, moisture and microbes turn it darker and softer, and then it is packed and left to age.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:history",
-    "pageId": "liu-bao",
-    "sectionKey": "history",
-    "label": "How the trade fell and returned",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "From the late 1930s war and blockade cut the river trade, and in the decades that followed production fell further as the planned economy changed who could buy and sell tea, and later as farmers left tea for other work. When the Malaysian tin mines declined, much old stock was left sitting in warehouses in Malaysia and Hong Kong. That forgotten stock is where most very old Liu Bao comes from today.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:making-factory",
-    "pageId": "liu-bao",
-    "sectionKey": "making-factory",
-    "label": "The factory way",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "冷水渥堆",
-        "pinyin": "lěng shuǐ wò duī",
-        "gloss": "cold-water piling"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:making-traditional",
-    "pageId": "liu-bao",
-    "sectionKey": "making-traditional",
-    "label": "The farmhouse way",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "篓装",
-        "pinyin": "lǒu zhuāng",
-        "gloss": "basket packing"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:nanyang-trade",
-    "pageId": "liu-bao",
-    "sectionKey": "nanyang-trade",
-    "label": "Who drank it, and why",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [],
-    "rev": 2,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade held that it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      },
-      {
-        "rev": 2,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24; one word changed after approval (held to believed) because held is a reserved review word",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:notice-aged",
-    "pageId": "liu-bao",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Liu Bao",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "槟榔香",
-        "pinyin": "bīng láng xiāng",
-        "gloss": "betel nut aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao of ten years and more",
-    "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao of ten years and more",
-        "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "liu-bao:old-stock",
-    "pageId": "liu-bao",
-    "sectionKey": "old-stock",
-    "label": "Old stock",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "guangxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "回流",
-        "pinyin": "huí liú",
-        "gloss": "returned"
-      }
-    ],
-    "rev": 1,
-    "scope": "Liu Bao tea",
-    "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Liu Bao tea",
-        "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "mahei-gushu-red:tea-name",
-    "pageId": "mahei-gushu-red",
-    "sectionKey": "tea-name",
-    "label": "Reading the tea’s name",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "mahei-gushu-red"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The recorded name and its meaning. It supplies no tree measurement.",
-    "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
-    "sourceIds": [
-      "teajia-mahei-red"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The recorded name and its meaning. It supplies no tree measurement.",
-        "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-D2D75741CFD44DE469A12F65"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "mahei:village-road-and-harvest",
-    "pageId": "mahei",
-    "sectionKey": "village-road-and-harvest",
-    "label": "The road through Mahei",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "mahei",
-        "yiwu"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The documented Mahei road and one grower’s 2024 field account.",
-    "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
-    "sourceIds": [
-      "ma-zhefeng-mahei-road",
-      "mengla-mahei-spring"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The documented Mahei road and one grower’s 2024 field account.",
-        "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-44151BAAF5BCA58F985D91EE",
-          "EVIDENCE-80742578E49E9441F6CC59CF",
-          "EVIDENCE-7D86F61C923CB5E76CC2CCD4"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:returned",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "returned",
-    "label": "Why the tea is called “returned”",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Meaning of the trade name.",
-    "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
-    "sourceIds": [
-      "cns-malaysia-liubao-trade",
-      "teajia-malaysian-returned"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Meaning of the trade name.",
-        "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-25C675AC1B3373D804FFE518",
-          "EVIDENCE-3D052B7C680B4561B8BEB047"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:river-trade",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "river-trade",
-    "label": "The river route to Malaya",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The commercial route in the 1951 trade account.",
-    "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
-    "sourceIds": [
-      "guangxi-archives-liubao"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The commercial route in the 1951 trade account.",
-        "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-94FBED6771030379C4352AC1",
-          "EVIDENCE-374E11CAC771CEE17ACA52B9"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "malaysian-returned-liu-bao:tea-came-back",
-    "pageId": "malaysian-returned-liu-bao",
-    "sectionKey": "tea-came-back",
-    "label": "How older tea found its way back",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "named_tea": "malaysian-returned-liu-bao"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
-    "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
-    "sourceIds": [
-      "cns-malaysia-liubao-trade"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
-        "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
-        "approvedAt": "2026-11-23",
-        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
-        "evidenceIds": [
-          "EVIDENCE-A3F7299E9399CE865CCF9A5D",
-          "EVIDENCE-3D052B7C680B4561B8BEB047"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "menghai-county:common-character",
-    "pageId": "menghai-county",
-    "sectionKey": "common-character",
-    "label": "A forceful reputation",
-    "axis": "sensory_observation",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "attribution": {
-      "sourceId": "teadb-menghai-county",
-      "sourceRole": "specialist_editorial",
-      "sample": "Regional convention reported in specialist writing about Menghai County"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Menghai County",
-    "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
-    "sourceIds": [
-      "teadb-menghai-county"
-    ],
-    "reviewState": "pending",
-    "pendingText": "Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county.",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Menghai County",
-        "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-5F496A300F5E710FC8FA80B0"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "Guangxi is known above all for Liu Bao, a dark tea the trade values for how it ages. It matters to buyers as the one famous dark tea of the south, made for the hot, humid life of Chinese workers in Southeast Asia, and Wuzhou has grown it into a large industry with its own protected name. The style, its making and its aged stock are on the Liu Bao page, so this page does not repeat them.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   }
 ];

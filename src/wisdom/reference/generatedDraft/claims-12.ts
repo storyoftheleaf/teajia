@@ -5,952 +5,954 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "y562:original-blend",
-    "pageId": "y562",
-    "sectionKey": "original-blend",
-    "label": "The tea behind the code",
-    "axis": "named_tea_history",
-    "basis": "sourced",
-    "listingEligible": true,
+    "claimId": "sheng:history",
+    "pageId": "sheng",
+    "sectionKey": "history",
+    "label": "How the trade grew",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
     "appliesWhen": {
-      "named_tea": "y562"
+      "type": "Sheng"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Jixing Y562 export tea and its documented historical versions.",
-    "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+    "scope": "Raw pu'er in general",
+    "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er in general",
+        "text": "In the Qing dynasty pu’er went to the court as tribute, but far more was ordinary trade, carried as pressed tea along the Tea Horse Road to Tibet and Southeast Asia. In the twentieth century Hong Kong became its great drinking market, and merchants there kept it in humid stores to speed its change. After 1949 the private tea houses were folded into state factories, among them Menghai, Xiaguan and Kunming, which made pu’er to standard recipes under the state tea company’s labels.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:history-modern",
+    "pageId": "sheng",
+    "sectionKey": "history-modern",
+    "label": "Collectors and mountains",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [
+      {
+        "original": "古树",
+        "pinyin": "gǔ shù",
+        "gloss": "old trees"
+      }
+    ],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er in general",
+        "text": "Through the 1980s and 1990s collectors, led at first by Taiwan, came looking for aged raw pu’er, and demand grew into a speculative boom in which fakes and falsely aged tea were common. Since that boom buyers have turned from factory brands to named mountains, villages and old trees, and prices for famous origins have risen.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:identity",
+    "pageId": "sheng",
+    "sectionKey": "identity",
+    "label": "What sheng means",
+    "axis": "type",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Sheng Pu’er",
+    "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
     "sourceIds": [
-      "puer-magazine-jixing-design"
+      "teaguardian-raw-cooked-puer"
     ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Jixing Y562 export tea and its documented historical versions.",
-        "text": "Pu’er magazine describes the original Y562 blend as grades five and six of ripe tea supplied by Menghai Tea Factory. Its yellow-box companion, Y671, used grades six and seven supplied by Kunming Tea Factory. These grades describe how the leaf was sorted for the original blends.",
+        "scope": "Sheng Pu’er",
+        "text": "Sheng is the undarkened branch of Pu’er, often called raw Pu’er in English. The label distinguishes it from shou, whose accelerated post-fermentation creates a markedly different tea from the outset.",
         "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the researched Y562 story for Tea Wisdom and matching listings.",
+        "reason": "Backfilled from pages",
         "evidenceIds": [
-          "EVIDENCE-A4817C0FA41A69E66E2BF23B"
+          "EVIDENCE-3BB473838666F92132E285E0"
         ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yancha:ageing",
-    "pageId": "yancha",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Wuyi rock tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "返青",
-        "pinyin": "fǎn qīng",
-        "gloss": "going green again"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Well-made medium to full roast Wuyi tea is the kind kept for years; light roast is for early drinking and is the most likely to go green again, a raw, sour or muddy taste that comes from damp or under-dried tea and is the main fault of stored rock tea. The heavier the roast, the longer the tea is said to stay good. With age the sharp roast softens, the liquor grows thicker and smoother and the high aroma fades. A tea that has gone green can be roasted again at low heat to drive out the moisture, a skilled job that costs some quality each time. Keep it sealed, dry, cool and away from strong smells, and look at it now and then.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Well-made medium to full roast Wuyi tea is the kind kept for years; light roast is for early drinking and is the most likely to go green again, a raw, sour or muddy taste that comes from damp or under-dried tea and is the main fault of stored rock tea. The heavier the roast, the longer the tea is said to stay good. With age the sharp roast softens, the liquor grows thicker and smoother and the high aroma fades. A tea that has gone green can be roasted again at low heat to drive out the moisture, a skilled job that costs some quality each time. Keep it sealed, dry, cool and away from strong smells, and look at it now and then.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:brewing",
-    "pageId": "yancha",
-    "sectionKey": "brewing",
-    "label": "Brewing Wuyi rock tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Wuyi tea is usually brewed gongfu style with water at or near the boil, about 95 to 100°C, and about 5 to 8 grams of leaf in a 100 to 120 ml gaiwan, a third to a half full. A quick rinse, poured off at once, is common. Steeps start short, about 5 to 20 seconds, and grow a few seconds longer each round, and good rock tea gives seven steeps or more. In a larger pot, use about 2 to 5 grams for 250 to 350 ml and steep two to three minutes.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Wuyi tea is usually brewed gongfu style with water at or near the boil, about 95 to 100°C, and about 5 to 8 grams of leaf in a 100 to 120 ml gaiwan, a third to a half full. A quick rinse, poured off at once, is common. Steeps start short, about 5 to 20 seconds, and grow a few seconds longer each round, and good rock tea gives seven steeps or more. In a larger pot, use about 2 to 5 grams for 250 to 350 ml and steep two to three minutes.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:common-impressions",
-    "pageId": "yancha",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:da-hong-pao",
-    "pageId": "yancha",
-    "sectionKey": "da-hong-pao",
-    "label": "Da Hong Pao",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_includes": [
-        "da",
-        "hong",
-        "pao"
-      ]
-    },
-    "terms": [
-      {
-        "original": "大红袍",
-        "pinyin": "dà hóng páo",
-        "gloss": "Big Red Robe"
-      },
-      {
-        "original": "奇丹",
-        "pinyin": "qí dān",
-        "gloss": "Qidan"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Da Hong Pao, Big Red Robe, began with six old bushes on a cliff at Jiulongke in Wuyi, the mother trees, and picking from them stopped in 2006. Three kinds of tea are sold under the name: tea from the mother trees, which is extremely scarce, so any such claim deserves doubt; purebred tea from Qidan, the cultivar grown from cuttings of the mother trees; and commercial Da Hong Pao, which is most of what is sold and is usually a blend of several Wuyi cultivars. The name is also used loosely for other Wuyi teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Da Hong Pao, Big Red Robe, began with six old bushes on a cliff at Jiulongke in Wuyi, the mother trees, and picking from them stopped in 2006. Three kinds of tea are sold under the name: tea from the mother trees, which is extremely scarce, so any such claim deserves doubt; purebred tea from Qidan, the cultivar grown from cuttings of the mother trees; and commercial Da Hong Pao, which is most of what is sold and is usually a blend of several Wuyi cultivars. The name is also used loosely for other Wuyi teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:definition",
-    "pageId": "yancha",
-    "sectionKey": "definition",
-    "label": "What Wuyi rock tea is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "武夷岩茶",
-        "pinyin": "wǔyí yánchá",
-        "gloss": "Wuyi rock tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Wuyi rock tea, yan cha, is the oolong of the Wuyi mountains around Wuyishan City in northern Fujian, and only tea from that area may be sold under the name. The bushes grow among rock, in crevices, on ledges and on terraces in cliff country, in soil weathered from the rock, with much fog and rain. The leaf is twisted into long thin strips, not rolled into balls, and it is finished with a long charcoal roast.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Wuyi rock tea, yan cha, is the oolong of the Wuyi mountains around Wuyishan City in northern Fujian, and only tea from that area may be sold under the name. The bushes grow among rock, in crevices, on ledges and on terraces in cliff country, in soil weathered from the rock, with much fog and rain. The leaf is twisted into long thin strips, not rolled into balls, and it is finished with a long charcoal roast.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:growing-areas",
-    "pageId": "yancha",
-    "sectionKey": "growing-areas",
-    "label": "Where in Wuyi it grows",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "正岩",
-        "pinyin": "zhèng yán",
-        "gloss": "true rock"
-      },
-      {
-        "original": "半岩",
-        "pinyin": "bàn yán",
-        "gloss": "half rock"
-      },
-      {
-        "original": "洲茶",
-        "pinyin": "zhōu chá",
-        "gloss": "riverside tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "The trade sorts Wuyi tea by where it grew. Zheng yan, true rock, is the core rocky area and the most prized, its best-known part called the three pits and two streams. Ban yan, half rock, is the ring of edges and foothills around it, whose tea has some rock rhyme but less, and is often the better value. Zhou cha is tea from the river banks and flat land, not from rock.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "The trade sorts Wuyi tea by where it grew. Zheng yan, true rock, is the core rocky area and the most prized, its best-known part called the three pits and two streams. Ban yan, half rock, is the ring of edges and foothills around it, whose tea has some rock rhyme but less, and is often the better value. Zhou cha is tea from the river banks and flat land, not from rock.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:history",
-    "pageId": "yancha",
-    "sectionKey": "history",
-    "label": "How Wuyi rock tea began",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Northern Fujian made tribute tea for the court in the Song dynasty. Early in the Ming dynasty the emperor ended the tribute of pressed tea cakes in favour of loose leaf, and tea making in the region turned to loose leaf. Oolong, partly oxidised tea, took shape in the Wuyi area between the sixteenth and seventeenth centuries, around the end of the Ming and the start of the Qing.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Northern Fujian made tribute tea for the court in the Song dynasty. Early in the Ming dynasty the emperor ended the tribute of pressed tea cakes in favour of loose leaf, and tea making in the region turned to loose leaf. Oolong, partly oxidised tea, took shape in the Wuyi area between the sixteenth and seventeenth centuries, around the end of the Ming and the start of the Qing.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:making",
-    "pageId": "yancha",
+    "claimId": "sheng:making",
+    "pageId": "sheng",
     "sectionKey": "making",
-    "label": "How Wuyi rock tea is made",
-    "axis": "type",
+    "label": "How raw pu’er is made",
+    "axis": "process",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
+      "type": "Sheng"
     },
     "terms": [
       {
-        "original": "炭焙",
-        "pinyin": "tàn bèi",
-        "gloss": "charcoal roasting"
+        "original": "杀青",
+        "pinyin": "shā qīng",
+        "gloss": "kill-green"
+      },
+      {
+        "original": "晒青",
+        "pinyin": "shài qīng",
+        "gloss": "sun-drying"
+      },
+      {
+        "original": "毛茶",
+        "pinyin": "máo chá",
+        "gloss": "rough tea"
       }
     ],
     "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Wuyi tea follows the oolong steps: it is withered in the sun and then cooled indoors, shaken and rested, fixed in a hot pan or drum, rolled into strips and given a first drying. Much of it is now made with machines guided by hand judgement, and fully hand-made tea is rare. What sets it apart is the roast: over charcoal, in several rounds with rests of weeks or months between them, not in one pass. The roast dries the tea so it keeps, and it takes away the raw, grassy taste, deepens the tea and adds fruit and a charcoal fragrance. The roast is matched to the leaf: thick, mature leaf takes a stronger roast, thin and aromatic leaf a lighter one.",
+    "scope": "Raw pu'er in general",
+    "text": "Raw pu’er begins as leaf from Yunnan’s large-leaf tea trees. It is picked and withered, then fried in a wok to kill the green. That heat stops most of the leaf’s own enzymes but not all, and because the leaf is never hot-air dried afterwards, the activity that survives is what lets the tea keep changing for years. It is rolled, then dried in the sun, turned over a couple of days. The result is maocha, the rough tea that is sold loose or pressed.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Wuyi tea follows the oolong steps: it is withered in the sun and then cooled indoors, shaken and rested, fixed in a hot pan or drum, rolled into strips and given a first drying. Much of it is now made with machines guided by hand judgement, and fully hand-made tea is rare. What sets it apart is the roast: over charcoal, in several rounds with rests of weeks or months between them, not in one pass. The roast dries the tea so it keeps, and it takes away the raw, grassy taste, deepens the tea and adds fruit and a charcoal fragrance. The roast is matched to the leaf: thick, mature leaf takes a stronger roast, thin and aromatic leaf a lighter one.",
+        "scope": "Raw pu'er in general",
+        "text": "Raw pu’er begins as leaf from Yunnan’s large-leaf tea trees. It is picked and withered, then fried in a wok to kill the green. That heat stops most of the leaf’s own enzymes but not all, and because the leaf is never hot-air dried afterwards, the activity that survives is what lets the tea keep changing for years. It is rolled, then dried in the sun, turned over a couple of days. The result is maocha, the rough tea that is sold loose or pressed.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yancha:meizhan",
-    "pageId": "yancha",
-    "sectionKey": "meizhan",
-    "label": "Meizhan",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_includes": [
-        "meizhan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "梅占",
-        "pinyin": "méi zhàn",
-        "gloss": "Meizhan"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Meizhan is a Fujian cultivar that came from Anxi, and it is also made as Wuyi rock tea. It is less famous than Rougui and Shui Xian and is not one of the four famous bushes of Wuyi.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Meizhan is a Fujian cultivar that came from Anxi, and it is also made as Wuyi rock tea. It is less famous than Rougui and Shui Xian and is not one of the four famous bushes of Wuyi.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:notice-aged",
-    "pageId": "yancha",
+    "claimId": "sheng:notice-aged",
+    "pageId": "sheng",
     "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Wuyi rock tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:roast-levels",
-    "pageId": "yancha",
-    "sectionKey": "roast-levels",
-    "label": "Light, medium and full roast",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "轻火",
-        "pinyin": "qīng huǒ",
-        "gloss": "light roast"
-      },
-      {
-        "original": "中火",
-        "pinyin": "zhōng huǒ",
-        "gloss": "medium roast"
-      },
-      {
-        "original": "足火",
-        "pinyin": "zú huǒ",
-        "gloss": "full roast"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Wuyi tea is labelled by its roast. Light roast keeps bright floral notes and is for drinking early. Medium roast is the balanced middle, floral and fruity together. Full roast shows the clearest charcoal and fire notes and keeps the longest. A freshly roasted tea is rested so the fire note settles, and the heavier the roast, the longer the rest.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Wuyi tea is labelled by its roast. Light roast keeps bright floral notes and is for drinking early. Medium roast is the balanced middle, floral and fruity together. Full roast shows the clearest charcoal and fire notes and keeps the longest. A freshly roasted tea is rested so the fire note settles, and the heavier the roast, the longer the rest.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:rock-rhyme",
-    "pageId": "yancha",
-    "sectionKey": "rock-rhyme",
-    "label": "Rock rhyme",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ]
-    },
-    "terms": [
-      {
-        "original": "岩韵",
-        "pinyin": "yán yùn",
-        "gloss": "rock rhyme"
-      },
-      {
-        "original": "岩骨花香",
-        "pinyin": "yán gǔ huā xiāng",
-        "gloss": "rock bone and floral fragrance"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "The quality the trade prizes in Wuyi tea is called rock rhyme, yan yun. It is described as something felt in the mouth as much as tasted: aroma, taste and body together, with a lasting sweet, mouth-watering aftertaste, and it is tied to the rocky ground the tea grows in. The Chinese phrase paired with it is yan gu hua xiang, rock bone and floral fragrance.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "The quality the trade prizes in Wuyi tea is called rock rhyme, yan yun. It is described as something felt in the mouth as much as tasted: aroma, taste and body together, with a lasting sweet, mouth-watering aftertaste, and it is tied to the rocky ground the tea grows in. The Chinese phrase paired with it is yan gu hua xiang, rock bone and floral fragrance.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:rougui",
-    "pageId": "yancha",
-    "sectionKey": "rougui",
-    "label": "Rougui",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_includes": [
-        "rougui"
-      ]
-    },
-    "terms": [
-      {
-        "original": "肉桂",
-        "pinyin": "ròu guì",
-        "gloss": "cassia"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Rougui, cassia, is a Wuyi cultivar named for the cinnamon-bark smell of its finished tea. It dates from the Qing dynasty and is now one of the most widely planted and best-selling Wuyi teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Rougui, cassia, is a Wuyi cultivar named for the cinnamon-bark smell of its finished tea. It dates from the Qing dynasty and is now one of the most widely planted and best-selling Wuyi teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yancha:shui-xian",
-    "pageId": "yancha",
-    "sectionKey": "shui-xian",
-    "label": "Shui Xian",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "wuyi mountains"
-      ],
-      "name_includes": [
-        "shui",
-        "xian"
-      ]
-    },
-    "terms": [
-      {
-        "original": "水仙",
-        "pinyin": "shuǐ xiān",
-        "gloss": "Shui Xian"
-      },
-      {
-        "original": "老丛",
-        "pinyin": "lǎo cóng",
-        "gloss": "old bush"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-    "text": "Shui Xian is the most widely grown and drunk Wuyi cultivar and usually the least expensive of the main teas. It came to Wuyi in the Qing dynasty from elsewhere in northern Fujian, and Wuyi Shui Xian is traditionally roasted a shade darker than most rock tea. Lao cong, old-bush Shui Xian, comes from older bushes, costs more and is said to carry a woody, mossy character of its own, and Shui Xian, old bush above all, is the Wuyi tea most often said to age well.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
-        "text": "Shui Xian is the most widely grown and drunk Wuyi cultivar and usually the least expensive of the main teas. It came to Wuyi in the Qing dynasty from elsewhere in northern Fujian, and Wuyi Shui Xian is traditionally roasted a shade darker than most rock tea. Lao cong, old-bush Shui Xian, comes from older bushes, costs more and is said to carry a woody, mossy character of its own, and Shui Xian, old bush above all, is the Wuyi tea most often said to age well.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 14)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "yuchi:assam-planting",
-    "pageId": "yuchi",
-    "sectionKey": "assam-planting",
-    "label": "The Assam planting",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "yuchi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "紅茶",
-        "pinyin": "hóngchá",
-        "gloss": "red tea (black tea in English)"
-      }
-    ],
-    "rev": null,
-    "scope": "",
-    "text": "Under Japanese rule, the colonial government wanted red tea for export and brought in large leaf Assam tea seeds from India. Trial plantings went in at several sites, and Yuchi was the one that did well. Sources give different years for the seeds and the first plantings, so no single date is safe to quote. The Assam type is the root of Yuchi red tea, and plantings of that type are still called Assam red tea here.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Under Japanese rule, the colonial government wanted red tea for export and brought in large leaf Assam tea seeds from India. Trial plantings went in at several sites, and Yuchi was the one that did well. Sources give different years for the seeds and the first plantings, so no single date is safe to quote. The Assam type is the root of Yuchi red tea, and plantings of that type are still called Assam red tea here.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "yuchi:decline-and-return",
-    "pageId": "yuchi",
-    "sectionKey": "decline-and-return",
-    "label": "Decline and return",
-    "axis": "place",
+    "label": "What people often notice in aged raw pu’er",
+    "axis": "sensory_observation",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "origin_includes": [
-        "yuchi"
-      ]
-    },
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Red tea from Yuchi was an export crop and it faded when it could no longer compete. From the 1970s rising wages made hand picked leaf expensive against red tea from other countries, and many growers moved to oolong or to other crops. The 1999 earthquake hit the township hard, and rebuilding turned attention back to local red tea. Since then a younger generation has returned to grow and make it, and Yuchi is again the first place most people name for Taiwanese red tea.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Red tea from Yuchi was an export crop and it faded when it could no longer compete. From the 1970s rising wages made hand picked leaf expensive against red tea from other countries, and many growers moved to oolong or to other crops. The 1999 earthquake hit the township hard, and rebuilding turned attention back to local red tea. Since then a younger generation has returned to grow and make it, and Yuchi is again the first place most people name for Taiwanese red tea.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "yuchi:research-station",
-    "pageId": "yuchi",
-    "sectionKey": "research-station",
-    "label": "The research station",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "yuchi"
-      ]
+      "type": "Sheng"
     },
     "terms": [
       {
-        "original": "臺茶18號 紅玉",
-        "pinyin": "Táichá shíbā hào Hóngyù",
-        "gloss": "Taicha 18, Ruby"
+        "original": "樟香",
+        "pinyin": "zhāng xiāng",
+        "gloss": "camphor aroma"
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "A tea research station was set up at Yuchi to work on red tea, and the station still stands, now part of Taiwan's national tea research service (the Tea Research and Extension Station). Its work after the war gave Yuchi its named cultivars, among them the Assam type Taicha 8 and the later Taicha 18, called Ruby (Hong Yu), a cross of a Taiwanese wild tea with a Burmese large leaf red tea. The cultivar is a separate fact from the place: Yuchi makes red tea from more than one of them.",
+    "rev": 1,
+    "scope": "Aged raw pu'er",
+    "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "A tea research station was set up at Yuchi to work on red tea, and the station still stands, now part of Taiwan's national tea research service (the Tea Research and Extension Station). Its work after the war gave Yuchi its named cultivars, among them the Assam type Taicha 8 and the later Taicha 18, called Ruby (Hong Yu), a cross of a Taiwanese wild tea with a Burmese large leaf red tea. The cultivar is a separate fact from the place: Yuchi makes red tea from more than one of them.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Aged raw pu'er",
+        "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
   },
   {
-    "claimId": "yuchi:where-it-is",
-    "pageId": "yuchi",
-    "sectionKey": "where-it-is",
-    "label": "Where Yuchi is",
-    "axis": "place",
+    "claimId": "sheng:pressing",
+    "pageId": "sheng",
+    "sectionKey": "pressing",
+    "label": "Pressing",
+    "axis": "process",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "origin_includes": [
-        "yuchi"
-      ]
+      "type": "Sheng"
     },
     "terms": [
       {
-        "original": "魚池",
-        "pinyin": "Yúchí",
-        "gloss": "fish pond; the township name"
+        "original": "沱茶",
+        "pinyin": "tuó chá",
+        "gloss": "tuo"
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "Yuchi is a township in the middle of Nantou County, in central Taiwan, and it holds Sun Moon Lake. It is a basin of gentle hills around the lake, and its tea is grown mostly on slopes at roughly 600 to 800 metres. Tea from here is often sold under the name Sun Moon Lake, which is the better known name for the same ground.",
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Yuchi is a township in the middle of Nantou County, in central Taiwan, and it holds Sun Moon Lake. It is a basin of gentle hills around the lake, and its tea is grown mostly on slopes at roughly 600 to 800 metres. Tea from here is often sold under the name Sun Moon Lake, which is the better known name for the same ground.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "yuchi:why-red-tea",
-    "pageId": "yuchi",
-    "sectionKey": "why-red-tea",
-    "label": "Why red tea grew here",
-    "axis": "place",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "origin_includes": [
-        "yuchi"
-      ]
-    },
-    "terms": [
+    "reviewState": "approved",
+    "previousRevisions": [
       {
-        "original": "紅茶",
-        "pinyin": "hóngchá",
-        "gloss": "red tea (black tea in English)"
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Raw pu'er in general",
+        "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "evidenceIds": []
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "Taiwan is better known for oolong, so red tea in Yuchi needs a reason, and the reason is the land. The basin is warm and wet, with a lot of mist and cloud, deep reddish soil, and a lake that keeps the weather mild and steady. The trade, and the Japanese tea men who first trialled it, compared this to the Assam country of India, where red tea is made from the large leaf variety. That is why Yuchi became Taiwan's red tea place and not only a place that happens to make some.",
-    "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Taiwan is better known for oolong, so red tea in Yuchi needs a reason, and the reason is the land. The basin is warm and wet, with a lot of mist and cloud, deep reddish soil, and a lake that keeps the weather mild and steady. The trade, and the Japanese tea men who first trialled it, compared this to the Assam country of India, where red tea is made from the large leaf variety. That is why Yuchi became Taiwan's red tea place and not only a place that happens to make some.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
+    "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-mountain-names:market-names",
-    "pageId": "yunnan-mountain-names",
-    "sectionKey": "market-names",
-    "label": "Names in the tea market",
-    "axis": "place",
+    "claimId": "sheng:processing",
+    "pageId": "sheng",
+    "sectionKey": "processing",
+    "label": "From maocha to finished tea",
+    "axis": "process",
     "basis": "sourced",
     "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
-    "sourceIds": [
-      "ctma-yunnan-108-mountains-2026"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "yunnan-mountain-names:reading-the-list",
-    "pageId": "yunnan-mountain-names",
-    "sectionKey": "reading-the-list",
-    "label": "What a list can tell us",
-    "axis": "place",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {},
-    "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
-    "sourceIds": [
-      "ctma-yunnan-108-mountains-2026"
-    ],
-    "reviewState": "draft",
-    "pendingText": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
-    "previousRevisions": [],
-    "pageVisibility": "draft"
-  },
-  {
-    "claimId": "yunnan-white:ageing",
-    "pageId": "yunnan-white",
-    "sectionKey": "ageing",
-    "label": "Keeping Yunnan white",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "yunnan"
-      ]
+      "type": "Sheng"
     },
     "terms": [],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yunnan white is pressed and kept like Fujian white, and some keep it for years, but there is no agreed view of how long it should be kept or how it compares with aged Fujian white; some say it is best within a few years.",
+    "scope": "Sheng Pu’er",
+    "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
+    "sourceIds": [
+      "teaguardian-raw-cooked-puer"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Sheng Pu’er",
+        "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-6761D903E45891EFCB26F71D"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sheng:storage",
+    "pageId": "sheng",
+    "sectionKey": "storage",
+    "label": "Storage",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [
+      {
+        "original": "干仓",
+        "pinyin": "gān cāng",
+        "gloss": "dry storage"
+      },
+      {
+        "original": "湿仓",
+        "pinyin": "shī cāng",
+        "gloss": "humid storage"
+      }
+    ],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yunnan white is pressed and kept like Fujian white, and some keep it for years, but there is no agreed view of how long it should be kept or how it compares with aged Fujian white; some say it is best within a few years.",
+        "scope": "Raw pu'er in general",
+        "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
         "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:brewing",
-    "pageId": "yunnan-white",
+    "claimId": "shou:age-aged",
+    "pageId": "shou",
+    "sectionKey": "age-aged",
+    "label": "Ten years and more",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "陈香",
+        "pinyin": "chén xiāng",
+        "gloss": "aged aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Ripe pu'er at ten years and more",
+    "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Ripe pu'er at ten years and more",
+        "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:age-settling",
+    "pageId": "shou",
+    "sectionKey": "age-settling",
+    "label": "Five to ten years",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Ripe pu'er at about five to ten years",
+    "text": "Between about five and ten years the pile note has usually aired away. With it gone, the cup turns cleaner and rounder, and its sweetness comes forward.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Ripe pu'er at about five to ten years",
+        "text": "Between about five and ten years the pile note has usually aired away. With it gone, the cup turns cleaner and rounder, and its sweetness comes forward.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:age-young",
+    "pageId": "shou",
+    "sectionKey": "age-young",
+    "label": "Young ripe pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "堆味",
+        "pinyin": "duī wèi",
+        "gloss": "pile taste"
+      }
+    ],
+    "rev": 1,
+    "scope": "Ripe pu'er under about five years",
+    "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Ripe pu'er under about five years",
+        "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:brewing",
+    "pageId": "shou",
     "sectionKey": "brewing",
-    "label": "Brewing Yunnan white",
+    "label": "Brewing ripe pu’er",
     "axis": "type",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "White",
-      "origin_includes": [
-        "yunnan"
-      ]
+      "type": "Shou"
     },
     "terms": [],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well.",
+    "scope": "Gongfu brewing of ripe pu'er in general",
+    "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yunnan white is brewed gently, as a white tea is, in a gaiwan or small pot, and it gives many infusions; the leaf holds up well.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "scope": "Gongfu brewing of ripe pu'er in general",
+        "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:common-impressions",
-    "pageId": "yunnan-white",
+    "claimId": "shou:brewing-pressed",
+    "pageId": "shou",
+    "sectionKey": "brewing-pressed",
+    "label": "Breaking a pressed tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Cakes, bricks and tuo",
+    "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Cakes, bricks and tuo",
+        "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:common-impressions",
+    "pageId": "shou",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The ripe style, not any lot",
+    "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The ripe style, not any lot",
+        "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:definition",
+    "pageId": "shou",
+    "sectionKey": "definition",
+    "label": "What ripe pu’er is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "熟普洱",
+        "pinyin": "shú pǔ’ěr",
+        "gloss": "ripe pu’er"
+      }
+    ],
+    "rev": 1,
+    "scope": "Ripe pu'er in general",
+    "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Ripe pu'er in general",
+        "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:notice-aged",
+    "pageId": "shou",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged ripe pu’er",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "陈香",
+        "pinyin": "chén xiāng",
+        "gloss": "aged aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "The aged ripe style, not any lot",
+    "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The aged ripe style, not any lot",
+        "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:piling-1973",
+    "pageId": "shou",
+    "sectionKey": "piling-1973",
+    "label": "Yunnan learns the pile",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Yunnan state factories, 1973 to 1975",
+    "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Yunnan state factories, 1973 to 1975",
+        "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:piling-history",
+    "pageId": "shou",
+    "sectionKey": "piling-history",
+    "label": "How piling came to be",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Trade history before 1973",
+    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Trade history before 1973",
+        "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:piling-today",
+    "pageId": "shou",
+    "sectionKey": "piling-today",
+    "label": "Piling today",
+    "axis": "process",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Current factory practice in general",
+    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Current factory practice in general",
+        "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "shou:wet-piling",
+    "pageId": "shou",
+    "sectionKey": "wet-piling",
+    "label": "Wet piling",
+    "axis": "process",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Shou"
+    },
+    "terms": [
+      {
+        "original": "渥堆",
+        "pinyin": "wò duī",
+        "gloss": "wet piling"
+      }
+    ],
+    "rev": 2,
+    "scope": "The wet-pile process in general",
+    "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
+    "sourceIds": [
+      "white2tea-ripe-puer"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Ripe pu’er",
+        "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved this general process passage for verified ripe pu’er types.",
+        "evidenceIds": [
+          "EVIDENCE-B4A4CF2B45A1A698E998DFED"
+        ]
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "The wet-pile process in general",
+        "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "evidenceIds": [
+          "EVIDENCE-B4A4CF2B45A1A698E998DFED"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sichuan-dark:ageing",
+    "pageId": "sichuan-dark",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing Sichuan border tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "sichuan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Sichuan border tea style kit",
+    "text": "Sichuan border tea is kept for years, and the trade values older bricks more. With age the liquor turns redder and the cup grows milder and rounder, and a medicinal edge often appears, which sellers read as a sign of good storage. Keep the brick dry, clean and away from strong smells and direct sun. Do not drink a brick that smells musty or shows mould. How fast it changes depends on storage, and the trade does not agree on one best way to keep it.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Sichuan border tea style kit",
+        "text": "Sichuan border tea is kept for years, and the trade values older bricks more. With age the liquor turns redder and the cup grows milder and rounder, and a medicinal edge often appears, which sellers read as a sign of good storage. Keep the brick dry, clean and away from strong smells and direct sun. Do not drink a brick that smells musty or shows mould. How fast it changes depends on storage, and the trade does not agree on one best way to keep it.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sichuan-dark:brewing",
+    "pageId": "sichuan-dark",
+    "sectionKey": "brewing",
+    "label": "Brewing Sichuan border tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "sichuan"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Sichuan border tea style kit",
+    "text": "Break a few pieces from the edge of the brick, rinse them with boiling water and pour that off at once. Then use boiling water and plenty of leaf. The leaf is coarse and gives up its flavour slowly, so people brew it two ways. Some steep it in short gongfu pours, a little longer each time. Others use long steeps while the pot is still hot, or simmer the leaf for several minutes in a pot, which is the traditional way on the plateau.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Sichuan border tea style kit",
+        "text": "Break a few pieces from the edge of the brick, rinse them with boiling water and pour that off at once. Then use boiling water and plenty of leaf. The leaf is coarse and gives up its flavour slowly, so people brew it two ways. Some steep it in short gongfu pours, a little longer each time. Others use long steeps while the pot is still hot, or simmer the leaf for several minutes in a pot, which is the traditional way on the plateau.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sichuan-dark:butter-tea",
+    "pageId": "sichuan-dark",
+    "sectionKey": "butter-tea",
+    "label": "Butter tea",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "sichuan"
+      ]
+    },
+    "terms": [
+      {
+        "original": "酥油茶",
+        "pinyin": "sū yóu chá",
+        "gloss": "butter tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "Sichuan border tea style kit",
+    "text": "In Tibet the brick is broken up and boiled for a long time, often for hours, until the liquor is very dark. The tea is strained and kept as a concentrate. A little is poured into a tall wooden churn with yak butter and salt and churned until the three are blended. It is served hot, in many bowls a day, and offered to every guest. Sichuan border tea has long been sent to Tibet for this.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Sichuan border tea style kit",
+        "text": "In Tibet the brick is broken up and boiled for a long time, often for hours, until the liquor is very dark. The tea is strained and kept as a concentrate. A little is poured into a tall wooden churn with yak butter and salt and churned until the three are blended. It is served hot, in many bowls a day, and offered to every guest. Sichuan border tea has long been sent to Tibet for this.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "sichuan-dark:common-impressions",
+    "pageId": "sichuan-dark",
     "sectionKey": "common-impressions",
     "label": "What people often notice",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
+      "type": "Dark",
       "origin_includes": [
-        "yunnan"
+        "sichuan"
       ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "A honeyed, sweet cup, often richer and fuller than Fujian white, with little bitterness, sometimes fruit like apricot or melon and a hay or herbal note. Yabao is sweet and silky, often with pine or herbal notes.",
+    "scope": "Sichuan border tea style kit",
+    "text": "A smooth, mellow cup with a red to dark brown liquor and a gentle sweetness, often with wood or earth.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "A honeyed, sweet cup, often richer and fuller than Fujian white, with little bitterness, sometimes fruit like apricot or melon and a hay or herbal note. Yabao is sweet and silky, often with pine or herbal notes.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "scope": "Sichuan border tea style kit",
+        "text": "A smooth, mellow cup with a red to dark brown liquor and a gentle sweetness, often with wood or earth.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:definition",
-    "pageId": "yunnan-white",
+    "claimId": "sichuan-dark:definition",
+    "pageId": "sichuan-dark",
     "sectionKey": "definition",
-    "label": "What Yunnan white is",
+    "label": "What Sichuan border tea is",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
+      "type": "Dark",
       "origin_includes": [
-        "yunnan"
+        "sichuan"
       ]
     },
-    "terms": [],
+    "terms": [
+      {
+        "original": "南路边茶",
+        "pinyin": "nán lù biān chá",
+        "gloss": "southern-route border tea"
+      },
+      {
+        "original": "藏茶",
+        "pinyin": "zàng chá",
+        "gloss": "Tibetan tea"
+      },
+      {
+        "original": "边销茶",
+        "pinyin": "biān xiāo chá",
+        "gloss": "border-sale tea"
+      },
+      {
+        "original": "红苔",
+        "pinyin": "hóng tái",
+        "gloss": "red moss, reddish stem and shoot pieces"
+      },
+      {
+        "original": "康砖",
+        "pinyin": "kāng zhuān",
+        "gloss": "Kang brick"
+      },
+      {
+        "original": "金尖",
+        "pinyin": "jīn jiān",
+        "gloss": "Jinjian"
+      }
+    ],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yunnan white is white tea made from Yunnan’s large-leaf tea plants, rather than from the small and medium-leaf bush cultivars of Fujian. It is mostly picked in spring, as buds or a bud with one to three leaves, and its buds are typically large and silver-haired. Unlike Fuding white tea it is mostly not sold by grade.",
+    "scope": "Sichuan border tea style kit",
+    "text": "Sichuan border tea is a dark tea made around Ya'an in western Sichuan and pressed into dense bricks for the Tibetan highlands. The trade has called it southern-route border tea, border-sale tea and, today, Ya'an Tibetan tea. It is made from mature leaf and red moss, the reddish stem and shoot pieces that come with the leaf, not from young buds. Coarse leaf was the choice for a tea that had to survive months on the road and then be boiled for hours. Two brick styles are sold today, Kangzhuan and Jinjian.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yunnan white is white tea made from Yunnan’s large-leaf tea plants, rather than from the small and medium-leaf bush cultivars of Fujian. It is mostly picked in spring, as buds or a bud with one to three leaves, and its buds are typically large and silver-haired. Unlike Fuding white tea it is mostly not sold by grade.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "scope": "Sichuan border tea style kit",
+        "text": "Sichuan border tea is a dark tea made around Ya'an in western Sichuan and pressed into dense bricks for the Tibetan highlands. The trade has called it southern-route border tea, border-sale tea and, today, Ya'an Tibetan tea. It is made from mature leaf and red moss, the reddish stem and shoot pieces that come with the leaf, not from young buds. Coarse leaf was the choice for a tea that had to survive months on the road and then be boiled for hours. Two brick styles are sold today, Kangzhuan and Jinjian.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "yunnan-white:history",
-    "pageId": "yunnan-white",
-    "sectionKey": "history",
-    "label": "How Yunnan white began",
+    "claimId": "sichuan-dark:kangzhuan-jinjian",
+    "pageId": "sichuan-dark",
+    "sectionKey": "kangzhuan-jinjian",
+    "label": "Kangzhuan and Jinjian",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "White",
+      "type": "Dark",
       "origin_includes": [
-        "yunnan"
+        "sichuan"
       ]
     },
-    "terms": [],
+    "terms": [
+      {
+        "original": "康砖",
+        "pinyin": "kāng zhuān",
+        "gloss": "Kang brick"
+      },
+      {
+        "original": "金尖",
+        "pinyin": "jīn jiān",
+        "gloss": "Jinjian"
+      },
+      {
+        "original": "康尖",
+        "pinyin": "kāng jiān",
+        "gloss": "Kangjian"
+      },
+      {
+        "original": "红苔",
+        "pinyin": "hóng tái",
+        "gloss": "red moss"
+      }
+    ],
     "rev": 1,
-    "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-    "text": "Yunnan white is a recent tea in the market. The name Moonlight White and the trade in Yunnan white tea have grown popular only in recent years, though local practice may be older.",
+    "scope": "Sichuan border tea style kit",
+    "text": "Kangzhuan and Jinjian are the two bricks sold today, and some Chinese pages list a third, Kangjian. Both use mature leaf and red moss, and the usual way to tell them apart is the blend. Kangzhuan carries more leaf, and Jinjian carries more red moss and stem. The two names are for the blend, so they say nothing by themselves about where a brick was made or how old it is.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All white tea; Yunnan white where the origin is Yunnan, Moonlight White and Yabao only on teas named for them",
-        "text": "Yunnan white is a recent tea in the market. The name Moonlight White and the trade in Yunnan white tea have grown popular only in recent years, though local practice may be older.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 18)",
+        "scope": "Sichuan border tea style kit",
+        "text": "Kangzhuan and Jinjian are the two bricks sold today, and some Chinese pages list a third, Kangjian. Both use mature leaf and red moss, and the usual way to tell them apart is the blend. Kangzhuan carries more leaf, and Jinjian carries more red moss and stem. The two names are for the blend, so they say nothing by themselves about where a brick was made or how old it is.",
+        "approvedAt": "2026-11-25",
+        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
         "evidenceIds": []
       }
     ],

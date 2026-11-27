@@ -5,976 +5,967 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "sheng:notice-aged",
-    "pageId": "sheng",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged raw pu’er",
-    "axis": "sensory_observation",
+    "claimId": "liu-bao:making-factory",
+    "pageId": "liu-bao",
+    "sectionKey": "making-factory",
+    "label": "The factory way",
+    "axis": "process",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Sheng"
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
     },
     "terms": [
       {
-        "original": "樟香",
-        "pinyin": "zhāng xiāng",
-        "gloss": "camphor aroma"
+        "original": "冷水渥堆",
+        "pinyin": "lěng shuǐ wò duī",
+        "gloss": "cold-water piling"
       }
     ],
     "rev": 1,
-    "scope": "Aged raw pu'er",
-    "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
+    "scope": "Liu Bao tea",
+    "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Aged raw pu'er",
-        "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit.",
+        "scope": "Liu Bao tea",
+        "text": "In the 1950s the Wuzhou tea factory worked out cold-water piling, around 1958: the leaf is wetted and heaped at a modest warmth and turned until it has darkened, a steadier route than the farmhouse steaming. Factory tea, too, is packed in baskets and aged before sale.",
         "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sheng:pressing",
-    "pageId": "sheng",
-    "sectionKey": "pressing",
-    "label": "Pressing",
+    "claimId": "liu-bao:making-traditional",
+    "pageId": "liu-bao",
+    "sectionKey": "making-traditional",
+    "label": "The farmhouse way",
     "axis": "process",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Sheng"
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
     },
     "terms": [
       {
-        "original": "沱茶",
-        "pinyin": "tuó chá",
-        "gloss": "tuo"
+        "original": "篓装",
+        "pinyin": "lǒu zhuāng",
+        "gloss": "basket packing"
       }
     ],
     "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
+    "scope": "Liu Bao tea",
+    "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
     "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Maocha is pressed into cakes, bricks and tuo, small bowl shapes, either under a stone or by a hydraulic press; a stone-pressed cake is looser than a machine-pressed one. Pressing began so the tea could travel: compact cakes packed well onto pack animals on the old trade routes. It also decides how a tea ages, because a tight, large cake changes slowly and a loose or small one faster.",
+        "scope": "Liu Bao tea",
+        "text": "The older, farmhouse way of making Liu Bao leans on steam and time. The leaf is steamed to soften it, then heaped damp so it darkens and loses its bitterness, and in most accounts it is steamed again before it is pressed. It is dried slowly over a wood or pine fire, which can leave a faint smoke and keeps the leaf sound enough to age. Then it is packed tight into bamboo baskets and rested in a cool, damp, dark store for one to three years before it is sold.",
         "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
         "evidenceIds": []
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sheng:processing",
-    "pageId": "sheng",
-    "sectionKey": "processing",
-    "label": "From maocha to finished tea",
-    "axis": "process",
-    "basis": "sourced",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Sheng Pu’er",
-    "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
-    "sourceIds": [
-      "teaguardian-raw-cooked-puer"
-    ],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sheng Pu’er",
-        "text": "Maocha names an intermediate state in tea production, while sheng describes the tea as it reaches the drinker. Sheng material may be sorted, dried, left loose, or steamed and compressed; the two terms overlap, but they describe the tea from different viewpoints.",
-        "approvedAt": "2026-11-23",
-        "reason": "Backfilled from pages",
-        "evidenceIds": [
-          "EVIDENCE-6761D903E45891EFCB26F71D"
-        ]
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sheng:storage",
-    "pageId": "sheng",
-    "sectionKey": "storage",
-    "label": "Storage",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [
-      {
-        "original": "干仓",
-        "pinyin": "gān cāng",
-        "gloss": "dry storage"
-      },
-      {
-        "original": "湿仓",
-        "pinyin": "shī cāng",
-        "gloss": "humid storage"
-      }
-    ],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Raw pu'er in general",
-        "text": "Raw pu’er ages partly through slow oxidation and partly through the work of microbes, so heat and humidity decide how fast it changes. Humid, warm stores, the traditional storage of Hong Kong and Guangdong, change it quickly; dry, cool stores, with Kunming as the usual example, change it slowly and keep it brighter, and a store that is too dry can leave a tea stalled and green. The trade does not agree whether humid storage is a flaw or a style of its own. At home, keep a cake wrapped in paper, away from smells and direct sun, at roughly 60 to 75 percent humidity.",
-        "approvedAt": "2026-11-24",
-        "reason": "Adrian approved all eleven raw pu'er kit sections in chat, 2026-11-24",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-aged",
-    "pageId": "shou",
-    "sectionKey": "age-aged",
-    "label": "Ten years and more",
+    "claimId": "liu-bao:nanyang-trade",
+    "pageId": "liu-bao",
+    "sectionKey": "nanyang-trade",
+    "label": "Who drank it, and why",
     "axis": "type",
     "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "陈香",
-        "pinyin": "chén xiāng",
-        "gloss": "aged aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er at ten years and more",
-    "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er at ten years and more",
-        "text": "After ten years or more, a well-kept ripe pu’er grows smooth and deep, with woody, date-like or medicinal notes the trade calls aged aroma. The leaf keeps changing slowly with the air and moisture around it, which is why storage matters as much as age: dry, clean storage keeps it bright, and damp storage leaves it musty.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-settling",
-    "pageId": "shou",
-    "sectionKey": "age-settling",
-    "label": "Five to ten years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
     },
     "terms": [],
-    "rev": 1,
-    "scope": "Ripe pu'er at about five to ten years",
-    "text": "Between about five and ten years the pile note has usually aired away. With it gone, the cup turns cleaner and rounder, and its sweetness comes forward.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er at about five to ten years",
-        "text": "Between about five and ten years the pile note has usually aired away. With it gone, the cup turns cleaner and rounder, and its sweetness comes forward.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:age-young",
-    "pageId": "shou",
-    "sectionKey": "age-young",
-    "label": "Young ripe pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "堆味",
-        "pinyin": "duī wèi",
-        "gloss": "pile taste"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er under about five years",
-    "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er under about five years",
-        "text": "In its first few years a ripe pu’er often still carries the smell of the pile, a damp, earthy note left over from fermentation that the trade calls pile taste. Air carries it off, so it fades with airing and with time, and a rinse or two before drinking helps.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:brewing",
-    "pageId": "shou",
-    "sectionKey": "brewing",
-    "label": "Brewing ripe pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Gongfu brewing of ripe pu'er in general",
-    "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Gongfu brewing of ripe pu'er in general",
-        "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:brewing-pressed",
-    "pageId": "shou",
-    "sectionKey": "brewing-pressed",
-    "label": "Breaking a pressed tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Cakes, bricks and tuo",
-    "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Cakes, bricks and tuo",
-        "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:common-impressions",
-    "pageId": "shou",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "The ripe style, not any lot",
-    "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The ripe style, not any lot",
-        "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:definition",
-    "pageId": "shou",
-    "sectionKey": "definition",
-    "label": "What ripe pu’er is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "熟普洱",
-        "pinyin": "shú pǔ’ěr",
-        "gloss": "ripe pu’er"
-      }
-    ],
-    "rev": 1,
-    "scope": "Ripe pu'er in general",
-    "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Ripe pu'er in general",
-        "text": "Ripe pu’er is pu’er whose leaf is fermented in a warm, damp pile before it is pressed or sold loose. The pile was developed to give, in weeks, the dark and mellow cup that Hong Kong and Guangdong drinkers knew from raw pu’er aged for years. So ripe pu’er is ready to drink soon after it is made, while raw pu’er skips the pile and is usually aged for years.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:notice-aged",
-    "pageId": "shou",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged ripe pu’er",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "陈香",
-        "pinyin": "chén xiāng",
-        "gloss": "aged aroma"
-      }
-    ],
-    "rev": 1,
-    "scope": "The aged ripe style, not any lot",
-    "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "The aged ripe style, not any lot",
-        "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-1973",
-    "pageId": "shou",
-    "sectionKey": "piling-1973",
-    "label": "Yunnan learns the pile",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Yunnan state factories, 1973 to 1975",
-    "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Yunnan state factories, 1973 to 1975",
-        "text": "In 1973 a team of seven from the Kunming, Menghai and Xiaguan factories went to the Guangzhou tea factory to learn its wet piling. Guangzhou piled with warm water. In Kunming’s cooler, drier air that failed, and Kunming succeeded in 1974 with cold water, sending about ten tonnes to Hong Kong that year. Menghai and Xiaguan each worked out their own ways, and by 1975 Menghai’s method had settled into the ripe pu’er made today.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-history",
-    "pageId": "shou",
-    "sectionKey": "piling-history",
-    "label": "How piling came to be",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Trade history before 1973",
-    "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Trade history before 1973",
-        "text": "Before 1949, pu’er already reached Hong Kong and Guangzhou red in the cup. Leaf was packed damp into bamboo baskets, the caravan journey could take a year, and merchants kept the tea for years more before selling it. When faster transport brought fresher tea in the 1950s, those drinkers missed the old taste, and the trade set out to hurry it. In Macau and Hong Kong, Lu Zhuxun sprinkled leaf with water to speed its change. From 1959 the Guangdong tea company in Guangzhou developed a faster fermentation, often blending Yunnan leaf with Guangdong leaf. Yunnan had its own beginnings too: dampening leaf for its pressed jin cha, and in 1958 a steam method at Xiaguan that cut fermentation to about fifteen days.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:piling-today",
-    "pageId": "shou",
-    "sectionKey": "piling-today",
-    "label": "Piling today",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Current factory practice in general",
-    "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Current factory practice in general",
-        "text": "Most traditional factories still pile on cement floors or in tiled pits, seasoned over years of use; a new floor is first broken in with wetted tea dust until it darkens and stops smelling. Some newer makers pile off the floor on perforated steel to keep the leaf cleaner. A pile can be a hundred kilograms or twenty tonnes, and each maker decides how far to take it: a lighter fermentation keeps some of the raw leaf’s liveliness, a heavier one gives a thicker, darker cup, and taken too far the leaf turns hard and charred.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "shou:wet-piling",
-    "pageId": "shou",
-    "sectionKey": "wet-piling",
-    "label": "Wet piling",
-    "axis": "process",
-    "basis": "sourced",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Shou"
-    },
-    "terms": [
-      {
-        "original": "渥堆",
-        "pinyin": "wò duī",
-        "gloss": "wet piling"
-      }
-    ],
     "rev": 2,
-    "scope": "The wet-pile process in general",
-    "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
-    "sourceIds": [
-      "white2tea-ripe-puer"
-    ],
+    "scope": "Liu Bao tea",
+    "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
+    "sourceIds": [],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Ripe pu’er",
-        "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling.",
-        "approvedAt": "2026-11-23",
-        "reason": "Adrian approved this general process passage for verified ripe pu’er types.",
-        "evidenceIds": [
-          "EVIDENCE-B4A4CF2B45A1A698E998DFED"
-        ]
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade held that it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
       },
       {
         "rev": 2,
         "origin": "approved",
-        "scope": "The wet-pile process in general",
-        "text": "Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called wet piling. Sun-dried leaf is wetted and heaped so that heat, moisture and microbes can work on it. The heat comes from the microbes themselves, so the pile is covered to hold it in, then turned about once a week to spread it and let air in. It is kept below about 65°C, because hotter than that the leaf starts to char. After one to two months the leaf is dried. Yunnan’s state factories brought the method into production in 1973, after a joint team studied faster piling in Guangdong.",
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao was made for a market far from home. Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, and the trade believed it eased the heat and damp of their work and settled the stomach; it was also a taste of home. The tea went by boat down the river to Wuzhou, on to Guangzhou, and out by sea. In the Qing dynasty it was already counted among China’s famous teas.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24; one word changed after approval (held to believed) because held is a reserved review word",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:notice-aged",
+    "pageId": "liu-bao",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged Liu Bao",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "槟榔香",
+        "pinyin": "bīng láng xiāng",
+        "gloss": "betel nut aroma"
+      }
+    ],
+    "rev": 1,
+    "scope": "Liu Bao of ten years and more",
+    "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao of ten years and more",
+        "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "liu-bao:old-stock",
+    "pageId": "liu-bao",
+    "sectionKey": "old-stock",
+    "label": "Old stock",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Dark",
+      "origin_includes": [
+        "guangxi"
+      ]
+    },
+    "terms": [
+      {
+        "original": "回流",
+        "pinyin": "huí liú",
+        "gloss": "returned"
+      }
+    ],
+    "rev": 1,
+    "scope": "Liu Bao tea",
+    "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Liu Bao tea",
+        "text": "Liu Bao that is several decades old is mostly stock that sat in Malaysia or Hong Kong after the mining trade ended. It is prized and hard to date, so the trade reads its age from the basket, the labels and the papers packed with it, and the place it was stored gives each lot its own character.",
+        "approvedAt": "2026-11-24",
+        "reason": "Adrian approved the Liu Bao kit on its approval page, 2026-11-24",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "lugu:dong-ding-and-dalunshan",
+    "pageId": "lugu",
+    "sectionKey": "dong-ding-and-dalunshan",
+    "label": "Dong Ding and the higher gardens",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "lugu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "凍頂",
+        "pinyin": "Dòngdǐng",
+        "gloss": "Dong Ding; frozen peak"
+      },
+      {
+        "original": "大崙山",
+        "pinyin": "Dàlùnshān",
+        "gloss": "Dalunshan"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Dong Ding is a mountain in Lugu, and gardens on and around it are where the tea took its name. Dong Ding mountain itself is not high, with one local source putting it at about 750 metres. Altitude for Dong Ding tea is quoted very differently, from about 600 metres up past 1,000, because the name covers more than the one mountain. Some growers have moved to higher ground in the township, such as Dalunshan, where gardens are described at about 1,250 to 1,500 metres. One account gives declining soil fertility on the old slopes as the reason. A tea from those gardens is still a Lugu tea, but it grows higher and cooler than Dong Ding mountain itself.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Dong Ding is a mountain in Lugu, and gardens on and around it are where the tea took its name. Dong Ding mountain itself is not high, with one local source putting it at about 750 metres. Altitude for Dong Ding tea is quoted very differently, from about 600 metres up past 1,000, because the name covers more than the one mountain. Some growers have moved to higher ground in the township, such as Dalunshan, where gardens are described at about 1,250 to 1,500 metres. One account gives declining soil fertility on the old slopes as the reason. A tea from those gardens is still a Lugu tea, but it grows higher and cooler than Dong Ding mountain itself.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "lugu:history",
+    "pageId": "lugu",
+    "sectionKey": "history",
+    "label": "How tea came to Lugu",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "lugu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "林鳳池",
+        "pinyin": "Lín Fèngchí",
+        "gloss": "Lin Fengchi, the man credited with bringing the bushes"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The story told locally is that tea bushes were brought to Lugu from the Wuyi Mountains in Fujian in the middle of the nineteenth century. In the most repeated version, a local man named Lin Fengchi returned from the mainland with a small number of seedlings, said to be 36, and some were planted on the slopes of Dong Ding. Places differ on the year, giving 1851 in some and 1855 in others, and on who planted what, so the details are told, not settled. What is agreed is that the bushes came from Fujian, that tea has been grown here since the nineteenth century, and that it grew into the township's main cash crop.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The story told locally is that tea bushes were brought to Lugu from the Wuyi Mountains in Fujian in the middle of the nineteenth century. In the most repeated version, a local man named Lin Fengchi returned from the mainland with a small number of seedlings, said to be 36, and some were planted on the slopes of Dong Ding. Places differ on the year, giving 1851 in some and 1855 in others, and on who planted what, so the details are told, not settled. What is agreed is that the bushes came from Fujian, that tea has been grown here since the nineteenth century, and that it grew into the township's main cash crop.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "lugu:known-for",
+    "pageId": "lugu",
+    "sectionKey": "known-for",
+    "label": "Why people value Lugu tea",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "lugu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鹿谷",
+        "pinyin": "Lùgǔ",
+        "gloss": "Lugu"
+      },
+      {
+        "original": "凍頂烏龍",
+        "pinyin": "Dòngdǐng wūlóng",
+        "gloss": "Dong Ding oolong"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Lugu is known as the home of Dong Ding oolong, and for most buyers that is the whole reason the name matters. The place is cool and often under cloud and mist, with sunny mornings and foggy afternoons, and the trade ties the character of its tea to that weather and to the mountain setting. Tea shares the township with bamboo, and the bamboo shoots and bamboo goods of Lugu are as well known in Taiwan as its tea. This page covers the place only. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Lugu is known as the home of Dong Ding oolong, and for most buyers that is the whole reason the name matters. The place is cool and often under cloud and mist, with sunny mornings and foggy afternoons, and the trade ties the character of its tea to that weather and to the mountain setting. Tea shares the township with bamboo, and the bamboo shoots and bamboo goods of Lugu are as well known in Taiwan as its tea. This page covers the place only. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "lugu:on-a-label",
+    "pageId": "lugu",
+    "sectionKey": "on-a-label",
+    "label": "Lugu on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "lugu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鹿谷",
+        "pinyin": "Lùgǔ",
+        "gloss": "Lugu"
+      },
+      {
+        "original": "凍頂",
+        "pinyin": "Dòngdǐng",
+        "gloss": "Dong Ding; frozen peak"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Lugu on a label or a record says the tea was grown in that township. It does not say the tea is Dong Ding oolong, and it does not say how the tea was made, whether roasted or not. Local grade marks that appear on Lugu tea are a separate matter from the place. The name Dong Ding is also used for the style when it is made outside Lugu, so Lugu is the stronger place claim of the two.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Lugu on a label or a record says the tea was grown in that township. It does not say the tea is Dong Ding oolong, and it does not say how the tea was made, whether roasted or not. Local grade marks that appear on Lugu tea are a separate matter from the place. The name Dong Ding is also used for the style when it is made outside Lugu, so Lugu is the stronger place claim of the two.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "lugu:where-it-is",
+    "pageId": "lugu",
+    "sectionKey": "where-it-is",
+    "label": "Where Lugu is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "lugu"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鹿谷",
+        "pinyin": "Lùgǔ",
+        "gloss": "Lugu; literally deer valley"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Lugu is a mountain township in the south west of Nantou County, in central Taiwan. It sits in the foothills of the Central Mountain Range and is a township of valleys, bamboo forest and tea gardens. Xitou, Shan Lin Xi and Dong Ding mountain are all known place names in or beside it. On a tea record, Lugu names a township, which is a finer place than the county Nantou and a larger one than any single mountain or garden inside it.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Lugu is a mountain township in the south west of Nantou County, in central Taiwan. It sits in the foothills of the Central Mountain Range and is a township of valleys, bamboo forest and tea gardens. Xitou, Shan Lin Xi and Dong Ding mountain are all known place names in or beside it. On a tea record, Lugu names a township, which is a finer place than the county Nantou and a larger one than any single mountain or garden inside it.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "mahei-gushu-red:tea-name",
+    "pageId": "mahei-gushu-red",
+    "sectionKey": "tea-name",
+    "label": "Reading the tea’s name",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "mahei-gushu-red"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The recorded name and its meaning. It supplies no tree measurement.",
+    "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
+    "sourceIds": [
+      "teajia-mahei-red"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The recorded name and its meaning. It supplies no tree measurement.",
+        "text": "Mahei names the village in Yiwu. Gushu means “old tree,” the description on this tea’s label. Hong cha, the last two words, means “red tea.” Together the words give a place, a description of the trees and a style of tea.",
         "approvedAt": "2026-11-23",
-        "reason": "Adrian approved the ripe pu'er kit, 2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
         "evidenceIds": [
-          "EVIDENCE-B4A4CF2B45A1A698E998DFED"
+          "EVIDENCE-D2D75741CFD44DE469A12F65"
         ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sichuan-dark:ageing",
-    "pageId": "sichuan-dark",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Sichuan border tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
+    "claimId": "mahei:village-road-and-harvest",
+    "pageId": "mahei",
+    "sectionKey": "village-road-and-harvest",
+    "label": "The road through Mahei",
+    "axis": "place",
+    "basis": "sourced",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark",
       "origin_includes": [
-        "sichuan"
+        "mahei",
+        "yiwu"
       ]
     },
     "terms": [],
     "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "Sichuan border tea is kept for years, and the trade values older bricks more. With age the liquor turns redder and the cup grows milder and rounder, and a medicinal edge often appears, which sellers read as a sign of good storage. Keep the brick dry, clean and away from strong smells and direct sun. Do not drink a brick that smells musty or shows mould. How fast it changes depends on storage, and the trade does not agree on one best way to keep it.",
-    "sourceIds": [],
+    "scope": "The documented Mahei road and one grower’s 2024 field account.",
+    "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
+    "sourceIds": [
+      "ma-zhefeng-mahei-road",
+      "mengla-mahei-spring"
+    ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "Sichuan border tea is kept for years, and the trade values older bricks more. With age the liquor turns redder and the cup grows milder and rounder, and a medicinal edge often appears, which sellers read as a sign of good storage. Keep the brick dry, clean and away from strong smells and direct sun. Do not drink a brick that smells musty or shows mould. How fast it changes depends on storage, and the trade does not agree on one best way to keep it.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
+        "scope": "The documented Mahei road and one grower’s 2024 field account.",
+        "text": "A section of the old Tea Horse Road passes through Mahei. Ma Zhefeng photographed it while tracing the route through Yiwu. In April 2024, local reporters met Mahei farmer Ding Wanchun picking spring tea with his crew. He said his family needed more than twenty pickers a day.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-44151BAAF5BCA58F985D91EE",
+          "EVIDENCE-80742578E49E9441F6CC59CF",
+          "EVIDENCE-7D86F61C923CB5E76CC2CCD4"
+        ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sichuan-dark:brewing",
-    "pageId": "sichuan-dark",
-    "sectionKey": "brewing",
-    "label": "Brewing Sichuan border tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
+    "claimId": "malaysian-returned-liu-bao:returned",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "returned",
+    "label": "Why the tea is called “returned”",
+    "axis": "named_tea_history",
+    "basis": "sourced",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
+      "named_tea": "malaysian-returned-liu-bao"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "Break a few pieces from the edge of the brick, rinse them with boiling water and pour that off at once. Then use boiling water and plenty of leaf. The leaf is coarse and gives up its flavour slowly, so people brew it two ways. Some steep it in short gongfu pours, a little longer each time. Others use long steeps while the pot is still hot, or simmer the leaf for several minutes in a pot, which is the traditional way on the plateau.",
-    "sourceIds": [],
+    "scope": "Meaning of the trade name.",
+    "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
+    "sourceIds": [
+      "cns-malaysia-liubao-trade",
+      "teajia-malaysian-returned"
+    ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "Break a few pieces from the edge of the brick, rinse them with boiling water and pour that off at once. Then use boiling water and plenty of leaf. The leaf is coarse and gives up its flavour slowly, so people brew it two ways. Some steep it in short gongfu pours, a little longer each time. Others use long steeps while the pot is still hot, or simmer the leaf for several minutes in a pot, which is the traditional way on the plateau.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
+        "scope": "Meaning of the trade name.",
+        "text": "Huiliu means “returned.” On a Malaysian Returned Liu Bao label, Malaysia names a stop in the life of the tea. Liu Bao made in Guangxi travelled overseas, and older tea later found buyers back in China.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-25C675AC1B3373D804FFE518",
+          "EVIDENCE-3D052B7C680B4561B8BEB047"
+        ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sichuan-dark:butter-tea",
-    "pageId": "sichuan-dark",
-    "sectionKey": "butter-tea",
-    "label": "Butter tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
+    "claimId": "malaysian-returned-liu-bao:river-trade",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "river-trade",
+    "label": "The river route to Malaya",
+    "axis": "named_tea_history",
+    "basis": "sourced",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "酥油茶",
-        "pinyin": "sū yóu chá",
-        "gloss": "butter tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "In Tibet the brick is broken up and boiled for a long time, often for hours, until the liquor is very dark. The tea is strained and kept as a concentrate. A little is poured into a tall wooden churn with yak butter and salt and churned until the three are blended. It is served hot, in many bowls a day, and offered to every guest. Sichuan border tea has long been sent to Tibet for this.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "In Tibet the brick is broken up and boiled for a long time, often for hours, until the liquor is very dark. The tea is strained and kept as a concentrate. A little is poured into a tall wooden churn with yak butter and salt and churned until the three are blended. It is served hot, in many bowls a day, and offered to every guest. Sichuan border tea has long been sent to Tibet for this.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sichuan-dark:common-impressions",
-    "pageId": "sichuan-dark",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
+      "named_tea": "malaysian-returned-liu-bao"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "A smooth, mellow cup with a red to dark brown liquor and a gentle sweetness, often with wood or earth.",
-    "sourceIds": [],
+    "scope": "The commercial route in the 1951 trade account.",
+    "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
+    "sourceIds": [
+      "guangxi-archives-liubao"
+    ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "A smooth, mellow cup with a red to dark brown liquor and a gentle sweetness, often with wood or earth.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
+        "scope": "The commercial route in the 1951 trade account.",
+        "text": "A trade account published in 1951 follows Liu Bao downstream. At Libu the tea changed to a larger wooden boat for Fengkai, then to a powered vessel for Guangzhou. The account names Ipoh and Kuala Lumpur among its final markets.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-94FBED6771030379C4352AC1",
+          "EVIDENCE-374E11CAC771CEE17ACA52B9"
+        ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sichuan-dark:definition",
-    "pageId": "sichuan-dark",
-    "sectionKey": "definition",
-    "label": "What Sichuan border tea is",
-    "axis": "type",
-    "basis": "trade_knowledge",
+    "claimId": "malaysian-returned-liu-bao:tea-came-back",
+    "pageId": "malaysian-returned-liu-bao",
+    "sectionKey": "tea-came-back",
+    "label": "How older tea found its way back",
+    "axis": "named_tea_history",
+    "basis": "sourced",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "南路边茶",
-        "pinyin": "nán lù biān chá",
-        "gloss": "southern-route border tea"
-      },
-      {
-        "original": "藏茶",
-        "pinyin": "zàng chá",
-        "gloss": "Tibetan tea"
-      },
-      {
-        "original": "边销茶",
-        "pinyin": "biān xiāo chá",
-        "gloss": "border-sale tea"
-      },
-      {
-        "original": "红苔",
-        "pinyin": "hóng tái",
-        "gloss": "red moss, reddish stem and shoot pieces"
-      },
-      {
-        "original": "康砖",
-        "pinyin": "kāng zhuān",
-        "gloss": "Kang brick"
-      },
-      {
-        "original": "金尖",
-        "pinyin": "jīn jiān",
-        "gloss": "Jinjian"
-      }
-    ],
-    "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "Sichuan border tea is a dark tea made around Ya'an in western Sichuan and pressed into dense bricks for the Tibetan highlands. The trade has called it southern-route border tea, border-sale tea and, today, Ya'an Tibetan tea. It is made from mature leaf and red moss, the reddish stem and shoot pieces that come with the leaf, not from young buds. Coarse leaf was the choice for a tea that had to survive months on the road and then be boiled for hours. Two brick styles are sold today, Kangzhuan and Jinjian.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "Sichuan border tea is a dark tea made around Ya'an in western Sichuan and pressed into dense bricks for the Tibetan highlands. The trade has called it southern-route border tea, border-sale tea and, today, Ya'an Tibetan tea. It is made from mature leaf and red moss, the reddish stem and shoot pieces that come with the leaf, not from young buds. Coarse leaf was the choice for a tea that had to survive months on the road and then be boiled for hours. Two brick styles are sold today, Kangzhuan and Jinjian.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sichuan-dark:kangzhuan-jinjian",
-    "pageId": "sichuan-dark",
-    "sectionKey": "kangzhuan-jinjian",
-    "label": "Kangzhuan and Jinjian",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "康砖",
-        "pinyin": "kāng zhuān",
-        "gloss": "Kang brick"
-      },
-      {
-        "original": "金尖",
-        "pinyin": "jīn jiān",
-        "gloss": "Jinjian"
-      },
-      {
-        "original": "康尖",
-        "pinyin": "kāng jiān",
-        "gloss": "Kangjian"
-      },
-      {
-        "original": "红苔",
-        "pinyin": "hóng tái",
-        "gloss": "red moss"
-      }
-    ],
-    "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "Kangzhuan and Jinjian are the two bricks sold today, and some Chinese pages list a third, Kangjian. Both use mature leaf and red moss, and the usual way to tell them apart is the blend. Kangzhuan carries more leaf, and Jinjian carries more red moss and stem. The two names are for the blend, so they say nothing by themselves about where a brick was made or how old it is.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "Kangzhuan and Jinjian are the two bricks sold today, and some Chinese pages list a third, Kangjian. Both use mature leaf and red moss, and the usual way to tell them apart is the blend. Kangzhuan carries more leaf, and Jinjian carries more red moss and stem. The two names are for the blend, so they say nothing by themselves about where a brick was made or how old it is.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sichuan-dark:making",
-    "pageId": "sichuan-dark",
-    "sectionKey": "making",
-    "label": "How Sichuan border tea is made",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
-    },
-    "terms": [
-      {
-        "original": "渥堆",
-        "pinyin": "wò duī",
-        "gloss": "wet piling"
-      },
-      {
-        "original": "拼配",
-        "pinyin": "pīn pèi",
-        "gloss": "blending"
-      }
-    ],
-    "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "The making has two stages. First comes rough tea. The mature leaf is heated to stop its own enzymes, then steamed, rolled and piled in repeated rounds, so that warmth, moisture and microbes darken and mellow it. Accounts count the steps differently, from about 18 to more than 30. Then comes the brick. The rough tea is sorted and blended for the style, steamed, pressed and dried, and rested in a pile so that it keeps changing around the pressing. Accounts differ on whether the rest comes before or after the press. The steam softens the coarse leaf so that it holds together as a brick, and the blend is how the maker sets how much leaf and how much red moss go in.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "The making has two stages. First comes rough tea. The mature leaf is heated to stop its own enzymes, then steamed, rolled and piled in repeated rounds, so that warmth, moisture and microbes darken and mellow it. Accounts count the steps differently, from about 18 to more than 30. Then comes the brick. The rough tea is sorted and blended for the style, steamed, pressed and dried, and rested in a pile so that it keeps changing around the pressing. Accounts differ on whether the rest comes before or after the press. The steam softens the coarse leaf so that it holds together as a brick, and the blend is how the maker sets how much leaf and how much red moss go in.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "sichuan-dark:notice-aged",
-    "pageId": "sichuan-dark",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in Sichuan border tea kept for years",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
+      "named_tea": "malaysian-returned-liu-bao"
     },
     "terms": [],
     "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "A redder, browner liquor, a rounder body and a medicinal edge, often with wood and a dark sweetness.",
-    "sourceIds": [],
+    "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
+    "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
+    "sourceIds": [
+      "cns-malaysia-liubao-trade"
+    ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "A redder, browner liquor, a rounder body and a medicinal edge, often with wood and a dark sweetness.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
+        "scope": "Lin Hengyi’s account of Malaysian trade and a proposal reported in 2024.",
+        "text": "On a visit to Wuzhou in 2024, Malaysian trade representative Lin Hengyi saw a 1973 import order linking a Malaysian firm and a Wuzhou tea company. His family still kept tea from the 1970s. During the visit, merchants asked him about bringing older Liu Bao back to the Chinese market.",
+        "approvedAt": "2026-11-23",
+        "reason": "Reviewed the Stock identity and citations at their recorded scope.",
+        "evidenceIds": [
+          "EVIDENCE-A3F7299E9399CE865CCF9A5D",
+          "EVIDENCE-3D052B7C680B4561B8BEB047"
+        ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sichuan-dark:packing",
-    "pageId": "sichuan-dark",
-    "sectionKey": "packing",
-    "label": "Strip packs and yak hide",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Dark",
-      "origin_includes": [
-        "sichuan"
-      ]
+    "claimId": "menghai-county:common-character",
+    "pageId": "menghai-county",
+    "sectionKey": "common-character",
+    "label": "A forceful reputation",
+    "axis": "sensory_observation",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "attribution": {
+      "sourceId": "teadb-menghai-county",
+      "sourceRole": "specialist_editorial",
+      "sample": "Regional convention reported in specialist writing about Menghai County"
     },
-    "terms": [
-      {
-        "original": "条包",
-        "pinyin": "tiáo bāo",
-        "gloss": "strip pack"
-      }
-    ],
+    "terms": [],
     "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "The bricks did not travel loose. They were bound into long packs of woven bamboo strips, called strip packs, and several were tied together for the road. At Kangding, tea going far into Tibet was sewn into yak hide. The hide was soaked, sewn around the load and hardened as it dried, which kept the tea dry and tight on a long journey.",
-    "sourceIds": [],
-    "reviewState": "approved",
+    "scope": "Menghai County",
+    "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "pending",
+    "pendingText": "Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county.",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "The bricks did not travel loose. They were bound into long packs of woven bamboo strips, called strip packs, and several were tied together for the road. At Kangding, tea going far into Tibet was sewn into yak hide. The hide was soaked, sewn around the load and hardened as it dried, which kept the tea dry and tight on a long journey.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
+        "scope": "Menghai County",
+        "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
+        ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "sichuan-dark:tea-horse-road",
-    "pageId": "sichuan-dark",
-    "sectionKey": "tea-horse-road",
-    "label": "The Tea Horse Road",
-    "axis": "type",
+    "claimId": "menghai-county:county-and-factory",
+    "pageId": "menghai-county",
+    "sectionKey": "county-and-factory",
+    "label": "Menghai the place, Menghai Tea Factory the maker",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Dark",
       "origin_includes": [
-        "sichuan"
+        "menghai"
       ]
     },
     "terms": [
       {
-        "original": "茶马互市",
-        "pinyin": "chá mǎ hù shì",
-        "gloss": "the tea-for-horses trade"
+        "original": "勐海茶厂",
+        "pinyin": "Měnghǎi Cháchǎng",
+        "gloss": "Menghai Tea Factory"
       },
       {
-        "original": "康定",
-        "pinyin": "kāng dìng",
-        "gloss": "Kangding"
+        "original": "大益",
+        "pinyin": "Dàyì",
+        "gloss": "Dayi"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Menghai on a label can mean the county where the leaf grew, or Menghai Tea Factory, which sits in the county and is part of the Dayi group. They are not the same claim. The factory buys and blends leaf from several Menghai mountains, and some of its ripe tea uses leaf from outside the county, such as Lincang. Its recipes and its history belong to its own cakes. A Menghai tea from a village or a small maker is not a factory tea, and a factory cake is not a single mountain unless it says so.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Menghai on a label can mean the county where the leaf grew, or Menghai Tea Factory, which sits in the county and is part of the Dayi group. They are not the same claim. The factory buys and blends leaf from several Menghai mountains, and some of its ripe tea uses leaf from outside the county, such as Lincang. Its recipes and its history belong to its own cakes. A Menghai tea from a village or a small maker is not a factory tea, and a factory cake is not a single mountain unless it says so.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:history",
+    "pageId": "menghai-county",
+    "sectionKey": "history",
+    "label": "Why the name is so well known",
+    "axis": "maker_history",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "pending",
+    "pendingText": "Menghai’s fame also comes from its factory. Menghai Tea Factory was founded in the 1940s, and as pu’er grew into a large state industry the county’s leaf went into factory blends, so many benchmark raw and ripe cakes trace back to Menghai.",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "The establishment of Menghai Tea Factory and the post-1950 shift toward large-scale production made the county central to twentieth-century Pu’er. Regional leaf increasingly entered factory blends, connecting Menghai with many benchmark raw and ripe productions.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-FEBD2174326734F21F2CFF3B"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:mengsong-naka",
+    "pageId": "menghai-county",
+    "sectionKey": "mengsong-naka",
+    "label": "Mengsong and Naka",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "mengsong"
+      ],
+      "name_includes": [
+        "naka"
+      ]
+    },
+    "terms": [
+      {
+        "original": "勐宋",
+        "pinyin": "Měngsòng",
+        "gloss": "Mengsong township"
       },
       {
-        "original": "背夫",
-        "pinyin": "bèi fū",
-        "gloss": "porter"
+        "original": "那卡",
+        "pinyin": "Nàkǎ",
+        "gloss": "Naka village"
       }
     ],
     "rev": 1,
-    "scope": "Sichuan border tea style kit",
-    "text": "Tea from Ya'an went west for about a thousand years. Under the Tang and Song dynasties it was traded for Tibetan horses, and in the Song the state set up offices to run that trade. The Sichuan road ran from Ya'an to Kangding and on to Lhasa. Porters carried the bricks on their backs from Ya'an to Kangding, a walk of more than ten days, because the mountain track was too steep for loaded horses. At Kangding the tea was repacked and went on by mule and yak. Tibetans needed it every day, in a cold land where the diet is meat, butter and barley. Porters gave way to trucks in the middle of the twentieth century, when the highway to Tibet opened.",
-    "sourceIds": [],
+    "scope": "Naka village in Mengsong, Menghai County",
+    "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "Sichuan border tea style kit",
-        "text": "Tea from Ya'an went west for about a thousand years. Under the Tang and Song dynasties it was traded for Tibetan horses, and in the Song the state set up offices to run that trade. The Sichuan road ran from Ya'an to Kangding and on to Lhasa. Porters carried the bricks on their backs from Ya'an to Kangding, a walk of more than ten days, because the mountain track was too steep for loaded horses. At Kangding the tea was repacked and went on by mule and yak. Tibetans needed it every day, in a cold land where the diet is meat, butter and barley. Porters gave way to trucks in the middle of the twentieth century, when the highway to Tibet opened.",
-        "approvedAt": "2026-11-25",
-        "reason": "Adrian approved the Sichuan border tea kit 2026-11-25",
-        "evidenceIds": []
+        "scope": "Naka village in Mengsong, Menghai County",
+        "text": "Naka is a village in Mengsong, one of Menghai County’s tea-growing areas.",
+        "approvedAt": "2026-11-23",
+        "reason": "Adrian approved the listing wording and requested that the verified place lead.",
+        "evidenceIds": [
+          "EVIDENCE-44D0521EB5689FC6FA0D2B95"
+        ]
       }
     ],
     "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:old-gardens",
+    "pageId": "menghai-county",
+    "sectionKey": "old-gardens",
+    "label": "Old trees, left to grow",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "menghai"
+      ]
+    },
+    "terms": [
+      {
+        "original": "古茶园",
+        "pinyin": "gǔ cháyuán",
+        "gloss": "old tea garden"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "What sets the old Menghai gardens apart is how they are kept. The trees are allowed to grow tall, with little pruning, and farmers use little or no fertiliser or spray. They give far less leaf than pruned plantation bushes, which are picked again and again through the season. People who buy old-garden Menghai tea are paying for that slow, low-yield leaf, and it is why the same mountain can taste so different from its plantation tea.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:peoples",
+    "pageId": "menghai-county",
+    "sectionKey": "peoples",
+    "label": "Who tends the mountains",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "menghai"
+      ]
+    },
+    "terms": [
+      {
+        "original": "布朗族",
+        "pinyin": "Bùlǎngzú",
+        "gloss": "Bulang people"
+      },
+      {
+        "original": "拉祜族",
+        "pinyin": "Lāhùzú",
+        "gloss": "Lahu people"
+      },
+      {
+        "original": "哈尼族",
+        "pinyin": "Hānízú",
+        "gloss": "Hani people"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Menghai’s tea mountains are not one community. Bulang Mountain is the home of the Bulang people, and the Bulang are widely credited as some of the first to grow and make tea here. Nannuo is mostly tended by Hani families today (the Aini branch), although the Bulang are said to have planted its earliest trees. In Mengsong, most of the old gardens were planted by Lahu villagers. Who planted and who picks shapes each mountain’s gardens and its tea, so a mountain name is a better guide to a cup than the county name.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:ripe-origins",
+    "pageId": "menghai-county",
+    "sectionKey": "ripe-origins",
+    "label": "Where ripe pu’er began",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:scope",
+    "pageId": "menghai-county",
+    "sectionKey": "scope",
+    "label": "Western Xishuangbanna",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
+    "sourceIds": [
+      "teadb-menghai-county"
+    ],
+    "reviewState": "pending",
+    "pendingText": "Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
+        "approvedAt": "2026-11-23",
+        "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-county:why-people-value-it",
+    "pageId": "menghai-county",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Menghai",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {},
+    "terms": [
+      {
+        "original": "勐海",
+        "pinyin": "Měnghǎi",
+        "gloss": "Menghai"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+    "previousRevisions": [],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "menghai-tea-mountain-circuit:editorial-boundary",
+    "pageId": "menghai-tea-mountain-circuit",
+    "sectionKey": "editorial-boundary",
+    "label": "An itinerary, not an origin",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "menghai-tea-mountain-circuit:reading-the-circuit",
+    "pageId": "menghai-tea-mountain-circuit",
+    "sectionKey": "reading-the-circuit",
+    "label": "Reading the circuit",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "menghai-tea-mountain-circuit:seven-mountain-route",
+    "pageId": "menghai-tea-mountain-circuit",
+    "sectionKey": "seven-mountain-route",
+    "label": "Seven mountain stops",
+    "axis": "place",
+    "basis": "sourced",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
+    "sourceIds": [
+      "ctma-menghai-seven-mountains-2025"
+    ],
+    "reviewState": "draft",
+    "pendingText": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "muzha:history",
+    "pageId": "muzha",
+    "sectionKey": "history",
+    "label": "How Tieguanyin came to Muzha",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "muzha"
+      ]
+    },
+    "terms": [
+      {
+        "original": "張迺妙",
+        "pinyin": "Zhāng Nǎimiào",
+        "gloss": "Zhang Naimiao, the tea master named for bringing Tieguanyin to Muzha"
+      },
+      {
+        "original": "安溪",
+        "pinyin": "Ānxī",
+        "gloss": "Anxi, Fujian, the home of Tieguanyin"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Tieguanyin reached Muzha from Anxi in Fujian in the late nineteenth century, carried by Fujian settlers. The trade most often names the tea master Zhang Naimiao, who brought plants over in 1895 and planted them in the Zhanghu part of Muzha. Many tea families in the hills still carry the Zhang name. Later shipments of plants are reported, but the years and numbers differ from place to place, so they are not settled here.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Tieguanyin reached Muzha from Anxi in Fujian in the late nineteenth century, carried by Fujian settlers. The trade most often names the tea master Zhang Naimiao, who brought plants over in 1895 and planted them in the Zhanghu part of Muzha. Many tea families in the hills still carry the Zhang name. Later shipments of plants are reported, but the years and numbers differ from place to place, so they are not settled here.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "muzha:known-for",
+    "pageId": "muzha",
+    "sectionKey": "known-for",
+    "label": "The tea Muzha is known for",
+    "axis": "sensory_observation",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "muzha"
+      ]
+    },
+    "terms": [
+      {
+        "original": "木柵鐵觀音",
+        "pinyin": "Mùzhà Tiěguānyīn",
+        "gloss": "Muzha Tieguanyin, the roasted oolong of Muzha"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Muzha is known for Tieguanyin made in the traditional Taiwanese way: a ball-rolled oolong, oxidised part way and then roasted over charcoal. It is far darker and heavier than the green, lightly finished Tieguanyin many people know from Fujian. The trade describes roasted and ripe-fruit notes, nuts and honey, an amber cup with a full body, and a sweet, lingering return. The slow roasting, repeated over many days, is a large part of why the tea costs more.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Muzha is known for Tieguanyin made in the traditional Taiwanese way: a ball-rolled oolong, oxidised part way and then roasted over charcoal. It is far darker and heavier than the green, lightly finished Tieguanyin many people know from Fujian. The trade describes roasted and ripe-fruit notes, nuts and honey, an amber cup with a full body, and a sweet, lingering return. The slow roasting, repeated over many days, is a large part of why the tea costs more.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   }
 ];

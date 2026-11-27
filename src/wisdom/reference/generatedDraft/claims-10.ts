@@ -5,255 +5,174 @@ import type { DraftClaim } from '../claims';
 
 export const PART: readonly DraftClaim[] = [
   {
-    "claimId": "taiwan-oolong:ageing",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Taiwan oolong",
-    "axis": "type",
+    "claimId": "muzha:on-a-label",
+    "pageId": "muzha",
+    "sectionKey": "on-a-label",
+    "label": "Muzha on a label",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "taiwan"
+        "muzha"
       ]
     },
     "terms": [
       {
-        "original": "老茶",
-        "pinyin": "lǎo chá",
-        "gloss": "old tea"
+        "original": "正欉鐵觀音",
+        "pinyin": "zhèngcóng Tiěguānyīn",
+        "gloss": "Tieguanyin from the true original cultivar"
       }
     ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
+    "rev": null,
+    "scope": "",
+    "text": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Taiwan has a tradition of keeping oolong for years, called lao cha, old tea. The tea chosen for keeping starts well roasted and dry, and it is roasted again at low heat from time to time to drive out the moisture it takes in; how often is a matter of the keeper’s judgement. Stored cool, dry, dark and sealed, it loses its bitterness and astringency with the years, the cup turns smooth, round and sweet, and the liquor deepens through amber towards red-brown. No standard says how many years make an oolong old; those who give a figure put it somewhere between ten and thirty years.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "Muzha Tieguanyin on a label names a place and a style of making. It is not proof of the plant. True Tieguanyin trees, often called zhengcong, give little leaf and need careful hands, and some growers in Muzha now use other cultivars such as Qingxin oolong for the same style of tea. Tieguanyin is also a name used for a way of making, so leaf sold as Tieguanyin may come from other plants. Place, cultivar and roast are three separate facts, and a label rarely gives all three. How the name sits with the wider tea is on the [Tieguanyin](tieguanyin) page.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "taiwan-oolong:baozhong",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "baozhong",
-    "label": "Baozhong",
-    "axis": "type",
+    "claimId": "muzha:visiting",
+    "pageId": "muzha",
+    "sectionKey": "visiting",
+    "label": "Visiting the tea hills",
+    "axis": "place",
     "basis": "trade_knowledge",
-    "listingEligible": true,
+    "listingEligible": false,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "taiwan"
-      ],
-      "name_includes": [
-        "baozhong"
-      ]
-    },
-    "terms": [
-      {
-        "original": "包種",
-        "pinyin": "bāozhǒng",
-        "gloss": "wrapped kind"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Baozhong is made in the north of Taiwan, mostly in Pinglin and the nearby Wenshan area, and is the most lightly oxidised Taiwan oolong. Unlike most Taiwan oolong it is left as a long twisted strip, not rolled into balls, and it is normally dried rather than roasted. The name means wrapped kind, from the old habit of wrapping the tea in paper.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:brewing",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "brewing",
-    "label": "Brewing Taiwan oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
+        "muzha"
       ]
     },
     "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
+    "rev": null,
+    "scope": "",
+    "text": "Tea here is also a place people go to. From the later twentieth century the city encouraged tea farms to open to visitors, and the hills now hold tea houses and farms that sell their own leaf. Most of those farms grow Tieguanyin. Buying at the source is common, which makes the farm and the year worth asking about.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Ball-rolled Taiwan oolong takes hot water, about 90 to 100°C, a fairly generous amount of leaf and short steeps; the balls open slowly and give many infusions. Roasted Dong Ding takes water from about 95°C to a full boil. Aged oolong takes very hot water, in a pot that holds its heat, clay above all. Oriental Beauty is the exception and takes cooler water, about 80 to 95°C.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "Tea here is also a place people go to. From the later twentieth century the city encouraged tea farms to open to visitors, and the hills now hold tea houses and farms that sell their own leaf. Most of those farms grow Tieguanyin. Buying at the source is common, which makes the farm and the year worth asking about.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "taiwan-oolong:common-impressions",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
+    "claimId": "muzha:where-it-is",
+    "pageId": "muzha",
+    "sectionKey": "where-it-is",
+    "label": "Where Muzha is",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "taiwan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:definition",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "definition",
-    "label": "What Taiwan oolong is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
+        "muzha"
       ]
     },
     "terms": [
       {
-        "original": "青心烏龍",
-        "pinyin": "qīngxīn wūlóng",
-        "gloss": "Qingxin oolong"
+        "original": "木柵",
+        "pinyin": "Mùzhà",
+        "gloss": "Muzha, a hill district of southeast Taipei"
       },
       {
-        "original": "金萱",
-        "pinyin": "jīnxuān",
-        "gloss": "Jinxuan"
+        "original": "貓空",
+        "pinyin": "Māokōng",
+        "gloss": "Maokong, the tea hillside in Muzha"
       }
     ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
+    "rev": null,
+    "scope": "",
+    "text": "Muzha is a hill district in the southeast of Taipei, in Wenshan District, on the edge of the city. The tea slopes are low hills of a few hundred metres, and Maokong, the best known tea hillside, is part of the same tea country. The area is wet, with a large gap between day and night temperatures. Growers and sellers say this resembles Anxi in Fujian, where Tieguanyin comes from.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "Muzha is a hill district in the southeast of Taipei, in Wenshan District, on the edge of the city. The tea slopes are low hills of a few hundred metres, and Maokong, the best known tea hillside, is part of the same tea country. The area is wet, with a large gap between day and night temperatures. Growers and sellers say this resembles Anxi in Fujian, where Tieguanyin comes from.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "taiwan-oolong:dong-ding",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "dong-ding",
-    "label": "Dong Ding",
-    "axis": "type",
-    "basis": "trade_knowledge",
+    "claimId": "nanqiao-ruigong-brick:malaysian-tea-fair",
+    "pageId": "nanqiao-ruigong-brick",
+    "sectionKey": "malaysian-tea-fair",
+    "label": "A brick on the Malaysian tea market",
+    "axis": "named_tea_history",
+    "basis": "sourced",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ],
-      "name_includes": [
-        "dong",
-        "ding"
-      ]
+      "named_tea": "nanqiao-ruigong-brick"
     },
-    "terms": [
-      {
-        "original": "凍頂",
-        "pinyin": "dòngdǐng",
-        "gloss": "Dong Ding"
-      }
-    ],
+    "terms": [],
     "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
-    "sourceIds": [],
+    "scope": "A 2008 Ruigong product shown at the 2022 fair.",
+    "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
+    "sourceIds": [
+      "dahonghua-ruigong-brick"
+    ],
     "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
         "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
+        "scope": "A 2008 Ruigong product shown at the 2022 fair.",
+        "text": "In the catalogue for a Malaysian tea fair in 2022, a dark rectangle of pressed tea sits among four cream wrappers printed in red. The exhibitor, Quanyuxuan, offered five Ruigong bricks together at stall 27. The caption identifies that particular offering as ripe tea from 2008, with 250 grams in each brick.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-0621572B10EDCD30C5521E55",
+          "EVIDENCE-12982E87A3E2D326852D474A"
+        ]
       }
     ],
     "pageVisibility": "public"
   },
   {
-    "claimId": "taiwan-oolong:high-mountain",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "high-mountain",
-    "label": "High mountain tea",
-    "axis": "type",
+    "claimId": "nanqiao-ruigong-brick:nanqiao-name",
+    "pageId": "nanqiao-ruigong-brick",
+    "sectionKey": "nanqiao-name",
+    "label": "Where the Nanqiao name comes from",
+    "axis": "named_tea_history",
+    "basis": "sourced",
+    "listingEligible": true,
+    "appliesWhen": {
+      "named_tea": "nanqiao-ruigong-brick"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "The Nanqiao company and its trade.",
+    "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
+    "sourceIds": [
+      "ctma-nanqiao-company"
+    ],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "The Nanqiao company and its trade.",
+        "text": "Nanqiao was once the name of the county around Mengzhe in southern Yunnan. Menghai County Nanqiao Tea Company, founded in February 2004, kept that old place name. The China Tea Marketing Association identifies Che Fo Nan as the company’s brand and records that it sold teas in Hong Kong, Taiwan and Southeast Asia.",
+        "approvedAt": "2026-11-23",
+        "reason": "Verified the retained source and reviewed the scope for the named-tea listing.",
+        "evidenceIds": [
+          "EVIDENCE-6B4D99DDB582935C71194716",
+          "EVIDENCE-4C832477FC20B224F7F37626",
+          "EVIDENCE-5468B24272F8BE0E9BB775EB",
+          "EVIDENCE-2E575AC1E516A475D2D6C4ED"
+        ]
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "nantou:altitude-bands",
+    "pageId": "nantou",
+    "sectionKey": "altitude-bands",
+    "label": "Low, middle and high Nantou",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Oolong",
       "origin_includes": [
-        "taiwan"
-      ],
-      "name_includes": [
-        "high",
-        "mountain"
+        "nantou"
       ]
     },
     "terms": [
@@ -263,189 +182,171 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "high mountain tea"
       }
     ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
+    "rev": null,
+    "scope": "",
+    "text": "The trade splits Nantou's tea country by height. Low hills such as Mingjian grow tea for volume. The middle belt, around Zhushan, Sun Moon Lake and Dong Ding, is where roasted oolong is at home. Above about a thousand metres, around Shan Lin Xi and the high ground of Ren'ai Township, the gardens are cool and misty and make the light, sweet high mountain style. Which style a Nantou oolong follows depends on where in the county it grew, so the county name alone does not tell you whether it will be roasted or green and floral.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "The trade splits Nantou's tea country by height. Low hills such as Mingjian grow tea for volume. The middle belt, around Zhushan, Sun Moon Lake and Dong Ding, is where roasted oolong is at home. Above about a thousand metres, around Shan Lin Xi and the high ground of Ren'ai Township, the gardens are cool and misty and make the light, sweet high mountain style. Which style a Nantou oolong follows depends on where in the county it grew, so the county name alone does not tell you whether it will be roasted or green and floral.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   },
   {
-    "claimId": "taiwan-oolong:history",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "history",
-    "label": "How Taiwan oolong grew",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oolong came to Taiwan with settlers from Fujian and was grown for sale in the nineteenth century. In the 1860s the Scottish merchant John Dodd, working with the Taipei merchant Li Chunsheng, sold it abroad as Formosa Oolong, and tea became one of the island’s leading exports, which it stayed under Japanese rule. In the late twentieth century the market turned inward: more Taiwan tea was drunk at home than sold abroad, and high mountain oolong became one of the island’s most prized teas.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:muzha",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "muzha",
-    "label": "Muzha Tieguanyin",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan",
-        "muzha"
-      ]
-    },
-    "terms": [
-      {
-        "original": "木柵鐵觀音",
-        "pinyin": "mùzhà tiěguānyīn",
-        "gloss": "Muzha Tieguanyin"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from Muzha, Taiwan",
-    "text": "Muzha, in southern Taipei, is the home of Taiwan’s traditional Tieguanyin. The tea master Zhang Naimiao is credited with bringing the cultivar there from Anxi, with a clansman, during the years of Japanese rule in Taiwan; the year is told differently. The traditional Muzha style is a more oxidised, charcoal-roasted tea, its leaf wrapped in cloth and rolled again and again.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from Muzha, Taiwan",
-        "text": "Muzha, in southern Taipei, is the home of Taiwan’s traditional Tieguanyin. The tea master Zhang Naimiao is credited with bringing the cultivar there from Anxi, with a clansman, during the years of Japanese rule in Taiwan; the year is told differently. The traditional Muzha style is a more oxidised, charcoal-roasted tea, its leaf wrapped in cloth and rolled again and again.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:notice-aged",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "notice-aged",
-    "label": "What people often notice in aged Taiwan oolong",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan-oolong:oriental-beauty",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "oriental-beauty",
-    "label": "Oriental Beauty",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ],
-      "name_includes": [
-        "oriental",
-        "beauty"
-      ]
-    },
-    "terms": [
-      {
-        "original": "東方美人",
-        "pinyin": "dōngfāng měirén",
-        "gloss": "Oriental Beauty"
-      },
-      {
-        "original": "膨風茶",
-        "pinyin": "pèngfēng chá",
-        "gloss": "bragging tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-        "text": "Oriental Beauty is made from buds and leaves bitten by a small green leafhopper. The bite starts the leaf’s change on the bush and is the root of the tea’s character, which is why its growers avoid insecticide on those fields. It is picked in early summer, is far more oxidised than other Taiwan oolong, close to red tea, and comes mainly from Hsinchu County, around Beipu and Emei, and from Miaoli. Its older name is Pengfeng tea, bragging tea.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "taiwan:areas",
-    "pageId": "taiwan",
-    "sectionKey": "areas",
-    "label": "How the tea areas sit on the island",
+    "claimId": "nantou:lugu-dong-ding",
+    "pageId": "nantou",
+    "sectionKey": "lugu-dong-ding",
+    "label": "Lugu and Dong Ding",
     "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "origin_includes": [
-        "taiwan"
+        "nantou"
+      ]
+    },
+    "terms": [
+      {
+        "original": "鹿谷",
+        "pinyin": "Lùgǔ",
+        "gloss": "Lugu; Dong Ding township"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Lugu Township, in the south west of Nantou, is where Dong Ding oolong comes from, and it is the best known tea place in the county. Lugu has grown tea for sale since the nineteenth century, and Dong Ding mountain is covered in gardens. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page. What this page adds is its place: Lugu sits in the middle belt of Nantou, below the high mountain gardens, so it is a county of roasted teas as well as light ones.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Lugu Township, in the south west of Nantou, is where Dong Ding oolong comes from, and it is the best known tea place in the county. Lugu has grown tea for sale since the nineteenth century, and Dong Ding mountain is covered in gardens. For what Dong Ding oolong is and how it is made, see the Taiwan oolong page. What this page adds is its place: Lugu sits in the middle belt of Nantou, below the high mountain gardens, so it is a county of roasted teas as well as light ones.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "nantou:ren-ai-and-lishan",
+    "pageId": "nantou",
+    "sectionKey": "ren-ai-and-lishan",
+    "label": "Ren'ai Township and Lishan",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "nantou"
+      ]
+    },
+    "terms": [
+      {
+        "original": "仁愛",
+        "pinyin": "Rén'ài",
+        "gloss": "Ren'ai Township"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Ren'ai Township, in the east of Nantou, grows high mountain tea at roughly 1,100 to 2,000 metres. Lishan is next door but is not in Nantou. Sources place it in Taichung, and sellers sell it as its own name for tea grown above about 1,800 metres. Teas from the high ground between the two, such as Dayuling, are placed in different counties by different sources, so a seller's county for them is not safe to assume. Alishan, often named with these, is in Chiayi County.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Ren'ai Township, in the east of Nantou, grows high mountain tea at roughly 1,100 to 2,000 metres. Lishan is next door but is not in Nantou. Sources place it in Taichung, and sellers sell it as its own name for tea grown above about 1,800 metres. Teas from the high ground between the two, such as Dayuling, are placed in different counties by different sources, so a seller's county for them is not safe to assume. Alishan, often named with these, is in Chiayi County.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "nantou:shan-lin-xi",
+    "pageId": "nantou",
+    "sectionKey": "shan-lin-xi",
+    "label": "Shan Lin Xi",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "nantou"
+      ]
+    },
+    "terms": [
+      {
+        "original": "杉林溪",
+        "pinyin": "Shānlínxī",
+        "gloss": "Shan Lin Xi"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Shan Lin Xi is a high mountain tea area in Zhushan Township, in Nantou, and it is described as lying near Dong Ding. Its gardens are among the county's highest and are known for bamboo forest, mist and steep slopes. Places quote its altitude differently, from the low hundreds of metres up to about 1,950 metres in one account and 1,600 to 1,800 metres in another, so no single range is safe to state.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Shan Lin Xi is a high mountain tea area in Zhushan Township, in Nantou, and it is described as lying near Dong Ding. Its gardens are among the county's highest and are known for bamboo forest, mist and steep slopes. Places quote its altitude differently, from the low hundreds of metres up to about 1,950 metres in one account and 1,600 to 1,800 metres in another, so no single range is safe to state.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "nantou:sun-moon-lake",
+    "pageId": "nantou",
+    "sectionKey": "sun-moon-lake",
+    "label": "Sun Moon Lake and Yuchi",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "origin_includes": [
+        "nantou"
+      ]
+    },
+    "terms": [
+      {
+        "original": "魚池",
+        "pinyin": "Yúchí",
+        "gloss": "Yuchi Township"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Yuchi Township, around Sun Moon Lake, is Nantou's black tea country. It grows Assam type tea, introduced in Japanese times, and its Sun Moon Lake black tea became better known after the 1999 earthquake, when growers there turned to it. It is not oolong, so it matters here only as the other half of Nantou's tea picture.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Yuchi Township, around Sun Moon Lake, is Nantou's black tea country. It grows Assam type tea, introduced in Japanese times, and its Sun Moon Lake black tea became better known after the 1999 earthquake, when growers there turned to it. It is not oolong, so it matters here only as the other half of Nantou's tea picture.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "nantou:where-it-is",
+    "pageId": "nantou",
+    "sectionKey": "where-it-is",
+    "label": "Where Nantou is",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "nantou"
+      ]
+    },
+    "terms": [
+      {
+        "original": "南投",
+        "pinyin": "Nántóu",
+        "gloss": "Nantou; south head"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Nantou is a county in the middle of Taiwan, and the only one that does not touch the sea. About four fifths of it is hills and mountains, rising to the Central Mountain Range in the east and to Yushan, the island's highest peak, in the south. Sun Moon Lake, the island's largest lake, lies in the middle. On a tea record, Nantou usually names the county as a whole, and a township or mountain inside it, such as Lugu or Shan Lin Xi, is the finer place.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Nantou is a county in the middle of Taiwan, and the only one that does not touch the sea. About four fifths of it is hills and mountains, rising to the Central Mountain Range in the east and to Yushan, the island's highest peak, in the south. Sun Moon Lake, the island's largest lake, lies in the middle. On a tea record, Nantou usually names the county as a whole, and a township or mountain inside it, such as Lugu or Shan Lin Xi, is the finer place.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "nantou:why-people-value-it",
+    "pageId": "nantou",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Nantou tea",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "nantou"
       ]
     },
     "terms": [
@@ -453,496 +354,617 @@ export const PART: readonly DraftClaim[] = [
         "original": "南投",
         "pinyin": "Nántóu",
         "gloss": "Nantou"
-      },
-      {
-        "original": "嘉義",
-        "pinyin": "Jiāyì",
-        "gloss": "Chiayi"
-      },
-      {
-        "original": "坪林",
-        "pinyin": "Pínglín",
-        "gloss": "Pinglin"
       }
     ],
     "rev": null,
     "scope": "",
-    "text": "The tea areas fall into a few groups. In the north, around Taipei and New Taipei, are Pinglin, home of Baozhong, and Muzha, home of Tieguanyin. Further along the north and northwest, Hsinchu and Miaoli are where Oriental Beauty is made. In the centre, Nantou is the largest tea county, with Lugu (Dong Ding), Shanlinxi and the red tea around Yuchi, and it is joined by the Taichung mountains of Lishan and Dayuling. In the southwest, Chiayi holds the Alishan area. The east coast, in Hualien and Taitung, is smaller and makes a wider mix of teas. The high mountain tea areas are mostly in Nantou, Chiayi and Taichung, and the older, lower areas are mostly in the north.",
+    "text": "Nantou is Taiwan's biggest tea county, with more than half of the island's tea plantings and output. What makes it matter to a buyer is range. In one county the land climbs from low hills to cold mountain gardens, so it makes very different teas side by side: roasted oolong from the lower slopes, lightly oxidised high mountain oolong from the cool heights, and black tea near the lake. A tea sold as Nantou says which county it came from, and the township, mountain or garden says which of those teas it is.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "The tea areas fall into a few groups. In the north, around Taipei and New Taipei, are Pinglin, home of Baozhong, and Muzha, home of Tieguanyin. Further along the north and northwest, Hsinchu and Miaoli are where Oriental Beauty is made. In the centre, Nantou is the largest tea county, with Lugu (Dong Ding), Shanlinxi and the red tea around Yuchi, and it is joined by the Taichung mountains of Lishan and Dayuling. In the southwest, Chiayi holds the Alishan area. The east coast, in Hualien and Taitung, is smaller and makes a wider mix of teas. The high mountain tea areas are mostly in Nantou, Chiayi and Taichung, and the older, lower areas are mostly in the north.",
+    "pendingText": "Nantou is Taiwan's biggest tea county, with more than half of the island's tea plantings and output. What makes it matter to a buyer is range. In one county the land climbs from low hills to cold mountain gardens, so it makes very different teas side by side: roasted oolong from the lower slopes, lightly oxidised high mountain oolong from the cool heights, and black tea near the lake. A tea sold as Nantou says which county it came from, and the township, mountain or garden says which of those teas it is.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "taiwan:history",
-    "pageId": "taiwan",
-    "sectionKey": "history",
-    "label": "How tea came to Taiwan",
+    "claimId": "northern-vietnam-highlands:beside-yunnan",
+    "pageId": "northern-vietnam-highlands",
+    "sectionKey": "beside-yunnan",
+    "label": "Why it is set beside Yunnan",
     "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "origin_includes": [
-        "taiwan"
+        "northern vietnam highlands"
       ]
     },
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Tea came with settlers from Fujian, who brought plants and the craft of making oolong, and it grew into a trade for sale abroad in the nineteenth century, when oolong was sold overseas as Formosa Oolong. Under Japanese rule the island also turned to black tea, and in the late twentieth century more attention went to quality and to tea drunk at home, which is when high mountain oolong became so prized.",
+    "text": "The highlands share the large-leaf tea trees, the mountain climate and the forest setting of the Yunnan hills just over the border. For that reason the trade often compares Shan Tuyet leaf with the leaf used for pu'er, and some sellers press it into cakes in the pu'er manner. How far back tea crossed the border, and how much of it is traded across it today, is not established here. The Vietnamese tea is its own product from its own country, and a comparison with Yunnan does not make it a Yunnan tea.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Tea came with settlers from Fujian, who brought plants and the craft of making oolong, and it grew into a trade for sale abroad in the nineteenth century, when oolong was sold overseas as Formosa Oolong. Under Japanese rule the island also turned to black tea, and in the late twentieth century more attention went to quality and to tea drunk at home, which is when high mountain oolong became so prized.",
+    "pendingText": "The highlands share the large-leaf tea trees, the mountain climate and the forest setting of the Yunnan hills just over the border. For that reason the trade often compares Shan Tuyet leaf with the leaf used for pu'er, and some sellers press it into cakes in the pu'er manner. How far back tea crossed the border, and how much of it is traded across it today, is not established here. The Vietnamese tea is its own product from its own country, and a comparison with Yunnan does not make it a Yunnan tea.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "taiwan:known-for",
-    "pageId": "taiwan",
-    "sectionKey": "known-for",
-    "label": "What Taiwan is known for in tea",
+    "claimId": "northern-vietnam-highlands:old-trees",
+    "pageId": "northern-vietnam-highlands",
+    "sectionKey": "old-trees",
+    "label": "Shan Tuyet old trees",
     "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "origin_includes": [
-        "taiwan"
+        "northern vietnam highlands"
       ]
     },
     "terms": [
       {
-        "original": "烏龍茶",
+        "original": "山雪茶",
+        "pinyin": "shānxuě chá",
+        "gloss": "Shan Tuyet (snow mountain) tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Shan Tuyet means snow mountain, a name that comes from the fine white down on the buds. It names a family of large-leaf Shan tea trees and not one single cultivar. Many of the trees are old, with some said to be several hundred years, though ages are mostly local estimates and not measured. Mông and Dao communities look after many of the groves, and a number of old stands have been listed as Vietnam heritage trees. People value the tea for these old, lightly managed trees on forested slopes, in the same way they value old-tree leaf in Yunnan.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Shan Tuyet means snow mountain, a name that comes from the fine white down on the buds. It names a family of large-leaf Shan tea trees and not one single cultivar. Many of the trees are old, with some said to be several hundred years, though ages are mostly local estimates and not measured. Mông and Dao communities look after many of the groves, and a number of old stands have been listed as Vietnam heritage trees. People value the tea for these old, lightly managed trees on forested slopes, in the same way they value old-tree leaf in Yunnan.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "northern-vietnam-highlands:on-a-label",
+    "pageId": "northern-vietnam-highlands",
+    "sectionKey": "on-a-label",
+    "label": "The pu'er name on a label",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "northern vietnam highlands"
+      ]
+    },
+    "terms": [],
+    "rev": null,
+    "scope": "",
+    "text": "Whether a ripe cake from Vietnam may be called pu'er is not agreed. Many people hold that the name belongs to tea grown in Yunnan, and some sellers of these teas say so themselves, calling the tea a Vietnamese dark tea made in the pu'er style. Others use the pu'er name freely. A label that says Ha Giang or Shan Tuyet gives a place and a tree type, and not a legal grade, a recipe or an age.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Whether a ripe cake from Vietnam may be called pu'er is not agreed. Many people hold that the name belongs to tea grown in Yunnan, and some sellers of these teas say so themselves, calling the tea a Vietnamese dark tea made in the pu'er style. Others use the pu'er name freely. A label that says Ha Giang or Shan Tuyet gives a place and a tree type, and not a legal grade, a recipe or an age.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "northern-vietnam-highlands:ripe-tea",
+    "pageId": "northern-vietnam-highlands",
+    "sectionKey": "ripe-tea",
+    "label": "Ripe tea from the highlands",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "northern vietnam highlands"
+      ]
+    },
+    "terms": [
+      {
+        "original": "熟茶",
+        "pinyin": "shúchá",
+        "gloss": "ripe tea (shou)"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Ripe, pu'er style tea is made here from old-tree leaf, mostly in Ha Giang, and some Lao Cai makers also list a pu'er style tea. Sellers describe a medium fermentation, which they say gives a softer cup than ripe tea from Yunnan, with woody, earthy and nutty notes and a sweet finish. Some keep it for several years in the humid mountain climate. The stated age and the trees behind a given cake are usually the seller's own account, so they are read as that and not as a standard.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Ripe, pu'er style tea is made here from old-tree leaf, mostly in Ha Giang, and some Lao Cai makers also list a pu'er style tea. Sellers describe a medium fermentation, which they say gives a softer cup than ripe tea from Yunnan, with woody, earthy and nutty notes and a sweet finish. Some keep it for several years in the humid mountain climate. The stated age and the trees behind a given cake are usually the seller's own account, so they are read as that and not as a standard.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "northern-vietnam-highlands:where-it-is",
+    "pageId": "northern-vietnam-highlands",
+    "sectionKey": "where-it-is",
+    "label": "Where the northern highlands are",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "northern vietnam highlands"
+      ]
+    },
+    "terms": [
+      {
+        "original": "山雪茶",
+        "pinyin": "shānxuě chá",
+        "gloss": "Shan Tuyet (snow mountain) tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "The northern Vietnam highlands are the mountain provinces along and near the border with China, where old Shan Tuyet tea trees grow. Ha Giang and Lao Cai are the two most often named for this tea, and Yen Bai and Son La are usually listed with them. Within Ha Giang the trade names Hoang Su Phi and Vi Xuyen, within Lao Cai the Bac Ha area, and Suoi Giang is the best known grove on the Yen Bai side. Gardens sit high, mostly above about 1,000 metres, and the range is cool and misty.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "The northern Vietnam highlands are the mountain provinces along and near the border with China, where old Shan Tuyet tea trees grow. Ha Giang and Lao Cai are the two most often named for this tea, and Yen Bai and Son La are usually listed with them. Within Ha Giang the trade names Hoang Su Phi and Vi Xuyen, within Lao Cai the Bac Ha area, and Suoi Giang is the best known grove on the Yen Bai side. Gardens sit high, mostly above about 1,000 metres, and the range is cool and misty.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "oolong:ageing",
+    "pageId": "oolong",
+    "sectionKey": "ageing",
+    "label": "Keeping and ageing oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Only well-made, well-roasted oolong is kept to age; the families most often aged are Wuyi rock tea, traditional Tieguanyin and roasted Taiwan oolong. Light, green-style oolong is a tea to drink fresh, and kept too long it goes flat or sour. Moisture is the danger: tea that was not dried and roasted enough takes up damp and turns grassy again. The heavier the roast, the more slowly the tea changes. Over years of storage good oolong is roasted again at low heat from time to time to drive off the moisture it has taken in, a skilled job that can cost some quality each round. Kept sealed, away from light, smells and damp, a roasted oolong softens with the years: the roast loses its edge, the body grows smoother and thicker, the liquor deepens towards red-brown, and the high floral aroma fades. There are no agreed ages at which oolong counts as aged.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:brewing",
+    "pageId": "oolong",
+    "sectionKey": "brewing",
+    "label": "Brewing oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is most often brewed gongfu style, in a small gaiwan or clay pot with plenty of leaf and short steeps, and it stands many rounds. A common start is about 4 to 6 grams to 100 ml, with a first steep of roughly 5 to 15 seconds and 5 to 10 seconds more each round. Light, green-style oolong takes water a little off the boil, about 90 to 95°C; heavily oxidised, roasted and aged oolong takes water at a full boil. Many people pour a quick first rinse to wake tightly rolled leaf. In a larger pot, use less leaf and steep for a few minutes.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:common-impressions",
+    "pageId": "oolong",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "In light, green-style oolong: floral and orchid notes, a creamy or buttery feel and a sweet aftertaste that lingers. In roasted and darker oolong: toasted grain and caramel, wood, stone fruit and a mineral, rock-like character.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:definition",
+    "pageId": "oolong",
+    "sectionKey": "definition",
+    "label": "What oolong is",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "乌龙茶",
         "pinyin": "wūlóng chá",
         "gloss": "oolong tea"
       },
       {
-        "original": "高山茶",
-        "pinyin": "gāoshān chá",
-        "gloss": "high mountain tea"
+        "original": "青茶",
+        "pinyin": "qīng chá",
+        "gloss": "blue-green tea"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way. In Chinese it is also called qing cha, blue-green tea. The range inside it is wide: some oolongs sit close to green tea, floral and creamy, and others close to red tea, roasted, woody and dark-fruited. No single percentage describes the type, and the figures sellers give do not agree.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:families",
+    "pageId": "oolong",
+    "sectionKey": "families",
+    "label": "The four families",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "岩韵",
+        "pinyin": "yán yùn",
+        "gloss": "rock rhyme"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is made in four main families, each named for where it comes from and how it is made, not for quality. North Fujian makes Wuyi rock tea, strip-rolled, usually the most oxidised and most roasted, prized for a lasting mineral quality the trade calls rock rhyme. South Fujian, led by Anxi and its Tieguanyin, makes ball-rolled tea. The Phoenix mountain area of Chaozhou in Guangdong makes Dan Cong, strip-rolled and mostly named for its aroma, which comes from the bush and not from added flavour. Taiwan, whose tea came from Fujian, makes mostly light to medium oolong, usually ball-rolled, with high mountain tea the most popular style.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:history",
+    "pageId": "oolong",
+    "sectionKey": "history",
+    "label": "How oolong began",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "By the Qing dynasty oolong was an established craft in Fujian, refined in the Wuyi mountains and in Anxi during the 1700s, and the making of Tieguanyin in Anxi is dated to the early eighteenth century. The craft then spread to Chaozhou and to Taiwan, where oolong grew into an export tea in the second half of the nineteenth century. Where oolong first began, Wuyi or Anxi, is not settled, and the stories told about its name and its first makers are stories.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:making",
+    "pageId": "oolong",
+    "sectionKey": "making",
+    "label": "How oolong is made",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "做青",
+        "pinyin": "zuò qīng",
+        "gloss": "tossing the leaf in rounds"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "Oolong is made in a set order, and each step has a reason. The leaf is withered, often first in the sun and then indoors, so it goes soft enough to handle without breaking. It is then tossed or shaken in rounds with rests between them. The knocking bruises the leaf’s edges, which begin to oxidise, and the rests let the change spread slowly inward while the aroma builds. That is why a well-made oolong leaf is often green in the middle with a reddish edge. High heat, in a wok or a hot drum, then stops the change at the level the maker wants. The leaf is rolled, either into long twisted strips or, by rolling again and again in cloth, into tight balls. Last, it is dried, and many oolongs are then roasted.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:notice-aged",
+    "pageId": "oolong",
+    "sectionKey": "notice-aged",
+    "label": "What people often notice in aged oolong",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "oolong:oxidation-and-roast",
+    "pageId": "oolong",
+    "sectionKey": "oxidation-and-roast",
+    "label": "Oxidation and roast",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong"
+    },
+    "terms": [
+      {
+        "original": "焙火",
+        "pinyin": "bèi huǒ",
+        "gloss": "roasting"
+      }
+    ],
+    "rev": 1,
+    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+    "text": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
+    "sourceIds": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
+        "text": "How far the leaf is oxidised and how hard it is roasted are two separate choices. Roasting, over charcoal in the traditional heavy styles and often in several rounds over days or weeks, lowers the moisture so the tea keeps, and it mellows the tea and adds depth. A tea can be lightly oxidised and barely roasted, as most modern Anxi Tieguanyin and Taiwan high mountain tea are, or lightly oxidised and roasted hard, as traditional Tieguanyin was. Wuyi teas are labelled light, medium or full roast for this reason.",
+        "approvedAt": "2026-11-24",
+        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 19)",
+        "evidenceIds": []
+      }
+    ],
+    "pageVisibility": "public"
+  },
+  {
+    "claimId": "phoenix-mountain:mist-and-climate",
+    "pageId": "phoenix-mountain",
+    "sectionKey": "mist-and-climate",
+    "label": "Mist, cool air and slow leaf",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "山韵",
+        "pinyin": "shān yùn",
+        "gloss": "mountain rhyme"
       }
     ],
     "rev": null,
     "scope": "",
-    "text": "Taiwan is known above all for oolong. Its trade is built on rolled, bead-shaped oolong, much of it lightly oxidised, and on the high mountain teas grown above about 1,000 metres, where cool air, fog and short hours of direct sun slow the leaf and the tea tastes sweet and low in bitterness. Taiwan is also known for how many distinct styles it makes on one small island: roasted Dong Ding, the long-strip Baozhong, the heavily oxidised Oriental Beauty, and traditional Tieguanyin from Muzha. Black tea, green tea and newer oolong styles are made as well, but oolong is what the name Taiwan stands for.",
+    "text": "People value the mountain for the weather the tea grows in. Cloud and mist sit on the upper slopes for much of the year, the light is soft, and the nights are cool. The bushes grow slowly in these conditions, and the trade links that slow growth to the thick leaf and the lasting scent of the best tea. The higher the garden, the cooler it is, and the more a tea is expected to show what the trade calls mountain rhyme.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Taiwan is known above all for oolong. Its trade is built on rolled, bead-shaped oolong, much of it lightly oxidised, and on the high mountain teas grown above about 1,000 metres, where cool air, fog and short hours of direct sun slow the leaf and the tea tastes sweet and low in bitterness. Taiwan is also known for how many distinct styles it makes on one small island: roasted Dong Ding, the long-strip Baozhong, the heavily oxidised Oriental Beauty, and traditional Tieguanyin from Muzha. Black tea, green tea and newer oolong styles are made as well, but oolong is what the name Taiwan stands for.",
+    "pendingText": "People value the mountain for the weather the tea grows in. Cloud and mist sit on the upper slopes for much of the year, the light is soft, and the nights are cool. The bushes grow slowly in these conditions, and the trade links that slow growth to the thick leaf and the lasting scent of the best tea. The higher the garden, the cooler it is, and the more a tea is expected to show what the trade calls mountain rhyme.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "taiwan:on-a-label",
-    "pageId": "taiwan",
-    "sectionKey": "on-a-label",
-    "label": "Taiwan on a label",
+    "claimId": "phoenix-mountain:old-trees",
+    "pageId": "phoenix-mountain",
+    "sectionKey": "old-trees",
+    "label": "The old trees",
     "axis": "place",
     "basis": "trade_knowledge",
-    "listingEligible": false,
+    "listingEligible": true,
     "appliesWhen": {
       "origin_includes": [
-        "taiwan"
+        "phoenix mountain"
       ]
     },
-    "terms": [],
+    "terms": [
+      {
+        "original": "古茶树",
+        "pinyin": "gǔ cháshù",
+        "gloss": "old tea tree"
+      },
+      {
+        "original": "宋种",
+        "pinyin": "Sòngzhǒng",
+        "gloss": "Song variety"
+      }
+    ],
     "rev": null,
     "scope": "",
-    "text": "Taiwan on its own is a country, not a mountain, a county or a style. It tells you the tea was grown on the island and nothing more about where, at what height, from which cultivar or in which style. Two teas that both say Taiwan can be a roasted lowland oolong and a light high mountain oolong. Where a seller names a mountain or township, that is the fuller claim, and a bare Taiwan is the weaker one. The kind of tea, such as oolong, red tea or green tea, is a separate fact again.",
+    "text": "The mountain is known for tea trees that stand where they have grown for hundreds of years, left unpruned so that they grow tall and send roots deep into the granite. A few are said to be 600 or 700 years old, and are tied by tradition to the Song dynasty, though no age is agreed or proven. Their leaf is made on its own and sold at very high prices, because each gives only a few kilograms a year. Most of what is sold today comes from bushes grown from these trees, not from the trees themselves.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Taiwan on its own is a country, not a mountain, a county or a style. It tells you the tea was grown on the island and nothing more about where, at what height, from which cultivar or in which style. Two teas that both say Taiwan can be a roasted lowland oolong and a light high mountain oolong. Where a seller names a mountain or township, that is the fuller claim, and a bare Taiwan is the weaker one. The kind of tea, such as oolong, red tea or green tea, is a separate fact again.",
+    "pendingText": "The mountain is known for tea trees that stand where they have grown for hundreds of years, left unpruned so that they grow tall and send roots deep into the granite. A few are said to be 600 or 700 years old, and are tied by tradition to the Song dynasty, though no age is agreed or proven. Their leaf is made on its own and sold at very high prices, because each gives only a few kilograms a year. Most of what is sold today comes from bushes grown from these trees, not from the trees themselves.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "taiwan:where-it-is",
-    "pageId": "taiwan",
+    "claimId": "phoenix-mountain:people",
+    "pageId": "phoenix-mountain",
+    "sectionKey": "people",
+    "label": "The people of the mountain",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "origin_includes": [
+        "phoenix mountain"
+      ]
+    },
+    "terms": [
+      {
+        "original": "畲族",
+        "pinyin": "Shēzú",
+        "gloss": "She people"
+      },
+      {
+        "original": "潮州工夫茶",
+        "pinyin": "Cháozhōu gōngfū chá",
+        "gloss": "Chaozhou gongfu tea"
+      }
+    ],
+    "rev": null,
+    "scope": "",
+    "text": "Phoenix Mountain is widely named as the homeland of the She people, who are tied to the tea of the mountain by local tradition. The mountain is also the home of Chaozhou gongfu tea, the small-cup way of brewing the region is known for. Tea has been made here for centuries, but no start date is agreed: sources give 700, 900 and more than 1,000 years.",
+    "sourceIds": [],
+    "reviewState": "draft",
+    "pendingText": "Phoenix Mountain is widely named as the homeland of the She people, who are tied to the tea of the mountain by local tradition. The mountain is also the home of Chaozhou gongfu tea, the small-cup way of brewing the region is known for. Tea has been made here for centuries, but no start date is agreed: sources give 700, 900 and more than 1,000 years.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
+  },
+  {
+    "claimId": "phoenix-mountain:where-it-is",
+    "pageId": "phoenix-mountain",
     "sectionKey": "where-it-is",
-    "label": "Where Taiwan is",
+    "label": "Where Phoenix Mountain is",
     "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
       "origin_includes": [
-        "taiwan"
+        "phoenix mountain"
       ]
     },
     "terms": [
       {
-        "original": "台灣",
-        "pinyin": "Táiwān",
-        "gloss": "Taiwan"
+        "original": "凤凰山",
+        "pinyin": "Fènghuáng Shān",
+        "gloss": "Phoenix Mountain"
+      },
+      {
+        "original": "凤凰镇",
+        "pinyin": "Fènghuáng zhèn",
+        "gloss": "Fenghuang town"
       }
     ],
     "rev": null,
     "scope": "",
-    "text": "Taiwan is an island off the coast of Fujian, across the strait from mainland China, and its tea came from Fujian. A tall mountain range runs down the middle and the east, with many peaks above 2,000 metres, and the tea gardens are mostly on the western side. The range shelters that side from ocean storms, the climate is warm and wet, and the higher gardens sit in cloud and mist for much of the day.",
+    "text": "Phoenix Mountain, Fenghuang Shan, is a mountain range in Fenghuang town, in Chao'an district of Chaozhou, in eastern Guangdong. It is the high ground of the Chaoshan region, with its top peak rising to about 1,500 metres. Tea grows on its slopes from low foothills up to roughly 1,100 metres, and the name on a tea label usually means this range as a whole rather than one village.",
     "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Taiwan is an island off the coast of Fujian, across the strait from mainland China, and its tea came from Fujian. A tall mountain range runs down the middle and the east, with many peaks above 2,000 metres, and the tea gardens are mostly on the western side. The range shelters that side from ocean storms, the climate is warm and wet, and the higher gardens sit in cloud and mist for much of the day.",
+    "pendingText": "Phoenix Mountain, Fenghuang Shan, is a mountain range in Fenghuang town, in Chao'an district of Chaozhou, in eastern Guangdong. It is the high ground of the Chaoshan region, with its top peak rising to about 1,500 metres. Tea grows on its slopes from low foothills up to roughly 1,100 metres, and the name on a tea label usually means this range as a whole rather than one village.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
   {
-    "claimId": "tea-heads:common-impressions",
-    "pageId": "tea-heads",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "sensory_observation",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou",
-      "process_in_name": [
-        "heads",
-        "head"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "tea-heads",
-    "text": "Because of the pectin, tea heads give many infusions and a thick, smooth, sweet cup with little bitterness. Sellers name date and woody notes. They are brewed with a rinse first, and they often do not open fully.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "tea-heads",
-        "text": "Because of the pectin, tea heads give many infusions and a thick, smooth, sweet cup with little bitterness. Sellers name date and woody notes. They are brewed with a rinse first, and they often do not open fully.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tea-heads:definition",
-    "pageId": "tea-heads",
-    "sectionKey": "definition",
-    "label": "What tea heads are",
-    "axis": "type",
+    "claimId": "phoenix-mountain:wudong-and-villages",
+    "pageId": "phoenix-mountain",
+    "sectionKey": "wudong-and-villages",
+    "label": "Wudong and the other gardens",
+    "axis": "place",
     "basis": "trade_knowledge",
     "listingEligible": true,
     "appliesWhen": {
-      "type": "Shou",
-      "process_in_name": [
-        "heads",
-        "head"
+      "origin_includes": [
+        "phoenix mountain"
       ]
     },
     "terms": [
       {
-        "original": "老茶头",
-        "pinyin": "lǎo chátóu",
-        "gloss": "old tea heads"
+        "original": "乌岽",
+        "pinyin": "Wūdōng",
+        "gloss": "Wudong"
       },
       {
-        "original": "茶头",
-        "pinyin": "chátóu",
-        "gloss": "tea heads"
+        "original": "大庵",
+        "pinyin": "Dà'ān",
+        "gloss": "Da'an"
       },
       {
-        "original": "自然沱",
-        "pinyin": "zìrán tuó",
-        "gloss": "natural tuo, a trade name"
+        "original": "石古坪",
+        "pinyin": "Shígǔpíng",
+        "gloss": "Shiguping"
       }
     ],
-    "rev": 1,
-    "scope": "tea-heads",
-    "text": "Tea heads are dense clumps of leaf that stick together while ripe pu’er is wet piled. They are sorted out after piling and sold on their own, loose or pressed, apart from the numbered grades of loose ripe tea.",
+    "rev": null,
+    "scope": "",
+    "text": "Wudong, the high ridge around the top of the range, is the part named most often as the heart of the mountain, and its high gardens are the ones the trade prices highest. Wudong village sits high on the ridge, with gardens near and above 900 metres. Da'an, lower on gentler slopes in Fengxi, is known for the largest old tea garden on the mountain. Other villages such as Shiguping, Lizipping and Guantou are also named, and each is said to give its own character, though little of that is written down plainly. A village name on a tea tells you more about where it grew than the mountain name does.",
     "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "tea-heads",
-        "text": "Tea heads are dense clumps of leaf that stick together while ripe pu’er is wet piled. They are sorted out after piling and sold on their own, loose or pressed, apart from the numbered grades of loose ripe tea.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tea-heads:formation",
-    "pageId": "tea-heads",
-    "sectionKey": "formation",
-    "label": "How they form",
-    "axis": "process",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Shou",
-      "process_in_name": [
-        "heads",
-        "head"
-      ]
-    },
-    "terms": [
-      {
-        "original": "果胶",
-        "pinyin": "guǒjiāo",
-        "gloss": "pectin"
-      }
-    ],
-    "rev": 1,
-    "scope": "tea-heads",
-    "text": "Pectin from the leaf, with heat and the weight of the pile, glues leaf into lumps, and microbes keep working inside them. After piling, workers pick the lumps out and try to loosen them. Lumps too tight to break without crushing the leaf are set aside as tea heads. They are about 0.8 to 1.5 percent of a batch.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "tea-heads",
-        "text": "Pectin from the leaf, with heat and the weight of the pile, glues leaf into lumps, and microbes keep working inside them. After piling, workers pick the lumps out and try to loosen them. Lumps too tight to break without crushing the leaf are set aside as tea heads. They are about 0.8 to 1.5 percent of a batch.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tea-heads:old",
-    "pageId": "tea-heads",
-    "sectionKey": "old",
-    "label": "Why \"old\"",
-    "axis": "terminology",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Shou",
-      "process_in_name": [
-        "heads",
-        "head"
-      ]
-    },
-    "terms": [
-      {
-        "original": "堆味",
-        "pinyin": "duī wèi",
-        "gloss": "pile taste"
-      }
-    ],
-    "rev": 1,
-    "scope": "tea-heads",
-    "text": "The word old does not mean old raw leaf. Fresh tea heads smell strongly of the pile, so they are usually left some years before drinking, until that smell fades, and then they are called old tea heads.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "tea-heads",
-        "text": "The word old does not mean old raw leaf. Fresh tea heads smell strongly of the pile, so they are usually left some years before drinking, until that smell fades, and then they are called old tea heads.",
-        "approvedAt": "2026-11-26",
-        "reason": "Approved by Adrian on the Wisdom Base Places review page, 2026-11-27",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tieguanyin:ageing",
-    "pageId": "tieguanyin",
-    "sectionKey": "ageing",
-    "label": "Keeping and ageing Tieguanyin",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "老铁",
-        "pinyin": "lǎo tiě",
-        "gloss": "old Tie"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "Light, low-roast Tieguanyin is for drinking fresh and goes stale fast; the heavier charcoal-roasted kind is steadier and is the kind kept for years. Freshly roasted tea tastes of fire and is rested, months or years, until the fire settles. With age the tea softens: the fire fades, the liquor deepens, the body grows rounder and smoother and less sharp, and well-aged roasted tea often shows a soft fruity sourness. Keep it sealed, dry, dark and cool, away from strong smells, and look at it now and then; roasted tea does not need the refrigerator, which is for the light style.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-        "text": "Light, low-roast Tieguanyin is for drinking fresh and goes stale fast; the heavier charcoal-roasted kind is steadier and is the kind kept for years. Freshly roasted tea tastes of fire and is rested, months or years, until the fire settles. With age the tea softens: the fire fades, the liquor deepens, the body grows rounder and smoother and less sharp, and well-aged roasted tea often shows a soft fruity sourness. Keep it sealed, dry, dark and cool, away from strong smells, and look at it now and then; roasted tea does not need the refrigerator, which is for the light style.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tieguanyin:brewing",
-    "pageId": "tieguanyin",
-    "sectionKey": "brewing",
-    "label": "Brewing Tieguanyin",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "Tieguanyin is usually brewed gongfu style with water at or near the boil, about 95 to 100°C; the light green style is often taken a little cooler, about 85 to 95°C. Use about 4 to 8 grams of leaf in a 100 to 150 ml gaiwan or pot, about a third full. A quick rinse, poured off at once, is common. Steeps start short, about 10 to 30 seconds, and grow a few seconds longer each round, and a good Tieguanyin gives about six to eight. In a larger pot, use about 2.5 to 5 grams for 240 to 350 ml and steep two to three minutes.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-        "text": "Tieguanyin is usually brewed gongfu style with water at or near the boil, about 95 to 100°C; the light green style is often taken a little cooler, about 85 to 95°C. Use about 4 to 8 grams of leaf in a 100 to 150 ml gaiwan or pot, about a third full. A quick rinse, poured off at once, is common. Steeps start short, about 10 to 30 seconds, and grow a few seconds longer each round, and a good Tieguanyin gives about six to eight. In a larger pot, use about 2.5 to 5 grams for 240 to 350 ml and steep two to three minutes.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tieguanyin:common-impressions",
-    "pageId": "tieguanyin",
-    "sectionKey": "common-impressions",
-    "label": "What people often notice",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "In the light style: orchid and other flowers, a fresh, clean cup and a sweet aftertaste. In the roasted style: toast and charcoal, caramel or honey, stone or dried fruit, nuts, and a liquor that runs from gold to amber.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-        "text": "In the light style: orchid and other flowers, a fresh, clean cup and a sweet aftertaste. In the roasted style: toast and charcoal, caramel or honey, stone or dried fruit, nuts, and a liquor that runs from gold to amber.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tieguanyin:definition",
-    "pageId": "tieguanyin",
-    "sectionKey": "definition",
-    "label": "What Tieguanyin is",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "铁观音",
-        "pinyin": "tiě guānyīn",
-        "gloss": "iron Guanyin"
-      },
-      {
-        "original": "安溪",
-        "pinyin": "ānxī",
-        "gloss": "Anxi"
-      },
-      {
-        "original": "西坪",
-        "pinyin": "xīpíng",
-        "gloss": "Xiping"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "Tieguanyin is the name of a tea cultivar and of the oolong made from it. The tea comes from Anxi County in southern Fujian, where the name is protected as Anxi Tieguanyin, and the trade names Xiping township in Anxi as the place it began; Gande is another of the best-known Anxi townships. The name joins iron and Guanyin, the bodhisattva of mercy. The finished leaf is usually rolled into tight balls that open slowly in the cup. Outside Anxi, in Taiwan above all, the name can mean a way of making the tea rather than the plant.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-        "text": "Tieguanyin is the name of a tea cultivar and of the oolong made from it. The tea comes from Anxi County in southern Fujian, where the name is protected as Anxi Tieguanyin, and the trade names Xiping township in Anxi as the place it began; Gande is another of the best-known Anxi townships. The name joins iron and Guanyin, the bodhisattva of mercy. The finished leaf is usually rolled into tight balls that open slowly in the cup. Outside Anxi, in Taiwan above all, the name can mean a way of making the tea rather than the plant.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
-  },
-  {
-    "claimId": "tieguanyin:grades",
-    "pageId": "tieguanyin",
-    "sectionKey": "grades",
-    "label": "Grades",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "anxi"
-      ]
-    },
-    "terms": [
-      {
-        "original": "特级",
-        "pinyin": "tèjí",
-        "gloss": "special grade"
-      },
-      {
-        "original": "一级",
-        "pinyin": "yījí",
-        "gloss": "first grade"
-      }
-    ],
-    "rev": 1,
-    "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-    "text": "Anxi Tieguanyin has a national standard, GB 19598, first in force in 2005 and since replaced by a 2025 version. Brands print grade words such as tèjí, special grade, and yījí, first grade, in their names and listings.",
-    "sourceIds": [],
-    "reviewState": "approved",
-    "previousRevisions": [
-      {
-        "rev": 1,
-        "origin": "approved",
-        "scope": "Oolong from Anxi; osmanthus only on teas named for it",
-        "text": "Anxi Tieguanyin has a national standard, GB 19598, first in force in 2005 and since replaced by a 2025 version. Brands print grade words such as tèjí, special grade, and yījí, first grade, in their names and listings.",
-        "approvedAt": "2026-11-24",
-        "reason": "Approved by Adrian in chat on 2026-11-24 (Approve all 20)",
-        "evidenceIds": []
-      }
-    ],
-    "pageVisibility": "public"
+    "reviewState": "draft",
+    "pendingText": "Wudong, the high ridge around the top of the range, is the part named most often as the heart of the mountain, and its high gardens are the ones the trade prices highest. Wudong village sits high on the ridge, with gardens near and above 900 metres. Da'an, lower on gentler slopes in Fengxi, is known for the largest old tea garden on the mountain. Other villages such as Shiguping, Lizipping and Guantou are also named, and each is said to give its own character, though little of that is written down plainly. A village name on a tea tells you more about where it grew than the mountain name does.",
+    "previousRevisions": [],
+    "pageVisibility": "draft"
   }
 ];
