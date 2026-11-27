@@ -9,6 +9,7 @@ import type { InventoryItem } from '../../types';
 import { useShopPrice } from '../shop/shopPrice';
 import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import { ListShell } from './primitives';
+import { SendAsCollection } from '../shop/SendAsCollection';
 
 interface MyCollectionProps {
   onBack: () => void;
@@ -16,7 +17,7 @@ interface MyCollectionProps {
 }
 
 export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }) => {
-  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, authUser } = useAppStore();
   const { inventory } = useInventory();
   const [copied, setCopied] = useState(false);
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
@@ -101,7 +102,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
             {favoriteItems.length} {favoriteItems.length === 1 ? 'tea' : 'teas'} kept
           </p>
         </div>
-        <button
+        {!authUser && <button
           onClick={handleShare}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs font-semibold shrink-0"
         >
@@ -116,10 +117,10 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
               <span>Share</span>
             </>
           )}
-        </button>
+        </button>}
       </div>
 
-      {/* Copy link bar, quiet utility row */}
+      {authUser ? <SendAsCollection productIds={favoriteItems.map(item => item.id)} /> : (
       <button
         onClick={handleCopyLink}
         className="w-full flex items-center gap-3 px-3 py-3 mb-4 bg-tea-surface border border-tea-border rounded-md hover:bg-tea-accent-sub transition-colors group"
@@ -130,6 +131,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         </span>
         <Icons.Copy className="w-3.5 h-3.5 text-tea-text-sec" />
       </button>
+      )}
 
       {/* Tasting Session Modal */}
       <AnimatePresence>

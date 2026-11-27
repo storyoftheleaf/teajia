@@ -1497,7 +1497,7 @@ export interface CollectionListRow {
 export interface SavedCollectionRow {
   id: string;                       // collection_id
   slug?: string | null;             // publication slug they came through (deep-link back to /c/:slug)
-  source: 'received' | 'saved';
+  source: 'received' | 'saved' | 'made';
   saved_at: string;
   title: string;
   note?: string | null;

@@ -2,7 +2,8 @@ import { CapturePhotoThumbnail } from '../curate/CapturePhotoImage';
 import { Button } from '../shared/Button';
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { LoaderCircle, MoreHorizontal, Camera } from 'lucide-react';
+import { LoaderCircle, MoreHorizontal, Camera, Mic } from 'lucide-react';
+import { requestRecordOnOpen } from '../curate/recordOnOpen';
 import { useToast } from '../../admin/components/Toast';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -146,7 +147,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, stockProductId, r
         className={isSelected ? 'library-tea-card-selected' : undefined}
         teaType={entry.type}
         title={<LibraryInlineValue multiline className={`${TYPOGRAPHY_CLASSES.h3} library-card-name text-tea-text`} value={identity.name} display={title} label={`Edit tea name: ${title}`} readOnly={readOnly} onSave={saveField('name')} />}
-        trailing={<>{shortCode && <span className="library-card-code text-ui-10 text-tea-text-sec tabular-nums" data-testid="library-card-code" title="Short code: say or type it to find this tea">{shortCode}</span>}<Button variant="plain" type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></Button></>}
+        trailing={<>{shortCode && <span className="library-card-code text-ui-10 text-tea-text-sec tabular-nums" data-testid="library-card-code" title="Short code: say or type it to find this tea">{shortCode}</span>}{!readOnly && <Button variant="plain" type="button" className="tap-target library-more-action" aria-label={`Talk about ${title}`} title="Record a note about this tea" onClick={() => { requestRecordOnOpen(entry.id); openDetail(); }}><Mic size={16} /></Button>}<Button variant="plain" type="button" className="tap-target library-more-action" aria-label={`Edit details for ${title}`} title={description || 'Edit tea details'} onClick={openDetail}><MoreHorizontal size={18} /></Button></>}
         meta={<>
           <LibraryGivenName entry={entry} readOnly={readOnly} onSave={value => savePatch({ givenName: value.trim() || null, shopName: null })} />
           {entry.category !== 'teaware' && (readOnly ? <span className="library-card-type">{entry.type || 'Type not set'}</span> : <Button variant="plain" type="button" className="tap-target library-card-type" aria-label={`Choose tea type for ${title}`} aria-haspopup="dialog" onClick={() => { setTypeError(''); setTypeOpen(true); }}>{entry.type || 'Choose type'}</Button>)}
