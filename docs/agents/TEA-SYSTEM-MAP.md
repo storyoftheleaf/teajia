@@ -43,7 +43,7 @@ Every step exists and works on its own. What is missing are the joins between st
 
 | PR | What it joins | State |
 |---|---|---|
-| 586 | Step 2: each card says where the tea is; one Waiting for you list (arrivals, samples to taste, chosen not in Stock, amount, cost, write-up) | Open |
+| 586 | Step 2: each card says where the tea is, now past the write-up (priced, main photo, public, Tea Wisdom entry); one Waiting for you list (arrivals, samples to taste, chosen not in Stock, amount, cost, write-up, public with no Tea Wisdom entry yet) | Open |
 | 568 | Step 2: the vendor page opens every record and its contacts | Open, ready for review |
 | 579 | Step 4: freight rates live with each logistics company | Open |
 | 585 | Step 7: Palace Grade page, loose leaf only | Open |
@@ -56,11 +56,12 @@ Every step exists and works on its own. What is missing are the joins between st
 
 In the order recommended to fix them. Nothing here is built without Adrian's yes.
 
-1. **A tea's path stops at "Written up".** `src/components/curate/teaPath.ts` (PR 586) ends at the write-up. Carry it on: priced, main photo, public, Tea Wisdom entry, in a collection. Read-only, like the rest of 586. Adrian said yes on 2026-11-27; asked of the intake thread, which owns that file.
-2. **Three doors skip the Library.** Stock Add tea, Bulk intake and the agent's `create_tea` make a Stock tea with no supplier, quote or tasting behind it. Already agreed: one Bring in sheet (intake plan step 2).
-3. **Two Taste doors, four approve doors, and Add to Stock arrives empty.** A new Stock tea starts with no counted amount and no price, and nothing asks. Already planned: intake plan step 4 (one Taste door with the grams; Add to Stock brings amount and cost from the arrival or quote).
-4. **Two write-ups, and no signal between them.** The Story description is live the moment it is saved. The Tea Wisdom entry lives in `data/tea-reference/entries/` and is live only after a push. Nothing tells anyone that a public tea has no entry; the chain runs only when Adrian asks. Recommended: a "Public, no Tea Wisdom entry yet" group in Waiting for you. The chain still runs only on his word.
-5. **Freight at cost waits on Adrian's go.** When it goes live, `docs/claude/money.md`, the Money section of `CLAUDE.md`, the comments in `worker/src/shippingRate.ts` and "Not built yet" in `CURATE-AGENTS.md` change in the same commit, because all of them still say freight sits inside the x3.
-6. **The selling half has tools but no agent guide.** Collections, invoices, payment and dispatch tools exist (step 8 and 9 rows above) and only this table names them. Recommended: a short "Selling" section in `CURATE-AGENTS.md`.
-7. **i64os has its own tea sale and invoice tools** (`create_tea_sale`, `create_tea_invoice`, `mark_tea_sale_paid`, `purchase_tea_inventory`) beside the `teajia_*` ones and Teajia's own invoices. Nothing written says whether they make the same records. Recommended: check, then document or retire them, so one sale never sits in two ledgers.
-8. **Low stock does not lead back to the supplier.** `list_low_stock` and the Stock view show it; nothing opens the supplier's card to reorder. Later.
+Closed: the tea's path used to stop at "Written up". PR 586 (commit c215452) carries it on through priced, main photo, public and Tea Wisdom entry, and adds "Public, no Tea Wisdom entry yet" to Waiting for you, which is the signal gap 3 below asked for. A place in a collection is not on the path yet.
+
+1. **Three doors skip the Library.** Stock Add tea, Bulk intake and the agent's `create_tea` make a Stock tea with no supplier, quote or tasting behind it. Already agreed: one Bring in sheet (intake plan step 2).
+2. **Two Taste doors, four approve doors, and Add to Stock arrives empty.** A new Stock tea starts with no counted amount and no price, and nothing asks. Already planned: intake plan step 4 (one Taste door with the grams; Add to Stock brings amount and cost from the arrival or quote).
+3. **Two write-ups.** The Story description is live the moment it is saved. The Tea Wisdom entry lives in `data/tea-reference/entries/` and is live only after a push. The signal between them is now built: "Public, no Tea Wisdom entry yet" in Waiting for you (PR 586, open). The chain still runs only on Adrian's word.
+4. **Freight at cost waits on Adrian's go.** When it goes live, `docs/claude/money.md`, the Money section of `CLAUDE.md`, the comments in `worker/src/shippingRate.ts` and "Not built yet" in `CURATE-AGENTS.md` change in the same commit, because all of them still say freight sits inside the x3.
+5. **The selling half has tools but no agent guide.** Collections, invoices, payment and dispatch tools exist (step 8 and 9 rows above) and only this table names them. Recommended: a short "Selling" section in `CURATE-AGENTS.md`.
+6. **i64os has its own tea sale and invoice tools** (`create_tea_sale`, `create_tea_invoice`, `mark_tea_sale_paid`, `purchase_tea_inventory`) beside the `teajia_*` ones and Teajia's own invoices. Nothing written says whether they make the same records. Recommended: check, then document or retire them, so one sale never sits in two ledgers.
+7. **Low stock does not lead back to the supplier.** `list_low_stock` and the Stock view show it; nothing opens the supplier's card to reorder. Later.
