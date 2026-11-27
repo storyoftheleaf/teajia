@@ -30,7 +30,7 @@ test('stays within mobile width and leaves the locked bottom bar unchanged', asy
   const bottomBar = page.getByTestId('bottom-tab-bar');
   await expect(bottomBar).toBeVisible();
   await expect(bottomBar.getByRole('button', { name: 'Read' })).toBeVisible();
-  await expect(bottomBar.getByRole('button', { name: 'Craft' })).toBeVisible();
+  await expect(bottomBar.getByRole('button', { name: 'Craft' })).toHaveCount(0);
   await expect(bottomBar.getByRole('button', { name: 'Advise' })).toHaveAttribute('aria-current', 'page');
   await expect(bottomBar.getByRole('button', { name: 'Shop' })).toBeVisible();
 });

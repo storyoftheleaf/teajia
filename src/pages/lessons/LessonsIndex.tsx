@@ -1,28 +1,28 @@
 /**
- * The Work of Tea: Craft-section index.
+ * Lessons: Read's second shelf (/read/lessons), between Stories and Wisdom.
+ *
+ * This was the Craft index. Craft left the bar on 2026-11-27 and Adrian chose
+ * "Read: Stories, Lessons, Wisdom": the magazine stays a magazine, the things
+ * you work through step by step come here, and the things you look up live in
+ * the Wisdom Base. Where each Craft piece went:
+ *
+ *   Stories (/read): Seven Steeps, Water Before the Leaf, Porcelain and Tea,
+ *     The Pot That Remembers, The Vocabulary of Taste. Unchanged, they were
+ *     always Read articles.
+ *   Lessons (here): Discover Your Tea, Six Foundations, Brewing by Tea Type,
+ *     Three Journeys, Reading and Listening.
+ *   Wisdom (/wisdom): The Tea Reference, and the Glossary at /wisdom/glossary.
+ *   Room pieces, waiting for their sections: Six Tea Spaces and Playlists go
+ *     to Tea house, Shared Wisdom (renamed) to Tea table. Until those pages
+ *     take them, Tea Spaces and Shared Wisdom stay reachable to the owner at
+ *     /read/lessons?v=spaces and ?v=wisdom, and Playlists was never built.
  *
  * Built in the exact frame `ReadIndex.tsx` established (ImmersiveRoot, the
  * masthead, the two-column contents + sticky cover rail, the same reveal and
- * owner-draft behaviour), rather than a second design invented from scratch.
- * What differs is content: Craft gathers everything a practitioner needs
- * (brewing, tasting, reference, the room they sit in), not the magazine's
- * long reads, and unlike Read, most of its rows point at other parts of the
- * site (a /craft?v= sub-view, /wisdom, /discover) rather than at another
- * /read/* article.
- *
- * Every row answers to `craftLive.ts`, Craft's own state map, because
- * Adrian's rule (2026-09-22) is that a visitor sees only what he wrote or
- * has promised: the six finished pieces as links, seven more as a photograph
- * and a title with no way in, the rest (his own workshop) not at all. Flip a
- * key in that map and the row moves between the three in one edit.
- *
- * Live-row references are computed at render time in document order for the
- * cover rail. Contents rows stay unnumbered so their titles keep the width.
- *
- * Photos: the page carries its own inline-edit slots through
- * StoryEditProvider slug="craft", the same mechanism HomeV2Page uses for its
- * table photograph, so Adrian can drop a real photograph into any cover or
- * any "coming soon" panel and publish it, no code change required.
+ * owner-draft behaviour). Every row answers to `lessonsLive.ts`: a visitor
+ * sees live rows as links, soon rows as a title with no way in, and never a
+ * draft. Photos: the page keeps StoryEditProvider slug="craft" on purpose, so
+ * every photograph Adrian already placed on Craft's covers stays where it is.
  */
 import React, { useMemo, useState } from 'react';
 import { ReadShelves } from '../../components/shared/ReadShelves';
@@ -35,97 +35,78 @@ import {
 import { isArticleVisible, useIsReadOwner, useKnownReadOverrides } from '../read/publishGate';
 import type { ReadPublishOverrides } from '../read/articleLive';
 import { numberWord } from '../read/ReadIndex';
-import { GLOSSARY_TERMS, termOfTheDay } from '../../data/glossary';
 import { StoryEditProvider } from '../read/storyEdit';
 import EditablePhoto from '../read/EditablePhoto';
 import StoryEditorBar from '../read/StoryEditorBar';
-import { CRAFT_STATE, type CraftState } from './craftLive';
+import { LESSON_STATE, type LessonState } from './lessonsLive';
 
-// ── Gate. A row's state comes from craftLive.ts, keyed by the row's own
+// ── Gate. A row's state comes from lessonsLive.ts, keyed by the row's own
 // `key` (not its href, since a "soon" row may have no href at all). A
 // /read/* row additionally has to clear Read's own gate, `isArticleVisible`,
-// so Craft can never send a visitor to an article Read itself would refuse
+// so Lessons can never send a visitor to an article Read itself would refuse
 // to show them: a row named `live` there but not actually published in Read
 // reads here as `draft`, honestly, for owner and visitor alike. A key
-// missing from CRAFT_STATE reads as `draft`, the same fail-closed default as
+// missing from LESSON_STATE reads as `draft`, the same fail-closed default as
 // articleLive.ts, so a new row cannot go public by being forgotten. ────────
-function isCraftReadHref(href?: string): boolean {
+function isLessonReadHref(href?: string): boolean {
   return !!href && href.startsWith('/read/');
 }
-function craftReadGatePasses(item: CraftItem, states?: ReadPublishOverrides): boolean {
-  if (!isCraftReadHref(item.href)) return true;
+function lessonReadGatePasses(item: LessonItem, states?: ReadPublishOverrides): boolean {
+  if (!isLessonReadHref(item.href)) return true;
   return isArticleVisible(item.href as string, false, states);
 }
-function craftEffectiveState(item: CraftItem, states?: ReadPublishOverrides): CraftState {
-  const state = CRAFT_STATE[item.key] ?? 'draft';
-  if (state === 'live' && !craftReadGatePasses(item, states)) return 'draft';
+function lessonEffectiveState(item: LessonItem, states?: ReadPublishOverrides): LessonState {
+  const state = LESSON_STATE[item.key] ?? 'draft';
+  if (state === 'live' && !lessonReadGatePasses(item, states)) return 'draft';
   return state;
 }
-function craftItemVisible(item: CraftItem, isOwner: boolean, states?: ReadPublishOverrides): boolean {
-  return isOwner || craftEffectiveState(item, states) !== 'draft';
+function lessonItemVisible(item: LessonItem, isOwner: boolean, states?: ReadPublishOverrides): boolean {
+  return isOwner || lessonEffectiveState(item, states) !== 'draft';
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────
-type CraftItem = { key: string; rubric: string; title: string; dek: string; href?: string };
-type CraftGroup = { label: string; note: string; items: CraftItem[] };
+type LessonItem = { key: string; rubric: string; title: string; dek: string; href?: string };
+type LessonGroup = { label: string; note: string; items: LessonItem[] };
 
-function buildCraftGroups(): CraftGroup[] {
-  const glossaryCount = GLOSSARY_TERMS.length;
-  const today = termOfTheDay();
+function buildLessonGroups(): LessonGroup[] {
   return [
     {
-      label: 'Brew',
-      note: 'the kettle, the leaf, the vessel',
+      label: 'Begin',
+      note: 'where to start',
       items: [
-        { key: 'ritual', rubric: 'ritual', title: 'Seven Steeps', dek: 'The same leaves, brewed seven ways, scroll to pour.', href: '/read/ritual' },
-        { key: 'field-study', rubric: 'water', title: 'Water Before Leaf', dek: 'A field study. What the water brings before the tea does.', href: '/read/field-study' },
-        { key: 'porcelain', rubric: 'teaware', title: 'Porcelain and Tea', dek: 'Nine out of ten old things are damaged. But these are all marks of history.', href: '/read/porcelain-and-tea' },
-        { key: 'pot', rubric: 'teaware', title: 'The Pot That Remembers', dek: 'Yixing clay, seasoning, and one tea per pot.', href: '/read/craft' },
-        { key: 'brew-by-type', rubric: 'guides', title: 'Brewing by Tea Type', dek: "Green, white, oolong, black, pu'er, yellow. Leaf, water, time." },
-      ],
-    },
-    {
-      label: 'Taste',
-      note: 'the palate, shaped',
-      items: [
-        { key: 'tasting', rubric: 'tasting', title: 'The Vocabulary of Taste', dek: 'A turning flavour wheel and a tasting radar.', href: '/read/tasting' },
-        { key: 'journeys', rubric: 'guided', title: 'Three Journeys', dek: 'Guided tastings, step by step, to shape your palate.', href: '/craft?v=journeys' },
         { key: 'discover', rubric: 'tool', title: 'Discover Your Tea', dek: 'A few quiet questions, and where to begin.', href: '/discover' },
+        { key: 'foundations', rubric: 'lessons', title: 'Six Foundations', dek: 'Leaf, water, origin, ceremony, vessel, culture. Short reads.', href: '/read/lessons?v=course' },
       ],
     },
     {
-      label: 'Know',
-      note: 'the reference',
+      label: 'Practise',
+      note: 'the kettle and the palate',
       items: [
-        { key: 'reference', rubric: 'reference', title: 'The Tea Reference', dek: 'Cultivars, regions, producers, styles, marks and named teas.', href: '/wisdom' },
-        { key: 'glossary', rubric: `${glossaryCount} terms`, title: 'The Glossary', dek: `${glossaryCount} terms. Today: ${today.term}.`, href: '/craft?v=glossary' },
-        { key: 'foundations', rubric: 'lessons', title: 'Six Foundations', dek: 'Leaf, water, origin, ceremony, vessel, culture. Short reads.', href: '/craft?v=course' },
-        { key: 'reading', rubric: 'list', title: 'Reading and Listening', dek: 'Books and voices worth your evenings.', href: '/craft?v=reading' },
+        { key: 'brew-by-type', rubric: 'guides', title: 'Brewing by Tea Type', dek: "Green, white, oolong, black, pu'er, yellow. Leaf, water, time." },
+        { key: 'journeys', rubric: 'guided', title: 'Three Journeys', dek: 'Guided tastings, step by step, to shape your palate.', href: '/read/lessons?v=journeys' },
       ],
     },
     {
-      label: 'Room',
-      note: 'the place you sit',
+      label: 'Go further',
+      note: 'books and voices',
       items: [
-        { key: 'spaces', rubric: 'spaces', title: 'Six Tea Spaces', dek: 'A corner, a shelf, a table. What each needs.', href: '/craft?v=spaces' },
-        { key: 'shared-wisdom', rubric: 'voices', title: 'Shared Wisdom', dek: 'Reflections, tips and rituals from people at the table.', href: '/craft?v=wisdom' },
-        { key: 'playlists', rubric: 'listening', title: 'Playlists', dek: 'Music for tea time, an hour at a time.' },
+        { key: 'reading', rubric: 'list', title: 'Reading and Listening', dek: 'Books and voices worth your evenings.', href: '/read/lessons?v=reading' },
       ],
     },
   ];
 }
 
 // Every key the contents actually carries, read once at module load so
-// craftLive.ts's map can be checked against the real rows rather than a
-// second, hand-typed list. Exported for CraftIndex.test.tsx.
-const CRAFT_GROUPS_SEED = buildCraftGroups();
-export const CRAFT_ROW_KEYS: string[] = CRAFT_GROUPS_SEED.flatMap((g) => g.items.map((it) => it.key));
+// lessonsLive.ts's map can be checked against the real rows rather than a
+// second, hand-typed list. Exported for LessonsIndex.test.tsx.
+const LESSON_GROUPS_SEED = buildLessonGroups();
+export const LESSON_ROW_KEYS: string[] = LESSON_GROUPS_SEED.flatMap((g) => g.items.map((it) => it.key));
 
 // ── Index row. Three states, three renderings: `live` is a real link,
 // `draft` is unchanged (owner-only, dimmed, tagged), `soon` shows a title
 // and a dek with no way in for a visitor, and, for the owner, a real link
 // when one exists so he can reach the construction he is building. ────────
-const CraftRow: React.FC<{ item: CraftItem; state: CraftState; isOwner: boolean }> = ({ item, state, isOwner }) => {
+const LessonRow: React.FC<{ item: LessonItem; state: LessonState; isOwner: boolean }> = ({ item, state, isOwner }) => {
   const [hovered, setHovered] = useState(false);
   const isSoon = state === 'soon';
   const isDraft = state === 'draft';
@@ -193,8 +174,8 @@ const CraftRow: React.FC<{ item: CraftItem; state: CraftState; isOwner: boolean 
 // ── Group block. Renders nothing when no row in it is visible to the
 // current audience (the same "a group with no visible rows renders nothing"
 // rule Read's GroupBlock follows). ──────────────────────────────────────────
-const CraftGroupBlock: React.FC<{ group: CraftGroup; isOwner: boolean; states: ReadPublishOverrides }> = ({ group, isOwner, states }) => {
-  const visible = group.items.filter((it) => craftItemVisible(it, isOwner, states));
+const LessonGroupBlock: React.FC<{ group: LessonGroup; isOwner: boolean; states: ReadPublishOverrides }> = ({ group, isOwner, states }) => {
+  const visible = group.items.filter((it) => lessonItemVisible(it, isOwner, states));
   if (visible.length === 0) return null;
   return (
     <div style={{ marginTop: 38 }}>
@@ -211,10 +192,10 @@ const CraftGroupBlock: React.FC<{ group: CraftGroup; isOwner: boolean; states: R
         {group.note}
       </p>
       {visible.map((item) => (
-        <CraftRow
+        <LessonRow
           key={item.key}
           item={item}
-          state={craftEffectiveState(item, states)}
+          state={lessonEffectiveState(item, states)}
           isOwner={isOwner}
         />
       ))}
@@ -223,23 +204,13 @@ const CraftGroupBlock: React.FC<{ group: CraftGroup; isOwner: boolean; states: R
 };
 
 // ── Lead cover: the first live row in the rail's order of preference.
-// Photographed slots exist for three of the four: Discover, Seven Steeps
-// (ritual) and the Tea Reference. The Glossary, once the only piece Adrian
-// had written and so the long-standing lead, drops to a text-only fallback
-// now that three photographed pieces lead ahead of it; it still reclaims the
-// rail the day any of the three ahead of it stops being live. ─────────────
+// Discover Your Tea is the one live lesson today, so it leads alone. Seven
+// Steeps and the Tea Reference covers left with their pieces (Stories and
+// Wisdom). Add a lesson's cover here when it goes live. ───────────────────
 type CoverSpec = { to: string; kicker: string; title: React.ReactNode; line: string; slot?: string; placeholder?: string };
-
-/** Same photograph HomeV2Page's opener uses for the table shot. Copied here
- *  (not imported across pages/) so Seven Steeps' cover carries a real
- *  photograph rather than a stock stand-in. */
-const RITUAL_COVER_PHOTO = '/api/media/site/2021-06-27_IMG_7745_Original_ehkz30.jpg';
 
 const COVERS: CoverSpec[] = [
   { to: '/discover', kicker: 'Tool', title: <>Discover <span style={{ fontStyle: 'italic', color: C.gold }}>your tea</span></>, line: 'A few quiet questions, and a first tea to brew tonight.', slot: 'cover-discover', placeholder: '/home/standin-tea.webp' },
-  { to: '/read/ritual', kicker: 'Ritual', title: <>Seven <span style={{ fontStyle: 'italic', color: C.gold }}>Steeps</span></>, line: 'The same leaves, brewed seven ways.', slot: 'cover-ritual', placeholder: RITUAL_COVER_PHOTO },
-  { to: '/wisdom', kicker: 'Reference', title: <>The Tea <span style={{ fontStyle: 'italic', color: C.gold }}>Reference</span></>, line: 'Cultivars, regions, producers, styles, marks and named teas.', slot: 'cover-reference', placeholder: '/craft/tea-reference.jpg' },
-  { to: '/craft?v=glossary', kicker: 'Terms', title: <>The <span style={{ fontStyle: 'italic', color: C.gold }}>Glossary</span></>, line: 'The language of tea, one word at a time. Start with today’s.' },
 ];
 
 const LeadCover: React.FC<{ cover: CoverSpec }> = ({ cover }) => {
@@ -340,14 +311,13 @@ const SecondaryCover: React.FC<{ to: string; kicker: string; title: React.ReactN
 // ── Coming soon strip. Adrian's words, 2026-09-22: "even if it's coming
 // soon, we have an image of what will be built, then 'coming soon', and in
 // the background the template that displays what we're building, but it
-// doesn't link in, so people don't get into the construction side." Three
+// doesn't link in, so people don't get into the construction side." Two
 // panels, one photograph and one line of real type. Never a link. The ghost
 // sketch of the surface being built was taken out 2026-09-24: under the
 // 2026-09-23 rule for empty plates, nothing is drawn where content is not. ──────────────────────────────────────
 type SoonPanelSpec = { key: string; slot: string; placeholder: string; title: string; dek: string; /** focal point of the photo, as CSS object-position */ position?: string };
 
 const SOON_PANELS: SoonPanelSpec[] = [
-  { key: 'playlists', slot: 'soon-playlists', placeholder: '/home/standin-consult.webp', title: 'Playlists', dek: 'Music for tea time, an hour at a time.' },
   { key: 'brew-by-type', slot: 'soon-brew', placeholder: '/home/standin-tea.webp', title: 'Brewing by Tea Type', dek: "Green, white, oolong, black, pu'er, yellow." },
   { key: 'journeys', slot: 'soon-journeys', placeholder: '/craft/three-journeys.jpg', position: '50% 74%', title: 'Three Journeys', dek: 'Guided tastings, step by step, to shape your palate.' },
 ];
@@ -391,7 +361,7 @@ const ComingSoonPanel: React.FC<Omit<SoonPanelSpec, 'key'>> = ({ slot, placehold
 // The saturate rule is the homepage's own photo treatment ([&_img]:saturate-
 // [.85]), reapplied inline-style-fashion since these frames are built as
 // plain style objects rather than Tailwind classes. ────────────────────────
-const CRAFT_ROOM_RESPONSIVE_STYLE = `
+const LESSONS_RESPONSIVE_STYLE = `
   @media (max-width: 900px) {
     .tj-craft-room { grid-template-columns: minmax(0,1fr) !important; gap: 48px !important; }
     .tj-craft-rail { position: static !important; order: -1; }
@@ -400,22 +370,22 @@ const CRAFT_ROOM_RESPONSIVE_STYLE = `
 `;
 
 // ── Main component ───────────────────────────────────────────────────────
-const CraftIndex: React.FC = () => {
+const LessonsIndex: React.FC = () => {
   useImmersiveChrome(ACCENTS[0]);
 
   const isOwner = useIsReadOwner();
   // A Read story published or taken down from its own page counts here too,
   // once this browser has read those states (see useKnownReadOverrides).
   const states = useKnownReadOverrides();
-  const groups = useMemo(() => buildCraftGroups(), []);
+  const groups = useMemo(() => buildLessonGroups(), []);
 
   const itemsByKey = useMemo(() => {
-    const map = new Map<string, CraftItem>();
+    const map = new Map<string, LessonItem>();
     for (const group of groups) for (const item of group.items) map.set(item.key, item);
     return map;
   }, [groups]);
   const itemsByHref = useMemo(() => {
-    const map = new Map<string, CraftItem>();
+    const map = new Map<string, LessonItem>();
     for (const group of groups) for (const item of group.items) if (item.href) map.set(item.href, item);
     return map;
   }, [groups]);
@@ -424,16 +394,16 @@ const CraftIndex: React.FC = () => {
   // for the "six pieces" line.
   const liveCount = useMemo(() => {
     let n = 0;
-    for (const group of groups) for (const item of group.items) if (craftEffectiveState(item, states) === 'live') n += 1;
+    for (const group of groups) for (const item of group.items) if (lessonEffectiveState(item, states) === 'live') n += 1;
     return n;
   }, [groups, states]);
   const soonCount = useMemo(() => {
     let n = 0;
-    for (const group of groups) for (const item of group.items) if (craftEffectiveState(item, states) === 'soon') n += 1;
+    for (const group of groups) for (const item of group.items) if (lessonEffectiveState(item, states) === 'soon') n += 1;
     return n;
   }, [groups, states]);
   const visibleCount = useMemo(
-    () => groups.reduce((acc, g) => acc + g.items.filter((it) => craftItemVisible(it, isOwner, states)).length, 0),
+    () => groups.reduce((acc, g) => acc + g.items.filter((it) => lessonItemVisible(it, isOwner, states)).length, 0),
     [groups, isOwner, states],
   );
 
@@ -446,7 +416,7 @@ const CraftIndex: React.FC = () => {
   // something that exists for them.
   const canSee = (href: string) => {
     const item = itemsByHref.get(href);
-    return !!item && craftItemVisible(item, isOwner, states) && craftEffectiveState(item, states) === 'live';
+    return !!item && lessonItemVisible(item, isOwner, states) && lessonEffectiveState(item, states) === 'live';
   };
   const railCovers = COVERS.filter((cover) => canSee(cover.to));
 
@@ -457,29 +427,29 @@ const CraftIndex: React.FC = () => {
     <StoryEditProvider slug="craft">
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet>
-        <title>Craft · Teajia</title>
-        <meta name="description" content="A workshop for your tea practice. Brew, taste, know, and the room you sit in." />
+        <title>Lessons · Teajia</title>
+        <meta name="description" content="Lessons for your tea practice: where to begin, brewing and tasting step by step, and books and voices to go further." />
       </Helmet>
 
-      <style>{CRAFT_ROOM_RESPONSIVE_STYLE}</style>
+      <style>{LESSONS_RESPONSIVE_STYLE}</style>
 
       {/* NAV: same chrome as the Read index, no back arrow, no owner toggle */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '13px clamp(18px,4vw,44px)', background: 'rgb(var(--tj-read-bg-rgb) / 0.72)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid rgb(var(--tj-read-gold-rgb) / 0.12)' }}>
         <span style={{ fontFamily: F.display, fontWeight: 600, fontSize: 18, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.ink }}>Teajia</span>
-        <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>Craft · The Work of Tea</span>
+        <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>Read · Lessons</span>
         <ProgressTrack progress={progress} />
       </nav>
 
       <article style={{ position: 'relative', zIndex: 1 }}>
 
-        <ReadShelves here="craft" />
+        <ReadShelves here="lessons" />
 
         {/* MASTHEAD */}
         <header style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: 'clamp(54px,9vw,118px) clamp(24px,5vw,56px) clamp(34px,5vw,56px)', overflow: 'hidden' }}>
           <div aria-hidden="true" style={{ position: 'absolute', top: '-12%', right: '-2%', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(46vw,440px)', lineHeight: 1, color: 'rgb(var(--tj-read-gold-rgb) / 0.05)', pointerEvents: 'none', userSelect: 'none' }}>茶</div>
           <div style={{ position: 'relative', maxWidth: 760 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
-              A workshop · {eyebrowLabel.toLowerCase()}
+              Lessons · {eyebrowLabel.toLowerCase()}
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 500, fontSize: 'clamp(54px,10vw,124px)', lineHeight: 0.92, letterSpacing: '0.01em', color: 'var(--tj-read-cream)', margin: 0 }}>
               The Work{' '}
@@ -513,11 +483,11 @@ const CraftIndex: React.FC = () => {
               <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.1em', color: C.dim }}>{piecesLabel}</span>
             </div>
             {groups.map((group) => (
-              <CraftGroupBlock key={group.label} group={group} isOwner={isOwner} states={states} />
+              <LessonGroupBlock key={group.label} group={group} isOwner={isOwner} states={states} />
             ))}
             {!isOwner && visibleCount === 0 && (
               <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 18, lineHeight: 1.55, color: C.dim, margin: '38px 2px 0', maxWidth: 460 }}>
-                The workshop is being set up. Come back soon, the kettle is on.
+                The lessons are being set up. Come back soon, the kettle is on.
               </p>
             )}
           </section>
@@ -584,4 +554,4 @@ const CraftIndex: React.FC = () => {
   );
 };
 
-export default CraftIndex;
+export default LessonsIndex;

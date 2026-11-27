@@ -4,7 +4,7 @@ const ROUTES = [
   { path: '/', label: 'Home' },
   { path: '/shop', label: 'Shop' },
   { path: '/read', label: 'Read' },
-  { path: '/craft', label: 'Craft' },
+  { path: '/read/lessons', label: 'Lessons' },
   { path: '/about', label: 'About' },
 ];
 

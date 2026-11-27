@@ -655,8 +655,9 @@ describe('wayfinding', () => {
       expect.objectContaining({ id: 'regions', label: 'Origins', path: '/wisdom/regions' }),
     ]));
     expect(wisdomSections(false).map(section => section.label)).toEqual([
-      'Overview', 'Plants', 'Regions', 'Producers', 'Marks', 'Styles', 'Named',
+      'Overview', 'Plants', 'Regions', 'Producers', 'Marks', 'Styles', 'Named', 'Glossary',
     ]);
+    expect(sectionForPath('/wisdom/glossary')).toBe('glossary');
     expect(WISDOM_SECTIONS).toEqual(wisdomSections(TEA_REFERENCE_PREVIEW_ENABLED));
     expect(sectionForPath('/wisdom/types')).toBe('types');
     expect(sectionForPath('/wisdom/type/sheng')).toBe('types');

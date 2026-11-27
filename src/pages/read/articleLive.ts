@@ -57,8 +57,12 @@ export const ARTICLE_LIVE: Record<string, boolean> = {
  *
  * Nothing else belongs here. A route earns a place only by being the same kind
  * of pre-existing exception, never by being forgotten.
+ *
+ * `/read/lessons` joined on 2026-11-27: it is the Lessons shelf's index (what
+ * Craft became), a contents page like `/read` and not an article, and each of
+ * its rows answers to its own state map in src/pages/lessons/lessonsLive.ts.
  */
-export const UNGATED_READ_PATHS: readonly string[] = ['/read', '/read/leaf-to-liquor'];
+export const UNGATED_READ_PATHS: readonly string[] = ['/read', '/read/leaf-to-liquor', '/read/lessons'];
 
 /** Is this one of the named public-but-uncurated Read paths. */
 export function isUngatedReadPath(path: string): boolean {

@@ -1,5 +1,5 @@
 /**
- * The Craft landing, checked the way LearnOverview.test.tsx and the Read
+ * Read's Lessons shelf (once the Craft landing), checked the way LearnOverview.test.tsx and the Read
  * section's own tests checked their pages: render the real component through
  * the real gate, read the markup a visitor or the owner actually receives.
  *
@@ -8,7 +8,7 @@
  * claims, and stubbing the two Storage globals with a plain map lets the real
  * hook run unchanged.
  *
- * Run with: npx vitest run src/pages/craft/CraftIndex.test.tsx
+ * Run with: npx vitest run src/pages/lessons/LessonsIndex.test.tsx
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,9 +17,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import CraftIndex, { CRAFT_ROW_KEYS } from './CraftIndex';
-import { CRAFT_STATE } from './craftLive';
-import { GLOSSARY_TERMS } from '../../data/glossary';
+import LessonsIndex, { LESSON_ROW_KEYS } from './LessonsIndex';
+import { LESSON_STATE } from './lessonsLive';
 
 // Layout-only fixtures model the verified hook. Real JWT/session decisions
 // are covered by readOwner/readEditorState and Worker delivery tests.
@@ -60,7 +59,7 @@ function render(): string {
   return renderToStaticMarkup(
     <HelmetProvider>
       <MemoryRouter>
-        <CraftIndex />
+        <LessonsIndex />
       </MemoryRouter>
     </HelmetProvider>,
   );
@@ -69,19 +68,21 @@ function render(): string {
 // Adrian's rule, 2026-09-22: a visitor gets three tiers. LIVE_TITLES are real
 // pieces, real links. SOON_TITLES are a photograph and a title with no way
 // in. DRAFT_TITLES are the owner's own workshop, invisible to a visitor.
-// When a row's state changes in craftLive.ts, move its title between these
-// lists here, on purpose.
-const LIVE_TITLES = ['Seven Steeps', 'Porcelain and Tea', 'The Vocabulary of Taste', 'The Tea Reference', 'The Glossary', 'Discover Your Tea'];
-const SOON_TITLES = ['Brewing by Tea Type', 'Playlists', 'Three Journeys', 'Six Foundations', 'Reading and Listening', 'Six Tea Spaces', 'Shared Wisdom'];
-const DRAFT_TITLES = ['Water Before Leaf', 'The Pot That Remembers'];
+// When a row's state changes in lessonsLive.ts, move its title between these
+// lists here, on purpose. Craft's essays now sit only on Stories, and the
+// reference and glossary only on Wisdom, so none of them shows here.
+const LIVE_TITLES = ['Discover Your Tea'];
+const SOON_TITLES = ['Six Foundations', 'Brewing by Tea Type', 'Three Journeys', 'Reading and Listening'];
+const DRAFT_TITLES: string[] = [];
+const MOVED_TITLES = ['Seven Steeps', 'Porcelain and Tea', 'The Vocabulary of Taste', 'The Tea Reference', 'The Glossary', 'Water Before Leaf', 'The Pot That Remembers', 'Playlists', 'Six Tea Spaces', 'Shared Wisdom'];
 
-const LIVE_HREFS = ['/read/ritual', '/read/porcelain-and-tea', '/read/tasting', '/wisdom', '/craft?v=glossary', '/discover'];
-const SOON_HREFS = ['/craft?v=journeys', '/craft?v=course', '/craft?v=reading', '/craft?v=spaces', '/craft?v=wisdom'];
+const LIVE_HREFS = ['/discover'];
+const SOON_HREFS = ['/read/lessons?v=course', '/read/lessons?v=journeys', '/read/lessons?v=reading'];
 
-describe('CraftIndex, visitor', () => {
+describe('LessonsIndex, visitor', () => {
   const html = (() => { signOut(); return render(); })();
 
-  it('shows the six finished pieces, as links', () => {
+  it('shows the live lesson, as a link', () => {
     for (const title of LIVE_TITLES) {
       expect(html, `expected to find "${title}"`).toContain(title);
     }
@@ -90,7 +91,7 @@ describe('CraftIndex, visitor', () => {
     }
   });
 
-  it('shows the seven coming-soon titles, but links none of them', () => {
+  it('shows the coming-soon lessons, but links none of them', () => {
     for (const title of SOON_TITLES) {
       expect(html, `expected to find "${title}"`).toContain(title);
     }
@@ -105,25 +106,28 @@ describe('CraftIndex, visitor', () => {
     }
   });
 
-  it('keeps the six-piece count, seven coming labels, and publish visibility', () => {
-    expect(html).toContain('six pieces');
-    expect(html).toContain('seven coming');
+  it('carries nothing that moved to Stories, Wisdom, Tea house or Tea table', () => {
+    for (const title of MOVED_TITLES) expect(html, `did not expect "${title}"`).not.toContain(title);
+  });
+
+  it('keeps the piece count, coming labels, and publish visibility', () => {
+    expect(html).toContain('one piece');
+    expect(html).toContain('four coming');
     expect(html).toContain('coming soon');
     expect(html).not.toContain('N°');
     expect(html).toContain('class="tj-craft-row"');
   });
 
-  it('renders the three Coming soon panels', () => {
-    expect(html).toContain('Playlists');
-    expect(html).toContain('Brewing by Tea Type');
+  it('renders the two Coming soon panels', () => {
+    expect(html).toContain('Brewing by Tea Type, coming soon');
     expect(html).toContain('Three Journeys');
   });
 });
 
-describe('CraftIndex, the owner', () => {
+describe('LessonsIndex, the owner', () => {
   const html = (() => { signInAsOwner(); return render(); })();
 
-  it('sees every row: live, soon and the two drafts', () => {
+  it('sees every row: live and soon', () => {
     for (const title of [...LIVE_TITLES, ...SOON_TITLES, ...DRAFT_TITLES]) {
       expect(html, `expected to find "${title}"`).toContain(title);
     }
@@ -135,34 +139,25 @@ describe('CraftIndex, the owner', () => {
     }
   });
 
-  it('tags exactly the two drafts, dimmed', () => {
-    expect(html).toContain('opacity:0.5;');
+  it('tags no drafts, since none of the lessons is one', () => {
     expect(html.split('>Draft<').length - 1).toBe(DRAFT_TITLES.length);
   });
 
   signOut();
 });
 
-describe('CraftIndex, the state map names exactly the rows the index carries', () => {
+describe('LessonsIndex, the state map names exactly the rows the index carries', () => {
   it('has no orphan key and no unlisted row', () => {
-    for (const key of Object.keys(CRAFT_STATE)) {
-      expect(CRAFT_ROW_KEYS.includes(key), `craftLive.ts lists "${key}", which no row in the index carries`).toBe(true);
+    for (const key of Object.keys(LESSON_STATE)) {
+      expect(LESSON_ROW_KEYS.includes(key), `lessonsLive.ts lists "${key}", which no row in the index carries`).toBe(true);
     }
-    for (const key of CRAFT_ROW_KEYS) {
-      expect(key in CRAFT_STATE, `row "${key}" carries no entry in craftLive.ts, so it can never go live`).toBe(true);
+    for (const key of LESSON_ROW_KEYS) {
+      expect(key in LESSON_STATE, `row "${key}" carries no entry in lessonsLive.ts, so it can never go live`).toBe(true);
     }
   });
 });
 
-describe('CraftIndex, the Glossary row', () => {
-  it('names the real term count and a term of the day, not a stale copy', () => {
-    signOut();
-    const html = render();
-    expect(html).toContain(`${GLOSSARY_TERMS.length} terms`);
-  });
-});
-
-describe('CraftIndex, copy discipline', () => {
+describe('LessonsIndex, copy discipline', () => {
   it('uses no em dash in any row title or dek', () => {
     signInAsOwner();
     const html = render();
@@ -170,13 +165,13 @@ describe('CraftIndex, copy discipline', () => {
     // U+2014, built with fromCharCode rather than typed so this file's own
     // source does not itself trip a project-wide em-dash scan.
     const emDash = String.fromCharCode(0x2014);
-    expect(html.includes(emDash), 'CraftIndex rendered an em dash').toBe(false);
+    expect(html.includes(emDash), 'LessonsIndex rendered an em dash').toBe(false);
   });
 });
 
-describe('CraftIndex, every href resolves somewhere real', () => {
+describe('LessonsIndex, every href resolves somewhere real', () => {
   const APP_TSX = fs.readFileSync(path.resolve(__dirname, '../../App.tsx'), 'utf8');
-  const LEARN_HUB = fs.readFileSync(path.resolve(__dirname, '../../components/LearnHub.tsx'), 'utf8');
+  const LEARN_HUB = fs.readFileSync(path.resolve(__dirname, './LessonsHub.tsx'), 'utf8');
 
   /** Every static <Route path="..."> in App.tsx, read rather than typed. */
   function appRoutePaths(): Set<string> {
@@ -185,7 +180,7 @@ describe('CraftIndex, every href resolves somewhere real', () => {
     return paths;
   }
 
-  /** Every ?v= value LearnHub's sub-view switch actually renders. */
+  /** Every ?v= value LessonsHub's sub-view switch actually renders. */
   function knownSubViews(): Set<string> {
     const views = new Set<string>();
     const switchBlock = LEARN_HUB.match(/renderSubView = \(\) => \{[\s\S]*?\n  \};/);
@@ -223,6 +218,6 @@ describe('CraftIndex, every href resolves somewhere real', () => {
     expect(appRoutePaths().has(pathname), `${pathname} is not a route in App.tsx`).toBe(true);
     const view = new URLSearchParams(query).get('v');
     expect(view, `${href} carries no ?v=`).not.toBeNull();
-    expect(knownSubViews().has(view as string), `${href}'s view "${view}" is not handled by LearnHub`).toBe(true);
+    expect(knownSubViews().has(view as string), `${href}'s view "${view}" is not handled by LessonsHub`).toBe(true);
   });
 });

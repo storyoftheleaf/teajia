@@ -1,3 +1,7 @@
+## 2026-11-27: Craft leaves the bar; Read gets Stories, Lessons and Wisdom
+
+Adrian removed Craft as a section and kept everything in it, choosing "Read: Stories, Lessons, Wisdom". The bar and the rail lose the word Craft (today: read, advise, shop; the new bar's four words are unchanged). Read's row of three shelves now shows with the bar on or off. Lessons (`/read/lessons`, `src/pages/lessons/`) is the old Craft index with only its lessons: Discover Your Tea, Six Foundations, Brewing by Tea Type, Three Journeys, Reading and Listening, each in the state it had. Craft's essays were always Read articles and stay on Stories. The glossary is a tab of the Wisdom Base at `/wisdom/glossary`. Tea Spaces, Shared Wisdom and Playlists wait for Tea house and Tea table; the two built ones stay reachable by address on Lessons. Old `/craft` and `/learn` addresses forward to each piece's new place. The Craft page's photo slots (slug `craft`) are kept, so no placed photograph is lost.
+
 ## 2026-11-26: Launch 5 ready to ship (behind its flags)
 
 Finished on `build/l5-finish`, every part off until Adrian says "ship".

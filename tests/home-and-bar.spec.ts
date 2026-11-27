@@ -13,7 +13,7 @@ test.beforeEach(({}, info) => {
 const barOn = () => test.info().project.metadata.bar === 'on';
 const isPhone = () => (test.info().project.use.viewport?.width ?? 1280) < 1024;
 
-const TODAY = ['Read', 'Craft', 'Advise', 'Shop'];
+const TODAY = ['Read', 'Advise', 'Shop'];
 const LAUNCH_FOUR = ['Read', 'Tea table', 'Tea house', 'Shop'];
 const words = () => (barOn() ? LAUNCH_FOUR : TODAY);
 
@@ -154,28 +154,29 @@ test('Home: today\'s lines, or the four new lines and "Come to a table"', async 
   await noHorizontalOverflow(page, 'home');
 });
 
-test('Read\'s three shelves on /read, /craft and /wisdom, only with the new bar', async ({ page }) => {
-  for (const path of ['/read', '/craft', '/wisdom']) {
+test('Read\'s three shelves on /read, /read/lessons and /wisdom, with the bar on or off', async ({ page }) => {
+  for (const path of ['/read', '/read/lessons', '/wisdom']) {
     await page.goto(path);
     const shelves = page.getByTestId('read-shelves');
-    if (!barOn()) {
-      await expect(page.locator('main, article, body').first()).toBeVisible();
-      await expect(shelves).toHaveCount(0);
-      continue;
-    }
-    await expect(shelves.getByRole('link')).toHaveText(['Stories', 'Craft', 'Wisdom']);
+    await expect(shelves.getByRole('link')).toHaveText(['Stories', 'Lessons', 'Wisdom']);
     await expect(shelves.locator('[aria-current="page"]')).toHaveAttribute('href', path);
     await noHorizontalOverflow(page, path);
-    if (isPhone()) await expect(page.getByTestId('bottom-tab-bar').getByRole('button', { name: 'Read', exact: true })).toHaveAttribute('aria-current', 'page');
+    if (barOn() && isPhone()) await expect(page.getByTestId('bottom-tab-bar').getByRole('button', { name: 'Read', exact: true })).toHaveAttribute('aria-current', 'page');
   }
-  if (barOn()) {
-    await page.getByTestId('read-shelves').getByRole('link', { name: 'Stories' }).click();
-    await expect(page).toHaveURL(/\/read$/);
+  await page.getByTestId('read-shelves').getByRole('link', { name: 'Stories' }).click();
+  await expect(page).toHaveURL(/\/read$/);
+});
+
+test('old Craft addresses open where each piece went', async ({ page }) => {
+  for (const [from, to] of [['/craft', '/read/lessons'], ['/craft?v=glossary', '/wisdom/glossary'], ['/craft?v=journeys', '/read/lessons?v=journeys'], ['/learn', '/read/lessons']]) {
+    await page.goto(from);
+    await expect(page).toHaveURL(new RegExp(`${to.replace(/[/?]/g, m => `\\${m}`)}$`));
+    await expect(page.getByRole('heading', { name: '404', exact: true })).toHaveCount(0);
   }
 });
 
 test('old addresses keep working', async ({ page }) => {
-  for (const path of ['/craft', '/advise', '/spaces', '/find-a-table', '/people', '/events', '/wisdom']) {
+  for (const path of ['/advise', '/spaces', '/find-a-table', '/people', '/events', '/wisdom', '/wisdom/glossary']) {
     await page.goto(path);
     await expect(page).toHaveURL(new RegExp(`${path.replace(/\//g, '\\/')}(\\?.*)?$`));
     await expect(page.getByRole('heading', { name: '404', exact: true })).toHaveCount(0);

@@ -300,6 +300,7 @@ export function wisdomSections(previewEnabled: boolean): WisdomSection[] {
     { id: 'marks', label: 'Marks', path: '/wisdom/marks' },
     { id: 'styles', label: 'Styles', path: '/wisdom/styles' },
     { id: 'named', label: 'Named', path: '/wisdom/named' },
+    { id: 'glossary', label: 'Glossary', path: '/wisdom/glossary' },
   ];
 }
 
@@ -323,6 +324,7 @@ export function sectionForPath(pathname: string): WisdomSection['id'] {
   if (segment.startsWith('mark')) return 'marks';
   if (segment.startsWith('style')) return 'styles';
   if (segment.startsWith('named')) return 'named';
+  if (segment === 'glossary') return 'glossary';
   return 'overview';
 }
 

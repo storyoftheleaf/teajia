@@ -12,7 +12,6 @@ import { PEOPLE } from './content/people';
 // Navigation Configuration
 export const MAIN_NAV_ITEMS = [
   { id: 'MAGAZINE', label: 'Read', icon: 'Book', hint: 'Editorial space: interviews, visual stories, contributor pieces' },
-  { id: 'LEARN', label: 'Craft', icon: 'School', hint: 'A practitioner toolkit: courses, glossary, videos, journeys, and shared wisdom' },
   { id: 'OFFERINGS', label: 'Partner', icon: 'Sparkles', hint: 'For-hire services: tea sessions, design curation, circles' },
   { id: 'SHOP', label: 'Shop', icon: 'Bag', hint: 'Product store: teas, teaware, and curated collections' },
 ] as const;

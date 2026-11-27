@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { homeBarOpen } from '../../lib/homeBar';
 import { READ_SHELVES, type ReadShelfId } from '../navSections';
 
 const ACTIVE_GLOW: React.CSSProperties = {
@@ -9,12 +8,11 @@ const ACTIVE_GLOW: React.CSSProperties = {
 
 /**
  * Read's three shelves (slice K10): one row of three shelf names at the top of
- * /read, /craft and /wisdom, so a reader on one shelf steps to another in one
- * tap. The names live in navSections.ts. Behind HOME_BAR_OPEN; closed, it
- * renders nothing and each page is as it was.
+ * /read, /read/lessons and /wisdom (Lessons took Craft's place, 2026-11-27), so a reader on one shelf steps to another in one
+ * tap. The names live in navSections.ts. Shown with the bar on or off since
+ * Craft left the bar: the row is the only door to Lessons from Read.
  */
 export const ReadShelves: React.FC<{ here: ReadShelfId }> = ({ here }) => {
-  if (!homeBarOpen()) return null;
   return (
     <nav
       aria-label="Read's shelves"
@@ -28,7 +26,7 @@ export const ReadShelves: React.FC<{ here: ReadShelfId }> = ({ here }) => {
             key={shelf.id}
             to={shelf.path}
             aria-current={active ? 'page' : undefined}
-            className={`min-h-tap inline-flex items-center font-display text-ui-15 lowercase tracking-[0.04em] transition-colors duration-200 ${
+            className={`min-h-tap inline-flex items-center font-display text-ui-14 lowercase tracking-[0.04em] transition-colors duration-200 ${
               active ? 'text-tea-gold font-semibold' : 'text-tea-text-sec hover:text-tea-text'
             }`}
             style={active ? ACTIVE_GLOW : undefined}
