@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { AlcoveModal } from '../shop/AlcoveModal';
-import { LinkTeaEntry, linkTeaInventoryItem, useLinkTeaWriting, type LinkTeaSource } from '../shop/linkTea';
+import { LinkTeaPage } from '../shop/LinkTeaPage';
+import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
 import { TeaLedger, type TeaLedgerGroup } from '../shop/TeaLedger';
 import type { WeighOption } from '../shop/TeaWeighControl';
 import { useShopPrice } from '../shop/shopPrice';
@@ -22,30 +22,22 @@ export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) 
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
   const toggleFavoriteTea = useAppStore(s => s.toggleFavoriteTea);
   const favoriteIds = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
-  // One row per tea and amount. The same tea bought as two 100g packs is two
-  // lines on the invoice and one row here reading "2 × 100g" (Adrian,
-  // 2026-11-27). A tea bought in other amounts, or a line with no tea behind
-  // it, gets a row and an id of its own.
+  // One row per invoice line, as the invoice was written: two 100g packs of
+  // the same tea are two rows of 100g (Adrian, 2026-11-27). The first row of a
+  // tea carries its product id; a second row of the same tea gets an id of its
+  // own and opens the same tea.
   const rows = useMemo(() => {
-    const packs = new Map<string, { line: PayLinkTeaLine; count: number; totalUsd: number }>();
-    lines.forEach((line, index) => {
-      const key = line.product_id ? `${line.product_id}|${line.unit}|${line.quantity}` : `line-${index}`;
-      const pack = packs.get(key);
-      if (pack) { pack.count += 1; pack.totalUsd += line.line_total_usd; }
-      else packs.set(key, { line, count: 1, totalUsd: line.line_total_usd });
-    });
     const seen = new Set<string>();
-    return Array.from(packs.values()).map(({ line, count, totalUsd }, index) => {
+    return lines.map((line, index) => {
       const id = line.product_id && !seen.has(line.product_id) ? line.product_id : `invoice-line-${index}`;
       if (line.product_id) seen.add(line.product_id);
       const card = linkTeaInventoryItem({ ...sourceOf(line), ...line, chineseName: line.chinese_name, year: line.year, image: line.image_url });
-      const one = line.unit === 'g' ? `${line.quantity}g` : `${line.quantity} ${line.quantity === 1 ? 'piece' : 'pieces'}`;
       const amount: WeighOption = {
-        grams: line.quantity * count,
-        totalUsd: Math.round(totalUsd * 100) / 100,
-        label: count > 1 ? `${count} × ${one}` : line.unit === 'g' ? undefined : one,
+        grams: line.quantity,
+        totalUsd: Math.round(line.line_total_usd * 100) / 100,
+        label: line.unit === 'g' ? undefined : `${line.quantity} ${line.quantity === 1 ? 'piece' : 'pieces'}`,
       };
-      return { id, line, card: { ...card, id } as InventoryItem, amount };
+      return { id, line, product: card, card: { ...card, id } as InventoryItem, amount };
     });
   }, [lines]);
   const totalUsd = Math.round(lines.reduce((sum, line) => sum + line.line_total_usd, 0) * 100) / 100;
@@ -66,7 +58,7 @@ export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) 
     }
     return order.map(type => ({ type, items: byType.get(type)! }));
   }, [rows]);
-  const cards = useMemo(() => rows.filter(row => row.line.product_id).map(row => row.card), [rows]);
+  const openRow = openId ? byId.get(openId) : undefined;
   if (lines.length === 0) return null;
   return (
     <section aria-label="What this pays for" data-testid="pay-invoice-teas">
@@ -86,19 +78,7 @@ export function PayInvoiceTeas({ lines }: { lines: readonly PayLinkTeaLine[] }) 
         <span className="label-caps text-tea-text-sec">Total</span>
         <span className="font-display text-ui-22 tabular-nums text-tea-text">{exact(totalUsd)}</span>
       </div>
-      {openId && (
-        <AlcoveModal
-          item={cards.find(card => card.id === openId) ?? null}
-          items={cards}
-          onClose={() => setOpenId(null)}
-          onItemChange={next => setOpenId(next.id)}
-          linkFooter={() => null}
-          linkAddition={card => {
-            const line = byId.get(card.id)?.line;
-            return line ? <PayTeaWriting line={line} /> : null;
-          }}
-        />
-      )}
+      {openRow && <LinkTeaPage item={openRow.product} onClose={() => setOpenId(null)} />}
     </section>
   );
 }
@@ -114,7 +94,3 @@ function sourceOf(line: PayLinkTeaLine): LinkTeaSource {
   };
 }
 
-function PayTeaWriting({ line }: { line: PayLinkTeaLine }) {
-  const writing = useLinkTeaWriting(sourceOf(line));
-  return <LinkTeaEntry writing={writing} className="alcove-body-section mt-7" />;
-}

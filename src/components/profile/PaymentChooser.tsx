@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { GOLD_TEXT_INLINE, GOLD_TEXT_STYLE, GroupHead } from '../people/immersive';
+import { Check, Copy } from 'lucide-react';
+import { GOLD_TEXT_INLINE, GOLD_TEXT_STYLE } from '../people/immersive';
+import { useAppStore } from '../../lib/store';
+import { canonicalCurrency, isoCurrencyCode } from '../../lib/currency';
+import type { Currency } from '../../admin/types';
 import { PaymentOrderSummary } from './PaymentOrderSummary';
-import { looksLikePastedDetails, pastedLines } from './pastedPayment';
+import { looksLikePastedDetails, methodCurrency, pastedLines } from './pastedPayment';
 import { formatLocalAmount, localAmountNote } from './profileDomain';
 import type { PaymentContext, PaymentLocalAmount, PaymentMethod, PaymentOrderSummaryData } from './types';
 
@@ -50,6 +54,7 @@ function methodDefaultDek(method: PaymentMethod): string | null {
   return null;
 }
 
+/** Copy, as an icon on the right of a value, the way Wise draws it. */
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -62,24 +67,49 @@ function CopyButton({ value, label }: { value: string; label: string }) {
     }
   };
   return (
-    <button type="button" onClick={copy} className={`${GOLD_TEXT_INLINE} tap-target`} style={GOLD_TEXT_STYLE} aria-label={`Copy ${label}`}>
-      {copied ? 'Copied' : 'Copy'}
+    <button type="button" onClick={copy} className="tap-target shrink-0 text-tea-gold hover:text-tea-gold-lt" aria-label={copied ? `Copied ${label}` : `Copy ${label}`}>
+      {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
     </button>
   );
 }
 
-/** One plain row: the value on the left, an optional action on the right, a hairline under. */
-function Row({ children, action, mono = false, testId }: { children: ReactNode; action?: ReactNode; mono?: boolean; testId?: string }) {
+/** One field: a small label over its value, Copy on the right. No rule under it. */
+function Field({ label, value, copy = true, mono = false, testId, children }: {
+  label: string; value: string; copy?: boolean; mono?: boolean; testId?: string; children?: ReactNode;
+}) {
   return (
-    <div className="flex min-h-[48px] items-center justify-between gap-4 border-b border-tea-border py-2.5" data-testid={testId}>
-      <span className={`min-w-0 break-words ${mono ? 'font-mono text-ui-14 tabular-nums' : 'font-body text-ui-15'} text-tea-text`}>{children}</span>
-      {action ?? null}
+    <div className="flex items-center justify-between gap-3 py-1.5" data-testid={testId}>
+      <div className="min-w-0">
+        <span className="block font-sans text-ui-12 text-tea-text-sec">{label}</span>
+        <span className={`block break-words font-medium text-tea-text ${mono ? 'font-mono text-ui-14 tabular-nums' : 'font-body text-ui-15'}`}>{children ?? value}</span>
+      </div>
+      {copy && <CopyButton value={value} label={label.toLowerCase()} />}
     </div>
   );
 }
 
+/** One rounded panel: a title line, then its fields. */
+function Panel({ title, sub, action, children, label, testId }: {
+  title?: ReactNode; sub?: ReactNode; action?: ReactNode; children: ReactNode; label: string; testId?: string;
+}) {
+  return (
+    <section aria-label={label} className="mt-3 rounded-md bg-tea-elevated px-4 py-3 first:mt-0" data-testid={testId}>
+      {title && (
+        <div className="flex items-center justify-between gap-3 pb-1">
+          <div className="min-w-0">
+            <h3 className="font-body text-ui-15 font-medium text-tea-text">{title}</h3>
+            {sub && <p className="font-sans text-ui-12 text-tea-text-sec">{sub}</p>}
+          </div>
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
 function Dek({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <p className={`max-w-[46ch] font-body text-ui-13 italic leading-[1.45] text-tea-text-sec ${className}`}>{children}</p>;
+  return <p className={`max-w-[46ch] font-sans text-ui-12 leading-[1.45] text-tea-text-sec ${className}`}>{children}</p>;
 }
 
 function Method({ method }: { method: PaymentMethod }) {
@@ -91,45 +121,83 @@ function Method({ method }: { method: PaymentMethod }) {
 
   if (method.method_type === 'payment_link') {
     return (
-      <section aria-label={word} data-testid="pay-method">
-        <GroupHead label={word} />
-        <Row action={openLink}><span className="font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">{dek}</span></Row>
-      </section>
+      <Panel label={word} title={method.label} sub={dek} action={openLink} testId="pay-method"><></></Panel>
     );
   }
 
-  // Bank transfer, a provider QR, or anything else: the same plain rows.
-  const showLabel = method.label.trim().toLowerCase() !== word.toLowerCase();
-  // Details pasted as the bank or Wise gives them become rows of their own,
-  // each value with a Copy, in the order they were pasted.
+  // Bank transfer, a provider QR, or anything else. Details pasted as the bank
+  // or Wise gives them become fields of their own, each with a Copy, in the
+  // order they were pasted; a heading line in the paste becomes a small hint.
   const pasted = looksLikePastedDetails(method.instructions) ? pastedLines(method.instructions) : null;
   const pasteNamesRecipient = Boolean(pasted?.some(line => line.kind === 'value' && line.value === method.recipient_name));
+  const currency = methodCurrency(method);
+  const values = [
+    ...(!pasteNamesRecipient ? [`Name: ${method.recipient_name}`] : []),
+    ...(method.account_identifier ? [method.account_identifier] : []),
+    ...(pasted ?? []).filter(line => line.kind === 'value').map(line => line.kind === 'value' ? `${line.label}: ${line.value}` : ''),
+  ];
+  const title = currency ? `${currency} account details` : method.label;
+  const sub = [currency ? method.label : null, word.toLowerCase() !== method.label.trim().toLowerCase() ? word : null].filter(Boolean).join(' · ');
   return (
-    <section aria-label={word} data-testid="pay-method">
-      <GroupHead label={word} />
-      {method.qr_image_url && <img src={method.qr_image_url} alt={`${method.label} provider QR code`} className="mt-3 h-36 w-36 border border-tea-border bg-tea-surface object-contain p-2" />}
-      {!pasteNamesRecipient && <Row action={<CopyButton value={method.recipient_name} label="recipient name" />}>{method.recipient_name}</Row>}
-      {showLabel && <Row>{method.label}</Row>}
-      {method.account_identifier && <Row mono action={<CopyButton value={method.account_identifier} label={`${method.label} details`} />}>{method.account_identifier}</Row>}
+    <Panel
+      label={word}
+      title={title}
+      sub={sub || undefined}
+      testId="pay-method"
+      action={values.length > 1 ? <CopyAll text={values.join('\n')} /> : undefined}
+    >
+      {method.qr_image_url && <img src={method.qr_image_url} alt={`${method.label} provider QR code`} className="my-2 h-36 w-36 border border-tea-border bg-tea-surface object-contain p-2" />}
+      {!pasteNamesRecipient && <Field label="Name" value={method.recipient_name} />}
+      {method.account_identifier && <Field label="Account" value={method.account_identifier} mono />}
       {pasted?.map((line, index) => line.kind === 'value' ? (
-        <Row key={index} testId="pay-pasted-value" action={<CopyButton value={line.value} label={line.label} />}>
-          <span className="block text-ui-12 not-italic text-tea-text-sec">{line.label}</span>
-          <span className="block font-mono text-ui-14 tabular-nums">{line.value}</span>
-        </Row>
+        <Field key={index} testId="pay-pasted-value" label={line.label} value={line.value} />
       ) : line.kind === 'heading' ? (
-        <p key={index} className="mt-5 font-body text-ui-13 italic text-tea-text-sec">{line.text}</p>
+        <Dek key={index} className="pt-1.5">{line.text}</Dek>
       ) : (
-        <Dek key={index} className="mt-2">{line.text}</Dek>
+        <Dek key={index} className="pt-1">{line.text}</Dek>
       ))}
-      {openLink && <Row action={openLink}><span className="font-body text-ui-13 italic leading-[1.45] text-tea-text-sec">Or pay online.</span></Row>}
-      {!pasted && dek && <Dek className="mt-3 whitespace-pre-line">{dek}</Dek>}
-      {pasted && <Dek className="mt-3">{methodDefaultDek(method)}</Dek>}
-    </section>
+      {openLink && <div className="flex items-center justify-between gap-3 py-1.5"><Dek>Or pay online.</Dek>{openLink}</div>}
+      {!pasted && dek && <Dek className="mt-1 whitespace-pre-line">{dek}</Dek>}
+      {pasted && <Dek className="mt-1">{methodDefaultDek(method)}</Dek>}
+    </Panel>
+  );
+}
+
+/** Every value of a method at once, for pasting into a bank app's notes. */
+function CopyAll({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <button type="button" onClick={copy} className={`${GOLD_TEXT_INLINE} tap-target shrink-0`} style={GOLD_TEXT_STYLE}>
+      {copied ? 'Copied' : 'Copy all'}
+    </button>
   );
 }
 
 export function PaymentChooser({ contributorName, methods, context, local, summary }: PaymentChooserProps) {
   const visibleMethods = methods.filter(method => method.is_published).sort((a, b) => a.position - b.position);
+  // Several accounts in different currencies (Wise USD and Wise IDR): show the
+  // one for the currency the page is in, with a switch between them. The
+  // switch is the shop's own currency, so the teas reprice with it.
+  const storeCurrency = useAppStore(state => state.currency);
+  const setCurrency = useAppStore(state => state.setCurrency);
+  const accountCurrencies = Array.from(new Set(visibleMethods.map(methodCurrency).filter((code): code is string => Boolean(code))));
+  const chosenCurrency = accountCurrencies.length > 1
+    ? accountCurrencies.find(code => code === isoCurrencyCode(storeCurrency))
+      ?? accountCurrencies.find(code => code === context.currency)
+      ?? accountCurrencies[0]
+    : null;
+  const shownMethods = chosenCurrency
+    ? visibleMethods.filter(method => { const code = methodCurrency(method); return !code || code === chosenCurrency; })
+    : visibleMethods;
   // Only rendered beside a real dollar figure. An approximation floating on its
   // own would become the amount the customer thinks they owe.
   const localFigure = context.amount ? formatLocalAmount(local) : null;
@@ -138,39 +206,56 @@ export function PaymentChooser({ contributorName, methods, context, local, summa
 
   return (
     <div>
-      {amountText && (
-        <section aria-label="Amount">
-          <GroupHead label="Amount" />
-          {/* The figure is the debt and is the only one that can be copied. An
-              approximation with a copy button beside it is an invitation to
-              paste it into a transfer. */}
-          <Row mono action={<CopyButton value={amountText} label="amount" />}><strong data-testid="payment-amount" className="font-medium">{amountText}</strong></Row>
+      {(amountText || context.reference) && (
+        <Panel label="Amount">
+          <div className="grid grid-cols-1 gap-x-6 min-[420px]:grid-cols-2">
+            {/* The figure is the debt and is the only one that can be copied. An
+                approximation with a copy button beside it is an invitation to
+                paste it into a transfer. */}
+            {amountText && (
+              <Field label="Amount" value={amountText} mono>
+                <strong data-testid="payment-amount" className="font-medium">{amountText}</strong>
+              </Field>
+            )}
+            {context.reference && <Field label="Reference" value={context.reference} />}
+          </div>
           {localFigure && (
             <>
-              <p data-testid="payment-local-amount" className="mt-2.5 font-mono text-ui-14 tabular-nums text-tea-text-sec">About {localFigure}</p>
-              {localNote && <p data-testid="payment-local-note" className="mt-1.5 max-w-[46ch] text-ui-12 leading-relaxed text-tea-text-dim">{localNote}</p>}
+              <p data-testid="payment-local-amount" className="pt-1 font-mono text-ui-13 tabular-nums text-tea-text-sec">About {localFigure}</p>
+              {localNote && <p data-testid="payment-local-note" className="mt-1 max-w-[46ch] text-ui-12 leading-relaxed text-tea-text-dim">{localNote}</p>}
             </>
           )}
-        </section>
-      )}
-      {context.reference && (
-        <section aria-label="Reference">
-          <GroupHead label="Reference" />
-          <Row action={<CopyButton value={context.reference} label="reference" />}>{context.reference}</Row>
-        </section>
+        </Panel>
       )}
       {summary && <PaymentOrderSummary summary={summary} />}
 
       {context.errors.length > 0 && (
-        <Dek className="mt-4" >
+        <Dek className="mt-3">
           <span role="alert">Some payment details in this link were invalid and have been left out.</span>
         </Dek>
       )}
 
+      {chosenCurrency && (
+        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Pay in">
+          <span className="font-sans text-ui-12 text-tea-text-sec">Pay in</span>
+          {accountCurrencies.map(code => (
+            <button
+              key={code}
+              type="button"
+              aria-pressed={code === chosenCurrency}
+              onClick={() => setCurrency((canonicalCurrency(code) ?? code) as Currency)}
+              className={`tap-target rounded-md px-3 py-1 font-sans text-ui-12 ${code === chosenCurrency ? 'bg-tea-accent-sub text-tea-gold' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'}`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+      )}
+
       {visibleMethods.length === 0 ? (
-        <Dek className="mt-8">I have not published a way to pay here yet. Ask {contributorName} directly.</Dek>
+        <Dek className="mt-6">I have not published a way to pay here yet. Ask {contributorName} directly.</Dek>
       ) : (
-        visibleMethods.map(method => <Method key={method.id} method={method} />)
+        shownMethods.map(method => <Method key={method.id} method={method} />)
       )}
 
     </div>

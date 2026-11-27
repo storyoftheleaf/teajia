@@ -244,11 +244,11 @@ export default function ProfilePaymentPage() {
         </header>
         <div className="mt-2">
           <PayInvoiceTeas lines={invoiceLines} />
-          <section aria-label="Pay" className="mt-6 max-w-2xl rounded-md border border-tea-border bg-tea-surface px-4 py-4 md:px-5">
-            {accountLinks}
-            <div className={`${associationRows.length > 0 ? 'mt-4' : ''} [&>div>section:first-child>div:first-child]:mt-0`}>{chooser}</div>
-          </section>
           <PayInvoiceKeep productIds={Array.from(new Set(invoiceLines.map(line => line.product_id).filter((id): id is string => Boolean(id))))} signedIn={access.viewer.signed_in} slug={slug} token={shareToken} kept={access.invoice?.kept === true} />
+          <section aria-label="Pay" className="mt-4 max-w-2xl">
+            {accountLinks}
+            <div className={associationRows.length > 0 ? 'mt-4' : ''}>{chooser}</div>
+          </section>
         </div>
       </main>
     );

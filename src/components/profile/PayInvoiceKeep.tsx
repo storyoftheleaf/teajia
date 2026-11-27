@@ -60,7 +60,7 @@ export function PayInvoiceKeep({ slug, token, productIds, signedIn, kept: keptAt
   const allSaved = productIds.every(id => favoriteTeas.includes(id));
 
   return (
-    <section aria-label="Save to your account" className="mt-6 max-w-2xl rounded-md border border-tea-border bg-tea-elevated px-4 py-4 md:px-5" data-testid="pay-account-offer">
+    <section aria-label="Save to your account" className="mt-4 max-w-2xl rounded-md border border-tea-border bg-tea-elevated px-4 py-3 md:px-5" data-testid="pay-account-offer">
       {state === 'kept' ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="inline-flex items-center gap-1.5 font-body text-ui-14 text-tea-text">
@@ -71,24 +71,22 @@ export function PayInvoiceKeep({ slug, token, productIds, signedIn, kept: keptAt
           </Link>
         </div>
       ) : (
-        <>
-          <p className="font-body text-ui-14 leading-[1.55] text-tea-text-sec">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="min-w-0 flex-1 basis-64 font-body text-ui-14 leading-[1.5] text-tea-text-sec">
             Teajia is in a closed beta, shared among close friends. Save these teas to your account and they stay with you.
             Add a photo or a tasting note when you drink them, and it all sits together.
           </p>
-          {error && <p role="alert" className="mt-2 font-sans text-ui-12 text-tea-text-sec">{error}</p>}
-          <div className="mt-3 flex justify-end">
-            {!signedIn ? (
-              <Link to={authPagePath('signup', returnTo)} className="btn-secondary tap-target">
-                <Bookmark size={13} /> Save to my account
-              </Link>
-            ) : (
-              <button type="button" onClick={save} disabled={state === 'saving' || !token} className="btn-secondary tap-target">
-                <Bookmark size={13} /> {state === 'saving' ? 'Saving' : 'Save to my account'}
-              </button>
-            )}
-          </div>
-        </>
+          {!signedIn ? (
+            <Link to={authPagePath('signup', returnTo)} className="btn-secondary tap-target shrink-0">
+              <Bookmark size={13} /> Save to my account
+            </Link>
+          ) : (
+            <button type="button" onClick={save} disabled={state === 'saving' || !token} className="btn-secondary tap-target shrink-0">
+              <Bookmark size={13} /> {state === 'saving' ? 'Saving' : 'Save to my account'}
+            </button>
+          )}
+          {error && <p role="alert" className="basis-full font-sans text-ui-12 text-tea-text-sec">{error}</p>}
+        </div>
       )}
     </section>
   );

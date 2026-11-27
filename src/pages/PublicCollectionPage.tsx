@@ -11,7 +11,7 @@ import {
   LinkTeaEntry, linkTeaInventoryItem, useLinkTeaWriting,
   type LinkTeaDetailFields, type LinkTeaSource,
 } from '../components/shop/linkTea';
-import { AlcoveModal } from '../components/shop/AlcoveModal';
+import { LinkTeaPage } from '../components/shop/LinkTeaPage';
 import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { TeaLedger, type TeaLedgerGroup } from '../components/shop/TeaLedger';
 import { weighOptions, startingIndex, type WeighOption } from '../components/shop/TeaWeighControl';
@@ -328,35 +328,27 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
         )}
       </section>
 
-      {/* The open tea is the shop's own card. Its footer is this link's: the
-          amount, the link's price, and Add to cart. The tea's Wisdom entry
-          sits under About, the one thing this link adds. */}
+      {/* The open tea is the shop's own tea page, everything written for it in
+          the store. Its footer is this link's: the amount, the link's price,
+          and Add to cart. The sender's note sits above it. */}
       {detailId && (() => {
         const focused = visible.find(it => it.id === detailId);
-        if (!focused) return null;
-        const cards = shelfItems;
+        const card = focused ? shelfItems.find(c => c.id === focused.product_id) : undefined;
+        if (!focused || !card) return null;
         return (
-          <AlcoveModal
-            item={cards.find(card => card.id === focused.product_id) ?? null}
-            items={cards}
+          <LinkTeaPage
+            item={card}
             onClose={() => setDetailId(null)}
-            onItemChange={next => { const it = byProduct.get(next.id); if (it) setDetailId(it.id); }}
-            linkFooter={card => {
-              const it = byProduct.get(card.id);
-              return it ? (
-                <CardFooter
-                  item={it}
-                  ctx={ctx}
-                  formatPrice={shopPrice.symbolTotal}
-                  onAdd={addFromLink}
-                  onOpenCart={onOpenCart ? () => { setDetailId(null); onOpenCart(); } : undefined}
-                />
-              ) : null;
-            }}
-            linkAddition={card => {
-              const it = byProduct.get(card.id);
-              return it ? <PickWriting item={it} curatorFirstName={curatorFirstName} /> : null;
-            }}
+            footer={(
+              <CardFooter
+                item={focused}
+                ctx={ctx}
+                formatPrice={shopPrice.symbolTotal}
+                onAdd={addFromLink}
+                onOpenCart={onOpenCart ? () => { setDetailId(null); onOpenCart(); } : undefined}
+              />
+            )}
+            addition={<PickNote item={focused} curatorFirstName={curatorFirstName} />}
           />
         );
       })()}
@@ -497,20 +489,14 @@ function collectionTeaItem(item: PublicCollectionItem): InventoryItem {
   });
 }
 
-/** Under About on the shop's card: the curator's note, then the tea's Wisdom entry. */
-const PickWriting: React.FC<{ item: PublicCollectionItem; curatorFirstName: string }> = ({ item, curatorFirstName }) => {
-  const writing = useLinkTeaWriting(teaSourceOf(item));
+/** Above the tea's page: the sender's note, in their words. */
+const PickNote: React.FC<{ item: PublicCollectionItem; curatorFirstName: string }> = ({ item, curatorFirstName }) => {
   const note = item.item_note?.trim();
-  if (!note && !writing.entry && writing.passages.passages.length === 0) return null;
+  if (!note) return null;
   return (
-    <div className="alcove-body-section mx-5 mt-7 flex flex-col gap-5" data-testid="collection-tea-writing">
-      {note && (
-        <p className="font-body text-ui-15 leading-[1.7] text-tea-text italic">
-          “{note}”
-          <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
-        </p>
-      )}
-      <LinkTeaEntry writing={writing} className="border-t border-tea-border pt-5" />
-    </div>
+    <p className="mb-5 font-body text-ui-15 leading-[1.7] text-tea-text italic" data-testid="collection-tea-writing">
+      “{note}”
+      <span className="not-italic text-tea-text-dim text-ui-12">, {curatorFirstName}</span>
+    </p>
   );
 };

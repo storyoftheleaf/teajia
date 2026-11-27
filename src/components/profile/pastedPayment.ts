@@ -1,4 +1,5 @@
-import type { PaymentMethodType } from './types';
+import { currencyInText, isoCurrencyCode } from '../../lib/currency';
+import type { PaymentMethod, PaymentMethodType } from './types';
 
 // A tea master pastes their payment details the way their bank or Wise hands
 // them over (Adrian, 2026-11-27: "this is how Wise gives it to me, just have it
@@ -30,9 +31,13 @@ export function readPastedPayment(text: string): PastedPaymentReading {
   const link = LINK.exec(trimmed)?.[0]?.replace(/[).,;]+$/, '') ?? null;
   const onlyALink = Boolean(link) && trimmed.replace(link ?? '', '').trim() === '';
   const methodType: PaymentMethodType = onlyALink ? 'payment_link' : 'bank_transfer';
-  const suggestedLabel = /\bwise\b/i.test(trimmed) || /wise\.com/i.test(link ?? '')
+  // An account in a named currency says so, so Wise USD and Wise IDR are two
+  // methods side by side and the pay page can show the one that matches.
+  const currency = methodType === 'bank_transfer' ? methodCurrency({ label: '', instructions: trimmed }) : null;
+  const base = /\bwise\b/i.test(trimmed) || /wise\.com/i.test(link ?? '')
     ? 'Wise'
     : methodType === 'payment_link' ? 'Payment link' : 'Bank transfer';
+  const suggestedLabel = currency ? `${base} ${currency}` : base;
   return {
     recipientName: nameLine ? nameLine[2].trim() : null,
     externalUrl: link,
@@ -64,4 +69,16 @@ export function pastedLines(text: string | null | undefined): PastedLine[] {
 /** True when the paste reads as details (two or more copyable values), not a sentence of instructions. */
 export function looksLikePastedDetails(text: string | null | undefined): boolean {
   return pastedLines(text).filter(line => line.kind === 'value').length >= 2;
+}
+
+/**
+ * The currency an account takes, when its owner keeps several (Wise USD and
+ * Wise IDR, Adrian 2026-11-27): named in its label ("Wise IDR"), or in the
+ * paste ("Currency: IDR", "IDR account details"), or a US routing number,
+ * which only a dollar account has. Null when nothing says.
+ */
+export function methodCurrency(method: Pick<PaymentMethod, 'label' | 'instructions'>): string | null {
+  const named = currencyInText(method.label) ?? currencyInText(method.instructions);
+  if (named) return isoCurrencyCode(named);
+  return /routing number|\bACH\b/i.test(method.instructions ?? '') ? 'USD' : null;
 }

@@ -48,9 +48,15 @@ export function pastedRecipientName(text: string): string | null {
   return null;
 }
 
-/** "Wise" when the paste mentions Wise, else "Bank transfer", as the paste box suggests. */
+/** "Wise" when the paste mentions Wise, else "Bank transfer", with the account's
+ * currency when the paste names one ("Wise IDR"), as the paste box suggests, so
+ * an owner's USD and IDR accounts are two methods and pasting one never
+ * replaces the other. */
 export function pastedLabel(text: string): string {
-  return /\bwise\b/i.test(text) ? 'Wise' : 'Bank transfer';
+  const base = /\bwise\b/i.test(text) ? 'Wise' : 'Bank transfer';
+  const named = /\b(USD|IDR|EUR|GBP|AUD|SGD|MYR|JPY|CNY|HKD|TWD|THB|NZD|CAD)\b/.exec(text)?.[1];
+  const currency = named ?? (/routing number|\bACH\b/i.test(text) ? 'USD' : null);
+  return currency ? `${base} ${currency}` : base;
 }
 
 /** Every run of digits longer than four keeps only its last four, so a preview never echoes a whole number. */
