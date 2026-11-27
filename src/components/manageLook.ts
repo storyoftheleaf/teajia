@@ -1,28 +1,29 @@
 // Three looks for the Manage column beside the rail, for Adrian to choose
-// from. All three are tiles, his pick of the first round, made finer
-// (2026-11-27: "I like tiles, but more sophisticated"). Once he picks one,
-// the other two and this switch come out.
+// from. All three are his porcelain tiles, attached to the rail and made
+// sleeker (2026-11-27: "do porcelain. Can we attach it to the side somehow?
+// And make it more sleek? Three more options."). Once he picks one, the
+// other two and this switch come out.
 //
-//   porcelain  one quiet card, hairlines between the tiles, serif words.
-//   medallion  a dark card, each glyph in a round medallion.
-//   seal       each room its own raised tile, a gold seal on the one you are in.
+//   docked    the porcelain card, its flat side against the rail.
+//   flush     a full-height porcelain leaf joined to the rail.
+//   seamless  the rail itself grown wider, no seam between them.
 //
-// Pick one with ?manage=porcelain, ?manage=medallion or ?manage=seal on any
+// Pick one with ?manage=docked, ?manage=flush or ?manage=seamless on any
 // address; the choice is remembered in this browser.
 
-export type ManageLook = 'porcelain' | 'medallion' | 'seal';
+export type ManageLook = 'docked' | 'flush' | 'seamless';
 
 const KEY = 'teajia_manage_look';
-const LOOKS: readonly ManageLook[] = ['porcelain', 'medallion', 'seal'];
+const LOOKS: readonly ManageLook[] = ['docked', 'flush', 'seamless'];
 
 /** How wide each look's column is, in rem. */
-export const MANAGE_LOOK_WIDTH_REM: Record<ManageLook, number> = { porcelain: 5, medallion: 5.25, seal: 5 };
+export const MANAGE_LOOK_WIDTH_REM: Record<ManageLook, number> = { docked: 4.75, flush: 4.5, seamless: 4.5 };
 
 function isLook(value: string | null | undefined): value is ManageLook {
   return !!value && (LOOKS as readonly string[]).includes(value);
 }
 
-/** The look for this browser: the address first, then the one picked last, then porcelain. */
+/** The look for this browser: the address first, then the one picked last, then docked. */
 export function manageLook(search: string): ManageLook {
   const asked = new URLSearchParams(search).get('manage');
   if (isLook(asked)) {
@@ -33,5 +34,5 @@ export function manageLook(search: string): ManageLook {
     const kept = window.localStorage.getItem(KEY);
     if (isLook(kept)) return kept;
   } catch { /* storage refused */ }
-  return 'porcelain';
+  return 'docked';
 }
