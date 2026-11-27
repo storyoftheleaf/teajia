@@ -19,14 +19,13 @@ export const PART: readonly DraftClaim[] = [
       "sample": "Regional convention reported in specialist writing about Menghai County"
     },
     "terms": [],
-    "rev": 1,
+    "rev": 2,
     "scope": "Menghai County",
-    "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
+    "text": "Menghai’s forceful reputation belongs mostly to its Bulang side, where raw pu’er is strong and bitter at first, then turns sweet and stays. Nannuo is softer and more floral, so the county is not one taste, and a strong Menghai set against a gentler east is a trade convention more than a rule. Tree age, craft, blend and storage change the cup a great deal within every mountain.",
     "sourceIds": [
       "teadb-menghai-county"
     ],
-    "reviewState": "pending",
-    "pendingText": "Menghai raw pu’er has a reputation for strength and bitterness, set against the gentler teas of eastern Xishuangbanna. Treat that as a regional convention rather than a rule: tree age, craft, blend, age and storage all make large differences within the county.",
+    "reviewState": "approved",
     "previousRevisions": [
       {
         "rev": 1,
@@ -35,6 +34,17 @@ export const PART: readonly DraftClaim[] = [
         "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
         "approvedAt": "2026-11-23",
         "reason": "Backfilled from pages",
+        "evidenceIds": [
+          "EVIDENCE-5F496A300F5E710FC8FA80B0"
+        ]
+      },
+      {
+        "rev": 2,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Menghai’s forceful reputation belongs mostly to its Bulang side, where raw pu’er is strong and bitter at first, then turns sweet and stays. Nannuo is softer and more floral, so the county is not one taste, and a strong Menghai set against a gentler east is a trade convention more than a rule. Tree age, craft, blend and storage change the cup a great deal within every mountain.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by the Opus judge under Adrian's written rules, 2026-11-27: Every claim has support in the research note: Bulang is strong and bitter before turning sweet, Nannuo is softer and more floral, and the county-wide contrast is called only a trade convention, as the note asks. Tree age, craft, blend and storage changing the cup is also supported. It follows rule 3 (clear, with the substance kept) and is more precise and truer than the live text.",
         "evidenceIds": [
           "EVIDENCE-5F496A300F5E710FC8FA80B0"
         ]
@@ -145,13 +155,22 @@ export const PART: readonly DraftClaim[] = [
     "listingEligible": false,
     "appliesWhen": {},
     "terms": [],
-    "rev": null,
-    "scope": "",
-    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year the recipe began, 7 for the main leaf grade in the blend, 2 for the Menghai factory.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year it was first made, 7 for the main leaf grade in the blend, 2 for Menghai.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year the recipe began, 7 for the main leaf grade in the blend, 2 for the Menghai factory.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by the Opus judge under Adrian's written rules, 2026-11-27: Every specific is in the research note's agreed list: ripe pu'er by wet piling in the early 1970s, Menghai Tea Factory among the first to make it, 7572 as the ripe cake others are compared with, and the 75/7/2 reading. It keeps the hedged forms the note asks for ('the year the recipe began', 'main leaf grade'), follows rules 1 to 3 and matches Adrian's own worked example.",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
@@ -171,7 +190,7 @@ export const PART: readonly DraftClaim[] = [
       "teadb-menghai-county"
     ],
     "reviewState": "pending",
-    "pendingText": "Menghai County is the core of pu’er country in western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
+    "pendingText": "Menghai County holds most of the tea mountains of western Xishuangbanna. Nannuo, Bulang, Mengsong, Hekai, Pasha and Bada are distinct mountain areas within it, each with its own tea, not interchangeable names for Menghai.",
     "previousRevisions": [
       {
         "rev": 1,
@@ -203,20 +222,29 @@ export const PART: readonly DraftClaim[] = [
         "gloss": "Menghai"
       }
     ],
-    "rev": null,
-    "scope": "",
-    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in a warm, wet climate, and many of the trees are centuries old. That old-tree leaf is what gives its mountains their name among buyers. On Bulang it makes a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan. Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
     "sourceIds": [],
-    "reviewState": "draft",
-    "pendingText": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in warm, wet hills, and many of the trees are centuries old. That old-tree leaf is what tea people mean by Menghai’s mountain character: a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan, most of all on Bulang, while Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
-    "previousRevisions": [],
+    "reviewState": "approved",
+    "previousRevisions": [
+      {
+        "rev": 1,
+        "origin": "approved",
+        "scope": "Menghai County",
+        "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in a warm, wet climate, and many of the trees are centuries old. That old-tree leaf is what gives its mountains their name among buyers. On Bulang it makes a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan. Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+        "approvedAt": "2026-11-27",
+        "reason": "Approved by the Opus judge under Adrian's written rules, 2026-11-27: Every specific in the section is in the research note's agreed list: old gardens in and beside forest, a warm wet climate, centuries-old trees, Bulang's bitterness turning quickly sweet (huigan) and Nannuo being softer and more floral. It follows rule 1 by answering why people value Menghai, with history given as the reason the name is known. It has no stray numbers and keeps Bulang and Nannuo apart as places.",
+        "evidenceIds": []
+      }
+    ],
     "pageVisibility": "public"
   },
   {
     "claimId": "menghai-tea-mountain-circuit:editorial-boundary",
     "pageId": "menghai-tea-mountain-circuit",
     "sectionKey": "editorial-boundary",
-    "label": "An itinerary, not an origin",
+    "label": "Visiting the mountains behind the names",
     "axis": "place",
     "basis": "sourced",
     "listingEligible": false,
@@ -224,12 +252,12 @@ export const PART: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
+    "text": "Menghai's best known tea names, Nannuo, Hekai, Banzhang and Lao Man’e, are places you can drive to. Tea tourism there is organised as a route that links them, and it is the easiest way to see why they taste different: the trees, the villages and the people who pick them change from one mountain to the next. A mountain named on a cake is a good reason to go and look, but it is not proof the leaf came from there. Tea sold under a famous village name is often blended, and a visit is the best way to learn what the real thing is.",
     "sourceIds": [
       "ctma-menghai-seven-mountains-2025"
     ],
     "reviewState": "draft",
-    "pendingText": "The Menghai tea-culture circuit is a travel itinerary through tea landscapes, villages, cultural sites, and businesses. It is useful evidence of how places are connected for visitors, but the route itself is not a tea area and does not belong in the geographic origin hierarchy.",
+    "pendingText": "Menghai's best known tea names, Nannuo, Hekai, Banzhang and Lao Man’e, are places you can drive to. Tea tourism there is organised as a route that links them, and it is the easiest way to see why they taste different: the trees, the villages and the people who pick them change from one mountain to the next. A mountain named on a cake is a good reason to go and look, but it is not proof the leaf came from there. Tea sold under a famous village name is often blended, and a visit is the best way to learn what the real thing is.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -245,12 +273,12 @@ export const PART: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
+    "text": "The route also crosses the homelands of several peoples. Hani communities (Aini in local speech) live around Nannuo, Lahu communities around Hekai, and Bulang communities in the Bulang Mountain villages. Each mountain's tea carries the habits of the people who grow it, so knowing who is behind a village helps you read the name on a label.",
     "sourceIds": [
       "ctma-menghai-seven-mountains-2025"
     ],
     "reviewState": "draft",
-    "pendingText": "The published circuit begins at Nannuo and ends at Lao Man’e over roughly 78.5 kilometres, passing tea gardens and communities associated with Hani, Lahu, and Bulang peoples. Those route details support travel context; they do not prove that every tea sold under a stop name came from that place.",
+    "pendingText": "The route also crosses the homelands of several peoples. Hani communities (Aini in local speech) live around Nannuo, Lahu communities around Hekai, and Bulang communities in the Bulang Mountain villages. Each mountain's tea carries the habits of the people who grow it, so knowing who is behind a village helps you read the name on a label.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -266,12 +294,12 @@ export const PART: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
+    "text": "The route runs through Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang and Lao Man’e, which the tourism board calls seven well-known old tea gardens on one line. For a buyer it puts the main flavour styles of Menghai within a short drive of each other: Nannuo and Hekai on the eastern side, the Bulang mountain villages around Banzhang and Lao Man’e on the south. Many visitor routes add tea tastings and a chance to pick and make tea by hand, often at a tea estate.",
     "sourceIds": [
       "ctma-menghai-seven-mountains-2025"
     ],
     "reviewState": "draft",
-    "pendingText": "One line links Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang, and Lao Man’e. The same itinerary also points toward historic factory remains, old cultivated trees, museums, estates, and temples, placing tea production beside the cultural landscape through which the route passes.",
+    "pendingText": "The route runs through Nannuo, Pasha, Hekai, Bangpen, Xin Banzhang, Lao Banzhang and Lao Man’e, which the tourism board calls seven well-known old tea gardens on one line. For a buyer it puts the main flavour styles of Menghai within a short drive of each other: Nannuo and Hekai on the eastern side, the Bulang mountain villages around Banzhang and Lao Man’e on the south. Many visitor routes add tea tastings and a chance to pick and make tea by hand, often at a tea estate.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },

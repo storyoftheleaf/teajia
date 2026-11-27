@@ -40,18 +40,16 @@ export const PART: readonly DraftClaim[] = [
     "sectionKey": "living-culture",
     "label": "Living tea culture",
     "axis": "place",
-    "basis": "sourced",
+    "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {},
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
+    "text": "The people who live on these mountains made the tea, and their choices shaped what buyers can find today. The Bulang are among the earliest tea growers here, and Bulang Mountain is named for them. The Hani keep old trees around Nannuo, Hekai and Pasha, and the Dai also grew tea. In the lowlands, Dai families mostly replaced old trees with higher-yield terrace tea from the 1950s to the 1980s. Mountain communities, many of them Bulang, mostly left their old gardens standing and opened new fields elsewhere. That is why old-tree pu'er survives, and why families who kept their trees gained so much when ancient-tree tea began to command high prices after 2007. Buyers who ask who grew a tea and from what trees are asking the right question.",
+    "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Tea in Xishuangbanna is inseparable from the knowledge and daily work of communities including Bulang, Hani, and Dai peoples. Trade routes, tribute history, cultivation, processing, and contemporary protection efforts all contribute to the region’s place in Pu’er culture.",
+    "pendingText": "The people who live on these mountains made the tea, and their choices shaped what buyers can find today. The Bulang are among the earliest tea growers here, and Bulang Mountain is named for them. The Hani keep old trees around Nannuo, Hekai and Pasha, and the Dai also grew tea. In the lowlands, Dai families mostly replaced old trees with higher-yield terrace tea from the 1950s to the 1980s. Mountain communities, many of them Bulang, mostly left their old gardens standing and opened new fields elsewhere. That is why old-tree pu'er survives, and why families who kept their trees gained so much when ancient-tree tea began to command high prices after 2007. Buyers who ask who grew a tea and from what trees are asking the right question.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -67,12 +65,12 @@ export const PART: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
+    "text": "One contemporary grouping names twelve old tea mountains: Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. The first six are the old six; the rest are the newer mountains, and the \"new six\" is not fixed. Sources list between six and eight names for it, so expect the list to change from seller to seller. Youle is also called Jinuo Mountain, and Yiwu is also called Mansa. Some of these names are single mountains and others are wider tea areas, so a label that names one should be read with that in mind. They matter to buyers because a mountain name is how raw pu'er is priced and sold, and each carries its own reputation.",
     "sourceIds": [
       "ctma-xishuangbanna-twelve-mountains-2025"
     ],
     "reviewState": "draft",
-    "pendingText": "One contemporary grouping names Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. Some names denote mountains, others broader tea areas, and their scale should remain visible whenever they are connected to an individual tea.",
+    "pendingText": "One contemporary grouping names twelve old tea mountains: Youle, Gedeng, Yibang, Mangzhi, Manzhuan, Yiwu, Xiao Mengsong, Nannuo, Hekai, Mengsong, Bulang, and Bada. The first six are the old six; the rest are the newer mountains, and the \"new six\" is not fixed. Sources list between six and eight names for it, so expect the list to change from seller to seller. Youle is also called Jinuo Mountain, and Yiwu is also called Mansa. Some of these names are single mountains and others are wider tea areas, so a label that names one should be read with that in mind. They matter to buyers because a mountain name is how raw pu'er is priced and sold, and each carries its own reputation.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -82,18 +80,16 @@ export const PART: readonly DraftClaim[] = [
     "sectionKey": "regional-grouping",
     "label": "A regional grouping",
     "axis": "place",
-    "basis": "sourced",
+    "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {},
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
-    "sourceIds": [
-      "ctma-xishuangbanna-twelve-mountains-2025"
-    ],
+    "text": "Xishuangbanna is the home of pu'er's most prized old-tree tea, and the trade sorts it by two groups of mountains on either side of the Lancang, as the Mekong is called in China. The old six, Youle, Gedeng, Yibang, Mangzhi, Manzhuan and Yiwu, lie mostly east of the river and were the famous tea mountains of the Qing period. The newer mountains, such as Nannuo, Bulang, Bada and Hekai, lie west of it. Buyers care because the mountain is the first thing a good raw pu'er is judged by: Yiwu is known for a soft cup with a long sweet finish, Bulang for a stronger, bitter-then-sweet one. Sources disagree on compass words for the river, but they agree the two groups sit on opposite banks.",
+    "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Xishuangbanna is a warm, humid southern prefecture whose tea history is often introduced through a group of old tea mountains. The familiar list joins places across the prefecture for orientation; it should not be mistaken for a single administrative level or one continuous origin.",
+    "pendingText": "Xishuangbanna is the home of pu'er's most prized old-tree tea, and the trade sorts it by two groups of mountains on either side of the Lancang, as the Mekong is called in China. The old six, Youle, Gedeng, Yibang, Mangzhi, Manzhuan and Yiwu, lie mostly east of the river and were the famous tea mountains of the Qing period. The newer mountains, such as Nannuo, Bulang, Bada and Hekai, lie west of it. Buyers care because the mountain is the first thing a good raw pu'er is judged by: Yiwu is known for a soft cup with a long sweet finish, Bulang for a stronger, bitter-then-sweet one. Sources disagree on compass words for the river, but they agree the two groups sit on opposite banks.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -824,12 +820,12 @@ export const PART: readonly DraftClaim[] = [
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
+    "text": "In Yunnan pu’er, the name of the mountain or village is a large part of what you pay for. Buyers treat a place like Banzhang, Bingdao or Mansong as a promise of old trees and a recognisable character, and because real supply from these places is small, their leaf sells at many times the price of tea from the wider region. In spring 2026 an industry event published a purchase-price index covering 108 named origins, and it put names such as Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang and Manzhuan on the list.",
     "sourceIds": [
       "ctma-yunnan-108-mountains-2026"
     ],
     "reviewState": "draft",
-    "pendingText": "Mountain and village names are prominent in the market for Yunnan Pu’er. A 2026 industry event published a purchase-price index spanning 108 named origins and highlighted names including Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang, and Manzhuan.",
+    "pendingText": "In Yunnan pu’er, the name of the mountain or village is a large part of what you pay for. Buyers treat a place like Banzhang, Bingdao or Mansong as a promise of old trees and a recognisable character, and because real supply from these places is small, their leaf sells at many times the price of tea from the wider region. In spring 2026 an industry event published a purchase-price index covering 108 named origins, and it put names such as Bohetang, Banzhang, Bingdao, Mansong, Fenghuangwo, Xigui, Jingmai, Yibang and Manzhuan on the list.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },
@@ -839,18 +835,16 @@ export const PART: readonly DraftClaim[] = [
     "sectionKey": "reading-the-list",
     "label": "What a list can tell us",
     "axis": "place",
-    "basis": "sourced",
+    "basis": "trade_knowledge",
     "listingEligible": false,
     "appliesWhen": {},
     "terms": [],
     "rev": null,
     "scope": "",
-    "text": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
-    "sourceIds": [
-      "ctma-yunnan-108-mountains-2026"
-    ],
+    "text": "A famous mountain name on a price list or a cake wrapper shows where the market’s attention is. It does not prove the leaf grew there: the same names are also put on blends and plantation tea, so ask who sourced the leaf and how. Even inside one real mountain, prices differ from village to village, and again by garden, tree age and how strictly the leaf was picked. Read a mountain name as a starting point for questions, not as a guarantee.",
+    "sourceIds": [],
     "reviewState": "draft",
-    "pendingText": "Such a list documents market attention at a particular date; it does not create a geographic hierarchy or authenticate the leaf in a finished cake. Prices can vary sharply by village, garden, tree category, and picking standard, so the names are best treated as research leads rather than interchangeable places.",
+    "pendingText": "A famous mountain name on a price list or a cake wrapper shows where the market’s attention is. It does not prove the leaf grew there: the same names are also put on blends and plantation tea, so ask who sourced the leaf and how. Even inside one real mountain, prices differ from village to village, and again by garden, tree age and how strictly the leaf was picked. Read a mountain name as a starting point for questions, not as a guarantee.",
     "previousRevisions": [],
     "pageVisibility": "draft"
   },

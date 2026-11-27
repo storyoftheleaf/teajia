@@ -3,6 +3,42 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "sheng:brewing",
+    "pageId": "sheng",
+    "sectionKey": "brewing",
+    "label": "Brewing raw pu’er",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "sheng:brewing-pressed",
+    "pageId": "sheng",
+    "sectionKey": "brewing-pressed",
+    "label": "Breaking a pressed cake",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {
+      "type": "Sheng"
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Raw pu'er in general",
+    "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "sheng:common-impressions",
     "pageId": "sheng",
     "sectionKey": "common-impressions",
@@ -896,68 +932,6 @@ export const PART: readonly PublicClaim[] = [
     "rev": 1,
     "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
     "text": "Taiwan oolong is the oolong of Taiwan, whose tea plants and craft came from Fujian. Most of it is lightly to moderately oxidised and rolled into balls, and Qingxin oolong is the main cultivar, with Jinxuan the other common one. The island makes several distinct styles: high mountain tea, Dong Ding from Lugu in Nantou, Baozhong from the north, and Oriental Beauty from Hsinchu and Miaoli.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "taiwan-oolong:dong-ding",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "dong-ding",
-    "label": "Dong Ding",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ],
-      "name_includes": [
-        "dong",
-        "ding"
-      ]
-    },
-    "terms": [
-      {
-        "original": "凍頂",
-        "pinyin": "dòngdǐng",
-        "gloss": "Dong Ding"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "Dong Ding oolong comes from Lugu Township in Nantou County, and its name is also used for the style made elsewhere. The leaf is withered in the sun and indoors with tossing, fixed, rolled into balls in cloth, dried, and then roasted. Traditional Dong Ding is roasted over charcoal, longan wood among the fuels; electric roasters are used too. It grows near or below the high mountain line, so it is not counted as high mountain tea.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "taiwan-oolong:high-mountain",
-    "pageId": "taiwan-oolong",
-    "sectionKey": "high-mountain",
-    "label": "High mountain tea",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": true,
-    "appliesWhen": {
-      "type": "Oolong",
-      "origin_includes": [
-        "taiwan"
-      ],
-      "name_includes": [
-        "high",
-        "mountain"
-      ]
-    },
-    "terms": [
-      {
-        "original": "高山茶",
-        "pinyin": "gāoshān chá",
-        "gloss": "high mountain tea"
-      }
-    ],
-    "rev": 1,
-    "scope": "All oolong; Taiwan oolong where the origin is Taiwan, its four style sections only on teas named for them",
-    "text": "High mountain tea, gao shan cha, is tea from gardens at about 1,000 metres and higher. It is a label for where the tea grew, not a cultivar or a recipe. The best-known areas are Alishan in Chiayi, Lishan in Taichung, Shanlinxi and Yushan, and Dayuling. At altitude the leaf grows slowly and comes out thick and fleshy, and the trade explains its sweetness and low bitterness by that slow growth. The usual high mountain tea is lightly oxidised, rolled into balls and left unroasted or only lightly roasted.",
     "sourceIds": [],
     "reviewState": "approved"
   }

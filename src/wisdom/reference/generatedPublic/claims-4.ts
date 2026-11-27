@@ -224,9 +224,9 @@ export const PART: readonly PublicClaim[] = [
       "sample": "Regional convention reported in specialist writing about Menghai County"
     },
     "terms": [],
-    "rev": 1,
+    "rev": 2,
     "scope": "Menghai County",
-    "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
+    "text": "Menghai’s forceful reputation belongs mostly to its Bulang side, where raw pu’er is strong and bitter at first, then turns sweet and stays. Nannuo is softer and more floral, so the county is not one taste, and a strong Menghai set against a gentler east is a trade convention more than a rule. Tree age, craft, blend and storage change the cup a great deal within every mountain.",
     "sourceIds": [
       "teadb-menghai-county"
     ],
@@ -287,6 +287,22 @@ export const PART: readonly PublicClaim[] = [
     "reviewState": "approved"
   },
   {
+    "claimId": "menghai-county:ripe-origins",
+    "pageId": "menghai-county",
+    "sectionKey": "ripe-origins",
+    "label": "Where ripe pu’er began",
+    "axis": "maker_history",
+    "basis": "trade_knowledge",
+    "listingEligible": false,
+    "appliesWhen": {},
+    "terms": [],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year the recipe began, 7 for the main leaf grade in the blend, 2 for the Menghai factory.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "menghai-county:scope",
     "pageId": "menghai-county",
     "sectionKey": "scope",
@@ -302,6 +318,28 @@ export const PART: readonly PublicClaim[] = [
     "sourceIds": [
       "teadb-menghai-county"
     ],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "menghai-county:why-people-value-it",
+    "pageId": "menghai-county",
+    "sectionKey": "why-people-value-it",
+    "label": "Why people value Menghai",
+    "axis": "place",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {},
+    "terms": [
+      {
+        "original": "勐海",
+        "pinyin": "Měnghǎi",
+        "gloss": "Menghai"
+      }
+    ],
+    "rev": 1,
+    "scope": "Menghai County",
+    "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in a warm, wet climate, and many of the trees are centuries old. That old-tree leaf is what gives its mountains their name among buyers. On Bulang it makes a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan. Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+    "sourceIds": [],
     "reviewState": "approved"
   },
   {
@@ -902,42 +940,6 @@ export const PART: readonly PublicClaim[] = [
     "sourceIds": [
       "marshaln-young-puer-2013"
     ],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "sheng:brewing",
-    "pageId": "sheng",
-    "sectionKey": "brewing",
-    "label": "Brewing raw pu’er",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Young raw pu’er takes water a little off the boil, about 85 to 95°C, because hotter water draws out more of its bitterness; an aged one takes 95°C to boiling. A common start is about 7 grams to 100 ml and a quick rinse of a few seconds, then a first steep of ten to fifteen seconds, adding a few seconds each round. A good raw tea gives eight to ten cups or more.",
-    "sourceIds": [],
-    "reviewState": "approved"
-  },
-  {
-    "claimId": "sheng:brewing-pressed",
-    "pageId": "sheng",
-    "sectionKey": "brewing-pressed",
-    "label": "Breaking a pressed cake",
-    "axis": "type",
-    "basis": "trade_knowledge",
-    "listingEligible": false,
-    "appliesWhen": {
-      "type": "Sheng"
-    },
-    "terms": [],
-    "rev": 1,
-    "scope": "Raw pu'er in general",
-    "text": "Pry the leaf off a cake or brick in chunks with a pick or knife, from the surface and toward the centre, rather than crumbling it. A mix of larger pieces and smaller ones brews evenly.",
-    "sourceIds": [],
     "reviewState": "approved"
   }
 ];

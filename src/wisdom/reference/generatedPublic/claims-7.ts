@@ -3,6 +3,64 @@ import type { PublicClaim } from '../claims';
 
 export const PART: readonly PublicClaim[] = [
   {
+    "claimId": "yancha:common-impressions",
+    "pageId": "yancha",
+    "sectionKey": "common-impressions",
+    "label": "What people often notice",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "wuyi mountains"
+      ]
+    },
+    "terms": [],
+    "rev": 1,
+    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
+    "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
+    "claimId": "yancha:da-hong-pao",
+    "pageId": "yancha",
+    "sectionKey": "da-hong-pao",
+    "label": "Da Hong Pao",
+    "axis": "type",
+    "basis": "trade_knowledge",
+    "listingEligible": true,
+    "appliesWhen": {
+      "type": "Oolong",
+      "origin_includes": [
+        "wuyi mountains"
+      ],
+      "name_includes": [
+        "da",
+        "hong",
+        "pao"
+      ]
+    },
+    "terms": [
+      {
+        "original": "大红袍",
+        "pinyin": "dà hóng páo",
+        "gloss": "Big Red Robe"
+      },
+      {
+        "original": "奇丹",
+        "pinyin": "qí dān",
+        "gloss": "Qidan"
+      }
+    ],
+    "rev": 1,
+    "scope": "Oolong from the Wuyi mountains; Da Hong Pao, Rougui, Shui Xian and Meizhan only on teas named for them",
+    "text": "Da Hong Pao, Big Red Robe, began with six old bushes on a cliff at Jiulongke in Wuyi, the mother trees, and picking from them stopped in 2006. Three kinds of tea are sold under the name: tea from the mother trees, which is extremely scarce, so any such claim deserves doubt; purebred tea from Qidan, the cultivar grown from cuttings of the mother trees; and commercial Da Hong Pao, which is most of what is sold and is usually a blend of several Wuyi cultivars. The name is also used loosely for other Wuyi teas.",
+    "sourceIds": [],
+    "reviewState": "approved"
+  },
+  {
     "claimId": "yancha:definition",
     "pageId": "yancha",
     "sectionKey": "definition",

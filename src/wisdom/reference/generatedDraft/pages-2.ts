@@ -17,7 +17,7 @@ export const PART: readonly DraftReferencePage[] = [
     "sections": [
       {
         "key": "editorial-boundary",
-        "label": "An itinerary, not an origin",
+        "label": "Visiting the mountains behind the names",
         "sourceIds": [
           "ctma-menghai-seven-mountains-2025"
         ]
@@ -724,9 +724,7 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "regional-grouping",
         "label": "A regional grouping",
-        "sourceIds": [
-          "ctma-xishuangbanna-twelve-mountains-2025"
-        ]
+        "sourceIds": []
       },
       {
         "key": "mountain-names",
@@ -738,9 +736,7 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "living-culture",
         "label": "Living tea culture",
-        "sourceIds": [
-          "ctma-xishuangbanna-twelve-mountains-2025"
-        ]
+        "sourceIds": []
       }
     ]
   },
@@ -927,9 +923,7 @@ export const PART: readonly DraftReferencePage[] = [
       {
         "key": "reading-the-list",
         "label": "What a list can tell us",
-        "sourceIds": [
-          "ctma-yunnan-108-mountains-2026"
-        ]
+        "sourceIds": []
       }
     ]
   },

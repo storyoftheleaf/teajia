@@ -990,6 +990,12 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
       ],
       "sections": [
         {
+          "key": "why-people-value-it",
+          "label": "Why people value Menghai",
+          "text": "For its trees, above all. Menghai’s old gardens grow in and beside living forest, in a warm, wet climate, and many of the trees are centuries old. That old-tree leaf is what gives its mountains their name among buyers. On Bulang it makes a strong cup whose bitterness turns quickly into a sweet, lasting finish, the quality the trade calls huigan. Nannuo gives a softer, more floral tea. The factory history made the name famous, but the trees are why buyers seek out its mountains.",
+          "sourceIds": []
+        },
+        {
           "key": "scope",
           "label": "Western Xishuangbanna",
           "text": "Menghai County anchors much of western Xishuangbanna’s Pu’er landscape. Names such as Nannuo, Bulang, Mengsong, Hekai, Pasha, and Bada describe distinct mountain areas within the county rather than interchangeable synonyms for Menghai.",
@@ -1000,7 +1006,7 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
         {
           "key": "common-character",
           "label": "A forceful reputation",
-          "text": "Specialist writing often contrasts Menghai’s strength and bitterness with the gentler reputation of eastern Xishuangbanna. That comparison is a broad regional convention: tree material, craft, blend, age, and storage still create large differences within the county.",
+          "text": "Menghai’s forceful reputation belongs mostly to its Bulang side, where raw pu’er is strong and bitter at first, then turns sweet and stays. Nannuo is softer and more floral, so the county is not one taste, and a strong Menghai set against a gentler east is a trade convention more than a rule. Tree age, craft, blend and storage change the cup a great deal within every mountain.",
           "sourceIds": [
             "teadb-menghai-county"
           ]
@@ -1020,6 +1026,12 @@ export const GENERATED_TEA_REFERENCE_REGISTRY = {
           "sourceIds": [
             "teadb-menghai-county"
           ]
+        },
+        {
+          "key": "ripe-origins",
+          "label": "Where ripe pu’er began",
+          "text": "Ripe pu’er was born in the early 1970s, when Yunnan’s state factories learned to speed up ageing by wet piling the leaf, and Menghai Tea Factory was one of the first to master it. Its 7572 cake became the benchmark ripe recipe, the cup other ripe teas are still judged against. The number reads as the recipe itself: 75 for the year the recipe began, 7 for the main leaf grade in the blend, 2 for the Menghai factory.",
+          "sourceIds": []
         }
       ]
     },
