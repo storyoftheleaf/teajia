@@ -44,7 +44,12 @@ type Pending = { kind: string; accountId: string; userId: string; step: PageStep
 
 const notAvailable = { error: 'not_available' } as const;
 const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
-const seg = (value: unknown) => encodeURIComponent(text(value));
+// One path segment. "." and ".." are refused (sent as "-", which matches no
+// record): a URL resolves them, which would point the call at another route.
+const seg = (value: unknown) => {
+  const raw = text(value);
+  return raw === '.' || raw === '..' ? '-' : encodeURIComponent(raw);
+};
 const isRefusal = (value: unknown): value is Refusal =>
   Boolean(value && typeof value === 'object' && typeof (value as Refusal).error === 'string');
 
