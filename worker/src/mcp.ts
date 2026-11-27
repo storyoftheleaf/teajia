@@ -35,7 +35,7 @@ import { logisticsTools } from './mcpTools/logistics';
 import { customerTagList } from './customerContactHandles';
 import { readVendorDependencies, vendorHasDependencies, deleteUnreferencedVendor } from './vendorDependencies';
 import { combineToolModules, type ToolDefinition, type ToolModule } from './mcpTools/registry';
-import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS } from './mcpTools/tickets';
+import { PENDING_TTL_MS as TICKET_PENDING_TTL_MS, reapExpiredTickets } from './mcpTools/tickets';
 import { transferToolModule } from './mcpTools/transfer';
 import { curationTools } from './mcpTools/curation';
 import { eventsToolModule } from './mcpTools/events';
@@ -529,6 +529,7 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     scopes: string | null;
     creator_tier: string | null;
     expires_at: number | null;
+    last_used_at: string | null;
   };
   type CurrentUserRow = { id: string; email: string | null; platform_role: string | null };
   type CurrentMembershipRow = { role: string; permissions: string | null };
@@ -537,7 +538,7 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
   let row: McpTokenRow | null;
   try {
     row = await env.DB.prepare(
-      'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier, expires_at FROM mcp_tokens WHERE token_hash = ?'
+      'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier, expires_at, last_used_at FROM mcp_tokens WHERE token_hash = ?'
     ).bind(hash).first() as McpTokenRow | null;
   } catch (error) {
     return authenticationDependencyFailure(error);
@@ -606,8 +607,7 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
       return authenticationDependencyFailure(error);
     }
     if (!mayAct) return unauthorized(request, 'Invalid or revoked token');
-    env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
-      .bind(row.id).run().catch(() => {});
+    noteTokenUse(env, row.id, row.last_used_at);
     // Never a platform-owner tier, whoever holds it: the key is a host's.
     return {
       accountId: row.account_id, userId: user.id, userEmail: user.email || row.user_email,
@@ -621,14 +621,7 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     return unauthorized(request, 'Token scope no longer authorized');
   }
 
-  // Bump last_used_at on every successful auth (best-effort; non-blocking).
-  // NOTE: not wrapped in ctx.waitUntil — authenticateMcp's signature is
-  // (request, env) and threading an ExecutionContext here would ripple a
-  // signature change into index.ts (mcp.ts is imported BY index.ts). Left
-  // best-effort: if the isolate is torn down before this commits, the only
-  // loss is a slightly stale last_used_at, never a correctness issue.
-  env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
-    .bind(row.id).run().catch(() => {});
+  noteTokenUse(env, row.id, row.last_used_at);
 
   return {
     accountId: row.account_id,
@@ -638,6 +631,26 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     scopes,
     creatorTier,
   };
+}
+
+// last_used_at answers "is this key still in use?", so minute precision is
+// plenty. Writing it on every call cost each tool call one more statement and
+// one more row written against the shared daily allowance, so it is written
+// only when it is missing or more than TOKEN_USE_REFRESH_MS old.
+// Best-effort and not awaited: authenticateMcp's signature is (request, env),
+// and if the isolate is torn down before this commits, the only loss is a
+// slightly stale last_used_at, never a correctness issue.
+export const TOKEN_USE_REFRESH_MS = 5 * 60 * 1000;
+export function tokenUseIsStale(lastUsedAt: string | null, now = Date.now()): boolean {
+  if (!lastUsedAt) return true;
+  const iso = lastUsedAt.includes('T') ? lastUsedAt : lastUsedAt.replace(' ', 'T');
+  const at = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + 'Z');
+  return !Number.isFinite(at) || now - at >= TOKEN_USE_REFRESH_MS;
+}
+function noteTokenUse(env: Env, tokenId: string, lastUsedAt: string | null): void {
+  if (!tokenUseIsStale(lastUsedAt)) return;
+  env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
+    .bind(tokenId).run().catch(() => {});
 }
 
 // ── confirmation token store ──
@@ -700,10 +713,9 @@ const PENDING_TTL_MS = TICKET_PENDING_TTL_MS;
 // concurrent calls.
 async function issueConfirmationToken(env: Env, mutation: PendingMutation, tokenId: string | null): Promise<string> {
   const now = Date.now();
-  // Opportunistically reap expired/spent rows so the table doesn't grow
-  // unbounded (best-effort, non-blocking).
-  env.DB.prepare('DELETE FROM mcp_confirmation_tickets WHERE expires_at < ?')
-    .bind(now).run().catch(() => {});
+  // Housekeeping shared with the tool modules: at most one reap per isolate
+  // every few minutes, so a preview is not charged a table scan.
+  await reapExpiredTickets(env, now);
 
   const token = crypto.randomUUID();
   const tokenHash = await sha256Hex(token);

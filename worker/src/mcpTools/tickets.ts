@@ -51,20 +51,40 @@ export function previewEnvelope(preview: Record<string, unknown>, token: string)
 }
 
 /**
+ * Delete expired tickets, at most once per REAP_EVERY_MS in each isolate.
+ * The clock is module state, not keyed by the database binding, because the
+ * allowance guard hands every request its own wrapped binding.
+ *
+ * An expired ticket is already unusable (consume checks expires_at), so the
+ * reap is housekeeping, not a security property. Running it before every
+ * preview cost each save one more statement and a scan of the whole table
+ * against the shared daily allowance. Any account's preview still reaps every
+ * account's expired rows, so a quiet account's old tickets do not linger.
+ *
+ * Awaited inside a try rather than left floating: an unawaited D1 write can be
+ * cancelled when the worker returns its response, so a fire-and-forget reap is
+ * a lie, and a housekeeping line is never worth failing a real preview over.
+ */
+export const REAP_EVERY_MS = PENDING_TTL_MS;
+let lastReapAt = Number.NEGATIVE_INFINITY;
+export async function reapExpiredTickets(env: Pick<ToolEnv, 'DB'>, now = Date.now()): Promise<void> {
+  if (now - lastReapAt < REAP_EVERY_MS) return;
+  lastReapAt = now;
+  try {
+    await env.DB.prepare('DELETE FROM mcp_confirmation_tickets WHERE expires_at < ?').bind(now).run();
+  } catch { /* housekeeping only */ }
+}
+
+/**
  * Store a pending mutation and return the token that commits it.
  *
- * The reap is awaited inside a try rather than left floating: an unawaited D1
- * write can be cancelled when the worker returns its response, so a
- * fire-and-forget reap is a lie, and a housekeeping line is never worth failing
- * a real preview over.
+ * The reap lives in reapExpiredTickets below.
  */
 export async function issueTicket<T extends TicketPayload>(
   env: ToolEnv, mutation: T, tokenId: string | null,
 ): Promise<string> {
   const now = Date.now();
-  try {
-    await env.DB.prepare('DELETE FROM mcp_confirmation_tickets WHERE expires_at < ?').bind(now).run();
-  } catch { /* housekeeping only */ }
+  await reapExpiredTickets(env, now);
 
   const token = crypto.randomUUID();
   await env.DB.prepare(
