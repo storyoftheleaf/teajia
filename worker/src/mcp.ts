@@ -1674,6 +1674,12 @@ async function toolGetInvoice(env: Env, accountId: string, args: any) {
   ).bind(accountId, invoice.id, accountId).all();
 
   const total = (items as any[]).reduce((s, l) => s + Number(l.line_total_usd || 0), 0);
+  // The same pay link the admin and draft_invoice give, so an agent can hand
+  // it on without drafting a second invoice. Null when nothing is owed or the
+  // recipient has saved no payment details.
+  const payUrl = env.invoicePayLinks
+    ? await env.invoicePayLinks.payUrl(accountId, String(invoice.id)).catch(() => null)
+    : null;
 
   return {
     invoice: {
@@ -1698,6 +1704,7 @@ async function toolGetInvoice(env: Env, accountId: string, args: any) {
       line_total_usd: l.line_total_usd,
     })),
     total_usd: Math.round(total * 100) / 100,
+    pay_url: payUrl,
   };
 }
 
@@ -6395,7 +6402,7 @@ const TOOL_DEFS: ToolDefinition[] = [
   {
     name: 'get_invoice',
     scope: 'sales:read',
-    description: 'Full invoice by id or invoice_number, including line items and totals.',
+    description: 'Full invoice by id or invoice_number, including line items, totals and its pay link (pay_url, null when nothing is owed or no payment details are saved).',
     inputSchema: {
       type: 'object',
       properties: {
