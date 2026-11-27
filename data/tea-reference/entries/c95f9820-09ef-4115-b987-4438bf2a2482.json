@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:52:13.965Z",
+  "status": "approved",
+  "composedAt": "2026-11-27T04:14:08.945Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -24,12 +24,12 @@
     "productId": "c95f9820-09ef-4115-b987-4438bf2a2482",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "[Rougui](yancha:rougui), cassia in Chinese, is a Wuyi cultivar from the Qing dynasty, and it is now one of the most widely planted teas in the area. This leaf was made the standard [rock tea](yancha:definition) way: twisted into long thin strips, then finished with a [charcoal roast](yancha:making). The roast is done in several rounds with rests between them, not in one pass, so the leaf dries enough to keep."
+        "layer": "type",
+        "text": "[Rougui](yancha:rougui), cassia in Chinese, is a cultivar of the [Wuyi Mountains](wuyi-mountains:where-it-is), the range along the border of northern Fujian and Jiangxi. It dates from the Qing dynasty and is now one of the most widely planted teas in the area. The bushes there grow in [thin, stony soil](wuyi-mountains:nature) on ledges, in ravines and between rocks. The ground drains fast and mist settles on the slopes, which is why growth on the mountain is slow."
       },
       {
-        "layer": "place",
-        "text": "The [Wuyi Mountains](wuyi-mountains:where-it-is) run along the border of northern Fujian and Jiangxi. The range is steep and wet, and fog is common there all year. The bushes grow in [thin, stony soil](wuyi-mountains:nature) in the ravines and on ledges. The ground drains fast and the plants grow slowly, and that rock is where the tea gets its name."
+        "layer": "lot",
+        "text": "This leaf was made in the standard way for [Wuyi rock tea](yancha:definition). It was withered and rested, then twisted into long thin strips rather than rolled into balls, and finished with a [charcoal roast](yancha:making). The roast is done in several rounds, with rests of weeks or months between them, not in one pass. It dries the tea so that it keeps, and each stage has to be managed with care."
       }
     ],
     "brewing": {
@@ -53,19 +53,19 @@
       "rev": 1
     },
     {
-      "claimId": "yancha:definition",
-      "rev": 1
-    },
-    {
-      "claimId": "yancha:making",
-      "rev": 1
-    },
-    {
       "claimId": "wuyi-mountains:where-it-is",
       "rev": 1
     },
     {
       "claimId": "wuyi-mountains:nature",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:making",
       "rev": 1
     },
     {
@@ -78,11 +78,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "The ground drains fast and the plants grow slowly, and that rock is where the tea gets its name.",
-      "words": "that rock is where the tea gets its name",
-      "why": "No claim says where a name comes from. The claims gloss 岩 as 'rock' and say rock tea grows among rock, but none says the name comes from the rock. This tea's own name, Rougui, comes from the cinnamon-bark smell (yancha:rougui), so the sentence can also be read as wrong about this lot."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:06.663Z"
 }

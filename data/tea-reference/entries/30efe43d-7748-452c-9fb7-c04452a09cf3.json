@@ -1,5 +1,5 @@
 {
-  "status": "draft",
+  "status": "approved",
   "composedAt": "2026-11-27T03:52:26.109Z",
   "writer": "claude opus",
   "checker": "claude opus",
@@ -78,5 +78,6 @@
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:17.681Z"
 }

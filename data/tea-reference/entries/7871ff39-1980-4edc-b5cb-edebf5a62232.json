@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:52:48.170Z",
+  "status": "approved",
+  "composedAt": "2026-11-27T04:14:13.007Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -24,12 +24,16 @@
     "productId": "7871ff39-1980-4edc-b5cb-edebf5a62232",
     "paragraphs": [
       {
+        "layer": "lot",
+        "text": "This leaf is [Meizhan](yancha:meizhan), a Fujian cultivar that came from Anxi and is also made in the Wuyi Mountains, where this tea grew. It is less famous than Rougui and Shui Xian and sits outside the four famous bushes. The lot was taken to medium oxidation, the middle ground of a [partly oxidised](oolong:definition) tea, and finished with a traditional [charcoal roast](yancha:making), which dries the leaf so it keeps."
+      },
+      {
         "layer": "place",
-        "text": "This oolong comes from the [Wuyi Mountains](wuyi-mountains:where-it-is), on Fujian's northern border with Jiangxi. Oolong is [traced to this area](fujian:history), and its making is said to have spread from here to Anxi, to Guangdong and then to Taiwan. [Meizhan](yancha:meizhan) is a Fujian cultivar that came from Anxi and is also made as Wuyi rock tea. It is less famous than Rougui and Shui Xian and is not one of the four famous bushes. The record gives the Wuyi Mountains but no zone within them, so it [does not say how close to the core](wuyi-mountains:on-a-label) the bushes grew."
+        "text": "The [Wuyi Mountains](wuyi-mountains:where-it-is) run along the border of northern Fujian and Jiangxi. The range is steep, wet and misty, and its bushes grow in [thin, stony soil](wuyi-mountains:nature) on ledges and between rocks, where the ground drains fast. A record that names only Wuyi does not say how close to the [scenic core](wuyi-mountains:zones) the leaf grew."
       },
       {
         "layer": "age",
-        "text": "The tea dates from 1981, which gives it forty-five years. Wuyi tea is finished with a [charcoal roast](yancha:making) in several rounds, and that roast dries the leaf so it keeps. Medium and full roast tea is the kind [kept for years](yancha:ageing), because the heavier the roast, the longer the tea is said to stay good. Over that time the roast softens. Damp is the main danger to stored rock tea, so how it is kept matters as much as how long."
+        "text": "A [medium roast](yancha:roast-levels) is the kind of Wuyi tea made to be kept for years. What it asks of its keeper is dry, sealed storage, since damp is the main fault of stored rock tea and can turn it [green again](yancha:ageing)."
       }
     ],
     "brewing": {
@@ -48,23 +52,31 @@
   },
   "claimUses": [
     {
-      "claimId": "wuyi-mountains:where-it-is",
-      "rev": 1
-    },
-    {
-      "claimId": "fujian:history",
-      "rev": 1
-    },
-    {
       "claimId": "yancha:meizhan",
       "rev": 1
     },
     {
-      "claimId": "wuyi-mountains:on-a-label",
+      "claimId": "oolong:definition",
       "rev": 1
     },
     {
       "claimId": "yancha:making",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:nature",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:zones",
+      "rev": 1
+    },
+    {
+      "claimId": "yancha:roast-levels",
       "rev": 1
     },
     {
@@ -81,11 +93,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Damp is the main danger to stored rock tea, so how it is kept matters as much as how long.",
-      "words": "how it is kept matters as much as how long",
-      "why": "The ageing claim says damp makes stored rock tea go green, which is its main fault, and tells you to keep it sealed and dry. No claim says storage matters as much as age. That is a general rule none of the inputs states."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:11.241Z"
 }

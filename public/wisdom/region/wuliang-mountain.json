@@ -2,9 +2,10 @@
   "id": "wuliang-mountain",
   "name": "Wuliang Mountain",
   "country": "China",
-  "province": null,
+  "province": "Yunnan",
   "altitude": null,
-  "climate": null,
+  "climate": "Monsoon climate with a wet summer and a dry misty winter; much of the range is forest, part of it a national nature reserve.",
+  "description": "Long mountain range in west-central Yunnan, running from Nanjian through Jingdong, Zhenyuan and Jinggu toward Ning'er, known for old wild and planted tea trees.",
   "holding": "regions",
   "license": "CC BY 4.0, see LICENSE.txt",
   "source": "https://teajia.com/wisdom/"

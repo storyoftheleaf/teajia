@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T04:00:18.890Z",
+  "status": "approved",
+  "composedAt": "2026-11-25T15:43:25.700Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,26 @@
     "form": "Loose",
     "year": null,
     "origin": "Phoenix Mountain, Guangdong, China",
-    "stockGrams": null,
-    "pricePerGramUsd": null,
-    "tags": []
+    "stockGrams": 500,
+    "pricePerGramUsd": 0.58,
+    "tags": [
+      "honey",
+      "orchid",
+      "lychee",
+      "muscatel",
+      "lingering sweetness"
+    ]
   },
   "entry": {
     "productId": "2e8d5029-03f7-4410-8481-8f2bb256ab86",
     "paragraphs": [
       {
         "layer": "type",
-        "text": "Mi Lan Xiang is one of the traditional [ten aroma types](dancong:aromas) by which [Phoenix Dancong](dancong:definition) is sorted and sold, and [one of the most widely made](dancong:mi-lan-xiang). The name comes from the bush and the making, not from anything added, and it covers a range of teas rather than one. [Dancong](dancong:name) means single bush. Today a named line is mostly grown from cuttings or grafts of a chosen bush, so one name no longer means one tree."
+        "text": "[Mi Lan Xiang](dancong:mi-lan-xiang) is one of the traditional ten types by which [Phoenix Dancong](dancong:definition) is sorted and sold, and one of the most widely made. Each type has its own name, and its character comes from the bush and the making, [not from anything added](dancong:aromas) to the leaf."
       },
       {
         "layer": "place",
-        "text": "The leaf comes from [Phoenix Mountain](phoenix-mountain:where-it-is), Fenghuang Shan, a range in Chao'an, Chaozhou, in eastern Guangdong. There tea grows from the low foothills up to roughly 1,100 metres. Cloud and mist sit on the upper slopes for much of the year and the nights are cool, so [the bushes grow slowly](phoenix-mountain:mist-and-climate), which the trade links to the character of the leaf. The leaf is withered in the sun, then [shaken and rested in rounds](dancong:making) to bruise its edges, the step that gives each type its character. It is then fixed at high heat, rolled into long dark strips, dried, and roasted as it is refined."
+        "text": "The leaf comes from Phoenix Mountain in Chaozhou, eastern Guangdong. [Dancong](dancong:name) means single bush: the leaf of one bush made on its own, though a named line today is mostly grown from cuttings or grafts of a chosen bush. This lot was given a medium [roast](dancong:making), and the roast is one of the main ways one Dancong differs from another."
       }
     ],
     "brewing": {
@@ -37,6 +43,7 @@
       "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber."
     },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -44,7 +51,7 @@
   },
   "claimUses": [
     {
-      "claimId": "dancong:aromas",
+      "claimId": "dancong:mi-lan-xiang",
       "rev": 1
     },
     {
@@ -52,19 +59,11 @@
       "rev": 1
     },
     {
-      "claimId": "dancong:mi-lan-xiang",
+      "claimId": "dancong:aromas",
       "rev": 1
     },
     {
       "claimId": "dancong:name",
-      "rev": 1
-    },
-    {
-      "claimId": "phoenix-mountain:where-it-is",
-      "rev": 1
-    },
-    {
-      "claimId": "phoenix-mountain:mist-and-climate",
       "rev": 1
     },
     {
@@ -80,22 +79,7 @@
       "rev": 1
     }
   ],
-  "problems": [
-    {
-      "where": "paragraph 1",
-      "problem": "taste word \"aroma\" belongs in the notice"
-    }
-  ],
-  "unsupported": [
-    {
-      "sentence": "The name comes from the bush and the making, not from anything added, and it covers a range of teas rather than one.",
-      "words": "The name comes from the bush and the making",
-      "why": "The claims say the scent comes from the bush and the making, and that the aroma type is named for the flower, fruit or spice the scent recalls. They never say the name comes from the bush and the making."
-    },
-    {
-      "sentence": "The leaf is withered in the sun, then shaken and rested in rounds to bruise its edges, the step that gives each type its character.",
-      "words": "the step that gives each type its character",
-      "why": "The making claim says only that shaking and resting bruises the leaf edge and builds the scent. The claims credit the bush and the roast as main differences between teas, and no claim says this step gives each aroma type its character."
-    }
-  ]
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:43.212Z"
 }

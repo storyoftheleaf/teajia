@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:51:25.059Z",
+  "status": "approved",
+  "composedAt": "2026-11-23T12:56:05.070Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -25,68 +25,23 @@
     "productId": "2205c8f5-bcc9-4ec2-823b-fecf68db56fb",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "This cake of [ripe pu’er](shou:definition) carries the name of one village, Pasha (帕沙寨), in Menghai County, and was pressed in 2015. That was forty-two years after Yunnan’s state factories brought the [wet pile](shou:wet-piling) into production, a method made to give in weeks the dark cup that raw leaf otherwise took years to reach."
-      },
-      {
-        "layer": "place",
-        "text": "When a label says only [Menghai](menghai-county:county-and-factory), it can mean the county or its large factory, which blends leaf bought from several of the county’s mountains. A cake named for a single village makes a different claim. It points to one place, not to a recipe."
-      },
-      {
         "layer": "age",
-        "text": "At eleven years it has passed the decade that the trade counts as [aged ripe pu’er](shou:age-aged). The leaf still changes slowly with the air and moisture around it, so the way it is stored shapes it as much as its age does."
+        "text": "This ripe pu’er cake dates to 2015 and is listed as Pasha, Menghai. As ripe pu’er rests, the [air and moisture](shou:age-aged) around the leaves shape how its aroma develops."
       }
     ],
-    "brewing": {
-      "layer": "brewing",
-      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
-    },
-    "notice": {
-      "layer": "notice",
-      "styleName": "aged ripe pu’er",
-      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
-    },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "shou:definition",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:wet-piling",
-      "rev": 2
-    },
-    {
-      "claimId": "menghai-county:county-and-factory",
-      "rev": 1
-    },
-    {
       "claimId": "shou:age-aged",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:brewing-pressed",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:brewing",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:notice-aged",
       "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "When a label says only [Menghai](menghai-county:county-and-factory), it can mean the county or its large factory, which blends leaf bought from several of the county’s mountains.",
-      "words": "its large factory",
-      "why": "Neither the claim nor the record says how big the factory is. The claim only says Menghai Tea Factory sits in the county and is part of the Dayi group."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-24T06:28:55.754Z"
 }

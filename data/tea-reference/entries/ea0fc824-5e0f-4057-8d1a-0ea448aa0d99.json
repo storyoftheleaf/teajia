@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-27T03:59:15.096Z",
+  "status": "approved",
+  "composedAt": "2026-11-27T04:17:53.990Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -19,12 +19,12 @@
     "productId": "ea0fc824-5e0f-4057-8d1a-0ea448aa0d99",
     "paragraphs": [
       {
-        "layer": "grade",
-        "text": "This is [Gong Ting](gong-ting:definition), the grade of loose [ripe pu’er](shou:definition) sorted out for its small leaf and high share of buds, one step above special grade in the market. The dry leaf is tight and fine, with [golden down on the buds](gong-ting:appearance) and no stray stems. So little of a batch qualifies that the grade stays scarce. Here the leaf has been shaped into a ball."
+        "layer": "place",
+        "text": "This leaf grew in Menghai County, in Yunnan. The county's [tea mountains](menghai-county:peoples) are not one community: Bulang, Hani and Lahu villagers planted and still tend their own gardens, and who planted and who picks shapes each mountain's tea."
       },
       {
-        "layer": "place",
-        "text": "The leaf comes from [Menghai County](menghai-county:county-and-factory) in Yunnan. It was fermented in a [damp pile](shou:wet-piling), where microbes warm the leaf from within. The pile is covered to hold that heat and turned about once a week to let air in. That pile is why the tea is ready to drink now rather than after years of waiting. In this county, the factory's own way of piling had settled [by 1975](shou:piling-1973) into the ripe pu’er still made today."
+        "layer": "type",
+        "text": "It was made into [ripe pu’er](shou:definition), fermented in a warm, damp pile so that it is ready to drink soon after making instead of after years of ageing. In [wet piling](shou:wet-piling) the wetted leaf is heaped and covered to hold in the heat its own microbes make. It is turned about once a week to spread that heat and let air in, and kept below about 65°C, since hotter than that the leaf starts to char. After the pile the tea was shaped into balls."
       }
     ],
     "brewing": {
@@ -44,28 +44,16 @@
   },
   "claimUses": [
     {
-      "claimId": "gong-ting:definition",
-      "rev": 2
+      "claimId": "menghai-county:peoples",
+      "rev": 1
     },
     {
       "claimId": "shou:definition",
       "rev": 1
     },
     {
-      "claimId": "gong-ting:appearance",
-      "rev": 1
-    },
-    {
-      "claimId": "menghai-county:county-and-factory",
-      "rev": 1
-    },
-    {
       "claimId": "shou:wet-piling",
       "rev": 2
-    },
-    {
-      "claimId": "shou:piling-1973",
-      "rev": 1
     },
     {
       "claimId": "shou:brewing-pressed",
@@ -81,5 +69,6 @@
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:54.080Z"
 }

@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:54:25.441Z",
+  "status": "approved",
+  "composedAt": "2026-11-27T04:13:37.279Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -20,15 +20,11 @@
     "paragraphs": [
       {
         "layer": "type",
-        "text": "A [Liu An basket tea](liu-an:definition) from Anhui, made in 1990. Despite the name, the style belongs to Qimen County in the south of the province, not to the city of Lu'an. It is a [dark tea](dark:definition), not the green [Lu'an Guapian](anhui:lu-an-names) that shares part of its name. Its making explains why it is kept: after firing over charcoal, the leaf is spread outdoors for one night to take the [night dew](liu-an:making). It is then steamed, packed into baskets lined with bamboo leaf and fired again, and it is sold only after resting for some years."
-      },
-      {
-        "layer": "type",
-        "text": "The year matters. Basket tea was made for the [southern trade](liu-an:southern-trade) to Guangdong, Hong Kong, Macau and Southeast Asia. Production stopped in the 1930s and 1940s, when war cut that trade off. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s. A tea from 1990 comes from the very start of that revival."
+        "text": "[Liu An basket tea](liu-an:definition) is a [dark tea](dark:definition) from Anhui, a leaf left to change slowly after it is made. Despite the name, it is made in [Qimen County](anhui:places-inside) in the south of the province rather than in the city of Lu'an, from the same small-leaf bush that gives Keemun. Its making ends with steps of its own: the fired leaf is spread outdoors for one [night of dew](liu-an:making), steamed soft and packed into bamboo baskets lined with leaf, then rested for years before it is sold."
       },
       {
         "layer": "age",
-        "text": "At thirty-six years it has rested far longer than the style asks. Liu An is [said to improve with years](liu-an:ageing) if it is kept dry, clean and away from smells, in wrapping that breathes, so its storage has shaped it as much as its age."
+        "text": "This leaf dates from 1990. Making had stopped in the 1930s and 1940s, when war cut the [southern trade](liu-an:southern-trade) to Guangdong, Hong Kong and Macau. It came back after tea people from Hong Kong sent an aged basket to Anhui in 1983 and asked for it to be made again, and commercial making returned in the early 1990s, so this tea comes from the first years of that return. At thirty-six years it has had the long keeping the style is [made for](liu-an:ageing)."
       }
     ],
     "brewing": {
@@ -55,7 +51,7 @@
       "rev": 1
     },
     {
-      "claimId": "anhui:lu-an-names",
+      "claimId": "anhui:places-inside",
       "rev": 1
     },
     {
@@ -80,21 +76,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Its making explains why it is kept: after firing over charcoal, the leaf is spread outdoors for one night to take the night dew.",
-      "words": "Its making explains why it is kept",
-      "why": "No claim links the dew step, or any making step, to the reason the tea is kept. The making claim only describes the steps and says the tea rests for some years before sale."
-    },
-    {
-      "sentence": "A tea from 1990 comes from the very start of that revival.",
-      "words": "comes from the very start of that revival",
-      "why": "The claim says only that commercial making returned in the early 1990s, with no exact start year. Nothing supports placing a 1990 tea at the very start of the revival or tying this lot to it."
-    },
-    {
-      "sentence": "Liu An is said to improve with years if it is kept dry, clean and away from smells, in wrapping that breathes, so its storage has shaped it as much as its age.",
-      "words": "so its storage has shaped it as much as its age",
-      "why": "No claim says storage matters as much as age, and nothing records how this lot was stored. The ageing claim also does not make the improvement depend on those storage conditions; it lists them as separate advice."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:16:55.496Z"
 }

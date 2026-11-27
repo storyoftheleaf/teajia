@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:50:55.593Z",
+  "status": "approved",
+  "composedAt": "2026-11-23T12:51:32.089Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -23,12 +23,8 @@
     "productId": "bb692acb-b4a0-4114-afa8-c9644140eb5f",
     "paragraphs": [
       {
-        "layer": "place",
-        "text": "This loose leaf comes from the [northern Vietnam highlands](northern-vietnam-highlands:where-it-is), the high, misty mountain provinces along the border with China. Many of the groves there are old [Shan Tuyet](northern-vietnam-highlands:old-trees) trees, a family of large-leaf tea trees named snow mountain for the fine white down on their buds, and Mông and Dao communities look after many of them. The hills share Yunnan's large-leaf trees, climate and forest just over the border, which is why the trade [sets this leaf beside pu'er](northern-vietnam-highlands:beside-yunnan), though it remains a tea of its own country."
-      },
-      {
-        "layer": "type",
-        "text": "Here it was made as [ripe tea](northern-vietnam-highlands:ripe-tea), as old-tree leaf in these highlands mostly is in Ha Giang. In [ripe pu'er](shou:definition) making the leaf is heaped warm and damp in a [fermenting pile](shou:wet-piling), covered to hold in the heat the microbes make and turned to let air in, so that it reaches in weeks a change raw leaf takes years to make. Whether such tea may carry the [pu'er name](northern-vietnam-highlands:on-a-label) is not agreed: many keep the name for Yunnan, and some sellers call it a Vietnamese dark tea made in the pu'er style."
+        "layer": "lot",
+        "text": "This loose ripe pu’er comes from the highlands of northern Vietnam, near the Yunnan border. Ripe pu’er is made by fermenting tea leaves in a damp pile, a process called [wet piling](shou:wet-piling)."
       }
     ],
     "brewing": {
@@ -41,6 +37,7 @@
       "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -48,48 +45,15 @@
   },
   "claimUses": [
     {
-      "claimId": "northern-vietnam-highlands:where-it-is",
-      "rev": 1
-    },
-    {
-      "claimId": "northern-vietnam-highlands:old-trees",
-      "rev": 1
-    },
-    {
-      "claimId": "northern-vietnam-highlands:beside-yunnan",
-      "rev": 1
-    },
-    {
-      "claimId": "northern-vietnam-highlands:ripe-tea",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:definition",
-      "rev": 1
-    },
-    {
       "claimId": "shou:wet-piling",
       "rev": 2
     },
     {
-      "claimId": "northern-vietnam-highlands:on-a-label",
-      "rev": 1
-    },
-    {
       "claimId": "shou:brewing",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:common-impressions",
       "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Here it was made as [ripe tea](northern-vietnam-highlands:ripe-tea), as old-tree leaf in these highlands mostly is in Ha Giang.",
-      "words": "as old-tree leaf in these highlands mostly is in Ha Giang",
-      "why": "The claim says ripe tea is made here from old-tree leaf, mostly in Ha Giang. That tells us where most ripe tea is made. It does not say that most old-tree leaf in the highlands, or in Ha Giang, is made into ripe tea. The sentence turns the claim around and states something it does not support."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-24T06:28:55.878Z"
 }

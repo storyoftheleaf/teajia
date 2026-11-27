@@ -3,7 +3,7 @@
 ## What this is
 
 A public export of Teajia's tea wisdom base: 79 cultivars with
-breeding lineage and descriptions, 183 growing regions,
+breeding lineage and descriptions, 185 growing regions,
 10 producers, 15 marks, 10 styles,
 22 teas known only by the name they were given,
 316 tea varieties, and the controlled vocabulary that ties
@@ -27,7 +27,7 @@ not included in this dataset and remain his.
 ## Citation
 
 Teajia Tea Wisdom Base (teajia.com), version 1.0.0, generated
-2026-11-24, CC BY 4.0.
+2026-11-27, CC BY 4.0.
 
 ## Files
 
@@ -41,7 +41,7 @@ Teajia Tea Wisdom Base (teajia.com), version 1.0.0, generated
 - One file per record, at the same address as its human page with `.json`
   added: `cultivar/{id}.json`, `region/{id}.json`, `variety/{id}.json`,
   `producer/{id}.json`, `mark/{id}.json`, `style/{id}.json`,
-  `named/{id}.json`. 635 of them. Asking about one plant should not
+  `named/{id}.json`. 637 of them. Asking about one plant should not
   mean downloading every plant.
 - `tea-wisdom-*.csv`: flat, one file per holding, for spreadsheet tools.
 - `LICENSE.txt`

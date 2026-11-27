@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:55:16.179Z",
+  "status": "approved",
+  "composedAt": "2026-11-27T04:14:07.421Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -20,11 +20,11 @@
     "paragraphs": [
       {
         "layer": "age",
-        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1980, now forty-six years old. Taiwan has a long habit of keeping oolong for years, called [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts well roasted and dry, and keepers roast it again at low heat from time to time to drive out the moisture it takes in, since damp is what spoils a stored tea. No standard says how many years make an oolong old; those who give a figure put it between ten and thirty, and this one is well past both."
+        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1980, kept for forty-six years in the island's tradition of [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts out well roasted and dry. It is roasted again at low heat from time to time to drive out the moisture it takes in, and kept cool, dark and sealed between roastings. No standard says when an oolong becomes old. Those who give a figure put it between ten and thirty years, and this tea is sixteen years past the longest of them."
       },
       {
         "layer": "place",
-        "text": "The record names only the island, which tells you the leaf was grown in [Taiwan](taiwan:on-a-label) and nothing about the mountain, township or height. Oolong came there with settlers from [Fujian](taiwan:history), who brought the plants and the craft, and by the nineteenth century the island was selling it abroad as Formosa Oolong. As a [partly oxidised](oolong:definition) tea, it sits between green tea and red tea."
+        "text": "The label names only [Taiwan](taiwan:on-a-label). That places the leaf on the island and says nothing more: no mountain, no township, no cultivar. What it does carry is the island's own craft. [Oolong](oolong:definition) is the partly oxidised tea between green and red, and the island's trade is built on [rolled, bead-shaped oolong](taiwan:known-for) like this one."
       }
     ],
     "brewing": {
@@ -55,11 +55,11 @@
       "rev": 1
     },
     {
-      "claimId": "taiwan:history",
+      "claimId": "oolong:definition",
       "rev": 1
     },
     {
-      "claimId": "oolong:definition",
+      "claimId": "taiwan:known-for",
       "rev": 1
     },
     {
@@ -72,11 +72,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Leaf chosen for keeping starts well roasted and dry, and keepers roast it again at low heat from time to time to drive out the moisture it takes in, since damp is what spoils a stored tea.",
-      "words": "since damp is what spoils a stored tea",
-      "why": "No claim says damp spoils stored tea. The ageing claim says only that re-roasting drives out moisture and that the tea is stored cool, dry, dark and sealed. This is a general statement about tea that no input makes."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:16:58.537Z"
 }

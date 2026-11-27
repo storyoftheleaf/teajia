@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:50:58.963Z",
+  "status": "approved",
+  "composedAt": "2026-11-24T06:51:47.272Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -22,12 +22,12 @@
     "productId": "2ec4bcf5-1773-453c-b710-5b859203cb4e",
     "paragraphs": [
       {
-        "layer": "place",
-        "text": "This loose leaf is [Liu Bao](liu-bao:definition), the [dark tea](dark:definition) of [Guangxi](guangxi:where-it-is) in the south of China, made in 1990. The style is named for the town of Liubao in Cangwu County, near Wuzhou, where a warm, wet [subtropical monsoon climate](guangxi:land-and-climate) suits the microbes that shape a dark tea. That is why the trade ties the long, slow ageing of Liu Bao to this land. It was made for a market far from home: Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, because they believed it eased the heat and damp of their work."
+        "layer": "age",
+        "text": "A [Liu Bao](liu-bao:definition) from Guangxi, made in 1990 and sold as loose leaf. At thirty-six years it sits far past the decade after which the trade counts this tea as [aged](liu-bao:age-aged), and how it was stored has shaped it as much as the years have."
       },
       {
-        "layer": "age",
-        "text": "As with every dark tea, the leaf was heaped after it was made so that warmth, moisture and microbes would darken it, and then it was left to age. At thirty-six years it is far past the ten that the trade counts as [aged Liu Bao](liu-bao:age-aged). Over that time, how the tea was stored has shaped it as much as the years have."
+        "layer": "type",
+        "text": "Liu Bao is the [dark tea](dark:definition) of Cangwu County, near Wuzhou, named for the town of Liubao where it began. As with every post-fermented tea, the leaf is piled after it is made, so warmth, moisture and microbes slowly turn it darker before it is packed and left to age. It was made for a market far from home: Chinese miners and labourers in the [tin mines of Malaya](liu-bao:nanyang-trade) drank it, and it travelled by boat down the river to Wuzhou, on to Guangzhou, and out by sea."
       }
     ],
     "brewing": {
@@ -40,6 +40,7 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -50,20 +51,16 @@
       "rev": 1
     },
     {
+      "claimId": "liu-bao:age-aged",
+      "rev": 1
+    },
+    {
       "claimId": "dark:definition",
       "rev": 1
     },
     {
-      "claimId": "guangxi:where-it-is",
-      "rev": 1
-    },
-    {
-      "claimId": "guangxi:land-and-climate",
-      "rev": 1
-    },
-    {
-      "claimId": "liu-bao:age-aged",
-      "rev": 1
+      "claimId": "liu-bao:nanyang-trade",
+      "rev": 2
     },
     {
       "claimId": "liu-bao:brewing",
@@ -75,11 +72,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "It was made for a market far from home: Chinese miners and labourers in Malaya and across Southeast Asia drank it, above all in the tin mines, because they believed it eased the heat and damp of their work.",
-      "words": "because they believed it eased the heat and damp of their work",
-      "why": "The claim says the trade believed this, not the drinkers. It also gives a second reason, a taste of home. The sentence instead says the miners' own belief was why they drank it."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-24T06:53:06.144Z"
 }

@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-27T03:51:19.362Z",
+  "status": "approved",
+  "composedAt": "2026-11-23T12:57:37.821Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -26,65 +26,17 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "The leaf in this cake dates to 2008, and it had already been aging before it was pressed. That is why the cake started further along than one pressed from fresh leaf. It was made as [ripe pu’er](shou:definition), so it is ready to drink without the years of waiting that raw pu’er needs. The leaf was wetted and heaped in a [wet pile](shou:wet-piling), where microbes ferment it with their own heat. The pile is covered to keep that heat in and turned about once a week to spread it and let air in, then the leaf is dried."
-      },
-      {
-        "layer": "place",
-        "text": "The leaf comes from [Yiwu](greater-yiwu:where-it-is), in the north of Mengla County in eastern Xishuangbanna. It is one of the old Six Famous Tea Mountains, and its town has long been where tea from the villages around it is gathered and processed. [The name on a label](greater-yiwu:on-a-label) is a market name that can mean the town, the mountain or a wider area, so here it names a region rather than one village."
-      },
-      {
-        "layer": "age",
-        "text": "At eighteen years the cake has passed into what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, which is why storage shapes it as much as the years do."
+        "text": "This ripe pu’er cake comes from the Yiwu tea area of Yunnan. Its recorded year is 2008."
       }
     ],
-    "brewing": {
-      "layer": "brewing",
-      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
-    },
-    "notice": {
-      "layer": "notice",
-      "styleName": "aged ripe pu’er",
-      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
-    },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
-  "claimUses": [
-    {
-      "claimId": "shou:definition",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:wet-piling",
-      "rev": 2
-    },
-    {
-      "claimId": "greater-yiwu:where-it-is",
-      "rev": 1
-    },
-    {
-      "claimId": "greater-yiwu:on-a-label",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:age-aged",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:brewing-pressed",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:brewing",
-      "rev": 1
-    },
-    {
-      "claimId": "shou:notice-aged",
-      "rev": 1
-    }
-  ],
+  "claimUses": [],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-24T06:28:55.532Z"
 }

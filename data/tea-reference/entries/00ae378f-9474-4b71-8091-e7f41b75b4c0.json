@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:54:40.099Z",
+  "status": "approved",
+  "composedAt": "2026-11-26T04:43:35.609Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,25 @@
     "form": "Rolled",
     "year": null,
     "origin": "Taiwan",
-    "stockGrams": null,
-    "pricePerGramUsd": null,
-    "tags": []
+    "stockGrams": 0,
+    "pricePerGramUsd": 1.01,
+    "tags": [
+      "warm citrus",
+      "toasted grain",
+      "light honey",
+      "subtle bergamot"
+    ]
   },
   "entry": {
     "productId": "00ae378f-9474-4b71-8091-e7f41b75b4c0",
     "paragraphs": [
       {
-        "layer": "place",
-        "text": "This oolong was grown in [Taiwan](taiwan:where-it-is), the island across the strait from Fujian, where most tea gardens lie on the western side of the central range, sheltered from ocean storms. The record names only the island, not a mountain or township, so the [origin tells you](taiwan:on-a-label) where the leaf grew and nothing more about its height or district."
+        "layer": "type",
+        "text": "A rolled [oolong](oolong:definition) from Taiwan, made medium oxidised and given a moderate roast. That sets it near the middle of the type. Oolong is the partly oxidised tea, standing between green tea, which is not oxidised, and red tea, which is oxidised all the way."
       },
       {
         "layer": "type",
-        "text": "It is an [oolong](oolong:definition), the partly oxidised tea that stands between green and red, and it was rolled, the form most of the [island's oolong](taiwan-oolong:definition) takes. Both the plants and the craft came over with settlers from Fujian. From the 1860s this oolong was sold abroad as [Formosa Oolong](taiwan-oolong:history), and in the late twentieth century more of it stayed on the island to be drunk at home."
+        "text": "Like the rest of [Taiwan oolong](taiwan-oolong:definition), its plants and craft came over from Fujian, and the leaves are rolled tight, as most of the island's oolong is. [Oolong reached Taiwan](taiwan-oolong:history) with settlers from Fujian, and from the 1860s it was sold abroad as Formosa Oolong."
       }
     ],
     "brewing": {
@@ -37,20 +42,13 @@
       "text": "In light high mountain tea: a sweet, floral cup, often creamy or buttery, with little bitterness and a long sweet aftertaste. In roasted Dong Ding: caramel, ripe fruit, nuts and a toasted aroma. In Baozhong: floral notes and a clear, bright liquor. In Oriental Beauty: ripe fruit and honey, with little bitterness."
     },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
-    {
-      "claimId": "taiwan:where-it-is",
-      "rev": 1
-    },
-    {
-      "claimId": "taiwan:on-a-label",
-      "rev": 1
-    },
     {
       "claimId": "oolong:definition",
       "rev": 1
@@ -73,11 +71,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "From the 1860s this oolong was sold abroad as [Formosa Oolong](taiwan-oolong:history), and in the late twentieth century more of it stayed on the island to be drunk at home.",
-      "words": "From the 1860s this oolong was sold abroad",
-      "why": "The claim says Taiwan oolong in general was sold abroad as Formosa Oolong from the 1860s. Saying \"this oolong\" pins that history on this particular tea, Buddha Palm, and nothing in the record or the claims says Buddha Palm was part of that trade."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-26T04:48:24.304Z"
 }

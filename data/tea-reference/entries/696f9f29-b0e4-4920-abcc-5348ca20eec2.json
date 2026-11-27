@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:55:21.586Z",
+  "status": "approved",
+  "composedAt": "2026-11-25T03:37:05.146Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,24 +11,29 @@
     "form": "Brick",
     "year": 2006,
     "origin": "Anhua, Hunan, China",
-    "stockGrams": null,
-    "pricePerGramUsd": null,
-    "tags": []
+    "stockGrams": 1600,
+    "pricePerGramUsd": 0.25,
+    "tags": [
+      "aged wood",
+      "pine mushroom",
+      "dark chocolate",
+      "earthy sweetness"
+    ]
   },
   "entry": {
     "productId": "696f9f29-b0e4-4920-abcc-5348ca20eec2",
     "paragraphs": [
       {
         "layer": "place",
-        "text": "This tea comes from [Anhua](anhua:where-it-is), a mountain county on the middle Zi river, at the northern foot of the Xuefeng mountains in Hunan's Yiyang. It is hill and valley country where rice is hard to grow and tea does well. The county is warm and very wet, and the same air that grows the leaf is the air it is piled, pressed and kept in. That is why the trade ties the finished tea to [the place](anhua:why-people-value-it) and not only to the method."
+        "text": "This leaf comes from Anhua, a mountain county on the Zi river in north central Hunan, widely named as the main home of [Anhua dark tea](anhua-dark:definition) and a starting point of the old tea routes to the northwest. Like every tea made there, it began as [heimaocha](anhua-dark:making), a raw tea of large local leaf, traditionally dried over a pine fire, then steamed soft before pressing."
       },
       {
         "layer": "type",
-        "text": "Like all [dark tea](dark:definition), it was left to change in warmth and moisture after the leaf was made, so the trade calls it post-fermented. [Anhua dark tea](anhua-dark:definition) is a protected origin name in China, and every kind of it begins as one raw tea, [heimaocha](anhua-dark:making). That raw tea is made from large local leaf that is fixed, rolled, piled, rolled again and dried, then steamed soft and pressed."
+        "text": "Bailiang, a hundred liang, is one of the county's [flower rolls](anhua-dark:family), tall columns named by their old weight and sitting between the thousand and the ten. A roll is packed into a woven bamboo basket lined with leaf and [pressed tight by treading and twisting](anhua-dark:rolls) with long bars, then left to dry slowly in sun and night air for weeks. The rolls grew out of the border trade under the [Qing](anhua-dark:history)."
       },
       {
         "layer": "age",
-        "text": "This one dates from 2006 and has had twenty years. Anhua tea is kept for years and is said to [improve with keeping](anhua-dark:ageing), though no agreed number of years marks it as aged. Because of that, clean, dry and aired storage counts for as much as the time."
+        "text": "Made in 2006, it has now had twenty years. Tea from the area is [kept for years](anhua-dark:ageing) in the belief that it improves, though no agreed count of years marks it as aged; what matters is that it stays clean, dry and aired, away from mould and other smells."
       }
     ],
     "brewing": {
@@ -41,29 +46,30 @@
       "text": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note."
     },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "anhua:where-it-is",
-      "rev": 1
-    },
-    {
-      "claimId": "anhua:why-people-value-it",
-      "rev": 1
-    },
-    {
-      "claimId": "dark:definition",
-      "rev": 1
-    },
-    {
       "claimId": "anhua-dark:definition",
       "rev": 1
     },
     {
       "claimId": "anhua-dark:making",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:family",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:rolls",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua-dark:history",
       "rev": 1
     },
     {
@@ -84,11 +90,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Because of that, clean, dry and aired storage counts for as much as the time.",
-      "words": "counts for as much as the time",
-      "why": "The ageing claim only says to keep the tea clean, dry and aired. No claim says storage matters as much as age, or that this follows from there being no agreed count of years."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-25T03:39:27.084Z"
 }

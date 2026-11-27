@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:58:00.028Z",
+  "status": "approved",
+  "composedAt": "2026-11-27T04:15:43.159Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -20,11 +20,11 @@
     "paragraphs": [
       {
         "layer": "place",
-        "text": "A [dark tea](dark:definition) kept since 1983, grown in [Taiwan](taiwan:on-a-label). The record names only the island, so it says where the leaf grew and nothing more about the mountain or township. That makes it an unusual tea for a place whose trade is built on [oolong](taiwan:known-for), a craft that came across the strait with settlers from [Fujian](taiwan:history). Here the leaf was heated and rolled, then left to change slowly in warmth and moisture, where microbes and the leaf's own chemistry darken and mellow it."
+        "text": "A [dark tea](dark:definition) made in 1983 from leaf grown in [Taiwan](taiwan:on-a-label). The label names only the island, not a mountain or a township, so where on it the leaf grew is not recorded. The island's tea first came across the strait from Fujian, and its trade is built on [oolong](taiwan:known-for)."
       },
       {
         "layer": "age",
-        "text": "At forty-three years, it has had a long time to change. [Dark tea is made to be kept](dark:ageing), and storage decides how fast it changes as much as the years do. The trade does not agree on one way: some keep it cool and dry for a slow, clean change, and others keep it warmer and more humid for a faster, deeper one."
+        "text": "Dark tea is leaf that, once heated and rolled, is left to change in warmth and moisture, and it is [made to be kept](dark:ageing). The trade values it more as the years pass, and storage sets the pace: kept cool and dry, the change is slow; kept warmer and more humid, it is faster. At forty-three years, this tea has had more than four decades of that change."
       }
     ],
     "brewing": {
@@ -55,10 +55,6 @@
       "rev": 1
     },
     {
-      "claimId": "taiwan:history",
-      "rev": 1
-    },
-    {
       "claimId": "dark:ageing",
       "rev": 1
     },
@@ -72,11 +68,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Dark tea is made to be kept, and storage decides how fast it changes as much as the years do.",
-      "words": "as much as the years do",
-      "why": "The dark:ageing claim says only that how fast dark tea changes depends on how it is stored. No claim compares storage with age or says storage matters as much as the years."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-27T04:17:11.898Z"
 }

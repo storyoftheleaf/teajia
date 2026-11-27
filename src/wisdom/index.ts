@@ -8,7 +8,7 @@
 import { matchTeaVariety, type TeaVarietyMatch } from '../data/teaVarieties';
 import { matchCultivar } from './cultivars';
 import { matchNamedTea } from './namedTeas';
-import { matchMark, matchProducer, matchStyle } from './producers';
+import { findProducerById, matchMark, matchProducer, matchStyle } from './producers';
 import { countryForRegion, findRegion } from './regions';
 import { normalizeTeaForm, normalizeTeaType, type TeaForm, type TeaType } from './vocabulary';
 import type { Cultivar, Mark, NamedTea, Producer, Region, Style } from './types';
@@ -102,9 +102,10 @@ export function resolveTea({ names, known = {} }: TeaQuery): TeaResolution {
 
   const variety = matchTeaVariety(...names);
   const cultivar = matchCultivar(...names);
-  const producer = matchProducer(...names);
   const style = matchStyle(...names);
   const mark = matchMark(...names);
+  // A place word in a name is not a maker; a mark whose maker we hold is.
+  const producer = matchProducer(...names) ?? (mark?.producerId ? findProducerById(mark.producerId) ?? null : null);
   const namedTea = matchNamedTea(...names);
 
   const knownType = normalizeTeaType(known.type);

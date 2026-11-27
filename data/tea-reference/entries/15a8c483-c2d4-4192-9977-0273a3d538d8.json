@@ -1,6 +1,6 @@
 {
-  "status": "needs_review",
-  "composedAt": "2026-11-27T03:56:55.688Z",
+  "status": "approved",
+  "composedAt": "2026-11-25T15:43:15.749Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,24 +11,25 @@
     "form": "Tuo",
     "year": 1980,
     "origin": "Menghai, Yunnan, China",
-    "stockGrams": null,
-    "pricePerGramUsd": null,
-    "tags": []
+    "stockGrams": 400,
+    "pricePerGramUsd": 1.57,
+    "tags": [
+      "earth",
+      "walnut",
+      "smooth sweetness",
+      "clean finish"
+    ]
   },
   "entry": {
     "productId": "15a8c483-c2d4-4192-9977-0273a3d538d8",
     "paragraphs": [
       {
         "layer": "type",
-        "text": "A tuo of [ripe pu’er](shou:definition) from 1980. The style’s warm, damp pile was devised to give in weeks the cup that Hong Kong and Guangdong drinkers knew from raw pu’er kept for years. Yunnan’s state factories brought [wet piling](shou:wet-piling) into production in 1973, and by 1975 the [method worked out at Menghai](shou:piling-1973) had settled into the ripe pu’er still made today. This tea was made seven years after that start, in the style’s first decade."
-      },
-      {
-        "layer": "place",
-        "text": "Its leaf grew in Menghai County. The county is not the same as [Menghai Tea Factory](menghai-county:county-and-factory), and nothing in this tea’s record ties it to the factory."
+        "text": "A [ripe pu’er](shou:definition) tuo from Menghai leaf, made in 1980. Its leaf was fermented in a [wet pile](shou:wet-piling) before pressing. The pile was developed to give in weeks what raw pu’er gained only after years of keeping. The year puts this tea in the style’s first decade. In 1973 a team from the Kunming, Menghai and Xiaguan factories went to Guangzhou to [learn its piling](shou:piling-1973), and by 1975 Menghai’s method had settled into the ripe pu’er made today, five years before this tuo."
       },
       {
         "layer": "age",
-        "text": "At forty-six years old, it has long since become what the trade calls [aged ripe pu’er](shou:age-aged). The leaf is still changing slowly with the air and moisture around it, so how it has been stored shapes it as much as its age does."
+        "text": "At forty-six years it is long past the decade after which the trade counts a tea as [aged ripe pu’er](shou:age-aged). The leaf goes on changing slowly with the air and moisture around it, so the way it has been kept matters as much as the years."
       }
     ],
     "brewing": {
@@ -41,6 +42,7 @@
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -56,10 +58,6 @@
     },
     {
       "claimId": "shou:piling-1973",
-      "rev": 1
-    },
-    {
-      "claimId": "menghai-county:county-and-factory",
       "rev": 1
     },
     {
@@ -80,11 +78,6 @@
     }
   ],
   "problems": [],
-  "unsupported": [
-    {
-      "sentence": "Its leaf grew in Menghai County.",
-      "words": "Its leaf grew in Menghai County",
-      "why": "The origin field says only \"Menghai, Yunnan, China\". The county-and-factory claim says Menghai on a label can mean the county or the factory, and that the factory's ripe tea sometimes uses leaf from outside the county, such as Lincang. So nothing supports saying the leaf itself grew in the county."
-    }
-  ]
+  "unsupported": [],
+  "approvedAt": "2026-11-25T23:18:49.522Z"
 }

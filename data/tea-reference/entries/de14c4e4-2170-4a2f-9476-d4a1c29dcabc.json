@@ -1,6 +1,6 @@
 {
-  "status": "draft",
-  "composedAt": "2026-11-27T03:53:39.485Z",
+  "status": "approved",
+  "composedAt": "2026-11-25T03:33:37.092Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,24 +11,29 @@
     "form": "Loose",
     "year": 2015,
     "origin": "Anhua, Hunan, China",
-    "stockGrams": null,
+    "stockGrams": 0,
     "pricePerGramUsd": null,
-    "tags": []
+    "tags": [
+      "aged wood",
+      "dark mushroom",
+      "smooth earth",
+      "sweet mineral finish"
+    ]
   },
   "entry": {
     "productId": "de14c4e4-2170-4a2f-9476-d4a1c29dcabc",
     "paragraphs": [
       {
         "layer": "grade",
-        "text": "Yi Ji (一级) is the [first grade](yi-ji:definition) of Anhua's numbered raw leaf. Leaf there is sorted by how tender it was when picked, and this is the most tender of the numbered lots; each higher number means older, coarser leaf. A grade describes the leaf that went in, [not how the tea was made](yi-ji:grade-and-quality) or which garden it came from."
+        "text": "This is [first grade](anhua-dark:grades) (一级) leaf from Anhua, picked in 2015 and kept loose. In Anhua the raw leaf is sorted into numbered grades, and each grade goes into the finished tea that suits it."
       },
       {
-        "layer": "place",
-        "text": "[Anhua](anhua:where-it-is) is a mountain county on the Zi river in north-central Hunan, at the northern foot of the Xuefeng mountains, and is widely named as the main home of [Anhua dark tea](anhua-dark:definition) and of [dark tea](dark:definition) in China. In dark tea, the leaf keeps changing in warmth and moisture after it is made. Here the same [warm, wet air](anhua:why-people-value-it) that grows the leaf is the air it is piled and aged in, which is why the trade ties the finished tea to the place as well as to the method."
+        "layer": "type",
+        "text": "Anhua County is a mountain county on the Zi river in north-central Hunan. Its [dark tea](anhua-dark:definition) is a protected origin product, so the name is tied to tea made in that place. Like every tea from the county, this one began as [heimaocha](anhua-dark:making), a raw tea of large Anhua leaf that is fixed, rolled, piled, rolled again and dried. The leaf then goes on changing slowly in warmth and moisture, which is why the trade calls [dark tea](dark:definition) post-fermented."
       },
       {
         "layer": "age",
-        "text": "This leaf is from 2015 and is now eleven years old. Anhua tea is [kept for years](anhua-dark:ageing) and is said to improve as it ages, though no agreed number of years marks it as aged."
+        "text": "Eleven years have passed since this leaf was made. No set number of years makes an Anhua tea [aged](anhua-dark:ageing). It is best kept clean, dry and aired, away from mould and other smells."
       }
     ],
     "brewing": {
@@ -41,21 +46,14 @@
       "text": "A redder liquor, a sweeter, mellower cup, and sometimes a medicinal or herbal note."
     },
     "missing": [
+      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "yi-ji:definition",
-      "rev": null
-    },
-    {
-      "claimId": "yi-ji:grade-and-quality",
-      "rev": null
-    },
-    {
-      "claimId": "anhua:where-it-is",
+      "claimId": "anhua-dark:grades",
       "rev": 1
     },
     {
@@ -63,11 +61,11 @@
       "rev": 1
     },
     {
-      "claimId": "dark:definition",
+      "claimId": "anhua-dark:making",
       "rev": 1
     },
     {
-      "claimId": "anhua:why-people-value-it",
+      "claimId": "dark:definition",
       "rev": 1
     },
     {
@@ -84,5 +82,6 @@
     }
   ],
   "problems": [],
-  "unsupported": []
+  "unsupported": [],
+  "approvedAt": "2026-11-25T03:39:26.430Z"
 }
