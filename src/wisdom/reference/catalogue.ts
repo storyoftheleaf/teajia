@@ -126,7 +126,8 @@ function productMatches(product: PublicProduct, label: string): boolean {
   return searchableProductFields(product).some(value => matchesAtTokenBoundary(value, label));
 }
 
-function placeAliases(label: string): string[] {
+/** A place label and its short form without descriptor words ("Menghai County" answers to "Menghai"). */
+export function placeAliases(label: string): string[] {
   const words = normalizedWords(label).split(' ').filter(Boolean);
   const concise = words.filter(word => !PLACE_DESCRIPTOR_WORDS.has(word)).join(' ');
   return [...new Set([label, concise])].filter(alias => [...normalizedWords(alias)].length >= 2);

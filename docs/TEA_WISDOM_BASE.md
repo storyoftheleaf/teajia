@@ -48,6 +48,13 @@ Check each of these against the tea's record before composing its entry. Anythin
 
 A tea with an empty record can still get an entry once its type, place and grade pages exist: the entry then says only what those pages and the record's name, year and place support.
 
+**Running the check.** One function answers the table for a tea: `wisdomNeeds(product, sources)` in `src/wisdom/reference/wisdomNeeds.ts`. Each need says its kind (style, place, grade, process, producer, named), its label, whether a published page covers it, and its state: written, drafted (a page waiting for approval), record (a thin index row only) or missing. It uses the composer's own matching (`src/wisdom/reference/teaMatching.ts`: the kit pages, a grade word in the name, the process words), so what it calls covered is what composing will find.
+
+- On the Mac, before composing: `node scripts/tea-wisdom-compose/needs.mjs --products <public-products.json> [--ids a,b] [--type Shou]` prints each tea's covered and missing needs, drafts included, then the most-needed missing pages across all of them. Read-only.
+- In Curate: the open tea's "Wisdom Base" fold (under More story) shows the same list against published pages only.
+
+Where the words live: grade and mark words are the mark rows (`name`, `chineseName`, `altNames`, so "Palace Grade" is Gong Ting) and the `leaf_grade` pages; process words are `TEA_PROCESSES` in `src/wisdom/vocabulary.ts`, the one list, and every claim that matches on `process_in_name` must point at a page listed there (a test holds this). A grade word in the name that has a grade page now fills the composer's grade layer; the shop listing still never reads a grade from a name.
+
 ## Shape
 
 ```

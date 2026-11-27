@@ -1,0 +1,89 @@
+{
+  "status": "approved",
+  "composedAt": "2026-11-27T00:14:38.821Z",
+  "writer": "claude opus",
+  "checker": "claude opus",
+  "record": {
+    "id": "aea0e386-cb35-4ef9-91f4-3badd53c2c88",
+    "name": "Banzhang Old Tea Heads",
+    "chineseName": "班章老茶头",
+    "type": "Shou Puer",
+    "form": "Loose",
+    "year": 2000,
+    "origin": "Banzhang, Yunnan, China",
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
+  },
+  "entry": {
+    "productId": "aea0e386-cb35-4ef9-91f4-3badd53c2c88",
+    "paragraphs": [
+      {
+        "layer": "place",
+        "text": "The leaf is from [Banzhang](banzhang:where-it-is), a group of tea villages on Bulang Mountain in the south of Menghai County, Xishuangbanna. The name covers more than one settlement: [Lao Banzhang](banzhang:old-and-new), the old village, and Xin Banzhang, which grew out of it. As a [market name](banzhang:on-a-label), Banzhang rarely says which of the two is meant."
+      },
+      {
+        "layer": "type",
+        "text": "These are [tea heads](tea-heads:definition), the dense clumps of leaf that knot together while [ripe pu’er](shou:definition) ferments in its [damp pile](shou:wet-piling). They are sorted out once the pile is done and kept loose, apart from the numbered grades of loose ripe tea."
+      },
+      {
+        "layer": "age",
+        "text": "Made in 2000, these heads are now twenty-six years old, well into what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, which is why storage shapes it as much as the years do."
+      }
+    ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
+    "notice": {
+      "layer": "notice",
+      "styleName": "aged ripe pu’er",
+      "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
+    },
+    "missing": [
+      "A voice note from you on this lot",
+      "Photos"
+    ]
+  },
+  "claimUses": [
+    {
+      "claimId": "banzhang:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "banzhang:old-and-new",
+      "rev": 1
+    },
+    {
+      "claimId": "banzhang:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "tea-heads:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:age-aged",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:notice-aged",
+      "rev": 1
+    }
+  ],
+  "problems": [],
+  "unsupported": [],
+  "approvedAt": "2026-11-27T00:36:09.746Z"
+}
