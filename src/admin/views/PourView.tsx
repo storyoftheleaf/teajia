@@ -236,16 +236,16 @@ function NumberPad({ open, name, shelf, busy, onClose, onPour }: {
           {KEYS.map(key => (
             <Button key={key} type="button" variant="plain" aria-label={key === 'back' ? 'Delete' : key === '.' ? 'Decimal point' : key}
               onClick={() => setTyped(current => addKey(current, key))}
-              className="flex h-[4.5rem] items-center justify-center bg-tea-bg font-sans text-3xl tabular-nums text-tea-text transition-colors active:bg-tea-elevated">
+              className="flex h-20 items-center justify-center bg-tea-bg font-sans text-3xl tabular-nums text-tea-text transition-colors active:bg-tea-elevated">
               {key === 'back' ? <Delete size={26} strokeWidth={1.5} aria-hidden /> : key}
             </Button>
           ))}
           <Button type="button" variant="plain" disabled={busy} onClick={() => onPour(null)}
-            className="flex h-[4.5rem] items-center justify-center bg-tea-bg font-sans text-base text-tea-text-sec transition-colors active:bg-tea-elevated disabled:opacity-50">
+            className="flex h-20 items-center justify-center bg-tea-bg font-sans text-base text-tea-text-sec transition-colors active:bg-tea-elevated disabled:opacity-50">
             No weight
           </Button>
           <Button type="button" disabled={busy || weight === null} onClick={() => onPour(weight)}
-            className="col-span-2 !h-[4.5rem] !rounded-none !text-xl">
+            className="col-span-2 !h-20 !rounded-none !text-xl">
             Enter
           </Button>
         </div>
