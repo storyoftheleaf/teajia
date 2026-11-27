@@ -10,8 +10,8 @@ name: Playwright
 # specs opens the admin route that does. Fixed in 2f1b7ea3; this file is
 # the gate that would have caught it.
 #
-# `checks` is that gate: tsc, the color lint, the production build and the
-# worker test suite, on every push and pull request to main. `mobile` and
+# `checks` and `worker-tests` are that gate: tsc, the color lint, the
+# production build and the worker test suite, on every push and pull request to main. `mobile` and
 # `e2e` cover browser behavior; `china-scan`, `platform-hardening` and
 # `recovery` wire in the three suites that had no CI lane at all.
 #
@@ -113,9 +113,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: gate
     if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
-    # The worker suite alone now takes 10 to 12 minutes, so 15 cut whole runs
-    # off mid-suite (2026-11-27). Every test still runs.
-    timeout-minutes: 25
+    # The worker suite moved to its own sharded job (worker-tests below), so
+    # this lane is tsc, unit tests and the build: about 3 minutes.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -149,8 +149,38 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Worker tests
-        run: npm run test:worker
+  worker-tests:
+    # The worker suite took 9.7 of the 13 minutes every PR waited (measured
+    # 2026-11-27, run on PR 620), running alone after tsc and the build. Four
+    # shards run in parallel from the start, so the PR waits on the slowest
+    # quarter instead of the whole suite. Every test still runs on every PR;
+    # vitest's --shard partitions test files, so the four shards together
+    # are exactly `npm run test:worker`.
+    runs-on: ubuntu-latest
+    needs: gate
+    if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install worker dependencies
+        working-directory: worker
+        run: npm ci
+
+      - name: Worker tests (shard ${{ matrix.shard }}/4)
+        run: npm run test:worker -- --shard=${{ matrix.shard }}/4
 
   mobile:
     runs-on: ubuntu-latest
@@ -253,7 +283,7 @@ jobs:
   e2e-changed-shard:
     # Pull requests only: the specs this PR changed, against its base branch.
     # A PR that changes no spec (or no file a spec imports) runs none here and
-    # passes; `checks` and `mobile` above still ran in full. Same projects,
+    # passes; `checks`, `worker-tests` and `mobile` above still ran in full. Same projects,
     # same build as `e2e`, so a spec
     # that passes here passes there. Full history is fetched because
     # --only-changed diffs against the base ref. A shared fixture can select
