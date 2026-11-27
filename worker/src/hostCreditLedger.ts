@@ -19,7 +19,7 @@
 //   credit is over the shop's ceiling stays pending until the owner approves
 //   it in Manage.
 // - An order earns once, at its first Fill while HOST_CREDIT is open (A8-5):
-//   host_credit_fills records every first Fill (migration 0148's triggers) and
+//   host_credit_fills records every first Fill (migration 0149's triggers) and
 //   settle stamps whether credit was open then. An order Filled while closed
 //   never earns later (CLOSED_FILL_EARNS_LATER), and an order that has earned
 //   never earns again, even after its lines are replaced (A8-2).
@@ -271,7 +271,7 @@ async function reverseInvoiceCredit(db: D1Database, invoice: InvoiceRow, reason:
 /**
  * Whether a Filled order may earn, from its first Fill. Stamped open: yes.
  * Stamped closed: only if CLOSED_FILL_EARNS_LATER. Filled before the record
- * began (no row, migration 0148): only if it was held as pending before, the
+ * began (no row, migration 0149): only if it was held as pending before, the
  * one sign it was seen while credit was open; on the live shop, closed until
  * now, no such order exists, so none of its earlier sales earns on opening.
  */
@@ -517,6 +517,8 @@ async function readBalances(db: D1Database, where: string, bindings: unknown[]):
               AND e.currency = k.currency AND e.kind = 'pending'
               AND NOT EXISTS (SELECT 1 FROM host_credit_entries x WHERE x.kind = 'earned' AND x.invoice_id = e.invoice_id)
               AND NOT ${CLOSED_FILL_SQL('e')}
+              -- Only lines still on the order: a line replaced while reopened is not waiting twice.
+              AND EXISTS (SELECT 1 FROM invoice_line_items li WHERE li.id = e.invoice_line_id AND li.invoice_id = e.invoice_id)
               AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.id = e.invoice_id AND i.status = 'Void')), 0) AS pending,
             COALESCE((SELECT SUM(e.amount) FROM host_credit_entries e WHERE e.account_id = k.account_id AND e.host_user_id = k.host_user_id
               AND e.currency = k.currency AND e.kind = 'earned'), 0) AS earned,
@@ -897,7 +899,7 @@ export async function holdHostCreditSpend(
 }
 
 export type SpendDecision =
-  | { ok: true; status: 'approved' | 'declined'; idempotent?: boolean }
+  | { ok: true; status: 'approved' | 'declined'; idempotent?: boolean; settled?: { invoice_id: string; payment_status: string } }
   | { ok: false; error: 'not_found' | 'already_decided' | 'over_ceiling' | 'not_covered' | 'order_changed'; message: string };
 
 const RELEASED_SAYS: Record<string, string> = {
@@ -973,9 +975,12 @@ export async function approveHostCreditSpend(
   }
   // The credit settles the order like money received (A8-1).
   const priced = await loadLedgerInvoice(env, String(request.invoice_id), input.accountId);
-  if (priced) await recomputeInvoicePaymentStatus(env, priced);
+  const recomputed = priced ? await recomputeInvoicePaymentStatus(env, priced) : null;
   await checkHostCreditIntegrity(env.DB, input.accountId);
-  return { ok: true, status: 'approved' };
+  return {
+    ok: true, status: 'approved',
+    ...(recomputed ? { settled: { invoice_id: String(request.invoice_id), payment_status: recomputed.payment_status } } : {}),
+  };
 }
 
 /** The owner declines a held request: the hold ends and nothing is spent. */

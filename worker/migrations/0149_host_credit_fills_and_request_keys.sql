@@ -40,3 +40,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_host_credit_requests_key
 -- 'order_void' (the order was made Void or removed) or 'order_changed' (the
 -- tea or the amount owed no longer covers it when the owner approves).
 ALTER TABLE host_credit_spend_requests ADD COLUMN release_reason TEXT;
+
+-- An order Filled before this migration has no row. If it leaves Filled (to be
+-- reopened), its first Fill was that earlier, unrecorded one: record it here
+-- as closed, so a later Fill is not taken for the first and never earns.
+-- (The live shop has had credit closed throughout.)
+CREATE TRIGGER IF NOT EXISTS host_credit_unrecorded_fill_leaves
+AFTER UPDATE OF status ON invoices WHEN OLD.status = 'Filled' AND NEW.status IS NOT 'Filled'
+BEGIN
+  INSERT OR IGNORE INTO host_credit_fills (invoice_id, account_id, credit_open) VALUES (NEW.id, NEW.account_id, 0);
+END;

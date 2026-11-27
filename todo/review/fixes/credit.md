@@ -14,7 +14,7 @@ How to rerun: `NODE_OPTIONS=--experimental-sqlite node_modules/.bin/vitest run w
 - Approved credit settles the order. It appears as `credit_usd` beside `paid_usd`, which stays cash only, and the amount due drops by it on every surface that reads `invoiceMoney`.
 - A replayed use request with the same Idempotency-Key returns the original request.
 
-Migration `worker/migrations/0148_host_credit_fills_and_request_keys.sql` (also added to `worker/schema.sql`) only creates and alters. It adds the table `host_credit_fills`, two triggers that write a row the first time an order becomes Filled by any path, and two columns on `host_credit_spend_requests`: `request_key`, with a unique partial index, and `release_reason`. It changes, adds and removes no existing rows.
+Migration `worker/migrations/0149_host_credit_fills_and_request_keys.sql` (also added to `worker/schema.sql`) only creates and alters. It adds the table `host_credit_fills`, two triggers that write a row the first time an order becomes Filled by any path, a third that records an order leaving Filled with no row as first Filled while closed, and two columns on `host_credit_spend_requests`: `request_key`, with a unique partial index, and `release_reason`. It changes, adds and removes no existing rows.
 
 ## A8-1: approving tea credit leaves the customer owing the full price
 
@@ -40,7 +40,7 @@ Migration `worker/migrations/0148_host_credit_fills_and_request_keys.sql` (also 
 ## A8-5: two identical sales Filled while credit is closed earn different amounts
 
 - Changed: `host_credit_fills` records each order's first Fill, written by a trigger on any path. Settle stamps `credit_open` once with the switch state at that moment. Only an order stamped open earns; one stamped closed writes no pending or earned row again. In the host's and the owner's line lists, its pending lines read as `void` (shown as Cancelled), and they are left out of the waiting balance and the second look.
-- Rows written before the fix: an order Filled before 0148 has no row. It earns only if it was already held as pending before, which is the one sign it was seen while credit was open. The live shop has always had credit closed, so none of its earlier sales earns when credit opens.
+- Rows written before the fix: an order Filled before 0149 has no row. It earns only if it was already held as pending before, which is the one sign it was seen while credit was open. If it is reopened (leaves Filled), the third trigger records its unrecorded first Fill as closed, so a later Fill never earns (`a sale Filled before the record began, reopened and Filled again while open, does not earn`). The live shop has always had credit closed, so none of its earlier sales earns when credit opens.
 - Proof: `identical sales Filled while closed have equal credit after reopening` (now passes), plus the new `a sale Filled while closed never earns, even reopened and Filled again while open`, and two old-shape cases: `a sale Filled before the record began does not earn on a later edit` and `a sale Filled before the record began, already held as pending, still earns once paid`.
 
 ## A8-8: a delayed retry can put a declined request back in the owner's queue
@@ -48,7 +48,7 @@ Migration `worker/migrations/0148_host_credit_fills_and_request_keys.sql` (also 
 - Changed: `POST /api/me/tea-credit/orders/:id/use` reads `Idempotency-Key` (printable characters only, at most 200). It stores the key on the request, with a unique index per shop, host and order. A replay returns the original request with 200 and `replayed: true`, whatever became of it, and a race between two replays returns the winner's request. A deliberate new request with its own key is a new request.
 - Proof: `a delayed keyed retry cannot reopen a declined spend` (now passes; it also checks that a new key makes a new request). The new `two keyed replays at once make one request`.
 - Test changed: the `it.each` case `replaying a use request with key %s while held cannot reserve twice` expected 409 for a keyed replay as well. That 409 was the finding's evidence that keys were ignored, so it is now two cases. Without a key, a replay still answers 409. With a key, it answers 200 with the original request. In both cases there is only one request row.
-- Not changed, and needs your decision: the site's `hostCreditApi.useOnOrder` (`src/lib/hostCreditApi.ts`) sends no key yet, so until it does, the protection covers only clients that send one. The change I need is `useOnOrder: (invoiceId: string, requestKey?: string)`, sending `Idempotency-Key: requestKey` when it is given, with the caller making one key per press of "Use my tea credit" and reusing it on a retry. I left it alone because that file is outside what I own.
+- The site sends the key (the coordinator's commit eb8ce3d). `TeaCreditPage.tsx` keeps one key per order in a ref, reused on a retry and cleared on success or on a definite 4xx refusal.
 
 ## A8-9: voiding an order leaves unapproved credit held against it
 
@@ -69,5 +69,14 @@ Migration `worker/migrations/0148_host_credit_fills_and_request_keys.sql` (also 
 ## Gaps worth knowing
 
 - **First Fill while closed.** The first-Fill stamp relies on every Fill path calling `settleHostCredit` afterwards, which they all do today. If a future Fill path skips it, the next settle while open stamps that order as Filled while open.
-- **Migration number.** 0148 was free on every remote branch when I checked. Another fixer working in parallel could take the same number.
+- **Migration number.** 0148 was taken on main (`0148_freight_service.sql`), so this is 0149.
 - **Pre-existing failures.** `review-older-data.test.ts` and `review-one-fact-every-door.test.ts` fail 9 cases both with and without this change. Those cases belong to other findings.
+
+## After the independent reread
+
+- **F1, an order settled by credit could not ship.** `settledUsd` and `settledUsdSql` in `worker/src/invoiceDomain.ts` count cash plus approved credit. They are now used by `deductStockForPaidInvoice` (`worker/src/orderLifecycle.ts`), the balance check and the guarded update in `ship-invoice` (`worker/src/index.ts`), and the one guarded ship update in `worker/src/mcp.ts` (that line plus its import, nothing else). An approval that settles the order runs `applyConfirmedPaymentStock`, and the decision answer carries `stock`. Proof: `an order settled by tea credit alone takes its stock and ships` and `an order settled by tea credit plus cash takes its stock and ships`. The refund checks that ask whether any cash came in are left on cash.
+- **F2, an old Fill counted again.** The third trigger, described above.
+- **F3, a replaced line counted twice.** The waiting balance counts pending rows only for lines still on the order. Proof: `the waiting balance counts only lines still on the order`.
+- **F4, a retry made a new request.** Fixed in `src/pages/TeaCreditPage.tsx`, as described under A8-8.
+- **F5.** The migration is renamed to 0149.
+- Because a credit-settled order now has its stock taken, voiding one goes through its cancel action, as for any paid order. `Void of the redemption order currently leaves approved credit spent` now cancels through `rpc/cancel-invoice` and still shows the spend kept.

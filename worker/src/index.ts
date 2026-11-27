@@ -141,6 +141,8 @@ import {
   loadLedgerInvoice,
   reconcileLedgerWithColumn,
   recomputeInvoicePaymentStatus,
+  settledUsd,
+  settledUsdSql,
   validateRetailInvoiceInput,
   validateShippingCostUsd,
   validatePaymentStatusValue,
@@ -7119,7 +7121,7 @@ const handleShipInvoice: Handler = async (request, env) => {
   if (invoice.shipping_quote_status === 'requested') return restError(409, 'Confirm the shipping charge before dispatch. Tea payment does not cover shipping.', 'shipping_quote_required');
   const priced = await loadLedgerInvoice(env, invoiceId, ctx.accountId);
   const ledger = await loadInvoiceLedgerTotals(env, [invoiceId]);
-  if (!priced || (ledger.get(invoiceId)?.paid_usd ?? 0) < priced.total_usd - PAYMENT_EPSILON) {
+  if (!priced || settledUsd(ledger.get(invoiceId)) < priced.total_usd - PAYMENT_EPSILON) {
     return restError(409, 'The current balance must be paid before shipping', 'balance_due');
   }
   if (invoice.status !== 'Pending') return restError(409, 'The order is not ready to ship', 'not_ready_to_ship');
@@ -7141,8 +7143,7 @@ const handleShipInvoice: Handler = async (request, env) => {
      WHERE id=? AND account_id=? AND status='Pending' AND inventory_deducted=1
        AND COALESCE(shipping_quote_status,'confirmed')!='requested'
        AND fulfillment_claim_token IS NULL
-       AND COALESCE((SELECT SUM(amount_usd) FROM invoice_payments
-         WHERE invoice_id=invoices.id AND account_id=invoices.account_id AND status='confirmed'),0)
+       AND ${settledUsdSql('invoices')}
          >= COALESCE((SELECT SUM(quantity*price_at_sale) FROM invoice_line_items
          WHERE invoice_id=invoices.id AND account_id=invoices.account_id),0)
          + COALESCE(shipping_cost_usd,0) - 0.01`
@@ -25652,6 +25653,14 @@ const handleDecideHostCreditSpend: Handler = async (request, env, params) => {
         confirmOverCeiling: body?.confirm_over_ceiling === true,
       })
     : await declineHostCreditSpend(env, { accountId: ctx.accountId, requestId: params.id, approverUserId: ctx.userId });
+  if (decision.ok && decision.settled) {
+    // Credit that settles the order takes its stock, as a confirmed payment does.
+    const { settled, ...answer } = decision;
+    const stock = settled.payment_status === 'paid'
+      ? await applyConfirmedPaymentStock(env, settled.invoice_id, ctx)
+      : { state: 'not_due' as const };
+    return json({ ...answer, stock });
+  }
   if (decision.ok) return json(decision);
   return restError(decision.error === 'not_found' ? 404 : 409, decision.message, `host_credit_${decision.error}`);
 };

@@ -171,6 +171,32 @@ it('approving tea credit reduces the amount due for the tea', async () => {
   expect(rows("SELECT COUNT(*) AS n FROM invoice_payments WHERE invoice_id='redeem'")).toEqual([{ n: 0 }]);
 });
 
+// F1: an order settled by credit takes its stock and ships, alone or with cash.
+it('an order settled by tea credit alone takes its stock and ships', async () => {
+  const id = await held();
+  const approved = await decide(id);
+  expect(approved.status).toBe(200);
+  expect(approved.data.stock).toMatchObject({ state: 'deducted' });
+  expect(rows("SELECT inventory_deducted FROM invoices WHERE id='redeem'")).toEqual([{ inventory_deducted: 1 }]);
+  const shipped = await call('POST', 'rpc/ship-invoice', { body: { invoice_id: 'redeem' } });
+  expect(shipped.status, JSON.stringify(shipped.data)).toBe(200);
+  expect(rows("SELECT status FROM invoices WHERE id='redeem'")).toEqual([{ status: 'Filled' }]);
+});
+
+it('an order settled by tea credit plus cash takes its stock and ships', async () => {
+  db.sqlite.exec("UPDATE invoices SET shipping_cost_usd=5 WHERE id='redeem'");
+  const id = await held();
+  const approved = await decide(id);
+  expect(approved.data.stock).toMatchObject({ state: 'not_due' });
+  expect((await call('POST', 'rpc/ship-invoice', { body: { invoice_id: 'redeem' } })).data.code).toBe('balance_due');
+  const cash = await call('POST', 'invoices/redeem/payments', { body: { amount_usd: 5 } });
+  expect(cash.status, JSON.stringify(cash.data)).toBeLessThan(300);
+  expect(cash.data).toMatchObject({ payment_status: 'paid', stock: { state: 'deducted' } });
+  const shipped = await call('POST', 'rpc/ship-invoice', { body: { invoice_id: 'redeem' } });
+  expect(shipped.status, JSON.stringify(shipped.data)).toBe(200);
+  expect(rows("SELECT status FROM invoices WHERE id='redeem'")).toEqual([{ status: 'Filled' }]);
+});
+
 it('credit on part of an order leaves the rest owing, in cash', async () => {
   db.sqlite.exec("UPDATE invoices SET shipping_cost_usd=5 WHERE id='redeem'");
   const id = await held();
@@ -236,7 +262,11 @@ it('a hold left on a voided order before the fix is released when credit is next
 it('Void of the redemption order currently leaves approved credit spent', async () => {
   const id = await held();
   expect((await decide(id)).status).toBe(200);
-  expect((await voidOrder('redeem')).status).toBe(200);
+  // Settled by credit, its stock is taken (F1), so it is cancelled through its own action, as a paid order is.
+  expect((await voidOrder('redeem')).data.code).toBe('paid_order_status_locked');
+  const cancelled = await call('POST', 'rpc/cancel-invoice', { body: { invoice_id: 'redeem' } });
+  expect(cancelled.status, JSON.stringify(cancelled.data)).toBe(200);
+  expect(rows("SELECT status FROM invoices WHERE id='redeem'")).toEqual([{ status: 'Void' }]);
   expect((await mine()).balances[0]).toMatchObject({ available: 0, spent: 10, debt: 0 });
 });
 
@@ -298,7 +328,7 @@ it('a sale Filled while closed never earns, even reopened and Filled again while
 });
 
 it('a sale Filled before the record began does not earn on a later edit', async () => {
-  // The old shape: Filled with no first-Fill row, as every order Filled before 0148 is.
+  // The old shape: Filled with no first-Fill row, as every order Filled before 0149 is.
   db.sqlite.exec("UPDATE invoices SET status='Filled' WHERE id='sale'; DELETE FROM host_credit_fills");
   expect((await update('sale', { notes: 'Packed' })).status).toBe(200);
   expect(ledger()).toEqual([]);
@@ -312,6 +342,27 @@ it('a sale Filled before the record began, already held as pending, still earns 
     VALUES ('old-pending','shop','host','pending',10,'USD','q-sale','sit','sale','line-sale','tea',100,'USD','system')`);
   expect((await update('sale', { payment_status: 'paid' })).status).toBe(200);
   expect(ledger().filter(r => r.kind === 'earned').map(r => r.amount)).toEqual([10]);
+});
+
+// F2: Filled before 0149, reopened and Filled again after credit opens: never earns.
+it('a sale Filled before the record began, reopened and Filled again while open, does not earn', async () => {
+  // The old shape: Filled with no first-Fill row and no credit rows.
+  db.sqlite.exec("UPDATE invoices SET status='Filled' WHERE id='sale'; DELETE FROM host_credit_fills");
+  expect((await update('sale', { status: 'Pending' })).status).toBe(200);
+  expect(rows("SELECT credit_open FROM host_credit_fills WHERE invoice_id='sale'")).toEqual([{ credit_open: 0 }]);
+  expect((await fill()).status).toBe(200);
+  expect(ledger()).toEqual([]);
+});
+
+// F3: a line replaced while reopened is not counted as waiting twice.
+it('the waiting balance counts only lines still on the order', async () => {
+  expect((await update('sale', { status: 'Filled', payment_status: 'unpaid' })).status).toBe(200);
+  expect((await mine()).balances[0].pending).toBe(10);
+  expect((await update('sale', { status: 'Pending' })).status).toBe(200);
+  expect((await edit('sale', 100)).status).toBe(200);
+  expect((await update('sale', { notes: 'New line' })).status).toBe(200);
+  expect(ledger().filter(r => r.kind === 'pending')).toHaveLength(2);
+  expect((await mine()).balances[0].pending).toBe(10);
 });
 
 it('identical sales Filled while closed have equal credit after reopening', async () => {

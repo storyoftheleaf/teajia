@@ -228,6 +228,23 @@ export async function loadInvoiceLedgerTotals(
 }
 
 /**
+ * What has settled an order: confirmed cash plus approved tea credit. Every
+ * "is this paid enough to take stock or ship" check reads this, never cash
+ * alone, so an order settled by credit moves on like one paid in cash.
+ */
+export function settledUsd(totals: InvoiceLedgerTotals | undefined): number {
+  return roundUsd((totals?.paid_usd ?? 0) + (totals?.credit_usd ?? 0));
+}
+
+/** The same, as SQL over an invoices alias, for guarded writes that recheck it in the statement. */
+export function settledUsdSql(invoice: string): string {
+  return `(COALESCE((SELECT SUM(sp.amount_usd) FROM invoice_payments sp
+      WHERE sp.invoice_id = ${invoice}.id AND sp.account_id = ${invoice}.account_id AND sp.status = 'confirmed'), 0)
+    + COALESCE((SELECT SUM(sc.amount) FROM host_credit_entries sc
+      WHERE sc.invoice_id = ${invoice}.id AND sc.account_id = ${invoice}.account_id AND sc.kind = 'spent' AND sc.currency = 'USD'), 0))`;
+}
+
+/**
  * The three numbers plus the pending count, for one invoice.
  *
  * The ledger is the record of what has been received. `invoices.payment_status`
