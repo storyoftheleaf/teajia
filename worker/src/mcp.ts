@@ -54,6 +54,7 @@ import { curateSupplyTools } from './mcpTools/curateSupply';
 import { curatePhotoTools } from './mcpTools/curatePhotos';
 import { curateArrivalTools } from './mcpTools/curateArrivals';
 import { orderTrackingTools } from './mcpTools/orderTracking';
+import { priceLinkTools } from './mcpTools/priceLinks';
 import { purchaseArrivalTools } from './mcpTools/purchaseArrivals';
 import { curateAttachmentTools } from './mcpTools/curateAttachments';
 import { curateManageModule } from './mcpTools/curateManage';
@@ -65,7 +66,7 @@ import { stockCountTools } from './mcpTools/stockCount';
 import { supplierPhotoTools } from './mcpTools/supplierPhoto';
 import { curateDisplayNameTools } from './mcpTools/curateDisplayNames';
 import { teaPageContentTools } from './mcpTools/teaPageContent';
-import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService } from './mcpTools/registry';
+import type { CurateReceiptService, HostSeatService, InventoryReceiptService, Launch3Services, StockMovementService, ToolEnv } from './mcpTools/registry';
 import { freightFor, shippingPerGramUsd } from './shippingRate';
 import { accountFreightDefaults } from './productPricing';
 import { isShopOwner, tastingWithoutScores } from './publicScores';
@@ -128,6 +129,7 @@ type Env = {
   curateReceipts?: CurateReceiptService;
   inventoryReceipts?: InventoryReceiptService;
   stockMovements?: StockMovementService;
+  invoicePayLinks?: ToolEnv['invoicePayLinks'];
   hostSeats?: HostSeatService;
   launch3?: Launch3Services;
   JWT_SECRET: string;
@@ -6534,7 +6536,7 @@ const TOOL_DEFS: ToolDefinition[] = [
         quantity_purchased: { type: 'number', description: 'Total grams purchased (e.g. 2490 for 7 x 357g cakes, 1000 for 1kg).' },
         year: { type: 'number', description: 'The year of the tea (e.g. 2025, 2019). Maps to the reference year.' },
         status: { type: 'string', description: 'Product status, e.g. Active or Sold Out. Keeps products + listing in sync.' },
-        shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg folded into the COST basis, so the markup multiplies it too. Written in the tea\'s OWN cost currency, not USD: on a tea bought in CNY, pass the CNY rate. Setting it PINS this tea to that figure; to hand it back to the shop rate (85 Yuan/kg, converted live) pass "shipping_rate_per_kg" in clear_fields instead. Not a separate sales charge.' },
+        shipping_rate_per_kg: { type: 'number', description: 'Shipping freight per kg, added to the price at cost after the markup (price = leaf cost x3 + freight), never multiplied. Written in the tea\'s OWN cost currency, not USD: on a tea bought in CNY, pass the CNY rate. Setting it PINS this tea to that figure; to hand it back to the shop rate (85 Yuan/kg, converted live) pass "shipping_rate_per_kg" in clear_fields instead. Not a separate sales charge.' },
         tasting_notes: { type: 'array', items: { type: 'string' }, description: 'Flavor/taste terms for the catalog tasting field (NOT the description). Up to 8.' },
         description: { type: 'string', description: 'Customer-facing "About this tea" (origin/character — NOT flavors; personal note space, shows only when present).' },
         lore: { type: 'string', description: 'Real, sourced historical/cultural background (terse, never fabricated).' },
@@ -7234,6 +7236,7 @@ const TOOL_MODULES: ToolModule[] = [
   curatePhotoTools,
   curateArrivalTools,
   orderTrackingTools,
+  priceLinkTools,
   purchaseArrivalTools,
   logisticsTools,
   logisticsTrackingTools,

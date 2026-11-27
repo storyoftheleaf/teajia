@@ -1,4 +1,4 @@
-import { isTeaType } from '../../src/wisdom/vocabulary';
+import { isStoredTeaType } from '../../src/wisdom/vocabulary';
 
 /* ── Currency canonicalization ──
    The map moved to `src/lib/currency.ts` so the admin reads the same one. It
@@ -172,7 +172,7 @@ export async function authorizeInvoiceLines(env: { DB: D1Database }, input: {
       throw new SalesInvariantError(503, 'sales_authorization_unavailable');
     }
     if (!product) throw new SalesInvariantError(404, 'product_not_found', { product_id: line.product_id });
-    if (product.status !== 'Active' || (!isTeaType(String(product.type ?? '')) && product.type !== 'Teaware')) {
+    if (product.status !== 'Active' || (!isStoredTeaType(String(product.type ?? '')) && product.type !== 'Teaware')) {
       throw new SalesInvariantError(400, 'product_not_sale_eligible', { product_id: line.product_id });
     }
     const quantityUnit=product.type==='Teaware'?'unit':'g';
