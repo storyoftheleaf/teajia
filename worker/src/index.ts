@@ -1,6 +1,6 @@
 import { casualSitPublicationRoutes } from './casualSitPublications';
 import { invoiceKeptBy, keepInvoiceForUser, sendsInvoice } from './payInvoiceKeep';
-import { discountPercent, readInvoiceDiscount, writeInvoiceDiscount } from './invoiceDiscount';
+import { discountPercent, isDiscountLine, readInvoiceDiscount, writeInvoiceDiscount } from './invoiceDiscount';
 import { listMyBoughtTeas } from './myBoughtTeas';
 import { freightRateWriteRefusal } from './freightRateDoor';
 import { publicSitRoutes, publishedSitRecap } from './publicSitConnections';
@@ -4769,6 +4769,7 @@ async function resolveInvoicePayments(
          LEFT JOIN products p ON p.id = li.product_id
         WHERE li.invoice_id IN (${ids.map(() => '?').join(', ')})
           AND (p.id IS NULL OR p.type IS NULL OR p.type != 'Teaware')
+          AND NOT (li.product_id IS NULL AND li.custom_name LIKE 'Discount %' AND li.price_at_sale < 0)
         GROUP BY li.invoice_id`
     ).bind(...ids).all();
     for (const row of (teaRows.results ?? []) as Array<Record<string, any>>) {
@@ -6474,7 +6475,7 @@ const handleUpdateInvoice: Handler = async (request, env, params, execution) => 
       // operator decide, rather than sending it quietly.
       if (body.allow_unpriced_lines !== true) {
         const unpriced = ((current.results ?? []) as Array<Record<string, any>>)
-          .filter(line => !(Number(line.price_at_sale) > 0));
+          .filter(line => !isDiscountLine(line) && !(Number(line.price_at_sale) > 0));
         if (unpriced.length > 0) {
           const names = await namesForLines(env, accountId, unpriced);
           await releaseInvoiceLinkLease(env, accountId, params.id, editClaim);

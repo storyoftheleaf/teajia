@@ -108,3 +108,18 @@ describe('a discount on an invoice', () => {
     expect(total(db)).toBe(262.35);
   });
 });
+
+describe('a discount line among the invoice\'s other lines', () => {
+  it('passes the line checks that send, ship and edit an invoice run, and nothing else may be negative', async () => {
+    const { authorizeInvoiceLines } = await import('../src/teaMasterSales');
+    const { validateRetailInvoiceInput } = await import('../src/invoiceDomain');
+    const discount = { product_id: null, custom_name: 'Discount 10%', quantity: 1, price_at_sale: -5 };
+    const input = { customer_name: 'A', lineItems: [{ product_id: null, custom_name: 'Gift', quantity: 1, price_at_sale: 50 }, discount] };
+    expect(() => validateRetailInvoiceInput(input)).not.toThrow();
+    expect(() => validateRetailInvoiceInput({ ...input, lineItems: [{ ...discount, custom_name: 'Refund' }] })).toThrow();
+    const db = new SqliteD1('schema'); databases.push(db);
+    const base = { accountId: 'a', actorUserId: 'u', actorRole: 'owner' };
+    await expect(authorizeInvoiceLines({ DB: db as any }, { ...base, lines: [discount] as any })).resolves.toHaveLength(1);
+    await expect(authorizeInvoiceLines({ DB: db as any }, { ...base, lines: [{ ...discount, custom_name: 'Refund' }] as any })).rejects.toThrow();
+  });
+});
