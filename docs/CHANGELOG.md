@@ -1,3 +1,6 @@
+## 2026-11-27: Price links for agents
+
+Two agent tools in `worker/src/mcpTools/priceLinks.ts`, so anyone can show a friend what some teas cost without touching stock. `draft_invoice` writes a Draft invoice (inventory not deducted, unpaid) and returns its pay link from `resolveInvoicePayment`; `share_collection_link` opens a private person link to a collection at `/c/<slug>` and never publishes to the shop. Fixed: invoice lines refused every tea stored as "Sheng Puer" or "Shou Puer", because `authorizeInvoiceLines` read the short type words only; it now reads `isStoredTeaType`. The `update_tea_pricing` freight description now says freight is added at cost. Guard: `worker/tests/price-link-tools.test.ts`.
 ## 2026-11-27: Freight rates live in Logistics
 
 Every freight rate is typed in Logistics services on the Purchases page and nowhere else. No tea's price moves.
