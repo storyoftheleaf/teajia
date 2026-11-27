@@ -1,3 +1,7 @@
+## 2026-11-27: Add to Stock brings the quote's amount and cost; a tasting takes its leaf off Stock
+
+Intake plan step 4. A new Stock tea still starts empty, because a quote is not a count or a paid cost. Now the Library card offers the supplier quote's grams and cost, with its currency, filled in for Adrian to change or confirm. Save writes the grams as a recount and the cost with its currency (`src/components/curate/StockFromQuote.tsx`). When a tasting of a tea in working Stock is saved, the card asks afterwards, never during the session, how much leaf was used. That amount comes off Stock as a tasting use, and leaving it empty takes nothing (`src/components/curate/LeafUsedAfterTasting.tsx`). Samples are never asked to be weighed.
+
 ## 2026-11-27: Talk to a tea in the Library, and talk through several teas at once
 
 Intake plan step 3. Every Library tea card has a mic beside its menu: one tap opens the tea on its Notes tab and starts the recorder there, so a tea already in the Library can be talked to (`src/components/curate/recordOnOpen.ts`). Import has a Talk button (`src/components/curate/ImportTalkButton.tsx`) that writes what is said into the Import text, so one spoken note naming several teas goes through Start import and comes back as separate teas, each waiting to be confirmed. Bring in lists this as "Several teas at once".
