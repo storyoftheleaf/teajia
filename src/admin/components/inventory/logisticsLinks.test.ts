@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { purchaseHref, serviceConnections, serviceHref, shipmentHref, teaHref, teaShipments } from './logisticsLinks';
+import { purchaseHref, serviceConnections, serviceHref, shipmentHref, shippingRatesHref, shopDefaultHref, teaHref, teaShipments } from './logisticsLinks';
 
 const line = (product_id: string, available = 0) => ({ id: `l-${product_id}`, product_id, product_name: product_id, unit: 'g', expected_quantity: 1, received_quantity: 0, cancelled_quantity: 0, available_quantity: available, original_cost_amount: null, original_cost_currency: null, image_url: null, source_url: null });
 const order = (purchase_id: string, company: string, available: number) => ({ purchase_id, receipt_id: null, vendor_name: purchase_id, logistics_company_id: company, logistics_company_name: company, inbound_courier: null, inbound_tracking_number: null, logistics_arrived_at: null, lines: [line('tea', available)] });
@@ -16,6 +16,8 @@ describe('freight connections are links both ways', () => {
     expect(purchaseHref('p1')).toBe('/admin/purchase-orders?purchaseId=p1');
     expect(shipmentHref('s1')).toBe('/admin/purchase-orders?shipmentId=s1');
     expect(serviceHref('air')).toBe('/admin/purchase-orders?serviceId=air');
+    expect(shopDefaultHref).toBe('/admin/purchase-orders?serviceId=shop');
+    expect(shippingRatesHref).toBe('/admin/purchase-orders?rates=open');
   });
   it('a service lists its company\'s waiting orders, its own shipments newest first, and the teas it prices', () => {
     const c = serviceConnections({ id: 'air', logistics_company_id: 'gz' }, tracking, [{ id: 'tea', freightServiceId: 'air', givenName: 'Velvet' }, { id: 'oolong', freightServiceId: 'sea', productName: 'Oolong' }]);

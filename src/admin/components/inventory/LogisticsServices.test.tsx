@@ -23,6 +23,12 @@ describe('saved logistics services', () => {
     expect(html).toContain('Shop default');
     expect(html).toContain('+ My suitcase');
   });
+  it('is called Shipping rates and says how a tea is charged (Adrian, 2026-11-27)', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const html = renderToStaticMarkup(<MemoryRouter initialEntries={['/admin/purchase-orders?serviceId=shop']}><QueryClientProvider client={client}><LogisticsServices services={[service]} accountId="shop" busy={false} mutate={async action => { await action(); }}/></QueryClientProvider></MemoryRouter>);
+    expect(html).toContain('aria-label="Shipping rates"');
+    expect(html).toContain('Every tea pays the shop default, unless it travels by one of the services below.');
+  });
   it('offers My suitcase only until an active one exists', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const html = renderToStaticMarkup(<MemoryRouter><QueryClientProvider client={client}><LogisticsServices services={[{ ...service, id: 'bag', name: 'My suitcase', rate: 0 }]} accountId="shop" busy={false} mutate={async action => { await action(); }}/></QueryClientProvider></MemoryRouter>);

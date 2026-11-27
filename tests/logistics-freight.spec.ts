@@ -32,7 +32,8 @@ test('Logistics holds the shop default and adds My suitcase as an ordinary servi
   });
 
   await page.goto('/admin/purchase-orders');
-  await page.getByRole('button', { name: 'Logistics services' }).click();
+  await page.getByRole('button', { name: 'Shipping rates' }).click();
+  await expect(page).toHaveURL(/rates=open/);
   const shopDefault = page.getByTestId('shop-freight-default');
   await expect(shopDefault).toContainText('Shop default');
   await expect(shopDefault).toContainText('85 Yuan/kg');
@@ -67,6 +68,45 @@ test('Logistics holds the shop default and adds My suitcase as an ordinary servi
   expect(writes.filter(w => w.url === '/api/logistics/services').at(-1)?.body).toMatchObject({ logistics_company_name: 'Keelung Sea Freight', name: 'Air', mode: 'air', basis: 'kg', rate: 12, currency: 'Yuan' });
   await page.waitForTimeout(300);
   await page.screenshot({ path: info.outputPath('logistics-services.png') });
+});
+
+test('"shop default" on a tea opens Shipping rates with the shop default form ready (Adrian, 2026-11-27)', async ({ page }, info) => {
+  const today = new Date().toISOString();
+  await installCompassHarness(page, {
+    rates: [{ currency: 'USD', rate_to_usd: 1, last_updated: today }, { currency: 'Yuan', rate_to_usd: 7, last_updated: today }],
+    products: [{ id: 'aged', product_name: 'Aged Shui Xian', type: 'Oolong', stock_grams: 100, shipping_rate_per_kg: 12 }],
+  });
+  const services = [{ id: 'air', logistics_company_id: 'gz', logistics_company_name: 'Guangzhou Forwarder', name: 'Airmail', mode: 'air', basis: 'kg', rate: 60, currency: 'Yuan', active: true }];
+  const proposal = (id: string, vendor: string, name: string, quantity: number, state: string) => ({ id: `proposal:${id}`, purchase: null, receipt: null, invoice_draft: null, history: [], source_document: null,
+    attention: [{ code: 'legacy_arrival', message: 'On the way.' }],
+    arrival_proposal: { id, vendor_name: vendor, tea_name: name, quantity, unit: 'g', acquisition_state: state, compass_entry_id: `entry-${id}`, status: 'pending' } });
+  await page.route('**/api/purchase-orders/tracking', route => route.fulfill({ json: { rows: [
+    proposal('a', 'Jingpintang', '30-Year Aged Fenghuang Shui Xian', 1400, 'in_transit'),
+    proposal('b', 'Jingpintang', '12-Year Aged Baxian Young Twig', 500, 'in_transit'),
+    proposal('c', 'Lao Tongzhi Puer', 'Wuliang Mountain Ripe', 1071, 'ordered'),
+  ] } }));
+  await page.route('**/api/logistics', route => route.fulfill({ json: { orders: [], shipments: [], addresses: [], services } }));
+  await page.route('**/api/accounts/acct-bali', route => route.fulfill({ json: { id: 'acct-bali', default_shipping_rate_per_kg: 85, default_shipping_rate_currency: 'Yuan' } }));
+
+  await page.goto('/admin/purchase-orders');
+  const arrivals = page.getByTestId('arrivals-on-the-way');
+  await expect(arrivals).toContainText('On the way, not yet in stock', { timeout: 20_000 });
+  await expect(arrivals.getByRole('link', { name: '30-Year Aged Fenghuang Shui Xian' })).toHaveAttribute('href', '/admin/compass?entry=entry-a');
+  await expect(page.getByText('agent review')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Shipping rates' })).toContainText('85 Yuan/kg');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: info.outputPath('purchases-on-the-way.png') });
+
+  await page.goto('/admin/purchase-orders?serviceId=shop');
+  const shopDefault = page.getByTestId('shop-freight-default');
+  await expect(shopDefault.getByRole('textbox', { name: 'Shop default rate' })).toHaveValue('85', { timeout: 20_000 });
+  await expect(page.getByTestId('shipping-rates-rule')).toContainText('Every tea pays the shop default');
+  await expect(page.getByTestId('teas-with-own-rate')).toContainText('Aged Shui Xian');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: info.outputPath('shipping-rates-shop-default.png') });
+  // Back closes it: the panel is a step in the address.
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page).not.toHaveURL(/serviceId/);
 });
 
 test('a service links to its orders, shipments and teas, and a link opens it again', async ({ page }, info) => {

@@ -6,6 +6,7 @@ import { useRates, useShopFreightDefault, teaFallbackFreightUsd } from '../../..
 import type { Product } from '../../../types';
 import { SHOP_MARKUP_MULTIPLIER } from '../../../../lib/markup';
 import { clearPriceLine, freightClearPreview } from './freightModel';
+import { shippingRatesHref, shopDefaultHref } from '../logisticsLinks';
 
 // Freight on the phone tools. Read-only (Adrian, 2026-11-27): rates are typed
 // only in Logistics on the Purchases page. A tea that already carries its own
@@ -54,7 +55,7 @@ export function FreightSheet({ product, onSave, onClose }: FreightSheetProps) {
         </div>}
         {saveError && <p role="alert" className={`${T.link} text-tea-text-sec`}>{saveError}</p>}
         {ownRate && <button type="button" onClick={clear} disabled={saving} className={`${T.nav} min-h-tap w-full rounded-md cta-solid px-4 py-3 disabled:opacity-50`}>{saving ? 'Clearing…' : 'Clear this tea’s rate'}</button>}
-        <Link to="/admin/purchase-orders" onClick={onClose} className={`${T.link} tap-target inline-block text-tea-gold`}>Rates are set in Logistics</Link>
+        <Link to={product.freightSource && product.freightSource !== 'shop' ? shippingRatesHref : shopDefaultHref} onClick={onClose} className={`${T.link} tap-target inline-block text-tea-gold`}>Shipping rates</Link>
       </>}
     </div>
   </BottomSheet>;
