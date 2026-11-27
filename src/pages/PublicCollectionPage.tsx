@@ -12,6 +12,7 @@ import {
   type LinkTeaDetailFields, type LinkTeaSource,
 } from '../components/shop/linkTea';
 import { LinkTeaPage, LinkTeaTop } from '../components/shop/LinkTeaPage';
+import { useOpenLinkTea } from '../components/shop/useOpenLinkTea';
 import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { TeaLedger, type TeaLedgerGroup } from '../components/shop/TeaLedger';
 import { weighOptions, startingIndex, type WeighOption } from '../components/shop/TeaWeighControl';
@@ -183,7 +184,7 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
   const collectionTopLine = `Chosen for you by ${curatorFirstName} · ${collection.title}`;
   const visible = useMemo(() => items.filter(i => i.product_status === 'Active'), [items]);
   const slug = data.publication.slug;
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const { openId: openTea, open: openLinkTea, close: closeLinkTea } = useOpenLinkTea();
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
   const shopPrice = useShopPrice();
   const favoriteTeas = useAppStore(s => s.favoriteTeas);
@@ -322,7 +323,7 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
             formatPrice={shopPrice.symbolTotal}
             favoriteIds={favoriteIds}
             onToggleFavorite={(id, event) => { event.stopPropagation(); toggleFavoriteTea(id); }}
-            onOpenProduct={tea => { const it = byProduct.get(tea.id); if (it) setDetailId(it.id); }}
+            onOpenProduct={tea => { const it = byProduct.get(tea.id); if (it) openLinkTea(it.product_id); }}
             onAddToCart={onAddToCart ? (tea, grams, total) => { const it = byProduct.get(tea.id); if (it) addFromLink(it, grams, total); } : undefined}
             weighOptionsFor={tea => { const it = byProduct.get(tea.id); return it ? linkWeighOptions(it) : undefined; }}
           />
@@ -332,21 +333,21 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
       {/* The open tea is the shop's own tea page, everything written for it in
           the store. Its footer is this link's: the amount, the link's price,
           and Add to cart. The sender's note sits above it. */}
-      {detailId && (() => {
-        const focused = visible.find(it => it.id === detailId);
+      {openTea && (() => {
+        const focused = visible.find(it => it.product_id === openTea);
         const card = focused ? shelfItems.find(c => c.id === focused.product_id) : undefined;
         if (!focused || !card) return null;
         return (
           <LinkTeaPage
             item={card}
-            onClose={() => setDetailId(null)}
+            onClose={closeLinkTea}
             footer={(
               <CardFooter
                 item={focused}
                 ctx={ctx}
                 formatPrice={shopPrice.symbolTotal}
                 onAdd={addFromLink}
-                onOpenCart={onOpenCart ? () => { setDetailId(null); onOpenCart(); } : undefined}
+                onOpenCart={onOpenCart ? () => { closeLinkTea(); onOpenCart(); } : undefined}
               />
             )}
             top={<LinkTeaTop line={collectionTopLine} note={focused.item_note} noteBy={curatorFirstName} />}

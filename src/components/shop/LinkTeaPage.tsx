@@ -8,11 +8,11 @@ import type { InventoryItem } from '../../types';
  * is the store's own product page, the same component /shop/product/:id
  * renders, with the link's own bit on top (Adrian, 2026-11-27: "have it be the
  * store, just add an extra bit on top of it"). It opens over the link and
- * Back closes it. The link brings its own order footer, or none on an
- * invoice, where paying happens on the link itself. A private tea the shop
- * does not list opens from what the link carries.
+ * Back closes it. A collection brings its own order footer at its own price;
+ * an invoice's tea keeps the shop's own, to get more of it. A private tea the
+ * shop does not list opens from what the link carries, with no footer.
  */
-export function LinkTeaPage({ item, onClose, footer = null, top }: {
+export function LinkTeaPage({ item, onClose, footer, top }: {
   item: InventoryItem;
   onClose: () => void;
   footer?: React.ReactNode;
