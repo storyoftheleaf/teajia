@@ -47,6 +47,8 @@ interface ProductPageProps {
     top?: React.ReactNode;
     /** The tea is theirs on this link (an invoice): the line for the strip that is theirs, in place of `top`. */
     yoursLine?: string;
+    /** The sender's words about this tea, shown in that strip. */
+    yoursNote?: { text: string | null | undefined; by?: string };
     /** Added to the address they come back to after joining, so the link finishes what it started (an invoice keeps itself). */
     joinMarker?: string;
     /** The link's own order footer; null for none; left out, the shop's own for a tea the shop sells, none for a private one. */
@@ -191,12 +193,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
      * sent to a sign-up form mid-session.
      */
     if (!isAuthenticated) {
-      const back = tastingReturnPath(window.location.pathname, joinSearch());
+      const back = joinMarker ? tastingReturnPath(window.location.pathname, joinSearch()) : tastingReturnPath(window.location.pathname, window.location.search);
       navigate(`/signup?returnTo=${encodeURIComponent(back)}`);
       return;
     }
     setTastingItem(tasteItem);
-  }, [isAuthenticated, navigate, joinSearch]);
+  }, [isAuthenticated, navigate, joinSearch, joinMarker]);
 
   // The strip that is theirs: Photo opens the page's own photo door, Keep is
   // the page's own save. Signed out, either goes through joining and back here.
@@ -500,6 +502,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart, onCartCli
         ? (
           <YoursStrip
             line={yoursLine}
+            note={link?.yoursNote?.text}
+            noteBy={link?.yoursNote?.by}
             kept={favoriteTeas.includes(item.id)}
             {...(yoursActs ? {
               onTaste: () => handleTaste(item, 'notes'),

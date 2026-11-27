@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { X } from 'lucide-react';
+import { ChooseTeaLine } from '../shop/GuideStep';
 import { LinkTeaPage } from '../shop/LinkTeaPage';
 import { useOpenLinkTea } from '../shop/useOpenLinkTea';
 import { linkTeaInventoryItem, type LinkTeaSource } from '../shop/linkTea';
@@ -72,12 +72,7 @@ export function PayInvoiceTeas({ lines, invoiceNumber = null, onAddToCart, choos
   if (lines.length === 0) return null;
   return (
     <section aria-label="What this pays for" data-testid="pay-invoice-teas">
-      {choosing && (
-        <div className="flex items-center justify-between gap-3 rounded-md border border-tea-gold bg-tea-accent-sub px-4 py-2" role="status" data-testid="pay-taste-choose">
-          <span className="font-display text-ui-18 text-tea-text">Which one are you drinking?</span>
-          <button type="button" onClick={onChosen} aria-label="Not now" className="tap-target inline-flex items-center justify-center text-tea-text-sec hover:text-tea-text"><X size={16} /></button>
-        </div>
-      )}
+      {choosing && <ChooseTeaLine onCancel={onChosen} />}
       <TeaLedger
         groups={groups}
         activeType="All"

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Button } from '../shared/Button';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Banknote, Bookmark, Check, Coffee, Copy, Repeat } from 'lucide-react';
@@ -6,6 +7,7 @@ import { useAppStore } from '../../lib/store';
 import { authPagePath } from '../../lib/authNavigation';
 import { holdKeepTeaser, type KeepTeaser } from '../../lib/keepTeaser';
 import { keepPayInvoice } from '../../lib/payInvoiceKeepApi';
+import { GuideRow, GuideStep as Step } from '../shop/GuideStep';
 
 const KEEP_PARAM = 'keep';
 const TASTE_PARAM = 'choose';
@@ -96,49 +98,13 @@ export function PayInvoiceGuide({ slug, token, productIds, teaser, signedIn, kep
   const at = !paid ? 'pay' : !kept && !yoursToSend ? 'keep' : 'taste';
 
   return (
-    <nav aria-label="What comes next" className="mt-3" data-testid="pay-guide">
-      <ol className="relative mx-auto flex max-w-md items-start justify-between">
-        <li aria-hidden="true" className="absolute inset-x-10 top-6 border-t border-tea-border" />
+    <GuideRow testId="pay-guide">
         <Step label={paid ? 'Paid' : 'Pay'} done={paid} lit={at === 'pay'} icon={<Banknote size={20} aria-hidden="true" />} onClick={onPay} testId="pay-guide-pay" />
         <Step label={kept ? 'Kept' : state === 'saving' ? 'Keeping' : 'Keep'} done={kept} lit={at === 'keep'} disabled={yoursToSend || state === 'saving'} icon={<Bookmark size={20} aria-hidden="true" />} onClick={keep} testId="pay-guide-keep" />
         <Step label="Taste" lit={at === 'taste'} icon={<Coffee size={20} aria-hidden="true" />} onClick={() => { void taste(); }} testId="pay-guide-taste" />
         <Step label="Again" icon={<Repeat size={20} aria-hidden="true" />} to={kept ? '/shop?bought=1' : againPath} testId="pay-guide-again" />
-      </ol>
-      {error && <p role="alert" className="mt-2 text-center font-sans text-ui-12 text-tea-text-sec">{error}</p>}
-    </nav>
-  );
-}
-
-function Step({ label, icon, done = false, lit = false, disabled = false, onClick, to, testId }: {
-  label: string;
-  icon: ReactNode;
-  done?: boolean;
-  lit?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-  to?: string;
-  testId: string;
-}) {
-  const ring = done
-    ? 'cta-solid border-tea-gold'
-    : lit
-      ? 'border-tea-gold bg-tea-accent-sub text-tea-gold'
-      : 'border-tea-border bg-tea-bg text-tea-text-sec group-hover:border-tea-gold';
-  const body = (
-    <>
-      <span className={`flex h-12 w-12 items-center justify-center rounded-full border transition-colors ${ring}`}>
-        {done ? <Check size={20} aria-hidden="true" /> : icon}
-      </span>
-      <span className={`font-sans text-ui-12 ${lit || done ? 'text-tea-text' : 'text-tea-text-sec'}`}>{label}</span>
-    </>
-  );
-  const shape = 'group relative flex w-20 flex-col items-center gap-1.5';
-  return (
-    <li className="relative" data-testid={testId} data-state={done ? 'done' : lit ? 'lit' : 'ahead'}>
-      {to
-        ? <Link to={to} className={shape}>{body}</Link>
-        : <button type="button" onClick={onClick} disabled={disabled} aria-current={lit ? 'step' : undefined} className={shape}>{body}</button>}
-    </li>
+      {error && <li role="alert" className="basis-full pt-2 text-center font-sans text-ui-12 text-tea-text-sec">{error}</li>}
+    </GuideRow>
   );
 }
 
@@ -165,9 +131,9 @@ export function PayInvoiceAfter({ kept, yoursToSend = false, collection }: {
       {yoursToSend ? (
         <span className="flex flex-wrap items-center gap-3" data-testid="pay-yours-to-send">
           <span className="font-body text-ui-14 text-tea-text">This is your invoice to send.</span>
-          <button type="button" onClick={copy} className="btn-secondary tap-target shrink-0">
+          <Button variant="plain" type="button" onClick={copy} className="btn-secondary tap-target shrink-0">
             {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Link copied' : 'Copy the link'}
-          </button>
+          </Button>
         </span>
       ) : kept ? (
         <Link to="/shop?bought=1" className={quiet} data-testid="pay-your-teas">Your teas <ArrowRight size={12} /></Link>

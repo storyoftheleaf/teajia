@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Check, Plus, ArrowRight, Share2, Link2, Bookmark, MessageCircle, ShoppingBag } from 'lucide-react';
+import { Check, Plus, ArrowRight, Share2, Link2, Bookmark, Coffee, MessageCircle, ShoppingBag } from 'lucide-react';
 import { api } from '../lib/api';
 import { buildWhatsAppUrl } from '../lib/whatsapp';
 import { useAppStore } from '../lib/store';
@@ -11,7 +11,9 @@ import {
   LinkTeaEntry, linkTeaInventoryItem, useLinkTeaWriting,
   type LinkTeaDetailFields, type LinkTeaSource,
 } from '../components/shop/linkTea';
-import { LinkTeaPage, LinkTeaTop } from '../components/shop/LinkTeaPage';
+import { LinkTeaPage } from '../components/shop/LinkTeaPage';
+import { ChooseTeaLine, GuideRow, GuideStep } from '../components/shop/GuideStep';
+import { holdKeepTeaser } from '../lib/keepTeaser';
 import { useOpenLinkTea } from '../components/shop/useOpenLinkTea';
 import { CurrencySelect } from '../components/shop/CurrencySelect';
 import { TeaLedger, type TeaLedgerGroup } from '../components/shop/TeaLedger';
@@ -223,6 +225,28 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
     onOpenCart,
   };
 
+  // The guide's Keep and Taste. Signed in, the collection is already kept (the
+  // page marks it received), so Keep is done; signed out, either goes through
+  // joining, which shows these teas, and Taste comes back asking which one.
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const teaList = useRef<HTMLElement | null>(null);
+  const [choosing, setChoosing] = useState(false);
+  const startChoosing = () => { setChoosing(true); teaList.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const join = (thenChoose = false) => {
+    holdKeepTeaser({ path: `/c/${slug}`, from: curatorFirstName, teas: visible.map(it => ({ name: linkShelfItem(it).name })) });
+    navigate(authPagePath('signup', `/c/${slug}${thenChoose ? '?choose=1' : ''}`));
+  };
+  const cameBackToChoose = signedIn && params.get('choose') === '1';
+  useEffect(() => {
+    if (!cameBackToChoose) return;
+    const next = new URLSearchParams(params);
+    next.delete('choose');
+    setParams(next, { replace: true });
+    startChoosing();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameBackToChoose]);
+
   // The strip that keeps "made for you" in sight once the head scrolls away.
   const headRef = useRef<HTMLElement | null>(null);
   const [headGone, setHeadGone] = useState(false);
@@ -281,15 +305,6 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
             <h1 className="font-display text-ui-26 leading-[1.1] text-tea-text">{collection.title}</h1>
             {collection.note && <p className="mt-1.5 font-body text-ui-14 leading-[1.5] text-tea-text-sec italic max-w-[64ch]">{collection.note}</p>}
             <div className="mt-2 flex flex-wrap items-center gap-x-4 font-sans text-ui-12 text-tea-text-sec">
-              {signedIn ? (
-                <span className="inline-flex items-center gap-1.5" data-testid="collection-kept">
-                  <Check size={13} className="text-tea-gold" /> Kept in your account
-                </span>
-              ) : slug ? (
-                <Link to={authPagePath('signup', `/c/${slug}`)} className="tap-target inline-flex items-center gap-1.5 text-tea-text hover:text-tea-gold transition-colors" data-testid="collection-account-offer">
-                  <Bookmark size={13} /> Keep it in a free account
-                </Link>
-              ) : null}
               <button
                 type="button"
                 onClick={handleShare}
@@ -306,9 +321,19 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
             <img src={collection.hero_image_url} alt="" className="h-20 w-20 shrink-0 rounded-md object-cover md:h-24 md:w-24" loading="eager" />
           )}
         </header>
+        {visible.length > 0 && (
+          <GuideRow testId="collection-guide">
+            <GuideStep label={signedIn ? 'Kept' : 'Keep'} done={signedIn} lit={!signedIn} icon={<Bookmark size={20} aria-hidden="true" />} onClick={() => { if (!signedIn) join(); }} testId="collection-guide-keep" />
+            <GuideStep label="Taste" lit={signedIn} icon={<Coffee size={20} aria-hidden="true" />} onClick={() => { if (signedIn) startChoosing(); else join(true); }} testId="collection-guide-taste" />
+            {onOpenCart
+              ? <GuideStep label="Order" icon={<ShoppingBag size={20} aria-hidden="true" />} onClick={onOpenCart} testId="collection-guide-order" />
+              : <GuideStep label="Order" icon={<ShoppingBag size={20} aria-hidden="true" />} to="/shop" testId="collection-guide-order" />}
+          </GuideRow>
+        )}
       </div>
 
-      <section aria-label="The teas" className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-2 pb-10">
+      <section ref={teaList} aria-label="The teas" className="max-w-6xl mx-auto scroll-mt-4 px-4 md:px-6 lg:px-10 pt-2 pb-10">
+        {choosing && <ChooseTeaLine onCancel={() => setChoosing(false)} />}
         {visible.length === 0 ? (
           <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
             The teas in this collection are currently unavailable.
@@ -323,7 +348,7 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
             formatPrice={shopPrice.symbolTotal}
             favoriteIds={favoriteIds}
             onToggleFavorite={(id, event) => { event.stopPropagation(); toggleFavoriteTea(id); }}
-            onOpenProduct={tea => { const it = byProduct.get(tea.id); if (it) openLinkTea(it.product_id); }}
+            onOpenProduct={tea => { const it = byProduct.get(tea.id); if (it) { openLinkTea(it.product_id, choosing ? { taste: '1' } : undefined); setChoosing(false); } }}
             onAddToCart={onAddToCart ? (tea, grams, total) => { const it = byProduct.get(tea.id); if (it) addFromLink(it, grams, total); } : undefined}
             weighOptionsFor={tea => { const it = byProduct.get(tea.id); return it ? linkWeighOptions(it) : undefined; }}
           />
@@ -350,7 +375,8 @@ const CollectionShelf: React.FC<{ data: PublicCollectionResponse } & CartHooks> 
                 onOpenCart={onOpenCart ? () => { closeLinkTea(); onOpenCart(); } : undefined}
               />
             )}
-            top={<LinkTeaTop line={collectionTopLine} note={focused.item_note} noteBy={curatorFirstName} />}
+            yoursLine={collectionTopLine}
+            yoursNote={{ text: focused.item_note, by: curatorFirstName }}
           />
         );
       })()}

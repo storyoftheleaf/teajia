@@ -8,7 +8,7 @@ export interface KeepTeaser {
   /** The address they come back to; the teaser shows only for this one. */
   path: string;
   from: string;
-  teas: { name: string; amount: string }[];
+  teas: { name: string; amount?: string }[];
 }
 
 const KEY = 'teajia.keepTeaser';

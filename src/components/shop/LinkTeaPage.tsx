@@ -12,7 +12,7 @@ import type { InventoryItem } from '../../types';
  * an invoice's tea keeps the shop's own, to get more of it. A private tea the
  * shop does not list opens from what the link carries, with no footer.
  */
-export function LinkTeaPage({ item, onClose, footer, top, yoursLine, joinMarker, onAddToCart }: {
+export function LinkTeaPage({ item, onClose, footer, top, yoursLine, yoursNote, joinMarker, onAddToCart }: {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, grams: number, totalUsd: number) => void;
   onClose: () => void;
@@ -20,6 +20,7 @@ export function LinkTeaPage({ item, onClose, footer, top, yoursLine, joinMarker,
   top?: React.ReactNode;
   /** The tea is theirs on this link: the page shows the strip that is theirs with this line. */
   yoursLine?: string;
+  yoursNote?: { text: string | null | undefined; by?: string };
   joinMarker?: string;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
@@ -41,10 +42,9 @@ export function LinkTeaPage({ item, onClose, footer, top, yoursLine, joinMarker,
       className="fixed inset-0 z-modal overflow-y-auto bg-tea-bg pb-nav-gap"
       data-testid="link-tea-page"
     >
-      <ProductPage onAddToCart={onAddToCart} link={{ productKey: item.id, fallbackItem: item, top, yoursLine, joinMarker, footer, onBack: onClose }} />
+      <ProductPage onAddToCart={onAddToCart} link={{ productKey: item.id, fallbackItem: item, top, yoursLine, yoursNote, joinMarker, footer, onBack: onClose }} />
     </div>,
     document.body,
   );
 }
 
-export { LinkTeaTop } from './LinkTeaTop';

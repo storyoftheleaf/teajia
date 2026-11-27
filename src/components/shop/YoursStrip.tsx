@@ -1,3 +1,4 @@
+import { Button } from '../shared/Button';
 import { Bookmark, Camera, Check, Coffee } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -8,8 +9,11 @@ import type { ReactNode } from 'react';
  * same page wherever the tea is opened, from an invoice or in the shop, so
  * there is one tea page. The words are placeholders until Adrian names them.
  */
-export function YoursStrip({ line, kept = false, onTaste, onPhoto, onKeep }: {
+export function YoursStrip({ line, note, noteBy, kept = false, onTaste, onPhoto, onKeep }: {
   line: string;
+  /** The sender's own words about this tea, on a collection link. */
+  note?: string | null;
+  noteBy?: string;
   kept?: boolean;
   onTaste?: () => void;
   onPhoto?: () => void;
@@ -19,6 +23,11 @@ export function YoursStrip({ line, kept = false, onTaste, onPhoto, onKeep }: {
   return (
     <div className="border-b border-tea-border bg-tea-elevated px-5 py-3 lg:px-10" data-testid="link-tea-top">
       <p className="label-caps text-tea-gold">{line}</p>
+      {note?.trim() && (
+        <p className="mt-1.5 font-body text-ui-15 italic leading-[1.6] text-tea-text" data-testid="collection-tea-writing">
+          “{note.trim()}”{noteBy && <span className="not-italic text-ui-12 text-tea-text-dim">, {noteBy}</span>}
+        </p>
+      )}
       {acts && (
         <div className="mt-2.5 flex max-w-md flex-wrap gap-2" data-testid="yours-actions">
           {onTaste && <Act onClick={onTaste} icon={<Coffee size={18} aria-hidden="true" />}>Taste</Act>}
@@ -36,7 +45,8 @@ export function YoursStrip({ line, kept = false, onTaste, onPhoto, onKeep }: {
 
 function Act({ onClick, icon, pressed, children }: { onClick: () => void; icon: ReactNode; pressed?: boolean; children: ReactNode }) {
   return (
-    <button
+    <Button
+      variant="plain"
       type="button"
       onClick={onClick}
       aria-pressed={pressed}
@@ -44,6 +54,6 @@ function Act({ onClick, icon, pressed, children }: { onClick: () => void; icon: 
     >
       <span className="text-tea-gold">{icon}</span>
       {children}
-    </button>
+    </Button>
   );
 }

@@ -175,7 +175,7 @@ export default function SignUpPage() {
             {keeping.teas.map(tea => (
               <li key={`${tea.name}|${tea.amount}`} className="flex items-center gap-3 border-b border-tea-border py-2">
                 <span className="min-w-0 flex-1 font-body text-ui-15 text-tea-text">{tea.name}</span>
-                <span className="shrink-0 font-body text-ui-13 tabular-nums text-tea-text-sec">{tea.amount}</span>
+                {tea.amount && <span className="shrink-0 font-body text-ui-13 tabular-nums text-tea-text-sec">{tea.amount}</span>}
               </li>
             ))}
           </ul>
