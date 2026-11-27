@@ -12,7 +12,9 @@ fi
 
 # Strip HTML comments so the template's hint text never counts as an answer.
 plain="$(printf '%s\n' "$body" | perl -0pe 's/<!--.*?-->//gs')"
-door="$(printf '%s\n' "$plain" | grep -io -m1 -E '(one|two)-way door' | tr '[:upper:]' '[:lower:]' || true)"
+# Only the "Door:" line counts, so prose elsewhere that mentions a door
+# (as this PR's own description did) can't decide it.
+door="$(printf '%s\n' "$plain" | tr -d '\r' | grep -i -m1 -E '^[[:space:]]*Door:' | grep -io -m1 -E '(one|two)-way door' | tr '[:upper:]' '[:lower:]' || true)"
 
 case "$door" in
   "two-way door")

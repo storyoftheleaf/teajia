@@ -6,7 +6,7 @@ name: Merge danger
 #
 # Reads the PR description and one script: no npm, a few seconds of runner
 # time. Fails when the "Merge danger" section is missing, and holds a one-way
-# door until the owner-approved label is on the PR. The rules for which door
+# door until the owner-approved label is on the PR. The "Door:" line decides it; the rules for which door
 # a change is live in CODING_STANDARDS.md (rule 9) and the review-pr skill.
 
 on:
