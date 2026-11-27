@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   Shield, ShieldCheck, Store, Users, Check, Loader2,
   ChevronDown, ChevronUp, Plus, Copy,
-  AlertTriangle, RefreshCw, ClipboardList, X, Boxes, Coffee,
+  AlertTriangle, RefreshCw, ClipboardList, X, Boxes, 
 } from 'lucide-react';
+import { TeaCup } from '../../components/TeaCupIcon';
 import { api } from '../../lib/api';
 import type { PlatformUser, PlatformAccount, AuditLogEntry, HostReach } from '../../lib/api';
 import { useAppStore } from '../store';
@@ -441,7 +442,7 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                 <button type="button" onClick={() => stepHost(user.id)} data-testid="hosting-open"
                   className={`${user.may_host ? 'pill pill-active' : 'pill'} flex items-center gap-1`}
                   title={user.may_host ? 'Hosts by link' : 'Does not host by link'}>
-                  <Coffee size={10} />
+                  <TeaCup size={10} />
                   Hosting
                 </button>
               )}

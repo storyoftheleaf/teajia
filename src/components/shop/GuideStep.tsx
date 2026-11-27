@@ -1,4 +1,7 @@
 import { Button } from '../shared/Button';
+import { AnimatePresence } from 'framer-motion';
+import { TastingSession } from '../tasting/TastingSession';
+import type { InventoryItem } from '../../types';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
@@ -61,5 +64,18 @@ export function ChooseTeaLine({ onCancel }: { onCancel?: () => void }) {
       <span className="font-display text-ui-18 text-tea-text">Which one are you drinking?</span>
       <Button variant="plain" type="button" onClick={onCancel} aria-label="Not now" className="tap-target inline-flex items-center justify-center text-tea-text-sec hover:text-tea-text"><X size={16} /></Button>
     </div>
+  );
+}
+
+/**
+ * The tasting, opened straight over the list of a link's teas: pick the tea,
+ * taste, and saving or closing leaves the person on the list where they were
+ * (Adrian, 2026-11-27).
+ */
+export function ListTasting({ tea, onClose }: { tea: InventoryItem | null; onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      {tea && <TastingSession item={{ ...tea, sourceType: 'product' }} startOnNotes onClose={onClose} onOrderTea={onClose} />}
+    </AnimatePresence>
   );
 }
