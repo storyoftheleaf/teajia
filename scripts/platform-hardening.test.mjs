@@ -72,3 +72,20 @@ test('external GitHub Actions are pinned to immutable commits with version comme
     }
   }
 });
+
+test('a deploy skips the worker suite only for a tree Playwright proved', () => {
+  const playwright = read('.github/workflows/playwright.yml');
+  const deploy = read('.github/workflows/deploy-worker.yml');
+  // The name Playwright records and the name the deploy looks up must agree.
+  assert.match(playwright, /name: worker-tests-passed-\$\{\{ needs\.checks-static\.outputs\.tree \}\}/);
+  assert.match(deploy, /actions\/artifacts\?name=worker-tests-passed-\$tree/);
+  // The proof is recorded only after the static lane and every shard passed.
+  assert.match(playwright, /test "\$STATIC_RESULT" = success && test "\$WORKER_RESULT" = success/);
+  // Only a Playwright run in this repository counts as proof.
+  assert.match(deploy, /"\.github\/workflows\/playwright\.yml \$GITHUB_REPOSITORY"/);
+  // Unproven trees run the whole suite, sharded, before the deploy job.
+  assert.match(deploy, /npm run test:worker -- --shard=\$\{\{ matrix\.shard \}\}\/4/);
+  assert.match(playwright, /npm run test:worker -- --shard=\$\{\{ matrix\.shard \}\}\/4/);
+  // The dry-run build still sits above the migration step.
+  assert.ok(deploy.indexOf('wrangler deploy --dry-run') < deploy.indexOf('d1 migrations apply'));
+});

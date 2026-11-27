@@ -11,7 +11,9 @@ name: Playwright
 # the gate that would have caught it.
 #
 # `checks` is that gate: tsc, the color lint, the production build and the
-# worker test suite, on every push and pull request to main. `mobile` and
+# worker test suite, on every push and pull request to main. Since
+# 2026-11-27 it is split: `checks-static` and four `worker-tests` shards run
+# side by side, and `checks` passes only when all of them did. `mobile` and
 # `e2e` cover browser behavior; `china-scan`, `platform-hardening` and
 # `recovery` wire in the three suites that had no CI lane at all.
 #
@@ -105,24 +107,31 @@ jobs:
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
           echo "gate: run=$run ($why)"
-  checks:
+  checks-static:
     # The lane the outage needed. Nothing here touches a browser: tsc sees
-    # every file whether or not a route imports it, the build is the same
-    # bundle Cloudflare Pages produces, and the worker suite is the API's
-    # own contract.
+    # every file whether or not a route imports it, and the build is the same
+    # bundle Cloudflare Pages produces. The worker suite, the API's own
+    # contract, runs beside this in `worker-tests`, and `checks` below joins
+    # the two into the one verdict the branch rule and the deploy read.
     runs-on: ubuntu-latest
     needs: gate
     if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
-    # The worker suite alone now takes 10 to 12 minutes, so 15 cut whole runs
-    # off mid-suite (2026-11-27). Every test still runs.
-    timeout-minutes: 25
+    timeout-minutes: 15
+    outputs:
+      tree: ${{ steps.tree.outputs.tree }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - id: tree
+        run: echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
 
       - name: Install root dependencies
         run: npm ci
@@ -149,8 +158,74 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Worker tests
-        run: npm run test:worker
+  worker-tests:
+    # The worker suite took 9 of a PR's 12 minutes run in one piece, and
+    # crossed 15 minutes on slow runners (2026-11-27). Split four ways it
+    # takes about 2.5 minutes a shard. Every test still runs: vitest's
+    # --shard partitions the whole file list, and `checks` fails unless
+    # every shard passed.
+    runs-on: ubuntu-latest
+    needs: gate
+    if: needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install worker dependencies
+        working-directory: worker
+        run: npm ci
+
+      - name: Worker tests (shard ${{ matrix.shard }}/4)
+        run: npm run test:worker -- --shard=${{ matrix.shard }}/4
+
+  checks:
+    # One stable required check. It passes only when the static lane and
+    # every worker shard passed, and then records the exact tree it proved
+    # as an artifact named worker-tests-passed-<tree>. deploy-worker.yml
+    # looks for that name and skips rerunning the worker suite for a tree
+    # already proven here, which is what a merge of an up-to-date PR is.
+    runs-on: ubuntu-latest
+    needs: [gate, checks-static, worker-tests]
+    if: always() && needs.gate.outputs.run == 'true' && github.event_name != 'schedule'
+    timeout-minutes: 3
+    steps:
+      - name: Require the static lane and every worker shard
+        env:
+          STATIC_RESULT: ${{ needs.checks-static.result }}
+          WORKER_RESULT: ${{ needs.worker-tests.result }}
+        run: test "$STATIC_RESULT" = success && test "$WORKER_RESULT" = success
+
+      - name: Record the proven tree
+        env:
+          TREE: ${{ needs.checks-static.outputs.tree }}
+        run: |
+          set -euo pipefail
+          echo "$TREE" | grep -Eq '^[0-9a-f]{40}$'
+          mkdir -p "$RUNNER_TEMP/proof"
+          printf '{"tree":"%s","sha":"%s","run":%s}\n' "$TREE" "$GITHUB_SHA" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/proof/worker-tests-passed.json"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: worker-tests-passed-${{ needs.checks-static.outputs.tree }}
+          path: ${{ runner.temp }}/proof/worker-tests-passed.json
+          retention-days: 14
+          overwrite: true
+          if-no-files-found: error
 
   mobile:
     runs-on: ubuntu-latest

@@ -50,14 +50,94 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Was this exact code already proven? Playwright's `checks` job records
+  # every tree whose worker suite passed as an artifact named
+  # worker-tests-passed-<tree>. A squash merge of a PR that was up to date
+  # with main has the very tree its PR run tested, so rerunning the nine
+  # minute suite here proved nothing new and held every deploy behind it
+  # (2026-11-27: worker tests were 9 of a deploy's 10 minutes). Only an
+  # artifact from the Playwright workflow in this repository counts; a
+  # failed or empty lookup counts as not proven, and the suite runs.
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      proven: ${{ steps.lookup.outputs.proven }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - id: lookup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          tree="$(git rev-parse 'HEAD^{tree}')"
+          proven=false; why="no green worker suite recorded for tree $tree"
+          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=worker-tests-passed-$tree&per_page=20" \
+            --jq '.artifacts[] | select(.expired == false) | .workflow_run.id' 2>&1)" || { why="artifact lookup failed: $runs"; runs=""; }
+          for run in $runs; do
+            case "$run" in ''|*[!0-9]*) continue;; esac
+            path="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.path + " " + (.repository.full_name)' 2>/dev/null || true)"
+            if [ "$path" = ".github/workflows/playwright.yml $GITHUB_REPOSITORY" ]; then
+              proven=true; why="tree $tree passed the worker suite in Playwright run $run"; break
+            fi
+          done
+          echo "proven=$proven" >> "$GITHUB_OUTPUT"
+          echo "prove: proven=$proven ($why)"
+
+  # Not proven: the same suite, split four ways as in Playwright, so a
+  # deploy that must test waits about 3 minutes, not 9.
+  worker-tests:
+    needs: prove
+    if: needs.prove.outputs.proven != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install worker dependencies
+        working-directory: worker
+        run: npm ci
+
+      # A failing auth/fulfillment test blocks the deploy.
+      - name: Worker tests (shard ${{ matrix.shard }}/4)
+        run: npm run test:worker -- --shard=${{ matrix.shard }}/4
+
   deploy:
+    needs: [prove, worker-tests]
+    # Runs when the suite passed here, or was skipped because this exact
+    # tree already passed it. Anything else (a failed or cancelled shard, a
+    # failed lookup job) stops before the database moves.
+    if: >-
+      always() && needs.prove.result == 'success' &&
+      (needs.worker-tests.result == 'success' ||
+       (needs.worker-tests.result == 'skipped' && needs.prove.outputs.proven == 'true'))
     runs-on: ubuntu-latest
     # 10 was too tight and killed deploys silently. Two `npm ci` runs plus the
     # worker suite sit around six or seven minutes and occasionally cross ten:
     # runs 158 and 160 on 2026-09-04 both died at exactly the limit, which
     # GitHub reports as "cancelled", so it reads like somebody stopped it
-    # rather than like a failure worth looking at.
-    timeout-minutes: 45
+    # rather than like a failure worth looking at. The worker suite moved to
+    # its own sharded job on 2026-11-27; this job now runs in a few minutes.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -66,6 +146,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
 
       # A coordinated dispatch may already have published this exact SHA before
       # its main push triggers this workflow. Only skip when Cloudflare and both
@@ -118,8 +202,8 @@ jobs:
         working-directory: worker
         run: npm ci
 
-      # vitest lives in the root package.json (npm run test:worker runs
-      # worker/tests). A failing auth/fulfillment test blocks the deploy.
+      # Root dependencies carry the release scripts' own tests and the Pages
+      # build used by a coordinated release.
       - name: Install root dependencies
         if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         run: npm ci
@@ -156,9 +240,7 @@ jobs:
         if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
         run: node --test scripts/ar-create-teajia-connector.test.mjs
 
-      - name: Worker tests
-        if: github.event_name != 'push' || steps.push_guard.outputs.action == 'deploy'
-        run: npm run test:worker
+      # The worker suite itself ran (or was proven) in the jobs above.
 
       # Build the worker before touching the database.
       #
