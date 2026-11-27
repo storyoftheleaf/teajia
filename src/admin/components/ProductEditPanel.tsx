@@ -47,6 +47,7 @@ import { INVENTORY_TEA_TYPES } from '../../wisdom';
 import { effectivePurpose, getTeaReadiness } from './inventory/domain';
 import { StockListingReview } from './inventory/StockListingReview';
 import { StockOfferSource } from './inventory/StockPersonalOffer';
+import { shippingRatesHref } from './inventory/logisticsLinks';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -1547,7 +1548,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <TeaFreight product={product} shopPerKgUsd={shopFreight.perKgUsd} rates={rates} costRateToUsd={costRateToUsd}
                   onChoose={(serviceId) => persistField(product.id, 'freightServiceId', serviceId)}
                   onClearOwnRate={() => persistField(product.id, 'shippingRatePerKg', null)}
-                  onOpenLogistics={() => navigate('/admin/purchase-orders')} />
+                  onOpenLogistics={() => navigate(shippingRatesHref)} />
                 {(() => {
                   const calc = pricingCalc && pricingCalc.suggestedRetailUSD > 0 ? pricingCalc : null;
                   const hasOverride = product.fixedRetailPriceUSD != null;
