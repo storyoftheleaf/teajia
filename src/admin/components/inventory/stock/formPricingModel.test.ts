@@ -12,10 +12,11 @@ const sample: FormPricingProduct = {
 describe('form and purchased-weight pricing', () => {
   it('prices the purchased sample per gram, then sizes the full and half cake', () => {
     const result = formPricingPreview(sample, rates, 10);
-    expect(result.calculatedPerGram).toBeCloseTo(.33);
-    expect(result.retailPerGram).toBeCloseTo(.33);
-    expect(result.fullPiece).toBeCloseTo(117.81);
-    expect(result.halfPiece).toBeCloseTo(60.905);
+    // 0.10 of leaf a gram times three, plus 0.01 of freight at cost.
+    expect(result.calculatedPerGram).toBeCloseTo(.31);
+    expect(result.retailPerGram).toBeCloseTo(.31);
+    expect(result.fullPiece).toBeCloseTo(110.67);
+    expect(result.halfPiece).toBeCloseTo(57.335);
     expect(result.hasFixedRetail).toBe(false);
   });
 
@@ -28,15 +29,15 @@ describe('form and purchased-weight pricing', () => {
   });
 
   it('follows changing shop freight unless the tea deliberately owns a rate, zero included', () => {
-    expect(formPricingPreview(sample, rates, 20).calculatedPerGram).toBeCloseTo(.36);
+    expect(formPricingPreview(sample, rates, 20).calculatedPerGram).toBeCloseTo(.32);
     expect(formPricingPreview({ ...sample, shippingRatePerKg: 0 }, rates, 20).calculatedPerGram).toBeCloseTo(.3);
-    expect(formPricingPreview({ ...sample, shippingRatePerKg: 70 }, rates, 20).calculatedPerGram).toBeCloseTo(.33);
+    expect(formPricingPreview({ ...sample, shippingRatePerKg: 70 }, rates, 20).calculatedPerGram).toBeCloseTo(.31);
     expect(formPricingPreview({ ...sample, shippingRatePerKg: undefined }, rates, 10)).toEqual(formPricingPreview(sample, rates, 10));
   });
 
   it('keeps a fixed retail of zero and separates it from calculated retail', () => {
     expect(formPricingPreview({ ...sample, fixedRetailPriceUSD: 0 }, rates, 10)).toEqual({
-      calculatedPerGram: expect.closeTo(.33), retailPerGram: 0, fullPiece: 0, halfPiece: TEA_PRICING.handlingUsd, hasFixedRetail: true,
+      calculatedPerGram: expect.closeTo(.31), retailPerGram: 0, fullPiece: 0, halfPiece: TEA_PRICING.handlingUsd, hasFixedRetail: true,
     });
     const fixed = formPricingPreview({ ...sample, fixedRetailPriceUSD: .5 }, rates, 10);
     expect(fixed.fullPiece).toBe(178.5);
@@ -64,8 +65,8 @@ describe('form and purchased-weight pricing', () => {
   });
 
   it('preserves explicitly free tea and the established unrecorded currency convention', () => {
-    expect(formPricingPreview({ ...sample, costAmount: 0 }, rates, 10).calculatedPerGram).toBeCloseTo(.03);
-    expect(formPricingPreview({ ...sample, costCurrency: 'UNK', costAmount: 5 }, [], 10).calculatedPerGram).toBeCloseTo(.33);
+    expect(formPricingPreview({ ...sample, costAmount: 0 }, rates, 10).calculatedPerGram).toBeCloseTo(.01);
+    expect(formPricingPreview({ ...sample, costCurrency: 'UNK', costAmount: 5 }, [], 10).calculatedPerGram).toBeCloseTo(.31);
   });
 
 
@@ -83,17 +84,17 @@ describe('form and purchased-weight pricing', () => {
       expect(result.halfPiece).toBe(product.soldInWholeUnits ? null : quoteGrams(result.retailPerGram!, product.pieceWeightG! / 2, opts).totalUsd);
     }
     const loose = formPricingPreview({ ...sample, form: 'Loose', pieceWeightG: 100 }, rates, 10);
-    expect(loose.fullPiece).toBeCloseTo(35);
-    expect(loose.halfPiece).toBeCloseTo(18.5);
+    expect(loose.fullPiece).toBeCloseTo(33);
+    expect(loose.halfPiece).toBeCloseTo(17.5);
     const sealed = formPricingPreview({ ...sample, form: 'Loose', pieceWeightG: 100, soldInWholeUnits: true }, rates, 10);
-    expect(sealed.fullPiece).toBeCloseTo(33);
+    expect(sealed.fullPiece).toBeCloseTo(31);
     expect(sealed.halfPiece).toBeNull();
   });
 
   it('requires a positive piece weight for full/half prices and does not price teaware by gram', () => {
     for (const pieceWeightG of [undefined, 0, -1, NaN]) {
       const result = formPricingPreview({ ...sample, pieceWeightG }, rates, 10);
-      expect(result.retailPerGram).toBeCloseTo(.33);
+      expect(result.retailPerGram).toBeCloseTo(.31);
       expect(result.fullPiece).toBeNull();
       expect(result.halfPiece).toBeNull();
     }

@@ -8,5 +8,5 @@
  * that disagrees with the shelf is worse than no preview.
  */
 
-/** Cost plus freight, times this. Adrian's number. */
+/** The leaf's cost times this, then freight added at cost (Adrian, 2026-11-27). */
 export const SHOP_MARKUP_MULTIPLIER = 3;

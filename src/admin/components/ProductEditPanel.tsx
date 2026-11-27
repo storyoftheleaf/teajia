@@ -1411,11 +1411,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   {filterLabel}
                 </span>
               )}
-              {onNavigate && nextProduct && (
-                <span data-testid="tea-page-next-at" className="text-ui-11 text-tea-gold leading-none mt-1">
-                  Next opens at {section ? sectionLabel(section) : 'the top'}
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-0">
               <button
@@ -1560,6 +1555,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </TeaLine>
                 <TeaFreight product={product} shopPerKgUsd={shopFreight.perKgUsd} rates={rates} costRateToUsd={costRateToUsd}
                   onChoose={(serviceId) => persistField(product.id, 'freightServiceId', serviceId)}
+                  onClearOwnRate={() => persistField(product.id, 'shippingRatePerKg', null)}
                   onOpenLogistics={() => navigate('/admin/purchase-orders')} />
                 {(() => {
                   const calc = pricingCalc && pricingCalc.suggestedRetailUSD > 0 ? pricingCalc : null;

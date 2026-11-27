@@ -73,7 +73,9 @@ describe('a Curate import batch can be created', () => {
       .not.toContain('shipping_rate_per_kg');
   });
 
-  it('reports the shop rate rather than whatever the column happens to hold', () => {
-    expect(src).toMatch(/const shippingRatePerKg = shopRatePerKg;/);
+  it('leaves freight to each tea\'s service or the shop default instead of stamping a rate', () => {
+    // Imports follow Logistics (Adrian, 2026-11-27): no rate is copied onto the batch.
+    expect(src, 'an import copies a freight rate again').not.toMatch(/shippingRatePerKg/);
+    expect(src, 'an import reads the shop rate to stamp it again').not.toMatch(/SELECT default_shipping_rate_per_kg FROM accounts/);
   });
 });
