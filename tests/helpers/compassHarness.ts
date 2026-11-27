@@ -103,6 +103,8 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     if (route.request().method() === 'GET' && /^\/api\/family\/teas\/[^/]+\/mine$/.test(path)) {
       return route.fulfill({ status: 404, json: { error: 'This tea is not in the shop.', code: 'product_not_found' } });
     }
+    // The Stock panel asks whether this person has a personal tea chest.
+    if (requestKey === 'GET /api/me/tea-chest/account') return route.fulfill({ json: { account: null } });
     if (requestKey === 'GET /api/curate/ar-create/status') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ connected: false }) });
     if (requestKey === 'GET /api/curate/ar-create/links') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ links: [] }) });
     if (options?.contextFailOnce && requestKey === 'POST /api/curate/journeys' && counts.get(requestKey) === 1) {
