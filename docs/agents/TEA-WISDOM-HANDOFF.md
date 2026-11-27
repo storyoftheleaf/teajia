@@ -19,7 +19,7 @@ Models (Adrian kept this split on 2026-11-27): Sonnet researches and writes Wisd
 
 ## Open
 
-1. PR storyoftheleaf/teajia#580 (kits come only through the chain): open, mergeable. Merge on Adrian's word.
+1. Kits now come only through the chain (PR storyoftheleaf/teajia#580, merged 2026-11-27).
 2. Menghai County rewrite and 8 more sections wait on the Wisdom Review page for Adrian's approval.
 3. Palace Grade (`gong-ting`) is a draft: its definition holds a `legacy_import` revision, which public pages refuse. Publishing needs Adrian's yes to drop that revision. When approved, limit its grade claims to `form: Loose`, or pressed "Gong Ting" cakes get loose-grade text.
 4. Pages still needed (record only, no write-up): Hengfengyuan, Golden Bull, Xinghai Tea Factory, Taiwan as a place. Greater Yiwu and Menghai County have no place claims an entry can use, so Yiwu and Menghai teas get no place paragraph.

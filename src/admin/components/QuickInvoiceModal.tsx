@@ -4,7 +4,7 @@ import Fuse from 'fuse.js';
 import { api, ApiError, AUTH_TOKEN_CHANGED_EVENT, isTokenScopedToAccount } from '../../lib/api';
 import type { EligibleSalesProduct } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
-import { isTeaType } from '../../wisdom/vocabulary';
+import { isStoredTeaType } from '../../wisdom/vocabulary';
 import { Currency, InvoiceDisplayItem, Product, ContactChannel, ContactEntry } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { formatCurrency } from '../utils';
@@ -56,7 +56,7 @@ export function buildEligibleQuickInvoiceSuggestions(
   const productsById = new Map(products.map(product => [product.id, product]));
   return eligibleRows.flatMap(eligibility => {
     const product = productsById.get(eligibility.product_id);
-    if (!product || product.status !== 'Active' || (!isTeaType(product.type) && product.type !== 'Teaware')) return [];
+    if (!product || product.status !== 'Active' || (!isStoredTeaType(product.type) && product.type !== 'Teaware')) return [];
     const physicalUnit = product.type === 'Teaware' ? 'unit' : 'g';
     if ((eligibility.quantity_unit ?? 'g') !== physicalUnit || !Number.isFinite(eligibility.available_quantity) || eligibility.available_quantity < 0) return [];
     const price = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;

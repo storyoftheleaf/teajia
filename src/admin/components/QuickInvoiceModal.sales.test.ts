@@ -41,6 +41,13 @@ describe('Quick Invoice sales eligibility', () => {
     expect(quickInvoiceStockLabel(suggestions[0].eligibility)).toBe('Mei Lin · 12g available · floor $0.30/g');
   });
 
+  it('offers puer teas stored as Shou Puer and Sheng Puer, the spellings Stock saves', () => {
+    const shou = { ...product('shou', '1980s Guogai Bing'), type: 'Shou Puer' as Product['type'] };
+    const sheng = { ...product('sheng', 'Yiwu Raw'), type: 'Sheng Puer' as Product['type'] };
+    const suggestions = buildEligibleQuickInvoiceSuggestions([shou, sheng], [eligible('shou'), eligible('sheng')]);
+    expect(suggestions.map(suggestion => suggestion.productId)).toEqual(['shou', 'sheng']);
+  });
+
   it('defensively limits malformed eligibility responses to local active products with compatible physical units', () => {
     const draft = { ...product('draft', 'Draft Tea'), status: 'Draft' as const };
     const archived = { ...product('archived', 'Archived Tea'), status: 'Archived' as const };
