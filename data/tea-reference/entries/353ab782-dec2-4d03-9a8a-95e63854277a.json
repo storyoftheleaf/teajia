@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T07:23:43.235Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:55:44.152Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,24 @@
     "form": "Loose",
     "year": 1979,
     "origin": "Yuchi, Nantou, Taiwan",
-    "stockGrams": 36,
-    "pricePerGramUsd": 0.95,
-    "tags": [
-      "dried lychee",
-      "malt",
-      "caramel",
-      "warm wood",
-      "clean mineral"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "353ab782-dec2-4d03-9a8a-95e63854277a",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [red tea](red:definition) made in 1979 at Shuishalian (水沙蓮), a locality in the Sun Moon Lake basin of Yuchi, Nantou. Red tea is what English calls black tea: the fully oxidised leaf, named in Chinese for the colour of the cup. Yuchi is where [Taiwan's red tea began](red:history), in the Japanese period, so this leaf comes from the place where the island's red tea started."
+        "layer": "place",
+        "text": "This is [red tea](red:definition) from [Yuchi](yuchi:where-it-is), the township that holds Sun Moon Lake in the middle of Nantou County, made in 1979. Red tea took hold here because of the land: a warm, wet basin of mist and cloud, deep reddish soil, and a lake that keeps the weather mild and steady. The Japanese tea men who first trialled it compared it to the Assam country of India, and the [Assam type](yuchi:assam-planting) seed they brought in is still the root of the township's red tea."
+      },
+      {
+        "layer": "place",
+        "text": "The year puts this tea in the township's lean decades. From the 1970s, rising wages made hand picked leaf costly against red tea from other countries, and many growers here moved to oolong or to other crops. The return to local red tea came only after the 1999 earthquake."
       },
       {
         "layer": "age",
-        "text": "Forty-seven years is a long time for this kind of tea. Red tea has [no tradition of ageing](red:ageing). It is made to be drunk fresh, and sealed it holds its quality for about a year and a half to three years. A leaf from 1979 that has been kept this long sits well outside the style's usual life."
+        "text": "Red tea has no tradition of [ageing](red:ageing). It is made to be drunk fresh, and sealed it is expected to keep for about three years at most. At forty-seven years, this leaf has lived far beyond the life the trade gives it."
       }
     ],
     "brewing": {
@@ -43,7 +41,6 @@
       "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -54,7 +51,11 @@
       "rev": 1
     },
     {
-      "claimId": "red:history",
+      "claimId": "yuchi:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "yuchi:assam-planting",
       "rev": 1
     },
     {
@@ -71,6 +72,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T07:48:36.034Z"
+  "unsupported": []
 }

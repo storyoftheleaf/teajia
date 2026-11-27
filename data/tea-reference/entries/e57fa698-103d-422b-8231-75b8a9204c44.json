@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:41:18.297Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:54:01.251Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,7 +11,7 @@
     "form": "Bag",
     "year": 2026,
     "origin": "Phoenix Mountain",
-    "stockGrams": 0,
+    "stockGrams": null,
     "pricePerGramUsd": null,
     "tags": []
   },
@@ -20,11 +20,15 @@
     "paragraphs": [
       {
         "layer": "named",
-        "text": "[Ya Shi Xiang](dancong:ya-shi-xiang), duck dung, is the market name for one Dancong line, traced to Pingkengtou village. Most lists of the ten [classic types](dancong:aromas) leave it out, though it sells widely. In 2014 the name Yinhua Xiang, silver flower, was put forward for it, but many sellers keep the old one. Three stories explain that name, and all are told only as stories: that it was chosen to keep thieves away from the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush."
+        "text": "[Ya Shi Xiang](dancong:ya-shi-xiang), duck dung aroma, is the market name for one line of [Phoenix Dancong](dancong:definition), traced to Pingkengtou village. Most lists of the [ten aroma types](dancong:aromas) leave it out, though it sells widely. In 2014 the name Yinhua Xiang, silver flower aroma, was put forward for it, and many sellers keep the old one. Three stories explain that old name: that it was chosen to put thieves off the bush, that it comes from the yellow local soil called duck dung soil, and that duck droppings lay on the bush."
       },
       {
-        "layer": "type",
-        "text": "The leaf is [Phoenix Dancong](dancong:definition), the oolong of Phoenix Mountain in Chao'an, Chaozhou, in eastern Guangdong. [Dancong](dancong:name) means single bush, though a named line today is mostly grown from cuttings or grafts of one chosen bush. The leaf is withered in the sun, then [shaken and rested in rounds](dancong:making) to bruise its edges, fixed fast at high heat, rolled into long strips, dried and roasted. This is a 2026 tea. Freshly roasted Dancong is [rested for some months](dancong:ageing) before it is ready, and the trade does not agree on how many."
+        "layer": "place",
+        "text": "The leaf comes from [Phoenix Mountain](phoenix-mountain:where-it-is), Fenghuang Shan, the high ground of the Chaoshan region in eastern Guangdong, where tea grows from the foothills up to roughly 1,100 metres. [Cloud and mist](phoenix-mountain:mist-and-climate) sit on the upper slopes for much of the year and the nights are cool, so the bushes grow slowly, and the trade links that slow growth to a thick leaf."
+      },
+      {
+        "layer": "age",
+        "text": "This is a 2026 leaf. Freshly roasted Dancong is [rested for some months](dancong:ageing) before it is drunk, though how many is not agreed, and it keeps sealed, dry, cool and out of the light."
       }
     ],
     "brewing": {
@@ -37,7 +41,6 @@
       "text": "Flowers above all, a sweetness that comes back after swallowing, a high scent that lasts, honey, often ripe fruit such as peach, and what the trade calls mountain rhyme, shan yun; a liquor from golden to orange-red or amber."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -48,19 +51,19 @@
       "rev": 1
     },
     {
-      "claimId": "dancong:aromas",
-      "rev": 1
-    },
-    {
       "claimId": "dancong:definition",
       "rev": 1
     },
     {
-      "claimId": "dancong:name",
+      "claimId": "dancong:aromas",
       "rev": 1
     },
     {
-      "claimId": "dancong:making",
+      "claimId": "phoenix-mountain:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "phoenix-mountain:mist-and-climate",
       "rev": 1
     },
     {
@@ -76,7 +79,21 @@
       "rev": 1
     }
   ],
-  "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:42.875Z"
+  "problems": [
+    {
+      "where": "paragraph 1",
+      "problem": "taste word \"aroma\" belongs in the notice"
+    },
+    {
+      "where": "paragraph 2",
+      "problem": "taste word \"thick\" belongs in the notice"
+    }
+  ],
+  "unsupported": [
+    {
+      "sentence": "Freshly roasted Dancong is rested for some months before it is drunk, though how many is not agreed, and it keeps sealed, dry, cool and out of the light.",
+      "words": "before it is drunk",
+      "why": "The claim (dancong:ageing) says the tea is rested for some months before it is at its best. That is about when it tastes best. The description says it is rested before it is drunk, which claims a practice of not drinking it until then. No claim says that."
+    }
+  ]
 }

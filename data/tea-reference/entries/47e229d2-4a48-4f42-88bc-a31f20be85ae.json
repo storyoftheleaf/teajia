@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:41:41.953Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:53:10.776Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Bag",
     "year": 1970,
     "origin": "Beipu, Hsinchu, Taiwan",
-    "stockGrams": 290,
-    "pricePerGramUsd": 1.45,
-    "tags": [
-      "aged roast",
-      "dried fruit",
-      "woody sweetness",
-      "smooth finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "47e229d2-4a48-4f42-88bc-a31f20be85ae",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [Taiwan oolong](taiwan-oolong:definition) from Beipu, in Hsinchu County, made in 1970 with a medium roast and packed in tea bags. Hsinchu is one of the two counties where the island makes Oriental Beauty, though this tea is a roasted oolong of the area."
+        "layer": "place",
+        "text": "[Beipu](beipu:where-it-is) is a Hakka township in the south-west of Hsinchu County, in low hill country between the central mountains and the coastal plain, well below the high-mountain oolong gardens. Tea here is a [Hakka trade](hsinchu:hakka): local families grow the leaf, make it and sell it, and on many farms the craft has passed down through generations. The township is counted among the core places for [Oriental Beauty](beipu:known-for), but a label that names Beipu [names a township](beipu:in-hsinchu), not a style."
       },
       {
         "layer": "age",
-        "text": "Fifty-six years on, it is well past the ten to thirty years that those who give a figure count as old, which puts it among Taiwan's [lao cha](taiwan-oolong:ageing), old tea. Oolong kept this way starts well roasted and dry, because moisture is what the years have to be kept from. Cool, dark, sealed storage, and a low roast now and then to drive moisture out, are how an old oolong is looked after."
+        "text": "This [oolong](oolong:definition), a partly oxidised tea that sits between green and red, was made in 1970. Taiwan has a long habit of keeping oolong for years as [lao cha](taiwan-oolong:ageing), old tea. Keepers roast it again at low heat from time to time to drive out the moisture it takes in. No standard says when an oolong becomes old, and those who give a figure put it between ten and thirty years. At fifty-six years, this tea is well beyond either figure."
       }
     ],
     "brewing": {
@@ -42,14 +37,29 @@
       "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "taiwan-oolong:definition",
+      "claimId": "beipu:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "hsinchu:hakka",
+      "rev": 1
+    },
+    {
+      "claimId": "beipu:known-for",
+      "rev": 1
+    },
+    {
+      "claimId": "beipu:in-hsinchu",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
       "rev": 1
     },
     {
@@ -66,6 +76,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:44.662Z"
+  "unsupported": []
 }

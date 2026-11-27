@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T04:12:13.250Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:57:04.650Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Cake",
     "year": 2009,
     "origin": "Fuding, Fujian, China",
-    "stockGrams": 273,
-    "pricePerGramUsd": 0.24,
-    "tags": [
-      "dried dates",
-      "aged honey",
-      "light woodiness",
-      "warm sweetness"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "ad149932-2312-4c3c-b21f-50f69677b721",
     "paragraphs": [
       {
         "layer": "place",
-        "text": "A cake of [Fuding white tea](fujian-white:definition) from 2009. Fuding is a hilly coastal city in the north-east of Fujian, by the Zhejiang border. Its white tea carries a protected origin name in China and is tied to Taimu Mountain. Like all white tea, the leaf was only [withered and dried](white:definition), never fixed or rolled, before it was pressed."
+        "text": "A [white tea](white:definition) cake from [Fuding](fuding:where-it-is), the coastal city in the far northeast of Fujian, closed in by mountains on three sides with the East China Sea to the east. The leaf was only withered and dried. It was never heated to stop its change and never rolled, so it keeps its natural shape and the white down on its buds. The cake carries the year 2009. That is the same year the area's white tea became a [protected origin name](fuding:on-a-label) in China. The name says where the leaf grew and was made, and nothing about its grade or how long it has aged."
       },
       {
         "layer": "age",
-        "text": "[Pressed white tea](fujian-white:cakes) was still new in 2009. Cakes began in that decade and spread around 2010, because a cake keeps and travels more easily than loose leaf. The year on a cake can mark when it was pressed rather than when it was picked. At seventeen years this cake is well past the seven of the trade's saying, [one year tea, three years medicine, seven years treasure](fujian-white:ageing). That is a saying, though, and no agreed number of years makes a white tea aged. As white tea ages, its liquor turns deeper and redder."
+        "text": "At seventeen years it is well past the seventh year of the [trade saying](fujian-white:ageing) that calls white tea tea in its first year, medicine at three and a treasure at seven. The saying is not a tested claim, and no agreed count of years makes a white tea aged."
+      },
+      {
+        "layer": "type",
+        "text": "White tea was first pressed into [cakes](fujian-white:cakes) in the 2000s, and the practice spread around 2010 because a cake is smaller and easier to keep and carry than loose leaf. That makes this cake one of the early ones. Some cakes were pressed from leaf that had already aged loose for a few years, so 2009 may be the year it was pressed rather than the year it was picked."
       }
     ],
     "brewing": {
@@ -42,26 +41,29 @@
       "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "fujian-white:definition",
-      "rev": 1
-    },
-    {
       "claimId": "white:definition",
       "rev": 1
     },
     {
-      "claimId": "fujian-white:cakes",
+      "claimId": "fuding:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "fuding:on-a-label",
       "rev": 1
     },
     {
       "claimId": "fujian-white:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian-white:cakes",
       "rev": 1
     },
     {
@@ -74,6 +76,16 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T04:13:11.144Z"
+  "unsupported": [
+    {
+      "sentence": "It was never heated to stop its change and never rolled, so it keeps its natural shape and the white down on its buds.",
+      "words": "so it keeps its natural shape and the white down on its buds",
+      "why": "This is a pressed cake, so the leaf does not keep its natural shape. The record gives no grade, and a cake may be Shou Mei, which has few or no buds. So the claim that this lot keeps its shape and the down on its buds is not supported."
+    },
+    {
+      "sentence": "That makes this cake one of the early ones.",
+      "words": "That makes this cake one of the early ones",
+      "why": "The cakes claim says the year on a cake may be the year it was picked rather than pressed, and the next sentence says the same. If 2009 is the picking year, the cake may have been pressed later, so the inputs do not show it was one of the early cakes."
+    }
+  ]
 }

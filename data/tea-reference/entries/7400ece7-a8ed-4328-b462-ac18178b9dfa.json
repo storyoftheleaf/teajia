@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-24T06:52:20.179Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:50:50.896Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -12,7 +12,7 @@
     "year": 1990,
     "origin": "Guangxi, Cangwu (liubao), China",
     "stockGrams": 100,
-    "pricePerGramUsd": 1.65,
+    "pricePerGramUsd": 1.66,
     "tags": [
       "earthy",
       "woody"
@@ -23,15 +23,15 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "A loose [Liu Bao](liu-bao:definition) from 1990, which reaches us through the Guangzhou tea trade. That is the old road for this tea: it went by boat down the river to Wuzhou, on to Guangzhou, and out by sea to the labourers of Southeast Asia who drank it, a route the trade calls the [Nanyang trade](liu-bao:nanyang-trade)."
+        "text": "A loose [Liu Bao](liu-bao:definition) made in 1990 from leaf grown in Cangwu County, which came to us through the Guangzhou tea trade. That route is an old one. In the [river trade](liu-bao:nanyang-trade), the tea went by boat down to Wuzhou and on to Guangzhou, then out by sea to the Chinese miners and labourers of Southeast Asia."
       },
       {
         "layer": "place",
-        "text": "The leaf comes from Cangwu County, near Wuzhou in Guangxi, where the tea takes its name from the town of Liubao. Like every [dark tea](dark:definition), it was piled after it was made, so that warmth, moisture and microbes could turn it darker and softer before it was packed away to age."
+        "text": "Cangwu is a county under [Wuzhou](guangxi:wuzhou-and-cangwu), in eastern Guangxi, and Liubao town, which gave the tea its name, lies inside it. The area is warm and wet, with acidic soils. The trade links that [steady damp warmth](guangxi:land-and-climate) to the slow ageing of Liu Bao, because the microbes that shape a dark tea thrive in it."
       },
       {
         "layer": "age",
-        "text": "At thirty-six years it is far past the ten that the trade sets for [aged Liu Bao](liu-bao:age-aged). Where a lot like this was kept shapes it as much as the years have."
+        "text": "Like every dark tea, the leaf was piled after it was made so that warmth, moisture and microbes could darken and soften it, and then it was packed to age. Thirty-six years on, it is well past the ten years after which the trade counts a Liu Bao as [aged](liu-bao:age-aged). The way it was stored has shaped it as much as the years have."
       }
     ],
     "brewing": {
@@ -44,7 +44,6 @@
       "text": "A deep red, thick cup with woody, herbal and betel nut notes; tea several decades old is often described with ginseng and camphor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -59,7 +58,11 @@
       "rev": 2
     },
     {
-      "claimId": "dark:definition",
+      "claimId": "guangxi:wuzhou-and-cangwu",
+      "rev": 1
+    },
+    {
+      "claimId": "guangxi:land-and-climate",
       "rev": 1
     },
     {
@@ -76,6 +79,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T06:53:06.249Z"
+  "unsupported": []
 }

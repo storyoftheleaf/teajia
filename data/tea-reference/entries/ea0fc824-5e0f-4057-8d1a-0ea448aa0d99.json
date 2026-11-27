@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:43:42.281Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:59:15.096Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Ball",
     "year": null,
     "origin": "Menghai, Yunnan, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 0.34,
-    "tags": [
-      "dark honey",
-      "aged forest",
-      "dense sweetness",
-      "mineral depth",
-      "lasting finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "ea0fc824-5e0f-4057-8d1a-0ea448aa0d99",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "These dragon pearls are made from Banzhang village leaf, from Menghai in Yunnan. The leaf was sorted to the gongting grade, which keeps only small buds. It was made into [ripe pu’er](shou:definition), then rolled by hand into pearls, one at a time."
+        "layer": "grade",
+        "text": "This is [Gong Ting](gong-ting:definition), the grade of loose [ripe pu’er](shou:definition) sorted out for its small leaf and high share of buds, one step above special grade in the market. The dry leaf is tight and fine, with [golden down on the buds](gong-ting:appearance) and no stray stems. So little of a batch qualifies that the grade stays scarce. Here the leaf has been shaped into a ball."
       },
       {
-        "layer": "type",
-        "text": "Like all ripe pu’er, the buds went through [wet piling](shou:wet-piling). They were wetted and heaped so that heat, moisture and microbes could work on them. The pile was covered to hold in the heat the microbes make, and turned about once a week to spread it and let in air. It was kept below about 65°C, because hotter than that the leaf starts to char. Drinkers in Hong Kong and Guangdong once waited years for raw pu’er to darken with age, and the pile was developed to do that in weeks. So these pearls are ready to drink now, without years of waiting."
+        "layer": "place",
+        "text": "The leaf comes from [Menghai County](menghai-county:county-and-factory) in Yunnan. It was fermented in a [damp pile](shou:wet-piling), where microbes warm the leaf from within. The pile is covered to hold that heat and turned about once a week to let air in. That pile is why the tea is ready to drink now rather than after years of waiting. In this county, the factory's own way of piling had settled [by 1975](shou:piling-1973) into the ripe pu’er still made today."
       }
     ],
     "brewing": {
@@ -43,7 +37,6 @@
       "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -51,12 +44,28 @@
   },
   "claimUses": [
     {
+      "claimId": "gong-ting:definition",
+      "rev": 2
+    },
+    {
       "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "gong-ting:appearance",
+      "rev": 1
+    },
+    {
+      "claimId": "menghai-county:county-and-factory",
       "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
       "rev": 2
+    },
+    {
+      "claimId": "shou:piling-1973",
+      "rev": 1
     },
     {
       "claimId": "shou:brewing-pressed",
@@ -72,6 +81,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:48.233Z"
+  "unsupported": []
 }

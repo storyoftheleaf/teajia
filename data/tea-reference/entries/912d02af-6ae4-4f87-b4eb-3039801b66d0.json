@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T04:10:55.049Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:53:23.065Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Cake",
     "year": 2008,
     "origin": "Fuding, Fujian, China",
-    "stockGrams": 260,
-    "pricePerGramUsd": 0.82,
-    "tags": [
-      "dark honey",
-      "dried longan",
-      "woody sweetness",
-      "warm spice"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "912d02af-6ae4-4f87-b4eb-3039801b66d0",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "A cake of [white tea](white:definition) from [Fujian](fujian-white:definition), the province that is its home, dated 2008. The leaf is only withered and dried, never rolled or heated to stop its change. [Pressed white tea](fujian-white:cakes) is new: cakes began in the 2000s and spread around 2010, because a cake keeps and travels more easily than loose leaf. That places this one among the early cakes, though the year on a cake can mark its pressing rather than its picking."
+        "layer": "place",
+        "text": "This [white tea](white:definition) cake comes from [Fuding](fuding:where-it-is), a coastal city in the northeast corner of Fujian, against the Zhejiang border, with mountains on three sides and the East China Sea to the east. Fuding is the place most often named as the [home of white tea](fuding:known-for). Its way of making it, a long natural wither with no frying and no rolling, is listed in China as national cultural heritage."
       },
       {
         "layer": "age",
-        "text": "At eighteen years it is well past the seven of the trade's saying, [one year tea, three years medicine, seven years treasure](fujian-white:ageing). It is a saying, not a measure, and no agreed number of years makes a white tea aged. It is best kept dry, clean and aired, away from strong smells and sunlight."
+        "text": "The cake carries the year 2008, which makes it eighteen years old. The trade has a saying that white tea is tea in its first year, [medicine at three and a treasure at seven](fujian-white:ageing). It is only a saying and has not been tested, and no agreed number of years makes a white tea aged."
+      },
+      {
+        "layer": "type",
+        "text": "[Pressed white tea](fujian-white:cakes) is new. Cakes began in the 2000s and spread around 2010 because a cake is smaller than loose leaf and easier to keep and carry, so this one comes from the style's early years. Some cakes are pressed from leaf that was first aged loose, so the year on a cake can be the year it was pressed rather than the year it was picked."
       }
     ],
     "brewing": {
@@ -42,7 +41,6 @@
       "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -53,15 +51,19 @@
       "rev": 1
     },
     {
-      "claimId": "fujian-white:definition",
+      "claimId": "fuding:where-it-is",
       "rev": 1
     },
     {
-      "claimId": "fujian-white:cakes",
+      "claimId": "fuding:known-for",
       "rev": 1
     },
     {
       "claimId": "fujian-white:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian-white:cakes",
       "rev": 1
     },
     {
@@ -74,6 +76,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T04:13:10.872Z"
+  "unsupported": [
+    {
+      "sentence": "Cakes began in the 2000s and spread around 2010 because a cake is smaller than loose leaf and easier to keep and carry, so this one comes from the style's early years.",
+      "words": "so this one comes from the style's early years",
+      "why": "The record gives only the year 2008. The cakes claim says that year can be either the picking year or the pressing year, so nothing shows this cake was pressed in 2008. It may have been pressed after cakes spread around 2010."
+    }
+  ]
 }

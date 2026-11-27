@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:41:34.417Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:54:10.402Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,24 @@
     "form": "Cake",
     "year": 2015,
     "origin": "Yiwu, Yunnan, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 0.23,
-    "tags": [
-      "dark honey",
-      "camphor",
-      "aged sweetness",
-      "thick body",
-      "forest depth"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "8cfed807-4557-4409-bd82-7d373c549421",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A cake from Yiwu, in Yunnan, pressed in 2015. Before pressing, the leaf was [wet piled](shou:wet-piling): wetted and heaped so that heat, moisture and microbes could work on it, and turned about once a week to spread the heat and let air in. The pile is why [ripe pu’er](shou:definition) is ready to drink soon after it is made, where raw leaf usually waits years."
+        "layer": "place",
+        "text": "This cake was made from [Yiwu](greater-yiwu:where-it-is) leaf, grown in the north of Mengla County in Xishuangbanna, on the east side of the Lancang River. The area is one of the old Six Famous Tea Mountains, and its town has long been where the surrounding villages bring their tea to be gathered and processed."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was made into [ripe pu’er](shou:definition) by [wet piling](shou:wet-piling). It was wetted and heaped so that microbes could warm it from within, covered to hold that heat and turned about once a week to let air in, then dried after one to two months and pressed into a cake in 2015. The pile exists to give, in weeks, the change that raw pu’er only reaches after years of keeping."
       },
       {
         "layer": "age",
-        "text": "At eleven years it has passed into what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf goes on changing slowly with the air and moisture around it, so the way it is kept shapes it as much as the years do."
+        "text": "At eleven years it has passed into what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf still changes slowly with the air and moisture around it, which is why storage matters as much as the years."
       }
     ],
     "brewing": {
@@ -43,19 +41,22 @@
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "shou:wet-piling",
-      "rev": 2
+      "claimId": "greater-yiwu:where-it-is",
+      "rev": 1
     },
     {
       "claimId": "shou:definition",
       "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
     },
     {
       "claimId": "shou:age-aged",
@@ -75,6 +76,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:47.078Z"
+  "unsupported": []
 }

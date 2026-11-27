@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T03:36:25.717Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T04:00:03.926Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,29 +11,24 @@
     "form": "Loose",
     "year": 2024,
     "origin": "Anhua, Hunan, China",
-    "stockGrams": 0,
+    "stockGrams": null,
     "pricePerGramUsd": null,
-    "tags": [
-      "delicate wood",
-      "clean sweetness",
-      "light mushroom",
-      "fresh mineral"
-    ]
+    "tags": []
   },
   "entry": {
     "productId": "00b13369-8aa6-40e9-9d9a-0f26a28bc7ff",
     "paragraphs": [
       {
         "layer": "grade",
-        "text": "Gongjian, the [tribute tip](anhua-dark:family), is one of the three loose tips of Anhua tea, lightly pressed into bamboo baskets rather than moulded into bricks or rolls. It sits in the middle of the three, between Tianjian above it and the coarser, stalkier Shengjian below, since the raw leaf is sorted into [numbered grades](anhua-dark:grades) and each tea is made from the grade that suits it. The loose tips grew out of the [Qing border trade](anhua-dark:history) to the north-west."
+        "text": "Gongjian (贡尖), usually rendered [tribute tip](gongjian:definition), is the middle one of the [three tips](anhua-dark:family), Anhua's loose teas that are pressed lightly into bamboo baskets. It is sorted from the leaf that falls between the tender [Tianjian](gongjian:among-three-tips) and the stalky Shengjian. That grade records how the leaf was sorted. It does not say how well the tea was made or kept. Like every Anhua tea, it starts as [heimaocha](anhua-dark:making), a raw tea of large Anhua leaf. The leaf is fixed, rolled, piled, rolled again and dried over a pine fire, then steamed soft and pressed only lightly, as the loose tips are."
       },
       {
         "layer": "place",
-        "text": "The leaf comes from Anhua County, a mountain county on the Zi river in Hunan and a protected origin for [Anhua dark tea](anhua-dark:definition). Like every Anhua tea it began as one raw tea, [heimaocha](anhua-dark:making): fixed, rolled, piled, rolled again and dried, then steamed soft and pressed lightly, as the loose tips are."
+        "text": "The leaf comes from [Anhua](anhua:where-it-is), a mountain county in north-central Hunan. It lies on the Zi river at the northern foot of the Xuefeng mountains, in hill country where rice is hard to grow and tea does well. The county has been called the main home of [dark tea](dark:definition) in China, and from the Ming on its tea travelled north and north-west along the [old tea roads](anhua:history), as far as Russia."
       },
       {
         "layer": "age",
-        "text": "This is a 2024 tea, two years old. Anhua tea is [kept for years](anhua-dark:ageing) and said to improve as it rests, though no agreed count of years marks it as aged. Kept clean, dry and aired, away from other smells, it can be left to change over the years ahead."
+        "text": "This basket was made in 2024. [Anhua tea](anhua-dark:ageing) is kept for years and is said to improve as it is kept, but no agreed number of years marks it as aged. At two years it is near the start of that keeping."
       }
     ],
     "brewing": {
@@ -46,30 +41,37 @@
       "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
+      "claimId": "gongjian:definition",
+      "rev": null
+    },
+    {
       "claimId": "anhua-dark:family",
       "rev": 1
     },
     {
-      "claimId": "anhua-dark:grades",
-      "rev": 1
-    },
-    {
-      "claimId": "anhua-dark:history",
-      "rev": 1
-    },
-    {
-      "claimId": "anhua-dark:definition",
-      "rev": 1
+      "claimId": "gongjian:among-three-tips",
+      "rev": null
     },
     {
       "claimId": "anhua-dark:making",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua:history",
       "rev": 1
     },
     {
@@ -86,6 +88,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T03:39:26.952Z"
+  "unsupported": []
 }

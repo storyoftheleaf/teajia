@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-24T12:35:28.493Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:51:49.423Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -12,19 +12,29 @@
     "year": null,
     "origin": "Wuyi Mountains, Fujian, China",
     "stockGrams": 300,
-    "pricePerGramUsd": null,
-    "tags": []
+    "pricePerGramUsd": 0.58,
+    "tags": [
+      "cinnamon bark",
+      "charcoal",
+      "warm spice",
+      "mineral depth",
+      "lasting heat"
+    ]
   },
   "entry": {
     "productId": "dfde3e28-c848-4116-ba2b-ea55590b0f1e",
     "paragraphs": [
       {
         "layer": "type",
-        "text": "Lotus Rougui is a [Rougui](yancha:rougui) from the Wuyi Mountains of northern Fujian, a cultivar of the area that dates from the Qing dynasty and is now planted widely across it. As [Wuyi rock tea](yancha:definition), a partly oxidised [oolong](oolong:definition), it comes from bushes grown among rock, on ledges and terraces in cliff country, in soil weathered from that rock. Only tea from this area may be sold under the name."
+        "text": "Rougui, cassia in Chinese, is a [Wuyi cultivar](yancha:rougui) that dates from the Qing dynasty and is now one of the most widely planted teas in the range. It is made as [rock tea](yancha:definition), with the leaf twisted into long, thin strips rather than rolled into balls."
       },
       {
-        "layer": "type",
-        "text": "The leaf is twisted into long strips rather than rolled, then finished over charcoal in several rounds, with rests of weeks or months between them. That [charcoal roast](yancha:making) dries the tea so it keeps, and the maker sets its strength by the leaf it is given."
+        "layer": "place",
+        "text": "The leaf comes from the [Wuyi Mountains](wuyi-mountains:where-it-is), on the border of northern Fujian and Jiangxi. The mountains hold in warm air from the sea, so rain is heavy and fog is common, and the bushes grow in [thin, stony soil](wuyi-mountains:nature) on ledges and between rocks, where the ground drains fast. The label names no zone, so it does not say how close to the [true rock core](wuyi-mountains:zones) this tea grew."
+      },
+      {
+        "layer": "lot",
+        "text": "This lot was given a heavy [charcoal roast](yancha:making) in stages over several sessions. That is how the craft works: rounds over charcoal with rests of weeks or months between them, rather than one pass, so the tea dries and keeps."
       }
     ],
     "brewing": {
@@ -37,7 +47,6 @@
       "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -53,7 +62,15 @@
       "rev": 1
     },
     {
-      "claimId": "oolong:definition",
+      "claimId": "wuyi-mountains:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:nature",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:zones",
       "rev": 1
     },
     {
@@ -70,6 +87,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T13:33:41.530Z"
+  "unsupported": []
 }

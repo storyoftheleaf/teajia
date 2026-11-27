@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-27T00:17:55.802Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:58:07.478Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -19,12 +19,16 @@
     "productId": "ba5a1e02-ac6f-4c5c-81bd-aed428034809",
     "paragraphs": [
       {
+        "layer": "place",
+        "text": "This loose leaf comes from [Yiwu](greater-yiwu:where-it-is), in the north of Mengla County in Xishuangbanna, on the east side of the Lancang River. Yiwu is one of the old Six Famous Tea Mountains, and its town has long been where the tea of the surrounding villages is gathered and processed."
+      },
+      {
         "layer": "type",
-        "text": "A loose [Yunnan white](yunnan-white:definition) from Yiwu, made in 2015 from Yunnan’s large-leaf tea plants rather than the smaller bush cultivars of Fujian. It follows the [white tea](white:definition) way of making: the leaf is [withered and then dried by air](yunnan-white:making), never heated to stop its change and never rolled, so it keeps its natural shape."
+        "text": "It is [Yunnan white](yunnan-white:definition), made from the province's large-leaf tea plants rather than the bush cultivars of Fujian. The leaf was only [withered and dried](yunnan-white:making). It was withered indoors or in shade and then dried by air. It was never heated to stop its change, never rolled, and never given the low final bake that Fujian white usually gets."
       },
       {
         "layer": "age",
-        "text": "Made in 2015, this leaf is eleven years old. Yunnan white is [a recent tea in the market](yunnan-white:history), and there is [no agreed view of how long it should be kept](yunnan-white:ageing): some prefer it within a few years, while others keep it for years."
+        "text": "Made in 2015, it has now been kept for eleven years. There is no settled view of how long Yunnan white should be kept. Some keep it for years, others prefer to drink it within a few, and nobody agrees on how it compares with [aged Fujian white](yunnan-white:ageing)."
       }
     ],
     "brewing": {
@@ -37,26 +41,21 @@
       "text": "Honey, dried fruit or jujube, something herbal and woody, a rounder, thicker body and a darker, redder liquor, with less lift in the aroma than a young tea."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
+      "claimId": "greater-yiwu:where-it-is",
+      "rev": 1
+    },
+    {
       "claimId": "yunnan-white:definition",
       "rev": 1
     },
     {
-      "claimId": "white:definition",
-      "rev": 1
-    },
-    {
       "claimId": "yunnan-white:making",
-      "rev": 1
-    },
-    {
-      "claimId": "yunnan-white:history",
       "rev": 1
     },
     {
@@ -73,6 +72,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-27T00:36:12.127Z"
+  "unsupported": []
 }

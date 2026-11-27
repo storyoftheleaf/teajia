@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:43:40.762Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:54:25.441Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Loose",
     "year": 1990,
     "origin": "Anhui, China",
-    "stockGrams": 290,
-    "pricePerGramUsd": 0.35,
-    "tags": [
-      "dried bamboo",
-      "aged plum",
-      "subtle smokiness",
-      "clean minerality"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "cf59e091-f60d-4015-8034-bb5faae270f5",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [Liu An basket tea](liu-an:definition) from 1990, the [dark tea](dark:definition) made in Qimen County in southern Anhui from the local Qimen bush that Keemun red tea also comes from, not in Lu'an as the name suggests. This lot was packed into small bamboo baskets lined with [bamboo leaf](liu-an:basket), and it was never piled to ferment: its change has been slow and natural, left to the years."
+        "layer": "type",
+        "text": "A [Liu An basket tea](liu-an:definition) from Anhui, made in 1990. Despite the name, the style belongs to Qimen County in the south of the province, not to the city of Lu'an. It is a [dark tea](dark:definition), not the green [Lu'an Guapian](anhui:lu-an-names) that shares part of its name. Its making explains why it is kept: after firing over charcoal, the leaf is spread outdoors for one night to take the [night dew](liu-an:making). It is then steamed, packed into baskets lined with bamboo leaf and fired again, and it is sold only after resting for some years."
+      },
+      {
+        "layer": "type",
+        "text": "The year matters. Basket tea was made for the [southern trade](liu-an:southern-trade) to Guangdong, Hong Kong, Macau and Southeast Asia. Production stopped in the 1930s and 1940s, when war cut that trade off. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s. A tea from 1990 comes from the very start of that revival."
       },
       {
         "layer": "age",
-        "text": "The tea was made for the [southern trade](liu-an:southern-trade), drunk in Guangdong, Hong Kong, Macau and among the overseas Chinese of Southeast Asia, and kept in homes and medicine shops. War stopped production in the 1930s and 1940s. In 1983 tea people from Hong Kong sent an aged basket to Anhui and asked for it to be made again, and commercial making returned in the early 1990s. This basket dates from 1990. At thirty-six years it has had a long time in the basket, which is where [Liu An is said to improve](liu-an:ageing)."
+        "text": "At thirty-six years it has rested far longer than the style asks. Liu An is [said to improve with years](liu-an:ageing) if it is kept dry, clean and away from smells, in wrapping that breathes, so its storage has shaped it as much as its age."
       }
     ],
     "brewing": {
@@ -42,7 +41,6 @@
       "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -57,7 +55,11 @@
       "rev": 1
     },
     {
-      "claimId": "liu-an:basket",
+      "claimId": "anhui:lu-an-names",
+      "rev": 1
+    },
+    {
+      "claimId": "liu-an:making",
       "rev": 1
     },
     {
@@ -78,6 +80,21 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:46.519Z"
+  "unsupported": [
+    {
+      "sentence": "Its making explains why it is kept: after firing over charcoal, the leaf is spread outdoors for one night to take the night dew.",
+      "words": "Its making explains why it is kept",
+      "why": "No claim links the dew step, or any making step, to the reason the tea is kept. The making claim only describes the steps and says the tea rests for some years before sale."
+    },
+    {
+      "sentence": "A tea from 1990 comes from the very start of that revival.",
+      "words": "comes from the very start of that revival",
+      "why": "The claim says only that commercial making returned in the early 1990s, with no exact start year. Nothing supports placing a 1990 tea at the very start of the revival or tying this lot to it."
+    },
+    {
+      "sentence": "Liu An is said to improve with years if it is kept dry, clean and away from smells, in wrapping that breathes, so its storage has shaped it as much as its age.",
+      "words": "so its storage has shaped it as much as its age",
+      "why": "No claim says storage matters as much as age, and nothing records how this lot was stored. The ageing claim also does not make the improvement depend on those storage conditions; it lists them as separate advice."
+    }
+  ]
 }

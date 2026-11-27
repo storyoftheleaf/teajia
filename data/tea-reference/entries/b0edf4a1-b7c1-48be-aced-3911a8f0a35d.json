@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T04:44:18.859Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:58:00.028Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Other",
     "year": 1983,
     "origin": "Taiwan",
-    "stockGrams": 54,
-    "pricePerGramUsd": 1.56,
-    "tags": [
-      "aged citrus peel",
-      "dark sweetness",
-      "herbal bitterness",
-      "dried tangerine",
-      "warm medicinal"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "b0edf4a1-b7c1-48be-aced-3911a8f0a35d",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A sour citrus tea, suan gan zi cha, made in Taiwan in 1983 as a traditional Hakka preparation. Tea leaves were packed into a hollowed sour citrus, then steamed and dried in the sun, cycle after cycle, until the whole piece was rock hard and stable enough to keep. The Hakka made it at home and kept it as a household remedy."
+        "layer": "place",
+        "text": "A [dark tea](dark:definition) kept since 1983, grown in [Taiwan](taiwan:on-a-label). The record names only the island, so it says where the leaf grew and nothing more about the mountain or township. That makes it an unusual tea for a place whose trade is built on [oolong](taiwan:known-for), a craft that came across the strait with settlers from [Fujian](taiwan:history). Here the leaf was heated and rolled, then left to change slowly in warmth and moisture, where microbes and the leaf's own chemistry darken and mellow it."
       },
       {
         "layer": "age",
-        "text": "Forty-three years have passed since it was made. Like other [dark tea](dark:ageing), it was made to be kept, and the trade values it more with age. How far it changes over that time depends on how it is stored, as much as on the years."
+        "text": "At forty-three years, it has had a long time to change. [Dark tea is made to be kept](dark:ageing), and storage decides how fast it changes as much as the years do. The trade does not agree on one way: some keep it cool and dry for a slow, clean change, and others keep it warmer and more humid for a faster, deeper one."
       }
     ],
     "brewing": {
@@ -43,12 +37,27 @@
       "text": "A smooth, mellow cup with low bitterness and a deep red colour, often sweet and woody or earthy, sometimes with herbal or medicinal notes. A young dark tea can still smell of the pile or of storage; an aged one is usually redder, sweeter and thicker."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:known-for",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:history",
+      "rev": 1
+    },
     {
       "claimId": "dark:ageing",
       "rev": 1
@@ -63,6 +72,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:22.349Z"
+  "unsupported": [
+    {
+      "sentence": "Dark tea is made to be kept, and storage decides how fast it changes as much as the years do.",
+      "words": "as much as the years do",
+      "why": "The dark:ageing claim says only that how fast dark tea changes depends on how it is stored. No claim compares storage with age or says storage matters as much as the years."
+    }
+  ]
 }

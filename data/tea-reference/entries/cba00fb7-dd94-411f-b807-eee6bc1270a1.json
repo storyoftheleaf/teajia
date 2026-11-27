@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:42:52.707Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:53:52.834Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": 1990,
     "origin": "Anxi, Fujian, China",
-    "stockGrams": 120,
-    "pricePerGramUsd": 1.05,
-    "tags": [
-      "roasted honey",
-      "dried longan",
-      "charcoal sweetness",
-      "warm spice"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "cba00fb7-dd94-411f-b807-eee6bc1270a1",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [Tieguanyin](tieguanyin:definition) from Anxi County in southern Fujian, made in 1990, rolled, and roasted over charcoal. It belongs to the older [roasted style](tieguanyin:styles) of this [oolong](oolong:definition); the light green kind took over in Anxi from the 1990s."
+        "layer": "type",
+        "text": "This is [Tieguanyin](tieguanyin:definition), the [oolong](oolong:definition) that shares its name with the cultivar it is made from, grown in [Anxi](anxi:where-it-is), a county of hills and ridges in southern Fujian, inland from Xiamen. The leaf was rolled into tight balls by [wrapping it in cloth](tieguanyin:making), pressing it and drying it a little, again and again, each round drawing it tighter. It was made in 1990, just as the [Tieguanyin boom](anxi:history) was about to change a county that had been among the poorer in the province."
       },
       {
         "layer": "age",
-        "text": "Roasted Tieguanyin is the kind that keeps, where the light style goes stale quickly. At thirty-six years the roast has long since settled, and the tea has become what the trade calls [old Tie](tieguanyin:ageing): Tieguanyin kept for years."
+        "text": "At thirty-six years it falls in the third kind the trade sorts Tieguanyin into, [chenxiang, or old Tie](tieguanyin:styles): tea kept for years, not drunk fresh. The [light style](tieguanyin:ageing) goes stale quickly, so the heavier roasted kind is the one usually put away, and it is rested until the fire of the roast has settled."
       }
     ],
     "brewing": {
@@ -42,7 +37,6 @@
       "text": "A smoother, rounder, softer cup with the fire gone, a liquor turned orange-red or reddish-brown, and often a soft fruity sourness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -53,11 +47,23 @@
       "rev": 1
     },
     {
-      "claimId": "tieguanyin:styles",
+      "claimId": "oolong:definition",
       "rev": 1
     },
     {
-      "claimId": "oolong:definition",
+      "claimId": "anxi:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "tieguanyin:making",
+      "rev": 1
+    },
+    {
+      "claimId": "anxi:history",
+      "rev": 1
+    },
+    {
+      "claimId": "tieguanyin:styles",
       "rev": 1
     },
     {
@@ -74,6 +80,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:45.673Z"
+  "unsupported": []
 }

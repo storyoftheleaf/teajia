@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:43:25.009Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:57:33.312Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Loose",
     "year": 1950,
     "origin": "Phoenix Mountain, Guangdong, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 15.01,
-    "tags": [
-      "aged wood",
-      "dried fruit",
-      "faint floral echo",
-      "deep mineral sweetness"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "290de77e-c3e1-4f14-86de-435f2917a790",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "A loose leaf [Phoenix Dancong](dancong:definition), the [oolong](oolong:definition) of Fenghuang Shan in Chaozhou, eastern Guangdong. The name means [single bush](dancong:name): the leaf of one bush picked and made on its own, from the old Shuixian plants of the mountain. Dancong is withered in the sun, then [shaken and rested in rounds](dancong:making) to bruise the leaf edge, fixed at high heat, rolled into long strips and roasted, traditionally over charcoal."
+        "layer": "place",
+        "text": "This is [Dancong](dancong:name), the [oolong](oolong:definition) of [Phoenix Mountain](phoenix-mountain:where-it-is), a range in Fenghuang town in Chao'an, Chaozhou, in the east of Guangdong. Its name means single bush: the leaf of one bush picked and made on its own, from bushes chosen among the old Phoenix Shuixian plants of the mountain. Tea grows on these slopes from the low foothills up to roughly 1,100 metres. [Cloud and mist](phoenix-mountain:mist-and-climate) sit on the upper slopes for much of the year and the nights are cool, so the bushes grow slowly."
       },
       {
         "layer": "age",
-        "text": "Fresh Dancong is usually [rested for some months](dancong:ageing) after its roast before it is drunk. This leaf has been kept for more than fifty years."
+        "text": "To make Dancong, the leaf is withered in the sun, shaken and rested in rounds, then [fixed fast at high heat, rolled into strips and roasted](dancong:making), traditionally over charcoal. A newly roasted Dancong is usually [rested for some months](dancong:ageing) before it is drunk. This leaf was made in 1950, so it has had seventy-six years."
       }
     ],
     "brewing": {
@@ -42,14 +37,13 @@
       "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "dancong:definition",
+      "claimId": "dancong:name",
       "rev": 1
     },
     {
@@ -57,7 +51,11 @@
       "rev": 1
     },
     {
-      "claimId": "dancong:name",
+      "claimId": "phoenix-mountain:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "phoenix-mountain:mist-and-climate",
       "rev": 1
     },
     {
@@ -78,6 +76,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:44.951Z"
+  "unsupported": []
 }

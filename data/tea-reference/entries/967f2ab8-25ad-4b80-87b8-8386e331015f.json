@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T04:11:29.575Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:59:01.638Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Cake",
     "year": 2016,
     "origin": "Fujian, China",
-    "stockGrams": 292,
-    "pricePerGramUsd": 0.14,
-    "tags": [
-      "Osmanthus",
-      "Honeysuckle",
-      "Pine",
-      "Rose"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "967f2ab8-25ad-4b80-87b8-8386e331015f",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A cake of [Fujian white tea](fujian-white:definition) dated 2016. Inside is leaf that was only [withered and then dried at low heat](fujian-white:making), never fixed and never rolled. [Pressed white tea](fujian-white:cakes) is a young form: cakes began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. Some cakes are pressed from leaf already aged loose for a few years, so the year on a cake can mark the pressing rather than the pick."
+        "layer": "place",
+        "text": "A [white tea](white:definition) cake from Fujian, the province that is [the home of white tea](fujian-white:definition). The record [names the province only](fujian:on-a-label), so the leaf may come from Fuding, Zhenghe or another county that makes white tea; which one is not recorded."
+      },
+      {
+        "layer": "type",
+        "text": "Pressing white tea is a recent practice. [White tea cakes](fujian-white:cakes) began in the 2000s and spread around 2010, because a cake is smaller and easier to keep and carry than loose leaf. Some are pressed from leaf already aged loose for a few years, so the year 2016 can mark the pressing rather than the picking."
       },
       {
         "layer": "age",
-        "text": "At ten years it has passed the seven of the trade's saying, [one year tea, three years medicine, seven years treasure](fujian-white:ageing). That is a saying, not a measure, and no agreed number of years makes a white tea aged. It is best kept dry, clean and aired, away from strong smells and sunlight."
+        "text": "At ten years, this cake is past the seven in the trade's saying that white tea is [tea in its first year, medicine at three and a treasure at seven](fujian-white:ageing). That is a saying, not a tested claim, and no agreed number of years makes a white tea aged."
       }
     ],
     "brewing": {
@@ -42,18 +41,21 @@
       "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
+      "claimId": "white:definition",
+      "rev": 1
+    },
+    {
       "claimId": "fujian-white:definition",
       "rev": 1
     },
     {
-      "claimId": "fujian-white:making",
+      "claimId": "fujian:on-a-label",
       "rev": 1
     },
     {
@@ -74,6 +76,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T04:13:11.011Z"
+  "unsupported": []
 }

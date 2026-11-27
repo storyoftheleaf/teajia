@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T03:35:27.809Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:55:16.078Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Loose",
     "year": 2020,
     "origin": "Anhua, Hunan, China",
-    "stockGrams": 0,
+    "stockGrams": null,
     "pricePerGramUsd": null,
-    "tags": [
-      "woody",
-      "light mushroom",
-      "clean mineral",
-      "mild astringency"
-    ]
+    "tags": []
   },
   "entry": {
     "productId": "76396f61-48ec-4bd6-bcf1-dd22c73633f4",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A loose [first-grade](anhua-dark:grades) [Anhua dark tea](anhua-dark:definition), made in 2020 from spring leaf grown in cultivated gardens. The county's raw leaf is sorted into numbered grades, and each finished tea draws on the grade that suits it. Anhua sits in the mountains on the Zi river in north-central Hunan, and its name is a protected origin in China, tied to a defined place of making."
+        "layer": "grade",
+        "text": "Yi Ji is [first grade](yi-ji:definition). Anhua's raw leaf is sorted by how tender it was when picked, and Yi Ji holds the youngest leaf of the numbered lots. A grade describes the leaf that went in. It does not say which hill the leaf grew on or [how well the tea was made](yi-ji:grade-and-quality). Like every Anhua tea, this one began as [dark raw tea](anhua-dark:making): large local leaf fixed, rolled, piled, rolled again and dried. The piling is where the leaf changes in warmth and moisture, and that change is what makes it a [dark tea](dark:definition)."
+      },
+      {
+        "layer": "place",
+        "text": "The leaf comes from [Anhua](anhua:where-it-is), a mountain county on the middle Zi river in north-central Hunan, at the northern foot of the Xuefeng mountains. Rice is hard to grow there, but tea does well. The county is the home of [Anhua dark tea](anhua-dark:definition), a protected origin. The warm, wet air that grows the leaf is the same air it is [piled and aged in](anhua:why-people-value-it), so the trade ties the finished tea to the place as well as to the method."
       },
       {
         "layer": "age",
-        "text": "Every tea from the area begins as one raw tea, [heimaocha](anhua-dark:making): large leaf fixed, rolled, piled and rolled again before it is dried. At six years this one is still young for a tea that is kept for years and said to improve, though the trade has no agreed count of years that makes one [aged](anhua-dark:ageing). It is best kept clean, dry and aired, away from mould and other smells."
+        "text": "Made in 2020, the tea is six years old. Anhua tea is [kept for years](anhua-dark:ageing), and no agreed count of years marks it as aged, so this is a young tea that is still changing. Clean, dry and aired storage is what lets that change go on."
       }
     ],
     "brewing": {
@@ -42,14 +41,29 @@
       "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "anhua-dark:grades",
+      "claimId": "yi-ji:definition",
+      "rev": null
+    },
+    {
+      "claimId": "yi-ji:grade-and-quality",
+      "rev": null
+    },
+    {
+      "claimId": "anhua-dark:making",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua:where-it-is",
       "rev": 1
     },
     {
@@ -57,7 +71,7 @@
       "rev": 1
     },
     {
-      "claimId": "anhua-dark:making",
+      "claimId": "anhua:why-people-value-it",
       "rev": 1
     },
     {
@@ -74,6 +88,16 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T03:39:26.821Z"
+  "unsupported": [
+    {
+      "sentence": "Anhua tea is kept for years, and no agreed count of years marks it as aged, so this is a young tea that is still changing.",
+      "words": "so this is a young tea",
+      "why": "The ageing claim says only that no agreed count of years marks Anhua tea as aged. It does not say what counts as young, so calling a six-year-old tea young is a judgment the inputs do not make. It also does not follow from the 'no agreed count' statement it is drawn from."
+    },
+    {
+      "sentence": "Clean, dry and aired storage is what lets that change go on.",
+      "words": "is what lets that change go on",
+      "why": "The claim only tells the reader to keep the tea clean, dry and aired, away from mould and other smells. It never says that this storage is what allows the tea to keep changing, so this is a general statement no claim makes."
+    }
+  ]
 }

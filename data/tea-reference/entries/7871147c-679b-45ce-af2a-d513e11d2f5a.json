@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:40:46.317Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:53:21.081Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,24 @@
     "form": "Rolled",
     "year": null,
     "origin": "Anxi, Fujian, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 2.28,
-    "tags": [
-      "deep roast",
-      "aged honey",
-      "dark plum",
-      "mineral sweetness",
-      "thick body"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "7871147c-679b-45ce-af2a-d513e11d2f5a",
     "paragraphs": [
       {
         "layer": "grade",
-        "text": "Zhen pin means precious item. It is one of the [grade words](tieguanyin:grades) that brands print in the names of Anxi Tieguanyin. This tea carries no year, so it is known by its grade rather than a vintage."
+        "text": "[Zhen Pin](zhen-pin:definition), 珍品, means \"precious item\". On a [Tieguanyin](tieguanyin:definition) it is the seller's word for a lot set above the ordinary. It is not one of the grades in the [national standard](zhen-pin:how-graded) for Anxi Tieguanyin, which runs from special grade down to third grade. So it marks what this seller counts among its better teas, not a rank shared across the trade."
+      },
+      {
+        "layer": "place",
+        "text": "The leaf grew in [Anxi](anxi:where-it-is), a county of hills and ridges in the south of Fujian, inland from the coast in Quanzhou prefecture. Its weathered granite breaks down into an acidic soil that drains freely, the kind tea likes, and farmers work it in [terraced gardens](anxi:why-tea) below forested ridges. Anxi on a label is a [protected name](anxi:on-a-label). It states where the leaf grew, not its style or its grade."
       },
       {
         "layer": "type",
-        "text": "The leaf is [Tieguanyin](tieguanyin:definition) from Anxi County in southern Fujian, where the tea began and where its name is protected. It was roasted in the traditional way. That is the older of the [Anxi styles](tieguanyin:styles), the one the light green kind displaced from the 1990s. Like other [oolong](oolong:definition), it is partly oxidised. It was [wrapped in cloth and rolled](tieguanyin:making) over several rounds, each round tightening the leaf into a small ball."
+        "text": "Tieguanyin is both a cultivar and the [oolong](oolong:definition), a partly oxidised tea, made from it. The leaf is withered, then shaken, which bruises its edges red. Then it is fixed and [wrapped in cloth and rolled](tieguanyin:making) again and again. Each round presses it tighter, until it sets into the tight balls of this tea."
       }
     ],
     "brewing": {
@@ -43,7 +41,6 @@
       "text": "In the light style: orchid and other flowers, a fresh, clean cup and a sweet aftertaste. In the roasted style: toast and charcoal, caramel or honey, stone or dried fruit, nuts, and a liquor that runs from gold to amber."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -51,15 +48,27 @@
   },
   "claimUses": [
     {
-      "claimId": "tieguanyin:grades",
-      "rev": 1
+      "claimId": "zhen-pin:definition",
+      "rev": null
     },
     {
       "claimId": "tieguanyin:definition",
       "rev": 1
     },
     {
-      "claimId": "tieguanyin:styles",
+      "claimId": "zhen-pin:how-graded",
+      "rev": null
+    },
+    {
+      "claimId": "anxi:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "anxi:why-tea",
+      "rev": 1
+    },
+    {
+      "claimId": "anxi:on-a-label",
       "rev": 1
     },
     {
@@ -80,6 +89,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:45.243Z"
+  "unsupported": [
+    {
+      "sentence": "It is not one of the grades in the national standard for Anxi Tieguanyin, which runs from special grade down to third grade.",
+      "words": "which runs from special grade down to third grade",
+      "why": "The zhen-pin:how-graded claim says the standard also has a fourth grade for the strong-fragrance style, so the standard does not stop at third grade."
+    }
+  ]
 }

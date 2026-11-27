@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T07:33:11.015Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:53:50.965Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,30 +11,24 @@
     "form": "Basket",
     "year": 1985,
     "origin": "Qimen, Anhui, China",
-    "stockGrams": 330,
-    "pricePerGramUsd": 1.6,
-    "tags": [
-      "bamboo",
-      "aged plum",
-      "clean mineral",
-      "light smoke",
-      "warm sweetness"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "748fd404-2846-4bac-83e3-797e884e9e22",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [Liu An basket tea](liu-an:definition) made in 1985 and kept in its basket ever since. The name points elsewhere, but the leaf is from Qimen County in southern Anhui, from the same small-leaf bush that gives Keemun red tea."
+        "layer": "place",
+        "text": "This basket tea was made in 1985 in [Qimen County](qimen:where-it-is), in the hills of southern Anhui near the Huangshan mountains. It comes from the local small leaf bush that also gives [Keemun](qimen:known-for). The name points elsewhere: [Lu'an](anhui:lu-an-names) is a city in western Anhui known for a green tea, while this tea takes its name from the old Liu An way of making and trading."
       },
       {
         "layer": "type",
-        "text": "Liu An is a [dark tea](dark:definition): the leaf keeps changing slowly after it is made. Liu An is fired over charcoal, then spread on bamboo mats outdoors for one night to take the [night dew](liu-an:making). It is then steamed soft and packed into small baskets lined with [bamboo leaf](liu-an:basket), so the basket is part of the making, not only the wrapping."
+        "text": "[Liu An](liu-an:definition) is a [dark tea](dark:definition), so the leaf keeps changing slowly after it is made. Spring leaf is first made much like a green tea, then fired over charcoal in autumn and spread outdoors for one night to take the [night dew](liu-an:making). It is steamed soft, packed into small [bamboo baskets](liu-an:basket) lined with bamboo leaf and fired once more. It is sold only after it has rested for some years."
       },
       {
         "layer": "age",
-        "text": "At forty-one years, this basket is old for the tea. Liu An is [said to improve with years](liu-an:ageing) in its basket, and the charcoal edge of a young tea settles as it ages."
+        "text": "At forty-one years, this basket has rested far longer than the usual three. The style is said to [improve with years in its basket](liu-an:ageing), as long as it is kept dry and in wrapping that breathes. Basket tea was mostly known through the [southern trade](liu-an:southern-trade) in Guangdong, Hong Kong and Macau, where people kept it at home and in medicine shops."
       }
     ],
     "brewing": {
@@ -47,12 +41,23 @@
       "text": "A redder, browner liquor, the smoke gone, and the cup moving toward medicinal, woody and camphor notes, often with betel nut."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "qimen:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "qimen:known-for",
+      "rev": 1
+    },
+    {
+      "claimId": "anhui:lu-an-names",
+      "rev": 1
+    },
     {
       "claimId": "liu-an:definition",
       "rev": 1
@@ -74,6 +79,10 @@
       "rev": 1
     },
     {
+      "claimId": "liu-an:southern-trade",
+      "rev": 1
+    },
+    {
       "claimId": "liu-an:brewing",
       "rev": 1
     },
@@ -83,6 +92,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T07:48:34.991Z"
+  "unsupported": []
 }

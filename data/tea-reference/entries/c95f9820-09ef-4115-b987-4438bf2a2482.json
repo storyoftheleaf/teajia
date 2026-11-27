@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-24T12:36:49.571Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:52:13.965Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -12,19 +12,24 @@
     "year": null,
     "origin": "Wuyi Mountains, Fujian, China",
     "stockGrams": 1200,
-    "pricePerGramUsd": null,
-    "tags": []
+    "pricePerGramUsd": 0.94,
+    "tags": [
+      "cinnamon bark",
+      "mineral",
+      "roasted grain",
+      "warm sweetness"
+    ]
   },
   "entry": {
     "productId": "c95f9820-09ef-4115-b987-4438bf2a2482",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "Rougui is a [Wuyi cultivar](yancha:rougui) whose name means cassia, after cassia bark. It dates from the Qing dynasty and is now widely planted in the [Wuyi mountains](yancha:definition) of northern Fujian, where the bushes grow among rock, in crevices, on ledges and on cliff terraces, in soil weathered from the stone."
+        "layer": "lot",
+        "text": "[Rougui](yancha:rougui), cassia in Chinese, is a Wuyi cultivar from the Qing dynasty, and it is now one of the most widely planted teas in the area. This leaf was made the standard [rock tea](yancha:definition) way: twisted into long thin strips, then finished with a [charcoal roast](yancha:making). The roast is done in several rounds with rests between them, not in one pass, so the leaf dries enough to keep."
       },
       {
-        "layer": "type",
-        "text": "The leaf is made as an [oolong](oolong:definition), partly oxidised, and twisted into long thin strips. What sets it apart is the [charcoal roast](yancha:making), given in several rounds with rests of weeks or months between them. The roast dries the tea so that it keeps, and its strength is matched to the leaf."
+        "layer": "place",
+        "text": "The [Wuyi Mountains](wuyi-mountains:where-it-is) run along the border of northern Fujian and Jiangxi. The range is steep and wet, and fog is common there all year. The bushes grow in [thin, stony soil](wuyi-mountains:nature) in the ravines and on ledges. The ground drains fast and the plants grow slowly, and that rock is where the tea gets its name."
       }
     ],
     "brewing": {
@@ -37,7 +42,6 @@
       "text": "Roast and stone fruit, a mineral, rocky texture and a long, sweet, mouth-watering finish. Light roast is bright and floral, medium roast fruity and rounded, full roast charcoal, wood and roasted nuts. Da Hong Pao is often floral, Rougui spicy with cinnamon, young Shui Xian sweet and smooth, and old-bush Shui Xian woody and mossy."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -53,11 +57,15 @@
       "rev": 1
     },
     {
-      "claimId": "oolong:definition",
+      "claimId": "yancha:making",
       "rev": 1
     },
     {
-      "claimId": "yancha:making",
+      "claimId": "wuyi-mountains:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:nature",
       "rev": 1
     },
     {
@@ -70,6 +78,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T13:33:41.764Z"
+  "unsupported": [
+    {
+      "sentence": "The ground drains fast and the plants grow slowly, and that rock is where the tea gets its name.",
+      "words": "that rock is where the tea gets its name",
+      "why": "No claim says where a name comes from. The claims gloss 岩 as 'rock' and say rock tea grows among rock, but none says the name comes from the rock. This tea's own name, Rougui, comes from the cinnamon-bark smell (yancha:rougui), so the sentence can also be read as wrong about this lot."
+    }
+  ]
 }

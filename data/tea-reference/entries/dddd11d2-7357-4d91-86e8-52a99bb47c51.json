@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-23T12:56:33.887Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:51:16.798Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -26,9 +26,17 @@
     "paragraphs": [
       {
         "layer": "place",
-        "text": "Naka is a village in [Mengsong](menghai-county:mengsong-naka), one of Menghai County’s tea-growing areas. This tea is a ripe pu’er pressed into a cake."
+        "text": "Naka is a village in [Mengsong](menghai-county:mengsong-naka), one of Menghai County’s tea-growing areas. Most of Mengsong’s old gardens were planted by [Lahu villagers](menghai-county:peoples). These [old gardens](menghai-county:old-gardens) are kept their own way. The trees grow tall with little pruning and little or no fertiliser or spray, so they give far less leaf than plantation bushes, which are picked again and again through the season."
+      },
+      {
+        "layer": "type",
+        "text": "This leaf was made into [ripe pu’er](shou:definition). It was wetted and heaped in a [damp pile](shou:wet-piling), where the microbes’ own heat ferments it. The pile is covered to hold that heat in and turned about once a week to let air through. The leaf was then dried and pressed into a cake. The pile was developed to reach in weeks what raw pu’er takes years of ageing to reach, so this cake is ready to drink now rather than after years of waiting."
       }
     ],
+    "brewing": {
+      "layer": "brewing",
+      "text": "From a cake, brick or tuo, ease a piece off along the edge with a pick rather than snapping it. Whole leaves give up their flavour steadily; broken ones release it all at once and cloud the cup. Ripe pu’er takes boiling water: fermented, tightly packed leaf needs full heat to open, and it does not scald the way green tea can. A common start is about 7 grams to 100 ml and one quick rinse, which wakes the leaf and carries off dust and any pile smell. Then short steeps that lengthen as the leaf opens, so the cup stays clear rather than heavy; it gives eight or more good cups."
+    },
     "missing": [
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
@@ -39,9 +47,32 @@
     {
       "claimId": "menghai-county:mengsong-naka",
       "rev": 1
+    },
+    {
+      "claimId": "menghai-county:peoples",
+      "rev": 1
+    },
+    {
+      "claimId": "menghai-county:old-gardens",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:wet-piling",
+      "rev": 2
+    },
+    {
+      "claimId": "shou:brewing-pressed",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:brewing",
+      "rev": 1
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T06:28:55.415Z"
+  "unsupported": []
 }

@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:41:22.359Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:53:13.612Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Rolled",
     "year": 1988,
     "origin": "Anxi, Fujian, China",
-    "stockGrams": 250,
-    "pricePerGramUsd": 0.95,
-    "tags": [
-      "roasted chestnut",
-      "dried apricot",
-      "aged honey",
-      "mineral warmth"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "b8f48865-a48a-4aed-a99d-126fdd4faf17",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A rolled [Tieguanyin](tieguanyin:definition) from Anxi County in Fujian, made in 1988 the older way: oxidised further than today's tea and roasted over charcoal. That puts it just before the [light, green style](tieguanyin:styles) took over in Anxi in the 1990s, when roasting was still the usual way to finish this [oolong](oolong:definition)."
+        "layer": "place",
+        "text": "[Anxi](anxi:where-it-is) is a county in southern Fujian, inland from the coast and north of Xiamen, on the southern side of the Daiyun mountains. On this tea the name says [where the leaf grew](anxi:on-a-label), not its style or grade. The tea dates from 1988. Anxi was then still one of the poorer counties in Fujian, and the [Tieguanyin boom](anxi:history) that changed that had not yet come."
       },
       {
         "layer": "age",
-        "text": "Light Tieguanyin is made to drink fresh and does not keep. The heavier kind, roasted over charcoal, is steadier, so it is the one people put away for years. At thirty-eight years this tea has become what the trade calls [old Tie](tieguanyin:ageing), lǎo tiě."
+        "text": "It was also made before the [light green style](tieguanyin:styles) took over in Anxi in the 1990s, at a time when the roasted style, the older of the two, still held. The trade has a name for Tieguanyin kept for years: chenxiang, or old Tie. This one is thirty-eight years old. The light kind goes stale quickly, and the heavier, charcoal roasted kind is the one [kept for years](tieguanyin:ageing), sealed, dry and dark, until the fire of the roast settles."
+      },
+      {
+        "layer": "type",
+        "text": "[Tieguanyin](tieguanyin:definition) is both a cultivar and the partly oxidised [oolong](oolong:definition) made from it. The leaf is rolled into tight balls by [wrapping it in cloth](tieguanyin:making), pressing it and drying it a little, again and again, with each round making it tighter."
       }
     ],
     "brewing": {
@@ -42,14 +41,21 @@
       "text": "A smoother, rounder, softer cup with the fire gone, a liquor turned orange-red or reddish-brown, and often a soft fruity sourness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "tieguanyin:definition",
+      "claimId": "anxi:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "anxi:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "anxi:history",
       "rev": 1
     },
     {
@@ -57,11 +63,19 @@
       "rev": 1
     },
     {
+      "claimId": "tieguanyin:ageing",
+      "rev": 1
+    },
+    {
+      "claimId": "tieguanyin:definition",
+      "rev": 1
+    },
+    {
       "claimId": "oolong:definition",
       "rev": 1
     },
     {
-      "claimId": "tieguanyin:ageing",
+      "claimId": "tieguanyin:making",
       "rev": 1
     },
     {
@@ -74,6 +88,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:45.387Z"
+  "unsupported": []
 }

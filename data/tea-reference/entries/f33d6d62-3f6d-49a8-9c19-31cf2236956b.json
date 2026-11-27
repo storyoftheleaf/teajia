@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T04:44:08.102Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:55:16.179Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": 1980,
     "origin": "Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 1.54,
-    "tags": [
-      "dark roast",
-      "dried fruit",
-      "aged honey",
-      "warm mineral"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "f33d6d62-3f6d-49a8-9c19-31cf2236956b",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1980, a [partly oxidised](oolong:definition) tea. No record of its cultivar or its garden came down with it, so what can be said of it now is its age."
+        "layer": "age",
+        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1980, now forty-six years old. Taiwan has a long habit of keeping oolong for years, called [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts well roasted and dry, and keepers roast it again at low heat from time to time to drive out the moisture it takes in, since damp is what spoils a stored tea. No standard says how many years make an oolong old; those who give a figure put it between ten and thirty, and this one is well past both."
       },
       {
-        "layer": "age",
-        "text": "Taiwan has long kept oolong for years as [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts well roasted and dry, and because it slowly takes in moisture over the years, keepers roast it again at low heat from time to time to drive that moisture out. Between roastings it is held cool, dry, dark and sealed. No standard says when an oolong becomes old; those who give a figure put it between ten and thirty years. At forty-six years, this tea is well past either."
+        "layer": "place",
+        "text": "The record names only the island, which tells you the leaf was grown in [Taiwan](taiwan:on-a-label) and nothing about the mountain, township or height. Oolong came there with settlers from [Fujian](taiwan:history), who brought the plants and the craft, and by the nineteenth century the island was selling it abroad as Formosa Oolong. As a [partly oxidised](oolong:definition) tea, it sits between green tea and red tea."
       }
     ],
     "brewing": {
@@ -42,7 +37,6 @@
       "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -53,11 +47,19 @@
       "rev": 1
     },
     {
-      "claimId": "oolong:definition",
+      "claimId": "taiwan-oolong:ageing",
       "rev": 1
     },
     {
-      "claimId": "taiwan-oolong:ageing",
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:history",
+      "rev": 1
+    },
+    {
+      "claimId": "oolong:definition",
       "rev": 1
     },
     {
@@ -70,6 +72,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:24.447Z"
+  "unsupported": [
+    {
+      "sentence": "Leaf chosen for keeping starts well roasted and dry, and keepers roast it again at low heat from time to time to drive out the moisture it takes in, since damp is what spoils a stored tea.",
+      "words": "since damp is what spoils a stored tea",
+      "why": "No claim says damp spoils stored tea. The ageing claim says only that re-roasting drives out moisture and that the tea is stored cool, dry, dark and sealed. This is a general statement about tea that no input makes."
+    }
+  ]
 }

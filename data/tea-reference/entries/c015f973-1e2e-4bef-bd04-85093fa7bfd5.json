@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:56:41.195Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:56:46.896Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,24 @@
     "form": "Cake",
     "year": 1996,
     "origin": "Menghai, Yunnan, China",
-    "stockGrams": 120,
-    "pricePerGramUsd": 1.25,
-    "tags": [
-      "aged sweetness",
-      "camphor",
-      "dried plum",
-      "mineral depth",
-      "smooth body"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "c015f973-1e2e-4bef-bd04-85093fa7bfd5",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "A cake of [raw pu’er](sheng:identity) from Menghai in Yunnan, pressed in 1996. The leaf was [fried in a wok and dried in the sun](sheng:making) and never hot-air dried. That leaves some of the leaf’s own activity alive, so the tea goes on changing for years after it is pressed."
+        "layer": "place",
+        "text": "A [raw pu’er](sheng:identity) cake made in 1996 from leaf grown in Menghai County, Yunnan. [Menghai](menghai-county:county-and-factory) on a label can mean the county or the factory that stands in it. This record names the county as the leaf’s origin and says nothing of a maker."
       },
       {
         "layer": "age",
-        "text": "At thirty years it sits well past the point where the trade starts to call raw pu’er [aged](sheng:ageing), whether that line is drawn at ten years or at twenty. How far any cake has come depends on where it was kept, because heat and humidity set the pace of its [change in storage](sheng:storage). This one was made in the decade when collectors, led at first by Taiwan, came looking for [aged raw pu’er](sheng:history-modern)."
+        "text": "Thirty years on, it is past the point where the trade says [raw pu’er counts as aged](sheng:ageing). Some put that point at ten years, and many wait for twenty or more."
+      },
+      {
+        "layer": "type",
+        "text": "Unlike shou, it was never put through a fast fermentation, so it has [changed slowly](sheng:aging) in [storage](sheng:storage). Oxidation and microbes do that work, which is why warmth and humidity set how fast a tea changes. [Pressing](sheng:pressing) began so tea would travel well on the old trade routes. It also shapes ageing, since a tight cake changes more slowly than a loose one."
       }
     ],
     "brewing": {
@@ -43,7 +41,6 @@
       "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -54,7 +51,7 @@
       "rev": 1
     },
     {
-      "claimId": "sheng:making",
+      "claimId": "menghai-county:county-and-factory",
       "rev": 1
     },
     {
@@ -62,11 +59,15 @@
       "rev": 1
     },
     {
+      "claimId": "sheng:aging",
+      "rev": 1
+    },
+    {
       "claimId": "sheng:storage",
       "rev": 1
     },
     {
-      "claimId": "sheng:history-modern",
+      "claimId": "sheng:pressing",
       "rev": 1
     },
     {
@@ -83,6 +84,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:56.827Z"
+  "unsupported": []
 }

@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T03:32:58.364Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:59:44.877Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,29 +11,24 @@
     "form": "Loose",
     "year": 2024,
     "origin": "Anhua, Hunan, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 5.88,
-    "tags": [
-      "clean woody",
-      "mushroom",
-      "subtle sweetness",
-      "fresh mineral"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "da83f352-9402-437e-867e-412b6f0b5df8",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "Wild Ancha is a loose [Anhua dark tea](anhua-dark:definition) picked from wild plants. Anhua is a mountain county on the Zi river in north central Hunan, and its tea is a protected origin product in China, tied to a defined place of making. The county is widely named as the main home of dark tea in China, and as a starting point of the old tea routes to the northwest."
+        "layer": "place",
+        "text": "This is [Anhua dark tea](anhua-dark:definition), a protected origin name, from the mountain county of [Anhua](anhua:where-it-is) on the Zi river in north-central Hunan. The county sits at the northern foot of the Xuefeng mountains. Most of it is hills and steep valleys, ground where rice is hard to grow and tea does well. The leaf grows in warm, wet air, and the tea is piled and kept in that same air. That is why the trade ties [the finished tea to the place](anhua:why-people-value-it) and not only to the method."
       },
       {
         "layer": "type",
-        "text": "Like every Anhua tea, it begins as [heimaocha](anhua-dark:making), a raw tea of large Anhua leaf that is fixed, rolled, piled, rolled again and dried. What makes it a [dark tea](dark:definition) comes after that making: left in warmth and moisture, the leaf is slowly darkened and changed by microbes and its own chemistry."
+        "text": "Every Anhua tea begins as [heimaocha](anhua-dark:making). Large Anhua leaf is fixed, rolled, piled, rolled again and dried. Like any [dark tea](dark:definition), it keeps changing after it is made, as warmth, moisture and microbes slowly darken and mellow the leaf."
       },
       {
         "layer": "age",
-        "text": "At two years this tea is young. Anhua tea is [kept for years](anhua-dark:ageing) and said to improve with keeping, though no agreed count of years marks it as aged. It is best kept clean, dry and aired, away from mould and other smells."
+        "text": "Made in 2024, this tea is two years into that change. Anhua tea is [kept for years](anhua-dark:ageing) and is said to improve, though no agreed number of years marks it as aged."
       }
     ],
     "brewing": {
@@ -46,7 +41,6 @@
       "text": "Pine smoke or pine resin above all, a sweet taste and aftertaste, and a mellow, thick, smooth cup; a liquor from yellow and orange to orange-red. Young tea is often smokier in the first infusions and a little bitter, sweetening as the infusions go on."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -54,6 +48,14 @@
   "claimUses": [
     {
       "claimId": "anhua-dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "anhua:why-people-value-it",
       "rev": 1
     },
     {
@@ -78,6 +80,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T03:39:26.283Z"
+  "unsupported": []
 }

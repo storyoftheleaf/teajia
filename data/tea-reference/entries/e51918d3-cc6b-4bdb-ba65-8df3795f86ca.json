@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T07:22:56.570Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:54:12.776Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,20 @@
     "form": "Loose",
     "year": "1980s",
     "origin": "Guangdong, China",
-    "stockGrams": 50,
-    "pricePerGramUsd": 2.73,
+    "stockGrams": null,
+    "pricePerGramUsd": null,
     "tags": []
   },
   "entry": {
     "productId": "e51918d3-cc6b-4bdb-ba65-8df3795f86ca",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A loose [oolong](oolong:definition) from Guangdong, set aside in the 1980s and kept for decades since. Nobody wrote down the mountain or village when the tea was put away. What it carries now is its age, not a named origin."
+        "layer": "place",
+        "text": "A loose [oolong](oolong:definition) from Guangdong, made in the 1980s. The trade knows the province for one oolong above all, the [dancong](guangdong:phoenix-dancong) of Phoenix Mountain in Chaozhou. A label that names only Guangdong, though, does not say which mountain or village a tea comes from."
       },
       {
         "layer": "age",
-        "text": "Light, green-style oolong is meant to be drunk fresh. Only well-made, [well-roasted](oolong:oxidation-and-roast) leaf is kept to [age](oolong:ageing), because damp is the danger and a heavier roast slows the change. Good oolong kept for years is roasted again at low heat from time to time to drive off the moisture it takes in. This is skilled work, and each round can cost the tea some quality. There is no agreed age at which oolong counts as aged, but several decades is a long keeping for a style most people drink within a few years."
+        "text": "At forty-one years, this is oolong that was kept rather than drunk fresh. Only well-made oolong is put aside like this, because [roasting](oolong:oxidation-and-roast) lowers the moisture so the leaf keeps. Damp is the danger over the years. Oolong held this long is usually [roasted again at low heat](oolong:ageing) from time to time to drive off what it has taken in, a skilled job that can cost some quality each round. The trade has no agreed age at which an oolong counts as aged."
       }
     ],
     "brewing": {
@@ -37,7 +37,6 @@
       "text": "A smooth, mellow and sweet cup, often with dried fruit or plum and wood, sometimes something herbal, little astringency, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -45,6 +44,10 @@
   "claimUses": [
     {
       "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "guangdong:phoenix-dancong",
       "rev": 1
     },
     {
@@ -65,6 +68,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T07:48:35.308Z"
+  "unsupported": []
 }

@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-24T12:33:16.916Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:51:54.554Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,25 @@
     "form": "Loose",
     "year": 1990,
     "origin": "Wuyi Mountains, Fujian, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": null,
-    "tags": []
+    "stockGrams": 10,
+    "pricePerGramUsd": 0.95,
+    "tags": [
+      "charcoal mineral",
+      "dark plum",
+      "roasted nuts",
+      "deep rock sweetness"
+    ]
   },
   "entry": {
     "productId": "04729b3d-cf32-4bf8-b9a1-8695e247e403",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "[Meizhan](yancha:meizhan) is a Fujian cultivar that came from Anxi and is also made as [Wuyi rock tea](yancha:definition). It is less known than Rougui and Shui Xian and sits outside the four famous bushes of Wuyi. This leaf, from 1990, grew in the Wuyi Mountains, the only area whose tea may carry the rock tea name, where the bushes root among crevices, ledges and terraces in cliff country. It was twisted into long thin strips and finished over charcoal in several rounds, a [roast](yancha:making) that dries the leaf so it keeps."
+        "layer": "lot",
+        "text": "This is [Meizhan](yancha:meizhan), a Fujian cultivar that came from Anxi, made in 1990 as [Wuyi rock tea](yancha:definition) from the [Wuyi Mountains](wuyi-mountains:where-it-is). It is less famous than Rougui and Shui Xian and is not one of the four famous bushes of Wuyi. The leaf was twisted into long strips and given a heavy [charcoal roast](yancha:making) in the traditional rock tea way. That roast dries the leaf so it keeps."
       },
       {
         "layer": "age",
-        "text": "Rock tea meant for [keeping](yancha:ageing) is the medium to full roast kind, since the heavier the roast, the longer it is said to stay good. Over thirty-six years, damp is the main risk. Tea that takes on moisture can go green again, fǎn qīng, the main fault of stored rock tea, so a tea kept this long has to stay sealed, dry and cool, and be checked now and then."
+        "text": "A roast this heavy marks the kind of rock tea that is put away for years, because the heavier the roast, the longer the tea is said to stay good. Over thirty-six years the roast has settled fully into the leaf. Kept sealed, dry and cool, it is spared [going green again](yancha:ageing), the damp fault of stored rock tea."
       }
     ],
     "brewing": {
@@ -37,7 +42,6 @@
       "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -49,6 +53,10 @@
     },
     {
       "claimId": "yancha:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:where-it-is",
       "rev": 1
     },
     {
@@ -69,6 +77,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T13:33:41.174Z"
+  "unsupported": []
 }

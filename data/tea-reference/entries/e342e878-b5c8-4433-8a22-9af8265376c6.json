@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-23T12:54:59.207Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:51:44.493Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -19,12 +19,16 @@
     "productId": "e342e878-b5c8-4433-8a22-9af8265376c6",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A cake of [ripe pu’er](shou:definition) from Wuliang Mountain, in Jingdong County, Pu’er City, pressed in 2019. At seven years it sits in the span where the [smell of the pile](shou:age-settling) has usually aired away."
+        "layer": "place",
+        "text": "This cake comes from [Wuliang Mountain](wuliang-mountain:where), a long range in west-central Yunnan rather than a single peak. It runs south from Nanjian in Dali, past Jingdong, Zhenyuan and Jinggu, and fades out toward Xishuangbanna. The leaf is from Jingdong County, one of the two counties most often named for the range's [old tea trees](wuliang-mountain:trees), which grow wild in the forest and as older plantings in village gardens."
       },
       {
         "layer": "type",
-        "text": "Before pressing, the leaf was wetted and heaped in a [fermenting pile](shou:wet-piling). The pile is covered to hold in the heat its own microbes make. It is turned about once a week to spread that heat and let air in, and it is kept cool enough that the leaf does not char. The method was made to give in weeks what raw pu’er reaches only after years of ageing. Yunnan’s state factories brought it into production in 1973."
+        "text": "It was made into [ripe pu'er](shou:definition) and pressed in 2019. The leaf was wetted and heaped in a [fermenting pile](shou:wet-piling), covered to hold in the heat its own microbes make, and turned about once a week to let air in. The pile exists to give in weeks what raw pu'er reaches only after years of waiting, so a ripe cake is ready soon after it is made."
+      },
+      {
+        "layer": "age",
+        "text": "At seven years the cake has entered the [settling years](shou:age-settling) of the style, the stretch between about five and ten years when what the pile left behind has usually aired away."
       }
     ],
     "brewing": {
@@ -37,23 +41,30 @@
       "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "shou:definition",
+      "claimId": "wuliang-mountain:where",
       "rev": 1
     },
     {
-      "claimId": "shou:age-settling",
+      "claimId": "wuliang-mountain:trees",
+      "rev": 1
+    },
+    {
+      "claimId": "shou:definition",
       "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
       "rev": 2
+    },
+    {
+      "claimId": "shou:age-settling",
+      "rev": 1
     },
     {
       "claimId": "shou:brewing-pressed",
@@ -69,6 +80,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-23T13:13:03.340Z"
+  "unsupported": []
 }

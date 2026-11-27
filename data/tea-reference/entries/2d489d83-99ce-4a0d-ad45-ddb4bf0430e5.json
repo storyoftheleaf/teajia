@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-24T12:31:52.989Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:52:30.084Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -12,19 +12,28 @@
     "year": 2004,
     "origin": "Wuyi Mountains, Fujian, China",
     "stockGrams": 900,
-    "pricePerGramUsd": null,
-    "tags": []
+    "pricePerGramUsd": 1.13,
+    "tags": [
+      "plum blossom",
+      "toasted grain",
+      "aged honey",
+      "light mineral"
+    ]
   },
   "entry": {
     "productId": "2d489d83-99ce-4a0d-ad45-ddb4bf0430e5",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "[Meizhan](yancha:meizhan) is a Fujian cultivar that came from Anxi, and here it is made as [Wuyi rock tea](yancha:definition), the oolong of the Wuyi mountains in northern Fujian. It is not one of the four famous bushes of Wuyi, and it is less famous than Rougui or Shui Xian. The bushes of this area grow among rock, on ledges and terraces in cliff country. The leaf is finished over charcoal in several rounds, with rests between them, and that [charcoal roast](yancha:making) dries the tea so it keeps."
+        "layer": "lot",
+        "text": "A [Meizhan](yancha:meizhan) [oolong](oolong:definition) made in 2004, partly oxidised to a medium degree and finished with a [charcoal roast](yancha:making), the roast that dries the leaf so it keeps. Meizhan is a Fujian cultivar that came from Anxi and is also made in the Wuyi way, though it is less famous than Rougui and Shui Xian and is not one of the four famous bushes."
+      },
+      {
+        "layer": "place",
+        "text": "The leaf comes from the [Wuyi Mountains](wuyi-mountains:where-it-is), on Fujian's border with Jiangxi. Here bushes grow slowly in thin, stony soil on ledges and in ravines, under heavy rain and frequent fog. The record names no [zone](wuyi-mountains:zones), so it does not say how close to the rocky core of the range this tea grew."
       },
       {
         "layer": "age",
-        "text": "This leaf was made in 2004, so it has had twenty-two years. The rock tea that gets kept this long is the medium to full roast kind, and the heavier the roast, the longer it is said to hold. Damp is the real danger in storage. Tea that takes it on [goes green again](yancha:ageing), and a careful low roast can drive the moisture back out."
+        "text": "Twenty-two years have passed since it was made. Roasted Wuyi tea is the kind [kept for years](yancha:ageing), and its keeping depends on staying sealed and dry, because damp is what turns stored leaf back toward going green, the main fault of age."
       }
     ],
     "brewing": {
@@ -37,7 +46,6 @@
       "text": "A smoother, thicker liquor with less sharpness, the roast softened and the high aroma faded."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -48,11 +56,19 @@
       "rev": 1
     },
     {
-      "claimId": "yancha:definition",
+      "claimId": "oolong:definition",
       "rev": 1
     },
     {
       "claimId": "yancha:making",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "wuyi-mountains:zones",
       "rev": 1
     },
     {
@@ -69,6 +85,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T13:33:40.940Z"
+  "unsupported": []
 }

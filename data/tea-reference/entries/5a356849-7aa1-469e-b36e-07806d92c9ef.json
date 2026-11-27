@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:40:57.381Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:57:45.548Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Cake",
     "year": 1999,
     "origin": "Menghai, Yunnan, China",
-    "stockGrams": 520,
-    "pricePerGramUsd": 0.68,
-    "tags": [
-      "dried dates",
-      "dark chocolate",
-      "aged wood",
-      "sweet earth",
-      "clean finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "5a356849-7aa1-469e-b36e-07806d92c9ef",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "7572 is a [ripe pu’er](shou:definition) recipe of the Menghai Tea Factory, and its number says what it is: a 1975 formula, grade 7 leaf, factory number 2. This cake was [wet piled](shou:wet-piling) and pressed in 1999, twenty-four years after [Menghai’s own piling method](shou:piling-1973) settled into the ripe pu’er made today. It arrived without its original paper wrapper."
+        "layer": "grade",
+        "text": "This cake carries the [7572](7572:definition) mark. It is the ripe recipe Menghai Tea Factory first made in the mid 1970s, and other ripe cakes are often described by how they compare with it. The [four digits are a code](7572:reading-the-number): 75 for 1975, the year the recipe began, 7 for the leaf grade that makes up most of the blend, and 2 for Menghai. The number names a whole blend, [not a rank of quality](7572:recipe-not-quality), and the 75 dates the recipe, not the cake. This one was pressed in 1999, from leaf grown in Menghai County."
       },
       {
         "layer": "age",
-        "text": "At twenty-seven years it sits well inside what the trade counts as [aged ripe pu’er](shou:age-aged). The leaf is still changing slowly with the air and moisture around it, so where it has been kept matters as much as how long."
+        "text": "That year falls in the third decade of [ripe pu’er](shou:definition), twenty-six years after Yunnan’s state factories brought [wet piling](shou:wet-piling) into production in 1973. At twenty-seven years the cake is well past the ten that the trade counts as [aged ripe pu’er](shou:age-aged). The leaf keeps changing slowly with the air and moisture around it, so storage has shaped it as much as the years have."
       }
     ],
     "brewing": {
@@ -43,12 +37,23 @@
       "text": "A smooth, deep cup with woody, date-like or medicinal notes, which the trade calls aged aroma."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "7572:definition",
+      "rev": null
+    },
+    {
+      "claimId": "7572:reading-the-number",
+      "rev": null
+    },
+    {
+      "claimId": "7572:recipe-not-quality",
+      "rev": null
+    },
     {
       "claimId": "shou:definition",
       "rev": 1
@@ -56,10 +61,6 @@
     {
       "claimId": "shou:wet-piling",
       "rev": 2
-    },
-    {
-      "claimId": "shou:piling-1973",
-      "rev": 1
     },
     {
       "claimId": "shou:age-aged",
@@ -79,6 +80,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:49.065Z"
+  "unsupported": []
 }

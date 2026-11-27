@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T07:24:13.464Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:57:27.367Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,24 @@
     "form": "Cake",
     "year": 2008,
     "origin": "Zhenghe, Fujian, China",
-    "stockGrams": 242,
-    "pricePerGramUsd": 1.31,
-    "tags": [
-      "dark honey",
-      "dried jujube",
-      "aged sweetness",
-      "woody warmth",
-      "light medicinal"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "a2e0137d-705e-4255-8e40-3bf0f319fdf4",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A [white tea](white:definition) cake from Zhenghe, dated 2008, from Master Bo's collection. [Zhenghe](fujian-white:definition) is an inland mountain county in Fujian. With Fuding on the coast, it is one of the province's two leading white tea counties."
+        "layer": "place",
+        "text": "This cake comes from [Zhenghe](zhenghe:where-it-is), an inland mountain county in the city of Nanping, in the north of Fujian, set back from the coast under forest and mist. With Fuding it is one of the two main homes of white tea, and it grows its own bush, [Zhenghe Da Bai](zhenghe:known-for), said to have been found at Tieshan in the late nineteenth century and now planted well beyond the county."
+      },
+      {
+        "layer": "type",
+        "text": "Like all [white tea](white:definition), the leaf was only withered and dried, never heated to stop its change and never rolled. Pressed and dated 2008, it is an early example of a [white tea cake](fujian-white:cakes): the form began in the 2000s and spread around 2010, because a cake is easier to keep and carry than loose leaf. Some were pressed from leaf already aged loose for a few years, so the year on a cake can mark its pressing rather than its picking."
       },
       {
         "layer": "age",
-        "text": "Pressing white tea is a recent practice. [White tea cakes](fujian-white:cakes) began in the 2000s and spread around 2010, because a cake is easier to keep and carry than loose leaf. The year on a cake can be the year it was pressed rather than picked. At eighteen years it is far past the seventh year of the trade's saying, [one year tea, three years medicine, seven years treasure](fujian-white:ageing), though no agreed number of years makes a white tea aged."
+        "text": "At eighteen years it sits well past the trade's saying of [tea in the first year, medicine at three and a treasure at seven](fujian-white:ageing). That is a saying, not a tested claim, and no agreed number of years makes a white tea aged. How it was kept counts too: white tea is meant to be stored dry, clean and aired, away from strong smells and sunlight."
       }
     ],
     "brewing": {
@@ -43,18 +41,21 @@
       "text": "Jujube or dried dates, herbs and medicine, wood, honey and dried fruit, a deeper, redder liquor, a thicker, rounder body, and less lift in the scent than a young tea."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "white:definition",
+      "claimId": "zhenghe:where-it-is",
       "rev": 1
     },
     {
-      "claimId": "fujian-white:definition",
+      "claimId": "zhenghe:known-for",
+      "rev": 1
+    },
+    {
+      "claimId": "white:definition",
       "rev": 1
     },
     {
@@ -75,6 +76,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T07:48:36.520Z"
+  "unsupported": [
+    {
+      "sentence": "Pressed and dated 2008, it is an early example of a [white tea cake](fujian-white:cakes): the form began in the 2000s and spread around 2010, because a cake is easier to keep and carry than loose leaf.",
+      "words": "Pressed and dated 2008, it is an early example",
+      "why": "The record gives the year as 2008 but does not say whether that is the pressing year or the picking year. The cakes claim, which the very next sentence repeats, says a cake's year can be either one. So the record does not show the cake was pressed in 2008, or that it is an early example of the form."
+    }
+  ]
 }

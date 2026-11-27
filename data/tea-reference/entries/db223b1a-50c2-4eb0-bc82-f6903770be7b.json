@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:40:36.241Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:55:33.601Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,24 @@
     "form": "Brick",
     "year": 1980,
     "origin": "Ya'an, Sichuan, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 1.86,
-    "tags": [
-      "aged earth",
-      "dried wood",
-      "dark sweetness",
-      "tobacco leaf",
-      "warming body"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "db223b1a-50c2-4eb0-bc82-f6903770be7b",
     "paragraphs": [
       {
         "layer": "type",
-        "text": "A [Kang brick](sichuan-dark:kangzhuan-jinjian) of [Sichuan border tea](sichuan-dark:definition) from Ya'an, made in 1980. The name describes the blend, not the place or the year. A Kangzhuan holds more leaf than red moss, the reddish stem and shoot pieces that come with the leaf, while a Jinjian holds more stem. Makers chose coarse, mature leaf because the brick had to last months on the road to the Tibetan highlands and then be boiled for hours."
+        "text": "A brick of [Sichuan border tea](sichuan-dark:definition) from [Ya'an](ya-an:where-it-is), made in 1980. It is a [dark tea](dark:definition) of mature leaf and red moss, the reddish stem and shoot pieces that come with the leaf. Coarse leaf was chosen on purpose: the tea had to survive months on the road to the Tibetan highlands and then be boiled for hours."
+      },
+      {
+        "layer": "place",
+        "text": "For about a thousand years Ya'an was where [tea for Tibet](ya-an:tibet-trade) began its journey. [Porters](sichuan-dark:tea-horse-road) carried the bricks on their backs to Kangding, because the mountain track was too steep for loaded horses, and from there the tea went on to Lhasa in exchange for horses. That trade is why a city known for the green tea of [Mengding Shan](ya-an:mengding-shan) is a dark tea place as well. Trucks on the new highway took over from the porters in the middle of the twentieth century, a few decades before this brick was made."
       },
       {
         "layer": "age",
-        "text": "At forty-six years old, this is the kind of older brick the trade values more than a young one. Its liquor turns redder as the years pass, and how fast a [brick's ageing](sichuan-dark:ageing) goes depends on how it is stored."
+        "text": "Bricks like this were made to be kept, and the trade values an [older brick](sichuan-dark:ageing) more. At forty-six years, what this one has become depends on how it was stored as much as on the years themselves."
       }
     ],
     "brewing": {
@@ -43,18 +41,33 @@
       "text": "A redder, browner liquor, a rounder body and a medicinal edge, often with wood and a dark sweetness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "sichuan-dark:kangzhuan-jinjian",
+      "claimId": "sichuan-dark:definition",
       "rev": 1
     },
     {
-      "claimId": "sichuan-dark:definition",
+      "claimId": "ya-an:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "dark:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "ya-an:tibet-trade",
+      "rev": 1
+    },
+    {
+      "claimId": "sichuan-dark:tea-horse-road",
+      "rev": 1
+    },
+    {
+      "claimId": "ya-an:mengding-shan",
       "rev": 1
     },
     {
@@ -75,6 +88,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:45.945Z"
+  "unsupported": [
+    {
+      "sentence": "Bricks like this were made to be kept, and the trade values an older brick more.",
+      "words": "were made to be kept",
+      "why": "The ageing claim says only that Sichuan border tea is kept for years and that the trade values older bricks more. It never says the bricks were made for keeping. The claims give a different reason for the make: the bricks had to survive the road and then be boiled."
+    }
+  ]
 }

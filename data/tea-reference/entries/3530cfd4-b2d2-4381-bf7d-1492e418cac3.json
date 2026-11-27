@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T04:42:12.032Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:54:48.928Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": null,
     "origin": "Taiwan",
-    "stockGrams": 110,
-    "pricePerGramUsd": 0.65,
-    "tags": [
-      "tropical fruit",
-      "toasted rice",
-      "floral honey",
-      "mild astringency"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "3530cfd4-b2d2-4381-bf7d-1492e418cac3",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "An organically grown [GABA oolong](gaba:definition) from Taiwan, rolled after making. GABA tea is named for a way of making tea, not for a plant or a place. The fresh leaf is held for some hours [without oxygen](gaba:making), in this case in a chamber filled with nitrogen. Without air, the leaf turns its glutamic acid into GABA, an amino acid it then cannot break down. The GABA builds up, so the finished tea holds much more of it than ordinary tea."
+        "layer": "place",
+        "text": "A rolled oolong from [Taiwan](taiwan:on-a-label). The label says only that the leaf grew on the island; it names no mountain or township. The island's tea, and the craft of making oolong, came across the strait with [settlers from Fujian](taiwan:history), and rolled oolong is still what its [tea trade](taiwan:known-for) is built on."
       },
       {
         "layer": "type",
-        "text": "Taiwan's method alternates rounds without oxygen with rounds in air. Afterwards the leaf is made like any [Taiwan oolong](taiwan-oolong:definition): withered and tossed, fixed, rolled and dried into a [partly oxidised](oolong:definition) tea. The method itself [began in Japan](gaba:history), where it was found in 1987. Taiwan's tea research station adapted it to oolong, and the island is now a main source of the GABA tea sold abroad."
+        "text": "What sets this tea apart is how the fresh leaf was treated. [GABA tea](gaba:definition) names a method, not a plant or a place. Before the usual making, the leaf is held for some hours [without oxygen](gaba:making), in a sealed chamber of nitrogen or a vacuum. In that state it turns its glutamic acid into GABA, an amino acid, and cannot break it down again, so the finished tea holds much more of it than ordinary leaf. After that it is withered, tossed, fixed, rolled and dried like any [oolong](oolong:definition). The method began in Japan, where the finding is dated to 1987, and [the island's tea research station](gaba:history) later adapted it to oolong, alternating spells without oxygen with spells in air. The island is now a main source of GABA tea sold abroad."
       }
     ],
     "brewing": {
@@ -42,7 +37,6 @@
       "text": "Ripe, dried or stewed fruit such as apricot, honeyed sweetness, a smooth, round body, and little bitterness or astringency; often brown sugar or roasted grain, sometimes wood or spice, and a light fruity sourness."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -50,16 +44,24 @@
   },
   "claimUses": [
     {
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:history",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:known-for",
+      "rev": 1
+    },
+    {
       "claimId": "gaba:definition",
       "rev": 1
     },
     {
       "claimId": "gaba:making",
       "rev": 2
-    },
-    {
-      "claimId": "taiwan-oolong:definition",
-      "rev": 1
     },
     {
       "claimId": "oolong:definition",
@@ -79,6 +81,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:22.643Z"
+  "unsupported": []
 }

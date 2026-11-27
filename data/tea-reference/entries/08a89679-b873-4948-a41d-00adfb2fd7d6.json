@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:44:05.588Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:55:57.030Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Rolled",
     "year": null,
     "origin": "Anxi, Fujian, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 1.54,
-    "tags": [
-      "apricot",
-      "osmanthus flower",
-      "toasted grain",
-      "peach",
-      "light honey"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "08a89679-b873-4948-a41d-00adfb2fd7d6",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "This is Tieguanyin made into a [scented tea](tieguanyin:osmanthus). Osmanthus flowers, picked in autumn, are layered with the finished leaf in rounds so the leaf takes up their scent, and the tea is then dried again. Two harvests meet in one tea: the leaf's own and the flowers'."
+        "layer": "place",
+        "text": "This leaf grew in [Anxi](anxi:where-it-is), a county of southern Fujian in Quanzhou prefecture, on the southern side of the Daiyun mountains, where [Tieguanyin](anxi:known-for) fills most of the tea land. The county is warm, wet and misty, and its hills of [weathered granite](anxi:why-tea) break down into acidic red and yellow soil that drains freely, which is why tea does well there."
       },
       {
         "layer": "type",
-        "text": "[Tieguanyin](tieguanyin:definition) is both a tea plant and the [oolong](oolong:definition) made from it. Its home is Anxi County in southern Fujian, where the name is protected, and the name itself joins iron with Guanyin, the bodhisattva of mercy. To make it, the leaf is shaken and rested until its edges turn red around a green middle, the [green leaf with a red rim](tieguanyin:making). It is then fixed, wrapped in cloth and rolled again and again, each round tightening it, until it closes into the small balls you see here."
+        "text": "[Tieguanyin](tieguanyin:definition) is the name of a cultivar and of the [oolong](oolong:definition) made from it, a partly oxidised tea. Once the leaf is shaken, fixed and rolled, it goes through [cloth wrap rolling](tieguanyin:making): it is wrapped, pressed and dried a little, over and over, and each round draws it tighter into the balls it keeps here. This one was then made into a [scented tea](tieguanyin:osmanthus): fresh osmanthus flowers were layered through the finished tea, and the tea was dried once more."
       }
     ],
     "brewing": {
@@ -43,7 +37,6 @@
       "text": "In the light style: orchid and other flowers, a fresh, clean cup and a sweet aftertaste. In the roasted style: toast and charcoal, caramel or honey, stone or dried fruit, nuts, and a liquor that runs from gold to amber."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -51,7 +44,15 @@
   },
   "claimUses": [
     {
-      "claimId": "tieguanyin:osmanthus",
+      "claimId": "anxi:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "anxi:known-for",
+      "rev": 1
+    },
+    {
+      "claimId": "anxi:why-tea",
       "rev": 1
     },
     {
@@ -67,6 +68,10 @@
       "rev": 1
     },
     {
+      "claimId": "tieguanyin:osmanthus",
+      "rev": 1
+    },
+    {
       "claimId": "tieguanyin:brewing",
       "rev": 1
     },
@@ -76,6 +81,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:45.088Z"
+  "unsupported": []
 }

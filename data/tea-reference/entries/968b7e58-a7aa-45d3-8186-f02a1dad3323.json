@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T04:42:43.294Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:54:27.252Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Rolled",
     "year": 1989,
     "origin": "Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 2.73,
-    "tags": [
-      "roasted honey",
-      "dark fruit",
-      "aged sweetness",
-      "smooth mineral",
-      "lasting finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "968b7e58-a7aa-45d3-8186-f02a1dad3323",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1989 that took a gold award in competition. The island’s oolong came from Fujian with both its plants and its craft, and most of it is rolled into balls."
+        "layer": "age",
+        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from 1989, now thirty-seven years old. It is [lao cha](taiwan-oolong:ageing), old tea, in the island's sense: oolong kept for years and roasted again at low heat from time to time, to drive out the moisture it takes in while it rests. No standard sets how many years make an oolong old. Those who give a figure put it somewhere between ten and thirty, and this tea has passed the longest of them."
       },
       {
-        "layer": "age",
-        "text": "Taiwan has a custom of keeping oolong as [lao cha](taiwan-oolong:ageing), old tea. Oolong chosen for keeping starts well roasted and dry, then goes back over low heat from time to time to drive out the moisture it takes in, at the keeper’s judgement. No standard says when an oolong becomes old. Those who name a figure put it between ten and thirty years, and this one is thirty-seven."
+        "layer": "place",
+        "text": "The origin is given only as [Taiwan](taiwan:on-a-label). That places the leaf on the island, whose tea plants and craft came from Fujian, but says nothing of the mountain, the height or the cultivar it grew from."
       }
     ],
     "brewing": {
@@ -43,7 +37,6 @@
       "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -58,6 +51,10 @@
       "rev": 1
     },
     {
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
       "claimId": "taiwan-oolong:brewing",
       "rev": 1
     },
@@ -67,6 +64,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:23.541Z"
+  "unsupported": []
 }

@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-24T07:21:02.215Z",
+  "status": "needs_review",
+  "composedAt": "2026-11-27T03:50:51.088Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -23,11 +23,15 @@
     "paragraphs": [
       {
         "layer": "lot",
-        "text": "A cake of [raw pu’er](sheng:identity) from Yiwu in Yunnan, made in 2004, which has rested since in Guangzhou’s tea trade. Its leaf was fried in a wok and dried in the sun but never [hot-air dried](sheng:making), so some of its own activity survived, and that is what lets a cake like this keep changing. Without shou’s fermenting pile, raw pu’er [changes slowly in storage](sheng:aging) instead, and because [heat and humidity](sheng:storage) set the pace, where a cake has been kept belongs to its history."
+        "text": "A cake of [raw pu’er](sheng:identity) from [Yiwu](greater-yiwu:where-it-is), made in 2004 and kept since in Guangzhou’s tea trade. The area lies in the north of Mengla County, in Xishuangbanna, and counts among the old Six Famous Tea Mountains; its town has long been where leaf from the surrounding villages is gathered and processed."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was fried in a wok to [kill the green](sheng:making), then rolled and dried in the sun, never by hot air. That leaves some of the leaf’s own activity alive, which is why a cake like this keeps changing for years after it is pressed."
       },
       {
         "layer": "age",
-        "text": "At twenty-two years it has passed the twenty that many in the trade wait for before they call raw pu’er [aged](sheng:ageing), though some count from ten. How far it has come depends as much on that storage as on the years."
+        "text": "At twenty-two years it has passed the twenty that many in the trade wait for before calling raw pu’er [aged](sheng:ageing), though some count from ten. Because the tea changes through slow oxidation and the work of microbes, heat and humidity set the pace, so its years in [storage](sheng:storage) shape it as much as the date does."
       }
     ],
     "brewing": {
@@ -40,7 +44,6 @@
       "text": "A smoother, thicker, sweeter cup with woody, herbal and camphor notes and something of dried dates or dark fruit."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -51,19 +54,19 @@
       "rev": 1
     },
     {
+      "claimId": "greater-yiwu:where-it-is",
+      "rev": 1
+    },
+    {
       "claimId": "sheng:making",
       "rev": 1
     },
     {
-      "claimId": "sheng:aging",
+      "claimId": "sheng:ageing",
       "rev": 1
     },
     {
       "claimId": "sheng:storage",
-      "rev": 1
-    },
-    {
-      "claimId": "sheng:ageing",
       "rev": 1
     },
     {
@@ -80,6 +83,11 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T07:36:15.348Z"
+  "unsupported": [
+    {
+      "sentence": "A cake of raw pu’er from Yiwu, made in 2004 and kept since in Guangzhou’s tea trade.",
+      "words": "kept since",
+      "why": "The notes say only that this cake rested in Guangzhou's tea trade. They do not say it has been there since 2004, so 'since' adds a span of storage history that no input supports."
+    }
+  ]
 }

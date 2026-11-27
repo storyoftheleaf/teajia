@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T04:43:06.757Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:53:05.353Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,26 +11,20 @@
     "form": "Loose",
     "year": 1979,
     "origin": "Taiwan",
-    "stockGrams": 150,
-    "pricePerGramUsd": 0.81,
-    "tags": [
-      "aged sweetness",
-      "dark honey",
-      "dried rose",
-      "warm leather",
-      "clean mineral"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "db8e5235-aaaa-4b95-8401-4e9dfdaaa8cf",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A loose [red tea](red:definition) made in 1979 and kept since then in a personal collection. Red tea is fully oxidised: the leaf is left in warmth and damp air until it turns from green to reddish brown, then [dried with hot air](red:making) to stop the change. The details of how this lot was made were never recorded."
+        "layer": "type",
+        "text": "A loose [red tea](red:definition) from Taiwan, made in 1979. Red tea is the fully oxidised tea English calls black tea. On the island it goes back to the Japanese period, when it was first made at Yuchi near Sun Moon Lake, though the island is known above all for [oolong](taiwan:known-for). This label names only [Taiwan](taiwan:on-a-label). That says the leaf grew on the island and nothing more about which area or garden it came from."
       },
       {
         "layer": "age",
-        "text": "That makes it forty-seven years old in a category with [no tradition of ageing](red:ageing). Red tea is made to be drunk fresh, and sealed it holds its quality for about three years at most."
+        "text": "Red tea has no [tradition of ageing](red:ageing). It is made to be drunk within a year and a half to three years, while it keeps its first quality. At forty-seven years, this leaf has gone far past the usual life of the style."
       }
     ],
     "brewing": {
@@ -43,7 +37,6 @@
       "text": "A sweet cup, often with honey, floral or fruity notes, malt in many, and a brisk strength in the stronger teas. The liquor runs red, bright to deep."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -54,7 +47,11 @@
       "rev": 1
     },
     {
-      "claimId": "red:making",
+      "claimId": "taiwan:known-for",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:on-a-label",
       "rev": 1
     },
     {
@@ -71,6 +68,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:24.140Z"
+  "unsupported": []
 }

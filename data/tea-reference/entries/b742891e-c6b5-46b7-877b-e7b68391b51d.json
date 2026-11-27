@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-24T15:09:30.365Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:52:50.676Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,30 @@
     "form": "Loose",
     "year": 1920,
     "origin": "Wuyi Mountains, Fujian, China",
-    "stockGrams": 176,
-    "pricePerGramUsd": null,
-    "tags": []
+    "stockGrams": 100,
+    "pricePerGramUsd": 4.27,
+    "tags": [
+      "dried longan",
+      "ancient wood",
+      "dark honey",
+      "faint pine resin",
+      "deep mineral"
+    ]
   },
   "entry": {
     "productId": "b742891e-c6b5-46b7-877b-e7b68391b51d",
     "paragraphs": [
       {
-        "layer": "age",
-        "text": "A loose [red tea](red:definition) from the Wuyi Mountains of Fujian, dated 1920. At one hundred and six years it stands outside anything the style itself describes: Lapsang has no recognised tradition of [long ageing](lapsang:ageing), and no category of decades-old red tea is set down. It is kept the way Lapsang is kept. It stays sealed, dry, cool and away from light, because a smoky tea scents whatever sits near it."
+        "layer": "lot",
+        "text": "This is a [Zhengshan Xiaozhong](lapsang:definition), the [red tea](red:definition) of Tongmu village in the Wuyi Mountains, dated 1920. It was pine smoked the traditional way of the early Republican era. In that way the leaf dries over a fire of local pine in a [qinglou](lapsang:smoke), a wooden house of several floors with the fire at the bottom and the leaf on bamboo mats above, so the heat and smoke rise through it."
       },
       {
-        "layer": "type",
-        "text": "[Zhengshan Xiaozhong](lapsang:definition) is the red tea of Tongmu, in the Wuyi mountains of northern Fujian. Lapsang Souchong is the name the West took for it from the Fuzhou dialect. Traditionally the leaf is dried over a fire of local pine in a [qinglou](lapsang:smoke). This is a wooden drying house of several floors, with the fire at the bottom and the leaf on bamboo mats above, so the heat and smoke rise through it. The tea reached Europe first through Dutch and then British trade, under names such as Bohea and Souchong. It is often called the [oldest red tea](lapsang:history), though the dates given for its beginning differ."
+        "layer": "place",
+        "text": "Tongmu sits on the high northern edge of the [Wuyi range](wuyi-mountains:two-teas), close to the Jiangxi border, in forested country that is now protected. It is the village usually given as the [birthplace of black tea](fujian:history). Its tea first reached Europe through Dutch and then British trade, under names such as [Bohea and Souchong](lapsang:history)."
+      },
+      {
+        "layer": "age",
+        "text": "At a hundred and six years, this tea stands outside any named tradition. Lapsang has no recognised [tradition of long ageing](lapsang:ageing), and no category of red tea aged for decades is described."
       }
     ],
     "brewing": {
@@ -37,22 +47,17 @@
       "text": "The smoke softer and further back, with dried fruit coming forward."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
     {
-      "claimId": "red:definition",
-      "rev": 1
-    },
-    {
-      "claimId": "lapsang:ageing",
-      "rev": 1
-    },
-    {
       "claimId": "lapsang:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "red:definition",
       "rev": 1
     },
     {
@@ -60,7 +65,19 @@
       "rev": 1
     },
     {
+      "claimId": "wuyi-mountains:two-teas",
+      "rev": 1
+    },
+    {
+      "claimId": "fujian:history",
+      "rev": 1
+    },
+    {
       "claimId": "lapsang:history",
+      "rev": 1
+    },
+    {
+      "claimId": "lapsang:ageing",
       "rev": 1
     },
     {
@@ -73,6 +90,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T15:14:33.473Z"
+  "unsupported": []
 }

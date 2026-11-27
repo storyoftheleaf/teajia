@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:43:05.688Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:54:19.064Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Rolled",
     "year": 1979,
     "origin": "Nantou, Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 0.95,
-    "tags": [
-      "deep caramel",
-      "roasted grain",
-      "dried longan",
-      "aged sweetness"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "12a441ca-0045-4657-8efc-03b873ab62fc",
     "paragraphs": [
       {
-        "layer": "lot",
-        "text": "A rolled [Taiwan oolong](taiwan-oolong:definition) from Nantou County in central Taiwan, made in 1979 and given a heavy charcoal roast in the traditional Taiwanese style. That roast sets it apart from most of the island's oolong, which is lightly to moderately oxidised and rolled into balls from plants and craft that first came from Fujian."
+        "layer": "place",
+        "text": "This [oolong](oolong:definition), a partly oxidised tea, comes from [Nantou](nantou:where-it-is). Nantou lies in the middle of Taiwan and is the island's only county that does not touch the sea. It is also [Taiwan's biggest tea county](nantou:why-people-value-it). Its land climbs from low hills to cold mountain gardens, and the trade divides its tea country into [low, middle and high belts](nantou:altitude-bands), because the height of a garden decides which style it makes. This record names only the county, not the township, so it does not say which belt the leaf grew in."
       },
       {
         "layer": "age",
-        "text": "Taiwan has long kept oolong for years as [lao cha](taiwan-oolong:ageing), old tea. Leaf chosen for keeping starts well roasted and dry. Keepers roast it again at low heat from time to time to drive out the moisture it takes in, and store it cool, dark and sealed. No standard says when an oolong becomes old, and those who give a figure put it between ten and thirty years. At forty-seven years, this tea is well past both."
+        "text": "It was made in 1979 and rolled, as most [Taiwan oolong](taiwan-oolong:definition) is, so it is now forty-seven years old. Taiwan has a tradition of keeping oolong for years, called [lao cha](taiwan-oolong:ageing), or old tea. A kept tea is roasted again at low heat from time to time to drive out the moisture it takes in, and stored cool, dry, dark and sealed. No standard says when an oolong becomes old. Those who give a figure put it between ten and thirty years, and this tea is well past that."
       }
     ],
     "brewing": {
@@ -42,12 +37,27 @@
       "text": "A smooth, mellow, thick cup with little astringency, often plum or prune, sometimes something like medicinal herbs or ginseng, and an amber to red-brown liquor."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
   },
   "claimUses": [
+    {
+      "claimId": "oolong:definition",
+      "rev": 1
+    },
+    {
+      "claimId": "nantou:where-it-is",
+      "rev": 1
+    },
+    {
+      "claimId": "nantou:why-people-value-it",
+      "rev": 1
+    },
+    {
+      "claimId": "nantou:altitude-bands",
+      "rev": 1
+    },
     {
       "claimId": "taiwan-oolong:definition",
       "rev": 1
@@ -66,6 +76,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:44.235Z"
+  "unsupported": []
 }

@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-26T04:43:21.136Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:53:44.159Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,24 @@
     "form": "Loose",
     "year": 1950,
     "origin": "Taiwan",
-    "stockGrams": 0,
-    "pricePerGramUsd": 6.63,
-    "tags": [
-      "aged sweetness",
-      "dried grain",
-      "subtle floral",
-      "warm mineral"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "fa5467b1-d6e2-4d34-b7c8-6c620f9141c5",
     "paragraphs": [
       {
         "layer": "place",
-        "text": "A loose [green tea](green:definition) from Taiwan. The record does not say which part of the island the leaf came from."
+        "text": "A loose [green tea](green:definition) grown on [Taiwan](taiwan:on-a-label) in 1950. The label names only the island, not a mountain or township, so the place stops there. Taiwan's tea came from Fujian, and its trade is built on [oolong](taiwan:known-for), but green tea is made there too."
+      },
+      {
+        "layer": "type",
+        "text": "The leaf was never allowed to oxidise. Soon after picking it was [fixed](green:making) with heat to stop its own enzymes before they could turn it brown, then rolled and dried so it would keep."
       },
       {
         "layer": "age",
-        "text": "It is listed as an aged green tea, which is unusual for its type. Green tea is meant for its first year or two, and no tradition of [ageing green tea](green:ageing) is known; it does not mature the way pu’er or white tea can. So what this tea has become rests on how it was kept, more than on the type. Like any green tea, it began with [fixing](green:making): the leaf was heated soon after picking to stop the enzymes that would turn it brown."
+        "text": "Seventy-six years is far past the year or two that green tea is usually kept. The sources describe no tradition of [ageing green tea](green:ageing), and the type promises nothing over time, so how this tea was kept counts for more than its years."
       }
     ],
     "brewing": {
@@ -42,7 +41,6 @@
       "text": "A fresh, clean cup that many call crisp, with a sweet, soft finish, and a pale green to yellow-green liquor. The smell runs from fresh leaf to flowers, and steamed teas lean grassy or seaweed-like. Too much heat or too long a steep turns the cup bitter and drying."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -53,11 +51,19 @@
       "rev": 1
     },
     {
-      "claimId": "green:ageing",
+      "claimId": "taiwan:on-a-label",
+      "rev": 1
+    },
+    {
+      "claimId": "taiwan:known-for",
       "rev": 1
     },
     {
       "claimId": "green:making",
+      "rev": 1
+    },
+    {
+      "claimId": "green:ageing",
       "rev": 1
     },
     {
@@ -70,6 +76,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-26T04:48:22.956Z"
+  "unsupported": []
 }

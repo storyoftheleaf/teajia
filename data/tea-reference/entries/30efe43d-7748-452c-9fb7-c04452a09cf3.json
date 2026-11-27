@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-24T15:10:04.862Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:52:26.109Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,20 +11,26 @@
     "form": "Loose",
     "year": 1934,
     "origin": "Wuyi Mountains, Fujian, China",
-    "stockGrams": 46,
-    "pricePerGramUsd": null,
-    "tags": []
+    "stockGrams": 50,
+    "pricePerGramUsd": 4.27,
+    "tags": [
+      "dried longan",
+      "aged wood",
+      "dark honey",
+      "trace pine",
+      "smooth mineral"
+    ]
   },
   "entry": {
     "productId": "30efe43d-7748-452c-9fb7-c04452a09cf3",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "A loose [Lapsang Souchong](lapsang:definition) from the Wuyi Mountains of Fujian, dated 1934. Lapsang Souchong is the Western name for Zhengshan Xiaozhong, the [red tea](red:definition) of Tongmu in the Wuyi mountains of northern Fujian. The style is called the [ancestor of red tea](lapsang:history), and it reached Europe through Dutch and then British trade."
+        "layer": "lot",
+        "text": "A [Zhengshan Xiaozhong](lapsang:definition) made in 1934 in Tongmu village, in the Wuyi Mountains of Fujian. Tongmu is the place usually given as the [birthplace of red tea](lapsang:history), the fully oxidised tea that English calls [black](red:definition). This lot was made by the Tongmu method of the Republican years. It was smoked over pine, rolled by hand and dried over a wood fire. In that way of working the leaf lies on bamboo mats in a [qinglou](lapsang:smoke), a wooden drying house with the fire at the bottom, so the heat and smoke rise through it."
       },
       {
         "layer": "age",
-        "text": "At ninety-two years this tea sits outside any known practice. Lapsang has [no recognised tradition of long ageing](lapsang:ageing), and no category of red tea kept for decades has been described. The change that is recorded for the style belongs to its first few years, in storage kept sealed, dry, cool and away from light."
+        "text": "At ninety-two years it stands outside any described practice. Lapsang has [no recognised tradition of long ageing](lapsang:ageing), and the trade names no category of decades-old red tea. What it does record is the first few years in good storage, when the pine smoke softens. This leaf has gone far beyond that, and it is a record of how the village made tea long before the trade of today."
       }
     ],
     "brewing": {
@@ -37,7 +43,6 @@
       "text": "The smoke softer and further back, with dried fruit coming forward."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "A voice note from you on this lot",
       "Photos"
     ]
@@ -48,11 +53,15 @@
       "rev": 1
     },
     {
+      "claimId": "lapsang:history",
+      "rev": 1
+    },
+    {
       "claimId": "red:definition",
       "rev": 1
     },
     {
-      "claimId": "lapsang:history",
+      "claimId": "lapsang:smoke",
       "rev": 1
     },
     {
@@ -69,6 +78,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-24T15:14:33.654Z"
+  "unsupported": []
 }

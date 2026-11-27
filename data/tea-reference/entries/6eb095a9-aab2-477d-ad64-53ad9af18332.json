@@ -1,6 +1,6 @@
 {
-  "status": "approved",
-  "composedAt": "2026-11-25T15:43:48.821Z",
+  "status": "draft",
+  "composedAt": "2026-11-27T03:55:47.250Z",
   "writer": "claude opus",
   "checker": "claude opus",
   "record": {
@@ -11,25 +11,20 @@
     "form": "Tuo",
     "year": null,
     "origin": "Menghai, Yunnan, China",
-    "stockGrams": 0,
-    "pricePerGramUsd": 0.84,
-    "tags": [
-      "earth",
-      "walnut",
-      "smooth sweetness",
-      "clean finish"
-    ]
+    "stockGrams": null,
+    "pricePerGramUsd": null,
+    "tags": []
   },
   "entry": {
     "productId": "6eb095a9-aab2-477d-ad64-53ad9af18332",
     "paragraphs": [
       {
-        "layer": "type",
-        "text": "Leaf from Menghai, in Yunnan, made into [ripe pu’er](shou:definition) and pressed into a tuo. Menghai was one of the three Yunnan factories whose team went to Guangzhou in 1973 to [learn the pile](shou:piling-1973), and by 1975 Menghai’s method had settled into the ripe pu’er made today."
+        "layer": "place",
+        "text": "This tuo of [ripe pu’er](shou:definition) is made from leaf grown in Menghai County, Yunnan. On a label, Menghai can mean the county or [Menghai Tea Factory](menghai-county:county-and-factory), which stands inside it and blends leaf from several of its mountains. Here the name says where the leaf grew, and no single mountain is given."
       },
       {
         "layer": "type",
-        "text": "Before pressing, the leaf was wetted and heaped in a [fermenting pile](shou:wet-piling). The pile was covered to hold in the heat its microbes make, turned about once a week to let air in, and dried after one to two months. The point of the pile is time: it gives in weeks what raw pu’er reaches only after years of keeping, so this tuo is ready to drink now rather than after a long wait."
+        "text": "Before it was pressed, the leaf was wetted and heaped in a [wet pile](shou:wet-piling). The pile is covered to hold the heat its microbes make and turned about once a week to let air in. The method was built to give in weeks the change raw pu’er takes years of keeping to reach, so a ripe tuo is ready to drink soon after it is made. The county runs through that history: in 1973 its factory joined Kunming and Xiaguan in sending a team to learn piling in Guangzhou, and by 1975 [the Menghai method](shou:piling-1973) had settled into the ripe pu’er made today."
       }
     ],
     "brewing": {
@@ -42,7 +37,6 @@
       "text": "A smooth, sweet cup with earthy or woody notes. A young ripe tea can carry a faint smell of the pile, which fades with airing or in the first steeps."
     },
     "missing": [
-      "A Wisdom entry for its place, or a more specific origin",
       "The year it was made: unlocks the age paragraph",
       "A voice note from you on this lot",
       "Photos"
@@ -54,12 +48,16 @@
       "rev": 1
     },
     {
-      "claimId": "shou:piling-1973",
+      "claimId": "menghai-county:county-and-factory",
       "rev": 1
     },
     {
       "claimId": "shou:wet-piling",
       "rev": 2
+    },
+    {
+      "claimId": "shou:piling-1973",
+      "rev": 1
     },
     {
       "claimId": "shou:brewing-pressed",
@@ -75,6 +73,5 @@
     }
   ],
   "problems": [],
-  "unsupported": [],
-  "approvedAt": "2026-11-25T23:18:50.385Z"
+  "unsupported": []
 }
