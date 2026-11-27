@@ -8,9 +8,11 @@ import { useAppStore } from '../lib/store';
 import { MY_FAVOURITES_KEY } from '../lib/favouritesTypes';
 import { favouritesOpen } from '../lib/favouritesOpen';
 import { SiteNotFound } from '../components/SiteNotFound';
+import { PART_QUERY, partView } from '../lib/closedPart';
 import { TEA_TABLE_MINE_KEY, teaTableApi, useTeaTableMine } from '../lib/teaTableApi';
 import { recapPath } from '../lib/publicSitConnections';
 import type { TeaTableItem, TeaTableMine } from '../lib/teaTableContract';
+import { historyIndex } from '../admin/components/adminHistory';
 
 // Launch 4, favourites in three kinds (todo/plans/guests-and-tea-masters-launch-4-run.md, K3).
 // Everything a person has marked, in one place: articles they kept, teas the
@@ -73,12 +75,16 @@ function OpenFavouritesPage() {
     if (!authed) navigate(`/signin?returnTo=${encodeURIComponent('/account/favourites')}`, { replace: true });
   }, [authed, navigate]);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const favourites = useQuery({
     queryKey: MY_FAVOURITES_KEY,
     queryFn: () => api.favourites.list(),
     enabled: authed,
     staleTime: 1000 * 60,
+    ...PART_QUERY,
   });
+  const { data, isLoading, refetch } = favourites;
+  const view = partView(favourites);
+  const isError = view.state === 'failed';
 
   const drop = (kind: Kind, id: string) => qc.setQueryData<MyFavourites>(MY_FAVOURITES_KEY, current => current && ({
     ...current,
@@ -110,6 +116,8 @@ function OpenFavouritesPage() {
   });
 
   if (!authed) return null;
+  // Open on the site, not yet on the worker: the address is not a page yet (A10-3).
+  if (view.state === 'closed') return <SiteNotFound />;
 
   // A row the Keep control placed before the list was read again has no title yet.
   const articles = (data?.articles ?? []).filter(article => article.title);
@@ -124,7 +132,7 @@ function OpenFavouritesPage() {
       <div className="mx-auto max-w-3xl px-4 pt-6 md:px-6">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => (historyIndex() > 0 ? navigate(-1) : navigate('/account'))}
           className="tap-target inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec transition-colors hover:text-tea-text"
         >
           <Icons.Back className="h-4 w-4" />

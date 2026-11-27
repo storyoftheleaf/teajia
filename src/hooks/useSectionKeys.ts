@@ -4,8 +4,8 @@ import type { Section } from '../types';
 import { homeBarOpen } from '../lib/homeBar';
 import { sectionKeyPaths } from '../components/navSections';
 
-/** Today's keys 1 to 5: Home, Read, Craft, Advise, Shop. */
-const TODAY_KEYS: readonly Section[] = ['HOME', 'MAGAZINE', 'LEARN', 'OFFERINGS', 'SHOP'];
+/** Today's keys 1 to 4: Home, Read, Advise, Shop. Craft was removed (2026-11-27), so 5 does nothing with the new bar off. */
+const TODAY_KEYS: readonly Section[] = ['HOME', 'MAGAZINE', 'OFFERINGS', 'SHOP'];
 
 /**
  * Desktop keyboard shortcuts: keys 1 to 5 open Home and then the four words in
@@ -20,8 +20,9 @@ export function useSectionKeys(setActiveSection: (section: Section) => void): vo
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
       if (!(e.key >= '1' && e.key <= '5')) return;
-      e.preventDefault();
       const index = parseInt(e.key, 10) - 1;
+      if (!homeBarOpen() && index >= TODAY_KEYS.length) return;
+      e.preventDefault();
       if (!homeBarOpen()) {
         setActiveSection(TODAY_KEYS[index]);
         return;

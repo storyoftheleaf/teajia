@@ -8,6 +8,7 @@ import { MyHostArticleOffers } from '../components/article/MyHostArticleOffers';
 import { ProfileFavoritesEditor } from '../components/profile/ProfileFavoritesEditor';
 import { PaymentMethodsEditor } from '../components/profile/PaymentMethodsEditor';
 import { PayAccessPanel } from '../components/profile/PayAccessPanel';
+import { PracticeLines } from '../components/people/PracticeLines';
 import { ProfileShareLinks } from '../components/profile/ProfileShareLinks';
 import { canManageHostedMasterSelection, canStartProfileDraft, primaryTeaMasterAccount, profileReadiness } from '../components/profile/profileDomain';
 import type { FavoriteWrite, PaymentMethodWrite, SelfProfileUpdate } from '../components/profile/types';
@@ -43,7 +44,7 @@ export default function AccountProfilePage() {
   if (!auth.isAuthenticated && auth.isSessionReady) {
     return (
       <main className="mx-auto w-full max-w-4xl px-4 py-12 pb-nav-gap md:px-6">
-        <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec`}>Sign in to prepare your Tea Master profile.</p>
+        <p className={`${TYPOGRAPHY_CLASSES.subtitle} text-tea-text-sec`}>Sign in to prepare your host profile.</p>
         <button type="button" onClick={() => navigate(authPagePath('signin', '/account/profile'))} className="btn-primary tap-target mt-5">Sign in</button>
       </main>
     );
@@ -72,27 +73,28 @@ export default function AccountProfilePage() {
         <ArrowLeft size={16} aria-hidden="true" /> Back
       </button>
       <header className="mt-8 max-w-3xl">
-        <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-gold`}>{isFamily ? 'Your page' : 'Tea Master identity'}</p>
+        <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-gold`}>{isFamily ? 'Your page' : 'Host identity'}</p>
         <h1 className={`${TYPOGRAPHY_CLASSES.h1} mt-3 text-tea-text`}>Your public profile</h1>
         <p className={`${TYPOGRAPHY_CLASSES.bodyLight} mt-4 max-w-[62ch] text-tea-text-sec`}>{isFamily ? 'The tastings you share, a face if you want one, and where people can find you.' : 'One identity for your tea selections, writing, favorites, and payment destinations across every associated store.'}</p>
         <a href="/account/settings" className="tap-target mt-4 inline-flex text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt">Name, sign-in and appearance</a>
       </header>
 
+      {profile && <PracticeLines slug={profile.id} tone="profile" />}
       {hostArticlesOpen() && <MyHostArticleOffers writing={false} onStep={setArticleOfferStep} />}
 
       {!profile ? (
         canStartProfileDraft(Boolean(profileQuery.data?.can_create), activeAccountId)
           ? <NewProfileForm name={auth.user?.name ?? ''} onCreate={value => updateProfile.mutateAsync(value)} />
-          : <section className="mt-14 max-w-2xl rounded-md border border-tea-border bg-tea-surface px-5 py-6"><h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Profile setup unavailable</h2><p className="mt-2 text-ui-13 text-tea-text-sec">Your account cannot create a Tea Master profile yet. Nothing has been published.</p></section>
+          : <section className="mt-14 max-w-2xl rounded-md border border-tea-border bg-tea-surface px-5 py-6"><h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Profile setup unavailable</h2><p className="mt-2 text-ui-13 text-tea-text-sec">Your account cannot create a host profile yet. Nothing has been published.</p></section>
       ) : (
         <div className="mt-14 space-y-20">
           <section aria-labelledby="profile-readiness-heading" className="space-y-5">
             {!isFamily && <div>
-              <h2 id="profile-readiness-heading" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Tea Master home</h2>
+              <h2 id="profile-readiness-heading" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Host home</h2>
               {/* A tea master does not need a store, so the store sentence only
                   appears to someone who has one. */}
               <p className="mt-2 max-w-[64ch] text-ui-13 text-tea-text-sec">{profile.associations.length > 0
-                ? 'Your profile is the global identity. Your primary Tea Master account is the operational home for its own stock and public tea selection; guest associations remain collaborations.'
+                ? 'Your profile is the global identity. Your primary host account is the operational home for its own stock and public tea selection; guest associations remain collaborations.'
                 : 'Your profile is the global identity. It stands on its own: you can be found and paid here without selling anything. A store can be attached later.'}</p>
             </div>}
             {/* A tea master with no store sees three items, not five, so the
@@ -157,8 +159,8 @@ export default function AccountProfilePage() {
           {!isFamily && <section className="grid gap-5 border-t border-tea-border pt-8 md:grid-cols-2">
             <div>
               <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Tea selection</h2>
-              <p className="mt-2 text-ui-13 text-tea-text-sec">This is the visible selection from your hosted, public Tea Master home, not teas from stores where you are only a guest or collaborator.</p>
-              {canManagePrimaryStock ? <a href="/admin/stock" className="tap-target mt-3 inline-flex text-ui-13 text-tea-gold hover:text-tea-gold-lt">Manage Tea Master stock →</a> : <p className="mt-3 text-ui-12 text-tea-text-dim">{primaryAccount ? `Switch to ${primaryAccount.account_name} in the account menu to manage this selection.` : 'Connect a hosted Tea Master account before managing a public selection.'}</p>}
+              <p className="mt-2 text-ui-13 text-tea-text-sec">This is the visible selection from your public host home, not teas from stores where you are only a guest or collaborator.</p>
+              {canManagePrimaryStock ? <a href="/admin/stock" className="tap-target mt-3 inline-flex text-ui-13 text-tea-gold hover:text-tea-gold-lt">Manage host stock →</a> : <p className="mt-3 text-ui-12 text-tea-text-dim">{primaryAccount ? `Switch to ${primaryAccount.account_name} in the account menu to manage this selection.` : 'Connect a host account before managing a public selection.'}</p>}
             </div>
             <div>
               <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Writing</h2>
@@ -188,7 +190,7 @@ function NewProfileForm({ name, onCreate }: { name: string; onCreate: (value: Se
   };
   return (
     <form onSubmit={submit} className="mt-14 max-w-2xl space-y-5 border-y border-tea-border py-8">
-      <div><h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Begin a private draft</h2><p className="mt-2 text-ui-12 text-tea-text-dim">Creating the draft does not publish it or grant Tea Master status.</p></div>
+      <div><h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Begin a private draft</h2><p className="mt-2 text-ui-12 text-tea-text-dim">Creating the draft does not publish it or grant host status.</p></div>
       <label className="block"><span className={`${TYPOGRAPHY_CLASSES.label} mb-2 block text-tea-text-sec`}>Public name</span><input required value={displayName} onChange={event => setDisplayName(event.target.value)} className={field} /></label>
       <label className="block"><span className={`${TYPOGRAPHY_CLASSES.label} mb-2 block text-tea-text-sec`}>Profile address</span><div className="flex min-w-0 items-center"><span className="rounded-l-md border border-r-0 border-tea-border bg-tea-surface px-3 py-2.5 text-ui-13 text-tea-text-dim">teajia.com/people/</span><input required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={slug} onChange={event => setSlug(event.target.value.toLowerCase())} className={`${field} rounded-l-none`} /></div></label>
       <label className="block"><span className={`${TYPOGRAPHY_CLASSES.label} mb-2 block text-tea-text-sec`}>Short biography</span><textarea required rows={5} value={bio} onChange={event => setBio(event.target.value)} className={field} /></label>

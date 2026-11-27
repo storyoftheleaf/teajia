@@ -374,7 +374,7 @@ describe('finding 4: an offer that runs out moves the queue on', () => {
     guest('w2', 'waitlist', { position: 2 });
     await cancel('c1');
     expire('w1');
-    await worker.scheduled({ scheduledTime: Date.now(), cron: '0 * * * *' } as never, { DB: db } as never, { waitUntil: () => undefined } as never);
+    await worker.scheduled({ scheduledTime: Date.now(), cron: '0 * * * *' } as never, { DB: db, ANYONE_HOSTS_OPEN: 'true' } as never, { waitUntil: () => undefined } as never);
     expect(offerOf('w1')).toMatchObject({ status: 'waitlist', claim_expires_at: null });
     expect(offerOf('w1').offer_lapsed_at).not.toBeNull();
     expect(offerOf('w2').claim_expires_at).not.toBeNull();

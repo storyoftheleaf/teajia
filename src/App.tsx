@@ -163,6 +163,9 @@ const McpPage = lazyWithRetry(() => import('./pages/McpPage'));
 const WisdomHomePage = import.meta.env.MODE === 'tea-reference-preview'
   ? lazyWithRetry(() => import('./pages/wisdom/PreviewWisdomHomePage'))
   : lazyWithRetry(() => import('./pages/wisdom/WisdomHomePage'));
+const GlossaryPage = lazyWithRetry(() => import('./pages/wisdom/GlossaryPage'));
+const CraftMoved = lazyWithRetry(() => import('./pages/CraftMoved'));
+const LessonsHub = lazyWithRetry(() => import('./pages/lessons/LessonsHub'));
 const CultivarIndexPage = lazyWithRetry(() => import('./pages/wisdom/CultivarIndexPage'));
 const CultivarPage = lazyWithRetry(() => import('./pages/wisdom/CultivarPage'));
 const ProducerIndexPage = lazyWithRetry(() => import('./pages/wisdom/ProducerIndexPage'));
@@ -211,7 +214,6 @@ import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
 import { CartPanel } from './components/shared/CartPanel';
-import { LearnHub } from './components/LearnHub';
 import { StoryProvider, useStories } from './context/StoryContext';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -245,6 +247,8 @@ import { NetworkErrorNotice } from './components/shared/NetworkErrorNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast, type CartToastTone } from './components/shared/CartToast';
+import { addOpensOrder } from './lib/orderVia';
+import { flyOrigin } from './lib/flyOrigin';
 import { WalkthroughDock } from './components/shared/WalkthroughDock';
 import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
@@ -315,21 +319,16 @@ const AppContent = () => {
   // from the top gets mistaken for a pull gesture (the page refreshes and the
   // article won't scroll). Computed before the hook so it can gate the listeners.
   //
-  // The Craft landing (/craft with no ?v= sub-view) is built in the same
-  // full-bleed immersive frame as Read (CraftIndex, its own sticky nav,
-  // document scroll), so it needs the same exemption. A Craft SUB-view
-  // (/craft?v=glossary etc.) is not immersive: it keeps the app shell's
-  // PageHeader, padding and pull-to-refresh, so only the bare landing
-  // qualifies, checked by the absence of the ?v= param rather than by path
-  // alone, since the sub-views share /craft's pathname.
-  //
   // The Advise landing (/advise with no ?v= sub-view) is built in the same
   // frame (AdviseIndex), for the same reason: its own sticky nav, its own
   // document scroll. A bare /advise?v= is the owner's unbuilt portfolio
   // sub-view, still the app shell, so the same no-?v= check applies.
+  // The Lessons landing (/read/lessons) is immersive like the rest of Read;
+  // a lesson itself (/read/lessons?v=course etc.) keeps the app shell's
+  // PageHeader, padding and pull-to-refresh, as Craft's sub-views did.
+  const isLessonView = location.pathname === '/read/lessons' && new URLSearchParams(location.search).has('v');
   const isImmersiveReadRoute =
-    location.pathname === '/read' || location.pathname.startsWith('/read/') ||
-    (location.pathname === '/craft' && !new URLSearchParams(location.search).has('v')) ||
+    ((location.pathname === '/read' || location.pathname.startsWith('/read/')) && !isLessonView) ||
     (location.pathname === '/advise' && !new URLSearchParams(location.search).has('v'));
   // Pull-to-refresh: re-fetch inventory + invalidate active server queries so
   // public pages (Shop, Magazine, Events) reflect any updates made elsewhere.
@@ -396,7 +395,7 @@ const AppContent = () => {
 
   // Scroll position memory for each section
   const scrollPositions = useRef<Record<Section, number>>({
-    HOME: 0, MAGAZINE: 0, LEARN: 0, SHOP: 0, OFFERINGS: 0, EVENTS: 0, YOUR_TABLE: 0, ABOUT: 0
+    HOME: 0, MAGAZINE: 0, SHOP: 0, OFFERINGS: 0, EVENTS: 0, YOUR_TABLE: 0, ABOUT: 0
   });
   const prevSection = useRef<Section>(activeSection);
   // Track whether the navigation was a deliberate link click (scroll to top)
@@ -444,7 +443,6 @@ const AppContent = () => {
     const titles: Record<Section, string> = {
       HOME: 'Teajia · A Home for Tea',
       MAGAZINE: 'Magazine · Teajia',
-      LEARN: 'Craft · Teajia',
       SHOP: 'Shop · Teajia',
       OFFERINGS: 'Advise · Teajia',
       EVENTS: 'Sessions · Teajia',
@@ -614,30 +612,16 @@ const AppContent = () => {
       return;
     }
 
-    // Use the most recent click/tap position for fly origin, fall back to screen center
-    let originX = window.innerWidth / 2 - 24;
-    let originY = window.innerHeight / 2;
-    // Try the click event target first (works reliably on mobile tap)
-    const lastClick = (window as any).__teajia_last_click as { x: number; y: number } | undefined;
-    if (lastClick) {
-      originX = lastClick.x;
-      originY = lastClick.y;
-    } else {
-      const active = document.activeElement as HTMLElement;
-      if (active && active !== document.body) {
-        const rect = active.getBoundingClientRect();
-        originX = rect.left + rect.width / 2;
-        originY = rect.top + rect.height / 2;
-      }
-    }
-
-    setFlyAnimation({
-      x: originX,
-      y: originY,
-      image: item.image,
-    });
+    // The fly starts from the last tap, the focused control, or the screen centre.
+    setFlyAnimation({ ...flyOrigin(), image: item.image });
 
     addToPublicCart(cartItem);
+    // Came from a thank-you: she chose this tea there, so the order opens at once, not a toast to tap (U1-8).
+    if (addOpensOrder()) {
+      setCartToast(null);
+      setIsCartOpen(true);
+      return;
+    }
     // Show cart toast, read fresh count from store (Zustand updates synchronously)
     const freshCart = useAppStore.getState().publicCart;
     setCartToast({
@@ -912,7 +896,6 @@ const AppContent = () => {
         case 'HOME': return <Icons.Home className={className} />;
         case 'MAGAZINE': return <Icons.Book className={className} />;
         case 'SHOP': return <Icons.Bag className={className} />;
-        case 'LEARN': return <Icons.School className={className} />;
         case 'OFFERINGS': return <Icons.Sparkles className={className} />;
         case 'EVENTS': return <Icons.Sparkles className={className} />;
         case 'YOUR_TABLE': return <Icons.User className={className} />;
@@ -925,8 +908,8 @@ const AppContent = () => {
   // recipients who aren't logged in. Public collection links (/c/:slug) belong here
   // too: a sent link should be a clean single-purpose page, not the full app shell.
   const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
-  // The hand-built Read long-reads (/read and /read/*), the Craft landing
-  // (/craft) and the Advise landing (/advise), all built in the same frame,
+  // The hand-built Read long-reads (/read and /read/*) and the Advise landing
+  // (/advise), built in the same frame,
   // are full-bleed editorial experiences with their own sticky nav and
   // reading-progress bar. They escape the app's content padding; see
   // isImmersiveReadRoute above for exactly which routes qualify.
@@ -1127,13 +1110,17 @@ const AppContent = () => {
                     <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaHouseQuietHours /></Suspense></ErrorBoundary>
                   </ArticleGate>
                 } />
-                <Route path="/craft" element={
-                  <ErrorBoundary>
-                    <LearnHub onStoryClick={handleCardClick} watchedStories={watchedStoryIds} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} onNavigateToAdvise={() => setActiveSection('OFFERINGS')} />
-                  </ErrorBoundary>
+                {/* Read's Lessons shelf: what Craft became when it left the bar
+                    (Adrian, 2026-11-27). Old Craft addresses land where each
+                    piece went (src/pages/CraftMoved.tsx). */}
+                <Route path="/read/lessons" element={
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}>
+                    <LessonsHub onStoryClick={handleCardClick} watchedStories={watchedStoryIds} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} onNavigateToAdvise={() => setActiveSection('OFFERINGS')} />
+                  </Suspense></ErrorBoundary>
                 } />
-                {/* Legacy route, old links to /learn keep working. */}
-                <Route path="/learn" element={<Navigate to="/craft" replace />} />
+                <Route path="/craft" element={<Suspense fallback={<EmblemLoader />}><CraftMoved /></Suspense>} />
+                <Route path="/craft/*" element={<Navigate to="/read/lessons" replace />} />
+                <Route path="/learn" element={<Navigate to="/read/lessons" replace />} />
                 <Route path="/shop" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1210,6 +1197,9 @@ const AppContent = () => {
                     each holding has its own index and detail page. */}
                 <Route path="/wisdom" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><WisdomHomePage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/glossary" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><GlossaryPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/cultivars" element={
                   <ErrorBoundary><Suspense fallback={<WisdomFallback />}><CultivarIndexPage /></Suspense></ErrorBoundary>

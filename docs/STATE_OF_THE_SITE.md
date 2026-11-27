@@ -16,9 +16,26 @@ Releases 1–3 of the launch-to-real-use program are implemented on the branch a
 
 The real-world launch is not complete. Deployment, production-data judgment, real operators, mainland conditions, and approved editorial content cannot be proven by local fixtures. Their single checklist is [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md).
 
+## Practice lines branch update, 2026-11-27
+
+**Built on `build/practice-lines`, off until shipped (`PRACTICE_LINES_OPEN`, `VITE_PRACTICE_LINES_OPEN` on the site).** A person's page can carry three optional lines, answered in place by its owner on `/people/:slug` or their profile at `/account/profile`: the year they came to tea, one line on what draws them, and what they do from a short fixed list. The wording and the list live only in `src/lib/practiceLines.ts` (a draft, for Adrian to refine). No titles, levels or counts. Closed, nothing is shown, asked or returned.
+
+## Launch 1 and Launch 4 update, 2026-11-26
+
+Launch 1 is live (`FIRST_TABLE_OPEN`, on, in `src/lib/firstTable.ts`): the thank-you page with its teas, playlist and one reading, "Keep this tea", bought tea into the Tea Chest, and where a thank-you's order began. Launch 4 holds eight switches, all off, and with all of them closed each address answers as absent (`worker/src/launch4Closed.ts`):
+
+- `TEA_TABLE_OPEN`: the Tea Table, and photograph credit.
+- `FAVOURITES_OPEN`: private favourites at `/account/favourites`.
+- `YOUR_TABLE_PAGE_OPEN`: the grouped Your Table page and shared tastings.
+- `YOUR_TABLE_PLACE_OPEN`: "Add your table"; also needs `FEW_HOSTS_OPEN`.
+- `HOST_ARTICLES_OPEN`: a host offers an article, reviewed in Publish.
+- `TOP_TEAS_OPEN`: a host's top teas on their page.
+- `TEA_HOUSES_OPEN`: Tea Houses with Visit, Build and Work.
+- `HOME_BAR_OPEN`: the new bar words, Home in full and Read's three shelves.
+
 ## Launch 5 branch update, 2026-11-26
 
-**Built on `build/launch-5`, finished on `build/l5-finish`. Every part is off until shipped.** Tea credit for hosts (`HOST_CREDIT_OPEN`) earns on orders that began from a host's thank-you once the shop fills them, and is used on the host's own order only with the owner's approval; it has worker routes and no screens yet (a separate build). Circles and series (`CIRCLES_OPEN`) and a host's own assistant key (`HOST_TOKENS_OPEN`) are on `/account/host`. The card for the table (`TABLE_CARD_OPEN`) prints from a public session in Manage. The first three also need `FEW_HOSTS_OPEN`. Checked by `tests/launch-5.spec.ts` in the offline sandbox and by the worker tests named in the review, `/mnt/project-files/guests-build/a5-launch-5-review.md`.
+**Built on `build/launch-5`, finished on `build/l5-finish`. Every part is off until shipped.** Tea credit for hosts (`HOST_CREDIT_OPEN`) earns on orders that began from a host's thank-you once the shop fills them, and is used on the host's own order only with the owner's approval; the host reads it at `/account/tea-credit`, the owner approves in Manage, Sales, Waiting, and the checkout offers a use-my-credit tile, all behind that switch. The shop may set a per-order ceiling; there is none by default. Circles and series (`CIRCLES_OPEN`) and a host's own assistant key (`HOST_TOKENS_OPEN`) are on `/account/host`. The card for the table (`TABLE_CARD_OPEN`) prints from a public session in Manage. Does anyone know this tea (`KNOW_THIS_TEA_OPEN`, which also needs `TEA_TABLE_OPEN`) lets a signed-in person put a photograph of a tea they cannot name on the Tea Table, with others answering privately and nothing counted or sent. Circles and the host's key also need `FEW_HOSTS_OPEN`; tea credit and the card for the table do not. Checked by `tests/launch-5.spec.ts` in the offline sandbox and by the worker tests named in the review, `/mnt/project-files/guests-build/a5-launch-5-review.md`.
 
 ## Launch 3 branch update, 2026-11-26
 
@@ -61,6 +78,9 @@ This is distinct from the repaired Read entry paths and live editorial article r
 | Wisdom | Typed node relationships, public-state gating, integrity findings, name-first repair, and article/tea reverse links implemented |
 | China readiness | Runtime stock-media dependencies removed; browser APIs centralized/same-origin; contact fallback and service-worker policy implemented |
 | Design system | Semantic tokens, named text scale, tap targets, modal layers, strict null checking, and blocking action-button lint active |
+| Hosting | Approved hosts, anyone, circles, the key and the card (Launches 2, 3 and 5) are built, all behind switches, closed |
+| Tea Table | Built, closed (`TEA_TABLE_OPEN`) |
+| Tea credit | Ledger and screens built, closed (`HOST_CREDIT_OPEN`) |
 | Launch | Incomplete until the checks in `LAUNCH_VALIDATION.md` are performed |
 
 ## Product boundary
@@ -70,7 +90,7 @@ Teajia remains deliberately human-led:
 - Orders close through a personal WhatsApp or email conversation, not automated checkout.
 - Curation is performed by people, not voting, rankings, or aggregated reviews.
 - Journal, Favorites, and Cellar remain different records rather than one engagement system.
-- No social feed, gamification, streaks, engagement notifications, or auto-replenishment.
+- No social feed, gamification, streaks, engagement notifications, or auto-replenishment. The Tea Table is the one public page that lists what people chose to put there, newest first; see `CLAUDE.md`.
 - The product supports tea practice before and after a session, not phone use at the table.
 
 ## Documentation contract

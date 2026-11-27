@@ -8,6 +8,7 @@ import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import { Icons } from '../components/Icons';
 import { useTheme } from '../context/ThemeContext';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
+import { anyoneHostsOpen } from '../lib/anyoneHosts';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 min-h-tap py-2 text-ui-16 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -261,7 +262,7 @@ export default function AccountSettingsPage() {
       <details className="mt-5 border-t border-tea-border">
         <summary className="min-h-tap cursor-pointer py-3 text-ui-13 text-tea-text-dim hover:text-tea-text focus-visible:outline-tea-gold">Delete account</summary>
         <form onSubmit={handleDeleteAccount} className="max-w-md space-y-3 pb-4">
-          <p className="text-ui-13 text-tea-text-sec">Permanently remove your profile, order history and tasting journal. This cannot be undone.</p>
+          <p className="text-ui-13 text-tea-text-sec">Permanently remove your profile, order history and tasting journal.{anyoneHostsOpen() && ' Any seat you hold at a table still to come is given up, and the next guest waiting is offered it.'} This cannot be undone.</p>
           {hasPassword === false && <p className="text-ui-12 text-tea-text-sec">A password is required to delete your account. Set one in Sign-in &amp; security first.</p>}
           <div><label htmlFor="delete-confirm" className={labelClass}>Type DELETE to confirm</label><input id="delete-confirm" type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} className={inputClass} autoComplete="off" /></div>
           <div><label htmlFor="delete-password" className={labelClass}>Your password</label><input id="delete-password" type="password" autoComplete="current-password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} className={inputClass} required /></div>

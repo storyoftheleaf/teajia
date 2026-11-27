@@ -7,6 +7,8 @@ import { TEA_HOUSES_TITLE } from '../../lib/teaHouses';
 import { TEA_HOUSE_READ, teaHousesApi } from '../../lib/teaHousesApi';
 import { TEA_HOUSE_PART_LABELS, type TeaHouseContribution } from '../../lib/teaHousesContract';
 import { SectionSkeleton } from '../../components/shared/SectionSkeleton';
+import { LoadFailed } from '../../components/shared/LoadFailed';
+import { PART_QUERY, partView } from '../../lib/closedPart';
 
 /**
  * A house's portfolio page, /tea-houses/work/:slug (Launch 4, K5 part two).
@@ -43,9 +45,10 @@ export default function TeaHousePortfolioPage() {
   const query = useQuery({
     queryKey: ['tea-houses', 'page', slug],
     queryFn: () => teaHousesApi.page(slug),
-    retry: false,
     ...TEA_HOUSE_READ,
+    ...PART_QUERY,
   });
+  const view = partView(query);
 
   return (
     <div className="w-full max-w-3xl mx-auto pt-12 pb-16" data-testid="tea-house-page">
@@ -55,7 +58,8 @@ export default function TeaHousePortfolioPage() {
       <Link to="/tea-houses/work" className={`${T.link} tap-target inline-flex items-center`}>{TEA_HOUSES_TITLE}</Link>
 
       {query.isPending && <SectionSkeleton variant="grid" />}
-      {query.isError && (
+      {view.state === 'failed' && <LoadFailed className="py-12" sentence="This house's page could not be loaded just now." onRetry={view.retry} />}
+      {view.state === 'closed' && (
         <div className="py-12">
           <p className={`${T.body} text-tea-text-sec`}>This house has no page here.</p>
           <Link to="/tea-houses/visit" className={`${T.link} tap-target inline-flex items-center mt-3`}>Find a tea house to visit</Link>

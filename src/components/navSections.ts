@@ -9,22 +9,27 @@ import { teaHousesOpen } from '../lib/teaHouses';
  * bar both draw from here, so they cannot fall out of step. Manage's rooms are
  * not here: they come from manageNav.ts only.
  *
- * Behind HOME_BAR_OPEN (src/lib/homeBar.ts). Off, the four are today's: read,
- * craft, advise, shop. On, they are the words below.
+ * Behind HOME_BAR_OPEN (src/lib/homeBar.ts). Off, they are today's three: read,
+ * advise, shop (Craft was removed, Adrian 2026-11-27). On, they are the four
+ * words below.
  */
 
 /** The four words with the new bar on. Change a word here, on this one line, and the bar, the rail and Home follow. */
 export const BAR_WORDS = { read: 'Read', table: 'Tea table', houses: 'Tea house', shop: 'Shop' } as const;
 
-/** Read's three shelves, the row at the top of /read, /craft and /wisdom with the new bar on. */
+/**
+ * Read's three shelves, the row at the top of /read, /read/lessons and /wisdom
+ * with the new bar on: Stories (the magazine), Lessons (what Craft became) and
+ * Wisdom (Adrian, 2026-11-27, "Read: Stories, Lessons, Wisdom").
+ */
 export const READ_SHELVES = [
   { id: 'stories', label: 'Stories', path: '/read' },
-  { id: 'craft', label: 'Craft', path: '/craft' },
+  { id: 'lessons', label: 'Lessons', path: '/read/lessons' },
   { id: 'wisdom', label: 'Wisdom', path: '/wisdom' },
 ] as const;
 export type ReadShelfId = (typeof READ_SHELVES)[number]['id'];
 
-export type BarSectionId = 'read' | 'craft' | 'advise' | 'table' | 'houses' | 'shop';
+export type BarSectionId = 'read' | 'advise' | 'table' | 'houses' | 'shop';
 
 export interface BarSection {
   id: BarSectionId;
@@ -37,10 +42,9 @@ export interface BarSection {
   lights?: readonly string[];
 }
 
-/** Today's four, exactly as the bar and the rail have carried them since the Read section was unified. */
+/** Today's words with the new bar off. Craft was removed (Adrian, 2026-11-27), so three until HOME_BAR_OPEN turns on. */
 const TODAY: readonly BarSection[] = [
   { id: 'read', label: 'Read', section: 'MAGAZINE', path: '/read' },
-  { id: 'craft', label: 'Craft', section: 'LEARN' },
   { id: 'advise', label: 'Advise', section: 'OFFERINGS' },
   { id: 'shop', label: 'Shop', section: 'SHOP' },
 ];
@@ -56,10 +60,11 @@ export function tableDoor(): string {
 
 /**
  * Where "house" goes. The Tea Houses overview while the portfolio is open;
- * until then Visit, the one Tea Houses page that is always there.
+ * until then Advise, so the word never leads to a missing page.
  */
 export function housesDoor(): string {
-  return teaHousesOpen() ? '/tea-houses' : '/tea-houses/visit';
+  // Adrian, 2026-11-27 (4.20): Advise until Tea Houses opens, so nobody lands on a missing page.
+  return teaHousesOpen() ? '/tea-houses' : '/advise';
 }
 
 const READ_LIGHTS = ['/read', '/article', '/craft', '/learn', '/wisdom', '/magazine'] as const;
@@ -75,7 +80,7 @@ function launchFour(): readonly BarSection[] {
   ];
 }
 
-/** The four sections, in bar order. The first two sit left of the emblem, the last two right. */
+/** The sections, in bar order. The first two sit left of the emblem, the rest right. */
 export function barSections(open: boolean = homeBarOpen()): readonly BarSection[] {
   return open ? launchFour() : TODAY;
 }

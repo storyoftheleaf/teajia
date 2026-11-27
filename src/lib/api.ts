@@ -572,6 +572,7 @@ export interface PurchaseTrackingRow {
     unit?: string;
     status?: string;
     arrival_state?: string;
+    acquisition_state?: string | null; compass_entry_id?: string | null; tea_name?: string | null; // ordered | in_transit; Curate tea
   } | null;
   history: PurchaseArrivalHistory[];
   source_document: { import_id: string; title: string | null } | null;

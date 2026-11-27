@@ -11,6 +11,8 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAuth } from '../../hooks/useAuth';
 import { useStepParam } from '../../hooks/useStepParam';
 import { api } from '../../lib/api';
+import { PART_QUERY, partView } from '../../lib/closedPart';
+import { LoadFailed } from '../shared/LoadFailed';
 import { SERIES_NAME_MAX, type HostSeries, type SeriesKind } from '../../lib/circles';
 import type { HostedTableSummary } from '../../lib/hostingApi';
 import { hostSmallText, hostText, tableWhen } from './hostTableParts';
@@ -29,7 +31,8 @@ export function HostCirclesSection() {
   const circlesKey = ['host-circles', user?.email] as const;
   const tablesKey = ['host-circle-tables', user?.email] as const;
   const [step, setStep] = useStepParam('circle');
-  const circles = useQuery({ queryKey: circlesKey, queryFn: () => api.circles.list(), retry: false });
+  const circles = useQuery({ queryKey: circlesKey, queryFn: () => api.circles.list(), ...PART_QUERY });
+  const view = partView(circles);
   const tables = useQuery({ queryKey: tablesKey, queryFn: () => api.tables.list(), retry: false });
   const refresh = () => queryClient.invalidateQueries({ queryKey: circlesKey });
 
@@ -37,12 +40,16 @@ export function HostCirclesSection() {
   const placed = new Set(list.flatMap(circle => circle.tables.map(table => table.id)));
   const loose = (tables.data?.tables ?? []).filter(table => !placed.has(table.id));
 
+  // A 404 is the worker saying circles are not here for this person yet (not
+  // open, or not a host of circles yet): the part shows nothing (W1-13, A10-3).
+  if (view.state === 'closed') return null;
+
   return (
     <section aria-labelledby="host-circles-heading" className="mt-8 space-y-3 border-t border-tea-border pt-4" data-testid="host-circles">
       <h2 id="host-circles-heading" className={TYPOGRAPHY_CLASSES.h2}>Circles and series</h2>
       <p className={hostSmallText}>A circle is a table that meets again. A series is several sessions under one name.</p>
       {circles.isPending && <p className={hostSmallText} role="status">Opening your circles…</p>}
-      {circles.isError && <p className={hostSmallText} role="alert">Could not open your circles. Reload to try again.</p>}
+      {view.state === 'failed' && <LoadFailed sentence="Could not open your circles just now." onRetry={view.retry} />}
       {list.map(circle => (
         <CircleCard key={circle.id} circle={circle} loose={loose} onChanged={refresh} />
       ))}

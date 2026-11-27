@@ -158,7 +158,7 @@ export function personPageParts(props: Props): { card: React.ReactNode; sheets: 
         <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
           {lockedRole
             ? <Line label="On Teajia as" id="f-role" value={lockedRole} disabled readOnly />
-            : <Line label="What you do" id="f-role" value={value.role} onChange={event => onChange({ role: event.target.value })} placeholder="Tea master, potter, grower" />}
+            : <Line label="What you do" id="f-role" value={value.role} onChange={event => onChange({ role: event.target.value })} placeholder="Host, potter, grower" />}
           <Line label="Where you are" id="f-place" value={value.location_line} onChange={event => onChange({ location_line: event.target.value })} placeholder="City, country" />
         </div>
         <Line label="Name in Chinese" id="f-chinese-name" value={value.chinese_name} onChange={event => onChange({ chinese_name: event.target.value })} placeholder="Optional. Leave it empty if you don't have one." inputClassName={`${LINE_SANS} font-body text-ui-17`} />

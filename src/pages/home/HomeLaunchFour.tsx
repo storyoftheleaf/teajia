@@ -10,7 +10,7 @@ import { teaTableKey, type TeaTableItem } from '../../lib/teaTableContract';
 import { teaHousesOpen } from '../../lib/teaHouses';
 import { useTeaHouseWork } from '../../lib/teaHousesApi';
 import { teaHousePagePath } from '../../lib/teaHousesContract';
-import { housesDoor } from '../../components/navSections';
+import { housesDoor, tableDoor } from '../../components/navSections';
 
 /**
  * Home's Launch 4 parts (slice K7 of
@@ -26,19 +26,46 @@ import { housesDoor } from '../../components/navSections';
 export const HOME_LINES_TODAY = [
   { accent: 'Source', rest: ' your tea.', to: '/shop' },
   { accent: 'Discover', rest: ' the stories.', to: '/read' },
-  { accent: 'Deepen', rest: ' your practice.', to: '/craft' },
+  { accent: 'Deepen', rest: ' your practice.', to: '/read/lessons' },
   { accent: 'Create', rest: ' the spaces to share.', to: '/advise' },
 ] as const;
 
-/** The four lines with the new bar: also the four words, in bar order. */
-export function homeLinesLaunchFour() {
+/**
+ * The four doors with the new bar (Adrian, 2026-11-27): today's four words,
+ * each with a few plain words beside it, in bar order. Each goes where its
+ * bar word goes (navSections.ts), so Deepen follows tableDoor() and Create
+ * follows housesDoor(), which is Advise until Tea Houses opens (4.20).
+ */
+export function homeDoorsLaunchFour() {
   return [
-    { accent: 'Learn', rest: ' tea.', to: '/read' },
-    { accent: 'Sit', rest: ' at a table.', to: '/events' },
-    { accent: 'Find', rest: ' a tea house.', to: '/tea-houses/visit' },
-    { accent: 'Find', rest: ' good tea.', to: '/shop' },
+    { accent: 'Discover', words: 'stories, craft and tea wisdom', to: '/read' },
+    { accent: 'Deepen', words: 'sit at a table, taste, share what you found', to: tableDoor() },
+    { accent: 'Create', words: 'a tea house, or a table of your own', to: housesDoor() },
+    { accent: 'Source', words: 'fine tea and teaware, found by hand', to: '/shop' },
   ];
 }
+
+/**
+ * The four doors under the opener, in place of today's four lines, with the
+ * new bar on. On a phone they sit two by two, the few words in the small
+ * size, so the photograph of the table shows on the first screen (Adrian,
+ * 2026-11-27). From lg they stack as one list beside the photograph. Each
+ * door is at least two lines tall, so the 44px floor adds no gap.
+ */
+export const HomeFourDoors: React.FC = () => (
+  <nav aria-label="Homepage destinations" data-testid="home-four-doors" className="mt-6 grid grid-cols-2 gap-x-5 gap-y-3 lg:mt-8 lg:flex lg:flex-col lg:items-start lg:gap-[var(--space-1)]">
+    {homeDoorsLaunchFour().map(door => (
+      <Link
+        key={door.accent}
+        to={door.to}
+        className="group tap-target !items-start !justify-start flex-col min-w-0 max-w-full rounded-md py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+      >
+        <span className={`${TYPOGRAPHY_CLASSES.body} font-medium tracking-[0.015em] text-tea-gold`}>{door.accent}</span>{' '}
+        <span className={`type-door-words mt-0.5 lg:mt-0 break-words tracking-[0.015em] text-tea-text-sec underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:text-tea-text group-hover:decoration-tea-gold/30`}>{door.words}</span>
+      </Link>
+    ))}
+  </nav>
+);
 
 /** Where the consult plate leads with the new bar: Tea Houses once its pages are open, otherwise the consult as today. */
 export function consultPlatePath(): string {

@@ -46,7 +46,7 @@ The section overhaul sits beside that work and does not jump the queue. Its firs
 | [todo/plans/launch-photo-upload.md](../todo/plans/launch-photo-upload.md), [OWNED_MEDIA_INVENTORY.md](OWNED_MEDIA_INVENTORY.md) | Live | Adrian's photographs. Tea Houses needs its share first |
 | [AUDIT-2026-09.md](AUDIT-2026-09.md), [audits/](audits/), [todo/plans/prime-time-audit.md](../todo/plans/prime-time-audit.md), [prime-time-fixes.md](../todo/plans/prime-time-fixes.md) | Done | History |
 
-### Read (stories, Craft, Wisdom)
+### Read (Stories, Lessons, Wisdom; Craft became Lessons on 2026-11-27)
 
 | Plan or document | Status | Next step |
 |---|---|---|
@@ -61,7 +61,7 @@ The section overhaul sits beside that work and does not jump the queue. Its firs
 | [todo/plans/mood-flavor-taxonomy.md](../todo/plans/mood-flavor-taxonomy.md) | Live, not started | Waits on Wisdom |
 | [TEA_ATLAS.md](TEA_ATLAS.md), [tea-atlas-plan.md](../tea-atlas-plan.md) | Shipped and private. The plan's header is stale, marked | The Atlas lines in TODO |
 | [_notes/](_notes/) Wisdom notes | Mostly history. `tea-wisdom-claims.md` and `tea-wisdom-research-prompt.md` are live | None |
-| **Overhaul work:** the shelf row across Read, Craft and Wisdom; renaming Craft's "Shared Wisdom" view | Proposed | Stage 6 of SECTIONS |
+| **Overhaul work:** the shelf row across Stories, Lessons and Wisdom (built 2026-11-27); move Tea Spaces and Playlists to Tea house and Shared Wisdom (renamed) to Tea table | Shelf row built; moves wait for those pages | Stage 6 of SECTIONS |
 
 ### Tea Table (the stream, Sessions, People)
 

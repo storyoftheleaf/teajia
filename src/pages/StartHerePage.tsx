@@ -18,7 +18,7 @@ const PATHS: Path[] = [
   {
     label: 'New to tea',
     desc: 'Discover what tea really is',
-    route: '/craft',
+    route: '/read/lessons',
   },
   {
     label: 'I have a practice',
@@ -36,7 +36,7 @@ const PATHS: Path[] = [
     route: '/for-your-space',
   },
   {
-    label: 'Tea Masters & Professionals',
+    label: 'Hosts & Professionals',
     desc: 'Professional tools for sourcing, stock, and events',
     route: '/admin',
   },

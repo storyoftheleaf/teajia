@@ -141,6 +141,15 @@ describe('choosing your table', () => {
     expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM saved_locations WHERE account_id = ?').get(ana.accountId)).toEqual({ n: 2 });
   });
 
+  it('offers the fifty-first old saved place, and every one after it (review A6-3)', async () => {
+    for (let n = 1; n <= 51; n += 1) place(`place-garden-${n}`, ana.accountId, `Garden ${String(n).padStart(2, '0')}`);
+    const list = await (await call('/api/me/your-table', { actor: ana })).json() as { places: Array<{ id: string; name: string }> };
+    expect(list.places).toHaveLength(53);
+    expect(list.places.map(p => p.name)).toContain('Garden 51');
+    const chosen = await call('/api/me/your-table', { actor: ana, method: 'PUT', body: { place_id: 'place-garden-51', area_hint: 'Ubud' } });
+    expect(chosen.status).toBe(200);
+  });
+
   it("refuses another person's place, a missing area, and an area that carries the address or a link", async () => {
     const put = (body: unknown) => call('/api/me/your-table', { actor: ana, method: 'PUT', body });
     expect((await put({ place_id: 'cy-place', area_hint: AREA })).status).toBe(404);

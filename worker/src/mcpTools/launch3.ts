@@ -66,8 +66,16 @@ async function resultOf(response: Response, fallback: string, success: (body: Re
 const report: Action = async (env, auth, services, args, preview) => {
   const kind = args.target_kind;
   if (kind !== 'session' && kind !== 'person') return { error: 'validation_failed' };
+  // A person's table shows only its link, so a session may be named by its slug,
+  // resolved on the report route's own rule (A11-9). The id is never sent back.
+  let targetId = id(args.target_id);
+  const bySlug = !targetId && kind === 'session' && Boolean(id(args.target_slug));
+  if (bySlug) {
+    targetId = (await services.sessionBySlug(id(args.target_slug))) ?? '';
+    if (!targetId) return { error: 'target_not_found' };
+  }
   const input: Parameters<typeof fileReport>[1] = {
-    targetKind: kind, targetId: id(args.target_id),
+    targetKind: kind, targetId,
     reason: typeof args.reason === 'string' ? args.reason : null, reporterUserId: auth.userId, reporterSeatId: null,
   };
   if (!preview) {
@@ -77,7 +85,7 @@ const report: Action = async (env, auth, services, args, preview) => {
   const outcome = await (preview ? previewReport : fileReport)(env.DB, input);
   if ('refused' in outcome) return { error: outcome.refused.code };
   return preview
-    ? { target_kind: kind, target_id: input.targetId, effect: 'Send this report to Teajia for review.' }
+    ? { target_kind: kind, ...(bySlug ? { target_slug: id(args.target_slug) } : { target_id: input.targetId }), effect: 'Send this report to Teajia for review.' }
     : { received: true };
 };
 
@@ -116,10 +124,23 @@ const sameTableAgain = atOwnTable(async ({ table, stopped }, auth, services, arg
   const slug = id(args.slug);
   const response = await services.duplicate(table, auth.userId, slug, date, preview);
   const error = response.status === 409 ? 'slug_in_use' : response.status === 404 ? 'table_not_found' : 'invalid_table_copy';
+  // The copy is made ready like a new table from the host's form (A11-2):
+  // published, open by its link at once, on the door the host may give now.
   return resultOf(response, error, body => preview
-    ? { table_id: table.id, event_date: date, slug, effect: 'Make a draft copy of this table.' }
-    : { table_id: body.id });
+    ? {
+      table_id: table.id, event_date: body.event_date, timezone: body.timezone, slug, door: body.door,
+      effect: copyEffect(String(body.door), typeof body.door_was === 'string' ? body.door_was : null),
+    }
+    : { table_id: body.id, slug: body.slug, lifecycle_status: body.lifecycle_status });
 });
+
+const DOOR_WORDS: Record<string, string> = { request: 'by request', link: 'by link', open: 'open' };
+function copyEffect(door: string, doorWas: string | null) {
+  const opens = `Make a copy of this table with its teas, published and open by its link at once, the same as a new table. Its door is ${DOOR_WORDS[door] ?? door}.`;
+  return doorWas
+    ? `${opens} The table it copies was ${DOOR_WORDS[doorWas] ?? doorWas}, a door you cannot give a new table now.`
+    : opens;
+}
 
 const setSessionTasting = atOwnTable(async ({ table }, auth, services, args, preview) => {
   const flag = enteredTastingFlag(args.is_tasting);
@@ -149,14 +170,15 @@ const ownerOnly = (env: ToolEnv, auth: ToolAuth) => fewHostsOpen(env) && auth.cr
 const launch3Open = (env: ToolEnv) => fewHostsOpen(env) && anyoneHostsOpen(env);
 const tools = [
   writeTool('report', 'Report a session or person to Teajia.', anyoneHostsOpen,
-    { target_kind: { type: 'string', enum: ['session', 'person'] }, target_id: string, reason: string },
-    ['target_kind', 'target_id'], report, 'signed-in'),
+    { target_kind: { type: 'string', enum: ['session', 'person'] }, target_id: string,
+      target_slug: { type: 'string', description: 'For a session: the last part of its link, when you have no id.' }, reason: string },
+    ['target_kind'], report, 'signed-in'),
   writeTool('release_my_seat', 'Give back your own seat using its attendee ID.', launch3Open,
     { attendee_id: string }, ['attendee_id'], releaseMySeat, 'signed-in'),
   writeTool('release_guest_seat', 'Release a confirmed guest’s seat at your own table.', launch3Open,
     { table_id: string, attendee_id: string }, ['table_id', 'attendee_id'], releaseGuestSeat, 'sales:write'),
-  writeTool('same_table_again', 'Make a draft copy of your own table with a new slug and date.', launch3Open,
-    { table_id: string, slug: string, event_date: { type: 'string', description: 'New start, for example 2027-04-05T14:00.' } },
+  writeTool('same_table_again', 'Make a copy of your own table with a new slug and day. The copy is published and opens by its link at once, like a new table; a day already past is refused, and the door is one you may give a new table now.', launch3Open,
+    { table_id: string, slug: string, event_date: { type: 'string', description: 'New start on the table\'s own clock, for example 2027-04-05T14:00.' } },
     ['table_id', 'slug', 'event_date'], sameTableAgain, 'catalog:write'),
   writeTool('set_session_tasting', 'Mark your own table as a tasting or clear that choice.',
     launch3Open,

@@ -68,20 +68,21 @@ beforeEach(() => {
   flags.houses = false;
 });
 
-describe('with the new bar off, everything is as it was', () => {
-  it('the phone bar carries read, craft, advise, shop, in that order', () => {
+describe('with the new bar off, today less Craft', () => {
+  it('the phone bar carries read, advise, shop, in that order, and no Craft', () => {
     const html = bar();
-    expect(barWords(html)).toEqual(['read', 'craft', 'advise', 'shop']);
+    expect(barWords(html)).toEqual(['read', 'advise', 'shop']);
     expect(html).not.toContain('data-bar-words');
     expect(html).toContain('aria-label="Read"');
-    expect(html).toContain('aria-label="Craft"');
+    expect(html).not.toContain('aria-label="Craft"');
     expect(html).toContain('aria-label="Advise"');
     expect(html).toContain('aria-label="Shop"');
   });
 
-  it('the rail carries Read, Craft, Advise, Shop, and People and Places in its foot', () => {
+  it('the rail carries Read, Advise, Shop, and People and Places in its foot', () => {
     const html = rail();
-    expect(railWords(html)).toEqual(['Read', 'Craft', 'Advise', 'Shop']);
+    expect(railWords(html)).toEqual(['Read', 'Advise', 'Shop']);
+    expect(html).not.toContain('href="/craft"');
     expect(html).toContain('href="/read"');
     expect(html).toContain('href="/people"');
     expect(html).toContain('href="/spaces"');
@@ -89,7 +90,6 @@ describe('with the new bar off, everything is as it was', () => {
 
   it('lights the same words for the same places as before', () => {
     expect(litBar(bar('/read', 'MAGAZINE'))).toEqual(['Read']);
-    expect(litBar(bar('/craft', 'LEARN'))).toEqual(['Craft']);
     expect(litBar(bar('/advise', 'OFFERINGS'))).toEqual(['Advise']);
     expect(litBar(bar('/shop', 'SHOP'))).toEqual(['Shop']);
     expect(litBar(bar('/events', 'EVENTS'))).toEqual([]);
@@ -103,10 +103,9 @@ describe('with the new bar off, everything is as it was', () => {
     expect(html).not.toContain('Work with Adrian');
   });
 
-  it('the definition is exactly today', () => {
+  it('the definition is today, with Craft gone', () => {
     expect(barSections(false).map(s => [s.label, s.section, s.path ?? null])).toEqual([
       ['Read', 'MAGAZINE', '/read'],
-      ['Craft', 'LEARN', null],
       ['Advise', 'OFFERINGS', null],
       ['Shop', 'SHOP', null],
     ]);
@@ -131,7 +130,7 @@ describe('with the new bar on', () => {
     const html = rail();
     expect(html).toContain('href="/read"');
     expect(html).toContain('href="/events"');
-    expect(html).toContain('href="/tea-houses/visit"');
+    expect(html).toContain('href="/advise"');
     flags.table = true;
     flags.houses = true;
     const open = rail();
@@ -140,7 +139,7 @@ describe('with the new bar on', () => {
   });
 
   it('read lights on all three shelves; table on sessions and people; house on houses and the consult', () => {
-    for (const path of ['/read', '/craft', '/wisdom', '/wisdom/cultivars', '/article/x']) expect(litBar(bar(path, 'LEARN'))).toEqual(['Read']);
+    for (const path of ['/read', '/wisdom', '/wisdom/cultivars', '/wisdom/glossary', '/article/x']) expect(litBar(bar(path, 'MAGAZINE'))).toEqual(['Read']);
     for (const path of ['/tea-table', '/events', '/event/a', '/people/bo']) expect(litBar(bar(path, 'EVENTS'))).toEqual(['Tea table']);
     for (const path of ['/tea-houses/visit', '/store/a', '/advise']) expect(litBar(bar(path, 'OFFERINGS'))).toEqual(['Tea house']);
     expect(litBar(bar('/shop', 'SHOP'))).toEqual(['Shop']);
@@ -163,7 +162,7 @@ describe('with the new bar on', () => {
   });
 
   it('keys 1 to 5 follow the words', () => {
-    expect(sectionKeyPaths()).toEqual(['/', '/read', '/events', '/tea-houses/visit', '/shop']);
+    expect(sectionKeyPaths()).toEqual(['/', '/read', '/events', '/advise', '/shop']);
     flags.table = true;
     flags.houses = true;
     expect(sectionKeyPaths()).toEqual(['/', '/read', '/tea-table', '/tea-houses', '/shop']);

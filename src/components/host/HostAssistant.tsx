@@ -14,12 +14,23 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { useAuth } from '../../hooks/useAuth';
 import { useStepParam } from '../../hooks/useStepParam';
 import { api } from '../../lib/api';
+import { PART_QUERY, partView } from '../../lib/closedPart';
+import { LoadFailed } from '../shared/LoadFailed';
 import { HOST_TOKEN_LABEL_MAX, type HostToken, type HostTokenMinted } from '../../lib/hostTokens';
 import { hostSmallText, hostText } from './hostTableParts';
 
 const fieldClass = 'btn-field block min-h-tap w-full min-w-0';
 const labelClass = `${TYPOGRAPHY_CLASSES.label} grid min-w-0 gap-1 text-tea-text-sec`;
 const OFF = 'off-';
+const DEFAULT_KEY_NAME = 'My assistant';
+
+/**
+ * The key just made, kept in memory for the life of the page and nowhere else:
+ * never in storage, and never fetchable again from the server. It belongs to the
+ * history entry `?assistant=made`, so Back then Forward shows it again instead
+ * of an empty form. Done clears it.
+ */
+let shownOnceKey: HostTokenMinted | null = null;
 
 /** A stored time ('YYYY-MM-DD HH:MM:SS' in UTC, or ISO) as a day the host reads. */
 function dayOf(value: string | null): string {
@@ -38,11 +49,14 @@ export function HostAssistantSection({ onlyWithKeys = false }: { onlyWithKeys?: 
   const queryClient = useQueryClient();
   const key = ['host-assistant-tokens', user?.email] as const;
   const [step, setStep] = useStepParam('assistant');
-  const tokens = useQuery({ queryKey: key, queryFn: () => api.hostTokens.list(), retry: false });
+  const tokens = useQuery({ queryKey: key, queryFn: () => api.hostTokens.list(), ...PART_QUERY });
+  const view = partView(tokens);
   const refresh = () => queryClient.invalidateQueries({ queryKey: key });
   const list = tokens.data?.tokens ?? [];
   const stopping = step.startsWith(OFF) ? list.find(token => token.id === step.slice(OFF.length)) : undefined;
   if (onlyWithKeys && list.length === 0) return null;
+  // Not open on the worker yet: the part is not offered (A10-3).
+  if (view.state === 'closed') return null;
 
   return (
     <section aria-labelledby="host-assistant-heading" className="mt-8 space-y-3 border-t border-tea-border pt-4" data-testid="host-assistant">
@@ -53,7 +67,7 @@ export function HostAssistantSection({ onlyWithKeys = false }: { onlyWithKeys?: 
         before it changes anything.
       </p>
       {tokens.isPending && <p className={hostSmallText} role="status">Opening your keys…</p>}
-      {tokens.isError && <p className={hostSmallText} role="alert">Could not open your keys. Reload to try again.</p>}
+      {view.state === 'failed' && <LoadFailed sentence="Could not open your keys just now." onRetry={view.retry} />}
       {list.length > 0 && (
         <ul className="space-y-2" data-testid="host-assistant-keys">
           {list.map(token => (
@@ -68,8 +82,12 @@ export function HostAssistantSection({ onlyWithKeys = false }: { onlyWithKeys?: 
       {tokens.data && !tokens.data.may_connect && (
         <p className={hostSmallText}>While you are not hosting, no assistant can reach your tables and no new key can be made.</p>
       )}
-      {step === 'new' && tokens.data?.may_connect ? (
-        <MakeKey mcpUrl={tokens.data.mcp_url} onMade={() => void refresh()} onDone={() => setStep(null)} />
+      {step === 'made' && shownOnceKey && tokens.data?.may_connect ? (
+        <ShownOnce minted={shownOnceKey} onDone={() => { shownOnceKey = null; setStep(null); }} />
+      ) : (step === 'new' || step === 'made') && tokens.data?.may_connect ? (
+        <MakeKey mcpUrl={tokens.data.mcp_url}
+          onMade={minted => { shownOnceKey = minted; void refresh(); setStep('made'); }}
+          onDone={() => setStep(null)} />
       ) : tokens.data?.may_connect && (
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="secondary" className="tap-target" onClick={() => setStep('new')}>Connect an assistant</Button>
@@ -111,13 +129,12 @@ function KeyRow({ token, asking, onAsk, onCancel, onGone }: {
   );
 }
 
-function MakeKey({ mcpUrl, onMade, onDone }: { mcpUrl: string; onMade: () => void; onDone: () => void }) {
-  const [label, setLabel] = useState('');
-  const [made, setMade] = useState<HostTokenMinted | null>(null);
+function MakeKey({ mcpUrl, onMade, onDone }: { mcpUrl: string; onMade: (minted: HostTokenMinted) => void; onDone: () => void }) {
+  const [label, setLabel] = useState(DEFAULT_KEY_NAME);
   const make = useMutation({
     mutationFn: (name: string) => api.hostTokens.make(name),
     retry: false,
-    onSuccess: minted => { setMade(minted); onMade(); },
+    onSuccess: onMade,
   });
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -126,14 +143,12 @@ function MakeKey({ mcpUrl, onMade, onDone }: { mcpUrl: string; onMade: () => voi
     make.mutate(label.trim());
   }
 
-  if (made) return <ShownOnce minted={made} onDone={onDone} />;
-
   return (
     <form className="space-y-3" onSubmit={submit} data-testid="host-assistant-new">
       <label className={labelClass}>
         Name it
         <input type="text" className={fieldClass} maxLength={HOST_TOKEN_LABEL_MAX} required value={label}
-          placeholder="ChatGPT on my phone" onChange={event => setLabel(event.target.value)} />
+          placeholder="ChatGPT on my phone" onFocus={event => event.currentTarget.select()} onChange={event => setLabel(event.target.value)} />
       </label>
       <p className={hostSmallText}>Your assistant will connect at {mcpUrl}</p>
       {make.isError && <p className={hostSmallText} role="alert">{(make.error as Error).message || 'Could not make a key. Try again.'}</p>}

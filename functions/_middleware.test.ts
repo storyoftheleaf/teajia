@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { canonicalUrlFor, isTeaAtlasPath, isWorkerProxyPath, onRequest, readPublishStatesAtEdge, resetReadStatesCacheForTests, resolveStaticReadMeta, STATIC_META } from './_middleware';
+import { canonicalUrlFor, isTeaAtlasPath, isMcpPageRequest, isWorkerProxyPath, MCP_PAGE_META, onRequest, readPublishStatesAtEdge, resetReadStatesCacheForTests, resolveStaticReadMeta, STATIC_META } from './_middleware';
 import { ARTICLE_LIVE, isReadPathPublic, isUngatedReadPath } from '../src/pages/read/articleLive';
 
 describe('Pages protocol proxy', () => {
@@ -295,5 +295,68 @@ describe('product metadata while ordering is paused', () => {
     expect(product).toMatchObject({ '@type': 'Product', name: 'Inward', description: 'Public introduction', image: 'https://example.test/inward.jpg' });
     if (ordersPaused) expect(product).not.toHaveProperty('offers');
     else expect(product.offers).toMatchObject({ '@type': 'Offer', price: '2.00', availability: 'https://schema.org/InStock' });
+  });
+});
+
+describe('teajia.com/mcp is a page for people and an endpoint for clients', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const req = (init: RequestInit & { path?: string } = {}) => new Request(`https://www.teajia.com${init.path ?? '/mcp'}`, init);
+
+  it('is routed to a Function at all, so a pasted link gets its own preview', async () => {
+    const routes = JSON.parse((await import('node:fs')).readFileSync(new URL('../public/_routes.json', import.meta.url), 'utf8'));
+    expect(routes.include).toContain('/mcp');
+  });
+
+  it('tells a person or a scraper from an MCP client', () => {
+    expect(isMcpPageRequest(req({ headers: { accept: 'text/html,application/xhtml+xml' } }))).toBe(true);
+    expect(isMcpPageRequest(req({ headers: { 'user-agent': 'WhatsApp/2.23.20.0' } }))).toBe(true);
+    expect(isMcpPageRequest(req({ headers: { 'user-agent': 'Slackbot-LinkExpanding 1.0' } }))).toBe(true);
+    // Clients
+    expect(isMcpPageRequest(req({ method: 'POST', headers: { accept: 'text/html' }, body: '{}' }))).toBe(false);
+    expect(isMcpPageRequest(req({ headers: { accept: 'text/event-stream, text/html' } }))).toBe(false);
+    expect(isMcpPageRequest(req({ headers: { accept: 'text/html', authorization: 'Bearer tjmcp_x' } }))).toBe(false);
+    expect(isMcpPageRequest(req({ headers: { accept: '*/*', 'user-agent': 'curl/8' } }))).toBe(false);
+    // Other paths
+    expect(isMcpPageRequest(req({ path: '/mcp/public', headers: { accept: 'text/html' } }))).toBe(false);
+  });
+
+  it('gives a scraper the page with its own title, words and picture', async () => {
+    const seen: Record<string, string> = {};
+    vi.stubGlobal('HTMLRewriter', class {
+      private handlers: Array<{ element: (el: unknown) => void }> = [];
+      on(_selector: string, handler: { element: (el: unknown) => void }) { this.handlers.push(handler); return this; }
+      transform(response: Response) {
+        const tags: Array<Record<string, string>> = [{ tagName: 'title' }, { tagName: 'meta', property: 'og:title' }, { tagName: 'meta', property: 'og:image' }, { tagName: 'meta', name: 'description' }];
+        for (const tag of tags) {
+          const el = {
+            tagName: tag.tagName,
+            getAttribute: (k: string) => tag[k] ?? null,
+            setAttribute: (_k: string, v: string) => { seen[tag.property || tag.name || tag.tagName] = v; },
+            setInnerContent: (v: string) => { seen.title = v; },
+          };
+          for (const h of this.handlers) h.element(el);
+        }
+        return response;
+      }
+    });
+    const upstream = vi.fn();
+    vi.stubGlobal('fetch', upstream);
+    const next = vi.fn(async () => new Response('<head></head>', { headers: { 'Content-Type': 'text/html' } }));
+    await onRequest({ request: req({ headers: { 'user-agent': 'facebookexternalhit/1.1' } }), env: { WORKER_ORIGIN: 'https://worker.example' }, next } as any);
+    expect(upstream).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
+    expect(seen.title).toBe(MCP_PAGE_META.title);
+    expect(seen['og:title']).toBe(MCP_PAGE_META.title);
+    expect(seen['og:image']).toBe('https://www.teajia.com/share/mcp.png');
+    expect(seen.description).toBe(MCP_PAGE_META.description);
+  });
+
+  it('still hands an MCP client to the worker', async () => {
+    const upstream = vi.fn(async () => Response.json({ jsonrpc: '2.0' }));
+    vi.stubGlobal('fetch', upstream);
+    const next = vi.fn();
+    await onRequest({ request: req({ method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }), env: { WORKER_ORIGIN: 'https://worker.example' }, next } as any);
+    expect(next).not.toHaveBeenCalled();
+    expect((upstream.mock.calls[0] as unknown as [Request])[0].url).toBe('https://worker.example/mcp');
   });
 });

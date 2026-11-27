@@ -473,11 +473,9 @@ for (const size of SIZES) {
         await host.context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: ON_URL });
         await signIn(host.page, 'ana', 'ana');
         await host.page.goto(`/account/host/${table!.id}?part=after`);
-        await host.page.getByRole('button', { name: 'Mark who came' }).click();
+        // Who came is on the list itself once the table has ended (review A9-13, W2-6).
         await host.page.getByRole('checkbox', { name: guest!.name }).check();
-        await host.page.locator('[data-host-part="after"]').getByRole('button', { name: 'Save', exact: true }).click();
-        const came = host.page.getByRole('list', { name: 'Who came' });
-        await expect(came.getByText(guest!.name)).toBeVisible();
+        await host.page.locator('[data-host-part="after"]').getByRole('button', { name: 'Save who came', exact: true }).click();
         await host.page.getByRole('button', { name: `Copy their thank-you link for ${guest!.name}` }).click();
         await expect(host.page.getByText(`Copied. Send it only to ${guest!.name}.`)).toBeVisible();
         const copied = await host.page.evaluate(() => navigator.clipboard.readText());
@@ -535,7 +533,7 @@ for (const size of SIZES) {
         // This probe asks for what the guest must not have, so the refusal it gets is expected.
         asGuest.allow.push(/\/api\/me\/tables\//);
         await asGuest.page.goto(`/account/host/${table!.id}`);
-        await expect(asGuest.page.getByText('This table was not found.')).toBeVisible();
+        await expect(asGuest.page.getByText('Page not found', { exact: true })).toBeVisible();
         const token = await asGuest.page.evaluate(() => localStorage.getItem('teajia_token'));
         const notes = await asGuest.page.request.get(`/api/me/tables/${table!.id}/notes`, { headers: { Authorization: `Bearer ${token}` } });
         expect([403, 404], `the guest asking for the host's notes: ${notes.status()}`).toContain(notes.status());

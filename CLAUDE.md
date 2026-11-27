@@ -138,7 +138,7 @@ When Adrian says **"ship"**, follow [the Teajia release handoff](docs/claude/dep
 See `docs/CONSOLIDATED_DIRECTION.md` (single directional list) and `docs/tracks/` (per-track build queues) for the build sequence, and `docs/MULTI_STORE_PLAN.md` for multi-tenancy rollout.
 
 ## Layout and buttons — [docs/claude/layout.md](docs/claude/layout.md)
-- Desktop rail and mobile bottom bar are the same four sections (Read, Craft, Advise, Shop) — keep them in sync. Manage rooms come from `src/components/manageNav.ts` only.
+- Desktop rail and mobile bottom bar carry the same words from `src/components/navSections.ts` (today Read, Advise, Shop; with `HOME_BAR_OPEN`, Read, Tea table, Tea house, Shop) — keep them in sync. Craft is no longer a section (Adrian, 2026-11-27): Read holds three shelves, Stories (`/read`), Lessons (`/read/lessons`, what Craft became) and Wisdom (`/wisdom`, glossary at `/wisdom/glossary`). Manage rooms come from `src/components/manageNav.ts` only.
 - Back top-left; Cancel bottom-left; primary action on the right; close X top-right on centred modals, top-left on panels. Never below `text-tea-text-sec`.
 
 ## Back and forward: every admin place is in the address (Adrian, 2026-11-25)

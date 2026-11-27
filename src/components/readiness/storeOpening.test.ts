@@ -20,17 +20,17 @@ describe('a refused shop opening', () => {
   it('separates an unpublished profile from a missing method, since they are fixed differently', () => {
     expect(storeOpeningRefusal(new ApiError('Publish your Tea Master profile first.', 409, {
       code: 'store_recipient_profile_unpublished',
-    }))).toMatchObject({ fix: 'Publish your Tea Master profile', route: '/account/profile' });
+    }))).toMatchObject({ fix: 'Publish your host profile', route: '/account/profile' });
 
     expect(storeOpeningRefusal(new ApiError('This store has no tea master to be paid.', 409, {
       code: 'store_has_no_payment_recipient',
-    }))).toMatchObject({ fix: 'Create your Tea Master profile', route: '/account/profile' });
+    }))).toMatchObject({ fix: 'Create your host profile', route: '/account/profile' });
   });
 
   it('reads the named gap when no code came back', () => {
     expect(storeOpeningRefusal(new ApiError('Nobody to pay.', 409, {
       details: { missing: 'no_recipient' },
-    }))).toMatchObject({ fix: 'Create your Tea Master profile' });
+    }))).toMatchObject({ fix: 'Create your host profile' });
   });
 
   it('leaves every other failure alone rather than blaming payment for it', () => {

@@ -99,7 +99,7 @@ describe('vendor profile route', () => {
   it('makes the details editable where they sit', () => {
     const html = renderToString(<VendorProfileView />);
     expect(html).toContain('aria-label="Edit name"');
-    expect(html).toContain('aria-label="Edit country"');
+    expect(html).toContain('aria-label="Edit city, country"');
     expect(html).toContain('Add contact');
   });
 });

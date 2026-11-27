@@ -17,7 +17,7 @@ import { publicSitProfile, publishedSitRecap } from './publicSitConnections';
 import { privateAttendeeSeatMatch } from './privateSessionReflections';
 import { readSitPhotoRendition, sitPhotoRenditionResponse } from './revocableSitPhotos';
 import { resolveSessionTeas, type PublicProductReader, type PublicSessionTea, type SessionTeaRef } from './sessionTeas';
-import { GUEST_BOOK_NOTE_LIMIT, prepareGuestBookNote } from './sessionGuestBook';
+import { GUEST_BOOK_NOTE_LIMIT, guestSignature, prepareGuestBookNote } from './sessionGuestBook';
 import { readSessionServedTeas } from './sessionServedTeas';
 import { acknowledgementOpen } from './photographCredit';
 
@@ -171,16 +171,17 @@ async function publicGuestPhotos(db: D1Database, event: EventRow) {
 /** Guest notes the host included and the guest agreed to show on the public recap. */
 async function publicGuestNotes(db: D1Database, event: EventRow) {
   const { results } = await db.prepare(
-    `SELECT b.note, a.full_name, b.tea_id AS tea_menu_id
+    `SELECT b.note, ${guestSignature} AS signature, b.tea_id AS tea_menu_id
      FROM session_guest_book b
      JOIN event_attendees a ON a.id = b.attendee_id AND a.account_id = b.account_id AND a.event_id = b.event_id
      WHERE b.account_id = ? AND b.event_id = ? AND b.status = 'included' AND b.public_recap = 1
        AND a.status = 'confirmed' AND a.attended = 1
      ORDER BY b.updated_at ASC, b.id`,
-  ).bind(event.account_id, event.id).all<{ note: string; full_name: string | null; tea_menu_id: string | null }>();
+  ).bind(event.account_id, event.id).all<{ note: string; signature: string | null; tea_menu_id: string | null }>();
   return results.map(row => ({
     teaMenuId: row.tea_menu_id,
-    note: { text: row.note, by: { name: guestFirstName(row.full_name), part: 'guest' as const } },
+    // The note's own saved signature, else the booking first name (A7-4).
+    note: { text: row.note, by: { name: row.signature ?? guestFirstName(null), part: 'guest' as const } },
   }));
 }
 

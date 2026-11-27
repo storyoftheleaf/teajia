@@ -13,14 +13,14 @@ test.beforeEach(({}, info) => {
 const barOn = () => test.info().project.metadata.bar === 'on';
 const isPhone = () => (test.info().project.use.viewport?.width ?? 1280) < 1024;
 
-const TODAY = ['Read', 'Craft', 'Advise', 'Shop'];
+const TODAY = ['Read', 'Advise', 'Shop'];
 const LAUNCH_FOUR = ['Read', 'Tea table', 'Tea house', 'Shop'];
 const words = () => (barOn() ? LAUNCH_FOUR : TODAY);
 
 /** Where each word leads. The Tea Table and the Tea Houses portfolio are shut on both sites, so their words take their open doors. */
 const DOORS: Record<string, string> = {
   Read: '/read', Craft: '/craft', Advise: '/advise', Shop: '/shop',
-  'Tea table': '/events', 'Tea house': '/tea-houses/visit',
+  'Tea table': '/events', 'Tea house': '/advise',
 };
 
 async function mockApi(page: Page) {
@@ -135,11 +135,33 @@ test('the phone menu: today\'s rows, or the short list with the new bar', async 
   await noHorizontalOverflow(page, 'menu');
 });
 
-test('Home: today\'s lines, or the four new lines and "Come to a table"', async ({ page }) => {
+test('Home: today\'s lines, or the four doors and "Come to a table"', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tea deepens with what you bring to the table and what you leave behind.');
   const lines = page.getByRole('navigation', { name: 'Homepage destinations' });
   if (barOn()) {
-    await expect(lines.getByRole('link')).toHaveText(['Learn tea.', 'Sit at a table.', 'Find a tea house.', 'Find good tea.']);
+    const doors = lines.getByRole('link');
+    await expect(doors).toHaveText([
+      'Discover stories, craft and tea wisdom',
+      'Deepen sit at a table, taste, share what you found',
+      'Create a tea house, or a table of your own',
+      'Source fine tea and teaware, found by hand',
+    ]);
+    // Each door goes where its bar word goes.
+    const bar = [DOORS.Read, DOORS['Tea table'], DOORS['Tea house'], DOORS.Shop];
+    for (const [index, href] of bar.entries()) await expect(doors.nth(index)).toHaveAttribute('href', href);
+    for (let index = 0; index < 4; index++) {
+      const box = await doors.nth(index).boundingBox();
+      expect(box!.height, 'a door is at least 44 tall').toBeGreaterThanOrEqual(44);
+    }
+    await expect(page.getByTestId('home-four-doors').locator('xpath=following::*[@data-testid="home-come-to-a-table"]')).toHaveCount(1);
+    for (const [index, href] of bar.entries()) {
+      await doors.nth(index).click();
+      await expect(page).toHaveURL(new RegExp(`${href.replace(/\//g, '\\/')}(\\?.*)?$`));
+      // Every door lands, Create included: it goes to Advise until Tea Houses opens (4.20).
+      await expect(page.getByRole('heading', { name: '404', exact: true })).toHaveCount(0);
+      await page.goto('/');
+    }
     const door = page.getByTestId('home-come-to-a-table').getByRole('link');
     await expect(door).toHaveAttribute('href', '/events');
     await door.click();
@@ -147,6 +169,7 @@ test('Home: today\'s lines, or the four new lines and "Come to a table"', async 
   } else {
     await expect(lines.getByRole('link')).toHaveText(['Source your tea.', 'Discover the stories.', 'Deepen your practice.', 'Create the spaces to share.']);
     await expect(page.getByTestId('home-come-to-a-table')).toHaveCount(0);
+    await expect(page.getByTestId('home-four-doors')).toHaveCount(0);
   }
   // The strips need the Tea Table and the portfolio open; both are shut here, so neither shows.
   await expect(page.getByTestId('home-tea-table')).toHaveCount(0);
@@ -154,28 +177,29 @@ test('Home: today\'s lines, or the four new lines and "Come to a table"', async 
   await noHorizontalOverflow(page, 'home');
 });
 
-test('Read\'s three shelves on /read, /craft and /wisdom, only with the new bar', async ({ page }) => {
-  for (const path of ['/read', '/craft', '/wisdom']) {
+test('Read\'s three shelves on /read, /read/lessons and /wisdom, with the bar on or off', async ({ page }) => {
+  for (const path of ['/read', '/read/lessons', '/wisdom']) {
     await page.goto(path);
     const shelves = page.getByTestId('read-shelves');
-    if (!barOn()) {
-      await expect(page.locator('main, article, body').first()).toBeVisible();
-      await expect(shelves).toHaveCount(0);
-      continue;
-    }
-    await expect(shelves.getByRole('link')).toHaveText(['Stories', 'Craft', 'Wisdom']);
+    await expect(shelves.getByRole('link')).toHaveText(['Stories', 'Lessons', 'Wisdom']);
     await expect(shelves.locator('[aria-current="page"]')).toHaveAttribute('href', path);
     await noHorizontalOverflow(page, path);
-    if (isPhone()) await expect(page.getByTestId('bottom-tab-bar').getByRole('button', { name: 'Read', exact: true })).toHaveAttribute('aria-current', 'page');
+    if (barOn() && isPhone()) await expect(page.getByTestId('bottom-tab-bar').getByRole('button', { name: 'Read', exact: true })).toHaveAttribute('aria-current', 'page');
   }
-  if (barOn()) {
-    await page.getByTestId('read-shelves').getByRole('link', { name: 'Stories' }).click();
-    await expect(page).toHaveURL(/\/read$/);
+  await page.getByTestId('read-shelves').getByRole('link', { name: 'Stories' }).click();
+  await expect(page).toHaveURL(/\/read$/);
+});
+
+test('old Craft addresses open where each piece went', async ({ page }) => {
+  for (const [from, to] of [['/craft', '/read/lessons'], ['/craft?v=glossary', '/wisdom/glossary'], ['/craft?v=journeys', '/read/lessons?v=journeys'], ['/learn', '/read/lessons']]) {
+    await page.goto(from);
+    await expect(page).toHaveURL(new RegExp(`${to.replace(/[/?]/g, m => `\\${m}`)}$`));
+    await expect(page.getByRole('heading', { name: '404', exact: true })).toHaveCount(0);
   }
 });
 
 test('old addresses keep working', async ({ page }) => {
-  for (const path of ['/craft', '/advise', '/spaces', '/find-a-table', '/people', '/events', '/wisdom']) {
+  for (const path of ['/advise', '/spaces', '/find-a-table', '/people', '/events', '/wisdom', '/wisdom/glossary']) {
     await page.goto(path);
     await expect(page).toHaveURL(new RegExp(`${path.replace(/\//g, '\\/')}(\\?.*)?$`));
     await expect(page.getByRole('heading', { name: '404', exact: true })).toHaveCount(0);

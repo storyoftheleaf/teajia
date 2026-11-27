@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { familyApi } from '../../lib/familyApi';
 import type { FamilyShareState } from '../../lib/familyContract';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { TastingShareStep } from './TastingShareStep';
+import { TASTING_SHARES_QUERY_KEY, TastingShareStep } from './TastingShareStep';
 import { Button } from '../shared/Button';
 
 /**
@@ -13,7 +13,7 @@ import { Button } from '../shared/Button';
  * YOUR_TABLE_PAGE_OPEN is on; the journal decides that.
  */
 
-export const TASTING_SHARES_QUERY_KEY = ['family', 'tasting-shares'] as const;
+export { TASTING_SHARES_QUERY_KEY };
 
 /** The line, in the words the Share step itself uses. */
 export function shareLineWords(state: FamilyShareState, onTeaTable = false): string {

@@ -10,7 +10,7 @@ describe('the tabs across the top of a Manage room', () => {
   it('opens with the room itself, under the word its drawer button uses', () => {
     const tabs = roomTabs(room('publish'));
     expect(tabs[0]).toEqual({ id: 'publish', path: room('publish').path, label: 'Publish' });
-    expect(tabs.map(t => t.label)).toEqual(['Publish', 'Collections', 'Guest notes', 'Wisdom', 'Tea Masters']);
+    expect(tabs.map(t => t.label)).toEqual(['Publish', 'Collections', 'Guest notes', 'Wisdom', 'Hosts']);
   });
 
   it("leaves out a child that is only a tab of the room's own page", () => {

@@ -5,6 +5,7 @@
     "/read-assets/*",
     "/api/*",
     "/oauth/*",
+    "/mcp",
     "/media/*",
     "/read",
     "/read/*",

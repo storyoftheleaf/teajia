@@ -333,7 +333,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
       account_id: account.id,
       account_slug: account.slug,
       account_name: account.name,
-      public_role: 'Tea Master',
+      public_role: 'Host',
       is_host: false,
       display_order: current.length,
     }]);
@@ -551,7 +551,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                           </div>
                         </div>
                         <div className="mt-2 grid gap-x-8 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                          <Line id={`f-role-${association.account_id}`} label="Public role" disabled={!editable} value={association.public_role ?? ''} onChange={event => updateAssociation(association.account_id, { public_role: event.target.value || null })} placeholder="Tea master, guest, writer" />
+                          <Line id={`f-role-${association.account_id}`} label="Public role" disabled={!editable} value={association.public_role ?? ''} onChange={event => updateAssociation(association.account_id, { public_role: event.target.value || null })} placeholder="Host, guest, writer" />
                           <label className="tap-target flex min-h-tap cursor-pointer items-center gap-3 font-sans text-ui-13 text-tea-text-sec"><input type="checkbox" disabled={!editable} checked={association.is_host} onChange={event => updateAssociation(association.account_id, { is_host: event.target.checked })} className="h-4 w-4 accent-tea-gold" /> Host profile</label>
                         </div>
                         {!editable && <p className="mt-2 font-sans text-ui-12 text-tea-text-dim">Switch to this shop to change it.</p>}
@@ -590,7 +590,7 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
                       );
                     })}
                   </div>
-                  <p className="mt-1.5 font-sans text-ui-12 leading-relaxed text-tea-text-dim">{pageTier === null ? 'Not chosen yet. This page keeps what it had: its own words, its approval step and its Pay.' : 'Changes the word on the page. The address and everything written stay. Pay shows for tea masters only, and only family pages go live without your approval.'}</p>
+                  <p className="mt-1.5 font-sans text-ui-12 leading-relaxed text-tea-text-dim">{pageTier === null ? 'Not chosen yet. This page keeps what it had: its own words, its approval step and its Pay.' : 'Changes the word on the page. The address and everything written stay. Pay shows for hosts only, and only family pages go live without your approval.'}</p>
                 </div>
               )}
 {!isNew && (

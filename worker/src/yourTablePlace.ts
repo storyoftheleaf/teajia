@@ -18,11 +18,11 @@ export type YourTablePlace = { id: string; name: string; area_hint: string | nul
 type Refused = { refused: { status: number; code: string; error: string } };
 const refuse = (code: string, error: string, status = 400): Refused => ({ refused: { status, code, error } });
 
-/** The host's saved places by name, and which one is their table. Their own page only. */
+/** The host’s saved places by name, every one of them (review A6-3), and which one is their table. Their own page only. */
 export async function readYourTable(db: D1Database, accountId: string): Promise<{ places: YourTablePlace[] }> {
   const rows = await db.prepare(
     `SELECT id, name, area_hint, is_host_table FROM saved_locations
-      WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC, id ASC LIMIT 50`,
+      WHERE account_id = ? ORDER BY name COLLATE NOCASE ASC, id ASC`,
   ).bind(accountId).all<Record<string, unknown>>();
   return {
     places: rows.results.map(row => ({
