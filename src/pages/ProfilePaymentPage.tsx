@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PaymentChooser } from '../components/profile/PaymentChooser';
+import { PayInvoiceTeas } from '../components/profile/PayInvoiceTeas';
+import { authPagePath } from '../lib/authNavigation';
 import { buildPaymentPageUrl, isTrackingTokenShaped, normalizeLocalAmount, parsePaymentContext, toPaymentOrderSummary } from '../components/profile/profileDomain';
 import { firstName } from '../components/people/profileFormat';
 import { GOLD_LINE_STYLE, GOLD_TEXT_ROW, GOLD_TEXT_STYLE } from '../components/people/immersive';
@@ -202,6 +204,7 @@ export default function ProfilePaymentPage() {
       {access.invoice?.invoice_number && (
         <p className="mt-1 font-body text-ui-13 italic leading-[1.45] text-tea-text-sec" data-testid="pay-sheet-invoice">Invoice {access.invoice.invoice_number}.</p>
       )}
+      {access.invoice?.lines && <PayInvoiceTeas lines={access.invoice.lines} />}
       {associationRows.length > 0 && (
         <nav aria-label="Payment account" className="mt-5 flex flex-wrap gap-2">
           <a href={(() => { const url = new URL(buildPaymentPageUrl(slug, null, 'https://teajia.com', context)); return `${url.pathname}${withToken(url.search, shareToken)}`; })()} className={`tap-target rounded-md border px-3 py-2 text-ui-12 ${!accountSlug ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:text-tea-text'}`}>Personal default</a>
@@ -214,9 +217,15 @@ export default function ProfilePaymentPage() {
       <div className="mt-6">
         <PaymentChooser contributorName={data.contributor.display_name} methods={data.methods} destination={destination} context={context} local={normalizeLocalAmount(data.context?.local)} accountName={data.account?.name} resolution={data.resolution} summary={summary} />
       </div>
-      <p className="mt-3.5 font-sans text-ui-11 leading-[1.5] text-tea-text-dim">
-        I keep these up to date myself.{access.via === 'link' ? ' You opened this from my link.' : access.via === 'approved' ? ' Your account is approved to see them.' : ''}
-      </p>
+      {/* The same quiet offer the collection link makes: an account is never
+          needed to read or pay, and joining brings them back to this page. */}
+      {!access.viewer.signed_in && (
+        <p className="mt-4 border-t border-tea-border pt-4 text-ui-13 text-tea-text-sec" data-testid="pay-account-offer">
+          Want to keep this?{' '}
+          <Link to={authPagePath('signup', `${window.location.pathname}${window.location.search}`)} className="tap-target text-tea-text underline decoration-tea-border underline-offset-2 hover:text-tea-gold">Make a free account</Link>
+          {' '}and your teas stay with you. You don’t need one to pay.
+        </p>
+      )}
     </Sheet>
   );
 }

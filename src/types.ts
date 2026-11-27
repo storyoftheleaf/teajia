@@ -706,7 +706,7 @@ export interface CartItem {
    * line without one simply goes untinted.
    */
   type?: string;
-  image?: string;
+  image?: string; collectionSlug?: string; linkQuoted?: boolean; // from that collection link; when it quoted a price, that price with no handling amount
 }
 
 // Unified Inventory Type
@@ -1497,7 +1497,7 @@ export interface CollectionListRow {
 export interface SavedCollectionRow {
   id: string;                       // collection_id
   slug?: string | null;             // publication slug they came through (deep-link back to /c/:slug)
-  source: 'received' | 'saved';
+  source: 'received' | 'saved' | 'made';
   saved_at: string;
   title: string;
   note?: string | null;
@@ -1567,7 +1567,7 @@ export interface PublicCollectionItem {
   year?: number | null;
   origin_country?: string | null;
   origin_region?: string | null;
-  image_url?: string | null;
+  image_url?: string | null; images?: string[]; form?: string | null; in_shop?: boolean; product_slug?: string | null; piece_weight_g?: number | null; price_quoted?: boolean; // photos main first; product_slug only for a shelf tea
   description?: string | null;
   tasting_notes?: string[] | null;
   product_status?: string;
@@ -1582,7 +1582,7 @@ export interface PublicCollectionResponse {
     curator_display_name?: string | null;
   };
   items: PublicCollectionItem[];
-  account: { name: string; whatsapp_number?: string | null } | null;
+  account: { name: string; slug?: string | null; whatsapp_number?: string | null } | null;
   publication: { slug: string };
 }
 

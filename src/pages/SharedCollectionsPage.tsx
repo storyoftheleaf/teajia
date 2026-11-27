@@ -147,7 +147,7 @@ export function SharedCollectionsSection({ embedded = false }: { embedded?: bool
                 <div className="font-body text-ui-12 text-tea-text-sec truncate mt-0.5">
                   {row.curator_display_name ? `${row.curator_display_name} · ` : ''}
                   {row.item_count} {row.item_count === 1 ? 'tea' : 'teas'}
-                  {row.source === 'saved' ? ' · saved' : ''}
+                  {row.source === 'saved' ? ' · saved' : row.source === 'made' ? ' · made by you' : ''}
                 </div>
               </div>
               <span

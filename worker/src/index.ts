@@ -110,7 +110,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { compassFieldPatch, readCompassFieldHints } from './compassFieldPatch';
 import { receiptHoldingTeaId } from './curateMergeLink';
 import { resolveShopFreightDefault } from './shippingRate';
-import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf';
+import { addPricingFields, lookupRateToUsd, accountFreightDefaults, freightDefaultsByAccount } from './productPricing'; import { fillBlankQuotes, withShelfPrices } from './collectionShelf'; import { collectionCartTeas, collectionLineTotal } from './collectionCart'; import { linkTeaDetail, linkTeaPhotos, loadPayLinkTeaLines, LINK_TEA_DETAIL_SQL, type PayLinkTeaLine } from './publicLinkTea';
 import { INWARD_BALI_LOT, INWARD_ORDERS_PAUSED_SQL, inwardOrdersPaused } from '../../shared/catalog/inwardOrders';
 import { checkNewProductPublication, checkProductPublication, openingStockKnownAt, publicationPatchFromColumns, writeProductPublication } from './productPublication';
 import { deductStockForPaidInvoice } from './orderLifecycle';
@@ -15865,12 +15865,17 @@ async function pausedInwardProductIds(env: Env, accountId: string, productIds: s
 
 async function pricedRequestLines(env: Env, accountId: string, items: Array<Record<string, any>>, sellerUserId: string | null) {
   const productIds = catalogProductIds(items);
+  // A tea added from a live collection link may be one the shop does not list,
+  // and carries the price the link quoted (collectionCart.ts).
+  const fromLinks = await collectionCartTeas(env.DB, accountId, items);
+  const linkIds = [...fromLinks.keys()];
+  const linkClause = linkIds.length ? ` OR (p.status = 'Active' AND p.id IN (${linkIds.map(() => '?').join(',')}))` : '';
   const [productRows, rateRows] = await Promise.all([
     productIds.length ? env.DB.prepare(
       `SELECT p.*, COALESCE(tp.form, p.form) AS form
          FROM products p LEFT JOIN tea_profiles tp ON tp.id='prof_' || p.id
-        WHERE p.account_id=? AND ${PUBLIC_REQUEST_PRODUCT} AND p.id IN (${productIds.map(() => '?').join(',')})`
-    ).bind(accountId, ...productIds).all() : Promise.resolve({ results: [] }),
+        WHERE p.account_id=? AND ((${PUBLIC_REQUEST_PRODUCT})${linkClause}) AND p.id IN (${productIds.map(() => '?').join(',')})`
+    ).bind(accountId, ...linkIds, ...productIds).all() : Promise.resolve({ results: [] }),
     env.DB.prepare('SELECT currency,rate_to_usd FROM exchange_rates').all(),
   ]);
   if ((productRows.results ?? []).length !== productIds.length) throw new Error('Store or items not found');
@@ -15899,12 +15904,15 @@ async function pricedRequestLines(env: Env, accountId: string, items: Array<Reco
       requestedOffers.add(product.id);
     }
     const name = String(product?.given_name || product?.product_name || item.name || 'Item');
+    const linkRate = product && typeof item.collectionSlug === 'string' ? fromLinks.get(String(product.id))?.pricePerGram ?? null : null;
     return {
       product_id: product ? String(product.id) : null,
       custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
       quantity,
       quantity_unit: product?.type === 'Teaware' ? 'unit' as const : 'g' as const,
-      price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
+      price_at_sale: !product ? 0
+        : linkRate != null ? collectionLineTotal(linkRate, quantity) / quantity
+        : quoteInquiryLine(item, product) / quantity,
     };
   });
 }
@@ -16642,6 +16650,9 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
     products.set(row.id as string, priced);
   }
 
+  // A line added from a collection link keeps the link's price (collectionCart.ts).
+  const fromLinks = await collectionCartTeas(env.DB, accountId, items);
+  const linkRate = (item: Record<string, any>) => typeof item.collectionSlug === 'string' ? fromLinks.get(String(item.id || ''))?.pricePerGram ?? null : null;
   let lineItems: Array<{ product_id: string | null; custom_name: string | null; quantity: number; price_at_sale: number;quantity_unit:'g'|'unit' }>;
   try {
     lineItems = items.map(item => {
@@ -16655,7 +16666,9 @@ const handleConvertInquiry: Handler = async (request, env, params) => {
         product_id: linked ? String(product.id) : null,
         custom_name: `${name} (${inquiryPackingLabel({ ...item, category: product?.type === 'Teaware' ? 'ware' : item.category })})`,
         quantity,quantity_unit:product?.type==='Teaware'?'unit':'g',
-        price_at_sale: product ? quoteInquiryLine(item, product) / quantity : 0,
+        price_at_sale: !product ? 0
+          : linkRate(item) != null ? collectionLineTotal(linkRate(item)!, quantity) / quantity
+          : quoteInquiryLine(item, product) / quantity,
       };
     });
   } catch (error) {
@@ -28611,7 +28624,7 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
   const { decision, link, grant, refusal } = await resolvePayAccess(env, contributor, viewer, url.searchParams.get(PAY_LINK_PARAM));
   if (refusal) return json(refusal, 409);
 
-  let invoice: { invoice_number: string | null; outstanding_usd: number } | null = null;
+  let invoice: { invoice_number: string | null; outstanding_usd: number; lines: PayLinkTeaLine[] } | null = null;
   if (link) {
     await env.DB.prepare(
       `UPDATE payment_share_links SET open_count = open_count + 1, last_opened_at = datetime('now') WHERE id = ?`
@@ -28635,7 +28648,10 @@ const handleGetPayAccess: Handler = async (request, env, params) => {
       if (ledgerInvoice) {
         const ledger = await loadInvoiceLedgerTotals(env, [ledgerInvoice.id]);
         const money = invoiceMoney(ledgerInvoice.total_usd, ledgerInvoice.payment_status, ledger.get(ledgerInvoice.id));
-        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd };
+        // The teas on the invoice, shown on the pay page as the shop shows
+        // them. Only a holder of this invoice's own link reaches this line.
+        const lines = await loadPayLinkTeaLines(env, ledgerInvoice.id, link.account_id);
+        invoice = { invoice_number: ledgerInvoice.invoice_number, outstanding_usd: money.outstanding_usd, lines };
       }
     }
   }
@@ -30127,7 +30143,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
 
   // Account for WhatsApp deep link.
   const account = await env.DB.prepare(
-    `SELECT id, name, whatsapp_number, status, public_enabled FROM accounts WHERE id = (
+    `SELECT id, slug, name, whatsapp_number, status, public_enabled FROM accounts WHERE id = (
        SELECT account_id FROM collections WHERE id = ?
      )`
   ).bind(pub.collection_id).first();
@@ -30143,7 +30159,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
             p.id AS product_id, p.type AS product_type,
             COALESCE(p.given_name, p.product_name) AS product_name,
             p.chinese_name, p.year, p.origin_country, p.origin_region,
-            p.image_url, p.description, p.tasting_notes,
+            p.image_url, p.additional_images, p.form, p.slug AS product_slug, p.piece_weight_g,
+            CASE WHEN p.is_public = 1 AND p.shown_in_shop = 1 THEN 1 ELSE 0 END AS in_shop,
+            p.description, p.tasting_notes, ${LINK_TEA_DETAIL_SQL},
             p.status AS product_status, p.stock_grams, p.quantity_units
        FROM collection_items ci
        JOIN products p ON p.id = ci.product_id
@@ -30153,6 +30171,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       ORDER BY ci.position ASC`
   ).bind(pub.collection_id, pub.target_type === 'shop' ? 1 : 0).all();
 
+  // Whether the curator quoted a price, read before a blank quote is filled:
+  // a quoted price is kept as it is, a blank one follows the shop's own rule.
+  for (const row of (items.results ?? []) as any[]) row.price_quoted = row.recommended_price_usd != null;
   if (account) await fillBlankQuotes(env, String(account.id), (items.results ?? []) as any[]); // a blank quote shows the shelf price: collectionShelf.ts
   const visibleItems = ((items.results ?? []) as any[])
     .filter(i => i.product_status === 'Active')
@@ -30164,7 +30185,19 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       const outOfStock = i.product_type === 'Teaware'
         ? (i.quantity_units ?? 0) <= 0
         : (i.stock_grams ?? 0) <= 0;
-      return { ...i, description: reviewedDescription(i.product_id, i.description), out_of_stock: outOfStock };
+      // The shop's photos ride along so the link looks like the shop. A tea's
+      // shop address is given only when the tea is on the shop's shelf; a
+      // private tea stays private.
+      const { additional_images, product_slug, in_shop, lore, terroir, processing_notes, mood, experience, cultivar, tasting, variant_name, ...rest } = i;
+      return {
+        ...rest,
+        ...linkTeaDetail({ lore, terroir, processing_notes, mood, experience, cultivar, tasting, variant_name }),
+        images: linkTeaPhotos(i.image_url, additional_images),
+        in_shop: in_shop === 1,
+        product_slug: in_shop === 1 ? (product_slug ?? null) : null,
+        description: reviewedDescription(i.product_id, i.description),
+        out_of_stock: outOfStock,
+      };
     });
 
   return json({
@@ -30177,7 +30210,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
         : null,
     },
     items: visibleItems,
-    account: account ? { name: account.name, whatsapp_number: account.whatsapp_number } : null,
+    account: account ? { name: account.name, slug: account.slug ?? null, whatsapp_number: account.whatsapp_number } : null,
     publication: { slug: pub.slug },
   });
 };
@@ -30227,7 +30260,7 @@ async function upsertSavedCollection(
   ).bind(userId, collectionId).first() as { id: string; source: string } | null;
   if (existing) {
     // Only upgrade saved→received; never the reverse. Always refresh via_slug + updated_at.
-    const nextSource = existing.source === 'received' ? 'received' : source;
+    const nextSource = existing.source === 'made' || existing.source === 'received' ? existing.source : source;
     await env.DB.prepare(
       `UPDATE saved_collections SET source = ?, via_slug = COALESCE(?, via_slug), updated_at = ? WHERE id = ?`
     ).bind(nextSource, slug, now, existing.id).run();
@@ -30335,10 +30368,92 @@ const handleUnsaveCollection: Handler = async (request, env, params) => {
   if (authErr) return authErr;
   const claims = parseToken(isAuthed(request)!);
   if (!claims) return json({ error: 'Invalid token' }, 401);
-  await env.DB.prepare(
-    `DELETE FROM saved_collections WHERE user_id = ? AND collection_id = ?`
-  ).bind(claims.sub, params.id).run();
+  // Removing one you made takes its link down too, so it stops working for anyone you sent it to.
+  const made = await env.DB.prepare(
+    `SELECT 1 FROM saved_collections sc JOIN collections c ON c.id = sc.collection_id
+      WHERE sc.user_id = ? AND sc.collection_id = ? AND sc.source = 'made' AND c.curator_user_id = ?`
+  ).bind(claims.sub, params.id, claims.sub).first();
+  const now = new Date().toISOString();
+  await env.DB.batch([
+    ...(made ? [
+      env.DB.prepare(`UPDATE collection_publications SET unpublished_at = ? WHERE collection_id = ? AND unpublished_at IS NULL`).bind(now, params.id),
+      env.DB.prepare(`UPDATE collections SET status = 'archived', updated_at = ? WHERE id = ?`).bind(now, params.id),
+    ] : []),
+    env.DB.prepare(`DELETE FROM saved_collections WHERE user_id = ? AND collection_id = ?`).bind(claims.sub, params.id),
+  ]);
   return json({ ok: true });
+};
+
+// POST /api/me/collections/make { title, note?, product_ids[] } — anyone signed in
+// makes a collection from shop teas and gets its link (Adrian, 2026-11-27: a tea
+// master tells someone what to buy by sending a collection). It lives in the shop
+// that sells the teas, carries the maker's name, and leaves prices blank so the
+// shop's own price applies. It lands on the maker's shelf as 'made'.
+const MADE_COLLECTION_MAX_TEAS = 40;
+const MADE_COLLECTIONS_PER_DAY = 20;
+const handleMakeCollection: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  const body = await request.json().catch(() => ({})) as { title?: unknown; note?: unknown; product_ids?: unknown };
+  const title = typeof body.title === 'string' ? body.title.trim().slice(0, 120) : '';
+  if (!title) return json({ error: 'Give the collection a name' }, 400);
+  const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 2000) : null;
+  const wanted = Array.isArray(body.product_ids)
+    ? Array.from(new Set(body.product_ids.filter((id): id is string => typeof id === 'string' && id.length > 0)))
+    : [];
+  if (!wanted.length) return json({ error: 'Choose at least one tea' }, 400);
+  if (wanted.length > MADE_COLLECTION_MAX_TEAS) return json({ error: `A collection holds up to ${MADE_COLLECTION_MAX_TEAS} teas` }, 400);
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const recent = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM saved_collections WHERE user_id = ? AND source = 'made' AND created_at > ?`
+  ).bind(claims.sub, since).first() as { n: number } | null;
+  if ((recent?.n ?? 0) >= MADE_COLLECTIONS_PER_DAY) return json({ error: 'That is a lot of collections for one day. Try again tomorrow.' }, 429);
+
+  // Only teas the shop sells to anyone can go in, all from one shop.
+  const placeholders = wanted.map(() => '?').join(',');
+  const { results } = await env.DB.prepare(
+    `SELECT p.id, p.account_id FROM products p WHERE p.id IN (${placeholders}) AND ${PUBLIC_REQUEST_PRODUCT}`
+  ).bind(...wanted).all() as { results: Array<{ id: string; account_id: string }> };
+  const found = new Map((results ?? []).map(row => [row.id, row.account_id]));
+  const teas = wanted.filter(id => found.has(id));
+  if (!teas.length) return json({ error: 'None of these teas are in the shop now' }, 400);
+  const accountId = found.get(teas[0])!;
+  if (teas.some(id => found.get(id) !== accountId)) return json({ error: 'Make a collection from one shop at a time' }, 400);
+
+  const user = await env.DB.prepare(`SELECT name, username FROM users WHERE id = ?`).bind(claims.sub)
+    .first() as { name: string | null; username: string | null } | null;
+  const makerName = (user?.name || user?.username || '').trim() || null;
+
+  let slug = '';
+  for (let attempt = 0; attempt < 5 && !slug; attempt++) {
+    const candidate = buildCollectionSlug(title);
+    const taken = await env.DB.prepare(`SELECT 1 FROM collection_publications WHERE slug = ?`).bind(candidate).first();
+    if (!taken) slug = candidate;
+  }
+  if (!slug) return json({ error: 'Slug generation failed' }, 500);
+
+  const id = newId('col');
+  const now = new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO collections (id, account_id, title, note, status, created_by_user_id, curator_user_id, curator_display_name, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`
+    ).bind(id, accountId, title, note, claims.sub, claims.sub, makerName, now, now),
+    ...teas.map((productId, index) => env.DB.prepare(
+      `INSERT INTO collection_items (id, collection_id, product_id, position, recommended_quantity, recommended_price_usd)
+       VALUES (?, ?, ?, ?, NULL, NULL)`
+    ).bind(newId('ci'), id, productId, index + 1)),
+    env.DB.prepare(
+      `INSERT INTO collection_publications (id, collection_id, target_type, slug, created_by_user_id) VALUES (?, ?, 'person', ?, ?)`
+    ).bind(newId('pub'), id, slug, claims.sub),
+    env.DB.prepare(
+      `INSERT INTO saved_collections (id, user_id, collection_id, via_slug, source, created_at, updated_at) VALUES (?, ?, ?, ?, 'made', ?, ?)`
+    ).bind(newId('sc'), claims.sub, id, slug, now, now),
+  ]);
+  return json({ id, slug, item_count: teas.length, left_out: wanted.length - teas.length }, 201);
 };
 
 // Public — recipient confirms their picks from a collection. No auth; link-gated
@@ -33494,6 +33609,7 @@ const routes: [string, string, Handler][] = [
   ['GET',    '/api/me/collections', handleListMyCollections],
   ['POST',   '/api/me/collections/save', handleSaveCollection],
   ['POST',   '/api/me/collections/received', handleReceiveCollection],
+  ['POST',   '/api/me/collections/make', handleMakeCollection],
   ['DELETE', '/api/me/collections/:id', handleUnsaveCollection],
 
   // Invoices — edit items
